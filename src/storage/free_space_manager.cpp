@@ -3,6 +3,7 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/utils.h"
+#include "storage/file_handle.h"
 #include "storage/page_range.h"
 
 namespace kuzu::storage {
@@ -15,7 +16,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -29,12 +30,17 @@ bool FreeSpaceManager::entryCmp(const PageRange& a, const PageRange& b) {
 }
 
 void FreeSpaceManager::addFreePages(PageRange entry) {
+    KU_ASSERT(entry.numPages > 0);
     getFreeList(freeLists, getLevel(entry.numPages)).insert(entry);
     ++numEntries;
 }
 
 void FreeSpaceManager::addUncheckpointedFreePages(PageRange entry) {
     uncheckpointedFreePageRanges.push_back(entry);
+}
+
+void FreeSpaceManager::rollbackCheckpoint() {
+    uncheckpointedFreePageRanges.clear();
 }
 
 // This also removes the chunk from the free space manager
@@ -99,7 +105,15 @@ void FreeSpaceManager::deserialize(common::Deserializer& deSer) {
     }
 }
 
-void FreeSpaceManager::finalizeCheckpoint() {
+void FreeSpaceManager::finalizeCheckpoint(FileHandle* fileHandle) {
+    // evict all pages that aren't already part of the free list
+    for (const auto& entry : uncheckpointedFreePageRanges) {
+        for (uint64_t i = 0; i < entry.numPages; ++i) {
+            const auto pageIdx = entry.startPageIdx + i;
+            fileHandle->removePageFromFrameIfNecessary(pageIdx);
+        }
+    }
+
     mergePageRanges(std::move(uncheckpointedFreePageRanges));
     uncheckpointedFreePageRanges.clear();
 }

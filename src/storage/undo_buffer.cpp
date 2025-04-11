@@ -4,7 +4,10 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
+#include "main/client_context.h"
+#include "storage/storage_manager.h"
 #include "storage/store/chunked_node_group.h"
+#include "storage/store/table.h"
 #include "storage/store/update_info.h"
 #include "storage/store/version_record_handler.h"
 #include "transaction/transaction.h"
@@ -183,7 +186,7 @@ uint64_t UndoBuffer::getMemUsage() const {
 }
 
 void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
-    transaction_t commitTS) {
+    transaction_t commitTS) const {
     switch (recordType) {
     case UndoRecordType::CATALOG_ENTRY: {
         commitCatalogEntryRecord(record, commitTS);
@@ -203,11 +206,32 @@ void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     }
 }
 
-void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record, const transaction_t commitTS) {
+void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,
+    const transaction_t commitTS) const {
     const auto& [_, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
     const auto newCatalogEntry = catalogEntry->getNext();
     KU_ASSERT(newCatalogEntry);
     newCatalogEntry->setTimestamp(commitTS);
+    if (newCatalogEntry->isDeleted()) {
+        commitCatalogEntryDrop(catalogEntry);
+    }
+}
+
+void UndoBuffer::commitCatalogEntryDrop(CatalogEntry* catalogEntry) const {
+    if (catalogEntry->hasParent()) {
+        return;
+    }
+    switch (catalogEntry->getType()) {
+    case CatalogEntryType::NODE_TABLE_ENTRY:
+    case CatalogEntryType::REL_TABLE_ENTRY: {
+        ctx->getStorageManager()
+            ->getTable(catalogEntry->constPtrCast<TableCatalogEntry>()->getTableID())
+            ->commitDrop(*ctx->getStorageManager()->getDataFH());
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* record,

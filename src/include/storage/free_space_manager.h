@@ -14,6 +14,7 @@ namespace kuzu::storage {
 
 struct PageRange;
 struct FreeEntryIterator;
+class FileHandle;
 
 class FreeSpaceManager {
 public:
@@ -28,10 +29,11 @@ public:
 
     // These pages are not reusable until the end of the next checkpoint
     void addUncheckpointedFreePages(PageRange entry);
+    void rollbackCheckpoint();
 
     void serialize(common::Serializer& serializer) const;
     void deserialize(common::Deserializer& deSer);
-    void finalizeCheckpoint();
+    void finalizeCheckpoint(FileHandle* fileHandle);
 
     common::row_idx_t getNumEntries() const;
     std::vector<PageRange> getEntries(common::row_idx_t startOffset,

@@ -27,6 +27,7 @@ public:
     void serialize(common::Serializer& serializer);
     void deserialize(common::Deserializer& deSer);
     void finalizeCheckpoint();
+    void rollbackCheckpoint() { freeSpaceManager->rollbackCheckpoint(); }
 
     common::row_idx_t getNumFreeEntries() const { return freeSpaceManager->getNumEntries(); }
     std::vector<PageRange> getFreeEntries(common::row_idx_t startOffset,

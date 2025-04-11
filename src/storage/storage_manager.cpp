@@ -108,8 +108,8 @@ void StorageManager::createRelTableGroup(catalog::RelGroupCatalogEntry* entry,
     main::ClientContext* context) {
     for (const auto id : entry->getRelTableIDs()) {
         createRelTable(context->getCatalog()
-                           ->getTableCatalogEntry(context->getTransaction(), id)
-                           ->ptrCast<RelTableCatalogEntry>());
+                ->getTableCatalogEntry(context->getTransaction(), id)
+                ->ptrCast<RelTableCatalogEntry>());
     }
 }
 
@@ -200,6 +200,7 @@ void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {
         KU_ASSERT(tables.contains(tableEntry->getTableID()));
         tables.at(tableEntry->getTableID())->rollbackCheckpoint();
     }
+    dataFH->getPageManager()->rollbackCheckpoint();
 }
 
 } // namespace storage

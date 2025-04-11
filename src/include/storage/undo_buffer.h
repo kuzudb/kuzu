@@ -78,7 +78,7 @@ public:
         DELETE_INFO = 8,
     };
 
-    explicit UndoBuffer(MemoryManager* mm) : mm{mm} {}
+    explicit UndoBuffer(MemoryManager* mm, main::ClientContext* ctx) : mm{mm}, ctx(ctx) {}
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
@@ -102,13 +102,15 @@ private:
         common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
         common::node_group_idx_t nodeGroupIdx = 0);
 
-    static void commitRecord(UndoRecordType recordType, const uint8_t* record,
-        common::transaction_t commitTS);
+    void commitRecord(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS) const;
     static void rollbackRecord(const transaction::Transaction* transaction,
         UndoRecordType recordType, const uint8_t* record);
 
-    static void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS);
+    void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
     static void rollbackCatalogEntryRecord(const uint8_t* record);
+
+    void commitCatalogEntryDrop(catalog::CatalogEntry* catalogEntry) const;
 
     static void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS);
     static void rollbackSequenceEntry(uint8_t const* entry);
@@ -125,6 +127,7 @@ private:
 private:
     std::mutex mtx;
     MemoryManager* mm;
+    main::ClientContext* ctx;
     std::vector<UndoMemoryBuffer> memoryBuffers;
 };
 
