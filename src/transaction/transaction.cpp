@@ -186,7 +186,7 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
 
 void Transaction::pushAlterCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
     const binder::BoundAlterInfo& alterInfo) {
-    undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
+    undoBuffer->createAlterCatalogEntry(catalogSet, catalogEntry, alterInfo);
     hasCatalogChanges = true;
     if (!shouldLogToWAL()) {
         return;

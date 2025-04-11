@@ -192,6 +192,7 @@ public:
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override {};
     void commitDrop(FileHandle& dataFH) override;
+    void commitDropColumn(FileHandle& dataFH, common::column_id_t columnID) override;
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 

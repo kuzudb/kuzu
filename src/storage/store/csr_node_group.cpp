@@ -473,6 +473,11 @@ void CSRNodeGroup::commitDrop(FileHandle& dataFH) {
     persistentChunkGroup->commitDrop(dataFH);
 }
 
+void CSRNodeGroup::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
+    NodeGroup::commitDropColumn(dataFH, columnID);
+    persistentChunkGroup->commitDropColumn(dataFH, columnID);
+}
+
 void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheckpointState& state) {
     // TODO(Guodong): Should skip early here if no changes in the node group, so we avoid scanning
     // the csr header. Case: No insertions/deletions in persistent chunk and no in-mem chunks.

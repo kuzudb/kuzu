@@ -495,6 +495,10 @@ void ChunkedNodeGroup::commitDrop(FileHandle& dataFH) {
     }
 }
 
+void ChunkedNodeGroup::commitDropColumn(FileHandle& dataFH, common::column_id_t columnID) {
+    chunks[columnID]->commitDrop(dataFH);
+}
+
 void ChunkedNodeGroup::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
     serializer.writeDebuggingInfo("chunks");

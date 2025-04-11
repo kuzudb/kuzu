@@ -32,6 +32,12 @@ struct CatalogEntryRecord {
     CatalogEntry* catalogEntry;
 };
 
+struct DeletePropertyCatalogEntryRecord {
+    CatalogSet* catalogSet;
+    CatalogEntry* catalogEntry;
+    column_id_t columnID;
+};
+
 struct SequenceEntryRecord {
     SequenceCatalogEntry* sequenceEntry;
     SequenceRollbackData sequenceRollbackData;
@@ -94,21 +100,33 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
 }
 
 void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) {
-    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(CatalogEntryRecord));
-    const UndoRecordHeader recordHeader{UndoRecordType::CATALOG_ENTRY, sizeof(CatalogEntryRecord)};
-    *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
-    buffer += sizeof(UndoRecordHeader);
+    auto buffer = createUndoRecord<CatalogEntryRecord>(UndoRecordType::CATALOG_ENTRY);
     const CatalogEntryRecord catalogEntryRecord{&catalogSet, &catalogEntry};
     *reinterpret_cast<CatalogEntryRecord*>(buffer) = catalogEntryRecord;
 }
 
+void UndoBuffer::createAlterCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
+    const binder::BoundAlterInfo& alterInfo) {
+    switch (alterInfo.alterType) {
+    case AlterType::DROP_PROPERTY: {
+        auto buffer = createUndoRecord<DeletePropertyCatalogEntryRecord>(
+            UndoRecordType::DROP_PROPERTY_CATALOG_ENTRY);
+        const DeletePropertyCatalogEntryRecord catalogEntryRecord{&catalogSet, &catalogEntry,
+            catalogEntry.constCast<TableCatalogEntry>().getColumnID(
+                alterInfo.extraInfo->constCast<binder::BoundExtraDropPropertyInfo>().propertyName)};
+        *reinterpret_cast<DeletePropertyCatalogEntryRecord*>(buffer) = catalogEntryRecord;
+        break;
+    }
+    default: {
+        createCatalogEntry(catalogSet, catalogEntry);
+        break;
+    }
+    }
+}
+
 void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
     const SequenceRollbackData& data) {
-    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(SequenceEntryRecord));
-    const UndoRecordHeader recordHeader{UndoRecordType::SEQUENCE_ENTRY,
-        sizeof(SequenceEntryRecord)};
-    *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
-    buffer += sizeof(UndoRecordHeader);
+    auto buffer = createUndoRecord<SequenceEntryRecord>(UndoRecordType::SEQUENCE_ENTRY);
     const SequenceEntryRecord sequenceEntryRecord{&sequenceEntry, data};
     *reinterpret_cast<SequenceEntryRecord*>(buffer) = sequenceEntryRecord;
 }
@@ -129,25 +147,28 @@ void UndoBuffer::createVersionInfo(const UndoRecordType recordType, row_idx_t st
     row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
     node_group_idx_t nodeGroupIdx) {
     KU_ASSERT(versionRecordHandler);
-    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VersionRecord));
-    const UndoRecordHeader recordHeader{recordType, sizeof(VersionRecord)};
-    *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
-    buffer += sizeof(UndoRecordHeader);
+    auto buffer = createUndoRecord<VersionRecord>(recordType);
     *reinterpret_cast<VersionRecord*>(buffer) =
         VersionRecord{startRow, numRows, nodeGroupIdx, versionRecordHandler};
 }
 
 void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vectorIdx,
     VectorUpdateInfo* vectorUpdateInfo) {
-    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorUpdateRecord));
-    const UndoRecordHeader recordHeader{UndoRecordType::UPDATE_INFO, sizeof(VectorUpdateRecord)};
-    *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
-    buffer += sizeof(UndoRecordHeader);
+    auto buffer = createUndoRecord<VectorUpdateRecord>(UndoRecordType::UPDATE_INFO);
     const VectorUpdateRecord vectorUpdateRecord{updateInfo, vectorIdx, vectorUpdateInfo};
     *reinterpret_cast<VectorUpdateRecord*>(buffer) = vectorUpdateRecord;
 }
 
-uint8_t* UndoBuffer::createUndoRecord(const uint64_t size) {
+template<typename UndoEntry>
+uint8_t* populateRecordHeader(uint8_t* buffer, UndoBuffer::UndoRecordType recordType) {
+    const UndoRecordHeader recordHeader{recordType, sizeof(UndoEntry)};
+    *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
+    return buffer + sizeof(UndoRecordHeader);
+}
+
+template<typename UndoEntry>
+uint8_t* UndoBuffer::createUndoRecord(UndoRecordType recordType) {
+    static constexpr auto size = sizeof(UndoRecordHeader) + sizeof(UndoEntry);
     std::unique_lock xLck{mtx};
     if (memoryBuffers.empty() || !memoryBuffers.back().canFit(size)) {
         auto capacity = UndoMemoryBuffer::UNDO_MEMORY_BUFFER_INIT_CAPACITY;
@@ -157,10 +178,9 @@ uint8_t* UndoBuffer::createUndoRecord(const uint64_t size) {
         // We need to allocate a new memory buffer.
         memoryBuffers.emplace_back(mm->allocateBuffer(false, capacity), capacity);
     }
-    const auto res =
-        memoryBuffers.back().getDataUnsafe() + memoryBuffers.back().getCurrentPosition();
+    auto* res = memoryBuffers.back().getDataUnsafe() + memoryBuffers.back().getCurrentPosition();
     memoryBuffers.back().moveCurrentPosition(size);
-    return res;
+    return populateRecordHeader<UndoEntry>(res, recordType);
 }
 
 void UndoBuffer::commit(transaction_t commitTS) const {
@@ -191,6 +211,9 @@ void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     case UndoRecordType::CATALOG_ENTRY: {
         commitCatalogEntryRecord(record, commitTS);
     } break;
+    case UndoRecordType::DROP_PROPERTY_CATALOG_ENTRY: {
+        commitDropPropertyCatalogEntryRecord(record, commitTS);
+    } break;
     case UndoRecordType::SEQUENCE_ENTRY: {
         commitSequenceEntry(record, commitTS);
     } break;
@@ -204,6 +227,22 @@ void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     default:
         KU_UNREACHABLE;
     }
+}
+
+void UndoBuffer::commitDropPropertyCatalogEntryRecord(const uint8_t* record,
+    const transaction_t commitTS) const {
+    commitCatalogEntryRecord(record, commitTS);
+    auto& [_, catalogEntry, columnID] =
+        *reinterpret_cast<DeletePropertyCatalogEntryRecord const*>(record);
+    const auto newCatalogEntry = catalogEntry->getNext();
+    KU_ASSERT(newCatalogEntry);
+    newCatalogEntry->setTimestamp(commitTS);
+    catalogEntry->setTimestamp(commitTS);
+    KU_ASSERT(catalogEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY ||
+              catalogEntry->getType() == catalog::CatalogEntryType::REL_TABLE_ENTRY);
+    ctx->getStorageManager()
+        ->getTable(catalogEntry->constCast<TableCatalogEntry>().getTableID())
+        ->commitDropColumn(*ctx->getStorageManager()->getDataFH(), columnID);
 }
 
 void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,

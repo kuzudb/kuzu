@@ -87,6 +87,13 @@ void StructChunkData::flush(FileHandle& dataFH) {
     }
 }
 
+void StructChunkData::commitDrop(FileHandle& dataFH) {
+    ColumnChunkData::commitDrop(dataFH);
+    for (const auto& childChunk : childChunks) {
+        childChunk->commitDrop(dataFH);
+    }
+}
+
 void StructChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);

@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include "binder/ddl/bound_alter_info.h"
 #include "buffer_manager/memory_manager.h"
 #include "common/types/types.h"
 
@@ -76,11 +77,14 @@ public:
         UPDATE_INFO = 6,
         INSERT_INFO = 7,
         DELETE_INFO = 8,
+        DROP_PROPERTY_CATALOG_ENTRY = 9,
     };
 
     explicit UndoBuffer(MemoryManager* mm, main::ClientContext* ctx) : mm{mm}, ctx(ctx) {}
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
+    void createAlterCatalogEntry(catalog::CatalogSet& catalogSet,
+        catalog::CatalogEntry& catalogEntry, const binder::BoundAlterInfo& alterInfo);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
     void createInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
@@ -96,7 +100,8 @@ public:
     uint64_t getMemUsage() const;
 
 private:
-    uint8_t* createUndoRecord(uint64_t size);
+    template<typename UndoEntry>
+    uint8_t* createUndoRecord(UndoRecordType recordType);
 
     void createVersionInfo(UndoRecordType recordType, common::row_idx_t startRow,
         common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
@@ -108,6 +113,8 @@ private:
         UndoRecordType recordType, const uint8_t* record);
 
     void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
+    void commitDropPropertyCatalogEntryRecord(const uint8_t* record,
+        const common::transaction_t commitTS) const;
     static void rollbackCatalogEntryRecord(const uint8_t* record);
 
     void commitCatalogEntryDrop(catalog::CatalogEntry* catalogEntry) const;

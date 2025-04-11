@@ -290,5 +290,9 @@ void RelTableData::commitDrop(FileHandle& dataFH) {
     nodeGroups->commitDrop(dataFH);
 }
 
+void RelTableData::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
+    nodeGroups->commitDropColumn(dataFH, columnID);
+}
+
 } // namespace storage
 } // namespace kuzu

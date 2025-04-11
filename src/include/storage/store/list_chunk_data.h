@@ -109,6 +109,7 @@ public:
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
     void flush(FileHandle& dataFH) override;
+    void commitDrop(FileHandle& dataFH) override;
 
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);

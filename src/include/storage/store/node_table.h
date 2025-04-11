@@ -172,6 +172,7 @@ public:
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override;
     void commitDrop(FileHandle& dataFH) override;
+    void commitDropColumn(FileHandle& dataFH, common::column_id_t columnID) override;
 
     void rollbackPKIndexInsert(const transaction::Transaction* transaction,
         common::row_idx_t startRow, common::row_idx_t numRows_,

@@ -439,5 +439,12 @@ void ListChunkData::flush(FileHandle& dataFH) {
     offsetColumnChunk->flush(dataFH);
 }
 
+void ListChunkData::commitDrop(FileHandle& dataFH) {
+    ColumnChunkData::commitDrop(dataFH);
+    sizeColumnChunk->commitDrop(dataFH);
+    dataColumnChunk->commitDrop(dataFH);
+    offsetColumnChunk->commitDrop(dataFH);
+}
+
 } // namespace storage
 } // namespace kuzu

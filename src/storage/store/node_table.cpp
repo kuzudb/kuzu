@@ -599,6 +599,10 @@ void NodeTable::commitDrop(FileHandle& dataFH) {
     nodeGroups->commitDrop(dataFH);
 }
 
+void NodeTable::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
+    nodeGroups->commitDropColumn(dataFH, columnID);
+}
+
 TableStats NodeTable::getStats(const Transaction* transaction) const {
     auto stats = nodeGroups->getStats();
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
