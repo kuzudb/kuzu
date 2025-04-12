@@ -9,7 +9,7 @@ repository = "https://github.com/kuzudb/kuzu"
 license = "MIT"
 categories = ["database"]
 
-rust-version = "1.74"
+rust-version = "1.81"
 edition = "2021"
 
 # Only include files required to build to keep crate size small
@@ -27,7 +27,7 @@ include = [
 ]
 
 [dependencies]
-arrow = { version = "54", optional = true, default-features = false, features = ["ffi"] }
+arrow = { version = "55", optional = true, default-features = false, features = ["ffi"] }
 cxx = "1.0"
 rust_decimal = { version = "1.37", default-features = false }
 time = "0.3"
