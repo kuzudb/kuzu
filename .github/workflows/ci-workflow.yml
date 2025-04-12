@@ -377,7 +377,7 @@ jobs:
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --locked --features arrow
+        run: cargo build --profile=relwithdebinfo --locked --all-features
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
@@ -974,7 +974,7 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cargo build --locked --features arrow
+          cargo build --profile=relwithdebinfo --locked --all-features
 
       # TODO(bmwinger): rust pre-built library test for macos
       # When last tried it had issues finding libkuzu.dylib when running the tests
