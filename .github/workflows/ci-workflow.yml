@@ -373,7 +373,7 @@ jobs:
         run: |
           make extension-release
           cd tools/rust_api
-          cargo test --profile=relwithdebinfo --locked --all-features -- --test-threads=12
+          cargo test --profile=relwithdebinfo --locked --all-features
 
       - name: Rust example
         working-directory: examples/rust
@@ -709,7 +709,7 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make extension-release
           cd tools/rust_api
-          cargo test --profile=relwithdebinfo --locked --all-features -- --test-threads=12
+          cargo test --profile=relwithdebinfo --locked --all-features
 
       - name: Rust test with pre-built library
         env:
@@ -967,7 +967,7 @@ jobs:
           cmake -B build/release -DBUILD_EXAMPLES=OFF
           make extension-release
           cd tools/rust_api
-          cargo test --profile=relwithdebinfo --locked --all-features -- --test-threads=12
+          cargo test --profile=relwithdebinfo --locked --all-features
 
       - name: Rust example
         working-directory: examples/rust

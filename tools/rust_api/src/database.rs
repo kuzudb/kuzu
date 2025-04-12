@@ -41,6 +41,19 @@ pub struct SystemConfig {
     checkpoint_threshold: i64,
 }
 
+#[cfg(test)]
+pub(crate) const SYSTEM_CONFIG_FOR_TESTS: SystemConfig = SystemConfig {
+    buffer_pool_size: 0,
+    max_num_threads: 0,
+    enable_compression: true,
+    read_only: false,
+    // Use a smaller max DB size since these tests don't need a large DB and it limits the number of
+    // databases which can be open in a single process
+    max_db_size: 16 * 1024 * 1024 * 1024,
+    auto_checkpoint: true,
+    checkpoint_threshold: -1_i64,
+};
+
 impl Default for SystemConfig {
     fn default() -> SystemConfig {
         SystemConfig {
@@ -133,6 +146,7 @@ mod tests {
     use anyhow::{Error, Result};
 
     use crate::connection::Connection;
+    use crate::database::SYSTEM_CONFIG_FOR_TESTS;
     use crate::database::{Database, SystemConfig};
     use crate::value::Value;
     use std::collections::HashSet;
@@ -140,7 +154,7 @@ mod tests {
     #[test]
     fn create_database() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let _db = Database::new(temp_dir.path(), SystemConfig::default())?;
+        let _db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
         temp_dir.close()?;
         Ok(())
     }
@@ -150,7 +164,7 @@ mod tests {
         let temp_dir = tempfile::tempdir()?;
         let _ = Database::new(
             temp_dir.path(),
-            SystemConfig::default().enable_compression(false),
+            SYSTEM_CONFIG_FOR_TESTS.enable_compression(false),
         )?;
         temp_dir.close()?;
         Ok(())
@@ -161,9 +175,9 @@ mod tests {
         let temp_dir = tempfile::tempdir()?;
         // Create database first so that it can be opened read-only
         {
-            Database::new(temp_dir.path(), SystemConfig::default())?;
+            Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
         }
-        let db = Database::new(temp_dir.path(), SystemConfig::default().read_only(true))?;
+        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS.read_only(true))?;
         let conn = Connection::new(&db)?;
         let result: Error = conn
             .query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
@@ -199,7 +213,7 @@ mod tests {
         let temp_dir = tempfile::tempdir()?;
         let db = Database::new(
             temp_dir.path(),
-            SystemConfig::default().auto_checkpoint(false),
+            SYSTEM_CONFIG_FOR_TESTS.auto_checkpoint(false),
         )?;
         let conn = Connection::new(&db)?;
         let result = conn.query("CALL current_setting('auto_checkpoint') RETURN *");
@@ -221,7 +235,7 @@ mod tests {
         let temp_dir = tempfile::tempdir()?;
         let db = Database::new(
             temp_dir.path(),
-            SystemConfig::default().checkpoint_threshold(1234),
+            SYSTEM_CONFIG_FOR_TESTS.checkpoint_threshold(1234),
         )?;
         let conn = Connection::new(&db)?;
         let result = conn.query("CALL current_setting('checkpoint_threshold') RETURN *");
@@ -235,7 +249,7 @@ mod tests {
     #[test]
     fn test_database_in_memory() -> Result<()> {
         use crate::Value;
-        let db = Database::in_memory(SystemConfig::default())?;
+        let db = Database::in_memory(SYSTEM_CONFIG_FOR_TESTS)?;
         // If the special name is ever changed (or removed) kuzu is likely to just create a db directory with that name
         assert!(!std::path::Path::new(crate::database::IN_MEMORY_DB_NAME).exists());
 
