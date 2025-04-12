@@ -1,12 +1,12 @@
 #include "processor/operator/recursive_extend.h"
 
+#include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "common/exception/interrupt.h"
 #include "common/task_system/progress_bar.h"
 #include "function/gds/compute.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
-#include "binder/expression/node_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
