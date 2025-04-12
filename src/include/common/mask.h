@@ -40,10 +40,7 @@ struct SemiMaskUtil {
 
 class NodeOffsetMaskMap {
 public:
-    NodeOffsetMaskMap() : enabled_{false} {}
-
-    void enable() { enabled_ = true; }
-    bool enabled() const { return enabled_; }
+    NodeOffsetMaskMap() = default;
 
     offset_t getNumMaskedNode() const;
 
@@ -88,8 +85,6 @@ public:
 private:
     table_id_map_t<std::unique_ptr<SemiMask>> maskMap;
     SemiMask* pinnedMask = nullptr;
-    // If mask map is enabled, then some nodes might be masked.
-    bool enabled_;
 };
 
 } // namespace common

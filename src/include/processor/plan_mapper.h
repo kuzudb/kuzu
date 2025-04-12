@@ -237,11 +237,9 @@ public:
     static FactorizedTableSchema createFlatFTableSchema(
         const binder::expression_vector& expressions, const planner::Schema& schema);
     std::unique_ptr<common::SemiMask> createSemiMask(common::table_id_t tableID) const;
-    std::unique_ptr<common::NodeOffsetMaskMap> createNodeOffsetMaskMap(
-        const binder::Expression& expr) const;
 
 public:
-    processor::ExecutionContext* executionContext;
+    ExecutionContext* executionContext;
     main::ClientContext* clientContext;
     std::unordered_map<const planner::LogicalOperator*, PhysicalOperator*> logicalOpToPhysicalOpMap;
 

@@ -99,8 +99,7 @@ void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComput
     compState.edgeCompute->resetSingleThreadState();
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
-        if (outputNodeMask != nullptr && outputNodeMask->enabled() &&
-            compState.edgeCompute->terminate(*outputNodeMask)) {
+        if (outputNodeMask != nullptr && compState.edgeCompute->terminate(*outputNodeMask)) {
             break;
         }
         runOnGraph(context, graph, extendDirection, compState, propertyToScan);

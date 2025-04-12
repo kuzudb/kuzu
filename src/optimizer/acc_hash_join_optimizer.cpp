@@ -72,7 +72,7 @@ static bool sameTableIDs(const std::unordered_set<table_id_t>& set,
     return true;
 }
 
-static bool haveSameTableIDs(const std::vector<const LogicalOperator*>& ops,
+static bool haveSameTableIDs(const std::vector<LogicalOperator*>& ops,
     SemiMaskTargetType targetType) {
     std::unordered_set<table_id_t> tableIDSet;
     for (auto id : getTableIDs(ops[0], targetType)) {
@@ -86,7 +86,7 @@ static bool haveSameTableIDs(const std::vector<const LogicalOperator*>& ops,
     return true;
 }
 
-static bool haveSameType(const std::vector<const LogicalOperator*>& ops) {
+static bool haveSameType(const std::vector<LogicalOperator*>& ops) {
     for (auto i = 0u; i < ops.size(); ++i) {
         if (ops[i]->getOperatorType() != ops[0]->getOperatorType()) {
             return false;
@@ -95,7 +95,7 @@ static bool haveSameType(const std::vector<const LogicalOperator*>& ops) {
     return true;
 }
 
-bool sanityCheckCandidates(const std::vector<const LogicalOperator*>& ops,
+bool sanityCheckCandidates(const std::vector<LogicalOperator*>& ops,
     SemiMaskTargetType targetType) {
     KU_ASSERT(!ops.empty());
     if (!haveSameType(ops)) {
@@ -109,10 +109,13 @@ bool sanityCheckCandidates(const std::vector<const LogicalOperator*>& ops,
 
 static std::shared_ptr<LogicalSemiMasker> appendSemiMasker(SemiMaskKeyType keyType,
     SemiMaskTargetType targetType, std::shared_ptr<Expression> key,
-    std::vector<const LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
+    std::vector<LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
     auto tableIDs = getTableIDs(candidates[0], targetType);
     auto semiMasker =
-        std::make_shared<LogicalSemiMasker>(keyType, targetType, key, tableIDs, candidates, child);
+        std::make_shared<LogicalSemiMasker>(keyType, targetType, key, tableIDs, child);
+    for (auto candidate : candidates) {
+        semiMasker->addTarget(candidate);
+    }
     semiMasker->computeFlatSchema();
     return semiMasker;
 }
@@ -152,9 +155,9 @@ static bool isProbeSideQualified(LogicalOperator* probeRoot) {
 
 // Find all ScanNodeIDs under root which scans parameter nodeID. Note that there might be
 // multiple ScanNodeIDs matches because both node and rel table scans will trigger scanNodeIDs.
-static std::vector<const LogicalOperator*> getScanNodeCandidates(const Expression& nodeID,
+static std::vector<LogicalOperator*> getScanNodeCandidates(const Expression& nodeID,
     LogicalOperator* root) {
-    std::vector<const LogicalOperator*> result;
+    std::vector<LogicalOperator*> result;
     auto collector = LogicalScanNodeTableCollector();
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
@@ -170,9 +173,9 @@ static std::vector<const LogicalOperator*> getScanNodeCandidates(const Expressio
     return result;
 }
 
-static std::vector<const LogicalOperator*> getRecursiveExtendInputNodeCandidates(
-    const Expression& nodeID, LogicalOperator* root) {
-    std::vector<const LogicalOperator*> result;
+static std::vector<LogicalOperator*> getRecursiveExtendInputNodeCandidates(const Expression& nodeID,
+    LogicalOperator* root) {
+    std::vector<LogicalOperator*> result;
     auto collector = LogicalRecursiveExtendCollector();
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
@@ -185,9 +188,9 @@ static std::vector<const LogicalOperator*> getRecursiveExtendInputNodeCandidates
     return result;
 }
 
-static std::vector<const LogicalOperator*> getRecursiveExtendOutputNodeCandidates(
+static std::vector<LogicalOperator*> getRecursiveExtendOutputNodeCandidates(
     const Expression& nodeID, LogicalOperator* root) {
-    std::vector<const LogicalOperator*> result;
+    std::vector<LogicalOperator*> result;
     auto collector = LogicalRecursiveExtendCollector();
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
@@ -207,6 +210,9 @@ static std::shared_ptr<LogicalOperator> tryApplySemiMask(std::shared_ptr<Express
     auto recursiveExtendInputNodeCandidates =
         getRecursiveExtendInputNodeCandidates(*nodeID, toRoot);
     if (!recursiveExtendInputNodeCandidates.empty()) {
+        for (auto& op : recursiveExtendInputNodeCandidates) {
+            op->cast<LogicalRecursiveExtend>().setInputNodeMask();
+        }
         auto targetType = SemiMaskTargetType::RECURSIVE_EXTEND_INPUT_NODE;
         KU_ASSERT(sanityCheckCandidates(recursiveExtendInputNodeCandidates, targetType));
         return appendSemiMasker(SemiMaskKeyType::NODE, targetType, std::move(nodeID),
@@ -214,6 +220,9 @@ static std::shared_ptr<LogicalOperator> tryApplySemiMask(std::shared_ptr<Express
     }
     auto recursiveExtendNodeCandidates = getRecursiveExtendOutputNodeCandidates(*nodeID, toRoot);
     if (!recursiveExtendNodeCandidates.empty()) {
+        for (auto& op : recursiveExtendNodeCandidates) {
+            op->cast<LogicalRecursiveExtend>().setOutputNodeMask();
+        }
         auto targetType = SemiMaskTargetType::RECURSIVE_EXTEND_OUTPUT_NODE;
         KU_ASSERT(sanityCheckCandidates(recursiveExtendNodeCandidates, targetType));
         return appendSemiMasker(SemiMaskKeyType::NODE, targetType, std::move(nodeID),
@@ -330,7 +339,7 @@ void HashJoinSIPOptimizer::visitIntersect(LogicalOperator* op) {
     auto probeRoot = intersect.getChild(0);
     auto hasSemiMaskApplied = false;
     for (auto& nodeID : intersect.getKeyNodeIDs()) {
-        std::vector<const LogicalOperator*> ops;
+        std::vector<LogicalOperator*> ops;
         for (auto i = 1u; i < intersect.getNumChildren(); ++i) {
             auto buildRoot = intersect.getChild(i);
             for (auto& op_ : getScanNodeCandidates(*nodeID, buildRoot.get())) {
@@ -367,7 +376,7 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     }
     auto recursiveRel = pathPropertyProbe.getRel();
     auto nodeID = recursiveRel->getRecursiveInfo()->node->getInternalID();
-    std::vector<const LogicalOperator*> opsToApplySemiMask;
+    std::vector<LogicalOperator*> opsToApplySemiMask;
     if (pathPropertyProbe.getNodeChild() != nullptr) {
         auto child = pathPropertyProbe.getNodeChild().get();
         for (auto op_ : getScanNodeCandidates(*nodeID, child)) {

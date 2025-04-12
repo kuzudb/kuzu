@@ -1,3 +1,4 @@
+#include "binder/expression/node_expression.h"
 #include "graph/on_disk_graph.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/sip/logical_semi_masker.h"
@@ -12,6 +13,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+std::unique_ptr<NodeOffsetMaskMap> createNodeOffsetMaskMap(const Expression& expr,
+    PlanMapper* mapper) {
+    auto& node = expr.constCast<NodeExpression>();
+    auto maskMap = std::make_unique<NodeOffsetMaskMap>();
+    for (auto tableID : node.getTableIDs()) {
+        maskMap->addMask(tableID, mapper->createSemiMask(tableID));
+    }
+    return maskMap;
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     const LogicalOperator* logicalOperator) {
     auto& extend = logicalOperator->constCast<LogicalRecursiveExtend>();
@@ -23,11 +34,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     auto graph = std::make_unique<OnDiskGraph>(clientContext, bindData.graphEntry.copy());
     auto sharedState =
         std::make_shared<RecursiveExtendSharedState>(table, std::move(graph), extend.getLimitNum());
-    if (extend.hasNbrTableIDSet()) {
-        sharedState->setNbrTableIDSet(extend.getNbrTableIDSet());
+    if (extend.hasInputNodeMask()) {
+        sharedState->setInputNodeMask(createNodeOffsetMaskMap(*bindData.nodeInput, this));
     }
-    sharedState->setInputNodeMask(createNodeOffsetMaskMap(*bindData.nodeInput));
-    sharedState->setOutputNodeMask(createNodeOffsetMaskMap(*bindData.nodeOutput));
+    if (extend.hasOutputNodeMask()) {
+        sharedState->setOutputNodeMask(createNodeOffsetMaskMap(*bindData.nodeOutput, this));
+    }
     auto printInfo =
         std::make_unique<RecursiveExtendPrintInfo>(extend.getFunction().getFunctionName());
     auto descriptor = std::make_unique<ResultSetDescriptor>();
