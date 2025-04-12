@@ -82,7 +82,7 @@ jobs:
           set +e
           make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Test,$?" >> status.txt
-      
+
       - name: Remove ldbc-1
         run: rm -rf dataset/ldbc-1
 
@@ -113,7 +113,7 @@ jobs:
           set +e
           make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Java test,$?" >> status.txt
-        
+
       - name: Cleanup
         run: make clean
 
@@ -130,7 +130,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           set +e
-          cargo test --release --features arrow
+          cargo test --locked --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
@@ -138,7 +138,7 @@ jobs:
         working-directory: examples/rust
         run: |
           set +e
-          cargo build --release --features arrow
+          cargo build --locked --release --features arrow
           echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
@@ -218,7 +218,7 @@ jobs:
         run: |
           make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Test,%ERRORLEVEL% >> status.txt
-        
+
       - name: Remove ldbc-1
         run: Remove-Item -Recurse -Force dataset\ldbc-1
 
@@ -249,7 +249,7 @@ jobs:
         run: |
           make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Java test,%ERRORLEVEL% >> status.txt
-      
+
       - name: Cleanup
         shell: cmd
         run: make clean
@@ -267,7 +267,7 @@ jobs:
           set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
           set CXXFLAGS=/std:c++20
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
-          cargo test --release --features arrow
+          cargo test --locked --release --features arrow
           echo Rust test,%ERRORLEVEL% >> status.txt
 
       - name: Rust example
@@ -275,7 +275,7 @@ jobs:
         shell: cmd
         run: |
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
-          cargo build --release --features arrow
+          cargo build --locked --release --features arrow
           echo Rust example,%ERRORLEVEL% >> status.txt
 
       - name: Rename status.txt
@@ -314,13 +314,13 @@ jobs:
           mkdir -p /etc/apt/keyrings
           curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
           echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
-          
+
       - name: Install packages
         continue-on-error: true
         run: |    
           apt-get update
           apt-get install -y git build-essential cmake gcc g++ python3 python3-dev python3-pip openjdk-17-jdk nodejs ca-certificates curl gnupg
-      
+
       - name: Install npm
         if: ${{ matrix.image == 'debian:sid' }}
         continue-on-error: true
@@ -351,7 +351,7 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.76
+          $HOME/.cargo/bin/rustup toolchain install 1.81
 
       - name: Build
         continue-on-error: true
@@ -397,7 +397,7 @@ jobs:
           set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
-      
+
       - name: Cleanup
         run: make clean
 
@@ -414,7 +414,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           set +e
-          cargo test --release --features arrow
+          cargo test --locked --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
@@ -422,7 +422,7 @@ jobs:
         working-directory: examples/rust
         run: |
           set +e
-          cargo build --release --features arrow
+          cargo build --locked --release --features arrow
           echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
@@ -511,7 +511,7 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.76
+          $HOME/.cargo/bin/rustup toolchain install 1.81
 
       - name: Build
         continue-on-error: true
@@ -575,7 +575,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           set +e
-          cargo test --release --features arrow
+          cargo test --locked --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
@@ -583,7 +583,7 @@ jobs:
         working-directory: examples/rust
         run: |
           set +e
-          cargo build --release --features arrow
+          cargo build --locked --release --features arrow
           echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
@@ -641,7 +641,7 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.76
+          $HOME/.cargo/bin/rustup toolchain install 1.81
 
       - name: Build
         continue-on-error: true
@@ -704,7 +704,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          cargo test --release --features arrow
+          cargo test --locked --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
@@ -712,7 +712,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          cargo build --release --features arrow
+          cargo build --locked --release --features arrow
           echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
