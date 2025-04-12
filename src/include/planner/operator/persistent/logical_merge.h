@@ -16,10 +16,10 @@ public:
         : LogicalOperator{type_, std::move(child)}, existenceMark{std::move(existenceMark)},
           keys{std::move(keys)} {}
 
-    void computeFactorizedSchema() final;
-    void computeFlatSchema() final;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const final { return {}; }
+    std::string getExpressionsForPrinting() const override { return {}; }
 
     f_group_pos_set getGroupsPosToFlatten();
 
@@ -73,6 +73,11 @@ private:
     // On Match infos
     std::vector<binder::BoundSetPropertyInfo> onMatchSetNodeInfos;
     std::vector<binder::BoundSetPropertyInfo> onMatchSetRelInfos;
+    // Key expressions used in merge hash table.
+    // If a merge clause is taking input from previous query parts
+    // E.g. UNWIND [1,1,3] AS x MERGE (n:N{id:x})
+    // Since we don't re-evaluate the existence of n for each x, we need to create n only for
+    // distinct x, i.e. 1 & 3. So there is a notion of key in MERGE.
     binder::expression_vector keys;
 };
 

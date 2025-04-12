@@ -1,6 +1,6 @@
-#include "processor/operator/aggregate/aggregate_hash_table.h"
-
 #pragma once
+
+#include "processor/operator/aggregate/aggregate_hash_table.h"
 
 namespace kuzu {
 namespace processor {

@@ -69,18 +69,33 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindInsertClause(
     return std::make_unique<BoundInsertClause>(std::move(insertInfos));
 }
 
+static expression_vector getColumnDataExprs( QueryGraphCollection& collection) {
+    expression_vector exprs;
+    for (auto i = 0u; i < collection.getNumQueryGraphs(); ++i) {
+        auto queryGraph = collection.getQueryGraph(i);
+        for (auto& pattern : queryGraph->getAllPatterns()) {
+            for (auto& [_, rhs] : pattern->getPropertyDataExprRef()) {
+                exprs.push_back(rhs);
+            }
+        }
+    }
+    return exprs;
+}
+
 std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(const UpdatingClause& updatingClause) {
     auto& mergeClause = updatingClause.constCast<MergeClause>();
     auto patternsScope = populatePatternsScope(scope);
     // bindGraphPattern will update scope.
     auto boundGraphPattern = bindGraphPattern(mergeClause.getPatternElementsRef());
+    auto columnDataExprs = getColumnDataExprs(boundGraphPattern.queryGraphCollection);
+    // Rewrite key value pairs in MATCH clause as predicate
     rewriteMatchPattern(boundGraphPattern);
     auto existenceMark =
         expressionBinder.createVariableExpression(LogicalType::BOOL(), std::string("__existence"));
     auto distinctMark =
         expressionBinder.createVariableExpression(LogicalType::BOOL(), std::string("__distinct"));
     auto createInfos = bindInsertInfos(boundGraphPattern.queryGraphCollection, patternsScope);
-    auto boundMergeClause = std::make_unique<BoundMergeClause>(std::move(existenceMark),
+    auto boundMergeClause = std::make_unique<BoundMergeClause>(columnDataExprs, std::move(existenceMark),
         std::move(distinctMark), std::move(boundGraphPattern.queryGraphCollection),
         std::move(boundGraphPattern.where), std::move(createInfos));
     if (mergeClause.hasOnMatchSetItems()) {

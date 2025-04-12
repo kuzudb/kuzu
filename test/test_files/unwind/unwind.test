@@ -225,3 +225,12 @@ Aida|Alice|Bob|Dan
 [5,2,1]
 [2,3]
 [15,64,74]
+
+-LOG UnwindMerge
+-STATEMENT CREATE NODE TABLE N (id INT64 PRIMARY KEY, x STRING);
+---- ok
+-STATEMENT unwind [-1,1] as t merge (a:N {id: abs(t)}) RETURN a.id;
+---- ok
+-STATEMENT MATCH (a:N) RETURN a.id
+---- 1
+1

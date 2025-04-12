@@ -10,14 +10,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-static binder::expression_vector getDependentExprs(std::shared_ptr<Expression> expr,
+static expression_vector getDependentExprs(std::shared_ptr<Expression> expr,
     const Schema& schema) {
     auto analyzer = GroupDependencyAnalyzer(true /* collectDependentExpr */, schema);
     analyzer.visit(expr);
     return analyzer.getDependentExprs();
 }
 
-binder::expression_vector Planner::getCorrelatedExprs(const QueryGraphCollection& collection,
+expression_vector Planner::getCorrelatedExprs(const QueryGraphCollection& collection,
     const expression_vector& predicates, Schema* outerSchema) {
     expression_vector result;
     for (auto& predicate : predicates) {
@@ -106,16 +106,19 @@ private:
 };
 
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
-    const expression_vector& predicates, const binder::expression_vector& corrExprs,
-    LogicalPlan& leftPlan, std::shared_ptr<BoundJoinHintNode> hint) {
-    planOptionalMatch(queryGraphCollection, predicates, corrExprs, nullptr /* mark */, leftPlan,
+    const expression_vector& predicates, LogicalPlan& leftPlan,
+    std::shared_ptr<BoundJoinHintNode> hint) {
+    planOptionalMatch(queryGraphCollection, predicates, nullptr /* mark */, leftPlan,
         std::move(hint));
 }
 
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
-    const expression_vector& predicates, const binder::expression_vector& correlatedExprs,
-    std::shared_ptr<Expression> mark, LogicalPlan& leftPlan,
+    const expression_vector& predicates, std::shared_ptr<Expression> mark, LogicalPlan& leftPlan,
     std::shared_ptr<BoundJoinHintNode> hint) {
+    expression_vector correlatedExprs;
+    if (!leftPlan.isEmpty()) {
+        correlatedExprs = getCorrelatedExprs(queryGraphCollection, predicates, leftPlan.getSchema());
+    }
     auto info = QueryGraphPlanningInfo();
     info.hint = hint;
     if (leftPlan.isEmpty()) {

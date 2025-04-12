@@ -9,14 +9,20 @@ namespace kuzu {
 namespace binder {
 
 class BoundMergeClause final : public BoundUpdatingClause {
+    static constexpr common::ClauseType type_ = common::ClauseType::MERGE;
+
 public:
-    BoundMergeClause(std::shared_ptr<Expression> existenceMark,
+    BoundMergeClause(expression_vector columnDataExprs, std::shared_ptr<Expression> existenceMark,
         std::shared_ptr<Expression> distinctMark, QueryGraphCollection queryGraphCollection,
         std::shared_ptr<Expression> predicate, std::vector<BoundInsertInfo> insertInfos)
-        : BoundUpdatingClause{common::ClauseType::MERGE}, existenceMark{std::move(existenceMark)},
-          distinctMark{std::move(distinctMark)},
+        : BoundUpdatingClause{type_}, columnDataExprs{std::move(columnDataExprs)},
+            existenceMark{std::move(existenceMark)}, distinctMark{std::move(distinctMark)},
           queryGraphCollection{std::move(queryGraphCollection)}, predicate{std::move(predicate)},
           insertInfos{std::move(insertInfos)} {}
+
+    expression_vector getColumnDataExprs() const {
+        return columnDataExprs;
+    }
 
     std::shared_ptr<Expression> getExistenceMark() const { return existenceMark; }
     std::shared_ptr<Expression> getDistinctMark() const { return distinctMark; }
@@ -115,6 +121,11 @@ private:
         const std::function<bool(const BoundSetPropertyInfo& info)>& check) const;
 
 private:
+    // Capture user input column (right-hand-side) values in MERGE clause
+    // E.g. UNWIND [1,2,3] AS x MERGE (a {id:2, rank:x})
+    // this field should be {2, x}
+    expression_vector columnDataExprs;
+    // Internal marks
     std::shared_ptr<Expression> existenceMark;
     std::shared_ptr<Expression> distinctMark;
     // Pattern to match.
