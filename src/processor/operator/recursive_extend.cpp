@@ -6,7 +6,7 @@
 #include "function/gds/compute.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
-#include <binder/expression/node_expression.h>
+#include "binder/expression/node_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
