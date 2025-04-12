@@ -69,7 +69,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindInsertClause(
     return std::make_unique<BoundInsertClause>(std::move(insertInfos));
 }
 
-static expression_vector getColumnDataExprs( QueryGraphCollection& collection) {
+static expression_vector getColumnDataExprs(QueryGraphCollection& collection) {
     expression_vector exprs;
     for (auto i = 0u; i < collection.getNumQueryGraphs(); ++i) {
         auto queryGraph = collection.getQueryGraph(i);
@@ -95,9 +95,10 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(const UpdatingClaus
     auto distinctMark =
         expressionBinder.createVariableExpression(LogicalType::BOOL(), std::string("__distinct"));
     auto createInfos = bindInsertInfos(boundGraphPattern.queryGraphCollection, patternsScope);
-    auto boundMergeClause = std::make_unique<BoundMergeClause>(columnDataExprs, std::move(existenceMark),
-        std::move(distinctMark), std::move(boundGraphPattern.queryGraphCollection),
-        std::move(boundGraphPattern.where), std::move(createInfos));
+    auto boundMergeClause =
+        std::make_unique<BoundMergeClause>(columnDataExprs, std::move(existenceMark),
+            std::move(distinctMark), std::move(boundGraphPattern.queryGraphCollection),
+            std::move(boundGraphPattern.where), std::move(createInfos));
     if (mergeClause.hasOnMatchSetItems()) {
         for (auto& [lhs, rhs] : mergeClause.getOnMatchSetItemsRef()) {
             auto setPropertyInfo = bindSetPropertyInfo(lhs.get(), rhs.get());

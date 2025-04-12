@@ -16,13 +16,11 @@ public:
         std::shared_ptr<Expression> distinctMark, QueryGraphCollection queryGraphCollection,
         std::shared_ptr<Expression> predicate, std::vector<BoundInsertInfo> insertInfos)
         : BoundUpdatingClause{type_}, columnDataExprs{std::move(columnDataExprs)},
-            existenceMark{std::move(existenceMark)}, distinctMark{std::move(distinctMark)},
+          existenceMark{std::move(existenceMark)}, distinctMark{std::move(distinctMark)},
           queryGraphCollection{std::move(queryGraphCollection)}, predicate{std::move(predicate)},
           insertInfos{std::move(insertInfos)} {}
 
-    expression_vector getColumnDataExprs() const {
-        return columnDataExprs;
-    }
+    expression_vector getColumnDataExprs() const { return columnDataExprs; }
 
     std::shared_ptr<Expression> getExistenceMark() const { return existenceMark; }
     std::shared_ptr<Expression> getDistinctMark() const { return distinctMark; }

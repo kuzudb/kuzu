@@ -10,8 +10,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-static expression_vector getDependentExprs(std::shared_ptr<Expression> expr,
-    const Schema& schema) {
+static expression_vector getDependentExprs(std::shared_ptr<Expression> expr, const Schema& schema) {
     auto analyzer = GroupDependencyAnalyzer(true /* collectDependentExpr */, schema);
     analyzer.visit(expr);
     return analyzer.getDependentExprs();
@@ -117,7 +116,8 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
     std::shared_ptr<BoundJoinHintNode> hint) {
     expression_vector correlatedExprs;
     if (!leftPlan.isEmpty()) {
-        correlatedExprs = getCorrelatedExprs(queryGraphCollection, predicates, leftPlan.getSchema());
+        correlatedExprs =
+            getCorrelatedExprs(queryGraphCollection, predicates, leftPlan.getSchema());
     }
     auto info = QueryGraphPlanningInfo();
     info.hint = hint;

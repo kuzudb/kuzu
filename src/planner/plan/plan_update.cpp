@@ -65,7 +65,8 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
     // Collect merge hash keys. See LogicalMerge for details.
     expression_vector keys;
     for (auto& expr : mergeClause.getColumnDataExprs()) {
-        if (expr->expressionType == ExpressionType::LITERAL || expr->expressionType == ExpressionType::PARAMETER) {
+        if (expr->expressionType == ExpressionType::LITERAL ||
+            expr->expressionType == ExpressionType::PARAMETER) {
             continue;
         }
         keys.push_back(expr);
@@ -78,10 +79,9 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
         }
     }
     auto existenceMark = mergeClause.getExistenceMark();
-    planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, existenceMark,
-        plan, nullptr /* hint */);
-    auto merge =
-        std::make_shared<LogicalMerge>(existenceMark, keys, plan.getLastOperator());
+    planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, existenceMark, plan,
+        nullptr /* hint */);
+    auto merge = std::make_shared<LogicalMerge>(existenceMark, keys, plan.getLastOperator());
     if (mergeClause.hasInsertNodeInfo()) {
         for (auto& info : mergeClause.getInsertNodeInfos()) {
             merge->addInsertNodeInfo(createLogicalInsertInfo(info)->copy());

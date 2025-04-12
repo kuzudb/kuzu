@@ -15,7 +15,8 @@ struct MergeInfo {
     DataPos existenceMark;
 
     MergeInfo(std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> keyEvaluators,
-        FactorizedTableSchema tableSchema, common::executor_info executorInfo, DataPos existenceMark)
+        FactorizedTableSchema tableSchema, common::executor_info executorInfo,
+        DataPos existenceMark)
         : keyEvaluators{std::move(keyEvaluators)}, tableSchema{std::move(tableSchema)},
           executorInfo{std::move(executorInfo)}, existenceMark{existenceMark} {}
     EXPLICIT_COPY_DEFAULT_MOVE(MergeInfo);
@@ -23,7 +24,7 @@ struct MergeInfo {
 private:
     MergeInfo(const MergeInfo& other)
         : keyEvaluators{copyVector(other.keyEvaluators)}, tableSchema{other.tableSchema.copy()},
-        executorInfo {other.executorInfo}, existenceMark{other.existenceMark} {}
+          executorInfo{other.executorInfo}, existenceMark{other.existenceMark} {}
 };
 
 struct MergePrintInfo final : OPPrintInfo {

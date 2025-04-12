@@ -51,8 +51,7 @@ void Planner::planMatchClause(const BoundReadingClause& readingClause,
     } break;
     case MatchClauseType::OPTIONAL_MATCH: {
         for (auto& plan : plans) {
-            planOptionalMatch(*queryGraphCollection, predicates, *plan,
-                boundMatchClause.getHint());
+            planOptionalMatch(*queryGraphCollection, predicates, *plan, boundMatchClause.getHint());
         }
     } break;
     default:
