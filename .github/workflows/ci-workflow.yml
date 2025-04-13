@@ -190,6 +190,9 @@ jobs:
       - name: Java test
         run: make javatest
 
+      - name: Rust ensure version
+        run: rustup install --profile minimal 1.81 && rustup default 1.81
+
       - name: Rust test with pre-built library
         env:
           KUZU_SHARED: 1
@@ -503,6 +506,9 @@ jobs:
 
       - name: Java test
         run: make javatest
+
+      - name: Rust ensure version
+        run: rustup install --profile minimal 1.81 && rustup default 1.81
 
       - name: Rust test with pre-built library
         env:
@@ -966,6 +972,9 @@ jobs:
           ulimit -n 10240
           export JAVA_HOME=`/usr/libexec/java_home`
           make javatest
+
+      - name: Rust ensure version
+        run: rustup install --profile minimal 1.81 && rustup default 1.81
 
       - name: Rust test
         env:
