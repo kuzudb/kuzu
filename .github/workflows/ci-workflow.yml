@@ -381,7 +381,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Rust ensure version
-        run: rustup install ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+        run: rustup install --profile minimal ${{ matrix.toolchain }} && rustup component add clippy && rustup default ${{ matrix.toolchain }}
 
       - name: Rust API test
         run: |
