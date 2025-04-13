@@ -179,7 +179,7 @@ ifeq ($(OS),Windows_NT)
 else
 	export CARGO_BUILD_JOBS=$(NUM_THREADS)
 endif
-	cd tools/rust_api && cargo test --profile=relwithdebinfo --locked --features arrow
+	cd tools/rust_api && cargo test --profile=relwithdebinfo --locked --all-features
 
 wasmtest:
 	mkdir -p build/wasm && cd build/wasm &&\

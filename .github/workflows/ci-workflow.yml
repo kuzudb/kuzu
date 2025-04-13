@@ -372,8 +372,7 @@ jobs:
       - name: Rust test
         run: |
           make extension-release
-          cd tools/rust_api
-          cargo test --profile=relwithdebinfo --locked --all-features
+          make rusttest
 
       - name: Rust example
         working-directory: examples/rust
@@ -708,8 +707,7 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make extension-release
-          cd tools/rust_api
-          cargo test --profile=relwithdebinfo --locked --all-features
+          make rusttest
 
       - name: Rust test with pre-built library
         env:
@@ -966,8 +964,22 @@ jobs:
           source /Users/runner/.cargo/env
           cmake -B build/release -DBUILD_EXAMPLES=OFF
           make extension-release
+          make rusttest
+
+      - name: Rust test with pre-built library
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+          DYLD_LIBRARY_PATH: ${{ github.workspace }}/build/release/src
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
+        run: |
+          ulimit -n 10240
+          source /Users/runner/.cargo/env
+          cmake -B build/release -DBUILD_EXAMPLES=OFF
+          make extension-release
           cd tools/rust_api
-          cargo test --profile=relwithdebinfo --locked --all-features
+          cargo test --release --locked --all-features
 
       - name: Rust example
         working-directory: examples/rust
@@ -975,10 +987,6 @@ jobs:
           ulimit -n 10240
           source /Users/runner/.cargo/env
           cargo build --profile=relwithdebinfo --locked --all-features
-
-      # TODO(bmwinger): rust pre-built library test for macos
-      # When last tried it had issues finding libkuzu.dylib when running the tests
-      # Using LD_LIBRARY_PATH (and similar variables) did not work for some reason
 
   shell-test:
     name: shell test
