@@ -28,7 +28,7 @@ include = [
 
 [dependencies]
 arrow = { version = "55", optional = true, default-features = false, features = ["ffi"] }
-cxx = "1.0"
+cxx = "=1.0.138" # latest version that builds on clang 15
 rust_decimal = { version = "1.37", default-features = false }
 time = "0.3"
 uuid = "1.6"
