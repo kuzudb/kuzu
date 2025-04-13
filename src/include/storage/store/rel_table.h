@@ -138,7 +138,8 @@ public:
     using rel_multiplicity_constraint_throw_func_t =
         std::function<void(const std::string&, common::offset_t, common::RelDataDirection)>;
 
-    RelTable(catalog::RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
+    RelTable(catalog::RelGroupCatalogEntry* relGroupEntry,
+        catalog::RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
         MemoryManager* memoryManager, common::Deserializer* deSer = nullptr);
 
     static std::unique_ptr<RelTable> loadTable(common::Deserializer& deSer,
@@ -184,6 +185,8 @@ public:
     Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) const {
         return getDirectedTableData(direction)->getColumn(columnID);
     }
+
+    std::string getRelGroupName() const { return relGroupName; }
 
     NodeGroup* getOrCreateNodeGroup(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) const;
@@ -234,6 +237,9 @@ private:
 private:
     common::table_id_t fromNodeTableID;
     common::table_id_t toNodeTableID;
+    // Name of the rel group that this rel table belongs to.
+    // TODO(Guodong): We should store ID instead of name.
+    std::string relGroupName;
     std::mutex relOffsetMtx;
     common::offset_t nextRelOffset;
     std::vector<std::unique_ptr<RelTableData>> directedRelData;

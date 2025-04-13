@@ -3,6 +3,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/internal_id_util.h"
@@ -314,9 +315,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         FTSUtils::getTermsTableName(tableEntry->getTableID(), indexName));
     auto docsEntry = catalog->getTableCatalogEntry(transaction,
         FTSUtils::getDocsTableName(tableEntry->getTableID(), indexName));
-    auto appearsInEntry = catalog->getTableCatalogEntry(transaction,
+    auto appearsInEntry = catalog->getRelGroupEntry(transaction,
         FTSUtils::getAppearsInTableName(tableEntry->getTableID(), indexName));
-    auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
+    KU_ASSERT(appearsInEntry->getRelTableIDs().size() == 1);
+    auto appearsInRelEntry =
+        catalog->getTableCatalogEntry(transaction, appearsInEntry->getRelTableIDs()[0]);
+    auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInRelEntry});
 
     expression_vector columns;
     auto& docsNode = nodeOutput->constCast<NodeExpression>();

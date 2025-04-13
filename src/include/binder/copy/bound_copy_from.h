@@ -33,6 +33,8 @@ struct KUZU_API BoundCopyFromInfo {
     std::vector<common::ColumnEvaluateType> columnEvaluateTypes;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
+    explicit BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry)
+        : tableEntry{tableEntry}, source{nullptr}, offset{nullptr}, extraInfo{nullptr} {}
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         expression_vector columnExprs, std::vector<common::ColumnEvaluateType> columnEvaluateTypes,

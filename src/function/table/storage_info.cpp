@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/data_chunk/data_chunk_collection.h"
 #include "common/exception/binder.h"
 #include "common/type_utils.h"
@@ -17,7 +18,6 @@
 #include "storage/store/string_column.h"
 #include "storage/store/struct_chunk_data.h"
 #include "storage/store/struct_column.h"
-#include <concepts>
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -71,17 +71,16 @@ static void collectColumns(const Column* column, std::vector<const Column*>& res
 }
 
 struct StorageInfoBindData final : TableFuncBindData {
-    TableCatalogEntry* tableEntry;
-    Table* table;
+    std::vector<Table*> tables;
     const ClientContext* context;
 
-    StorageInfoBindData(binder::expression_vector columns, TableCatalogEntry* tableEntry,
-        Table* table, const ClientContext* context)
-        : TableFuncBindData{std::move(columns), 1 /*maxOffset*/}, tableEntry{tableEntry},
-          table{table}, context{context} {}
+    StorageInfoBindData(binder::expression_vector columns, std::vector<Table*> tables,
+        const ClientContext* context)
+        : TableFuncBindData{std::move(columns), 1 /*maxOffset*/}, tables{std::move(tables)},
+          context{context} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<StorageInfoBindData>(columns, tableEntry, table, context);
+        return std::make_unique<StorageInfoBindData>(columns, tables, context);
     }
 };
 
@@ -248,6 +247,57 @@ static void appendStorageInfoForNodeGroup(StorageInfoLocalState* localState, Dat
     }
 }
 
+static void appendStorageInfoForTable(Table* table, StorageInfoLocalState* localState,
+    DataChunk& outputChunk) {
+    StorageInfoOutputData outputData;
+    outputData.tableType = table->getTableType() == TableType::NODE ? "NODE" : "REL";
+    node_group_idx_t numNodeGroups = 0;
+    switch (table->getTableType()) {
+    case TableType::NODE: {
+        auto& nodeTable = table->cast<NodeTable>();
+        std::vector<const Column*> columns;
+        for (auto columnID = 0u; columnID < nodeTable.getNumColumns(); columnID++) {
+            collectColumns(&nodeTable.getColumn(columnID), columns);
+        }
+        outputData.columns = std::move(columns);
+        numNodeGroups = nodeTable.getNumNodeGroups();
+        for (auto i = 0ul; i < numNodeGroups; i++) {
+            outputData.nodeGroupIdx = i;
+            appendStorageInfoForNodeGroup(localState, outputChunk, outputData,
+                nodeTable.getNodeGroup(i));
+        }
+    } break;
+    case TableType::REL: {
+        auto& relTable = table->cast<RelTable>();
+        auto appendDirectedStorageInfo = [&](RelDataDirection direction) {
+            auto directedRelTableData = relTable.getDirectedTableData(direction);
+            std::vector<const Column*> columns;
+            for (auto columnID = 0u; columnID < relTable.getNumColumns(); columnID++) {
+                collectColumns(directedRelTableData->getColumn(columnID), columns);
+            }
+            columns.push_back(directedRelTableData->getCSROffsetColumn());
+            columns.push_back(directedRelTableData->getCSRLengthColumn());
+            outputData.columns = std::move(columns);
+            numNodeGroups = directedRelTableData->getNumNodeGroups();
+            for (auto i = 0ul; i < numNodeGroups; i++) {
+                outputData.nodeGroupIdx = i;
+                appendStorageInfoForNodeGroup(localState, outputChunk, outputData,
+                    directedRelTableData->getNodeGroup(i));
+            }
+        };
+        for (auto direction : relTable.getStorageDirections()) {
+            appendDirectedStorageInfo(direction);
+        }
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+    localState->dataChunkCollection->append(outputChunk);
+    outputChunk.resetAuxiliaryBuffer();
+    outputChunk.state->getSelVectorUnsafe().setSelSize(0);
+}
+
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     auto localState = ku_dynamic_cast<StorageInfoLocalState*>(input.localState);
@@ -274,54 +324,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
             return 0;
         }
         const auto bindData = input.bindData->constPtrCast<StorageInfoBindData>();
-        const auto table = bindData->table;
-        StorageInfoOutputData outputData;
-        outputData.tableType = table->getTableType() == TableType::NODE ? "NODE" : "REL";
-        node_group_idx_t numNodeGroups = 0;
-        switch (table->getTableType()) {
-        case TableType::NODE: {
-            auto& nodeTable = table->cast<NodeTable>();
-            std::vector<const Column*> columns;
-            for (auto columnID = 0u; columnID < nodeTable.getNumColumns(); columnID++) {
-                collectColumns(&nodeTable.getColumn(columnID), columns);
-            }
-            outputData.columns = std::move(columns);
-            numNodeGroups = nodeTable.getNumNodeGroups();
-            for (auto i = 0ul; i < numNodeGroups; i++) {
-                outputData.nodeGroupIdx = i;
-                appendStorageInfoForNodeGroup(localState, dataChunk, outputData,
-                    nodeTable.getNodeGroup(i));
-            }
-        } break;
-        case TableType::REL: {
-            auto& relTable = table->cast<RelTable>();
-            auto appendDirectedStorageInfo = [&](RelDataDirection direction) {
-                auto directedRelTableData = relTable.getDirectedTableData(direction);
-                std::vector<const Column*> columns;
-                for (auto columnID = 0u; columnID < relTable.getNumColumns(); columnID++) {
-                    collectColumns(directedRelTableData->getColumn(columnID), columns);
-                }
-                columns.push_back(directedRelTableData->getCSROffsetColumn());
-                columns.push_back(directedRelTableData->getCSRLengthColumn());
-                outputData.columns = std::move(columns);
-                numNodeGroups = directedRelTableData->getNumNodeGroups();
-                for (auto i = 0ul; i < numNodeGroups; i++) {
-                    outputData.nodeGroupIdx = i;
-                    appendStorageInfoForNodeGroup(localState, dataChunk, outputData,
-                        directedRelTableData->getNodeGroup(i));
-                }
-            };
-            for (auto direction : relTable.getStorageDirections()) {
-                appendDirectedStorageInfo(direction);
-            }
-        } break;
-        default: {
-            KU_UNREACHABLE;
+        for (const auto table : bindData->tables) {
+            appendStorageInfoForTable(table, localState, dataChunk);
         }
-        }
-        localState->dataChunkCollection->append(dataChunk);
-        dataChunk.resetAuxiliaryBuffer();
-        dataChunk.state->getSelVectorUnsafe().setSelSize(0);
     }
 }
 
@@ -345,15 +350,22 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     columnTypes.emplace_back(LogicalType::STRING());
     auto tableName = input->getLiteralVal<std::string>(0);
     auto catalog = context->getCatalog();
-    if (!catalog->containsTable(context->getTransaction(), tableName)) {
+    auto storageManager = context->getStorageManager();
+    std::vector<Table*> tables;
+    if (catalog->containsTable(context->getTransaction(), tableName)) {
+        auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
+        tables.push_back(storageManager->getTable(tableEntry->getTableID()));
+    } else if (catalog->containsRelGroup(context->getTransaction(), tableName)) {
+        auto tableEntry = catalog->getRelGroupEntry(context->getTransaction(), tableName);
+        for (auto relTableID : tableEntry->getRelTableIDs()) {
+            tables.push_back(storageManager->getTable(relTableID));
+        }
+    } else {
         throw BinderException{"Table " + tableName + " does not exist!"};
     }
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
-    auto storageManager = context->getStorageManager();
-    auto table = storageManager->getTable(tableEntry->getTableID());
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<StorageInfoBindData>(columns, tableEntry, table, context);
+    return std::make_unique<StorageInfoBindData>(columns, tables, context);
 }
 
 function_set StorageInfoFunction::getFunctionSet() {

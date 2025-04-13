@@ -1,5 +1,6 @@
 #include "storage/store/rel_table.h"
 
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
@@ -124,8 +125,8 @@ void RelTableScanState::setNodeIDVectorToFlat(sel_t selPos) const {
     nodeIDVector->state->getSelVectorUnsafe()[0] = selPos;
 }
 
-RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
-    MemoryManager* memoryManager, Deserializer* deSer)
+RelTable::RelTable(RelGroupCatalogEntry* relGroupEntry, RelTableCatalogEntry* relTableEntry,
+    const StorageManager* storageManager, MemoryManager* memoryManager, Deserializer* deSer)
     : Table{relTableEntry, storageManager, memoryManager},
       fromNodeTableID{relTableEntry->getSrcTableID()},
       toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0} {
@@ -133,6 +134,7 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* st
         directedRelData.emplace_back(std::make_unique<RelTableData>(dataFH, memoryManager,
             shadowFile, relTableEntry, direction, enableCompression, deSer));
     }
+    relGroupName = relGroupEntry->getName();
 }
 
 std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog& catalog,
@@ -150,8 +152,14 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
         throw RuntimeException(
             stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
     }
-    auto relTable = std::make_unique<RelTable>(catalogEntry->ptrCast<RelTableCatalogEntry>(),
-        storageManager, memoryManager, &deSer);
+    auto relTableEntry = catalogEntry->ptrCast<RelTableCatalogEntry>();
+    if (!relTableEntry->hasParentRelGroup(&catalog, &DUMMY_TRANSACTION)) {
+        throw RuntimeException(
+            stringFormat("Load table failed: table {} doesn't belong to any rel group.", tableID));
+    }
+    auto relGroupEntry = relTableEntry->getParentRelGroup(&catalog, &DUMMY_TRANSACTION);
+    auto relTable = std::make_unique<RelTable>(relGroupEntry, relTableEntry, storageManager,
+        memoryManager, &deSer);
     relTable->nextRelOffset = nextRelOffset;
     return relTable;
 }
@@ -339,7 +347,7 @@ void RelTable::throwIfNodeHasRels(Transaction* transaction, RelDataDirection dir
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     if (checkIfNodeHasRels(transaction, direction, srcNodeIDVector)) {
-        throwFunc(tableName, nodeOffset, direction);
+        throwFunc(relGroupName, nodeOffset, direction);
     }
 }
 
@@ -393,7 +401,7 @@ RelTableData* RelTable::getDirectedTableData(RelDataDirection direction) const {
     if (directionIdx >= directedRelData.size()) {
         throw RuntimeException(stringFormat(
             "Failed to get {} data for rel table \"{}\", please set the storage direction to BOTH",
-            RelDirectionUtils::relDirectionToString(direction), tableName));
+            RelDirectionUtils::relDirectionToString(direction), relGroupName));
     }
     KU_ASSERT(directedRelData[directionIdx]->getDirection() == direction);
     return directedRelData[directionIdx].get();
@@ -506,7 +514,7 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
 
 void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     if (hasChanges) {
-        // Deleted columns are vaccumed and not checkpointed or serialized.
+        // Deleted columns are vacuumed and not checkpointed or serialized.
         std::vector<column_id_t> columnIDs;
         columnIDs.push_back(0);
         for (auto& property : tableEntry->getProperties()) {

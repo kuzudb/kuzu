@@ -113,7 +113,8 @@ private:
 
     static void populateCSRHeaderAndRowIdx(storage::InMemChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
-        const RelBatchInsertLocalState& localState, common::offset_t numNodes, bool leaveGaps);
+        const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
+        common::offset_t numNodes, bool leaveGaps);
 
     static void populateCSRLengths(const storage::ChunkedCSRHeader& csrHeader,
         common::offset_t numNodes, storage::InMemChunkedNodeGroupCollection& partition,
@@ -124,8 +125,9 @@ private:
     static void setRowIdxFromCSROffsets(storage::ColumnChunkData& rowIdxChunk,
         storage::ColumnChunkData& csrOffsetChunk);
 
-    static void checkRelMultiplicityConstraint(const storage::ChunkedCSRHeader& csrHeader,
-        common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo);
+    static void checkRelMultiplicityConstraint(const BatchInsertSharedState& sharedState,
+        const storage::ChunkedCSRHeader& csrHeader, common::offset_t startNodeOffset,
+        const RelBatchInsertInfo& relInfo);
 
 private:
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;

@@ -3,6 +3,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/types/date_t.h"
 #include "common/types/ku_string.h"
@@ -60,7 +61,8 @@ TEST_F(RelScanTest, ScanFwd) {
     auto transaction = context->getTransaction();
     auto nodeEntry = catalog->getTableCatalogEntry(transaction, "person");
     auto tableID = nodeEntry->getTableID();
-    auto relEntry = catalog->getTableCatalogEntry(transaction, "knows");
+    auto relGroupEntry = catalog->getRelGroupEntry(transaction, "knows");
+    auto relEntry = catalog->getTableCatalogEntry(transaction, relGroupEntry->getRelTableIDs()[0]);
     auto scanState =
         graph->prepareRelScan(relEntry, nodeEntry, {common::InternalKeyword::ID, "date"});
 

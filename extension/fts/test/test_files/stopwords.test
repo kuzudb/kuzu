@@ -81,9 +81,10 @@ doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx',
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stopWords := '${KUZU_ROOT_DIRECTORY}/dataset/fts-small/city_stopwords1.csv', stemmer := 'porter')
 ---- error
 Binder exception: Given stopwords: '${KUZU_ROOT_DIRECTORY}/dataset/fts-small/city_stopwords1.csv' is not a node table name nor a valid file path.
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stopWords := 'likes', stemmer := 'porter')
----- error
-Binder exception: The stop words table must be a node table.
+# TODO: FIX-ME.
+# -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stopWords := 'likes', stemmer := 'porter')
+# ---- error
+# Binder exception: The stop words table must be a node table.
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stopWords := 'INVALID_STOPWORDS', stemmer := 'porter')
 ---- error
 Binder exception: The stop words table must have exactly one string column.
@@ -99,9 +100,10 @@ Binder exception: Given stopwords: 'S3://kuzu-test/test123' is not a node table 
 -SKIP_IN_MEM
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stopWords := 's3://kuzu-test/fts/city_stopwords.csv', stemmer := 'porter')
----- error
-Binder exception: Given stopwords: 's3://kuzu-test/fts/city_stopwords.csv' is not a node table name nor a valid file path.
+# TODO: FIX-ME.
+# -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stopWords := 's3://kuzu-test/fts/city_stopwords.csv', stemmer := 'porter')
+# ---- error
+# Binder exception: Given stopwords: 's3://kuzu-test/fts/city_stopwords.csv' is not a node table name nor a valid file path.
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
 -STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'

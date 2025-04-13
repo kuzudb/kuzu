@@ -53,7 +53,7 @@
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 2
 0|base|NODE|local(kuzu)|
-1|test|REL|local(kuzu)|
+0|test|REL|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT DROP TABLE test;

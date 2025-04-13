@@ -55,7 +55,8 @@ private:
     void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
     void createNodeTable(catalog::NodeTableCatalogEntry* entry, main::ClientContext* context);
-    void createRelTable(catalog::RelTableCatalogEntry* entry);
+    void createRelTable(catalog::RelGroupCatalogEntry* relGroupEntry,
+        catalog::RelTableCatalogEntry* tableEntry);
     void createRelTableGroup(catalog::RelGroupCatalogEntry* entry, main::ClientContext* context);
 
     void reclaimDroppedTables(const main::ClientContext& clientContext);
