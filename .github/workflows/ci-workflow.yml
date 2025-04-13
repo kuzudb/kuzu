@@ -996,7 +996,7 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cargo build --profile=relwithdebinfo --locked --all-features
+          cargo build --locked --all-features
 
   shell-test:
     name: shell test
