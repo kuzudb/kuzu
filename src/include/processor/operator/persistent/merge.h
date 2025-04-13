@@ -9,19 +9,22 @@ namespace kuzu {
 namespace processor {
 
 struct MergeInfo {
-    std::vector<DataPos> keyPoses;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> keyEvaluators;
     FactorizedTableSchema tableSchema;
     common::executor_info executorInfo;
     DataPos existenceMark;
 
-    MergeInfo(std::vector<DataPos> keyPoses, FactorizedTableSchema tableSchema,
-        common::executor_info executorInfo, DataPos existenceMark)
-        : keyPoses{std::move(keyPoses)}, tableSchema{std::move(tableSchema)},
+    MergeInfo(std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> keyEvaluators,
+        FactorizedTableSchema tableSchema, common::executor_info executorInfo,
+        DataPos existenceMark)
+        : keyEvaluators{std::move(keyEvaluators)}, tableSchema{std::move(tableSchema)},
           executorInfo{std::move(executorInfo)}, existenceMark{existenceMark} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(MergeInfo);
 
-    MergeInfo copy() const {
-        return MergeInfo{keyPoses, tableSchema.copy(), executorInfo, existenceMark};
-    }
+private:
+    MergeInfo(const MergeInfo& other)
+        : keyEvaluators{copyVector(other.keyEvaluators)}, tableSchema{other.tableSchema.copy()},
+          executorInfo{other.executorInfo}, existenceMark{other.existenceMark} {}
 };
 
 struct MergePrintInfo final : OPPrintInfo {

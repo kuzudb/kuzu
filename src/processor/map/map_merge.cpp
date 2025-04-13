@@ -1,6 +1,7 @@
 #include "planner/operator/persistent/logical_merge.h"
 #include "processor/operator/persistent/merge.h"
 #include "processor/plan_mapper.h"
+#include <processor/expression_mapper.h>
 
 using namespace kuzu::planner;
 
@@ -95,7 +96,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(const LogicalOperator* lo
     }
     auto printInfo =
         std::make_unique<MergePrintInfo>(expressions, onCreateOperation, onMatchOperation);
-    MergeInfo mergeInfo{getDataPos(logicalMerge.getKeys(), *inSchema),
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> keyEvaluators;
+    auto expressionMapper = ExpressionMapper(inSchema);
+    for (auto& key : logicalMerge.getKeys()) {
+        keyEvaluators.push_back(expressionMapper.getEvaluator(key));
+    }
+
+    MergeInfo mergeInfo{std::move(keyEvaluators),
         getFactorizedTableSchema(logicalMerge.getKeys(),
             logicalMerge.getOnMatchSetNodeInfos().size(),
             logicalMerge.getOnMatchSetRelInfos().size()),

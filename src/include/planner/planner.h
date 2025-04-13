@@ -143,13 +143,12 @@ public:
 
     // Plan subquery
     void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
-        const binder::expression_vector& predicates, const binder::expression_vector& corrExprs,
-        LogicalPlan& leftPlan, std::shared_ptr<binder::BoundJoinHintNode> hint);
+        const binder::expression_vector& predicates, LogicalPlan& leftPlan,
+        std::shared_ptr<binder::BoundJoinHintNode> hint);
     // Write whether optional match succeed or not to mark.
     void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
-        const binder::expression_vector& predicates, const binder::expression_vector& corrExprs,
-        std::shared_ptr<binder::Expression> mark, LogicalPlan& leftPlan,
-        std::shared_ptr<binder::BoundJoinHintNode> hint);
+        const binder::expression_vector& predicates, std::shared_ptr<binder::Expression> mark,
+        LogicalPlan& leftPlan, std::shared_ptr<binder::BoundJoinHintNode> hint);
     void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, LogicalPlan& leftPlan,
         std::shared_ptr<binder::BoundJoinHintNode> hint);

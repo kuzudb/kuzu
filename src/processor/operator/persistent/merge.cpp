@@ -17,7 +17,7 @@ std::string MergePrintInfo::toString() const {
     return result;
 }
 
-void Merge::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
+void Merge::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
     for (auto& executor : nodeInsertExecutors) {
         executor.init(resultSet, context);
     }
@@ -36,16 +36,20 @@ void Merge::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* 
     for (auto& executor : onMatchRelSetExecutors) {
         executor->init(resultSet, context);
     }
+    for (auto& evaluator : info.keyEvaluators) {
+        evaluator->init(*resultSet_, context->clientContext);
+    }
     localState.init(*resultSet, context->clientContext, info);
 }
 
 void MergeLocalState::init(ResultSet& resultSet, main::ClientContext* context, MergeInfo& info) {
     std::vector<common::LogicalType> types;
-    for (auto& keyPos : info.keyPoses) {
-        auto keyVector = resultSet.getValueVector(keyPos).get();
+    for (auto& evaluator : info.keyEvaluators) {
+        auto keyVector = evaluator->resultVector.get();
         types.push_back(keyVector->dataType.copy());
         keyVectors.push_back(keyVector);
     }
+    // TODO: remove types
     hashTable = std::make_unique<PatternCreationInfoTable>(*context->getMemoryManager(),
         std::move(types), std::move(info.tableSchema));
     existenceVector = resultSet.getValueVector(info.existenceMark).get();
@@ -111,6 +115,9 @@ void Merge::executeOnNewPattern(PatternCreationInfo& patternCreationInfo,
 }
 
 void Merge::executeNoMatch(ExecutionContext* context) {
+    for (auto& evaluator : info.keyEvaluators) {
+        evaluator->evaluate();
+    }
     auto patternCreationInfo = localState.getPatternCreationInfo();
     if (patternCreationInfo.hasCreated) {
         executeOnCreatedPattern(patternCreationInfo, context);

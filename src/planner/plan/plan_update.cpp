@@ -58,20 +58,30 @@ void Planner::planInsertClause(const BoundUpdatingClause* updatingClause, Logica
 
 void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
     auto& mergeClause = updatingClause->constCast<BoundMergeClause>();
-    binder::expression_vector predicates;
+    expression_vector predicates;
     if (mergeClause.hasPredicate()) {
         predicates = mergeClause.getPredicate()->splitOnAND();
     }
-    expression_vector corrExprs;
+    // Collect merge hash keys. See LogicalMerge for details.
+    expression_vector keys;
+    for (auto& expr : mergeClause.getColumnDataExprs()) {
+        if (expr->expressionType == ExpressionType::LITERAL ||
+            expr->expressionType == ExpressionType::PARAMETER) {
+            continue;
+        }
+        keys.push_back(expr);
+    }
     if (!plan.isEmpty()) {
-        corrExprs = getCorrelatedExprs(*mergeClause.getQueryGraphCollection(), predicates,
-            plan.getSchema());
+        for (auto& node : mergeClause.getQueryGraphCollection()->getQueryNodes()) {
+            if (plan.getSchema()->isExpressionInScope(*node->getInternalID())) {
+                keys.push_back(node->getInternalID());
+            }
+        }
     }
     auto existenceMark = mergeClause.getExistenceMark();
-    planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, corrExprs, existenceMark,
-        plan, nullptr /* hint */);
-    auto merge =
-        std::make_shared<LogicalMerge>(existenceMark, std::move(corrExprs), plan.getLastOperator());
+    planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, existenceMark, plan,
+        nullptr /* hint */);
+    auto merge = std::make_shared<LogicalMerge>(existenceMark, keys, plan.getLastOperator());
     if (mergeClause.hasInsertNodeInfo()) {
         for (auto& info : mergeClause.getInsertNodeInfos()) {
             merge->addInsertNodeInfo(createLogicalInsertInfo(info)->copy());
