@@ -106,11 +106,6 @@ void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGro
     chunkedGroups.appendGroup(lock, std::move(chunkedGroup));
 }
 
-void NodeGroup::initializeScanState(const Transaction* transaction, TableScanState& state) const {
-    const auto lock = chunkedGroups.lock();
-    initializeScanState(transaction, lock, state);
-}
-
 static void initializeScanStateForChunkedGroup(const TableScanState& state,
     const ChunkedNodeGroup* chunkedGroup) {
     KU_ASSERT(chunkedGroup);
@@ -129,6 +124,14 @@ static void initializeScanStateForChunkedGroup(const TableScanState& state,
         auto& chunkState = nodeGroupScanState.chunkStates[i];
         chunk.initializeScanState(chunkState, state.columns[i]);
     }
+}
+
+void NodeGroup::initializeScanState(const Transaction* transaction, TableScanState& state) const {
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
+    nodeGroupScanState.chunkedGroupIdx = 0;
+    nodeGroupScanState.nextRowToScan = 0;
+    ChunkedNodeGroup* firstChunkedGroup = chunkedGroups.getFirstGroupNoLock();
+    initializeScanStateForChunkedGroup(state, firstChunkedGroup);
 }
 
 void NodeGroup::initializeScanState(const Transaction*, const UniqLock& lock,
@@ -289,8 +292,18 @@ bool NodeGroup::lookup(const UniqLock& lock, const Transaction* transaction,
 }
 
 bool NodeGroup::lookup(const Transaction* transaction, const TableScanState& state) const {
-    const auto lock = chunkedGroups.lock();
-    return lookup(lock, transaction, state);
+    idx_t numTuplesFound = 0;
+    for (auto i = 0u; i < state.rowIdxVector->state->getSelVector().getSelSize(); i++) {
+        auto& nodeGroupScanState = *state.nodeGroupScanState;
+        const auto pos = state.rowIdxVector->state->getSelVector().getSelectedPositions()[i];
+        KU_ASSERT(!state.rowIdxVector->isNull(pos));
+        const auto rowIdx = state.rowIdxVector->getValue<row_idx_t>(pos);
+        const ChunkedNodeGroup* chunkedGroupToScan = findChunkedGroupFromRowIdxNoLock(rowIdx);
+        const auto rowIdxInChunkedGroup = rowIdx - chunkedGroupToScan->getStartRowIdx();
+        numTuplesFound += chunkedGroupToScan->lookup(transaction, state, nodeGroupScanState,
+            rowIdxInChunkedGroup, i);
+    }
+    return numTuplesFound == state.rowIdxVector->state->getSelVector().getSelSize();
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
