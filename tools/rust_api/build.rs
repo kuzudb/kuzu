@@ -198,8 +198,7 @@ fn main() {
         (env::var("KUZU_LIBRARY_DIR"), env::var("KUZU_INCLUDE_DIR"))
     {
         println!("cargo:rustc-link-search=native={kuzu_lib_dir}");
-        // Also add to environment used by cargo run and tests
-        println!("cargo:rustc-env=LD_LIBRARY_PATH={kuzu_lib_dir}");
+        println!("cargo:rustc-link-arg=-Wl,-rpath,{kuzu_lib_dir}");
         include_paths.push(Path::new(&kuzu_include).to_path_buf());
     } else {
         include_paths.extend(build_bundled_cmake());
