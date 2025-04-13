@@ -190,9 +190,6 @@ jobs:
       - name: Java test
         run: make javatest
 
-      - name: Rust ensure version
-        run: rustup install --profile minimal 1.81 && rustup default 1.81
-
       - name: Rust test with pre-built library
         env:
           KUZU_SHARED: 1
@@ -362,14 +359,9 @@ jobs:
           make wasmtest
 
   rust-build-test:
-    name: rust build & test on ${{ matrix.toolchain }}
+    name: rust build & test
     needs: [ rustfmt-check ]
     runs-on: kuzu-self-hosted-testing
-    strategy:
-      matrix:
-        toolchain:
-          - 1.81
-          - stable
     env:
       # CARGO_BUILD_JOBS is set using this in the Makefile
       NUM_THREADS: 32
@@ -379,9 +371,6 @@ jobs:
       KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
     steps:
       - uses: actions/checkout@v4
-
-      - name: Rust ensure version
-        run: rustup install --profile minimal ${{ matrix.toolchain }} && rustup component add clippy && rustup default ${{ matrix.toolchain }}
 
       - name: Rust API test
         run: |
@@ -510,9 +499,6 @@ jobs:
 
       - name: Java test
         run: make javatest
-
-      - name: Rust ensure version
-        run: rustup install --profile minimal 1.81 && rustup default 1.81
 
       - name: Rust test with pre-built library
         env:
@@ -981,9 +967,6 @@ jobs:
           ulimit -n 10240
           export JAVA_HOME=`/usr/libexec/java_home`
           make javatest
-
-      - name: Rust ensure version
-        run: rustup install --profile minimal 1.81 && rustup default 1.81
 
       - name: Rust test
         env:
