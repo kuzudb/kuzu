@@ -198,7 +198,10 @@ jobs:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: make rusttest
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
+        run: |
+          make extension-release
+          make rusttest
 
   gcc-build-test-vector-size:
     name: gcc build & test in-mem only with various vector size
@@ -377,7 +380,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - name: Rust ensure version
+        run: rustup install ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
 
       - name: Rust API test
         run: |
@@ -515,7 +519,10 @@ jobs:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: make rusttest
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
+        run: |
+          make extension-release
+          make rusttest
 
   clang-build-test-various-page-sizes:
     strategy:
@@ -731,10 +738,12 @@ jobs:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=%PATH%;${{ github.workspace }}/build/release/src
+          make extension-release
           make rusttest
 
   sanity-checks:
@@ -991,7 +1000,6 @@ jobs:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-          DYLD_LIBRARY_PATH: ${{ github.workspace }}/build/release/src
           KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
         run: |
           ulimit -n 10240
