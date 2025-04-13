@@ -356,9 +356,14 @@ jobs:
           make wasmtest
 
   rust-build-test:
-    name: rust build & test
+    name: rust build & test on ${{ matrix.toolchain }}
     needs: [ rustfmt-check ]
     runs-on: kuzu-self-hosted-testing
+    strategy:
+      matrix:
+        toolchain:
+          - 1.81
+          - stable
     env:
       # CARGO_BUILD_JOBS is set using this in the Makefile
       NUM_THREADS: 32
@@ -369,14 +374,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Rust test
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+
+      - name: Rust API test
         run: |
           make extension-release
           make rusttest
 
-      - name: Rust example
+      - name: Rust example build
         working-directory: examples/rust
-        run: cargo build --profile=relwithdebinfo --locked --all-features
+        run: cargo build --locked --all-features
+
+      - name: Rust API clippy
+        working-directory: tools/rust_api
+        run: cargo clippy --release --all-targets --all-features
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
