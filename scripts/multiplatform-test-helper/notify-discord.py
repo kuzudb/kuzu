@@ -12,7 +12,7 @@ messages = []
 
 if __name__ == "__main__":
     if not len(sys.argv) == 2:
-        print("Usage: python send-dicord-notification.py <result.json>")
+        print("Usage: python send-discord-notification.py <result.json>")
         sys.exit(1)
     if not os.path.isfile(sys.argv[1]):
         print(f"Error: {sys.argv[1]} is not a file")
