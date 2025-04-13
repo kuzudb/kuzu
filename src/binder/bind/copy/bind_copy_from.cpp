@@ -66,12 +66,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     throw BinderException(stringFormat("Table {} does not exist.", tableName));
 }
 
-static void bindExpectedNodeColumns(const NodeTableCatalogEntry* nodeTableEntry,
-    const CopyFromColumnInfo& info, std::vector<std::string>& columnNames,
-    std::vector<LogicalType>& columnTypes);
-static void bindExpectedRelColumns(const RelTableCatalogEntry* relTableEntry,
-    const CopyFromColumnInfo& info, std::vector<std::string>& columnNames,
-    std::vector<LogicalType>& columnTypes, const main::ClientContext* context);
+static void bindExpectedNodeColumns(const main::ClientContext* context,
+    const NodeTableCatalogEntry* entry, const CopyFromColumnInfo& info,
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes);
+static void bindExpectedRelColumns(const main::ClientContext* context,
+    const RelTableCatalogEntry* entry, const CopyFromColumnInfo& info,
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes);
 
 static std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExpression(
     const expression_vector& columns, const PropertyDefinition& property,
@@ -80,10 +80,9 @@ static std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExp
         if (property.getName() == column->toString()) {
             if (column->dataType == property.getType()) {
                 return {ColumnEvaluateType::REFERENCE, column};
-            } else {
-                return {ColumnEvaluateType::CAST,
-                    expressionBinder.forceCast(column, property.getType())};
             }
+            return {ColumnEvaluateType::CAST,
+                expressionBinder.forceCast(column, property.getType())};
         }
     }
     return {ColumnEvaluateType::DEFAULT, expressionBinder.bindExpression(*property.defaultExpr)};
@@ -95,8 +94,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     // Bind expected columns based on catalog information.
     std::vector<std::string> expectedColumnNames;
     std::vector<LogicalType> expectedColumnTypes;
-    bindExpectedNodeColumns(nodeTableEntry, copyStatement.getCopyColumnInfo(), expectedColumnNames,
-        expectedColumnTypes);
+    bindExpectedNodeColumns(clientContext, nodeTableEntry, copyStatement.getCopyColumnInfo(),
+        expectedColumnNames, expectedColumnTypes);
     auto boundSource = bindScanSource(copyStatement.getSource(), copyStatement.getParsingOptions(),
         expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
@@ -148,8 +147,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     // Bind expected columns based on catalog information.
     std::vector<std::string> expectedColumnNames;
     std::vector<LogicalType> expectedColumnTypes;
-    bindExpectedRelColumns(relTableEntry, copyStatement.getCopyColumnInfo(), expectedColumnNames,
-        expectedColumnTypes, clientContext);
+    bindExpectedRelColumns(clientContext, relTableEntry, copyStatement.getCopyColumnInfo(),
+        expectedColumnNames, expectedColumnTypes);
     auto boundSource = bindScanSource(copyStatement.getSource(),
         getScanSourceOptions(copyStatement), expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
@@ -212,7 +211,8 @@ static bool skipPropertyInSchema(const PropertyDefinition& property) {
     return false;
 }
 
-static void bindExpectedColumns(const TableCatalogEntry* tableEntry, const CopyFromColumnInfo& info,
+static void bindExpectedColumns(const main::ClientContext* context,
+    const TableCatalogEntry* tableEntry, const CopyFromColumnInfo& info,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     if (info.inputColumnOrder) {
         std::unordered_set<std::string> inputColumnNamesSet;
@@ -226,8 +226,19 @@ static void bindExpectedColumns(const TableCatalogEntry* tableEntry, const CopyF
         // Search column data type for each input column.
         for (auto& columnName : info.columnNames) {
             if (!tableEntry->containsProperty(columnName)) {
+                KU_ASSERT(context != nullptr);
+                auto tableEntryName = tableEntry->getName();
+                if (tableEntry->getType() == CatalogEntryType::REL_TABLE_ENTRY) {
+                    auto& relTableEntry = tableEntry->constCast<RelTableCatalogEntry>();
+                    RUNTIME_CHECK(relTableEntry.hasParentRelGroup(context->getCatalog(),
+                        context->getTransaction()));
+                    tableEntryName =
+                        relTableEntry
+                            .getParentRelGroup(context->getCatalog(), context->getTransaction())
+                            ->getName();
+                }
                 throw BinderException(stringFormat("Table {} does not contain column {}.",
-                    tableEntry->getName(), columnName));
+                    tableEntryName, columnName));
             }
             auto& property = tableEntry->getProperty(columnName);
             if (skipPropertyInFile(property)) {
@@ -248,16 +259,16 @@ static void bindExpectedColumns(const TableCatalogEntry* tableEntry, const CopyF
     }
 }
 
-void bindExpectedNodeColumns(const NodeTableCatalogEntry* nodeTableEntry,
-    const CopyFromColumnInfo& info, std::vector<std::string>& columnNames,
-    std::vector<LogicalType>& columnTypes) {
+void bindExpectedNodeColumns(const main::ClientContext* context,
+    const NodeTableCatalogEntry* nodeTableEntry, const CopyFromColumnInfo& info,
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
-    bindExpectedColumns(nodeTableEntry, info, columnNames, columnTypes);
+    bindExpectedColumns(context, nodeTableEntry, info, columnNames, columnTypes);
 }
 
-void bindExpectedRelColumns(const RelTableCatalogEntry* relTableEntry,
-    const CopyFromColumnInfo& info, std::vector<std::string>& columnNames,
-    std::vector<LogicalType>& columnTypes, const main::ClientContext* context) {
+void bindExpectedRelColumns(const main::ClientContext* context,
+    const RelTableCatalogEntry* relTableEntry, const CopyFromColumnInfo& info,
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
@@ -277,7 +288,7 @@ void bindExpectedRelColumns(const RelTableCatalogEntry* relTableEntry,
     }
     columnTypes.push_back(std::move(srcPKColumnType));
     columnTypes.push_back(std::move(dstPKColumnType));
-    bindExpectedColumns(relTableEntry, info, columnNames, columnTypes);
+    bindExpectedColumns(context, relTableEntry, info, columnNames, columnTypes);
 }
 
 } // namespace binder

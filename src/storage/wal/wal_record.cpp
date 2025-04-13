@@ -49,7 +49,7 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     case WALRecordType::NODE_DELETION_RECORD: {
         walRecord = NodeDeletionRecord::deserialize(deserializer, clientContext);
     } break;
-    case WALRecordType::NODE_UDPATE_RECORD: {
+    case WALRecordType::NODE_UPDATE_RECORD: {
         walRecord = NodeUpdateRecord::deserialize(deserializer, clientContext);
     } break;
     case WALRecordType::REL_DELETION_RECORD: {

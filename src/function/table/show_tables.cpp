@@ -54,6 +54,22 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
     return numTablesToOutput;
 }
 
+static void collectTableInfos(const transaction::Transaction* transaction, const Catalog* catalog,
+    std::string databaseName, bool useInternal, std::vector<TableInfo>& tableInfos) {
+    for (const auto& entry : catalog->getTableEntries(transaction, useInternal)) {
+        if (entry->getType() == CatalogEntryType::REL_TABLE_ENTRY &&
+            entry->constCast<RelTableCatalogEntry>().hasParentRelGroup(catalog, transaction)) {
+            continue;
+        }
+        tableInfos.emplace_back(entry->getName(), entry->getTableID(),
+            TableTypeUtils::toString(entry->getTableType()), databaseName, entry->getComment());
+    }
+    for (const auto& entry : catalog->getRelGroupEntries(transaction)) {
+        tableInfos.emplace_back(entry->getName(), entry->getOID(), "REL", databaseName,
+            entry->getComment());
+    }
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
@@ -72,33 +88,17 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     auto transaction = context->getTransaction();
     if (!context->hasDefaultDatabase()) {
         auto catalog = context->getCatalog();
-        for (auto& entry :
-            catalog->getTableEntries(transaction, context->useInternalCatalogEntry())) {
-            if (entry->getType() == CatalogEntryType::REL_TABLE_ENTRY &&
-                entry->constCast<RelTableCatalogEntry>().hasParentRelGroup(catalog, transaction)) {
-                continue;
-            }
-            tableInfos.emplace_back(entry->getName(), entry->getTableID(),
-                TableTypeUtils::toString(entry->getTableType()), LOCAL_DB_NAME,
-                entry->getComment());
-        }
-        for (auto& entry : catalog->getRelGroupEntries(transaction)) {
-            tableInfos.emplace_back(entry->getName(), entry->getOID(), "REL", LOCAL_DB_NAME,
-                entry->getComment());
-        }
+        collectTableInfos(transaction, catalog, LOCAL_DB_NAME, context->useInternalCatalogEntry(),
+            tableInfos);
     }
 
     auto databaseManager = context->getDatabaseManager();
-    for (auto attachedDatabase : databaseManager->getAttachedDatabases()) {
-        auto databaseName = attachedDatabase->getDBName();
-        auto databaseType = attachedDatabase->getDBType();
-        for (auto& entry : attachedDatabase->getCatalog()->getTableEntries(
-                 context->getTransaction(), context->useInternalCatalogEntry())) {
-            auto tableInfo = TableInfo{entry->getName(), entry->getTableID(),
-                TableTypeUtils::toString(entry->getTableType()),
-                stringFormat("{}({})", databaseName, databaseType), entry->getComment()};
-            tableInfos.push_back(std::move(tableInfo));
-        }
+    for (const auto attachedDatabase : databaseManager->getAttachedDatabases()) {
+        const auto databaseName = attachedDatabase->getDBName();
+        const auto databaseType = attachedDatabase->getDBType();
+        collectTableInfos(transaction, attachedDatabase->getCatalog(),
+            stringFormat("{}({})", databaseName, databaseType), context->useInternalCatalogEntry(),
+            tableInfos);
     }
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);

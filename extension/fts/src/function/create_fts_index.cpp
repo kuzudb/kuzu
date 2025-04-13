@@ -61,7 +61,8 @@ static std::vector<property_id_t> bindProperties(const catalog::NodeTableCatalog
 
 static void validateInternalTableNotExist(const std::string& tableName,
     const catalog::Catalog& catalog, const transaction::Transaction* transaction) {
-    if (catalog.containsTable(transaction, tableName)) {
+    if (catalog.containsTable(transaction, tableName) ||
+        catalog.containsRelGroup(transaction, tableName)) {
         throw BinderException{
             stringFormat("Table: {} already exists. Please drop or rename the table before "
                          "creating a full text search index.",

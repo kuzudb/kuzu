@@ -3,7 +3,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/alter_type.h"
 #include "common/exception/binder.h"
 #include "processor/execution_context.h"
@@ -32,13 +31,17 @@ void Alter::executeInternal(ExecutionContext* context) {
     if (catalog->containsTable(transaction, info.tableName)) {
         auto entry = catalog->getTableCatalogEntry(transaction, info.tableName);
         if (entry->getType() == CatalogEntryType::REL_TABLE_ENTRY) {
-            auto parentGroup =
-                entry->constCast<RelTableCatalogEntry>().getParentRelGroup(catalog, transaction);
-            if (parentGroup != nullptr) {
-                throw RuntimeException(
-                    stringFormat("Cannot alter table {} because it is referenced by table {}.",
-                        info.tableName, parentGroup->getName()));
+            for (auto& relGroupEntry : catalog->getRelGroupEntries(transaction)) {
+                if (relGroupEntry->isParent(entry->getTableID())) {
+                    throw BinderException(
+                        stringFormat("Cannot alter table {} because it is referenced by table {}.",
+                            entry->getName(), relGroupEntry->getName()));
+                }
             }
+            // LCOV_EXCL_START
+            throw BinderException(
+                "Cannot directly alter an internal relationship table. This shouldn't happen.");
+            // LCOV_EXCL_STOP
         }
         alterTable(clientContext, entry, info);
     } else if (catalog->containsRelGroup(transaction, info.tableName)) {

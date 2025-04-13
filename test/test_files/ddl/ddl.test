@@ -89,8 +89,7 @@ Binder exception: knows already exists in catalog.
 -STATEMENT CREATE REL TABLE test_person_person (FROM person TO person);
 ---- ok
 -STATEMENT CREATE REL TABLE test (FROM person TO person, FROM person TO organisation);
----- error
-Catalog exception: test_person_person already exists in catalog.
+---- ok
 -STATEMENT CREATE REL TABLE test2 (FROM person TO person, FROM person TO person);
 ---- error
 Binder exception: Found duplicate FROM-TO person-person pairs.

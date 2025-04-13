@@ -3,6 +3,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/types/date_t.h"
 #include "common/types/ku_string.h"
@@ -23,7 +24,7 @@ namespace testing {
 class RelScanTest : public PrivateApiTest {
 public:
     void SetUp() override {
-        kuzu::testing::PrivateApiTest::SetUp();
+        PrivateApiTest::SetUp();
         conn->query("BEGIN TRANSACTION");
         context = getClientContext(*conn);
         catalog = context->getCatalog();
@@ -37,13 +38,13 @@ public:
             relEntries.push_back(entry);
         }
         auto entry = graph::GraphEntry(nodeEntries, relEntries);
-        graph = std::make_unique<kuzu::graph::OnDiskGraph>(context, std::move(entry));
+        graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
 
         fwdStorageOnly = (common::DEFAULT_EXTEND_DIRECTION == common::ExtendDirection::FWD);
     }
 
 public:
-    std::unique_ptr<kuzu::graph::OnDiskGraph> graph;
+    std::unique_ptr<graph::OnDiskGraph> graph;
     main::ClientContext* context;
     catalog::Catalog* catalog;
     bool fwdStorageOnly;
@@ -51,7 +52,7 @@ public:
 
 class RelScanTestAmazon : public RelScanTest {
     std::string getInputDir() override {
-        return kuzu::testing::TestHelper::appendKuzuRootPath("dataset/snap/amazon0601/csv/");
+        return TestHelper::appendKuzuRootPath("dataset/snap/amazon0601/csv/");
     }
 };
 
@@ -60,7 +61,8 @@ TEST_F(RelScanTest, ScanFwd) {
     auto transaction = context->getTransaction();
     auto nodeEntry = catalog->getTableCatalogEntry(transaction, "person");
     auto tableID = nodeEntry->getTableID();
-    auto relEntry = catalog->getTableCatalogEntry(transaction, "knows");
+    auto relGroupEntry = catalog->getRelGroupEntry(transaction, "knows");
+    auto relEntry = catalog->getTableCatalogEntry(transaction, relGroupEntry->getRelTableIDs()[0]);
     auto scanState = graph->prepareRelScan(relEntry, nodeEntry, "date");
 
     std::unordered_map<offset_t, common::date_t> expectedDates = {

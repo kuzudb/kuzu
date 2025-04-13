@@ -21,7 +21,7 @@ static void checkDetachDeleteRelDirection(const RelTable* relTable, const NodeTa
             "Cannot detach delete from node table '{}' as it has connected edges in rel "
             "table '{}' (detach delete only supports deleting from rel tables with "
             "storage direction 'both').",
-            nodeTable->getTableName(), relTable->getTableName()));
+            nodeTable->getTableName(), relTable->getRelGroupName()));
     }
 }
 

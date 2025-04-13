@@ -668,9 +668,8 @@ TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
     auto useInternal = clientContext->useInternalCatalogEntry();
-    if (!catalog->containsTable(transaction, name, useInternal)) {
-        throw BinderException(stringFormat("Table {} does not exist.", name));
-    }
+    validateTableExistence(*clientContext, name);
+    validateNodeTableType(*clientContext, name);
     return catalog->getTableCatalogEntry(transaction, name, useInternal);
 }
 
@@ -686,6 +685,7 @@ std::vector<TableCatalogEntry*> Binder::bindRelTableEntries(
         }
     } else {
         for (auto& name : tableNames) {
+            validateTableExistence(*clientContext, name);
             if (catalog->containsRelGroup(transaction, name)) {
                 auto groupEntry = catalog->getRelGroupEntry(transaction, name);
                 for (auto& id : groupEntry->getRelTableIDs()) {
@@ -699,8 +699,6 @@ std::vector<TableCatalogEntry*> Binder::bindRelTableEntries(
                         "Cannot bind {} as a relationship pattern label.", entry->getName()));
                 }
                 entrySet.insert(entry);
-            } else {
-                throw BinderException(stringFormat("Table {} does not exist.", name));
             }
         }
     }
