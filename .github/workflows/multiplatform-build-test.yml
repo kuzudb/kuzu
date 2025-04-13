@@ -243,6 +243,14 @@ jobs:
           make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Node.js test,%ERRORLEVEL% >> status.txt
 
+      - name: Set up JDK 11
+        continue-on-error: true
+        if: ${{ matrix.runner == 'windows-2019' }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
       - name: Java test
         continue-on-error: true
         shell: cmd
@@ -319,7 +327,14 @@ jobs:
         continue-on-error: true
         run: |    
           apt-get update
-          apt-get install -y git build-essential cmake gcc g++ python3 python3-dev python3-pip openjdk-17-jdk nodejs ca-certificates curl gnupg
+          apt-get install -y git build-essential cmake ${{ matrix.image == 'ubuntu:22.04' && 'gcc-12 g++-12' || 'gcc g++' }} python3 python3-dev python3-pip openjdk-17-jdk nodejs ca-certificates curl gnupg
+
+      - name: Setup gcc 12
+        if: ${{ matrix.image == 'ubuntu:22.04' }}
+        continue-on-error: true
+        run: |
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100
+          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
 
       - name: Install npm
         if: ${{ matrix.image == 'debian:sid' }}
@@ -338,8 +353,8 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+          pip install torch~=${{ matrix.image == 'debian:sid' && '2.6.0' || '2.2.0' }} --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-${{ matrix.image == 'debian:sid' && '2.6.0' || '2.2.0' }}+cpu.html
 
       - name: Ensure Node.js dependencies
         working-directory: tools/nodejs_api
@@ -471,16 +486,19 @@ jobs:
         continue-on-error: true
         run: |
           curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-          dnf install -y git cmake ${{ matrix.image == 'rockylinux:8' && 'gcc-toolset-12 python3.11 python3.11-devel' || 'gcc gcc-c++ python3-devel' }} java-17-openjdk-devel nodejs
+          dnf install -y git cmake ${{ (matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9') && 'gcc-toolset-12' || 'gcc gcc-c++' }} java-17-openjdk-devel nodejs
 
-      - name: Enable gcc-toolset-12 and python3.11 on Rocky Linux 8
+      - name: Set up Python 3.11
         continue-on-error: true
-        if: matrix.image == 'rockylinux:8'
+        if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Enable gcc-toolset-12
+        continue-on-error: true
+        if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
         run: |
-          alternatives --set python /usr/bin/python3.11
-          alternatives --set python3 /usr/bin/python3.11
-          echo "PYTHON_EXECUTABLE=/usr/bin/python3.11" >> $GITHUB_ENV
-          echo "PYBIND11_PYTHON_VERSION=3.11" >> $GITHUB_ENV
           source /opt/rh/gcc-toolset-12/enable
           echo $PATH >> $GITHUB_PATH
 
@@ -628,8 +646,8 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+          pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
 
       - name: Ensure Node.js dependencies
         continue-on-error: true
