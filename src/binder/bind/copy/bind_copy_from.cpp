@@ -214,7 +214,7 @@ static bool skipPropertyInSchema(const PropertyDefinition& property) {
 
 static void bindExpectedColumns(const TableCatalogEntry* tableEntry, const CopyFromColumnInfo& info,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
-    if (info.partialColumnCopy) {
+    if (info.inputColumnOrder) {
         std::unordered_set<std::string> inputColumnNamesSet;
         for (auto& columName : info.columnNames) {
             if (inputColumnNamesSet.contains(columName)) {

@@ -24,7 +24,7 @@ std::unique_ptr<Statement> Transformer::transformCopyFrom(CypherParser::KU_CopyF
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto copyFrom = std::make_unique<CopyFrom>(std::move(source), std::move(tableName));
     CopyFromColumnInfo info;
-    info.partialColumnCopy = ctx.kU_ColumnNames();
+    info.inputColumnOrder = ctx.kU_ColumnNames();
     if (ctx.kU_ColumnNames()) {
         info.columnNames = transformColumnNames(*ctx.kU_ColumnNames());
     }

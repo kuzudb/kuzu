@@ -21,17 +21,12 @@ protected:
 };
 
 struct CopyFromColumnInfo {
-    bool partialColumnCopy = false;
+    bool inputColumnOrder = false;
     std::vector<std::string> columnNames;
 
     CopyFromColumnInfo() = default;
-    CopyFromColumnInfo(bool partialColumnCopy, std::vector<std::string> columnNames)
-        : partialColumnCopy{partialColumnCopy}, columnNames{std::move(columnNames)} {}
-    bool isPartialColumnCopy() const { return partialColumnCopy; }
-    const std::vector<std::string>& getColumnsToCopyRef() const {
-        KU_ASSERT(partialColumnCopy);
-        return columnNames;
-    }
+    CopyFromColumnInfo(bool inputColumnOrder, std::vector<std::string> columnNames)
+        : inputColumnOrder{inputColumnOrder}, columnNames{std::move(columnNames)} {}
 };
 
 class CopyFrom : public Copy {
