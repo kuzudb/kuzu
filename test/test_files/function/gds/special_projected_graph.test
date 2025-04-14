@@ -73,4 +73,4 @@ Binder exception: {organisation: {filter: n.ID>0}} has data type STRUCT(organisa
 ---- ok
 -STATEMENT CALL weakly_connected_component('G') RETURN node.ID, group_id;
 ---- error
-Catalog exception: knows does not exist in catalog.
+Binder exception: knows is not a REL table.

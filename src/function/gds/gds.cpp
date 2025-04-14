@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "graph/on_disk_graph.h"
 #include "main/client_context.h"
@@ -29,14 +30,6 @@ void GDSFuncSharedState::setGraphNodeMask(std::unique_ptr<NodeOffsetMaskMap> mas
     graphNodeMask = std::move(maskMap);
 }
 
-static void validateEntryType(const TableCatalogEntry& entry, CatalogEntryType type) {
-    if (entry.getType() != type) {
-        throw BinderException(stringFormat("Expect catalog entry type {} but got {}.",
-            CatalogEntryTypeUtils::toString(type),
-            CatalogEntryTypeUtils::toString(entry.getType())));
-    }
-}
-
 static expression_vector getResultColumns(const std::string& cypher, ClientContext* context) {
     auto parsedStatements = parser::Parser::parseQuery(cypher);
     KU_ASSERT(parsedStatements.size() == 1);
@@ -56,12 +49,12 @@ static void validateNodeProjected(table_id_t tableID, const table_id_set_t& proj
 }
 
 static void validateRelSrcDstNodeAreProjected(const TableCatalogEntry& entry,
-    const table_id_set_t& projectedNodeIDSet, Catalog* catalog,
+    const std::string printableRelName, const table_id_set_t& projectedNodeIDSet, Catalog* catalog,
     transaction::Transaction* transaction) {
     auto& relEntry = entry.constCast<RelTableCatalogEntry>();
-    validateNodeProjected(relEntry.getSrcTableID(), projectedNodeIDSet, entry.getName(), catalog,
+    validateNodeProjected(relEntry.getSrcTableID(), projectedNodeIDSet, printableRelName, catalog,
         transaction);
-    validateNodeProjected(relEntry.getDstTableID(), projectedNodeIDSet, entry.getName(), catalog,
+    validateNodeProjected(relEntry.getDstTableID(), projectedNodeIDSet, printableRelName, catalog,
         transaction);
 }
 
@@ -72,43 +65,77 @@ GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const std::string
     return bindGraphEntry(context, context.getGraphEntrySetUnsafe().getEntry(name));
 }
 
+static BoundGraphEntryTableInfo bindNodeEntry(ClientContext& context, const std::string& tableName,
+    const std::string& predicate) {
+    auto catalog = context.getCatalog();
+    auto transaction = context.getTransaction();
+    auto nodeEntry = catalog->getTableCatalogEntry(transaction, tableName);
+    if (nodeEntry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
+        throw BinderException(stringFormat("{} is not a NODE table.", tableName));
+    }
+    if (!predicate.empty()) {
+        auto cypher = stringFormat("MATCH (n:`{}`) RETURN n, {}", nodeEntry->getName(), predicate);
+        auto columns = getResultColumns(cypher, &context);
+        KU_ASSERT(columns.size() == 2);
+        return {nodeEntry, columns[0], columns[1]};
+    } else {
+        auto cypher = stringFormat("MATCH (n:`{}`) RETURN n", nodeEntry->getName());
+        auto columns = getResultColumns(cypher, &context);
+        KU_ASSERT(columns.size() == 1);
+        return {nodeEntry, columns[0], nullptr /* empty predicate */};
+    }
+}
+
+static BoundGraphEntryTableInfo bindRelEntry(ClientContext& context, const std::string& tableName,
+    const std::string& predicate) {
+    auto catalog = context.getCatalog();
+    auto transaction = context.getTransaction();
+    auto relEntry = catalog->getTableCatalogEntry(transaction, tableName);
+    if (relEntry->getType() != CatalogEntryType::REL_TABLE_ENTRY) {
+        throw BinderException(
+            stringFormat("{} has catalog entry type. REL entry was expected.", tableName));
+    }
+    if (!predicate.empty()) {
+        auto cypher =
+            stringFormat("MATCH ()-[r:`{}`]->() RETURN r, {}", relEntry->getName(), predicate);
+        auto columns = getResultColumns(cypher, &context);
+        KU_ASSERT(columns.size() == 2);
+        return {relEntry, columns[0], columns[1]};
+    } else {
+        auto cypher = stringFormat("MATCH ()-[r:`{}`]->() RETURN r", relEntry->getName());
+        auto columns = getResultColumns(cypher, &context);
+        KU_ASSERT(columns.size() == 1);
+        return {relEntry, columns[0], nullptr /* empty predicate */};
+    }
+}
+
 GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const ParsedGraphEntry& entry) {
     auto catalog = context.getCatalog();
     auto transaction = context.getTransaction();
     auto result = GraphEntry();
     table_id_set_t projectedNodeTableIDSet;
     for (auto& nodeInfo : entry.nodeInfos) {
-        auto nodeEntry = catalog->getTableCatalogEntry(transaction, nodeInfo.tableName);
-        validateEntryType(*nodeEntry, CatalogEntryType::NODE_TABLE_ENTRY);
-        projectedNodeTableIDSet.insert(nodeEntry->getTableID());
-        if (!nodeInfo.predicate.empty()) {
-            auto cypher = stringFormat("MATCH (n:`{}`) RETURN n, {}", nodeEntry->getName(),
-                nodeInfo.predicate);
-            auto columns = getResultColumns(cypher, &context);
-            KU_ASSERT(columns.size() == 2);
-            result.nodeInfos.emplace_back(nodeEntry, columns[0], columns[1]);
-        } else {
-            auto cypher = stringFormat("MATCH (n:`{}`) RETURN n", nodeEntry->getName());
-            auto columns = getResultColumns(cypher, &context);
-            KU_ASSERT(columns.size() == 1);
-            result.nodeInfos.emplace_back(nodeEntry, columns[0], nullptr /* empty predicate */);
-        }
+        auto boundInfo = bindNodeEntry(context, nodeInfo.tableName, nodeInfo.predicate);
+        projectedNodeTableIDSet.insert(boundInfo.entry->getTableID());
+        result.nodeInfos.push_back(std::move(boundInfo));
     }
     for (auto& relInfo : entry.relInfos) {
-        auto relEntry = catalog->getTableCatalogEntry(transaction, relInfo.tableName);
-        validateEntryType(*relEntry, CatalogEntryType::REL_TABLE_ENTRY);
-        validateRelSrcDstNodeAreProjected(*relEntry, projectedNodeTableIDSet, catalog, transaction);
-        if (!relInfo.predicate.empty()) {
-            auto cypher = stringFormat("MATCH ()-[r:`{}`]->() RETURN r, {}", relEntry->getName(),
-                relInfo.predicate);
-            auto columns = getResultColumns(cypher, &context);
-            KU_ASSERT(columns.size() == 2);
-            result.relInfos.emplace_back(relEntry, columns[0], columns[1]);
+        if (catalog->containsTable(transaction, relInfo.tableName)) {
+            auto boundInfo = bindRelEntry(context, relInfo.tableName, relInfo.predicate);
+            validateRelSrcDstNodeAreProjected(*boundInfo.entry, relInfo.tableName,
+                projectedNodeTableIDSet, catalog, transaction);
+            result.relInfos.push_back(std::move(boundInfo));
+        } else if (catalog->containsRelGroup(transaction, relInfo.tableName)) {
+            auto groupEntry = catalog->getRelGroupEntry(transaction, relInfo.tableName);
+            for (auto tableID : groupEntry->getRelTableIDs()) {
+                auto relEntry = catalog->getTableCatalogEntry(transaction, tableID);
+                auto boundInfo = bindRelEntry(context, relEntry->getName(), relInfo.predicate);
+                validateRelSrcDstNodeAreProjected(*boundInfo.entry, relInfo.tableName,
+                    projectedNodeTableIDSet, catalog, transaction);
+                result.relInfos.push_back(std::move(boundInfo));
+            }
         } else {
-            auto cypher = stringFormat("MATCH ()-[r:`{}`]->() RETURN r", relEntry->getName());
-            auto columns = getResultColumns(cypher, &context);
-            KU_ASSERT(columns.size() == 1);
-            result.relInfos.emplace_back(relEntry, columns[0], nullptr /* empty predicate */);
+            throw BinderException(stringFormat("{} is not a REL table.", relInfo.tableName));
         }
     }
     return result;

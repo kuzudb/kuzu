@@ -90,9 +90,8 @@ private:
     ComponentIDs& componentIDs;
 };
 
-struct WCCEdgeCompute : public EdgeCompute {
-    WCCAuxiliaryState& auxiliaryState;
-
+class WCCEdgeCompute : public EdgeCompute {
+public:
     explicit WCCEdgeCompute(WCCAuxiliaryState& auxiliaryState) : auxiliaryState{auxiliaryState} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
@@ -109,6 +108,9 @@ struct WCCEdgeCompute : public EdgeCompute {
     std::unique_ptr<EdgeCompute> copy() override {
         return std::make_unique<WCCEdgeCompute>(auxiliaryState);
     }
+
+private:
+    WCCAuxiliaryState& auxiliaryState;
 };
 
 class WCCVertexCompute : public GDSResultVertexCompute {
@@ -147,7 +149,7 @@ private:
 
 static constexpr uint8_t MAX_ITERATION = 100;
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto graph = sharedState->graph.get();
