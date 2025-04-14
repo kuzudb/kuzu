@@ -444,16 +444,17 @@ void ColumnReadWriter::readFromPage(const Transaction* transaction, page_idx_t p
 
 bool ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
     const std::function<void(uint8_t*, common::offset_t)>& writeOp) const {
-    // The implemented mechanism for inserting new pages here doesn't work if we do concurrent
-    // writes We currently don't do concurrent writes but should also actually never hit the case
-    // where we need to insert pages either
-    KU_ASSERT(cursor.pageIdx < dataFH->getNumPages());
-
     bool insertingNewPage = false;
     if (cursor.pageIdx == INVALID_PAGE_IDX) {
         writeOp(nullptr, cursor.elemPosInPage);
         return 0;
     }
+
+    // The implemented mechanism for inserting new pages here doesn't work if we do concurrent
+    // writes We currently don't do concurrent writes but should also actually never hit the case
+    // where we need to insert pages either
+    KU_ASSERT(cursor.pageIdx < dataFH->getNumPages());
+
     if (cursor.pageIdx >= dataFH->getNumPages()) {
         KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
         ShadowUtils::insertNewPage(*dataFH, dbFileID, *shadowFile);
