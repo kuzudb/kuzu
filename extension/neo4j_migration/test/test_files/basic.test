@@ -21,11 +21,11 @@
 ---- ok
 -STATEMENT match (p:student) return p.*;
 ---- 5
-0|1|True|35|1900-01-01|5.000000|Alice|[96,54,86,92]|1.731000|0|False|3 years 2 days 13:02:00|2011-08-20 11:25:30|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11|["Aida"]|[10,5]
-1|2|True|30|1900-01-01|5.100000|Bob|[98,42,93,88]|0.990000|2|False|10 years 5 months 13:00:00.000024|2008-11-03 15:25:30.000526|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12|["Bobby"]|[12,8]
-2|1|False|45|1940-06-22|5.000000|Carol|[91,75,21,95]|1.000000|3|True|48:24:11|1911-08-20 02:32:21|a0eebc999c0b4ef8bb6d6bb9bd380a13|["Carmen","Fred"]|[4,5]
-3|2|False|20|1950-07-23|4.800000|Dan|[76,88,99,89]|1.300000|5|True|10 years 5 months 13:00:00.000024|2031-11-30 12:25:30|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14|["Wolfeschlegelstein","Daniel"]|[1,9]
-4|1|False|20|1980-10-26|4.700000|Elizabeth|[96,59,65,88]|1.463000|7|True|48:24:11|1976-12-23 11:21:42|a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15|["Ein"]|[2]
+0|1|True|35|1900-01-01|5.000000|Alice|[96,54,86,92]|1.731000|0|False|3 years 2 days 13 hours 2 minutes|2011-08-20 11:25:30|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11|["Aida"]|[10,5]
+1|2|True|30|1900-01-01|5.100000|Bob|[98,42,93,88]|0.990000|2|False|10 years 5 months 13 hours 24 us|2008-11-03 15:25:30.000526|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12|["Bobby"]|[12,8]
+2|1|False|45|1940-06-22|5.000000|Carol|[91,75,21,95]|1.000000|3|True|48 hours 24 minutes 11 seconds|1911-08-20 02:32:21|a0eebc999c0b4ef8bb6d6bb9bd380a13|["Carmen","Fred"]|[4,5]
+3|2|False|20|1950-07-23|4.800000|Dan|[76,88,99,89]|1.300000|5|True|10 years 5 months 13 hours 24 us|2031-11-30 12:25:30|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14|["Wolfeschlegelstein","Daniel"]|[1,9]
+4|1|False|20|1980-10-26|4.700000|Elizabeth|[96,59,65,88]|1.463000|7|True|48 hours 24 minutes 11 seconds|1976-12-23 11:21:42|a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15|["Ein"]|[2]
 
 -STATEMENT match (s:teacher) return s.*;
 ---- 2
@@ -47,11 +47,11 @@
 ---- ok
 -STATEMENT match (s:student) return s.*;
 ---- 5
-0|1|True|35|1900-01-01|5.000000|Alice|[96,54,86,92]|1.731000|0|False|3 years 2 days 13:02:00|2011-08-20 11:25:30|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11|["Aida"]|[10,5]
-1|2|True|30|1900-01-01|5.100000|Bob|[98,42,93,88]|0.990000|2|False|10 years 5 months 13:00:00.000024|2008-11-03 15:25:30.000526|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12|["Bobby"]|[12,8]
-2|1|False|45|1940-06-22|5.000000|Carol|[91,75,21,95]|1.000000|3|True|48:24:11|1911-08-20 02:32:21|a0eebc999c0b4ef8bb6d6bb9bd380a13|["Carmen","Fred"]|[4,5]
-3|2|False|20|1950-07-23|4.800000|Dan|[76,88,99,89]|1.300000|5|True|10 years 5 months 13:00:00.000024|2031-11-30 12:25:30|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14|["Wolfeschlegelstein","Daniel"]|[1,9]
-4|1|False|20|1980-10-26|4.700000|Elizabeth|[96,59,65,88]|1.463000|7|True|48:24:11|1976-12-23 11:21:42|a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15|["Ein"]|[2]
+0|1|True|35|1900-01-01|5.000000|Alice|[96,54,86,92]|1.731000|0|False|3 years 2 days 13 hours 2 minutes|2011-08-20 11:25:30|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11|["Aida"]|[10,5]
+1|2|True|30|1900-01-01|5.100000|Bob|[98,42,93,88]|0.990000|2|False|10 years 5 months 13 hours 24 us|2008-11-03 15:25:30.000526|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12|["Bobby"]|[12,8]
+2|1|False|45|1940-06-22|5.000000|Carol|[91,75,21,95]|1.000000|3|True|48 hours 24 minutes 11 seconds|1911-08-20 02:32:21|a0eebc999c0b4ef8bb6d6bb9bd380a13|["Carmen","Fred"]|[4,5]
+3|2|False|20|1950-07-23|4.800000|Dan|[76,88,99,89]|1.300000|5|True|10 years 5 months 13 hours 24 us|2031-11-30 12:25:30|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14|["Wolfeschlegelstein","Daniel"]|[1,9]
+4|1|False|20|1980-10-26|4.700000|Elizabeth|[96,59,65,88]|1.463000|7|True|48 hours 24 minutes 11 seconds|1976-12-23 11:21:42|a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15|["Ein"]|[2]
 
 -INSERT_STATEMENT_BLOCK CLEAN_DB
 -STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["teacher"], []);

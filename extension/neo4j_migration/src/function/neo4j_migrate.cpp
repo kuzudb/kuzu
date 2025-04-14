@@ -1,7 +1,5 @@
 #include "function/neo4j_migrate.h"
 
-#include <chrono>
-
 #include "binder/expression/literal_expression.h"
 #include "common/enums/table_type.h"
 #include "common/exception/runtime.h"
@@ -138,7 +136,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
         std::move(rels));
 }
 
-uint64_t exportNeo4jNodeToCSV(std::string nodeName, httplib::Client& cli) {
+void exportNeo4jNodeToCSV(std::string nodeName, httplib::Client& cli) {
     auto query = common::stringFormat("MATCH (p:{}) "
                                       "with collect(p) as n "
                                       "CALL apoc.export.csv.data(n, [], \\\"/tmp/{}.csv\\\", null) "
@@ -147,12 +145,10 @@ uint64_t exportNeo4jNodeToCSV(std::string nodeName, httplib::Client& cli) {
                                       "RETURN file, source, format, nodes, relationships, "
                                       "properties, time, rows, batchSize, batches, done, data",
         nodeName, nodeName);
-    auto res = executeNeo4jQuery(cli, query);
-    KU_ASSERT(res.size() == 1);
-    return res[0]["row"][7].get<uint64_t>();
+    executeNeo4jQuery(cli, query);
 }
 
-uint64_t exportNeo4jRelToCSV(std::string relName, std::pair<std::string, std::string> nodePairs,
+void exportNeo4jRelToCSV(std::string relName, std::pair<std::string, std::string> nodePairs,
     httplib::Client& cli) {
     auto query =
         common::stringFormat("MATCH (:{})-[e:{}]->(:{}) "
@@ -163,9 +159,7 @@ uint64_t exportNeo4jRelToCSV(std::string relName, std::pair<std::string, std::st
                              "RETURN file, source, format, nodes, relationships, "
                              "properties, time, rows, batchSize, batches, done, data",
             nodePairs.first, relName, nodePairs.second, nodePairs.first, relName, nodePairs.second);
-    auto res = executeNeo4jQuery(cli, query);
-    KU_ASSERT(res.size() == 1);
-    return res[0]["row"][7].get<uint64_t>();
+    executeNeo4jQuery(cli, query);
 }
 
 LogicalType convertFromNeo4jTypeStr(const std::string& neo4jTypeStr) {
@@ -194,7 +188,7 @@ LogicalType convertFromNeo4jTypeStr(const std::string& neo4jTypeStr) {
 }
 
 std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli,
-    const std::string& nodeName, uint64_t numNodes) {
+    const std::string& nodeName) {
     auto neo4jQuery = common::stringFormat(
         "call db.schema.nodeTypeProperties() yield nodeType, propertyName,propertyTypes where "
         "nodeType = ':`{}`' return propertyName,propertyTypes",
@@ -211,15 +205,16 @@ std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli
             kuType = LogicalTypeUtils::combineTypes(
                 convertFromNeo4jTypeStr(types[i].get<std::string>()), kuType);
         }
-        propertiesToCopy += common::stringFormat("cast(`{}` as {}),", property, kuType.toString());
+        propertiesToCopy += property + ",";
         properties += (" " + kuType.toString() + ",");
     }
     return {common::stringFormat("CREATE NODE TABLE `{}` (`_id_` int64, {} PRIMARY KEY(_id_));",
                 nodeName, properties),
         common::stringFormat(
-            "COPY `{}` FROM (LOAD FROM '/tmp/{}.csv'(sample_size = {}, header=true) RETURN "
-            "cast(_id as int64), {});",
-            nodeName, nodeName, numNodes,
+            "COPY `{}` FROM (LOAD WITH HEADERS(_id STRING, _labels STRING, {} _start STRING, "
+            "_end STRING, _type STRING) FROM '/tmp/{}.csv'(sample_size "
+            "= 0, header=true) RETURN _id, {});",
+            nodeName, properties, nodeName,
             propertiesToCopy.substr(0, propertiesToCopy.length() - 1))};
 }
 
@@ -246,7 +241,6 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
     auto data = executeNeo4jQuery(cli, neo4jQuery);
     std::string properties = ",";
     std::unordered_map<std::string, std::string> propertyTypes;
-    auto res = data.dump();
     for (const auto& item : data) {
         auto property = item["row"][0].get<std::string>();
         properties += property;
@@ -287,24 +281,27 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
         }
         nodePairs.emplace_back(srcLabel, dstLabel);
         nodePairsString += common::stringFormat("FROM {} TO {},", srcLabel, dstLabel);
-        auto numRels = exportNeo4jRelToCSV(relName, {srcLabel, dstLabel}, cli);
+        exportNeo4jRelToCSV(relName, {srcLabel, dstLabel}, cli);
         auto relProperties = getRelProperties(cli, srcLabel, dstLabel, relName);
 
         std::string propertiesToCopy = "";
-        std::string propertiesToExtract = "";
+        std::string loadFromHeaders = "";
         for (auto i = 0u; i < relProperties.size(); i++) {
             propertiesToCopy += relProperties[i];
-            propertiesToExtract += common::stringFormat(", cast(`{}` as {})", relProperties[i],
-                propertyTypes.at(relProperties[i]));
+            loadFromHeaders +=
+                common::stringFormat("{} {}", relProperties[i], propertyTypes.at(relProperties[i]));
             if (i != relProperties.size() - 1) {
                 propertiesToCopy += ",";
+                loadFromHeaders += ",";
             }
         }
-        copyQuery += common::stringFormat(
-            "COPY `{}`({}) FROM (LOAD FROM '/tmp/{}_{}_{}.csv'(sample_size={}, header=true) "
-            "RETURN `_start`, `_end`{}) (from = \"{}\", to = \"{}\");",
-            relName, propertiesToCopy, srcLabel, relName, dstLabel, numRels, propertiesToExtract,
-            srcLabel, dstLabel);
+        copyQuery +=
+            common::stringFormat("COPY `{}`({}) FROM (LOAD WITH HEADERS(_id STRING, _labels "
+                                 "STRING, _start INT64, _end INT64, _type STRING, {}) FROM "
+                                 "'/tmp/{}_{}_{}.csv'(sample_size=0, header=true) "
+                                 "RETURN `_start`, `_end`, {}) (from = \"{}\", to = \"{}\");",
+                relName, propertiesToCopy, loadFromHeaders, srcLabel, relName, dstLabel,
+                propertiesToCopy, srcLabel, dstLabel);
     }
     return common::stringFormat("CREATE REL TABLE `{}` ({} {});", relName,
                nodePairsString.substr(0, nodePairsString.size() - 1),
@@ -316,9 +313,8 @@ std::string migrateQuery(ClientContext& /*context*/, const TableFuncBindData& bi
     std::string result;
     auto neo4jMigrateBindData = bindData.constPtrCast<Neo4jMigrateBindData>();
     for (auto node : neo4jMigrateBindData->nodesToImport) {
-        auto numNodes = exportNeo4jNodeToCSV(node, *neo4jMigrateBindData->client);
-        auto [ddl, copyQuery] =
-            getCreateNodeTableQuery(*neo4jMigrateBindData->client, node, numNodes);
+        exportNeo4jNodeToCSV(node, *neo4jMigrateBindData->client);
+        auto [ddl, copyQuery] = getCreateNodeTableQuery(*neo4jMigrateBindData->client, node);
         result += ddl;
         result += copyQuery;
     }
