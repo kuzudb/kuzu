@@ -15,13 +15,13 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
     // e.g. 2 -> level 1, 5 -> level 2
-    return common::countBits(numPages) - common::CountZeros<common::page_idx_t>::Leading(numPages) -
-           1;
+    KU_ASSERT(numPages > 0);
+    return common::CountZeros<common::page_idx_t>::Trailing(std::bit_floor(numPages));
 }
 
 bool FreeSpaceManager::entryCmp(const PageRange& a, const PageRange& b) {

@@ -61,8 +61,8 @@ bool containsValue(const Container& container, const T& value) {
 }
 
 template<std::integral T>
-T countBits(T) {
-    static constexpr T bitsPerByte = 8;
+constexpr T countBits(T) {
+    constexpr T bitsPerByte = 8;
     return sizeof(T) * bitsPerByte;
 }
 

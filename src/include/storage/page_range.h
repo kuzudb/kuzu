@@ -7,9 +7,10 @@ struct PageRange {
     PageRange() = default;
     PageRange(common::page_idx_t startPageIdx, common::page_idx_t numPages)
         : startPageIdx(startPageIdx), numPages(numPages) {}
-    PageRange(const PageRange& o, common::page_idx_t startPageInOther)
-        : PageRange(o.startPageIdx + startPageInOther, o.numPages - startPageInOther) {
-        KU_ASSERT(startPageInOther <= o.numPages);
+
+    PageRange subrange(common::page_idx_t newStartPage) const {
+        KU_ASSERT(newStartPage <= numPages);
+        return {startPageIdx + newStartPage, numPages - newStartPage};
     }
 
     common::page_idx_t startPageIdx;

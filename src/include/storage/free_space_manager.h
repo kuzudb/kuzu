@@ -26,7 +26,7 @@ public:
     void addFreePages(PageRange entry);
     std::optional<PageRange> popFreePages(common::page_idx_t numPages);
 
-    // These pages are not reusuable until the end of the next checkpoint
+    // These pages are not reusable until the end of the next checkpoint
     void addUncheckpointedFreePages(PageRange entry);
 
     void serialize(common::Serializer& serializer) const;
