@@ -1009,6 +1009,9 @@ uint64_t ColumnChunkData::spillToDisk() {
 }
 
 void ColumnChunkData::commitDrop(FileHandle& dataFH) {
+    if (nullData) {
+        nullData->commitDrop(dataFH);
+    }
     if (residencyState == ResidencyState::ON_DISK) {
         if (metadata.getStartPageIdx() != INVALID_PAGE_IDX) {
             dataFH.getPageManager()->freePageRange(metadata.pageRange);

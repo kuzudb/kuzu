@@ -299,6 +299,9 @@ void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t com
 void UndoBuffer::rollbackRecord(const transaction::Transaction* transaction,
     const UndoRecordType recordType, const uint8_t* record) {
     switch (recordType) {
+    case UndoRecordType::DROP_PROPERTY_CATALOG_ENTRY: {
+        rollbackDropCatalogEntryRecord(record);
+    } break;
     case UndoRecordType::CATALOG_ENTRY: {
         rollbackCatalogEntryRecord(record);
     } break;
@@ -318,8 +321,13 @@ void UndoBuffer::rollbackRecord(const transaction::Transaction* transaction,
     }
 }
 
-void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
-    const auto& [catalogSet, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
+void UndoBuffer::rollbackDropCatalogEntryRecord(const uint8_t* record) {
+    const auto& [catalogSet, catalogEntry, _] =
+        *reinterpret_cast<DeletePropertyCatalogEntryRecord const*>(record);
+    rollbackCatalogEntryRecord(catalogSet, catalogEntry);
+}
+
+void UndoBuffer::rollbackCatalogEntryRecord(CatalogSet* catalogSet, CatalogEntry* catalogEntry) {
     const auto entryToRollback = catalogEntry->getNext();
     KU_ASSERT(entryToRollback);
     if (entryToRollback->getNext()) {
@@ -335,6 +343,11 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
             catalogSet->emplaceNoLock(std::move(olderEntry));
         }
     }
+}
+
+void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
+    const auto& [catalogSet, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
+    rollbackCatalogEntryRecord(catalogSet, catalogEntry);
 }
 
 void UndoBuffer::commitSequenceEntry(const uint8_t*, transaction_t) {
