@@ -9,7 +9,7 @@
 8
 -STATEMENT CALL storage_info('person') RETURN COUNT(*)
 ---- 1
-56
+58
 # TODO(Guodong/Sam): FIX-ME
 #-STATEMENT CALL storage_info('knows') RETURN COUNT(*)
 #---- 1
