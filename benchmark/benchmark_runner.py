@@ -398,15 +398,16 @@ if __name__ == '__main__':
     logging.info("Total memory: %d GiB", max_memory / 1024 ** 3)
     logging.info("bm-size: %d MiB", bm_size)
 
-    # serialize dataset
-    serialize_dataset(args.dataset + '-ku')
+    # handle benchmark server URL
     global benchmark_server_url
-    benchmark_server_url = os.getenv(
-        datasets_benchmark_severs_url_key[args.dataset])
+    benchmark_server_url = os.getenv(datasets_benchmark_severs_url_key[args.dataset])
     if benchmark_server_url is None and not is_dry_run:
         logging.error("Benchmark server URL is not set, exiting...")
         sys.exit(1)
     logging.info("Benchmark server URL: %s", benchmark_server_url)
+
+    # serialize dataset
+    serialize_dataset(args.dataset + '-ku')
 
     # load benchmark
     benchmark_group = BenchmarkGroup(benchmark_files)
