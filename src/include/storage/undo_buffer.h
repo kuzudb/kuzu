@@ -115,7 +115,11 @@ private:
     void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
     void commitDropPropertyCatalogEntryRecord(const uint8_t* record,
         const common::transaction_t commitTS) const;
+
+    static void rollbackDropCatalogEntryRecord(const uint8_t* record);
     static void rollbackCatalogEntryRecord(const uint8_t* record);
+    static void rollbackCatalogEntryRecord(catalog::CatalogSet* catalogSet,
+        catalog::CatalogEntry* catalogEntry);
 
     void commitCatalogEntryDrop(catalog::CatalogEntry* catalogEntry) const;
 

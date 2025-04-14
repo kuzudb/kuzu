@@ -470,12 +470,16 @@ void CSRNodeGroup::checkpoint(MemoryManager&, NodeGroupCheckpointState& state) {
 
 void CSRNodeGroup::commitDrop(FileHandle& dataFH) {
     NodeGroup::commitDrop(dataFH);
-    persistentChunkGroup->commitDrop(dataFH);
+    if (persistentChunkGroup) {
+        persistentChunkGroup->commitDrop(dataFH);
+    }
 }
 
 void CSRNodeGroup::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
     NodeGroup::commitDropColumn(dataFH, columnID);
-    persistentChunkGroup->commitDropColumn(dataFH, columnID);
+    if (persistentChunkGroup) {
+        persistentChunkGroup->commitDropColumn(dataFH, columnID);
+    }
 }
 
 void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheckpointState& state) {
