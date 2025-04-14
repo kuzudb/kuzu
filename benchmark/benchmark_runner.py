@@ -38,6 +38,11 @@ base_dir = os.path.dirname(os.path.realpath(__file__))
 
 # dataset registration
 datasets = {'ldbc-sf10', 'ldbc-sf100', 'click'}
+datasets_benchmark_severs_url_key = {
+    'ldbc-sf10': 'BENCHMARK_SERVER_URL',
+    'ldbc-sf100': 'BENCHMARK_SERVER_URL',
+    'click': 'CLICK_BENCHMARK_SERVER_URL'
+}
 
 csv_base_dir = os.getenv('CSV_DIR')
 serialized_base_dir = os.getenv('SERIALIZED_DIR')
@@ -52,11 +57,6 @@ if csv_base_dir is None:
     sys.exit(1)
 if serialized_base_dir is None:
     logging.error("SERIALIZED_DIR is not set, exiting...")
-    sys.exit(1)
-
-benchmark_server_url = os.getenv('BENCHMARK_SERVER_URL')
-if benchmark_server_url is None and not is_dry_run:
-    logging.error("BENCHMARK_SERVER_URL is not set, exiting...")
     sys.exit(1)
 
 jwt_token = os.getenv('JWT_TOKEN')
@@ -400,6 +400,13 @@ if __name__ == '__main__':
 
     # serialize dataset
     serialize_dataset(args.dataset + '-ku')
+    global benchmark_server_url
+    benchmark_server_url = os.getenv(
+        datasets_benchmark_severs_url_key[args.dataset])
+    if benchmark_server_url is None and not is_dry_run:
+        logging.error("Benchmark server URL is not set, exiting...")
+        sys.exit(1)
+    logging.info("Benchmark server URL: %s", benchmark_server_url)
 
     # load benchmark
     benchmark_group = BenchmarkGroup(benchmark_files)
