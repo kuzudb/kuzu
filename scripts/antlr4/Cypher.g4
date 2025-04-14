@@ -259,10 +259,10 @@ oC_Statement
         | kU_UseDatabase;
 
 kU_CopyFrom
-    : COPY SP oC_SchemaName ( SP? '(' SP? kU_ColumnNames? ')' )? SP FROM SP kU_ScanSource ( SP? '(' SP? kU_Options SP? ')' )? ;
+    : COPY SP oC_SchemaName kU_ColumnNames? SP FROM SP kU_ScanSource ( SP? '(' SP? kU_Options SP? ')' )? ;
 
 kU_ColumnNames
-     : oC_SchemaName ( SP? ',' SP? oC_SchemaName )* SP? ;
+    : SP? '(' SP? (oC_SchemaName ( SP? ',' SP? oC_SchemaName )* SP?)? ')';
 
 kU_ScanSource
     : kU_FilePaths

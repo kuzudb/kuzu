@@ -1,0 +1,39 @@
+-DATASET CSV empty
+-BUFFER_POOL_SIZE 1024000000
+-SKIP
+
+--
+
+-CASE IncorrectServerInfo
+-STATEMENT CALL NEO4J_MIGRATE("http://incorrecturl.com", "neo4j", "czy990424", ["person", "student"], ["knows"]);
+---- error
+Runtime exception: Failed to connect to neo4j server. Please check whether it is valid neo4j server url.
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j!", "czy990424", ["person", "student"], ["knows"]);
+---- error
+Runtime exception: Failed to connect to neo4j. Server returned: 401, Response: {"errors":[{"code":"Neo.ClientError.Security.Unauthorized","message":"Invalid credential."}]}.
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424!", ["person", "student"], ["knows"]);
+---- error
+Runtime exception: Failed to connect to neo4j. Server returned: 401, Response: {"errors":[{"code":"Neo.ClientError.Security.Unauthorized","message":"Invalid credential."}]}.
+
+-CASE InvalidTableName
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["person123", "student"], ["knows"]);
+---- error
+Runtime exception: NODE: person123 does not exist in neo4j.
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["412313"], []);
+---- error
+Runtime exception: NODE: 412313 does not exist in neo4j.
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["student", "teacher"], ["knows11"]);
+---- error
+Runtime exception: REL: knows11 does not exist in neo4j.
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", [], ["555"]);
+---- error
+Runtime exception: REL: 555 does not exist in neo4j.
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", [], ["knows"]);
+---- error
+Runtime exception: The dependent source node label: student of knows must be imported into kuzu.
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["student"], ["knows"]);
+---- error
+Runtime exception: The dependent source node label: teacher of knows must be imported into kuzu.
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["two_labels_b"], ["knows"]);
+---- error
+Runtime exception: Importing nodes with multi-labels is not supported right now.

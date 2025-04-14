@@ -23,12 +23,15 @@ std::unique_ptr<Statement> Transformer::transformCopyFrom(CypherParser::KU_CopyF
     auto source = transformScanSource(*ctx.kU_ScanSource());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto copyFrom = std::make_unique<CopyFrom>(std::move(source), std::move(tableName));
+    CopyFromColumnInfo info;
+    info.inputColumnOrder = ctx.kU_ColumnNames();
     if (ctx.kU_ColumnNames()) {
-        copyFrom->setColumnNames(transformColumnNames(*ctx.kU_ColumnNames()));
+        info.columnNames = transformColumnNames(*ctx.kU_ColumnNames());
     }
     if (ctx.kU_Options()) {
         copyFrom->setParsingOption(transformOptions(*ctx.kU_Options()));
     }
+    copyFrom->setColumnInfo(std::move(info));
     return copyFrom;
 }
 
