@@ -80,6 +80,22 @@ def fsm_rel_table_setup(fsm_node_table_setup):
     return fsm_node_table_setup
 
 
+@pytest.fixture
+def fsm_rel_group_setup(tmp_path: Path):
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    conn.execute("call threads=1")
+    conn.execute("call auto_checkpoint=false")
+    conn.execute("create node table personA (ID INt64, fName StRING, PRIMARY KEY (ID));")
+    conn.execute("create node table personB (ID INt64, fName StRING, PRIMARY KEY (ID));")
+    conn.execute("create rel table likes (FROM personA TO personB, FROM personB To personA, date DATE);")
+    conn.execute(f'COPY personA FROM "{KUZU_ROOT}/dataset/rel-group/node.csv";')
+    conn.execute(f'COPY personB FROM "{KUZU_ROOT}/dataset/rel-group/node.csv";')
+    conn.execute(f'COPY likes_personA_personB FROM "{KUZU_ROOT}/dataset/rel-group/edge.csv";')
+    conn.execute(f'COPY likes_personB_personA FROM "{KUZU_ROOT}/dataset/rel-group/edge.csv";')
+    return db, conn
+
+
 def test_fsm_reclaim_list_column(fsm_node_table_setup) -> None:
     _, conn = fsm_node_table_setup
     used_pages = get_used_page_ranges(conn, "person", "workedHours")
@@ -131,6 +147,31 @@ def test_fsm_reclaim_struct(fsm_rel_table_setup) -> None:
         conn, "knows", "bwd_summary"
     )
     conn.execute("alter table knows drop summary")
+    conn.execute("checkpoint")
+    free_pages = get_free_page_ranges(conn)
+    compare_page_range_lists(used_pages, free_pages)
+
+
+def test_fsm_reclaim_rel_group(fsm_rel_group_setup) -> None:
+    _, conn = fsm_rel_group_setup
+    used_pages = get_used_page_ranges(conn, "likes_personA_personB") + get_used_page_ranges(
+        conn, "likes_personB_personA"
+    )
+    conn.execute("drop table likes")
+    conn.execute("checkpoint")
+    free_pages = get_free_page_ranges(conn)
+    compare_page_range_lists(used_pages, free_pages)
+
+
+def test_fsm_reclaim_rel_group_column(fsm_rel_group_setup) -> None:
+    _, conn = fsm_rel_group_setup
+    used_pages = (
+        get_used_page_ranges(conn, "likes_personA_personB", "fwd_date")
+        + get_used_page_ranges(conn, "likes_personA_personB", "bwd_date")
+        + get_used_page_ranges(conn, "likes_personB_personA", "fwd_date")
+        + get_used_page_ranges(conn, "likes_personB_personA", "bwd_date")
+    )
+    conn.execute("alter table likes drop date")
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
