@@ -169,7 +169,7 @@ private:
         auto curDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto nextDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto frontierPair =
-            std::make_unique<DenseSparseDynamicFrontierPair>(curDenseFrontier, nextDenseFrontier);
+            std::make_unique<DenseSparseDynamicFrontierPair>(std::move(curDenseFrontier), std::move(nextDenseFrontier));
         auto costs =
             std::make_shared<Costs>(graph->getMaxOffsetMap(clientContext->getTransaction()),
                 clientContext->getMemoryManager());

@@ -244,7 +244,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto frontierPair =
-        std::make_unique<DenseSparseDynamicFrontierPair>(currentFrontier, nextFrontier);
+        std::make_unique<DenseSparseDynamicFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     auto termsTableID = termsEntry.getTableID();
     initFrontier(*frontierPair, termsTableID, dfs);
     auto storageManager = clientContext->getStorageManager();
@@ -276,7 +276,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             }
         }
     } else {
-        GDSUtils::runVertexCompute(input.context, graph, *vc, docsEntry, vertexPropertiesToScan);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vc, docsEntry, vertexPropertiesToScan);
     }
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;

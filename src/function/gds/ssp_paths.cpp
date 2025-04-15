@@ -72,7 +72,7 @@ private:
         RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto frontier = DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
-        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(std::move(frontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
             sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
             clientContext->getMemoryManager());

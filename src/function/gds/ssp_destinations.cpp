@@ -104,7 +104,7 @@ private:
         RecursiveExtendSharedState* sharedState) override {
         auto graph = sharedState->graph.get();
         auto denseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
-        auto frontierPair = std::make_unique<SPFrontierPair>(denseFrontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(std::move(denseFrontier));
         auto edgeCompute = std::make_unique<SSPDestinationsEdgeCompute>(frontierPair.get());
         auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         return std::make_unique<GDSComputeState>(std::move(frontierPair), std::move(edgeCompute),

@@ -63,9 +63,6 @@ public:
         if (parent == nullptr) { // Skip if dst is not visited.
             return;
         }
-        // if (parent->getCost() == std::numeric_limits<double>::max()) {
-        //     return;
-        // }
         costVector->setValue<double>(0, parent->getCost());
         std::vector<ParentList*> curPath;
         curPath.push_back(parent);
@@ -83,15 +80,6 @@ public:
         return std::make_unique<WSPPathsOutputWriter>(context, outputNodeMask, sourceNodeID_, info,
             bfsGraph);
     }
-
-private:
-    // bool skipInternal(nodeID_t dstNodeID) const override {
-    //     if (dstNodeID == sourceNodeID) {
-    //         return true;
-    //     }
-    //     auto parent = bfsGraph.getParentListHead(dstNodeID.offset);
-    //     return parent == nullptr || parent->getCost() == std::numeric_limits<double>::max();
-    // }
 
 private:
     std::unique_ptr<ValueVector> costVector;
@@ -128,7 +116,7 @@ private:
         auto curDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto nextDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto frontierPair =
-            std::make_unique<DenseSparseDynamicFrontierPair>(curDenseFrontier, nextDenseFrontier);
+            std::make_unique<DenseSparseDynamicFrontierPair>(std::move(curDenseFrontier), std::move(nextDenseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
             sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
             clientContext->getMemoryManager());

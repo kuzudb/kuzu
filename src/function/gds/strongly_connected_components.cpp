@@ -224,7 +224,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto computationState = SccComputationState(numNodes, mm);
     // Initialize SCC IDs to unset.
     auto setInitialSccIds = std::make_unique<SccSetInitialSccIds>(computationState);
-    GDSUtils::runVertexCompute(input.context, graph, *setInitialSccIds);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *setInitialSccIds);
 
     // The frontiers will be initialized inside the loop.
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
@@ -232,7 +232,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     // TODO(sdht): refactor when a better FrontierPair API is available.
     currentFrontier->pinTableID(tableId);
     nextFrontier->pinTableID(tableId);
-    auto frontierPair = std::make_unique<DenseFrontierPair>(currentFrontier, nextFrontier);
+    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     auto initializeFrontiers =
         std::make_unique<SccInitializeFrontiers>(*frontierPair, computationState);
     auto setNewSccIds = std::make_unique<SccFindNewSccIds>(computationState);
@@ -242,25 +242,25 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeColors),
         std::move(auxiliaryState));
     for (auto i = 0; i < MAX_ITERATION; i++) {
-        GDSUtils::runVertexCompute(input.context, graph, *setInitialColors);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *setInitialColors);
 
         // Fwd colors.
         computeState.frontierPair->resetCurrentIter();
         computeState.frontierPair->setActiveNodesForNextIter();
-        GDSUtils::runVertexCompute(input.context, graph, *initializeFrontiers);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *initializeFrontiers);
         GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::FWD,
             MAX_ITERATION);
 
         // Bwd colors.
         computeState.frontierPair->resetCurrentIter();
         computeState.frontierPair->setActiveNodesForNextIter();
-        GDSUtils::runVertexCompute(input.context, graph, *initializeFrontiers);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *initializeFrontiers);
         GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::BWD,
             MAX_ITERATION);
 
         // Find new SCC IDs and exit if all IDs have been found.
         computationState.reset();
-        GDSUtils::runVertexCompute(input.context, graph, *setNewSccIds);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *setNewSccIds);
         if (computationState.allSccIdsSet.load(std::memory_order_relaxed)) {
             break;
         }
@@ -268,7 +268,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
     auto writeSccIdsToOutput =
         std::make_unique<SccWriteIdsToOutput>(mm, sharedState, computationState);
-    GDSUtils::runVertexCompute(input.context, graph, *writeSccIdsToOutput);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *writeSccIdsToOutput);
 
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;

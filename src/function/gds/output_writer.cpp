@@ -82,24 +82,6 @@ void PathsOutputWriter::write(FactorizedTable& fTable, nodeID_t dstNodeID, Limit
     }
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
     writeInternal(fTable, dstNodeID, counter);
-
-    // auto firstParent = findFirstParent(dstNodeID.offset);
-    // if (firstParent == nullptr) {
-    //     if (sourceNodeID_ == dstNodeID && info.lowerBound == 0) {
-    //         // We still output a path from src to src if required path length is 0.
-    //         // This case should only run for variable length joins.
-    //         writePath({});
-    //         fTable.append(vectors);
-    //         // No need to check against limit number since this is the first output.
-    //         updateCounterAndTerminate(counter);
-    //     }
-    //     return;
-    // }
-    // if (!info.hasNodeMask() && info.semantic == PathSemantic::WALK) {
-    //     dfsFast(firstParent, fTable, counter);
-    //     return;
-    // }
-    // dfsSlow(firstParent, fTable, counter);
 }
 
 void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable,
@@ -397,14 +379,6 @@ void SPPathsOutputWriter::writeInternal(FactorizedTable& fTable, nodeID_t dstNod
     LimitCounter* counter) {
     auto firstParent = findFirstParent(dstNodeID.offset);
     if (firstParent == nullptr) {
-        // if (sourceNodeID_ == dstNodeID && info.lowerBound == 0) {
-        //     // We still output a path from src to src if required path length is 0.
-        //     // This case should only run for variable length joins.
-        //     writePath({});
-        //     fTable.append(vectors);
-        //     // No need to check against limit number since this is the first output.
-        //     updateCounterAndTerminate(counter);
-        // }
         return;
     }
     if (dstNodeID == sourceNodeID_) { // Avoid writing source

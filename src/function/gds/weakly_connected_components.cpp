@@ -154,7 +154,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier =
         DenseFrontier::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
-    auto frontierPair = std::make_unique<DenseFrontierPair>(currentFrontier, nextFrontier);
+    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     frontierPair->setActiveNodesForNextIter();
     auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
     auto offsetManager = OffsetManager(maxOffsetMap);
@@ -168,7 +168,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
     GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::BOTH,
         MAX_ITERATION);
-    GDSUtils::runVertexCompute(input.context, graph, *vertexCompute);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }

@@ -80,7 +80,7 @@ private:
         auto clientContext = context->clientContext;
         auto denseFrontier =
             DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
-        auto frontierPair = std::make_unique<SPFrontierPair>(denseFrontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(std::move(denseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
             sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
             clientContext->getMemoryManager());

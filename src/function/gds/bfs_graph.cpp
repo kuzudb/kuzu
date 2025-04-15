@@ -48,7 +48,7 @@ void DenseBFSGraph::init(ExecutionContext* context, Graph* graph) {
         denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
     }
     auto vc = std::make_unique<BFSGraphInitVertexCompute>(*this);
-    GDSUtils::runVertexCompute(context, graph, *vc);
+    GDSUtils::runVertexCompute(context, GDSDensityState::DENSE, graph, *vc);
 }
 
 void DenseBFSGraph::pinTableID(table_id_t tableID) {

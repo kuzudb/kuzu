@@ -121,8 +121,8 @@ private:
             DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
         auto nextDenseFrontier =
             DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
-        auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(currentDenseFrontier,
-            nextDenseFrontier);
+        auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(std::move(currentDenseFrontier),
+            std::move(nextDenseFrontier));
         auto edgeCompute =
             std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));

@@ -116,21 +116,20 @@ public:
     void addNode(common::nodeID_t nodeID, iteration_t iter) override;
     void addNode(common::offset_t offset, iteration_t iter) override;
     void addNodes(const std::vector<common::nodeID_t>& nodeIDs, iteration_t iter) override;
-    void setIter(common::offset_t offset, iteration_t iter) const;
 
     iteration_t getIteration(common::offset_t offset) const override;
 
     // Get frontier without initialization.
-    static std::shared_ptr<DenseFrontier> getUninitializedFrontier(
+    static std::unique_ptr<DenseFrontier> getUninitializedFrontier(
         processor::ExecutionContext* context, graph::Graph* graph);
     // Get frontier initialized to UNVISITED.
-    static std::shared_ptr<DenseFrontier> getUnvisitedFrontier(processor::ExecutionContext* context,
+    static std::unique_ptr<DenseFrontier> getUnvisitedFrontier(processor::ExecutionContext* context,
         graph::Graph* graph);
     // Get frontier initialized to INITIAL_VISITED.
-    static std::shared_ptr<DenseFrontier> getVisitedFrontier(processor::ExecutionContext* context,
+    static std::unique_ptr<DenseFrontier> getVisitedFrontier(processor::ExecutionContext* context,
         graph::Graph* graph);
     // Init frontier to 0 according to mask
-    static std::shared_ptr<DenseFrontier> getVisitedFrontier(processor::ExecutionContext* context,
+    static std::unique_ptr<DenseFrontier> getVisitedFrontier(processor::ExecutionContext* context,
         graph::Graph* graph, common::NodeOffsetMaskMap* maskMap);
 
 private:
@@ -221,7 +220,7 @@ constexpr uint64_t SPARSE_FRONTIER_THRESHOLD = 2;
 // in different iteration. So we make current/next frontier reference writes to the same frontier.
 class SPFrontierPair : public FrontierPair {
 public:
-    explicit SPFrontierPair(std::shared_ptr<DenseFrontier> denseFrontier);
+    explicit SPFrontierPair(std::unique_ptr<DenseFrontier> denseFrontier);
 
     // Get sparse or dense frontier based on state.
     // No need to specify current or next because there is only one frontier.
@@ -243,7 +242,7 @@ public:
 
 private:
     GDSDensityState state;
-    std::shared_ptr<DenseFrontier> denseFrontier;
+    std::unique_ptr<DenseFrontier> denseFrontier;
     std::unique_ptr<DenseFrontierReference> curDenseFrontier = nullptr;
     std::unique_ptr<DenseFrontierReference> nextDenseFrontier = nullptr;
     std::unique_ptr<SparseFrontier> sparseFrontier;
@@ -254,8 +253,8 @@ private:
 // Frontier pair implementation that switches from sparse to dense adaptively.
 class KUZU_API DenseSparseDynamicFrontierPair : public FrontierPair {
 public:
-    DenseSparseDynamicFrontierPair(std::shared_ptr<DenseFrontier> curDenseFrontier,
-        std::shared_ptr<DenseFrontier> nextDenseFrontier);
+    DenseSparseDynamicFrontierPair(std::unique_ptr<DenseFrontier> curDenseFrontier,
+        std::unique_ptr<DenseFrontier> nextDenseFrontier);
 
     void beginNewIterationInternalNoLock() override;
 
@@ -270,8 +269,8 @@ public:
 
 private:
     GDSDensityState state;
-    std::shared_ptr<DenseFrontier> curDenseFrontier = nullptr;
-    std::shared_ptr<DenseFrontier> nextDenseFrontier = nullptr;
+    std::unique_ptr<DenseFrontier> curDenseFrontier = nullptr;
+    std::unique_ptr<DenseFrontier> nextDenseFrontier = nullptr;
     std::unique_ptr<SparseFrontier> curSparseFrontier = nullptr;
     std::unique_ptr<SparseFrontier> nextSparseFrontier = nullptr;
 };
@@ -280,8 +279,8 @@ private:
 // algorithms like wcc, scc where algorithms touch all nodes in the graph.
 class KUZU_API DenseFrontierPair : public FrontierPair {
 public:
-    DenseFrontierPair(std::shared_ptr<DenseFrontier> curDenseFrontier,
-        std::shared_ptr<DenseFrontier> nextDenseFrontier);
+    DenseFrontierPair(std::unique_ptr<DenseFrontier> curDenseFrontier,
+        std::unique_ptr<DenseFrontier> nextDenseFrontier);
 
     void beginNewIterationInternalNoLock() override;
 
@@ -290,10 +289,10 @@ public:
     }
 
     void setValueToCurFrontier(common::offset_t offset, iteration_t iter) {
-        curDenseFrontier->setIter(offset, iter);
+        curDenseFrontier->addNode(offset, iter);
     }
     void setValueToNextFrontier(common::offset_t offset, iteration_t iter) {
-        nextDenseFrontier->setIter(offset, iter);
+        nextDenseFrontier->addNode(offset, iter);
     }
 
     GDSDensityState getState() const override { return GDSDensityState::DENSE; }

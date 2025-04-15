@@ -1,5 +1,3 @@
-#include <unistd.h>
-
 #include "binder/expression/node_expression.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
@@ -304,7 +302,7 @@ private:
         auto multiplicitiesPair = std::make_unique<MultiplicitiesPair>(
             graph->getMaxOffsetMap(clientContext->getTransaction()));
         auto frontier = DenseFrontier::getUnvisitedFrontier(context, graph);
-        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(std::move(frontier));
         auto edgeCompute = std::make_unique<ASPDestinationsEdgeCompute>(frontierPair.get(),
             multiplicitiesPair.get());
         auto auxiliaryState =

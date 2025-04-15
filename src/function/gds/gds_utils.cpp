@@ -117,8 +117,12 @@ void GDSUtils::runRecursiveJoinEdgeCompute(ExecutionContext* context, GDSCompute
     }
 }
 
-static void runVertexComputeInternal(TableCatalogEntry* currentEntry, graph::Graph* graph,
-    std::shared_ptr<VertexComputeTask> task, ExecutionContext* context) {
+static void runVertexComputeInternal(TableCatalogEntry* currentEntry, GDSDensityState densityState,
+    Graph* graph, std::shared_ptr<VertexComputeTask> task, ExecutionContext* context) {
+    if (densityState == GDSDensityState::SPARSE) {
+        task->runSparse();
+        return;
+    }
     auto maxOffset =
         graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
     auto sharedState = task->getSharedState();
@@ -127,8 +131,8 @@ static void runVertexComputeInternal(TableCatalogEntry* currentEntry, graph::Gra
         true /* launchNewWorkerThread */);
 }
 
-void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc,
-    std::vector<std::string> propertiesToScan) {
+void GDSUtils::runVertexCompute(ExecutionContext* context, GDSDensityState densityState, Graph* graph,
+    VertexCompute& vc, std::vector<std::string> propertiesToScan) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     for (auto& nodeInfo : graph->getGraphEntry()->nodeInfos) {
@@ -138,15 +142,15 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
         }
         auto info = VertexComputeTaskInfo(vc, graph, entry, propertiesToScan);
         auto task = std::make_shared<VertexComputeTask>(maxThreads, info, sharedState);
-        runVertexComputeInternal(entry, graph, task, context);
+        runVertexComputeInternal(entry, densityState, graph, task, context);
     }
 }
 
-void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc) {
-    runVertexCompute(context, graph, vc, std::vector<std::string>{});
+void GDSUtils::runVertexCompute(ExecutionContext* context, GDSDensityState densityState, Graph* graph, VertexCompute& vc) {
+    runVertexCompute(context, densityState, graph, vc, std::vector<std::string>{});
 }
 
-void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc,
+void GDSUtils::runVertexCompute(ExecutionContext* context, GDSDensityState densityState, Graph* graph, VertexCompute& vc,
     TableCatalogEntry* entry, std::vector<std::string> propertiesToScan) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto info = VertexComputeTaskInfo(vc, graph, entry, propertiesToScan);
@@ -155,17 +159,7 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
         return;
     }
     auto task = std::make_shared<VertexComputeTask>(maxThreads, info, sharedState);
-    runVertexComputeInternal(entry, graph, task, context);
-}
-
-void GDSUtils::runVertexComputeSparse(Graph* graph, VertexCompute& vc) {
-    for (auto& tableID : graph->getNodeTableIDs()) {
-        if (!vc.beginOnTable(tableID)) {
-            continue;
-        }
-        auto localVc = vc.copy();
-        localVc->vertexCompute(tableID);
-    }
+    runVertexComputeInternal(entry, densityState, graph, task, context);
 }
 
 } // namespace function

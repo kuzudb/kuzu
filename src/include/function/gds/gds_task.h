@@ -90,6 +90,8 @@ public:
 
     void run() override;
 
+    void runSparse();
+
 private:
     VertexComputeTaskInfo info;
     std::shared_ptr<VertexComputeTaskSharedState> sharedState;

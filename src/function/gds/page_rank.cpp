@@ -282,7 +282,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto degrees = Degrees(maxOffsetMap, clientContext->getMemoryManager());
     DegreesUtils::computeDegree(input.context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
         ExtendDirection::FWD);
-    auto frontierPair = std::make_unique<DenseFrontierPair>(currentFrontier, nextFrontier);
+    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
     auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
     while (currentIter < config.maxIterations) {
@@ -296,12 +296,12 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             1);
         auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant,
             *pNext, sharedState->getGraphNodeMaskMap());
-        GDSUtils::runVertexCompute(input.context, graph, pNextUpdateVC);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pNextUpdateVC);
         std::atomic<double> diff;
         diff.store(0);
         auto pDiffVC =
             PDiffVertexCompute(diff, *pCurrent, *pNext, sharedState->getGraphNodeMaskMap());
-        GDSUtils::runVertexCompute(input.context, graph, pDiffVC);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pDiffVC);
         std::swap(pCurrent, pNext);
         if (diff.load() < config.tolerance) { // Converged.
             break;
@@ -310,7 +310,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     }
     auto outputVC = std::make_unique<PageRankResultVertexCompute>(clientContext->getMemoryManager(),
         sharedState, *pCurrent);
-    GDSUtils::runVertexCompute(input.context, graph, *outputVC);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *outputVC);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }

@@ -112,16 +112,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
                 sharedState.get());
             auto vertexCompute = std::make_unique<RJVertexCompute>(
                 clientContext->getMemoryManager(), sharedState.get(), writer->copy(), bindData.nodeOutput->constCast<NodeExpression>().getTableIDsSet());
-            switch (computeState->frontierPair->getState()) {
-            case GDSDensityState::DENSE: {
-                GDSUtils::runVertexCompute(context, graph, *vertexCompute);
-            } break;
-            case GDSDensityState::SPARSE: {
-                GDSUtils::runVertexComputeSparse(graph, *vertexCompute);
-            } break;
-            default:
-                KU_UNREACHABLE;
-            }
+            GDSUtils::runVertexCompute(context, computeState->frontierPair->getState(), graph, *vertexCompute);
         };
         auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
         if (inputNodeMaskMap && inputNodeMaskMap->getOffsetMask(tableID)->isEnabled()) {

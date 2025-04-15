@@ -88,7 +88,7 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            frontier.setIter(i, val);
+            frontier.addNode(i, val);
         }
     }
 
@@ -106,7 +106,7 @@ void DenseFrontier::init(ExecutionContext* context, Graph* graph, iteration_t va
         denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
     }
     auto vc = std::make_unique<DenseFrontierInitVertexCompute>(*this, val);
-    GDSUtils::runVertexCompute(context, graph, *vc);
+    GDSUtils::runVertexCompute(context, GDSDensityState::DENSE, graph, *vc);
 }
 
 void DenseFrontier::pinTableID(table_id_t tableID) {
@@ -130,58 +130,48 @@ void DenseFrontier::addNodes(const std::vector<nodeID_t>& nodeIDs, iteration_t i
     }
 }
 
-void DenseFrontier::setIter(offset_t offset, iteration_t iter) const {
-    KU_ASSERT(curData);
-    curData[offset].store(iter, std::memory_order_relaxed);
-}
-
 iteration_t DenseFrontier::getIteration(offset_t offset) const {
     KU_ASSERT(curData);
     return curData[offset].load(std::memory_order_relaxed);
 }
 
-std::shared_ptr<DenseFrontier> DenseFrontier::getUninitializedFrontier(ExecutionContext* context,
+std::unique_ptr<DenseFrontier> DenseFrontier::getUninitializedFrontier(ExecutionContext* context,
     Graph* graph) {
     auto transaction = context->clientContext->getTransaction();
-    return std::make_shared<DenseFrontier>(graph->getMaxOffsetMap(transaction));
+    return std::make_unique<DenseFrontier>(graph->getMaxOffsetMap(transaction));
 }
 
-std::shared_ptr<DenseFrontier> DenseFrontier::getUnvisitedFrontier(ExecutionContext* context,
+std::unique_ptr<DenseFrontier> DenseFrontier::getUnvisitedFrontier(ExecutionContext* context,
     Graph* graph) {
     auto transaction = context->clientContext->getTransaction();
-    auto frontier = std::make_shared<DenseFrontier>(graph->getMaxOffsetMap(transaction));
+    auto frontier = std::make_unique<DenseFrontier>(graph->getMaxOffsetMap(transaction));
     frontier->init(context, graph, FRONTIER_UNVISITED);
     return frontier;
 }
 
-std::shared_ptr<DenseFrontier> DenseFrontier::getVisitedFrontier(ExecutionContext* context,
+std::unique_ptr<DenseFrontier> DenseFrontier::getVisitedFrontier(ExecutionContext* context,
     Graph* graph) {
     auto transaction = context->clientContext->getTransaction();
-    auto frontier = std::make_shared<DenseFrontier>(graph->getMaxOffsetMap(transaction));
+    auto frontier = std::make_unique<DenseFrontier>(graph->getMaxOffsetMap(transaction));
     frontier->init(context, graph, FRONTIER_INITIAL_VISITED);
     return frontier;
 }
 
-std::shared_ptr<DenseFrontier> DenseFrontier::getVisitedFrontier(ExecutionContext* context,
+std::unique_ptr<DenseFrontier> DenseFrontier::getVisitedFrontier(ExecutionContext* context,
     Graph* graph, NodeOffsetMaskMap* maskMap) {
     if (maskMap == nullptr) {
         return getVisitedFrontier(context, graph);
     }
     auto tx = context->clientContext->getTransaction();
-    auto frontier = std::make_shared<DenseFrontier>(graph->getMaxOffsetMap(tx));
-    frontier->init(context, graph, FRONTIER_UNVISITED);
-    // TODO(Xiyang): we should use a vertex compute to do the following.
+    auto frontier = std::make_unique<DenseFrontier>(graph->getMaxOffsetMap(tx));
+    frontier->init(context, graph, FRONTIER_INITIAL_VISITED);
     for (auto [tableID, numNodes] : graph->getMaxOffsetMap(tx)) {
         frontier->pinTableID(tableID);
-        if (!maskMap->containsTableID(tableID)) {
-            for (auto i = 0u; i < numNodes; ++i) {
-                frontier->curData[i].store(FRONTIER_INITIAL_VISITED);
-            }
-        } else {
+        if (maskMap->containsTableID(tableID)) {
             auto mask = maskMap->getOffsetMask(tableID);
             for (auto i = 0u; i < numNodes; ++i) {
-                if (mask->isMasked(i)) {
-                    frontier->curData[i].store(FRONTIER_INITIAL_VISITED);
+                if (!mask->isMasked(i)) {
+                    frontier->curData[i].store(FRONTIER_UNVISITED);
                 }
             }
         }
@@ -269,7 +259,7 @@ Frontier* SPFrontierPair::getFrontier() {
     }
 }
 
-SPFrontierPair::SPFrontierPair(std::shared_ptr<DenseFrontier> denseFrontier)
+SPFrontierPair::SPFrontierPair(std::unique_ptr<DenseFrontier> denseFrontier)
     : state{GDSDensityState::SPARSE}, denseFrontier{std::move(denseFrontier)} {
     curDenseFrontier = std::make_unique<DenseFrontierReference>(*this->denseFrontier);
     nextDenseFrontier = std::make_unique<DenseFrontierReference>(*this->denseFrontier);
@@ -339,8 +329,8 @@ void SPFrontierPair::switchToDense(ExecutionContext* context, graph::Graph* grap
 }
 
 DenseSparseDynamicFrontierPair::DenseSparseDynamicFrontierPair(
-    std::shared_ptr<DenseFrontier> curDenseFrontier,
-    std::shared_ptr<DenseFrontier> nextDenseFrontier)
+    std::unique_ptr<DenseFrontier> curDenseFrontier,
+    std::unique_ptr<DenseFrontier> nextDenseFrontier)
     : state{GDSDensityState::SPARSE}, curDenseFrontier{std::move(curDenseFrontier)},
       nextDenseFrontier{std::move(nextDenseFrontier)} {
     curSparseFrontier = std::make_unique<SparseFrontier>(this->curDenseFrontier->nodeMaxOffsetMap);
@@ -392,8 +382,8 @@ void DenseSparseDynamicFrontierPair::switchToDense(ExecutionContext* context, Gr
     }
 }
 
-DenseFrontierPair::DenseFrontierPair(std::shared_ptr<DenseFrontier> curDenseFrontier,
-    std::shared_ptr<DenseFrontier> nextDenseFrontier)
+DenseFrontierPair::DenseFrontierPair(std::unique_ptr<DenseFrontier> curDenseFrontier,
+    std::unique_ptr<DenseFrontier> nextDenseFrontier)
     : curDenseFrontier{std::move(curDenseFrontier)},
       nextDenseFrontier{std::move(nextDenseFrontier)} {
     currentFrontier = this->curDenseFrontier.get();

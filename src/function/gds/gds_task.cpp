@@ -108,5 +108,12 @@ void VertexComputeTask::run() {
     }
 }
 
+void VertexComputeTask::runSparse() {
+    KU_ASSERT(!info.hasPropertiesToScan());
+    auto localVc = info.vc.copy();
+    localVc->vertexCompute(info.tableEntry->getTableID());
+}
+
+
 } // namespace function
 } // namespace kuzu
