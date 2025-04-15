@@ -278,7 +278,7 @@ uint64_t BufferManager::evictPages() {
     // Using the eviction queue's cursor means that we fail after the same number of total attempts,
     // regardless of how many threads are trying to evict.
     auto startCursor = evictionQueue.getEvictionCursor();
-    auto failureLimit = evictionQueue.getSize() * 2;
+    auto failureLimit = evictionQueue.getCapacity() * 2;
     while (evictablePages == 0 && evictionQueue.getEvictionCursor() - startCursor < failureLimit) {
         for (auto& candidate : evictionQueue.next()) {
             auto evictionCandidate = candidate.load();
