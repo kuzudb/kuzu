@@ -23,6 +23,12 @@ jobs:
           python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
           echo $? > benchmark/exit_code
 
+      - name: Upload benchmark logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-logs
+          path: /tmp/benchmark_logs
+
       - name: Upload comparison results
         uses: actions/upload-artifact@v4
         with:

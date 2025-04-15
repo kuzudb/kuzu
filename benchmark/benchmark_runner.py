@@ -350,7 +350,6 @@ def upload_benchmark_result(database_size=None):
     queries = get_query_info()
     run['benchmarks'] = queries
     run['database_size'] = database_size
-    print(run)
     response = requests.post(
         benchmark_server_url, json=run, headers={
             'Content-Type': 'application/json; charset=utf-8',
