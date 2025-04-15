@@ -29,14 +29,14 @@ struct UndoRecordHeader {
 };
 
 struct CatalogEntryRecord {
-    CatalogSet* catalogSet;
-    CatalogEntry* catalogEntry;
-};
+    CatalogSet* catalogSet{};
+    CatalogEntry* catalogEntry{};
+    bool dropStorage{};
+    // If this field is populated it stores the column to drop
+    // Otherwise we will drop the storage for the whole entry (table/rel group)
+    std::optional<column_id_t> droppedColumn;
 
-struct DeletePropertyCatalogEntryRecord {
-    CatalogSet* catalogSet;
-    CatalogEntry* catalogEntry;
-    column_id_t columnID;
+    void dropStorageIfNeeded(StorageManager& storageManager) const;
 };
 
 struct SequenceEntryRecord {
@@ -60,6 +60,44 @@ struct VectorUpdateRecord {
     idx_t vectorIdx;
     VectorUpdateInfo* vectorUpdateInfo;
 };
+
+void CatalogEntryRecord::dropStorageIfNeeded(StorageManager& storageManager) const {
+    if (!dropStorage) {
+        return;
+    }
+    if (droppedColumn.has_value()) {
+        KU_ASSERT(catalogEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY ||
+                  catalogEntry->getType() == catalog::CatalogEntryType::REL_TABLE_ENTRY);
+        storageManager.getTable(catalogEntry->constCast<TableCatalogEntry>().getTableID())
+            ->commitDropColumn(*storageManager.getDataFH(), *droppedColumn);
+    } else {
+        if (catalogEntry->hasParent()) {
+            return;
+        }
+
+        switch (catalogEntry->getType()) {
+        case CatalogEntryType::NODE_TABLE_ENTRY:
+        case CatalogEntryType::REL_TABLE_ENTRY: {
+            const auto& tableCatalogEntry = catalogEntry->constCast<TableCatalogEntry>();
+            storageManager.getTable(tableCatalogEntry.getTableID())
+                ->commitDrop(*storageManager.getDataFH());
+        } break;
+        case CatalogEntryType::REL_GROUP_ENTRY: {
+            // Renaming tables also drops (then creates) the catalog entry, we don't want to
+            // drop the storage table in that case
+            const auto newCatalogEntry = catalogEntry->getNext();
+            if (newCatalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
+                const auto& relGroupCatalogEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
+                for (auto tableID : relGroupCatalogEntry.getRelTableIDs()) {
+                    storageManager.getTable(tableID)->commitDrop(*storageManager.getDataFH());
+                }
+            }
+        } break;
+        default:
+            break;
+        }
+    }
+}
 
 template<typename F>
 void UndoBufferIterator::iterate(F&& callback) {
@@ -101,8 +139,14 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
 }
 
 void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) {
+    createCatalogEntry(catalogSet, catalogEntry, catalogEntry.getNext()->isDeleted());
+}
+
+void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
+    bool dropStorage, std::optional<common::column_id_t> droppedColumn) {
     auto buffer = createUndoRecord<CatalogEntryRecord>(UndoRecordType::CATALOG_ENTRY);
-    const CatalogEntryRecord catalogEntryRecord{&catalogSet, &catalogEntry};
+    const CatalogEntryRecord catalogEntryRecord{&catalogSet, &catalogEntry, dropStorage,
+        droppedColumn};
     *reinterpret_cast<CatalogEntryRecord*>(buffer) = catalogEntryRecord;
 }
 
@@ -110,16 +154,13 @@ void UndoBuffer::createAlterCatalogEntry(CatalogSet& catalogSet, CatalogEntry& c
     const binder::BoundAlterInfo& alterInfo) {
     switch (alterInfo.alterType) {
     case AlterType::DROP_PROPERTY: {
-        auto buffer = createUndoRecord<DeletePropertyCatalogEntryRecord>(
-            UndoRecordType::DROP_PROPERTY_CATALOG_ENTRY);
-        const DeletePropertyCatalogEntryRecord catalogEntryRecord{&catalogSet, &catalogEntry,
-            catalogEntry.constCast<TableCatalogEntry>().getColumnID(
-                alterInfo.extraInfo->constCast<binder::BoundExtraDropPropertyInfo>().propertyName)};
-        *reinterpret_cast<DeletePropertyCatalogEntryRecord*>(buffer) = catalogEntryRecord;
+        const auto columnID = catalogEntry.constCast<TableCatalogEntry>().getColumnID(
+            alterInfo.extraInfo->constCast<binder::BoundExtraDropPropertyInfo>().propertyName);
+        createCatalogEntry(catalogSet, catalogEntry, true, columnID);
         break;
     }
     default: {
-        createCatalogEntry(catalogSet, catalogEntry);
+        createCatalogEntry(catalogSet, catalogEntry, false);
         break;
     }
     }
@@ -212,9 +253,6 @@ void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     case UndoRecordType::CATALOG_ENTRY: {
         commitCatalogEntryRecord(record, commitTS);
     } break;
-    case UndoRecordType::DROP_PROPERTY_CATALOG_ENTRY: {
-        commitDropPropertyCatalogEntryRecord(record, commitTS);
-    } break;
     case UndoRecordType::SEQUENCE_ENTRY: {
         commitSequenceEntry(record, commitTS);
     } break;
@@ -230,60 +268,13 @@ void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     }
 }
 
-void UndoBuffer::commitDropPropertyCatalogEntryRecord(const uint8_t* record,
-    const transaction_t commitTS) const {
-    commitCatalogEntryRecord(record, commitTS);
-    auto& [_, catalogEntry, columnID] =
-        *reinterpret_cast<DeletePropertyCatalogEntryRecord const*>(record);
-    const auto newCatalogEntry = catalogEntry->getNext();
-    KU_ASSERT(newCatalogEntry);
-    newCatalogEntry->setTimestamp(commitTS);
-    catalogEntry->setTimestamp(commitTS);
-    KU_ASSERT(catalogEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY ||
-              catalogEntry->getType() == catalog::CatalogEntryType::REL_TABLE_ENTRY);
-    ctx->getStorageManager()
-        ->getTable(catalogEntry->constCast<TableCatalogEntry>().getTableID())
-        ->commitDropColumn(*ctx->getStorageManager()->getDataFH(), columnID);
-}
-
 void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,
     const transaction_t commitTS) const {
-    const auto& [_, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
-    const auto newCatalogEntry = catalogEntry->getNext();
+    const auto& catalogRecord = *reinterpret_cast<CatalogEntryRecord const*>(record);
+    const auto newCatalogEntry = catalogRecord.catalogEntry->getNext();
     KU_ASSERT(newCatalogEntry);
     newCatalogEntry->setTimestamp(commitTS);
-    if (newCatalogEntry->isDeleted()) {
-        commitCatalogEntryDrop(catalogEntry);
-    }
-}
-
-void UndoBuffer::commitCatalogEntryDrop(CatalogEntry* catalogEntry) const {
-    if (catalogEntry->hasParent()) {
-        return;
-    }
-    switch (catalogEntry->getType()) {
-    case CatalogEntryType::NODE_TABLE_ENTRY:
-    case CatalogEntryType::REL_TABLE_ENTRY: {
-        const auto& tableCatalogEntry = catalogEntry->constCast<TableCatalogEntry>();
-        ctx->getStorageManager()
-            ->getTable(tableCatalogEntry.getTableID())
-            ->commitDrop(*ctx->getStorageManager()->getDataFH());
-        break;
-    }
-    case CatalogEntryType::REL_GROUP_ENTRY: {
-        // Renaming tables also drops (then creates) the catalog entry, we don't want to drop the
-        // storage table in that case
-        if (catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
-            const auto& relGroupCatalogEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
-            for (auto tableID : relGroupCatalogEntry.getRelTableIDs()) {
-                ctx->getStorageManager()->getTable(tableID)->commitDrop(
-                    *ctx->getStorageManager()->getDataFH());
-            }
-        }
-    }
-    default:
-        break;
-    }
+    catalogRecord.dropStorageIfNeeded(*ctx->getStorageManager());
 }
 
 void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* record,
@@ -312,9 +303,6 @@ void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t com
 void UndoBuffer::rollbackRecord(const transaction::Transaction* transaction,
     const UndoRecordType recordType, const uint8_t* record) {
     switch (recordType) {
-    case UndoRecordType::DROP_PROPERTY_CATALOG_ENTRY: {
-        rollbackDropCatalogEntryRecord(record);
-    } break;
     case UndoRecordType::CATALOG_ENTRY: {
         rollbackCatalogEntryRecord(record);
     } break;
@@ -334,13 +322,9 @@ void UndoBuffer::rollbackRecord(const transaction::Transaction* transaction,
     }
 }
 
-void UndoBuffer::rollbackDropCatalogEntryRecord(const uint8_t* record) {
-    const auto& [catalogSet, catalogEntry, _] =
-        *reinterpret_cast<DeletePropertyCatalogEntryRecord const*>(record);
-    rollbackCatalogEntryRecord(catalogSet, catalogEntry);
-}
-
-void UndoBuffer::rollbackCatalogEntryRecord(CatalogSet* catalogSet, CatalogEntry* catalogEntry) {
+void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
+    const auto& [catalogSet, catalogEntry, _1, _2] =
+        *reinterpret_cast<CatalogEntryRecord const*>(record);
     const auto entryToRollback = catalogEntry->getNext();
     KU_ASSERT(entryToRollback);
     if (entryToRollback->getNext()) {
@@ -356,11 +340,6 @@ void UndoBuffer::rollbackCatalogEntryRecord(CatalogSet* catalogSet, CatalogEntry
             catalogSet->emplaceNoLock(std::move(olderEntry));
         }
     }
-}
-
-void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
-    const auto& [catalogSet, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
-    rollbackCatalogEntryRecord(catalogSet, catalogEntry);
 }
 
 void UndoBuffer::commitSequenceEntry(const uint8_t*, transaction_t) {
