@@ -222,7 +222,7 @@ static void appendStorageInfoForChunkedGroup(StorageInfoLocalState* localState,
         auto& chunkedCSRGroup = chunkedGroup->cast<ChunkedCSRNodeGroup>();
         resetOutputIfNecessary(localState, outputChunk);
         appendStorageInfoForChunkData(localState, outputChunk, outputData,
-            chunkedCSRGroup.getCSRHeader().length->getData(), true);
+            chunkedCSRGroup.getCSRHeader().offset->getData(), true);
         resetOutputIfNecessary(localState, outputChunk);
         appendStorageInfoForChunkData(localState, outputChunk, outputData,
             chunkedCSRGroup.getCSRHeader().length->getData(), true);
