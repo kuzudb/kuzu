@@ -57,15 +57,15 @@ fn link_libraries() {
             "simsimd",
         ] {
             if rustversion::cfg!(since(1.82)) {
-                println!("cargo:rustc-link-lib=static:+whole-archive={}", lib);
+                println!("cargo:rustc-link-lib=static:+whole-archive={lib}");
             } else {
-                println!("cargo:rustc-link-lib=static={}", lib);
+                println!("cargo:rustc-link-lib=static={lib}");
             }
         }
     }
 }
 
-fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+fn build_bundled_cmake() -> Vec<PathBuf> {
     let kuzu_root = {
         let root = Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("kuzu-src");
         if root.is_symlink() || root.is_dir() {
@@ -130,14 +130,14 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         println!("cargo:rustc-link-search=native={}", lib_path.display());
     }
 
-    Ok(vec![
+    vec![
         kuzu_root.join("src/include"),
         build_dir.join("build/src"),
         build_dir.join("build/src/include"),
         kuzu_root.join("third_party/nlohmann_json"),
         kuzu_root.join("third_party/fastpfor"),
         kuzu_root.join("third_party/alp/include"),
-    ])
+    ]
 }
 
 fn build_ffi(
@@ -197,12 +197,11 @@ fn main() {
     if let (Ok(kuzu_lib_dir), Ok(kuzu_include)) =
         (env::var("KUZU_LIBRARY_DIR"), env::var("KUZU_INCLUDE_DIR"))
     {
-        println!("cargo:rustc-link-search=native={}", kuzu_lib_dir);
-        // Also add to environment used by cargo run and tests
-        println!("cargo:rustc-env=LD_LIBRARY_PATH={}", kuzu_lib_dir);
+        println!("cargo:rustc-link-search=native={kuzu_lib_dir}");
+        println!("cargo:rustc-link-arg=-Wl,-rpath,{kuzu_lib_dir}");
         include_paths.push(Path::new(&kuzu_include).to_path_buf());
     } else {
-        include_paths.extend(build_bundled_cmake().expect("Bundled build failed!"));
+        include_paths.extend(build_bundled_cmake());
         bundled = true;
     }
     if link_mode() == "static" {

@@ -195,7 +195,10 @@ jobs:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: make rusttest
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
+        run: |
+          make extension-release
+          make rusttest
 
   gcc-build-test-vector-size:
     name: gcc build & test in-mem only with various vector size
@@ -369,15 +372,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Rust test
+      - name: Rust API test
         run: |
           make extension-release
-          cd tools/rust_api
-          cargo test --profile=relwithdebinfo --locked --all-features
+          make rusttest
 
-      - name: Rust example
+      - name: Rust example build
         working-directory: examples/rust
-        run: cargo build --locked --features arrow
+        run: cargo build --locked --all-features
+
+      - name: Rust API clippy
+        working-directory: tools/rust_api
+        run: cargo clippy --release --all-targets --all-features
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
@@ -499,7 +505,10 @@ jobs:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: make rusttest
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
+        run: |
+          make extension-release
+          make rusttest
 
   clang-build-test-various-page-sizes:
     strategy:
@@ -708,18 +717,19 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make extension-release
-          cd tools/rust_api
-          cargo test --profile=relwithdebinfo --locked --all-features
+          make rusttest
 
       - name: Rust test with pre-built library
         env:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=%PATH%;${{ github.workspace }}/build/release/src
+          make extension-release
           make rusttest
 
   sanity-checks:
@@ -966,19 +976,27 @@ jobs:
           source /Users/runner/.cargo/env
           cmake -B build/release -DBUILD_EXAMPLES=OFF
           make extension-release
-          cd tools/rust_api
-          cargo test --profile=relwithdebinfo --locked --all-features
+          make rusttest
+
+      - name: Rust test with pre-built library
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
+        run: |
+          ulimit -n 10240
+          source /Users/runner/.cargo/env
+          cmake -B build/release -DBUILD_EXAMPLES=OFF
+          make extension-release
+          make rusttest
 
       - name: Rust example
         working-directory: examples/rust
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cargo build --locked --features arrow
-
-      # TODO(bmwinger): rust pre-built library test for macos
-      # When last tried it had issues finding libkuzu.dylib when running the tests
-      # Using LD_LIBRARY_PATH (and similar variables) did not work for some reason
+          cargo build --locked --all-features
 
   shell-test:
     name: shell test

@@ -54,6 +54,7 @@ impl CSVOptions {
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'db> QueryResult<'db> {
     /// Returns the time spent compiling the query in milliseconds
     pub fn get_compiling_time(&self) -> f64 {
@@ -94,7 +95,7 @@ impl<'db> QueryResult<'db> {
     }
 
     #[cfg(feature = "arrow")]
-    /// Produces an iterator over the results as [RecordBatch](arrow::record_batch::RecordBatch)es,
+    /// Produces an iterator over the results as [`RecordBatch`](arrow::record_batch::RecordBatch)es,
     /// split into chunks of the given size.
     ///
     /// *Requires the `arrow` feature*
@@ -139,9 +140,9 @@ impl Iterator for QueryResult<'_> {
 }
 
 #[cfg(feature = "arrow")]
-/// Produces an iterator over a QueryResult as [RecordBatch](arrow::record_batch::RecordBatch)es
+/// Produces an iterator over a `QueryResult` as [`RecordBatch`](arrow::record_batch::RecordBatch)es
 ///
-/// The result is split into chunks of a size specified in [iter_arrow](QueryResult::iter_arrow).
+/// The result is split into chunks of a size specified in [`iter_arrow`](QueryResult::iter_arrow).
 ///
 /// *Requires the `arrow` feature*
 pub struct ArrowIterator<'qr, 'db: 'qr> {

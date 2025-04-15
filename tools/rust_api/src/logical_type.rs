@@ -6,84 +6,84 @@ use crate::ffi::ffi;
 /// struct fields and types of lists
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LogicalType {
-    /// Special type for use with [Value::Null](crate::value::Value::Null)
+    /// Special type for use with [`Value::Null`](crate::value::Value::Null)
     Any,
-    /// Correponds to [Value::Bool](crate::value::Value::Bool)
+    /// Correponds to [`Value::Bool`](crate::value::Value::Bool)
     Bool,
-    /// Has no corresponding Value. Kuzu returns Serial values as [Int64](crate::Value::Int64).
+    /// Has no corresponding Value. Kuzu returns Serial values as [`Int64`](crate::Value::Int64).
     Serial,
-    /// Correponds to [Value::Int64](crate::value::Value::Int64)
+    /// Correponds to [`Value::Int64`](crate::value::Value::Int64)
     Int64,
-    /// Correponds to [Value::Int32](crate::value::Value::Int32)
+    /// Correponds to [`Value::Int32`](crate::value::Value::Int32)
     Int32,
-    /// Correponds to [Value::Int16](crate::value::Value::Int16)
+    /// Correponds to [`Value::Int16`](crate::value::Value::Int16)
     Int16,
-    /// Correponds to [Value::Int8](crate::value::Value::Int8)
+    /// Correponds to [`Value::Int8`](crate::value::Value::Int8)
     Int8,
-    /// Correponds to [Value::UInt64](crate::value::Value::UInt64)
+    /// Correponds to [`Value::UInt64`](crate::value::Value::UInt64)
     UInt64,
-    /// Correponds to [Value::UInt32](crate::value::Value::UInt32)
+    /// Correponds to [`Value::UInt32`](crate::value::Value::UInt32)
     UInt32,
-    /// Correponds to [Value::UInt16](crate::value::Value::UInt16)
+    /// Correponds to [`Value::UInt16`](crate::value::Value::UInt16)
     UInt16,
-    /// Correponds to [Value::UInt8](crate::value::Value::UInt8)
+    /// Correponds to [`Value::UInt8`](crate::value::Value::UInt8)
     UInt8,
-    /// Correponds to [Value::Int128](crate::value::Value::Int128)
+    /// Correponds to [`Value::Int128`](crate::value::Value::Int128)
     Int128,
-    /// Correponds to [Value::Double](crate::value::Value::Double)
+    /// Correponds to [`Value::Double`](crate::value::Value::Double)
     Double,
-    /// Correponds to [Value::Float](crate::value::Value::Float)
+    /// Correponds to [`Value::Float`](crate::value::Value::Float)
     Float,
-    /// Correponds to [Value::Date](crate::value::Value::Date)
+    /// Correponds to [`Value::Date`](crate::value::Value::Date)
     Date,
-    /// Correponds to [Value::Interval](crate::value::Value::Interval)
+    /// Correponds to [`Value::Interval`](crate::value::Value::Interval)
     Interval,
-    /// Correponds to [Value::Timestamp](crate::value::Value::Timestamp)
+    /// Correponds to [`Value::Timestamp`](crate::value::Value::Timestamp)
     Timestamp,
-    /// Correponds to [Value::TimestampTz](crate::value::Value::TimestampTz)
+    /// Correponds to [`Value::TimestampTz`](crate::value::Value::TimestampTz)
     TimestampTz,
-    /// Correponds to [Value::TimestampNs](crate::value::Value::TimestampNs)
+    /// Correponds to [`Value::TimestampNs`](crate::value::Value::TimestampNs)
     TimestampNs,
-    /// Correponds to [Value::TimestampMs](crate::value::Value::TimestampMs)
+    /// Correponds to [`Value::TimestampMs`](crate::value::Value::TimestampMs)
     TimestampMs,
-    /// Correponds to [Value::TimestampSec](crate::value::Value::TimestampSec)
+    /// Correponds to [`Value::TimestampSec`](crate::value::Value::TimestampSec)
     TimestampSec,
-    /// Correponds to [Value::InternalID](crate::value::Value::InternalID)
+    /// Correponds to [`Value::InternalID`](crate::value::Value::InternalID)
     InternalID,
-    /// Correponds to [Value::String](crate::value::Value::String)
+    /// Correponds to [`Value::String`](crate::value::Value::String)
     String,
-    /// Correponds to [Value::Blob](crate::value::Value::Blob)
+    /// Correponds to [`Value::Blob`](crate::value::Value::Blob)
     Blob,
-    /// Correponds to [Value::List](crate::value::Value::List)
+    /// Correponds to [`Value::List`](crate::value::Value::List)
     List {
         child_type: Box<LogicalType>,
     },
-    /// Correponds to [Value::Array](crate::value::Value::Array)
+    /// Correponds to [`Value::Array`](crate::value::Value::Array)
     Array {
         child_type: Box<LogicalType>,
         num_elements: u64,
     },
-    /// Correponds to [Value::Struct](crate::value::Value::Struct)
+    /// Correponds to [`Value::Struct`](crate::value::Value::Struct)
     Struct {
         fields: Vec<(String, LogicalType)>,
     },
-    /// Correponds to [Value::Node](crate::value::Value::Node)
+    /// Correponds to [`Value::Node`](crate::value::Value::Node)
     Node,
-    /// Correponds to [Value::Rel](crate::value::Value::Rel)
+    /// Correponds to [`Value::Rel`](crate::value::Value::Rel)
     Rel,
     RecursiveRel,
-    /// Correponds to [Value::Map](crate::value::Value::Map)
+    /// Correponds to [`Value::Map`](crate::value::Value::Map)
     Map {
         key_type: Box<LogicalType>,
         value_type: Box<LogicalType>,
     },
-    /// Correponds to [Value::Union](crate::value::Value::Union)
+    /// Correponds to [`Value::Union`](crate::value::Value::Union)
     Union {
         types: Vec<(String, LogicalType)>,
     },
-    /// Correponds to [Value::UUID](crate::value::Value::UUID)
+    /// Correponds to [`Value::UUID`](crate::value::Value::UUID)
     UUID,
-    /// Correponds to [Value::Decimal](crate::value::Value::Decimal)
+    /// Correponds to [`Value::Decimal`](crate::value::Value::Decimal)
     Decimal {
         precision: u32,
         scale: u32,
@@ -195,7 +195,7 @@ impl From<&ffi::LogicalType> for LogicalType {
             }
             // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
             // on the C++ side.
-            x => panic!("Unsupported type {:?}", x),
+            x => panic!("Unsupported type {x:?}"),
         }
     }
 }
