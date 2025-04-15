@@ -18,7 +18,7 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
-#include "storage/file_handle.h"
+#include "storage/page_manager.h"
 #include "storage/stats/column_stats.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk_metadata.h"
@@ -33,6 +33,19 @@ using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
+
+void ChunkState::reclaimAllocatedPages(FileHandle& dataFH) const {
+    const auto& entry = metadata.pageRange;
+    if (entry.startPageIdx != INVALID_PAGE_IDX) {
+        dataFH.getPageManager()->freePageRange(entry);
+    }
+    if (nullState) {
+        nullState->reclaimAllocatedPages(dataFH);
+    }
+    for (const auto& child : childrenStates) {
+        child.reclaimAllocatedPages(dataFH);
+    }
+}
 
 static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataType,
     bool enableCompression) {
@@ -292,8 +305,8 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
 
 void ColumnChunkData::flush(FileHandle& dataFH) {
     const auto preScanMetadata = getMetadataToFlush();
-    const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
-    const auto flushedMetadata = flushBuffer(&dataFH, startPageIdx, preScanMetadata);
+    auto allocatedEntry = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
+    const auto flushedMetadata = flushBuffer(&dataFH, allocatedEntry, preScanMetadata);
     setToOnDisk(flushedMetadata);
     if (nullData) {
         nullData->flush(dataFH);
@@ -311,12 +324,13 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
     resetInMemoryStats();
 }
 
-ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, page_idx_t startPageIdx,
+ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, const PageRange& entry,
     const ColumnChunkMetadata& otherMetadata) const {
     if (!otherMetadata.compMeta.isConstant() && getBufferSize() != 0) {
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
-        return flushBufferFunction(buffer->getBuffer(), dataFH, startPageIdx, otherMetadata);
+        return flushBufferFunction(buffer->getBuffer(), dataFH, entry, otherMetadata);
     }
+    KU_ASSERT(otherMetadata.getNumPages() == 0);
     return otherMetadata;
 }
 

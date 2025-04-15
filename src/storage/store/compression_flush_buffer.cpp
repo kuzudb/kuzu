@@ -1,6 +1,7 @@
 #include "storage/store/compression_flush_buffer.h"
 
 #include "storage/file_handle.h"
+#include "storage/page_manager.h"
 #include "storage/store/column_chunk_data.h"
 
 namespace kuzu::storage {
@@ -8,22 +9,21 @@ using namespace common;
 using namespace transaction;
 
 ColumnChunkMetadata uncompressedFlushBuffer(std::span<const uint8_t> buffer, FileHandle* dataFH,
-    page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
-    KU_ASSERT(dataFH->getNumPages() >= startPageIdx + metadata.numPages);
-    dataFH->writePagesToFile(buffer.data(), buffer.size(), startPageIdx);
-    return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
+    const PageRange& entry, const ColumnChunkMetadata& metadata) {
+    KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + entry.numPages);
+    dataFH->writePagesToFile(buffer.data(), buffer.size(), entry.startPageIdx);
+    return ColumnChunkMetadata(entry.startPageIdx, entry.numPages, metadata.numValues,
         metadata.compMeta);
 }
 
 ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> buffer,
-    FileHandle* dataFH, common::page_idx_t startPageIdx,
-    const ColumnChunkMetadata& metadata) const {
+    FileHandle* dataFH, const PageRange& entry, const ColumnChunkMetadata& metadata) const {
     auto valuesRemaining = metadata.numValues;
     const uint8_t* bufferStart = buffer.data();
     const auto compressedBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     auto numPages = 0u;
     const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-    KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
+    KU_ASSERT(numValuesPerPage * entry.numPages >= metadata.numValues);
     while (valuesRemaining > 0) {
         const auto compressedSize = alg->compressNextPage(bufferStart, valuesRemaining,
             compressedBuffer.get(), KUZU_PAGE_SIZE, metadata.compMeta);
@@ -37,17 +37,20 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
         if (compressedSize < KUZU_PAGE_SIZE) {
             memset(compressedBuffer.get() + compressedSize, 0, KUZU_PAGE_SIZE - compressedSize);
         }
-        KU_ASSERT(numPages < metadata.numPages);
-        KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
-        dataFH->writePageToFile(compressedBuffer.get(), startPageIdx + numPages);
+        KU_ASSERT(numPages < entry.numPages);
+        KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + numPages);
+        dataFH->writePageToFile(compressedBuffer.get(), entry.startPageIdx + numPages);
         numPages++;
     }
     // Make sure that the on-disk file is the right length
-    if (!dataFH->isInMemoryMode() && numPages < metadata.numPages) {
+    if (!dataFH->isInMemoryMode() && numPages < entry.numPages) {
         memset(compressedBuffer.get(), 0, KUZU_PAGE_SIZE);
-        dataFH->writePageToFile(compressedBuffer.get(), startPageIdx + metadata.numPages - 1);
+        while (numPages < entry.numPages) {
+            dataFH->writePageToFile(compressedBuffer.get(), entry.startPageIdx + numPages);
+            ++numPages;
+        }
     }
-    return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
+    return ColumnChunkMetadata(entry.startPageIdx, entry.numPages, metadata.numValues,
         metadata.compMeta);
 }
 
@@ -55,7 +58,7 @@ namespace {
 template<std::floating_point T>
 std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const CompressionAlg& alg,
     PhysicalTypeID dataType, std::span<const uint8_t> buffer, FileHandle* dataFH,
-    page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    const PageRange& entry, const ColumnChunkMetadata& metadata) {
     const auto& castedAlg = ku_dynamic_cast<const FloatCompression<T>&>(alg);
 
     const auto* floatMetadata = metadata.compMeta.floatMetadata();
@@ -97,9 +100,9 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
         } else {
             valuesRemaining -= numValuesPerPage;
         }
-        KU_ASSERT(numPages < metadata.numPages);
-        KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
-        dataFH->writePageToFile(compressedBuffer.get(), startPageIdx + numPages);
+        KU_ASSERT(numPages < entry.numPages);
+        KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + numPages);
+        dataFH->writePageToFile(compressedBuffer.get(), entry.startPageIdx + numPages);
         numPages++;
     }
 
@@ -110,21 +113,22 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
 
 template<std::floating_point T>
 void flushALPExceptions(std::span<const uint8_t> exceptionBuffer, FileHandle* dataFH,
-    page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    const PageRange& entry, const ColumnChunkMetadata& metadata) {
     // we don't care about the min/max values for exceptions
     const auto preExceptionMetadata =
         uncompressedGetMetadata(exceptionBuffer, exceptionBuffer.size(),
             metadata.compMeta.floatMetadata()->exceptionCapacity, StorageValue{0}, StorageValue{0});
 
     const auto exceptionStartPageIdx =
-        startPageIdx + metadata.numPages - preExceptionMetadata.numPages;
-    KU_ASSERT(exceptionStartPageIdx + preExceptionMetadata.numPages <= dataFH->getNumPages());
+        entry.startPageIdx + entry.numPages - preExceptionMetadata.getNumPages();
+    KU_ASSERT(exceptionStartPageIdx + preExceptionMetadata.getNumPages() <= dataFH->getNumPages());
+    PageRange exceptionBlock{exceptionStartPageIdx, preExceptionMetadata.getNumPages()};
 
     const auto encodedType = std::is_same_v<T, float> ? PhysicalTypeID::ALP_EXCEPTION_FLOAT :
                                                         PhysicalTypeID::ALP_EXCEPTION_DOUBLE;
     CompressedFlushBuffer exceptionFlushBuffer{
         std::make_shared<Uncompressed>(EncodeException<T>::sizeInBytes()), encodedType};
-    (void)exceptionFlushBuffer.operator()(exceptionBuffer, dataFH, exceptionStartPageIdx,
+    (void)exceptionFlushBuffer.operator()(exceptionBuffer, dataFH, exceptionBlock,
         preExceptionMetadata);
 }
 } // namespace
@@ -141,21 +145,21 @@ CompressedFloatFlushBuffer<T>::CompressedFloatFlushBuffer(std::shared_ptr<Compre
 
 template<std::floating_point T>
 ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(std::span<const uint8_t> buffer,
-    FileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) const {
+    FileHandle* dataFH, const PageRange& entry, const ColumnChunkMetadata& metadata) const {
     if (metadata.compMeta.compression == CompressionType::UNCOMPRESSED) {
         return CompressedFlushBuffer{std::make_shared<Uncompressed>(dataType), dataType}.operator()(
-            buffer, dataFH, startPageIdx, metadata);
+            buffer, dataFH, entry, metadata);
     }
     // FlushBuffer should not be called with constant compression
     KU_ASSERT(metadata.compMeta.compression == CompressionType::ALP);
 
     auto [exceptionBuffer, exceptionBufferSize] =
-        flushCompressedFloats<T>(*alg, dataType, buffer, dataFH, startPageIdx, metadata);
+        flushCompressedFloats<T>(*alg, dataType, buffer, dataFH, entry, metadata);
 
     flushALPExceptions<T>(std::span<const uint8_t>(exceptionBuffer.get(), exceptionBufferSize),
-        dataFH, startPageIdx, metadata);
+        dataFH, entry, metadata);
 
-    return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
+    return ColumnChunkMetadata(entry.startPageIdx, entry.numPages, metadata.numValues,
         metadata.compMeta);
 }
 

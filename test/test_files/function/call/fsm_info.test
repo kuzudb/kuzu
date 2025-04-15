@@ -1,0 +1,100 @@
+-DATASET CSV empty
+-SKIP_IN_MEM
+--
+
+-CASE FSMReuseFreePageForNewNodeGroup
+-STATEMENT create node table person(value uint64, primary key (value));
+---- ok
+-STATEMENT call threads=1
+---- ok
+-STATEMENT call checkpoint_threshold=0
+---- ok
+-STATEMENT COPY person FROM (unwind range(1, 600010) as i return 1000000000 * i)
+---- ok
+# fill up the last node group, make sure to trigger recompression
+-STATEMENT copy person from (
+    call storage_info('person') where node_group_id = 0 with num_values as node_group_capacity limit 1
+    call storage_info('person') where data_type = 'UINT64' with node_group_capacity, cast(min as uint64) as min_val, num_values as last_node_group_size order by node_group_id desc limit 1
+    unwind range(1, node_group_capacity - last_node_group_size) as i return min_val - i
+)
+---- ok
+-STATEMENT call fsm_info() return sum(num_pages) > 0
+---- 1
+True
+# check that the node groups are all filled
+-STATEMENT call storage_info('person') where node_group_id = 0 with num_values as node_group_capacity limit 1
+           call storage_info('person') return sum(case when num_values <> node_group_capacity then 1 else 0 end)
+---- 1
+0
+# append two values, check that the new node group uses the free page
+-STATEMENT create (:person{value: 1000000000 * 600011 + 1}), (:person{value: 1000000000 * 600011})
+---- ok
+-STATEMENT call storage_info('person') where data_type = 'UINT64' with max(start_page_idx) as max_start_page_idx
+           call storage_info('person') where data_type = 'UINT64' with max_start_page_idx, start_page_idx as last_start_page_idx order by node_group_id desc limit 1
+           return last_start_page_idx < max_start_page_idx
+---- 1
+True
+
+-CASE FSMReuseFreePageForNewTable
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table person1 (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT call threads=1
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+# second copy should trigger recompression + free some pages
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
+---- ok
+-STATEMENT CALL fsm_info() return sum(num_pages) > 0
+---- 1
+True
+# copy for new table should reuse most of the old pages
+-STATEMENT COPY person1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+# allow margin equal to the largest page range for a column chunk in the table
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages call storage_info('person1') with num_free_pages, max(num_pages) as largest_range return num_free_pages is null or largest_range >= num_free_pages
+---- 1
+True
+
+-CASE FSMEmptyAfterFirstCopy
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
+---- ok
+-STATEMENT call fsm_info() return *
+---- 0
+
+-CASE FSMReclaimRelNewTable
+-STATEMENT CALL threads=1
+---- ok
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-STATEMENT create rel table knows1 (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-STATEMENT copy person from ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv"](ignore_errors=true);
+---- ok
+-STATEMENT call fsm_info() return *
+---- 0
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
+---- ok
+# second copy should trigger space reclaiming
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv";
+---- ok
+-STATEMENT CALL fsm_info() return sum(num_pages) > 0
+---- 1
+True
+# copying the same initial data to a new table should reuse most of the pages
+-STATEMENT COPY knows1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
+---- ok
+# allow margin equal to the largest page range for a column chunk in the table
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages call storage_info('knows1') with num_free_pages, max(num_pages) as largest_range return num_free_pages is null or largest_range >= num_free_pages
+---- 1
+True

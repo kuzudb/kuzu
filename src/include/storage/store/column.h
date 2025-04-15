@@ -23,7 +23,6 @@ class NullColumn;
 class StructColumn;
 class RelTableData;
 struct ColumnCheckpointState;
-class ShadowFile;
 class BufferManager;
 class Column {
     friend class StringColumn;
@@ -39,6 +38,7 @@ public:
     Column(std::string name, common::PhysicalTypeID physicalType, FileHandle* dataFH,
         MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
+
     virtual ~Column();
 
     void populateExtraChunkState(ChunkState& state) const;
@@ -103,8 +103,8 @@ protected:
         const ChunkState& state, common::offset_t nodeOffset, common::ValueVector* resultVector,
         uint32_t posInVector) const;
 
-    void writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
-        const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
+    common::page_idx_t writeValues(ChunkState& state, common::offset_t dstOffset,
+        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
         common::offset_t numValues = 1);
 
     // Produces a page cursor for the offset relative to the given node group
@@ -117,7 +117,7 @@ protected:
         const std::optional<StorageValue>& min, const std::optional<StorageValue>& max) const;
 
 protected:
-    bool isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
+    bool isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
         common::offset_t maxOffset) const;
 
     virtual bool canCheckpointInPlace(const ChunkState& state,

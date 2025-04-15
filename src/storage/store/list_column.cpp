@@ -5,7 +5,6 @@
 #include "common/assert.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"

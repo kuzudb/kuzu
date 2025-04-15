@@ -100,14 +100,15 @@ ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
     auto preScanMetadata =
         GetFloatCompressionMetadata<T>{alg, dataType}.operator()(byteSpan(bufferToCompress),
             bufferToCompress.size(), bufferToCompress.size(), metadata->min, metadata->max);
-    auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
+    auto allocatedBlock =
+        dataFH->getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
 
     if (preScanMetadata.compMeta.compression == CompressionType::CONSTANT) {
         return preScanMetadata;
     }
 
     return CompressedFloatFlushBuffer<T>{alg, dataType}.operator()(byteSpan(bufferToCompress),
-        dataFH, startPageIdx, preScanMetadata);
+        dataFH, allocatedBlock, preScanMetadata);
 }
 
 template<std::floating_point T>

@@ -73,16 +73,16 @@ ColumnChunkMetadata booleanGetMetadata(std::span<const uint8_t> buffer, uint64_t
 }
 
 void ColumnChunkMetadata::serialize(common::Serializer& serializer) const {
-    serializer.write(pageIdx);
-    serializer.write(numPages);
+    serializer.write(pageRange.startPageIdx);
+    serializer.write(pageRange.numPages);
     serializer.write(numValues);
     compMeta.serialize(serializer);
 }
 
 ColumnChunkMetadata ColumnChunkMetadata::deserialize(common::Deserializer& deserializer) {
     ColumnChunkMetadata ret;
-    deserializer.deserializeValue(ret.pageIdx);
-    deserializer.deserializeValue(ret.numPages);
+    deserializer.deserializeValue(ret.pageRange.startPageIdx);
+    deserializer.deserializeValue(ret.pageRange.numPages);
     deserializer.deserializeValue(ret.numValues);
     ret.compMeta = decltype(ret.compMeta)::deserialize(deserializer);
 
@@ -95,12 +95,12 @@ page_idx_t ColumnChunkMetadata::getNumDataPages(PhysicalTypeID dataType) const {
         return TypeUtils::visit(
             dataType,
             [this]<std::floating_point T>(T) -> page_idx_t {
-                return FloatCompression<T>::getNumDataPages(numPages, compMeta);
+                return FloatCompression<T>::getNumDataPages(getNumPages(), compMeta);
             },
             [](auto) -> page_idx_t { KU_UNREACHABLE; });
     }
     default:
-        return numPages;
+        return getNumPages();
     }
 }
 

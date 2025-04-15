@@ -28,7 +28,7 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, cons
       emptyMask(exceptionCapacity), column(ColumnFactory::createColumn("ALPExceptionChunk",
                                         physicalType, dataFH, memoryManager, shadowFile, false)) {
     const auto exceptionBaseCursor =
-        getExceptionPageCursor(state.metadata, PageCursor{state.metadata.pageIdx, 0},
+        getExceptionPageCursor(state.metadata, PageCursor{state.metadata.getStartPageIdx(), 0},
             state.metadata.compMeta.floatMetadata()->exceptionCapacity);
     // for ALP exceptions we don't care about the statistics
     const auto compMeta =
@@ -142,7 +142,7 @@ template<std::floating_point T>
 PageCursor InMemoryExceptionChunk<T>::getExceptionPageCursor(const ColumnChunkMetadata& metadata,
     PageCursor pageBaseCursor, size_t exceptionCapacity) {
     const size_t numExceptionPages = EncodeException<T>::numPagesFromExceptions(exceptionCapacity);
-    const size_t exceptionPageOffset = metadata.numPages - numExceptionPages;
+    const size_t exceptionPageOffset = metadata.getNumPages() - numExceptionPages;
     KU_ASSERT(exceptionPageOffset == (page_idx_t)exceptionPageOffset);
     return {pageBaseCursor.pageIdx + (page_idx_t)exceptionPageOffset, 0};
 }

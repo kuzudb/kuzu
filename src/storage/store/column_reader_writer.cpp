@@ -19,7 +19,8 @@ using namespace transaction;
 
 namespace {
 [[maybe_unused]] bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
-    return (metadata.pageIdx <= pageIdx && pageIdx < metadata.pageIdx + metadata.numPages) ||
+    return (metadata.getStartPageIdx() <= pageIdx &&
+               pageIdx < metadata.getStartPageIdx() + metadata.getNumPages()) ||
            (pageIdx == INVALID_PAGE_IDX && metadata.compMeta.isConstant());
 }
 
@@ -121,24 +122,26 @@ public:
             writeFromVectorFunc, &vectorToWriteFrom->getNullMask());
     }
 
-    void writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
+    page_idx_t writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
         common::offset_t numValues, const write_values_func_t& writeFunc) override {
-        writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc, nullChunkData);
+        return writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc,
+            nullChunkData);
     }
 
     template<typename InputType, typename... AdditionalArgs>
-    void writeValuesToPage(ChunkState& state, common::offset_t dstOffset, InputType data,
+    page_idx_t writeValuesToPage(ChunkState& state, common::offset_t dstOffset, InputType data,
         common::offset_t srcOffset, common::offset_t numValues,
         const write_values_to_page_func_t<InputType, AdditionalArgs...>& writeFunc,
         const NullMask* nullMask) {
         auto numValuesWritten = 0u;
-        auto cursor = getPageCursorForOffsetInGroup(dstOffset, state.metadata.pageIdx,
+        auto cursor = getPageCursorForOffsetInGroup(dstOffset, state.metadata.getStartPageIdx(),
             state.numValuesPerPage);
+        page_idx_t numPagesAppended = 0;
         while (numValuesWritten < numValues) {
             auto numValuesToWriteInPage = std::min(numValues - numValuesWritten,
                 state.numValuesPerPage - cursor.elemPosInPage);
-            updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
+            numPagesAppended += updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
                 if constexpr (std::is_same_v<InputType, ValueVector*>) {
                     writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
                         numValuesToWriteInPage, state.metadata.compMeta);
@@ -150,6 +153,7 @@ public:
             numValuesWritten += numValuesToWriteInPage;
             cursor.nextPage();
         }
+        return numPagesAppended;
     }
 
     template<typename OutputType>
@@ -175,8 +179,8 @@ public:
             return 0;
         }
 
-        auto pageCursor = getPageCursorForOffsetInGroup(startNodeOffset, chunkMeta.pageIdx,
-            state.numValuesPerPage);
+        auto pageCursor = getPageCursorForOffsetInGroup(startNodeOffset,
+            chunkMeta.getStartPageIdx(), state.numValuesPerPage);
         KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
 
         uint64_t numValuesScanned = 0;
@@ -256,7 +260,7 @@ public:
             writeFromVectorFunc, &vectorToWriteFrom->getNullMask());
     }
 
-    void writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
+    page_idx_t writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
         common::offset_t numValues, const write_values_func_t& writeFunc) override {
         if (state.metadata.compMeta.compression != CompressionType::ALP) {
@@ -264,7 +268,8 @@ public:
                 srcOffset, numValues, writeFunc);
         }
 
-        writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc, nullChunkData);
+        return writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc,
+            nullChunkData);
     }
 
 private:
@@ -336,7 +341,7 @@ private:
     }
 
     template<typename InputType, typename... AdditionalArgs>
-    void writeValuesToPage(ChunkState& state, common::offset_t offsetInChunk, InputType data,
+    page_idx_t writeValuesToPage(ChunkState& state, common::offset_t offsetInChunk, InputType data,
         uint32_t srcOffset, size_t numValues,
         const write_values_to_page_func_t<InputType, AdditionalArgs...>& writeFunc,
         const NullMask* nullMask) {
@@ -400,8 +405,8 @@ private:
             }
         }
 
-        defaultReader->writeValuesToPage(state, offsetInChunk, writeToPageBufferHelper.getData(), 0,
-            numValues, writeFunc, nullMask);
+        return defaultReader->writeValuesToPage(state, offsetInChunk,
+            writeToPageBufferHelper.getData(), 0, numValues, writeFunc, nullMask);
     }
 
     std::unique_ptr<DefaultColumnReadWriter> defaultReader;
@@ -437,12 +442,19 @@ void ColumnReadWriter::readFromPage(const Transaction* transaction, page_idx_t p
     fileHandleToPin->optimisticReadPage(pageIdxToPin, readFunc);
 }
 
-void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
+bool ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
     const std::function<void(uint8_t*, common::offset_t)>& writeOp) const {
     bool insertingNewPage = false;
     if (cursor.pageIdx == INVALID_PAGE_IDX) {
-        return writeOp(nullptr, cursor.elemPosInPage);
+        writeOp(nullptr, cursor.elemPosInPage);
+        return 0;
     }
+
+    // The implemented mechanism for inserting new pages here doesn't work if we do concurrent
+    // writes We currently don't do concurrent writes but should also actually never hit the case
+    // where we need to insert pages either
+    KU_ASSERT(cursor.pageIdx < dataFH->getNumPages());
+
     if (cursor.pageIdx >= dataFH->getNumPages()) {
         KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
         ShadowUtils::insertNewPage(*dataFH, dbFileID, *shadowFile);
@@ -450,6 +462,7 @@ void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
     }
     ShadowUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *shadowFile,
         [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
+    return insertingNewPage;
 }
 
 PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInChunk,
@@ -462,7 +475,7 @@ PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInChun
 std::pair<common::offset_t, PageCursor> ColumnReadWriter::getOffsetAndCursor(
     common::offset_t nodeOffset, const ChunkState& state) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-    auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state.metadata.pageIdx,
+    auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state.metadata.getStartPageIdx(),
         state.numValuesPerPage);
     KU_ASSERT(isPageIdxValid(cursor.pageIdx, state.metadata));
 

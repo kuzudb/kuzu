@@ -27,6 +27,7 @@ struct TableScanState;
 struct TableAddColumnState;
 struct NodeGroupScanState;
 class ColumnStats;
+class FileHandle;
 
 enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
 

@@ -20,16 +20,16 @@ struct ChunkCheckpointState {
 struct ColumnCheckpointState {
     ColumnChunkData& persistentData;
     std::vector<ChunkCheckpointState> chunkCheckpointStates;
-    common::row_idx_t maxRowIdxToWrite;
+    common::row_idx_t endRowIdxToWrite;
 
     ColumnCheckpointState(ColumnChunkData& persistentData,
         std::vector<ChunkCheckpointState> chunkCheckpointStates)
         : persistentData{persistentData}, chunkCheckpointStates{std::move(chunkCheckpointStates)},
-          maxRowIdxToWrite{0} {
+          endRowIdxToWrite{0} {
         for (const auto& chunkCheckpointState : this->chunkCheckpointStates) {
             const auto endRowIdx = chunkCheckpointState.startRow + chunkCheckpointState.numRows;
-            if (endRowIdx > maxRowIdxToWrite) {
-                maxRowIdxToWrite = endRowIdx;
+            if (endRowIdx > endRowIdxToWrite) {
+                endRowIdxToWrite = endRowIdx;
             }
         }
     }

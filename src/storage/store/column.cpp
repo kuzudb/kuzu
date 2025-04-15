@@ -10,6 +10,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/file_handle.h"
+#include "storage/page_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"
@@ -101,12 +102,12 @@ void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) co
     }
 }
 
-Column::Column(std::string name, LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
-    ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
+Column::Column(std::string name, common::LogicalType dataType, FileHandle* dataFH,
+    MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
     : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
-      dataFH{dataFH}, mm{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
+      dataFH{dataFH}, mm{mm}, shadowFile(shadowFile), enableCompression{enableCompression},
       columnReadWriter(ColumnReadWriterFactory::createColumnReadWriter(
-          this->dataType.getPhysicalType(), dbFileID, this->dataFH, this->shadowFile)) {
+          this->dataType.getPhysicalType(), dbFileID, dataFH, shadowFile)) {
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
     writeFunc = getWriteValuesFunc(this->dataType);
@@ -178,11 +179,9 @@ std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChu
 
 ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData, FileHandle& dataFH) {
     KU_ASSERT(chunkData.sanityCheck());
-    // TODO(Guodong/Ben): We can optimize the flush to write back to same set of pages if new
-    // flushed data are not out of the capacity.
     const auto preScanMetadata = chunkData.getMetadataToFlush();
-    const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
-    return chunkData.flushBuffer(&dataFH, startPageIdx, preScanMetadata);
+    auto allocatedBlock = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
+    return chunkData.flushBuffer(&dataFH, allocatedBlock, preScanMetadata);
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInChunk,
@@ -339,10 +338,10 @@ void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t
     }
 }
 
-void Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* data,
+page_idx_t Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* data,
     const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues) {
-    columnReadWriter->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData, srcOffset,
-        numValues, writeFunc);
+    return columnReadWriter->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData,
+        srcOffset, numValues, writeFunc);
 }
 
 // Append to the end of the chunk.
@@ -350,11 +349,9 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
     const uint8_t* data, const NullMask* nullChunkData, offset_t numValues) {
     auto& metadata = persistentChunk.getMetadata();
     const auto startOffset = metadata.numValues;
-    const auto numPages = dataFH->getNumPages();
-    // TODO: writeValues should return new pages appended if any.
-    writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
-    const auto newNumPages = dataFH->getNumPages();
-    metadata.numPages += (newNumPages - numPages);
+    const auto numNewPages =
+        writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
+    metadata.pageRange.numPages += numNewPages;
 
     auto [minWritten, maxWritten] = getMinMaxStorageValue(data, 0 /*offset*/, numValues,
         dataType.getPhysicalType(), nullChunkData);
@@ -362,11 +359,11 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
     return startOffset;
 }
 
-bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
-    offset_t maxOffset) const {
+bool Column::isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
+    offset_t endOffset) const {
     if (metadata.compMeta.compression != CompressionType::CONSTANT &&
         (metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType) *
-            metadata.getNumDataPages(dataType.getPhysicalType())) <= (maxOffset + 1)) {
+            metadata.getNumDataPages(dataType.getPhysicalType())) <= endOffset) {
         // Note that for constant compression, `metadata.numPages` will be equal to 0.
         // Thus, this function will always return true.
         return true;
@@ -404,10 +401,11 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState) co
 
 void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
-    const auto numRows = std::max(checkpointState.maxRowIdxToWrite + 1, state.metadata.numValues);
+    const auto numRows = std::max(checkpointState.endRowIdxToWrite, state.metadata.numValues);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     scan(&DUMMY_CHECKPOINT_TRANSACTION, state, &checkpointState.persistentData);
+    state.reclaimAllocatedPages(*dataFH);
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         checkpointState.persistentData.write(chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/,
             chunkCheckpointState.startRow, chunkCheckpointState.numRows);
@@ -418,8 +416,8 @@ void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
 
 bool Column::canCheckpointInPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
-    if (isMaxOffsetOutOfPagesCapacity(checkpointState.persistentData.getMetadata(),
-            checkpointState.maxRowIdxToWrite)) {
+    if (isEndOffsetOutOfPagesCapacity(checkpointState.persistentData.getMetadata(),
+            checkpointState.endRowIdxToWrite)) {
         return false;
     }
     if (checkpointState.persistentData.getMetadata().compMeta.canAlwaysUpdateInPlace()) {
@@ -463,10 +461,9 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, PhysicalTypeID physicalType,
-    FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile,
-    bool enableCompression) {
-    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), dataFH, memoryManager,
-        shadowFile, enableCompression);
+    FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression) {
+    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), dataFH, mm, shadowFile,
+        enableCompression);
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalType dataType,

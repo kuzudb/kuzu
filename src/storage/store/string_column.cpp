@@ -22,7 +22,7 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-StringColumn::StringColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
+StringColumn::StringColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
     MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
     : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
           true /* requireNullColumn */},
@@ -208,13 +208,13 @@ bool StringColumn::canCheckpointInPlace(const ChunkState& state,
     if (!dictionary.canCommitInPlace(state, numStrings, strLenToAdd)) {
         return false;
     }
-    return canIndexCommitInPlace(state, numStrings, checkpointState.maxRowIdxToWrite);
+    return canIndexCommitInPlace(state, numStrings, checkpointState.endRowIdxToWrite);
 }
 
 bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numStrings,
     offset_t maxOffset) const {
     const ChunkState& indexState = getChildState(state, ChildStateIndex::INDEX);
-    if (indexColumn->isMaxOffsetOutOfPagesCapacity(indexState.metadata, maxOffset)) {
+    if (indexColumn->isEndOffsetOutOfPagesCapacity(indexState.metadata, maxOffset)) {
         return false;
     }
     if (indexState.metadata.compMeta.canAlwaysUpdateInPlace()) {
