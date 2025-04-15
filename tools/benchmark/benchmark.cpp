@@ -37,10 +37,11 @@ std::unique_ptr<QueryResult> Benchmark::runWithProfile() const {
     return conn->query("PROFILE " + query);
 }
 
-void Benchmark::logQueryInfo(std::ofstream& log, uint32_t runNum,
+void Benchmark::writeLogFile(std::ofstream& log, uint32_t runNum, const QuerySummary& querySummary,
     const std::vector<std::string>& actualOutput) const {
     log << "Run Num: " << runNum << '\n';
-    log << "Status: " << (actualOutput == expectedOutput ? "pass" : "error") << '\n';
+    log << "Status: " << (compareResult && actualOutput != expectedOutput ? "error" : "pass")
+        << '\n';
     log << "Query: " << query << '\n';
     log << "Expected output: " << '\n';
     for (auto& result : expectedOutput) {
@@ -51,6 +52,10 @@ void Benchmark::logQueryInfo(std::ofstream& log, uint32_t runNum,
         log << result << '\n';
     }
     log << std::flush;
+    log << "Compiling time: " << querySummary.getCompilingTime() << '\n';
+    log << "Execution time: " << querySummary.getExecutionTime() << "\n\n";
+    log.flush();
+    log.close();
 }
 
 void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
@@ -65,17 +70,13 @@ void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
     spdlog::info("");
     if (!config.outputPath.empty()) {
         std::ofstream logFile(config.outputPath + "/" + name + "_log.txt", std::ios_base::app);
-        logQueryInfo(logFile, runNum, actualOutput);
-        logFile << "Compiling time: " << querySummary->getCompilingTime() << '\n';
-        logFile << "Execution time: " << querySummary->getExecutionTime() << "\n\n";
-        logFile.flush();
-        logFile.close();
+        writeLogFile(logFile, runNum, *querySummary, actualOutput);
     }
 }
 
 void Benchmark::verify(const std::vector<std::string>& actualOutput) const {
     if (actualOutput.size() == expectedNumTuples) {
-        if (actualOutput != expectedOutput && compareResult) {
+        if (compareResult && actualOutput != expectedOutput) {
             spdlog::info("Output:");
             for (auto& tuple : actualOutput) {
                 spdlog::info(tuple);
