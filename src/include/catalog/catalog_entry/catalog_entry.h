@@ -94,10 +94,6 @@ public:
         return common::ku_dynamic_cast<TARGET*>(this);
     }
 
-    //===--------------------------------------------------------------------===//
-    //
-    //===--------------------------------------------------------------------===//
-
 protected:
     virtual void copyFrom(const CatalogEntry& other);
 

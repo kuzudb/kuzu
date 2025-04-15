@@ -68,7 +68,8 @@ void CatalogEntryRecord::dropStorageIfNeeded(StorageManager& storageManager) con
     if (droppedColumn.has_value()) {
         KU_ASSERT(catalogEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY ||
                   catalogEntry->getType() == catalog::CatalogEntryType::REL_TABLE_ENTRY);
-        storageManager.getTable(catalogEntry->constCast<TableCatalogEntry>().getTableID())
+        const auto& tableCatalogEntry = catalogEntry->constCast<TableCatalogEntry>();
+        storageManager.getTable(tableCatalogEntry.getTableID())
             ->commitDropColumn(*storageManager.getDataFH(), *droppedColumn);
     } else {
         if (catalogEntry->hasParent()) {

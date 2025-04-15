@@ -16,7 +16,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -52,7 +52,7 @@ std::optional<PageRange> FreeSpaceManager::popFreePages(common::page_idx_t numPa
         auto levelToSearch = getLevel(numPages);
         for (; levelToSearch < freeLists.size(); ++levelToSearch) {
             auto& curList = freeLists[levelToSearch];
-            auto entryIt = curList.lower_bound(PageRange{0, numPages});
+            auto entryIt = curList.lower_bound(PageRange{common::INVALID_PAGE_IDX, numPages});
             if (entryIt != curList.end()) {
                 auto entry = *entryIt;
                 curList.erase(entryIt);
