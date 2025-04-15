@@ -1,5 +1,3 @@
-#include <unistd.h>
-
 #include "binder/expression/node_expression.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
