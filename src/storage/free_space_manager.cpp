@@ -26,7 +26,6 @@ common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
 }
 
 bool FreeSpaceManager::entryCmp(const PageRange& a, const PageRange& b) {
-    KU_ASSERT(a.startPageIdx != b.startPageIdx);
     return a.numPages == b.numPages ? a.startPageIdx < b.startPageIdx : a.numPages < b.numPages;
 }
 
@@ -52,7 +51,7 @@ std::optional<PageRange> FreeSpaceManager::popFreePages(common::page_idx_t numPa
         auto levelToSearch = getLevel(numPages);
         for (; levelToSearch < freeLists.size(); ++levelToSearch) {
             auto& curList = freeLists[levelToSearch];
-            auto entryIt = curList.lower_bound(PageRange{common::INVALID_PAGE_IDX, numPages});
+            auto entryIt = curList.lower_bound(PageRange{0, numPages});
             if (entryIt != curList.end()) {
                 auto entry = *entryIt;
                 curList.erase(entryIt);
