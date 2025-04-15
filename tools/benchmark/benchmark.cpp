@@ -14,7 +14,7 @@ namespace benchmark {
 Benchmark::Benchmark(const std::string& benchmarkPath, Database* database, BenchmarkConfig& config)
     : config{config}, compareResult{true}, expectedNumTuples{0} {
     conn = std::make_unique<Connection>(database);
-      conn->setMaxNumThreadForExec(config.numThreads);
+    conn->setMaxNumThreadForExec(config.numThreads);
     loadBenchmark(benchmarkPath);
 }
 
