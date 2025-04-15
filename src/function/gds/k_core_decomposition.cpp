@@ -174,7 +174,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         DenseFrontier::getUnvisitedFrontier(input.context, sharedState->graph.get());
     auto nextFrontier =
         DenseFrontier::getUnvisitedFrontier(input.context, sharedState->graph.get());
-    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+    auto frontierPair =
+        std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     // Compute Core values
     auto removeVertexEdgeCompute = std::make_unique<RemoveVertexEdgeCompute>(degrees);
     auto computeState = GDSComputeState(std::move(frontierPair), std::move(removeVertexEdgeCompute),
@@ -191,7 +192,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             auto vc = DegreeLessThanCoreVertexCompute(degrees, coreValues,
                 computeState.frontierPair.get(), coreValue, numActiveNodes,
                 sharedState->getGraphNodeMaskMap());
-            GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, sharedState->graph.get(), vc);
+            GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE,
+                sharedState->graph.get(), vc);
             numNodesComputed += numActiveNodes.load();
             if (numActiveNodes.load() == 0) {
                 break;

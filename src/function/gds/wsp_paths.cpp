@@ -115,8 +115,8 @@ private:
         auto graph = sharedState->graph.get();
         auto curDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto nextDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
-        auto frontierPair =
-            std::make_unique<DenseSparseDynamicFrontierPair>(std::move(curDenseFrontier), std::move(nextDenseFrontier));
+        auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(
+            std::move(curDenseFrontier), std::move(nextDenseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
             sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
             clientContext->getMemoryManager());

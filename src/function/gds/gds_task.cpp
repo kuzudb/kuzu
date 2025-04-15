@@ -114,6 +114,5 @@ void VertexComputeTask::runSparse() {
     localVc->vertexCompute(info.tableEntry->getTableID());
 }
 
-
 } // namespace function
 } // namespace kuzu

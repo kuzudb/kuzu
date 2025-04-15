@@ -154,7 +154,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier =
         DenseFrontier::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
-    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+    auto frontierPair =
+        std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     frontierPair->setActiveNodesForNextIter();
     auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
     auto offsetManager = OffsetManager(maxOffsetMap);

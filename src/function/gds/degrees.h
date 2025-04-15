@@ -81,7 +81,8 @@ struct DegreesUtils {
         common::NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees, ExtendDirection direction) {
         auto currentFrontier = DenseFrontier::getUnvisitedFrontier(context, graph);
         auto nextFrontier = DenseFrontier::getVisitedFrontier(context, graph, nodeOffsetMaskMap);
-        auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+        auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier),
+            std::move(nextFrontier));
         frontierPair->setActiveNodesForNextIter();
         auto ec = std::make_unique<DegreeEdgeCompute>(degrees);
         auto auxiliaryState = std::make_unique<DegreesGDSAuxiliaryState>(degrees);

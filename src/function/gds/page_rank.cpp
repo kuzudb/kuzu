@@ -282,7 +282,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto degrees = Degrees(maxOffsetMap, clientContext->getMemoryManager());
     DegreesUtils::computeDegree(input.context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
         ExtendDirection::FWD);
-    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+    auto frontierPair =
+        std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
     auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
     while (currentIter < config.maxIterations) {
