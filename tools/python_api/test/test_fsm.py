@@ -8,10 +8,10 @@ from test_helper import KUZU_ROOT
 def get_used_page_ranges(conn, table, column=None):
     used_pages = []
     if column is None:
-        storage_info = conn.execute(f'call storage_info("{table}") return start_page_idx, num_pages, column_name')
+        storage_info = conn.execute(f'call storage_info("{table}") return start_page_idx, num_pages')
     else:
         storage_info = conn.execute(
-            f'call storage_info("{table}") where prefix(column_name, "{column}") return start_page_idx, num_pages, column_name'
+            f'call storage_info("{table}") where prefix(column_name, "{column}") return start_page_idx, num_pages'
         )
     while storage_info.has_next():
         cur_tuple = storage_info.get_next()
@@ -127,8 +127,10 @@ def test_fsm_reclaim_rel_table(fsm_rel_table_setup) -> None:
 
 def test_fsm_reclaim_struct(fsm_rel_table_setup) -> None:
     _, conn = fsm_rel_table_setup
-    used_pages = get_used_page_ranges(conn, "knows", "summary")
-    conn.execute("drop table knows")
+    used_pages = get_used_page_ranges(conn, "knows", "fwd_summary") + get_used_page_ranges(
+        conn, "knows", "bwd_summary"
+    )
+    conn.execute("alter table knows drop summary")
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
