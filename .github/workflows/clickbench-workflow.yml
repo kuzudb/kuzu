@@ -10,7 +10,7 @@ jobs:
   click_benchmark:
     name: click benchmark
     env:
-      NUM_THREADS: 30
+      NUM_THREADS: 128
       GEN: Ninja
     runs-on: kuzu-self-hosted-benchmarking-xl
     steps:
@@ -23,7 +23,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          python3 benchmark/benchmark_runner.py --dataset click --thread 10
+          python3 benchmark/benchmark_runner.py --dataset click --thread 100
           echo $? > benchmark/exit_code
       
       - name: Upload benchmark logs
