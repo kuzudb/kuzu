@@ -18,6 +18,19 @@ using namespace kuzu::duckdb_extension;
 namespace kuzu {
 namespace postgres_extension {
 
+// SQL based database uses single quote `'` as the escape character. We have to manually escape
+// all `'`.
+static std::string escapeSpecialChars(const std::string& pgQuery) {
+    std::string pgQueryWithEscapeChars = "";
+    for (auto& i : pgQuery) {
+        if (i == '\'') {
+            pgQueryWithEscapeChars += "'";
+        }
+        pgQueryWithEscapeChars += i;
+    }
+    return pgQueryWithEscapeChars;
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
     auto dbName = input->getLiteralVal<std::string>(0);
@@ -30,7 +43,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
         "select {} " +
         common::stringFormat("from postgres_query({}, '{}')",
             attachedDB->constCast<AttachedPostgresDatabase>().getAttachedCatalogNameInDuckDB(),
-            query);
+            escapeSpecialChars(query));
     // Query to sniff the column names and types.
     auto queryToExecuteInDuckDB = common::stringFormat(queryTemplate, "*") + " limit 1";
     auto& attachedPostgresDB = attachedDB->constCast<AttachedPostgresDatabase>();

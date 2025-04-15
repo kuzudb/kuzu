@@ -104,3 +104,43 @@ Attached database successfully.
 -STATEMENT CALL SQL_QUERY('sqlitets', "SELECT * FROM PERSON") RETURN *
 ---- error
 Binder exception: sql queries can only be executed in attached postgres.
+
+-CASE SqlQueryInPGWithQuote
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres/build/libpostgres.kuzu_extension"
+---- ok
+-STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' as tinysnb (dbtype POSTGRES);
+---- ok
+-STATEMENT CALL SQL_QUERY('tinysnb', "select * from person where fName = 'Alice'") RETURN fname
+---- 1
+Alice
+-STATEMENT CALL SQL_QUERY('tinysnb', "select regexp_match(fname, '\\w') from person") RETURN *
+---- 8
+[A]
+[B]
+[C]
+[D]
+[E]
+[F]
+[G]
+[H]
+-STATEMENT CALL SQL_QUERY('tinysnb', 'select regexp_match(fname, \'\\w\') from person') RETURN *
+---- 8
+[A]
+[B]
+[C]
+[D]
+[E]
+[F]
+[G]
+[H]
+-STATEMENT CALL SQL_QUERY('tinysnb', 'select regexp_match(fname, \'Alice\') from person') RETURN *
+---- 8
+[Alice]
+
+
+
+
+
+
+
+
