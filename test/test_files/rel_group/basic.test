@@ -56,6 +56,12 @@ Binder exception: Table knows does not exist.
 -STATEMENT MATCH (a:personA)-[e:knows_personA_personB]->(b) RETURN COUNT(*)
 ---- error
 Binder exception: Table knows_personA_personB does not exist.
+-STATEMENT CHECKPOINT
+---- ok
+-STATEMENT CALL FSM_INFO() RETURN SUM(num_pages) > 0
+---- 1
+True
+
 
 -CASE Alter
 -STATEMENT ALTER TABLE likes RENAME TO hates;
@@ -146,6 +152,18 @@ test|personB|5|Dan
 -STATEMENT CALL table_info('test') RETURN *;
 ---- 1
 1|date|DATE|NULL|both
+
+-CASE DropCheckpointedColumn
+-STATEMENT ALTER TABLE likes DROP date
+---- ok
+-STATEMENT MATCH (a:personA)-[e:likes]->(b:personB) WHERE a.ID = 0 RETURN e.date
+---- error
+Binder exception: Cannot find property date for e.
+-STATEMENT CHECKPOINT
+---- ok
+-STATEMENT CALL FSM_INFO() RETURN SUM(num_pages) > 0
+---- 1
+True
 
 -CASE ImportRELGROUPfromOldVersion
 -STATEMENT create rel table group likes_import (FROM personA TO personB, FROM personB To personA, date DATE);
