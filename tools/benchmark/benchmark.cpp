@@ -51,7 +51,6 @@ void Benchmark::writeLogFile(std::ofstream& log, uint32_t runNum, const QuerySum
     for (auto& result : actualOutput) {
         log << result << '\n';
     }
-    log << std::flush;
     log << "Compiling time: " << querySummary.getCompilingTime() << '\n';
     log << "Execution time: " << querySummary.getExecutionTime() << "\n\n";
     log.flush();
