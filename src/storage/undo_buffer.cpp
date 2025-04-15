@@ -1,6 +1,7 @@
 #include "storage/undo_buffer.h"
 
 #include "catalog/catalog_entry/catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
@@ -263,10 +264,22 @@ void UndoBuffer::commitCatalogEntryDrop(CatalogEntry* catalogEntry) const {
     switch (catalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY: {
+        const auto& tableCatalogEntry = catalogEntry->constCast<TableCatalogEntry>();
         ctx->getStorageManager()
-            ->getTable(catalogEntry->constPtrCast<TableCatalogEntry>()->getTableID())
+            ->getTable(tableCatalogEntry.getTableID())
             ->commitDrop(*ctx->getStorageManager()->getDataFH());
         break;
+    }
+    case CatalogEntryType::REL_GROUP_ENTRY: {
+        // Renaming tables also drops (then creates) the catalog entry, we don't want to drop the
+        // storage table in that case
+        if (catalogEntry->getType() == CatalogEntryType::DUMMY_ENTRY) {
+            const auto& relGroupCatalogEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
+            for (auto tableID : relGroupCatalogEntry.getRelTableIDs()) {
+                ctx->getStorageManager()->getTable(tableID)->commitDrop(
+                    *ctx->getStorageManager()->getDataFH());
+            }
+        }
     }
     default:
         break;

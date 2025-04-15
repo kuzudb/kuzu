@@ -26,12 +26,15 @@ common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
 }
 
 bool FreeSpaceManager::entryCmp(const PageRange& a, const PageRange& b) {
+    KU_ASSERT(a.startPageIdx != b.startPageIdx);
     return a.numPages == b.numPages ? a.startPageIdx < b.startPageIdx : a.numPages < b.numPages;
 }
 
 void FreeSpaceManager::addFreePages(PageRange entry) {
     KU_ASSERT(entry.numPages > 0);
-    getFreeList(freeLists, getLevel(entry.numPages)).insert(entry);
+    const auto entryLevel = getLevel(entry.numPages);
+    KU_ASSERT(!getFreeList(freeLists, entryLevel).contains(entry));
+    getFreeList(freeLists, entryLevel).insert(entry);
     ++numEntries;
 }
 
