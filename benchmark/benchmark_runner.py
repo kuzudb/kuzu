@@ -160,8 +160,8 @@ class QueryBenchmark:
         for index, record in enumerate(self.status):
             curr_dict = {
                 'status': record,
-                'compiling_time': self.compiling_time[index] if record == 'pass' else None,
-                'execution_time': self.execution_time[index] if record == 'pass' else None,
+                'compiling_time': self.compiling_time[index],
+                'execution_time': self.execution_time[index],
                 'query_seq': int(index + 1)
             }
             result['records'].append(curr_dict)
