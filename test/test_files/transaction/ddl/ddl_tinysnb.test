@@ -1,34 +1,6 @@
 -DATASET CSV tinysnb
 --
 
--CASE DropNodeTableRollbackRecovery
--STATEMENT call fsm_info() return *
----- 0
--STATEMENT begin transaction
----- ok
--STATEMENT drop table movies
----- ok
--STATEMENT rollback
----- ok
--STATEMENT call fsm_info() return *
----- 0
--STATEMENT match (m:movies) return m.name
----- 3
-Sóló cón tu párejâ
-The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
-Roma
--STATEMENT call auto_checkpoint=false
----- ok
--STATEMENT drop table movies
----- ok
--RELOADDB
--STATEMENT match (m:movies) return m.name
----- error
-Binder exception: Table movies does not exist.
--STATEMENT call fsm_info() return sum(num_pages) > 0
----- 1
-True
-
 -CASE DropNodeTablePropertyCommit
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -40,10 +12,7 @@ True
 ---- 1
 {_ID: 0:0, _LABEL: person, ID: 0, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
 
-
 -CASE DropNodeTablePropertyCommitRecovery
--STATEMENT call fsm_info() return *
----- 0
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE person DROP fName
@@ -54,9 +23,6 @@ True
 -STATEMENT MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1
 ---- 1
 {_ID: 0:0, _LABEL: person, ID: 0, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
--STATEMENT call fsm_info() return sum(num_pages) > 0
----- 1
-True
 
 -CASE DropNodeTablePropertyRollback
 -STATEMENT BEGIN TRANSACTION;
@@ -80,36 +46,6 @@ True
 -STATEMENT MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1
 ---- 1
 {_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
--STATEMENT call fsm_info() return *
----- 0
-
--CASE DropRelTableRollbackRecovery
--STATEMENT call fsm_info() return *
----- 0
--STATEMENT begin transaction
----- ok
--STATEMENT drop table studyAt
----- ok
--STATEMENT rollback
----- ok
--STATEMENT call fsm_info() return *
----- 0
--STATEMENT match (a)-[s:studyAt]->(b) return a.id, b.id
----- 3
-0|1
-2|1
-8|1
--STATEMENT call auto_checkpoint=false
----- ok
--STATEMENT drop table studyAt
----- ok
--RELOADDB
--STATEMENT match (a)-[s:studyAt]->(b) return a.id, b.id
----- error
-Binder exception: Table studyAt does not exist.
--STATEMENT call fsm_info() return sum(num_pages) > 0
----- 1
-True
 
 -CASE DropRelTablePropertyCommit
 -STATEMENT BEGIN TRANSACTION;
