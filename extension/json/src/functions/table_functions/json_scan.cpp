@@ -841,7 +841,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 
     std::vector<ValueVector*> ret;
     for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
-        i < chunk.getNumValueVectors(); ++i) {
+         i < chunk.getNumValueVectors(); ++i) {
         ret.push_back(&chunk.getValueVectorMutable(i));
     }
     return ret;
