@@ -699,6 +699,7 @@ jobs:
           make test DEFAULT_REL_STORAGE_DIRECTION=BOTH
 
       - name: Test sparse frontier threshold at 2
+        shell: cmd
         env:
           SPARSE_FRONTIER_THRESHOLD: 2
         run: |
