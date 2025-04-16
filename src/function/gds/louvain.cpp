@@ -415,8 +415,14 @@ void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph*
 offset_t renumberCommunities(PhaseState& state) {
     unordered_map<offset_t, offset_t> map;
     offset_t nextCommId = 0;
+    offset_t nextUnassignedId = UNASSIGNED_COMM;
     for (auto i = 0u; i < state.pastComm.getSize(); ++i) {
         auto commId = state.pastComm.getRelaxed(i);
+        if (commId == UNASSIGNED_COMM) {
+            commId = nextUnassignedId;
+            state.pastComm.setRelaxed(i, nextUnassignedId);
+            nextUnassignedId--;
+        }
         if (!map.contains(commId)) {
             map.insert(make_pair(commId, nextCommId));
             nextCommId++;
