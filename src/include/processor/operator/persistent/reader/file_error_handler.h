@@ -15,7 +15,6 @@ class SerialCSVReader;
 
 struct LinesPerBlock {
     uint64_t validLines;
-    uint64_t invalidLines;
     bool doneParsingBlock;
 };
 
