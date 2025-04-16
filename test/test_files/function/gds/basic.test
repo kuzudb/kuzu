@@ -19,6 +19,7 @@ Alice|12
 Bob|12
 Carol|12
 Dan|12
+
 -STATEMENT CALL SHOW_PROJECTED_GRAPHS() RETURN *;
 ---- 2
 PKWO|{{'table': 'person'},{'table': 'organisation'}}|{{'table': 'knows'},{'table': 'workAt'}}
@@ -74,6 +75,7 @@ Dan|42
 Alice|Bob|1
 Alice|Carol|1
 Alice|Dan|1
+
 -STATEMENT MATCH (a:person)-[e:knows|:workAt* SHORTEST 1..2]->(b:person:organisation) WHERE a.ID = 0 RETURN a.fName, b.fName, b.name, length(e);
 ---- 5
 Alice|Bob||1

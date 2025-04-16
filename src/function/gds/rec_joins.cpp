@@ -1,11 +1,5 @@
 #include "function/gds/rec_joins.h"
 
-#include "function/gds/gds_utils.h"
-#include "processor/execution_context.h"
-
-using namespace kuzu::binder;
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 
@@ -32,19 +26,9 @@ PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
     info.semantic = semantic;
     info.lowerBound = lowerBound;
     info.flipPath = flipPath;
-    info.writeEdgeDirection = writePath && extendDirection == ExtendDirection::BOTH;
+    info.writeEdgeDirection = writePath && extendDirection == common::ExtendDirection::BOTH;
     info.writePath = writePath;
     return info;
-}
-
-std::unique_ptr<BFSGraph> RJAlgorithm::getBFSGraph(processor::ExecutionContext* context,
-    graph::Graph* graph) {
-    auto tx = context->clientContext->getTransaction();
-    auto mm = context->clientContext->getMemoryManager();
-    auto bfsGraph = std::make_unique<BFSGraph>(graph->getMaxOffsetMap(tx), mm);
-    auto vc = std::make_unique<BFSGraphInitVertexCompute>(*bfsGraph);
-    GDSUtils::runVertexCompute(context, graph, *vc);
-    return bfsGraph;
 }
 
 } // namespace function

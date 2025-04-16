@@ -8,33 +8,46 @@ namespace function {
 
 class PathAuxiliaryState : public GDSAuxiliaryState {
 public:
-    explicit PathAuxiliaryState(std::unique_ptr<BFSGraph> bfsGraph)
-        : bfsGraph{std::move(bfsGraph)} {}
+    explicit PathAuxiliaryState(std::unique_ptr<BFSGraphManager> bfsGraphManager)
+        : bfsGraphManager{std::move(bfsGraphManager)} {}
+
+    BFSGraphManager* getBFSGraphManager() { return bfsGraphManager.get(); }
 
     void beginFrontierCompute(common::table_id_t, common::table_id_t toTableID) override {
-        bfsGraph->pinTableID(toTableID);
+        bfsGraphManager->getCurrentGraph()->pinTableID(toTableID);
+    }
+
+    void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) override {
+        bfsGraphManager->switchToDense(context, graph);
     }
 
 private:
-    std::unique_ptr<BFSGraph> bfsGraph;
+    std::unique_ptr<BFSGraphManager> bfsGraphManager;
 };
 
-struct WSPPathsAuxiliaryState : public GDSAuxiliaryState {
+class WSPPathsAuxiliaryState : public GDSAuxiliaryState {
 public:
-    explicit WSPPathsAuxiliaryState(std::unique_ptr<BFSGraph> bfsGraph)
-        : bfsGraph{std::move(bfsGraph)} {}
+    explicit WSPPathsAuxiliaryState(std::unique_ptr<BFSGraphManager> bfsGraphManager)
+        : bfsGraphManager{std::move(bfsGraphManager)} {}
+
+    BFSGraphManager* getBFSGraphManager() { return bfsGraphManager.get(); }
 
     void initSource(common::nodeID_t sourceNodeID) override {
         sourceParent.setCost(0);
-        bfsGraph->setParentList(sourceNodeID, &sourceParent);
+        bfsGraphManager->getCurrentGraph()->pinTableID(sourceNodeID.tableID);
+        bfsGraphManager->getCurrentGraph()->setParentList(sourceNodeID.offset, &sourceParent);
     }
 
     void beginFrontierCompute(common::table_id_t, common::table_id_t toTableID) override {
-        bfsGraph->pinTableID(toTableID);
+        bfsGraphManager->getCurrentGraph()->pinTableID(toTableID);
+    }
+
+    void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) override {
+        bfsGraphManager->switchToDense(context, graph);
     }
 
 private:
-    std::unique_ptr<BFSGraph> bfsGraph;
+    std::unique_ptr<BFSGraphManager> bfsGraphManager;
     ParentList sourceParent;
 };
 

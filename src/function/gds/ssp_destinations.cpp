@@ -6,27 +6,42 @@
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::processor;
+using namespace kuzu::graph;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace function {
 
 class SSPDestinationsOutputWriter : public RJOutputWriter {
 public:
-    SSPDestinationsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
-        nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
-        : RJOutputWriter{context, outputNodeMask, sourceNodeID},
-          pathLengths{std::move(pathLengths)} {
+    SSPDestinationsOutputWriter(ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+        nodeID_t sourceNodeID, Frontier* frontier)
+        : RJOutputWriter{context, outputNodeMask, sourceNodeID}, frontier{frontier} {
         lengthVector = createVector(LogicalType::UINT16());
     }
 
-    void beginWritingOutputsInternal(common::table_id_t tableID) override {
-        pathLengths->pinCurFrontierTableID(tableID);
+    void beginWritingInternal(table_id_t tableID) override { frontier->pinTableID(tableID); }
+
+    void write(FactorizedTable& fTable, table_id_t tableID, LimitCounter* counter) override {
+        auto& sparseFrontier = frontier->cast<SparseFrontier>();
+        for (auto [offset, _] : sparseFrontier.getCurrentData()) {
+            write(fTable, {offset, tableID}, counter);
+        }
     }
 
     void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
-        auto length = pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
+        if (!inOutputNodeMask(dstNodeID.offset)) { // Skip dst if it not is in scope.
+            return;
+        }
+        if (sourceNodeID_ == dstNodeID) { // Skip writing source node.
+            return;
+        }
+        auto iter = frontier->getIteration(dstNodeID.offset);
+        if (iter == FRONTIER_UNVISITED) { // Skip if dst is not visited.
+            return;
+        }
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
-        lengthVector->setValue<uint16_t>(0, length);
+        lengthVector->setValue<uint16_t>(0, iter);
         fTable.append(vectors);
         if (counter != nullptr) {
             counter->increase(1);
@@ -34,32 +49,25 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SSPDestinationsOutputWriter>(context, outputNodeMask, sourceNodeID,
-            pathLengths);
+        return std::make_unique<SSPDestinationsOutputWriter>(context, outputNodeMask, sourceNodeID_,
+            frontier);
     }
 
 private:
-    bool skipInternal(nodeID_t dstNodeID) const override {
-        return dstNodeID == sourceNodeID ||
-               pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) == PathLengths::UNVISITED;
-    }
-
-private:
+    Frontier* frontier;
     std::unique_ptr<ValueVector> lengthVector;
-    std::shared_ptr<PathLengths> pathLengths;
 };
 
 class SSPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
-    explicit SSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
+    explicit SSPDestinationsEdgeCompute(SPFrontierPair* frontierPair)
         : SPEdgeCompute{frontierPair} {};
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t, graph::NbrScanState::Chunk& resultChunk,
-        bool) override {
+    std::vector<nodeID_t> edgeCompute(nodeID_t, NbrScanState::Chunk& resultChunk, bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
-            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNode.offset) ==
-                PathLengths::UNVISITED) {
+            auto iter = frontierPair->getNextFrontierValue(nbrNode.offset);
+            if (iter == FRONTIER_UNVISITED) {
                 activeNodes.push_back(nbrNode);
             }
         });
@@ -71,12 +79,8 @@ public:
     }
 };
 
-/**
- * Algorithm for parallel single shortest path computation, i.e., assumes Distinct semantics, so
- * one arbitrary shortest path is returned for each destination. If paths are not returned,
- * multiplicities of each destination is ignored (e.g., if there are 3 paths to a destination d,
- * d is returned only once).
- */
+// Single shortest path algorithm. Only destinations are tracked (reachability query).
+// If there are multiple path to a destination. Only one of the path is tracked.
 class SingleSPDestinationsAlgorithm : public RJAlgorithm {
 public:
     std::string getFunctionName() const override { return SingleSPDestinationsFunction::name; }
@@ -94,18 +98,23 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID, const RJBindData&,
+    std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context, const RJBindData&,
         RecursiveExtendSharedState* sharedState) override {
-        auto clientContext = context->clientContext;
-        auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto outputWriter = std::make_unique<SSPDestinationsOutputWriter>(clientContext,
-            sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto graph = sharedState->graph.get();
+        auto denseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
+        auto frontierPair = std::make_unique<SPFrontierPair>(std::move(denseFrontier));
         auto edgeCompute = std::make_unique<SSPDestinationsEdgeCompute>(frontierPair.get());
         auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
-        auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-            std::move(edgeCompute), std::move(auxiliaryState));
-        return RJCompState(std::move(gdsState), std::move(outputWriter));
+        return std::make_unique<GDSComputeState>(std::move(frontierPair), std::move(edgeCompute),
+            std::move(auxiliaryState));
+    }
+
+    std::unique_ptr<RJOutputWriter> getOutputWriter(ExecutionContext* context, const RJBindData&,
+        GDSComputeState& computeState, nodeID_t sourceNodeID,
+        RecursiveExtendSharedState* sharedState) override {
+        auto frontier = computeState.frontierPair->ptrCast<SPFrontierPair>()->getFrontier();
+        return std::make_unique<SSPDestinationsOutputWriter>(context->clientContext,
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier);
     }
 };
 

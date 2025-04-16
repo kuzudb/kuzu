@@ -268,7 +268,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     graph::OnDiskGraph graph(context.clientContext, std::move(entry));
     auto sharedState = LenComputeSharedState{};
     LenCompute lenCompute{&sharedState};
-    GDSUtils::runVertexCompute(&context, &graph, lenCompute,
+    GDSUtils::runVertexCompute(&context, GDSDensityState::DENSE, &graph, lenCompute,
         std::vector<std::string>{InternalCreateFTSFunction::DOC_LEN_PROP_NAME});
     auto numDocs = sharedState.numDocs.load();
     auto avgDocLen = numDocs == 0 ? 0 : static_cast<double>(sharedState.totalLen.load()) / numDocs;

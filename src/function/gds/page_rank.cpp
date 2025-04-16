@@ -19,16 +19,16 @@ namespace kuzu {
 namespace function {
 
 struct PageRankOptionalParams {
-    std::shared_ptr<binder::Expression> dampingFactor;
-    std::shared_ptr<binder::Expression> maxIteration;
-    std::shared_ptr<binder::Expression> tolerance;
+    std::shared_ptr<Expression> dampingFactor;
+    std::shared_ptr<Expression> maxIteration;
+    std::shared_ptr<Expression> tolerance;
 
-    explicit PageRankOptionalParams(const binder::expression_vector& optionalParams);
+    explicit PageRankOptionalParams(const expression_vector& optionalParams);
 
     PageRankConfig getConfig() const;
 };
 
-PageRankOptionalParams::PageRankOptionalParams(const binder::expression_vector& optionalParams) {
+PageRankOptionalParams::PageRankOptionalParams(const expression_vector& optionalParams) {
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == DampingFactor::NAME) {
@@ -64,8 +64,8 @@ PageRankConfig PageRankOptionalParams::getConfig() const {
 struct PageRankBindData final : public GDSBindData {
     PageRankOptionalParams optionalParams;
 
-    PageRankBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> nodeOutput, PageRankOptionalParams optionalParams)
+    PageRankBindData(expression_vector columns, graph::GraphEntry graphEntry,
+        std::shared_ptr<Expression> nodeOutput, PageRankOptionalParams optionalParams)
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput)},
           optionalParams{std::move(optionalParams)} {}
     PageRankBindData(const PageRankBindData& other)
@@ -111,7 +111,7 @@ public:
 
 private:
     std::atomic<double>* values = nullptr;
-    ObjectArraysMap<std::atomic<double>> valueMap;
+    GDSDenseObjectManager<std::atomic<double>> valueMap;
 };
 
 class PageRankAuxiliaryState : public GDSAuxiliaryState {
@@ -124,6 +124,8 @@ public:
         pCurrent.pinTable(toTableID);
         pNext.pinTable(fromTableID);
     }
+
+    void switchToDense(ExecutionContext*, Graph*) override {}
 
 private:
     Degrees& degrees;
@@ -274,33 +276,33 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto config = pageRankBindData->getConfig();
     auto currentIter = 1u;
     auto currentFrontier =
-        PathLengths::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
+        DenseFrontier::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
     auto nextFrontier =
-        PathLengths::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
+        DenseFrontier::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
     auto degrees = Degrees(maxOffsetMap, clientContext->getMemoryManager());
     DegreesUtils::computeDegree(input.context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
         ExtendDirection::FWD);
     auto frontierPair =
-        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+        std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
     auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
     while (currentIter < config.maxIterations) {
-        computeState.frontierPair->initState();
-        computeState.frontierPair->initGDS();
+        computeState.frontierPair->resetCurrentIter();
+        computeState.frontierPair->setActiveNodesForNextIter();
         computeState.edgeCompute =
             std::make_unique<PNextUpdateEdgeCompute>(degrees, *pCurrent, *pNext);
         computeState.auxiliaryState =
             std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
-        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
-            ExtendDirection::BWD, 1);
+        GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::BWD,
+            1);
         auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant,
             *pNext, sharedState->getGraphNodeMaskMap());
-        GDSUtils::runVertexCompute(input.context, graph, pNextUpdateVC);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pNextUpdateVC);
         std::atomic<double> diff;
         diff.store(0);
         auto pDiffVC =
             PDiffVertexCompute(diff, *pCurrent, *pNext, sharedState->getGraphNodeMaskMap());
-        GDSUtils::runVertexCompute(input.context, graph, pDiffVC);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pDiffVC);
         std::swap(pCurrent, pNext);
         if (diff.load() < config.tolerance) { // Converged.
             break;
@@ -309,7 +311,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     }
     auto outputVC = std::make_unique<PageRankResultVertexCompute>(clientContext->getMemoryManager(),
         sharedState, *pCurrent);
-    GDSUtils::runVertexCompute(input.context, graph, *outputVC);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *outputVC);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }

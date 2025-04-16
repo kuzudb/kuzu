@@ -4,6 +4,14 @@
 #include "common/types/types.h"
 
 namespace kuzu {
+namespace graph {
+class Graph;
+}
+
+namespace processor {
+struct ExecutionContext;
+}
+
 namespace function {
 
 // Maintain algorithm specific data structures
@@ -19,6 +27,8 @@ public:
     virtual void beginFrontierCompute(common::table_id_t fromTableID,
         common::table_id_t toTableID) = 0;
 
+    virtual void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) = 0;
+
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
@@ -30,6 +40,8 @@ public:
     EmptyGDSAuxiliaryState() = default;
 
     void beginFrontierCompute(common::table_id_t, common::table_id_t) override {}
+
+    void switchToDense(processor::ExecutionContext*, graph::Graph*) override {}
 };
 
 } // namespace function

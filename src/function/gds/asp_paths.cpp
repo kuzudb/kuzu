@@ -13,31 +13,30 @@ namespace function {
 
 class ASPPathsEdgeCompute : public SPEdgeCompute {
 public:
-    ASPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair, BFSGraph* bfsGraph)
-        : SPEdgeCompute{frontiersPair}, bfsGraph{bfsGraph} {
-        block = bfsGraph->addNewBlock();
+    ASPPathsEdgeCompute(SPFrontierPair* frontiersPair, BFSGraphManager* bfsGraphManager)
+        : SPEdgeCompute{frontiersPair}, bfsGraphManager{bfsGraphManager} {
+        block = bfsGraphManager->getCurrentGraph()->addNewBlock();
     }
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& resultChunk,
         bool fwdEdge) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
-            auto nbrLen =
-                frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset);
+            auto iter = frontierPair->getNextFrontierValue(nbrNodeID.offset);
             // We should update in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
             // iteration, so it's value is curIter + 1.
             auto shouldUpdate =
-                nbrLen == PathLengths::UNVISITED || nbrLen == frontierPair->getCurrentIter();
+                iter == FRONTIER_UNVISITED || iter == frontierPair->getCurrentIter();
             if (shouldUpdate) {
                 if (!block->hasSpace()) {
-                    block = bfsGraph->addNewBlock();
+                    block = bfsGraphManager->getCurrentGraph()->addNewBlock();
                 }
-                bfsGraph->addParent(frontierPair->getCurrentIter(), boundNodeID, edgeID, nbrNodeID,
-                    fwdEdge, block);
+                bfsGraphManager->getCurrentGraph()->addParent(frontierPair->getCurrentIter(),
+                    boundNodeID, edgeID, nbrNodeID, fwdEdge, block);
             }
-            if (nbrLen == PathLengths::UNVISITED) {
+            if (iter == FRONTIER_UNVISITED) {
                 activeNodes.push_back(nbrNodeID);
             }
         });
@@ -45,14 +44,15 @@ public:
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<ASPPathsEdgeCompute>(frontierPair, bfsGraph);
+        return std::make_unique<ASPPathsEdgeCompute>(frontierPair, bfsGraphManager);
     }
 
 private:
-    BFSGraph* bfsGraph;
+    BFSGraphManager* bfsGraphManager;
     ObjectBlock<ParentList>* block = nullptr;
 };
 
+// All shortest path algorithm. Paths are tracked.
 class AllSPPathsAlgorithm final : public RJAlgorithm {
 public:
     std::string getFunctionName() const override { return AllSPPathsFunction::name; }
@@ -75,22 +75,32 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
-        const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
+    std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context, const RJBindData&,
+        RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
-        auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto bfsGraph = getBFSGraph(context, sharedState->graph.get());
-        auto writerInfo = bindData.getPathWriterInfo();
-        writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
-        auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext,
-            sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto denseFrontier =
+            DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
+        auto frontierPair = std::make_unique<SPFrontierPair>(std::move(denseFrontier));
+        auto bfsGraph = std::make_unique<BFSGraphManager>(
+            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
+            clientContext->getMemoryManager());
         auto edgeCompute =
             std::make_unique<ASPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));
-        auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-            std::move(edgeCompute), std::move(auxiliaryState));
-        return RJCompState(std::move(gdsState), std::move(outputWriter));
+        return std::make_unique<GDSComputeState>(std::move(frontierPair), std::move(edgeCompute),
+            std::move(auxiliaryState));
+    }
+
+    std::unique_ptr<RJOutputWriter> getOutputWriter(ExecutionContext* context,
+        const RJBindData& bindData, GDSComputeState& computeState, nodeID_t sourceNodeID,
+        RecursiveExtendSharedState* sharedState) override {
+        auto bfsGraph = computeState.auxiliaryState->ptrCast<PathAuxiliaryState>()
+                            ->getBFSGraphManager()
+                            ->getCurrentGraph();
+        auto writerInfo = bindData.getPathWriterInfo();
+        writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
+        return std::make_unique<SPPathsOutputWriter>(context->clientContext,
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
     }
 };
 

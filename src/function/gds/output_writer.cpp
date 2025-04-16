@@ -1,6 +1,7 @@
 #include "common/exception/interrupt.h"
 #include "function/gds/rj_output_writer.h"
 #include "main/client_context.h"
+#include <function/gds/gds_frontier.h>
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -8,29 +9,29 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-RJOutputWriter::RJOutputWriter(main::ClientContext* context,
-    common::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID)
-    : context{context}, outputNodeMask{outputNodeMask}, sourceNodeID{sourceNodeID} {
+RJOutputWriter::RJOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+    nodeID_t sourceNodeID)
+    : context{context}, outputNodeMask{outputNodeMask}, sourceNodeID_{sourceNodeID} {
     srcNodeIDVector = createVector(LogicalType::INTERNAL_ID());
     dstNodeIDVector = createVector(LogicalType::INTERNAL_ID());
     srcNodeIDVector->setValue<nodeID_t>(0, sourceNodeID);
 }
 
-void RJOutputWriter::beginWritingOutputs(table_id_t tableID) {
+void RJOutputWriter::pinOutputNodeMask(table_id_t tableID) {
     if (outputNodeMask != nullptr) {
         outputNodeMask->pin(tableID);
     }
-    beginWritingOutputsInternal(tableID);
 }
 
-bool RJOutputWriter::skip(nodeID_t dstNodeID) const {
-    if (outputNodeMask != nullptr && outputNodeMask->hasPinnedMask()) {
-        auto mask = outputNodeMask->getPinnedMask();
-        if (mask->isEnabled() && !mask->isMasked(dstNodeID.offset)) {
-            return true;
-        }
+bool RJOutputWriter::inOutputNodeMask(common::offset_t offset) {
+    if (outputNodeMask == nullptr) { // No mask
+        return true;
     }
-    return skipInternal(dstNodeID);
+    auto mask = outputNodeMask->getPinnedMask();
+    if (!mask->isEnabled()) { // No mask
+        return true;
+    }
+    return mask->isMasked(offset);
 }
 
 std::unique_ptr<ValueVector> RJOutputWriter::createVector(const LogicalType& type) {
@@ -41,8 +42,8 @@ std::unique_ptr<ValueVector> RJOutputWriter::createVector(const LogicalType& typ
 }
 
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context,
-    common::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID, PathsOutputWriterInfo info,
-    BFSGraph& bfsGraph)
+    NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID, PathsOutputWriterInfo info,
+    BaseBFSGraph& bfsGraph)
     : RJOutputWriter{context, outputNodeMask, sourceNodeID}, info{info}, bfsGraph{bfsGraph} {
     lengthVector = createVector(LogicalType::UINT16());
     if (info.writeEdgeDirection) {
@@ -65,26 +66,22 @@ static ParentList* getTop(const std::vector<ParentList*>& path) {
     return path[path.size() - 1];
 }
 
-void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
-    LimitCounter* counter) {
+void PathsOutputWriter::write(FactorizedTable& fTable, table_id_t tableID, LimitCounter* counter) {
+    auto& sparseGraph = bfsGraph.cast<SparseBFSGraph>();
+    for (auto& [offset, _] : sparseGraph.getCurrentData()) {
+        write(fTable, {offset, tableID}, counter);
+    }
+    if (info.lowerBound == 0 && sourceNodeID_.tableID == tableID) {
+        write(fTable, sourceNodeID_, counter);
+    }
+}
+
+void PathsOutputWriter::write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) {
+    if (!inOutputNodeMask(dstNodeID.offset)) {
+        return;
+    }
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
-    auto firstParent = findFirstParent(dstNodeID.offset);
-    if (firstParent == nullptr) {
-        if (sourceNodeID == dstNodeID && info.lowerBound == 0) {
-            // We still output a path from src to src if required path length is 0.
-            // This case should only run for variable length joins.
-            writePath({});
-            fTable.append(vectors);
-            // No need to check against limit number since this is the first output.
-            updateCounterAndTerminate(counter);
-        }
-        return;
-    }
-    if (!info.hasNodeMask() && info.semantic == PathSemantic::WALK) {
-        dfsFast(firstParent, fTable, counter);
-        return;
-    }
-    dfsSlow(firstParent, fTable, counter);
+    writeInternal(fTable, dstNodeID, counter);
 }
 
 void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable,
@@ -125,8 +122,8 @@ void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable
     }
 }
 
-void PathsOutputWriter::dfsSlow(kuzu::function::ParentList* firstParent,
-    processor::FactorizedTable& fTable, LimitCounter* counter) {
+void PathsOutputWriter::dfsSlow(ParentList* firstParent, FactorizedTable& fTable,
+    LimitCounter* counter) {
     std::vector<ParentList*> curPath;
     curPath.push_back(firstParent);
     auto backtracking = false;
@@ -376,6 +373,23 @@ void PathsOutputWriter::addEdge(relID_t edgeID, bool fwdEdge, sel_t pos) const {
 
 void PathsOutputWriter::addNode(nodeID_t nodeID, sel_t pos) const {
     ListVector::getDataVector(pathNodeIDsVector.get())->setValue(pos, nodeID);
+}
+
+void SPPathsOutputWriter::writeInternal(FactorizedTable& fTable, nodeID_t dstNodeID,
+    LimitCounter* counter) {
+    auto firstParent = findFirstParent(dstNodeID.offset);
+    if (firstParent == nullptr) {
+        return;
+    }
+    if (dstNodeID == sourceNodeID_) { // Avoid writing source
+        KU_ASSERT(firstParent->getIter() == FRONTIER_INITIAL_VISITED);
+        return;
+    }
+    if (!info.hasNodeMask() && info.semantic == PathSemantic::WALK) {
+        dfsFast(firstParent, fTable, counter);
+        return;
+    }
+    dfsSlow(firstParent, fTable, counter);
 }
 
 } // namespace function

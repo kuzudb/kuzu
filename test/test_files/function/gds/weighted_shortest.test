@@ -29,6 +29,7 @@ F|160.000000|[A,B,D,E,F]|[50,40,30,40]
         RETURN a.ID, b.ID, e_weight
 ---- error
 Binder exception: INT128 weight type is not supported for weighted shortest path.
+
 -LOG WSP-INT64
 -STATEMENT MATCH p = (a)-[e* WSHORTEST(cost1) ]->(b)
         RETURN a.ID, b.ID, e_weight

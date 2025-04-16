@@ -3,6 +3,7 @@
 #include "bfs_graph.h"
 #include "common/counter.h"
 #include "common/enums/path_semantic.h"
+#include "common/mask.h"
 #include "common/types/types.h"
 #include "processor/result/factorized_table.h"
 
@@ -15,24 +16,30 @@ public:
         common::nodeID_t sourceNodeID);
     virtual ~RJOutputWriter() = default;
 
-    void beginWritingOutputs(common::table_id_t tableID);
-
-    bool skip(common::nodeID_t dstNodeID) const;
-
+    void beginWriting(common::table_id_t tableID) {
+        pinOutputNodeMask(tableID);
+        beginWritingInternal(tableID);
+    }
+    virtual void beginWritingInternal(common::table_id_t tableID) = 0;
+    // Write
+    virtual void write(processor::FactorizedTable& fTable, common::table_id_t tableID,
+        common::LimitCounter* counter) = 0;
     virtual void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         common::LimitCounter* counter) = 0;
+
+    bool inOutputNodeMask(common::offset_t offset);
 
     virtual std::unique_ptr<RJOutputWriter> copy() = 0;
 
 protected:
-    virtual void beginWritingOutputsInternal(common::table_id_t tableID) = 0;
-    virtual bool skipInternal(common::nodeID_t dstNodeID) const = 0;
     std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type);
+
+    void pinOutputNodeMask(common::table_id_t tableID);
 
 protected:
     main::ClientContext* context;
     common::NodeOffsetMaskMap* outputNodeMask;
-    common::nodeID_t sourceNodeID;
+    common::nodeID_t sourceNodeID_;
 
     std::vector<common::ValueVector*> vectors;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
@@ -57,19 +64,22 @@ struct PathsOutputWriterInfo {
 class PathsOutputWriter : public RJOutputWriter {
 public:
     PathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
-        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph);
+        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BaseBFSGraph& bfsGraph);
 
-    void beginWritingOutputsInternal(common::table_id_t tableID) override {
-        bfsGraph.pinTableID(tableID);
-    }
+    void beginWritingInternal(common::table_id_t tableID) override { bfsGraph.pinTableID(tableID); }
 
+    void write(processor::FactorizedTable& fTable, common::table_id_t tableID,
+        common::LimitCounter* counter) override;
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         common::LimitCounter* counter) override;
 
 protected:
+    virtual void writeInternal(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+        common::LimitCounter* counter) = 0;
     // Fast path when there is no node predicate or semantic check
     void dfsFast(ParentList* firstParent, processor::FactorizedTable& fTable,
         common::LimitCounter* counter);
+    // Slow path to check node predicate or semantic.
     void dfsSlow(ParentList* firstParent, processor::FactorizedTable& fTable,
         common::LimitCounter* counter);
 
@@ -98,7 +108,7 @@ protected:
 
 protected:
     PathsOutputWriterInfo info;
-    BFSGraph& bfsGraph;
+    BaseBFSGraph& bfsGraph;
 
     std::unique_ptr<common::ValueVector> directionVector = nullptr;
     std::unique_ptr<common::ValueVector> lengthVector = nullptr;
@@ -109,19 +119,15 @@ protected:
 class SPPathsOutputWriter : public PathsOutputWriter {
 public:
     SPPathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
-        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
+        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BaseBFSGraph& bfsGraph)
         : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {}
 
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SPPathsOutputWriter>(context, outputNodeMask, sourceNodeID, info,
-            bfsGraph);
-    }
+    void writeInternal(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+        common::LimitCounter* counter) override;
 
-protected:
-    bool skipInternal(common::nodeID_t dstNodeID) const override {
-        // For single/all shortest path computations, we do not output any results from source to
-        // source. We also do not output any results if a destination node has not been reached.
-        return dstNodeID == sourceNodeID || nullptr == bfsGraph.getParentListHead(dstNodeID.offset);
+    std::unique_ptr<RJOutputWriter> copy() override {
+        return std::make_unique<SPPathsOutputWriter>(context, outputNodeMask, sourceNodeID_, info,
+            bfsGraph);
     }
 };
 

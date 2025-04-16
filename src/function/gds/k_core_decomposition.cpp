@@ -45,7 +45,7 @@ private:
 
 private:
     std::atomic<degree_t>* coreValues = nullptr;
-    ObjectArraysMap<std::atomic<degree_t>> coreValuesMap;
+    GDSDenseObjectManager<std::atomic<degree_t>> coreValuesMap;
 };
 
 class KCoreAuxiliaryState : public GDSAuxiliaryState {
@@ -57,6 +57,8 @@ public:
         degrees.pinTable(toTableID);
         coreValues.pinTable(toTableID);
     }
+
+    void switchToDense(ExecutionContext*, Graph*) override {}
 
 private:
     Degrees& degrees;
@@ -137,7 +139,7 @@ public:
             }
             auto degree = degrees.getValue(i);
             if (degree <= coreValue) {
-                frontierPair->addNodeToNextDenseFrontier(nodeID_t{i, tableID});
+                frontierPair->addNodeToNextFrontier(nodeID_t{i, tableID});
                 coreValues.setCoreValue(i, coreValue);
                 numActiveNodes.fetch_add(1, std::memory_order_relaxed);
             }
@@ -169,10 +171,11 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto coreValues = CoreValues(graph->getMaxOffsetMap(transaction), mm);
     auto auxiliaryState = std::make_unique<KCoreAuxiliaryState>(degrees, coreValues);
     auto currentFrontier =
-        PathLengths::getUnvisitedFrontier(input.context, sharedState->graph.get());
-    auto nextFrontier = PathLengths::getUnvisitedFrontier(input.context, sharedState->graph.get());
+        DenseFrontier::getUnvisitedFrontier(input.context, sharedState->graph.get());
+    auto nextFrontier =
+        DenseFrontier::getUnvisitedFrontier(input.context, sharedState->graph.get());
     auto frontierPair =
-        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+        std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     // Compute Core values
     auto removeVertexEdgeCompute = std::make_unique<RemoveVertexEdgeCompute>(degrees);
     auto computeState = GDSComputeState(std::move(frontierPair), std::move(removeVertexEdgeCompute),
@@ -189,14 +192,15 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             auto vc = DegreeLessThanCoreVertexCompute(degrees, coreValues,
                 computeState.frontierPair.get(), coreValue, numActiveNodes,
                 sharedState->getGraphNodeMaskMap());
-            GDSUtils::runVertexCompute(input.context, sharedState->graph.get(), vc);
+            GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE,
+                sharedState->graph.get(), vc);
             numNodesComputed += numActiveNodes.load();
             if (numActiveNodes.load() == 0) {
                 break;
             }
             // Remove found nodes by decreasing their nbrs degree by one.
-            computeState.frontierPair->initGDS();
-            GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+            computeState.frontierPair->setActiveNodesForNextIter();
+            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
                 ExtendDirection::BOTH,
                 computeState.frontierPair->getCurrentIter() + 1 /* maxIters */);
             // Repeat until all remaining nodes has degree greater than current core.
@@ -206,7 +210,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     // Write output
     auto vertexCompute =
         KCoreResultVertexCompute(clientContext->getMemoryManager(), sharedState, coreValues);
-    GDSUtils::runVertexCompute(input.context, graph, vertexCompute);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }

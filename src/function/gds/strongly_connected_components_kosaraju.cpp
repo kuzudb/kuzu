@@ -24,8 +24,8 @@ static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max() - 2;
 class SCCState {
 public:
     SCCState(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
-        componentIDsMap.allocate(tableID, numNodes, mm);
-        componentIDs = componentIDsMap.getData(tableID);
+        denseObjects.allocate(tableID, numNodes, mm);
+        componentIDs = denseObjects.getData(tableID);
         for (auto i = 0u; i < numNodes; ++i) {
             componentIDs[i] = NOT_VISITED;
         }
@@ -49,7 +49,7 @@ public:
 
 private:
     offset_t* componentIDs = nullptr;
-    ObjectArraysMap<offset_t> componentIDsMap;
+    GDSDenseObjectManager<offset_t> denseObjects;
 };
 
 class SCCCompute {
@@ -168,7 +168,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     edgeCompute->compute(tableID, maxOffset);
 
     auto vertexCompute = make_unique<SCCVertexCompute>(mm, sharedState, sccState);
-    GDSUtils::runVertexCompute(input.context, graph, *vertexCompute);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
 
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
