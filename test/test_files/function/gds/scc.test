@@ -5,7 +5,7 @@
 -CASE SingleSCC
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
--STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, id INT64);
 ---- ok
 -STATEMENT CREATE (u0:Node {id: 0}),
             (u1:Node {id: 1}),
@@ -16,17 +16,17 @@
             (u6:Node {id: 6}),
             (u7:Node {id: 7}),
             (u8:Node {id: 8}),
-            (u0)-[:Edge]->(u1),
-            (u1)-[:Edge]->(u2),
-            (u2)-[:Edge]->(u0),
-            (u2)-[:Edge]->(u3),
-            (u2)-[:Edge]->(u4),
-            (u5)-[:Edge]->(u4),
-            (u6)-[:Edge]->(u4),
-            (u6)-[:Edge]->(u5),
-            (u6)-[:Edge]->(u7),
-            (u7)-[:Edge]->(u4),
-            (u6)-[:Edge]->(u5);
+            (u0)-[:Edge {id:10}]->(u1),
+            (u1)-[:Edge {id:11}]->(u2),
+            (u2)-[:Edge {id:12}]->(u0),
+            (u2)-[:Edge {id:13}]->(u3),
+            (u2)-[:Edge {id:14}]->(u4),
+            (u5)-[:Edge {id:15}]->(u4),
+            (u6)-[:Edge {id:16}]->(u4),
+            (u6)-[:Edge {id:17}]->(u5),
+            (u6)-[:Edge {id:18}]->(u7),
+            (u7)-[:Edge {id:19}]->(u4),
+            (u6)-[:Edge {id:20}]->(u5);
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
@@ -42,6 +42,18 @@
 -STATEMENT CALL strongly_connected_components('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 7
 0|3|[0,1,2]
+3|1|[3]
+4|1|[4]
+5|1|[5]
+6|1|[6]
+7|1|[7]
+8|1|[8]
+-STATEMENT CALL create_projected_graph('Graph2', {'Node': {'filter': 'n.ID > 0'}}, ['Edge'])
+---- ok
+-STATEMENT CALL strongly_connected_components_kosaraju('Graph2') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+---- 8
+1|1|[1]
+2|1|[2]
 3|1|[3]
 4|1|[4]
 5|1|[5]
@@ -88,7 +100,7 @@
 -CASE SCCMultiple
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
--STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, id INT64);
 ---- ok
 -STATEMENT CREATE (u0:Node {id: 0}),
             (u1:Node {id: 1}),
@@ -99,21 +111,21 @@
             (u6:Node {id: 6}),
             (u7:Node {id: 7}),
             (u8:Node {id: 8}),
-            (u0)-[:Edge]->(u1),
-            (u1)-[:Edge]->(u2),
-            (u1)-[:Edge]->(u4),
-            (u2)-[:Edge]->(u2),
-            (u2)-[:Edge]->(u5),
-            (u3)-[:Edge]->(u1),
-            (u3)-[:Edge]->(u6),
-            (u4)-[:Edge]->(u0),
-            (u4)-[:Edge]->(u5),
-            (u4)-[:Edge]->(u3),
-            (u5)-[:Edge]->(u7),
-            (u6)-[:Edge]->(u4),
-            (u6)-[:Edge]->(u5),
-            (u7)-[:Edge]->(u8),
-            (u8)-[:Edge]->(u5);
+            (u0)-[:Edge {id:10}]->(u1),
+            (u1)-[:Edge {id:11}]->(u2),
+            (u1)-[:Edge {id:12}]->(u4),
+            (u2)-[:Edge {id:13}]->(u2),
+            (u2)-[:Edge {id:14}]->(u5),
+            (u3)-[:Edge {id:15}]->(u1),
+            (u3)-[:Edge {id:16}]->(u6),
+            (u4)-[:Edge {id:17}]->(u0),
+            (u4)-[:Edge {id:18}]->(u5),
+            (u4)-[:Edge {id:19}]->(u3),
+            (u5)-[:Edge {id:20}]->(u7),
+            (u6)-[:Edge {id:21}]->(u4),
+            (u6)-[:Edge {id:22}]->(u5),
+            (u7)-[:Edge {id:23}]->(u8),
+            (u8)-[:Edge {id:24}]->(u5);
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
@@ -127,6 +139,28 @@
 0|5|[0,1,3,4,6]
 2|1|[2]
 5|3|[5,7,8]
+
+-STATEMENT CALL create_projected_graph('Graph2', ['Node'], {'Edge': {'filter': 'r.ID <> 17 '}})
+---- ok
+-STATEMENT CALL strongly_connected_components_kosaraju('Graph2') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+---- 4
+0|1|[0]
+1|4|[1,3,4,6]
+2|1|[2]
+5|3|[5,7,8]
+
+-STATEMENT CALL create_projected_graph('Graph3', {'Node': {'filter': 'n.ID <> 4'}}, {'Edge': {'filter': 'r.ID <> 23 '}})
+---- ok
+-STATEMENT CALL strongly_connected_components_kosaraju('Graph3') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+---- 8
+0|1|[0]
+1|1|[1]
+2|1|[2]
+3|1|[3]
+5|1|[5]
+6|1|[6]
+7|1|[7]
+8|1|[8]
 
 -CASE SCCMultiple2
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
