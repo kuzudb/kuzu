@@ -720,6 +720,12 @@ private:
 };
 
 uint64_t JsonScanBindData::getFieldIdx(const std::string& fieldName) const {
+    // From and to are case-insensitive for backward compatibility.
+    if (StringUtils::getLower(fieldName) == "from") {
+        return colNameToIdx.at("from");
+    } else if (StringUtils::getLower(fieldName) == "to") {
+        return colNameToIdx.at("to");
+    }
     auto itr = colNameToIdx.find(fieldName);
     return itr == colNameToIdx.end() ? UINT64_MAX : itr->second;
 }
@@ -745,13 +751,6 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
                 ele = yyjson_obj_iter_get_val(key);
                 KU_ASSERT(yyjson_get_type(doc->root) == YYJSON_TYPE_OBJ);
                 std::string fieldName = yyjson_get_str(key);
-                if (!colNameToIdx.contains(fieldName)) {
-                    std::regex pattern(R"(^[^.]+\.(.*))");
-                    std::smatch match;
-                    if (std::regex_match(fieldName, match, pattern) && match.size() > 1) {
-                        fieldName = match[1];
-                    }
-                }
                 idx_t colIdx = 0;
                 if (colNameToIdx.contains(fieldName)) {
                     colIdx = colNameToIdx.at(fieldName);
@@ -841,7 +840,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 
     std::vector<ValueVector*> ret;
     for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
-         i < chunk.getNumValueVectors(); ++i) {
+        i < chunk.getNumValueVectors(); ++i) {
         ret.push_back(&chunk.getValueVectorMutable(i));
     }
     return ret;
