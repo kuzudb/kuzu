@@ -39,25 +39,45 @@ private:
 template<typename T>
 class ObjectArray {
 public:
+    ObjectArray() : size{0} {}
     ObjectArray(const common::offset_t size, storage::MemoryManager* mm,
-        bool initializeToZero = false)
-        : allocation{mm->allocateBuffer(initializeToZero, size * sizeof(T))} {
+        bool initializeToZero = false) {
+        allocate(size, mm, initializeToZero);
+    }
+
+    void allocate(const common::offset_t size, storage::MemoryManager* mm, bool initializeToZero) {
+        allocation = mm->allocateBuffer(initializeToZero, size * sizeof(T));
         data = std::span<T>(reinterpret_cast<T*>(allocation->getData()), size);
+        this->size = size;
+    }
+
+    common::offset_t getSize() const { return size; }
+
+    void resizeAsNew(const common::offset_t newSize, storage::MemoryManager* mm) {
+        if (newSize > size) {
+            allocate(newSize, mm, false /* initializeToZero */);
+        }
     }
 
     void set(const common::offset_t pos, const T value) {
-        KU_ASSERT(pos < data.size());
+        KU_ASSERT(pos < size);
         data[pos] = value;
     }
 
     T get(const common::offset_t pos) {
-        KU_ASSERT(pos < data.size());
+        KU_ASSERT(pos < size);
+        return data[pos];
+    }
+
+    T& getRef(const common::offset_t pos) {
+        KU_ASSERT(pos < size);
         return data[pos];
     }
 
 private:
     template<typename U>
     friend class AtomicObjectArray;
+    common::offset_t size;
     std::span<T> data;
     std::unique_ptr<storage::MemoryBuffer> allocation;
 };
@@ -66,17 +86,29 @@ private:
 template<typename T>
 class AtomicObjectArray {
 public:
+    AtomicObjectArray() = default;
     AtomicObjectArray(const common::offset_t size, storage::MemoryManager* mm,
         bool initializeToZero = false)
         : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {}
 
+    common::offset_t getSize() const { return array.size; }
+
+    void resizeAsNew(const common::offset_t newSize, storage::MemoryManager* mm) {
+        array.resizeAsNew(newSize, mm);
+    }
+
     void setRelaxed(common::offset_t pos, const T& value) {
-        KU_ASSERT(pos < array.data.size());
+        KU_ASSERT(pos < array.size);
         array.data[pos].store(value, std::memory_order_relaxed);
     }
 
+    void fetchAddRelaxed(common::offset_t pos, const T& value) {
+        KU_ASSERT(pos < array.size);
+        array.data[pos].fetch_add(value, std::memory_order_relaxed);
+    }
+
     T getRelaxed(const common::offset_t pos) {
-        KU_ASSERT(pos < array.data.size());
+        KU_ASSERT(pos < array.size);
         return array.data[pos].load(std::memory_order_relaxed);
     }
 

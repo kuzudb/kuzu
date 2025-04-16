@@ -29,7 +29,7 @@ private:
     std::shared_ptr<VertexComputeTaskSharedState> sharedState;
 };
 
-class GDSUtilsInMemory {
+class InMemGDSUtils {
 public:
     static void runVertexCompute(InMemVertexCompute& vc, common::offset_t maxOffset,
         processor::ExecutionContext* context);
