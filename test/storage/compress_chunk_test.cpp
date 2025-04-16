@@ -63,17 +63,21 @@ std::unique_ptr<CompressionMetadata> getFloatMetadata(const std::vector<T>& buff
     std::vector<T> samples(bufferToCompress.size());
     alp::AlpEncode<T>::init(bufferToCompress.data(), 0, bufferToCompress.size(), samples.data(),
         alpMetadata);
-    if (alpMetadata.best_k_combinations.size() >
-        1) { // Only if more than 1 found top combinations we sample and search
-        alp::AlpEncode<T>::find_best_exponent_factor_from_combinations(
-            alpMetadata.best_k_combinations, alpMetadata.k_combinations, bufferToCompress.data(),
-            alpMetadata.vector_size, alpMetadata.fac, alpMetadata.exp);
-    } else if (alpMetadata.best_k_combinations.size() > 0) {
-        alpMetadata.exp = alpMetadata.best_k_combinations[0].first;
-        alpMetadata.fac = alpMetadata.best_k_combinations[0].second;
-    }
-
     const auto& [min, max] = std::minmax_element(bufferToCompress.begin(), bufferToCompress.end());
+    if (alpMetadata.scheme == alp::SCHEME::ALP) {
+        if (alpMetadata.best_k_combinations.size() >
+            1) { // Only if more than 1 found top combinations we sample and search
+            alp::AlpEncode<T>::find_best_exponent_factor_from_combinations(
+                alpMetadata.best_k_combinations, alpMetadata.k_combinations,
+                bufferToCompress.data(), alpMetadata.vector_size, alpMetadata.fac, alpMetadata.exp);
+        } else if (alpMetadata.best_k_combinations.size() > 0) {
+            alpMetadata.exp = alpMetadata.best_k_combinations[0].first;
+            alpMetadata.fac = alpMetadata.best_k_combinations[0].second;
+        }
+    } else {
+        return std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
+            CompressionType::UNCOMPRESSED);
+    }
 
     const auto floatEncodedValues =
         std::views::all(bufferToCompress) | std::views::transform([alpMetadata](double val) {
