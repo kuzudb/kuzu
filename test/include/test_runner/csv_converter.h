@@ -33,20 +33,20 @@ private:
         std::string csvFilePath;
         std::string outputFilePath;
         // get cypher query to convert csv file to output file
-        virtual std::string getConverterQuery() const = 0;
+        virtual std::string getConverterQuery(main::ClientContext* context) const = 0;
     };
 
     struct NodeTableInfo final : public TableInfo {
         std::string primaryKey;
         // get converter query for node table
-        std::string getConverterQuery() const override;
+        std::string getConverterQuery(main::ClientContext* context) const override;
     };
 
     struct RelTableInfo final : public TableInfo {
         std::shared_ptr<NodeTableInfo> fromTable;
         std::shared_ptr<NodeTableInfo> toTable;
         // get converter query for rel table
-        std::string getConverterQuery() const override;
+        std::string getConverterQuery(main::ClientContext* context) const override;
     };
 
 private:

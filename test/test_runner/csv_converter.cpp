@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "catalog/catalog.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/test.h"
 #include "common/file_system/local_file_system.h"
 #include "common/string_utils.h"
@@ -162,7 +164,7 @@ void CSVConverter::convertCSVFiles() {
     }
     for (auto table : tables) {
         spdlog::info("Converting: {} to {}", table->csvFilePath, table->outputFilePath);
-        auto cmd = table->getConverterQuery();
+        auto cmd = table->getConverterQuery(tempConn->getClientContext());
         auto result = tempConn->query(cmd);
         if (!result->isSuccess()) {
             spdlog::error(result->getErrorMessage());
@@ -193,14 +195,35 @@ void CSVConverter::convertCSVDataset() {
     std::filesystem::remove_all(tempDatabasePath);
 }
 
-std::string CSVConverter::NodeTableInfo::getConverterQuery() const {
-    return stringFormat("COPY (MATCH (a:{}) RETURN a.*) TO \"{}\";", name, outputFilePath);
+static std::string getColumnAlias(main::ClientContext* context, const std::string& tableName) {
+    auto properties =
+        context->getCatalog()
+            ->getTableCatalogEntry(&transaction::DUMMY_CHECKPOINT_TRANSACTION, tableName)
+            ->getProperties();
+    std::string alias;
+    for (auto& property : properties) {
+        if (property.getName() == "_ID") {
+            continue;
+        }
+        alias += common::stringFormat(", e.{} as {}", property.getName(), property.getName());
+    }
+    return alias;
 }
 
-std::string CSVConverter::RelTableInfo::getConverterQuery() const {
+std::string CSVConverter::NodeTableInfo::getConverterQuery(main::ClientContext* context) const {
+    auto alias = getColumnAlias(context, name);
+    if (alias.size() > 1) {
+        alias = alias.substr(1);
+    }
+    return stringFormat("COPY (MATCH (e:{}) WITH {} RETURN *) TO \"{}\";", name, alias,
+        outputFilePath);
+}
+
+std::string CSVConverter::RelTableInfo::getConverterQuery(main::ClientContext* context) const {
+    auto alias = getColumnAlias(context, name);
     return stringFormat(
-        "COPY (MATCH (a)-[e:{}]->(b) RETURN a.{} AS `from`, b.{} AS `to`, e.*) TO \"{}\";", name,
-        fromTable->primaryKey, toTable->primaryKey, outputFilePath);
+        "COPY (MATCH (a)-[e:{}]->(b) WITH a.{} AS `from`, b.{} AS `to`{} RETURN *) TO \"{}\";",
+        name, fromTable->primaryKey, toTable->primaryKey, alias, outputFilePath);
 }
 
 } // namespace testing
