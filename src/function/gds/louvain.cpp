@@ -304,6 +304,11 @@ public:
 
     explicit NewModularityVC(PhaseState& state) : state{state} {}
 
+    static void reset() {
+        sumIntraWeights.store(0.0);
+        sumWeightedDegrees.store(0.0);
+    }
+
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         double sumIntraLocal = 0.0;
         double sumTotalLocal = 0.0;
@@ -476,12 +481,13 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             RunIterationVC runIteration(state);
             InMemGDSUtils::runVertexCompute(runIteration, state.graph.numNodes, input.context);
 
+            NewModularityVC::reset();
             NewModularityVC newModularityVC(state);
             InMemGDSUtils::runVertexCompute(newModularityVC, state.graph.numNodes, input.context);
             // newMod = sumIntraWeights/2m - sumWeightedDegrees/(2m)^2,
             // where the sums are over all communities.
-            double newMod = newModularityVC.sumIntraWeights.load() * state.modularityConstant -
-                            (newModularityVC.sumWeightedDegrees.load() * state.modularityConstant *
+            double newMod = NewModularityVC::sumIntraWeights.load() * state.modularityConstant -
+                            (NewModularityVC::sumWeightedDegrees.load() * state.modularityConstant *
                                 state.modularityConstant);
 
             if (newMod - oldMod < THRESHOLD) {
