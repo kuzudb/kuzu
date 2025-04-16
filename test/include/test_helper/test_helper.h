@@ -80,6 +80,13 @@ public:
         return systemConfig;
     }
 
+    static void updateClientConfigFromEnv(main::ClientConfig& clientConfig) {
+        auto sparseFrontierThresholdEnv = getSystemEnv("SPARSE_FRONTIER_THRESHOLD");
+        clientConfig.sparseFrontierThreshold = sparseFrontierThresholdEnv.empty() ?
+                                                   clientConfig.sparseFrontierThreshold :
+                                                   std::stoull(sparseFrontierThresholdEnv);
+    }
+
     static std::string getTempSuffix();
 
     static std::filesystem::path getTempDir() {

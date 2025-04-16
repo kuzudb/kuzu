@@ -181,6 +181,12 @@ jobs:
         run: |
           make test
 
+      - name: Test sparse frontier threshold at 2
+        env:
+          SPARSE_FRONTIER_THRESHOLD: 2
+        run: |
+          make test
+
       - name: Python test
         run: make pytest
 
