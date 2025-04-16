@@ -233,8 +233,7 @@ public:
 
     GDSDensityState getState() const override { return state; }
     bool needSwitchToDense(uint64_t threshold) const override {
-        return state == GDSDensityState::SPARSE &&
-               sparseFrontier->size() > threshold;
+        return state == GDSDensityState::SPARSE && sparseFrontier->size() > threshold;
     }
     void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) override;
 
@@ -260,8 +259,7 @@ public:
 
     GDSDensityState getState() const override { return state; }
     bool needSwitchToDense(uint64_t threshold) const override {
-        return state == GDSDensityState::SPARSE &&
-               nextSparseFrontier->size() > threshold;
+        return state == GDSDensityState::SPARSE && nextSparseFrontier->size() > threshold;
     }
     void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) override;
 

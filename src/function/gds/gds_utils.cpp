@@ -111,7 +111,8 @@ void GDSUtils::runRecursiveJoinEdgeCompute(ExecutionContext* context, GDSCompute
             break;
         }
         runOneIteration(context, graph, extendDirection, compState, propertyToScan);
-        if (frontierPair->needSwitchToDense(context->clientContext->getClientConfig()->sparseFrontierThreshold)) {
+        if (frontierPair->needSwitchToDense(
+                context->clientContext->getClientConfig()->sparseFrontierThreshold)) {
             compState.switchToDense(context, graph);
         }
     }
