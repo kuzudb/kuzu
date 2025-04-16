@@ -137,7 +137,7 @@ uint64_t SharedFileErrorHandler::getLineNumber(uint64_t blockIdx,
     uint64_t res = numRowsReadInBlock + headerNumRows + 1;
     for (uint64_t i = 0; i < blockIdx; ++i) {
         KU_ASSERT(i < linesPerBlock.size());
-        res += linesPerBlock[i].validLines;
+        res += linesPerBlock[i].numLines;
     }
     return res;
 }
@@ -162,7 +162,7 @@ void SharedFileErrorHandler::updateLineNumberInfo(
 
         for (const auto& [blockIdx, linesInBlock] : newLinesPerBlock) {
             auto& currentBlock = linesPerBlock[blockIdx];
-            currentBlock.validLines += linesInBlock.validLines;
+            currentBlock.numLines += linesInBlock.numLines;
             currentBlock.doneParsingBlock =
                 currentBlock.doneParsingBlock || linesInBlock.doneParsingBlock;
         }
@@ -198,7 +198,7 @@ void LocalFileErrorHandler::handleError(CopyFromFileError error) {
 }
 
 void LocalFileErrorHandler::reportFinishedBlock(uint64_t blockIdx, uint64_t numRowsRead) {
-    linesPerBlock[blockIdx].validLines += numRowsRead;
+    linesPerBlock[blockIdx].numLines += numRowsRead;
     linesPerBlock[blockIdx].doneParsingBlock = true;
     if (linesPerBlock.size() >= maxCachedErrorCount) {
         flushCachedErrors();
