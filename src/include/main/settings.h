@@ -69,6 +69,18 @@ struct VarLengthExtendMaxDepthSetting {
     }
 };
 
+struct SparseFrontierThresholdSetting {
+    static constexpr auto name = "sparse_frontier_threshold";
+    static constexpr auto inputType = common::LogicalTypeID::INT64;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getClientConfigUnsafe()->sparseFrontierThreshold = parameter.getValue<int64_t>();
+    }
+    static common::Value getSetting(const ClientContext* context) {
+        return common::Value(context->getClientConfig()->sparseFrontierThreshold);
+    }
+};
+
 struct EnableSemiMaskSetting {
     static constexpr auto name = "enable_semi_mask";
     static constexpr auto inputType = common::LogicalTypeID::BOOL;
