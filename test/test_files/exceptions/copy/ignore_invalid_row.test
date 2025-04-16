@@ -9,7 +9,7 @@
 -STATEMENT COPY animal FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/error-on-block-edge.csv" (ignore_errors=true, header=false);
 ---- 2
 191 tuples have been copied to the animal table.
-59 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+59 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
 -STATEMENT CALL show_warnings() RETURN COUNT(*)
 ---- 1
 59
@@ -33,7 +33,7 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, AUTO_DETECT=false)
 ---- 2
 5 tuples have been copied to the person table.
-2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
+2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
 
 -CASE ParallelSkipInvalidNodeTableRowsCastingError
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, AUTO_DETECT=false)
@@ -84,7 +84,7 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", AUTO_DETECT=false)
 ---- 2
 5 tuples have been copied to the movie table.
-5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
 -STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line_or_record
 ---- 2
 Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
@@ -103,11 +103,11 @@ neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, AUTO_DETECT=false)
 ---- 2
 5 tuples have been copied to the person table.
-2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", HEADER=true, AUTO_DETECT=false)
 ---- 2
 5 tuples have been copied to the movie table.
-5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
+5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 8
 -STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line_or_record
 ---- 2
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
@@ -143,7 +143,7 @@ Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_RO
 -STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (IGNORE_ERRORS=true, ESCAPE="~", AUTO_DETECT=false)
 ---- 2
 3 tuples have been copied to the likes table.
-3 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
+3 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 8
 -STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line_or_record
 ---- 10
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
@@ -169,7 +169,7 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 -STATEMENT COPY watch FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv"(IGNORE_ERRORS=true, AUTO_DETECT=false)
 ---- 2
 2 tuples have been copied to the watch table.
-7 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
+7 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 8
 -STATEMENT MATCH (a:person)-[l:watch]->(b:movie) return a.ID, b.ID
 ---- 2
 0|0
@@ -234,7 +234,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, PARALLEL=false, AUTO_DETECT=false)
 ---- 2
 5 tuples have been copied to the person table.
-2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
+2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
 
 -CASE ParallelCopyFromMultipleLargeFilesSkipInvalid
 -STATEMENT CALL threads=2
@@ -321,7 +321,7 @@ unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", PARALLEL=false, AUTO_DETECT=false)
 ---- 2
 5 tuples have been copied to the movie table.
-5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
 -STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line_or_record
 ---- 2
 Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
@@ -380,7 +380,7 @@ Conversion exception: Cast failed. Could not convert "1111111111111111111111111"
 -STATEMENT COPY person FROM (MATCH (p:person) RETURN CASE WHEN p.id % 2 = 0 THEN p.id ELSE p.id + 10 END, p.gender) (ignore_errors=true)
 ---- 2
 2 tuples have been copied to the person table.
-3 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+3 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
 -STATEMENT MATCH (p:person) RETURN p.id
 ---- 7
 0
@@ -395,7 +395,7 @@ Conversion exception: Cast failed. Could not convert "1111111111111111111111111"
 -STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment.csv" (ignore_errors=true, AUTO_DETECT=false, header=true, delim='|')
 ---- 2
 996 tuples have been copied to the Comment table.
-3 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+3 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
 -STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line_or_record
 ---- 3
 Conversion exception: Cast failed. Could not convert "412316860444aa" to INT64.|/home/kuzu/kuzu/dataset/copy-fault-tests/invalid-row/Comment.csv|26|412316860444aa...
