@@ -390,3 +390,14 @@ Conversion exception: Cast failed. Could not convert "1111111111111111111111111"
 7
 13
 17
+
+-CASE ParallelCopyFromCSVWithMultipleBlocksIgnoreErorrs
+-STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment.csv" (ignore_errors=true, AUTO_DETECT=false, header=true, delim='|')
+---- 2
+996 tuples have been copied to the Comment table.
+3 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line_or_record
+---- 3
+Conversion exception: Cast failed. Could not convert "412316860444aa" to INT64.|/home/kuzu/kuzu/dataset/copy-fault-tests/invalid-row/Comment.csv|26|412316860444aa...
+Conversion exception: Cast failed. Could not convert "549755815939aa" to INT64.|/home/kuzu/kuzu/dataset/copy-fault-tests/invalid-row/Comment.csv|536|549755815939aa...
+Conversion exception: Cast failed. Could not convert "687194770008aa" to INT64.|/home/kuzu/kuzu/dataset/copy-fault-tests/invalid-row/Comment.csv|995|687194770008aa...
