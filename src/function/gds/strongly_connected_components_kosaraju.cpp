@@ -21,115 +21,107 @@ static constexpr offset_t PROCESSED = numeric_limits<offset_t>::max();
 static constexpr offset_t VISITED = numeric_limits<offset_t>::max() - 1;
 static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max() - 2;
 
-class SCCState {
+class SCCComponentIDs {
+
+private:
+    offset_t* curData = nullptr;
+    GDSDenseObjectManager<offset_t> denseObjects;
+};
+
+class SCCDFSStack {
 public:
-    SCCState(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
+    SCCDFSStack(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
         denseObjects.allocate(tableID, numNodes, mm);
-        componentIDs = denseObjects.getData(tableID);
+        curData = denseObjects.getData(tableID);
         for (auto i = 0u; i < numNodes; ++i) {
-            componentIDs[i] = NOT_VISITED;
+            curData[i] = INVALID_OFFSET;
         }
     }
 
-    void setVisited(const offset_t offset) const { componentIDs[offset] = VISITED; }
-
-    bool visited(const offset_t offset) const { return componentIDs[offset] >= VISITED; }
-
-    void setProcessed(const offset_t offset) const { componentIDs[offset] = PROCESSED; }
-
-    bool processed(const offset_t offset) const { return componentIDs[offset] == PROCESSED; }
-
-    bool componentIDSet(const offset_t offset) const { return componentIDs[offset] < NOT_VISITED; }
-
-    void setComponentID(const offset_t offset, const offset_t value) const {
-        componentIDs[offset] = value;
+    void add(offset_t offset) {
+        KU_ASSERT(curData);
+        curData[counter++] = offset;
     }
 
-    offset_t getComponentID(const offset_t offset) const { return componentIDs[offset]; }
+private:
+    offset_t counter = 0;
+    offset_t* curData = nullptr;
+    GDSDenseObjectManager<offset_t> denseObjects;
+};
+
+class SCCVisitedArray {
+public:
+    SCCVisitedArray(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
+        denseObjects.allocate(tableID, numNodes, mm);
+        curData = denseObjects.getData(tableID);
+        for (auto i = 0u; i < numNodes; ++i) {
+            curData[i] = false;
+        }
+    }
+
+    void visit(offset_t offset) {
+        KU_ASSERT(!curData[offset]);
+        curData[offset] = true;
+    }
+
+    bool visited(offset_t offset) {
+        KU_ASSERT(curData);
+        return curData[offset];
+    }
 
 private:
-    offset_t* componentIDs = nullptr;
-    GDSDenseObjectManager<offset_t> denseObjects;
+    bool* curData = nullptr;
+    GDSDenseObjectManager<bool> denseObjects;
 };
 
 class SCCCompute {
 public:
-    SCCCompute(Graph* graph, SCCState& sccState) : graph{graph}, sccState{sccState} {}
-
-    void compute(const offset_t tableID, const offset_t numNodes) {
-        auto nbrTables = graph->getForwardNbrTableInfos(tableID);
-        auto nbrInfo = nbrTables[0];
-        auto scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, "");
-        vector<offset_t> toProcess;
-        vector<offset_t> dfsStack;
-        for (auto i = 0u; i < numNodes; ++i) {
-            if (!sccState.visited(i)) {
-                forwardDFS(i, tableID, *scanState, toProcess, dfsStack);
-            }
-        }
-        KU_ASSERT(toProcess.size() == 0);
-        for (auto it = dfsStack.end() - 1; it >= dfsStack.begin(); --it) {
-            auto node = *it;
-            if (!sccState.componentIDSet(node)) {
-                backwardsDFS(node, node, tableID, *scanState, toProcess);
-            }
-        }
-    }
-
-    void forwardDFS(const offset_t node, const offset_t tableID, NbrScanState& scanState,
-        vector<offset_t>& toProcess, vector<offset_t>& dfsStack) {
-        toProcess.push_back(node);
-        while (!toProcess.empty()) {
-            auto nextNode = toProcess.back();
-            if (sccState.visited(nextNode)) {
-                toProcess.pop_back();
-                if (!sccState.processed(nextNode)) {
-                    dfsStack.push_back(nextNode);
-                    sccState.setProcessed(nextNode);
+    void dfsForward(offset_t offset) {
+        visitedArray.visit(offset);
+        auto nodeID = nodeID_t{offset, tableID};
+        for (auto chunk :  graph->scanFwd(nodeID, scanState)) {
+            chunk.forEach([&](auto nbrNodeID, auto) {
+                if (!isVisited(nbrNodeID.offset)) {
+                    dfsForward(nbrNodeID.offset);
                 }
-                continue;
-            }
-            sccState.setVisited(nextNode);
-            auto nextNodeID = nodeID_t{nextNode, tableID};
-            for (auto chunk : graph->scanFwd(nextNodeID, scanState)) {
-                chunk.forEach([&](auto nbrNodeID, auto) {
-                    if (!sccState.visited(nbrNodeID.offset)) {
-                        toProcess.push_back(nbrNodeID.offset);
-                    }
-                });
-            }
+            });
         }
+        stack.add(offset);
     }
 
-    void backwardsDFS(offset_t node, const offset_t root, const offset_t tableID,
-        NbrScanState& scanState, vector<offset_t>& toProcess) {
-        toProcess.push_back(node);
-        while (!toProcess.empty()) {
-            auto nextNode = toProcess.back();
-            toProcess.pop_back();
-            if (sccState.componentIDSet(nextNode)) {
-                continue;
-            }
-            sccState.setComponentID(nextNode, root);
-            auto nextNodeID = nodeID_t{nextNode, tableID};
-            for (auto chunk : graph->scanBwd(nextNodeID, scanState)) {
-                chunk.forEach([&](auto nbrNodeID, auto) {
-                    if (!sccState.componentIDSet(nbrNodeID.offset)) {
-                        toProcess.push_back(nbrNodeID.offset);
-                    }
-                });
-            }
-        }
-    }
+    // void backwardsDFS(offset_t node, const offset_t root, const offset_t tableID,
+    //     NbrScanState& scanState, vector<offset_t>& toProcess) {
+    //     toProcess.push_back(node);
+    //     while (!toProcess.empty()) {
+    //         auto nextNode = toProcess.back();
+    //         toProcess.pop_back();
+    //         if (sccState.componentIDSet(nextNode)) {
+    //             continue;
+    //         }
+    //         sccState.setComponentID(nextNode, root);
+    //         auto nextNodeID = nodeID_t{nextNode, tableID};
+    //         for (auto chunk : graph->scanBwd(nextNodeID, scanState)) {
+    //             chunk.forEach([&](auto nbrNodeID, auto) {
+    //                 if (!sccState.componentIDSet(nbrNodeID.offset)) {
+    //                     toProcess.push_back(nbrNodeID.offset);
+    //                 }
+    //             });
+    //         }
+    //     }
+    // }
 
 private:
     Graph* graph;
-    SCCState& sccState;
+    common::table_id_t tableID;
+    NbrScanState& scanState;
+    SCCDFSStack& stack;
+    SCCVisitedArray& visitedArray;
+    // SCCState& sccState;
 };
 
 class SCCVertexCompute : public GDSResultVertexCompute {
 public:
-    SCCVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState, SCCState& sccState)
+    SCCVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState, SCCComponentIDs& sccState)
         : GDSResultVertexCompute{mm, sharedState}, sccState{sccState} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         componentIDVector = createVector(LogicalType::UINT64());
@@ -152,7 +144,8 @@ public:
     }
 
 private:
-    SCCState& sccState;
+    // SCCState& sccState;
+    SCCComponentIDs componentIDs;
     unique_ptr<ValueVector> nodeIDVector;
     unique_ptr<ValueVector> componentIDVector;
 };
