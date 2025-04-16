@@ -215,3 +215,16 @@ E|F|40.000000
         RETURN a.ID, b.ID, e_weight
 ---- error
 Binder exception: DECIMAL(38, 4) weight type is not supported for weighted shortest path.
+
+-CASE NegativeWeight
+-STATEMENT MATCH (a {ID:'A'}), (b {ID:'B'})
+        CREATE (a)-[r {cost1:-1}]->(b)
+---- ok
+-STATEMENT MATCH (a)-[e* WSHORTEST(cost1) ]->(b)
+           RETURN a.ID, b.ID, e_weight
+---- error
+Runtime exception: Found negative weight -1. This is not supported in weighted shortest path.
+-STATEMENT MATCH p=(a)-[e* WSHORTEST(cost1) ]->(b)
+           RETURN p
+---- error
+Runtime exception: Found negative weight -1. This is not supported in weighted shortest path.
