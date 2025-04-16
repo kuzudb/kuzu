@@ -107,6 +107,9 @@ public:
         while (!toProcess.empty()) {
             auto nextNode = toProcess.back();
             toProcess.pop_back();
+            if (sccState.componentIDSet(nextNode)) {
+                continue;
+            }
             sccState.setComponentID(nextNode, root);
             auto nextNodeID = nodeID_t{nextNode, tableID};
             for (auto chunk : graph->scanBwd(nextNodeID, scanState)) {
