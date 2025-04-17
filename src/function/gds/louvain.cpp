@@ -525,7 +525,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     }
 
     auto vertexCompute = make_unique<WriteResultsVC>(mm, sharedState, finalResults);
-    GDSUtils::runVertexCompute(input.context, graph, *vertexCompute);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
 
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
