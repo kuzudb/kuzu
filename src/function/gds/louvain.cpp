@@ -16,6 +16,13 @@ using namespace kuzu::processor;
 using namespace kuzu::storage;
 using namespace kuzu::graph;
 
+// Louvain method for community detection: https://en.wikipedia.org/wiki/Louvain_method.
+// For nodes in a graph grouped into `C` communities, the modularity of a graph is given as:
+//   sumIntraWeights = sum over all c in C: sum of all edges in c, counted twice in both directions
+//   sumWeightedDegrees = sum over all c in C: (sum of weighted degrees of all nodes in c)^2
+//   modularity = sumIntraWeights/2m - sumWeightedDegrees/(2m)^2
+// Parallel Louvain implementation following https://hpc.pnl.gov/people/hala/grappolo.html.
+
 namespace kuzu {
 namespace function {
 
@@ -65,8 +72,8 @@ struct PhaseState {
     AtomicObjectArray<offset_t> currComm;
     AtomicObjectArray<offset_t> nextComm;
     AtomicObjectArray<double> clusterWeightInternal;
-    double totalWeight = 0.0;
-    double modularityConstant = 0.0;
+    double totalWeight = 0.0; // Stores 2 * sum of edge weights.
+    double modularityConstant = 0.0; // 1/2m.
 
     explicit PhaseState(const offset_t numNodes, MemoryManager* mm, ExecutionContext* context)
         : graph{InMemGraph(numNodes)} {
@@ -155,7 +162,6 @@ void PhaseState::startNewIter(MemoryManager* mm, ExecutionContext* context) {
     StartNewIterVC startNewIterVC(*this);
     InMemGDSUtils::runVertexCompute(startNewIterVC, graph.numNodes, context);
 
-    // modularityConstant = 1/2m. `totalWeight` sums up each edge twice.
     modularityConstant = 1.0 / totalWeight;
 }
 
@@ -210,6 +216,7 @@ public:
                     commToWeightsIndex);
                 state.nextComm.setRelaxed(nodeId, newComm);
             } else {
+                // Isolated node.
                 state.nextComm.setRelaxed(nodeId, UNASSIGNED_COMM);
             }
 
@@ -228,25 +235,26 @@ public:
         }
     }
 
+    // Compute the intra community weights for each community `nodeId` can be moved to, including its own.
     double computeIntraCommWeights(offset_t nodeId, offset_t startCSROffset, offset_t endCSROffset,
         vector<double>& intraCommWeights,
         unordered_map<offset_t, offset_t>& commToWeightsIndex) const {
         double selfLoopWeight = 0.0;
-        commToWeightsIndex[state.currComm.getRelaxed(nodeId)] = 0; // self loop.
+        commToWeightsIndex[state.currComm.getRelaxed(nodeId)] = 0; // current community.
         intraCommWeights.push_back(0);
-        offset_t nextCommId = 1;
+        offset_t nextIndex = 1;
         for (auto offset = startCSROffset; offset < endCSROffset; offset++) {
-            auto nbr = state.graph.csrEdges[offset];
-            if (nbr.neighbor == nodeId) {
-                selfLoopWeight += nbr.weight;
+            auto nbrEntry = state.graph.csrEdges[offset];
+            if (nbrEntry.neighbor == nodeId) {
+                selfLoopWeight += nbrEntry.weight;
             }
-            auto nbrCommId = state.currComm.getRelaxed(nbr.neighbor);
+            auto nbrCommId = state.currComm.getRelaxed(nbrEntry.neighbor);
             if (!commToWeightsIndex.contains(nbrCommId)) {
-                commToWeightsIndex[nbrCommId] = nextCommId;
-                nextCommId++;
-                intraCommWeights.push_back(nbr.weight);
+                commToWeightsIndex[nbrCommId] = nextIndex;
+                nextIndex++;
+                intraCommWeights.push_back(nbrEntry.weight);
             } else {
-                intraCommWeights[commToWeightsIndex[nbrCommId]] += nbr.weight;
+                intraCommWeights[commToWeightsIndex[nbrCommId]] += nbrEntry.weight;
             }
         }
         return selfLoopWeight;
@@ -478,16 +486,17 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         double oldMod = -1;
 
         for (auto iter = 0u; iter < MAX_ITERATIONS; ++iter) {
+            // Reset state.
             state.startNewIter(mm, input.context);
 
+            // Move each node to a potentially new neighbor community that increases the modularity.
             RunIterationVC runIteration(state);
             InMemGDSUtils::runVertexCompute(runIteration, state.graph.numNodes, input.context);
 
+            // Compute the new modularity after all nodes movements, if any.
             NewModularityVC::reset();
             NewModularityVC newModularityVC(state);
             InMemGDSUtils::runVertexCompute(newModularityVC, state.graph.numNodes, input.context);
-            // newMod = sumIntraWeights/2m - sumWeightedDegrees/(2m)^2,
-            // where the sums are over all communities.
             double newMod = NewModularityVC::sumIntraWeights.load() * state.modularityConstant -
                             (NewModularityVC::sumWeightedDegrees.load() * state.modularityConstant *
                                 state.modularityConstant);
