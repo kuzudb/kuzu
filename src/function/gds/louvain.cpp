@@ -94,7 +94,7 @@ struct PhaseState {
 
     void insertNbr(const offset_t from, const offset_t to, const double weight = DEFAULT_WEIGHT) {
         graph.insertNbr(to, weight);
-        nodeWeightedDegrees.fetchAddRelaxed(from, weight);
+        nodeWeightedDegrees.loadAddRelaxed(from, weight);
         currCommInfos.getRef(from).addDegree(weight);
         totalWeight += weight;
     }
@@ -211,7 +211,7 @@ public:
             if (startCSROffset != endCSROffset) {
                 selfLoopWeight = computeIntraCommWeights(nodeId, startCSROffset, endCSROffset,
                     intraCommWeights, commToWeightsIndex);
-                state.clusterWeightInternal.fetchAddRelaxed(nodeId, intraCommWeights[0]);
+                state.clusterWeightInternal.loadAddRelaxed(nodeId, intraCommWeights[0]);
                 offset_t newComm = findPotentialNewComm(nodeId, selfLoopWeight, intraCommWeights,
                     commToWeightsIndex);
                 state.nextComm.setRelaxed(nodeId, newComm);

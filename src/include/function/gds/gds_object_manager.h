@@ -102,9 +102,10 @@ public:
         array.data[pos].store(value, std::memory_order_relaxed);
     }
 
-    void fetchAddRelaxed(common::offset_t pos, const T& value) {
+    void loadAddRelaxed(common::offset_t pos, const T& value) {
         KU_ASSERT(pos < array.size);
-        array.data[pos].fetch_add(value, std::memory_order_relaxed);
+        array.data[pos].store(array.data[pos].load(std::memory_order_relaxed) + value,
+            std::memory_order_relaxed);
     }
 
     T getRelaxed(const common::offset_t pos) {
