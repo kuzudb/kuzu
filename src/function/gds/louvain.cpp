@@ -134,7 +134,6 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            state.intraCommWeights.setRelaxed(nodeId, 0);
             state.nextCommInfos.set(nodeId, CommInfo());
         }
     }
@@ -226,7 +225,7 @@ public:
                     commToWeightsIndex);
                 state.nextComm.setRelaxed(nodeId, newComm);
                 // Store the current intra-community weight for use in modularity calculation.
-                state.intraCommWeights.fetchAdd(nodeId, intraCommWeights[0], memory_order_relaxed);
+                state.intraCommWeights.setRelaxed(nodeId, intraCommWeights[0]);
             } else {
                 // Isolated node.
                 state.nextComm.setRelaxed(nodeId, UNASSIGNED_COMM);
@@ -263,7 +262,7 @@ public:
             }
             auto nbrCommId = state.currComm.getRelaxed(nbrEntry.neighbor);
             if (!commToWeightsIndex.contains(nbrCommId)) {
-                // Found a new community.
+                // Found a new neighbor community.
                 commToWeightsIndex[nbrCommId] = nextIndex;
                 nextIndex++;
                 intraCommWeights.push_back(nbrEntry.weight);
@@ -290,9 +289,26 @@ public:
                 auto newIntraCommWeights = static_cast<double>(intraCommWeights[weightIndex]);
                 auto newWeightedDegrees =
                     static_cast<double>(state.currCommInfos.getRef(nbrCommId).getDegree());
-                auto modGain = 2 * (newIntraCommWeights - prevIntraCommWeights) -
-                               2 * degree * (newWeightedDegrees - prevWeightedDegrees) *
-                                   state.modularityConstant;
+                // The change in gain is computed as the change in the two components:
+                //   sumIntraWeights/2m - sumWeightedDegrees^2/(2m)^2
+                // If moving node n from c to a new community d:
+                // sumIntraWeights before move =
+                //   (selfLoop_n+2*(edges_n in c)+(other nodes in c)+(other nodes in d) + ...)/2m
+                // sumIntraWeights after move =
+                //   ((other nodes in c)+selfLoop_n+2*(edges_n in d)+(other nodes in d) + ...)/2m
+                // sumIntraWeights diff =
+                //   (2*(edges_n in d) - 2*(edges_n in c))/2m
+                auto changeIntraWeights = 2 * (newIntraCommWeights - prevIntraCommWeights);
+                // sumWeightedDegrees before move =
+                //   ((degree_n+degree_{other nodes in c})^2+(degree_{other nodes in d})^2)/(2m)^2
+                // sumWeightedDegrees after move =
+                //   ((degree_{other nodes in c})^2+(degree_n+degree_{other nodes in d})^2)/(2m)^2
+                // sumWeightedDegrees after move =
+                //   2*degree_n*(degree_{other nodes in d}-degree_{other nodes in c})/(2m)^2
+                auto changeSumWeightedDegrees = (newWeightedDegrees - prevWeightedDegrees) * 2 *
+                                                degree * state.modularityConstant;
+                // Multiply by 2m to reduce constants.
+                auto modGain = changeIntraWeights - changeSumWeightedDegrees;
                 if (modGain > newCommModGain || ((newCommModGain - modGain) < THRESHOLD &&
                                                     modGain != 0 && (nbrCommId < newComm))) {
                     // Move if gain is higher, or gain is the same but nbrComm has a lower ID.
@@ -432,6 +448,7 @@ void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph*
     state.finalize();
 }
 
+// Sequentially renumber the communities, each of which becomes a new node in the next phase.
 offset_t renumberCommunities(PhaseState& state) {
     unordered_map<offset_t, offset_t> map;
     offset_t nextCommId = 0;
@@ -509,7 +526,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             RunIterationVC runIteration(state);
             InMemGDSUtils::runVertexCompute(runIteration, state.graph.numNodes, input.context);
 
-            // Compute the modularity before the nodes movements.
+            // Compute the modularity using the _current_ node communities, i.e., *before* the
+            // node movements above. This keeps the logic for computing `sumIntraWeights` simpler.
             ComputeModularityVC::reset();
             ComputeModularityVC newModularityVC(state);
             InMemGDSUtils::runVertexCompute(newModularityVC, state.graph.numNodes, input.context);
@@ -523,6 +541,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             }
             oldMod = currMod;
 
+            // nextCommInfo -> currCommInfo.
             UpdateCommInfosVC updateCommInfosVC(state);
             InMemGDSUtils::runVertexCompute(updateCommInfosVC, state.graph.numNodes, input.context);
 
@@ -531,6 +550,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         auto oldCommCount = state.graph.numNodes;
         auto newCommCount = renumberCommunities(state);
 
+        // Save the renumbered communities as output.
         SaveCommAssignmentsVC setFinalComms(phase, finalResults, state);
         InMemGDSUtils::runVertexCompute(setFinalComms, origNumNodes, input.context);
 
