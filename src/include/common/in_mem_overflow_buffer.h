@@ -55,6 +55,8 @@ public:
     // they will error.
     void resetBuffer();
 
+    storage::MemoryManager* getMemoryManager() { return memoryManager; }
+
 private:
     bool requireNewBlock(uint64_t sizeToAllocate) {
         return currentBlock == nullptr ||

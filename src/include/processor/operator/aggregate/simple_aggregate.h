@@ -4,6 +4,7 @@
 
 #include "common/cast.h"
 #include "common/copy_constructors.h"
+#include "common/in_mem_overflow_buffer.h"
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 #include "processor/operator/aggregate/base_aggregate.h"
 
@@ -24,9 +25,9 @@ public:
 
     void combineAggregateStates(
         const std::vector<std::unique_ptr<function::AggregateState>>& localAggregateStates,
-        storage::MemoryManager* memoryManager);
+        common::InMemOverflowBuffer&& localOverflowBuffer);
 
-    void finalizeAggregateStates(storage::MemoryManager* memoryManager);
+    void finalizeAggregateStates();
 
     std::pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
@@ -72,6 +73,7 @@ private:
     bool hasDistinct;
     std::vector<Partition> globalPartitions;
     std::vector<SimpleAggregatePartitioningData> partitioningData;
+    common::InMemOverflowBuffer aggregateOverflowBuffer;
     std::vector<std::unique_ptr<function::AggregateState>> globalAggregateStates;
 };
 
@@ -116,7 +118,7 @@ public:
 
 private:
     void computeAggregate(function::AggregateFunction* function, AggregateInput* input,
-        function::AggregateState* state, storage::MemoryManager* memoryManager);
+        function::AggregateState* state, common::InMemOverflowBuffer& overflowBuffer);
 
     SimpleAggregateSharedState& getSharedState() {
         return common::ku_dynamic_cast<SimpleAggregateSharedState&>(*sharedState.get());

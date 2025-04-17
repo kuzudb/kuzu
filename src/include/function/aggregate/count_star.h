@@ -9,10 +9,10 @@ struct CountStarFunction : public BaseCountFunction {
     static constexpr const char* name = "COUNT_STAR";
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        storage::MemoryManager* /*memoryManager*/);
+        common::InMemOverflowBuffer* /*overflowBuffer*/);
 
     static void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        uint32_t /*pos*/, storage::MemoryManager* /*memoryManager*/);
+        uint32_t /*pos*/, common::InMemOverflowBuffer* /*overflowBuffer*/);
 
     static function_set getFunctionSet();
 };
