@@ -47,7 +47,6 @@ void SharedFileErrorHandler::handleError(CopyFromFileError error) {
     if (blockIdx >= linesPerBlock.size()) {
         linesPerBlock.resize(blockIdx + 1);
     }
-    ++linesPerBlock[blockIdx].invalidLines;
 
     // throwing of the error is not done when in the middle of parsing blocks
     // so we cache the error to be thrown later
@@ -138,7 +137,7 @@ uint64_t SharedFileErrorHandler::getLineNumber(uint64_t blockIdx,
     uint64_t res = numRowsReadInBlock + headerNumRows + 1;
     for (uint64_t i = 0; i < blockIdx; ++i) {
         KU_ASSERT(i < linesPerBlock.size());
-        res += linesPerBlock[i].validLines + linesPerBlock[i].invalidLines;
+        res += linesPerBlock[i].numLines;
     }
     return res;
 }
@@ -163,8 +162,7 @@ void SharedFileErrorHandler::updateLineNumberInfo(
 
         for (const auto& [blockIdx, linesInBlock] : newLinesPerBlock) {
             auto& currentBlock = linesPerBlock[blockIdx];
-            currentBlock.validLines += linesInBlock.validLines;
-            currentBlock.invalidLines += linesInBlock.invalidLines;
+            currentBlock.numLines += linesInBlock.numLines;
             currentBlock.doneParsingBlock =
                 currentBlock.doneParsingBlock || linesInBlock.doneParsingBlock;
         }
@@ -194,14 +192,13 @@ void LocalFileErrorHandler::handleError(CopyFromFileError error) {
         flushCachedErrors();
     }
 
-    ++linesPerBlock[error.warningData.getBlockIdx()].invalidLines;
     if (cacheIgnoredErrors) {
         cachedErrors.push_back(std::move(error));
     }
 }
 
 void LocalFileErrorHandler::reportFinishedBlock(uint64_t blockIdx, uint64_t numRowsRead) {
-    linesPerBlock[blockIdx].validLines += numRowsRead;
+    linesPerBlock[blockIdx].numLines += numRowsRead;
     linesPerBlock[blockIdx].doneParsingBlock = true;
     if (linesPerBlock.size() >= maxCachedErrorCount) {
         flushCachedErrors();

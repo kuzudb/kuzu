@@ -73,7 +73,7 @@ uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChun
     }
     SerialParsingDriver driver(resultChunk, this);
     const auto [numRowsRead, numErrors] = parseCSV(driver);
-    errorHandler->reportFinishedBlock(blockIdx, numRowsRead);
+    errorHandler->reportFinishedBlock(blockIdx, numRowsRead + numErrors);
     resultChunk.state->getSelVectorUnsafe().setSelSize(numRowsRead);
     increaseNumRowsInCurrentBlock(numRowsRead, numErrors);
     return numRowsRead;
