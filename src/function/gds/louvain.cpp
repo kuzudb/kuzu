@@ -72,7 +72,7 @@ struct PhaseState {
     AtomicObjectArray<offset_t> currComm;
     AtomicObjectArray<offset_t> nextComm;
     AtomicObjectArray<double> clusterWeightInternal;
-    double totalWeight = 0.0; // Stores 2 * sum of edge weights.
+    double totalWeight = 0.0;        // Stores 2 * sum of edge weights.
     double modularityConstant = 0.0; // 1/2m.
 
     explicit PhaseState(const offset_t numNodes, MemoryManager* mm, ExecutionContext* context)
@@ -235,7 +235,8 @@ public:
         }
     }
 
-    // Compute the intra community weights for each community `nodeId` can be moved to, including its own.
+    // Compute the intra community weights for each community `nodeId` can be moved to, including
+    // its own.
     double computeIntraCommWeights(offset_t nodeId, offset_t startCSROffset, offset_t endCSROffset,
         vector<double>& intraCommWeights,
         unordered_map<offset_t, offset_t>& commToWeightsIndex) const {
