@@ -103,10 +103,15 @@ public:
         array.data[pos].store(value, std::memory_order_relaxed);
     }
 
-    void loadAddRelaxed(common::offset_t pos, const T& value) {
+    void fetchAddRelaxed(common::offset_t pos, const T& value) {
         KU_ASSERT(pos < array.size);
-        array.data[pos].store(array.data[pos].load(std::memory_order_relaxed) + value,
-            std::memory_order_relaxed);
+        // Replace with `fetch_add()` once all Kuzu supported platforms support it for
+        // `std::atomic<double>`.
+        T old = array.data[pos].load(std::memory_order_relaxed);
+        T desired;
+        do {
+            desired = old + value;
+        } while (!array.data[pos].compare_exchange_weak(old, desired));
     }
 
     T getRelaxed(const common::offset_t pos) {

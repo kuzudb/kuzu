@@ -31,11 +31,15 @@ constexpr uint32_t MAX_ITERATIONS = 10;
 constexpr double THRESHOLD = 1e-6;
 static constexpr offset_t UNASSIGNED_COMM = numeric_limits<offset_t>::max();
 
-struct FinalResults {
-    vector<offset_t> communities;
-
-    explicit FinalResults(const offset_t numNodes) { communities.resize(numNodes); }
-};
+void doubleFetchAddRelaxed(std::atomic<double>& target, double add) {
+    // Replace with `fetch_add()` once all Kuzu supported platforms support it for
+    // `std::atomic<double>`.
+    double old = target.load(memory_order_relaxed);
+    double desired = 0.0;
+    do {
+        desired = old + add;
+    } while (!target.compare_exchange_weak(old, desired));
+}
 
 class CommInfo {
 public:
@@ -52,12 +56,15 @@ public:
         return *this;
     }
 
-    void addSize(long add) { size.fetch_add(add, memory_order_relaxed); }
     offset_t getSize() const { return size.load(memory_order_relaxed); }
     void setSize(const offset_t s) { size.store(s); }
+    void fetchAddSize(long add) { size.fetch_add(add, memory_order_relaxed); }
+
     double getDegree() const { return degree.load(memory_order_relaxed); }
     void setDegree(const double d) { degree.store(d); }
-    void addDegree(double add) { degree.fetch_add(add, memory_order_relaxed); }
+    void fetchAddDegree(double add) {
+        doubleFetchAddRelaxed(degree, add);
+    }
 
 private:
     std::atomic<offset_t> size;
@@ -94,8 +101,8 @@ struct PhaseState {
 
     void insertNbr(const offset_t from, const offset_t to, const double weight = DEFAULT_WEIGHT) {
         graph.insertNbr(to, weight);
-        nodeWeightedDegrees.loadAddRelaxed(from, weight);
-        currCommInfos.getRef(from).addDegree(weight);
+        nodeWeightedDegrees.fetchAddRelaxed(from, weight);
+        currCommInfos.getRef(from).fetchAddDegree(weight);
         totalWeight += weight;
     }
 
@@ -165,6 +172,12 @@ void PhaseState::startNewIter(MemoryManager* mm, ExecutionContext* context) {
     modularityConstant = 1.0 / totalWeight;
 }
 
+struct FinalResults {
+    vector<offset_t> communities;
+
+    explicit FinalResults(const offset_t numNodes) { communities.resize(numNodes); }
+};
+
 class SaveCommAssignmentsVC : public InMemVertexCompute {
 public:
     explicit SaveCommAssignmentsVC(offset_t phaseId, FinalResults& finalResults, PhaseState& state)
@@ -211,7 +224,7 @@ public:
             if (startCSROffset != endCSROffset) {
                 selfLoopWeight = computeIntraCommWeights(nodeId, startCSROffset, endCSROffset,
                     intraCommWeights, commToWeightsIndex);
-                state.clusterWeightInternal.loadAddRelaxed(nodeId, intraCommWeights[0]);
+                state.clusterWeightInternal.fetchAddRelaxed(nodeId, intraCommWeights[0]);
                 offset_t newComm = findPotentialNewComm(nodeId, selfLoopWeight, intraCommWeights,
                     commToWeightsIndex);
                 state.nextComm.setRelaxed(nodeId, newComm);
@@ -224,19 +237,18 @@ public:
             auto targetCommId = state.nextComm.getRelaxed(nodeId);
             if (targetCommId != currCommId && targetCommId != UNASSIGNED_COMM) {
                 state.nextCommInfos.getRef(targetCommId)
-                    .addDegree(state.nodeWeightedDegrees.getRelaxed(nodeId));
-                state.nextCommInfos.getRef(targetCommId).addSize(1);
+                    .fetchAddDegree(state.nodeWeightedDegrees.getRelaxed(nodeId));
+                state.nextCommInfos.getRef(targetCommId).fetchAddSize(1);
                 state.nextCommInfos.getRef(currCommId)
-                    .addDegree(-state.nodeWeightedDegrees.getRelaxed(nodeId));
-                state.nextCommInfos.getRef(currCommId).addSize(-1);
+                    .fetchAddDegree(-state.nodeWeightedDegrees.getRelaxed(nodeId));
+                state.nextCommInfos.getRef(currCommId).fetchAddSize(-1);
             }
             commToWeightsIndex.clear();
             intraCommWeights.clear();
         }
     }
 
-    // Compute the intra community weights for each community `nodeId` can be moved to, including
-    // its own.
+    // Compute the intra community weights for each community `nodeId` can be moved to.
     double computeIntraCommWeights(offset_t nodeId, offset_t startCSROffset, offset_t endCSROffset,
         vector<double>& intraCommWeights,
         unordered_map<offset_t, offset_t>& commToWeightsIndex) const {
@@ -261,13 +273,14 @@ public:
         return selfLoopWeight;
     }
 
+    // Find `nodeId`'s community that maximises the graph modularity gain.
     offset_t findPotentialNewComm(offset_t nodeId, double selfLoopWeight,
         vector<double> intraCommWeights,
         unordered_map<offset_t, offset_t> commToWeightsIndex) const {
         auto currComm = state.currComm.getRelaxed(nodeId);
         auto degree = state.nodeWeightedDegrees.getRelaxed(nodeId);
-        auto moveToComm = currComm;
-        auto moveToCommModGain = 0.0;
+        auto nextComm = currComm;
+        auto nextCommModGain = 0.0;
         auto prevIntraCommWeights = intraCommWeights[0] - selfLoopWeight;
         auto prevWeightedDegrees = state.currCommInfos.getRef(currComm).getDegree() - degree;
         for (auto [nbrCommId, weightIndex] : commToWeightsIndex) {
@@ -277,21 +290,20 @@ public:
                 auto modGain = 2 * (newIntraCommWeights - prevIntraCommWeights) -
                                2 * degree * (newWeightedDegrees - prevWeightedDegrees) *
                                    state.modularityConstant;
-                if (modGain > moveToCommModGain || ((moveToCommModGain - modGain) < THRESHOLD &&
-                                                       modGain != 0 && (nbrCommId < moveToComm))) {
-                    // Move if the gain is higher or if nbrComm has a lower ID with the same
-                    // modularity.
-                    moveToCommModGain = modGain;
-                    moveToComm = nbrCommId;
+                if (modGain > nextCommModGain || ((nextCommModGain - modGain) < THRESHOLD &&
+                                                     modGain != 0 && (nbrCommId < nextComm))) {
+                    // Move if gain is higher, or gain is the same but nbrComm has a lower ID.
+                    nextCommModGain = modGain;
+                    nextComm = nbrCommId;
                 }
             }
         }
-        if (state.currCommInfos.getRef(moveToComm).getSize() == 1 &&
+        if (state.currCommInfos.getRef(nextComm).getSize() == 1 &&
             state.currCommInfos.getRef(currComm).getSize() == 1 &&
-            moveToComm > currComm) { // Swap protection
-            moveToComm = currComm;
+            nextComm > currComm) { // Swap protection
+            nextComm = currComm;
         }
-        return moveToComm;
+        return nextComm;
     }
 
     std::unique_ptr<InMemVertexCompute> copy() override {
@@ -322,8 +334,8 @@ public:
             auto degree = state.currCommInfos.getRef(nodeId).getDegree();
             sumTotalLocal += degree * degree;
         }
-        sumIntraWeights.fetch_add(sumIntraLocal);
-        sumWeightedDegrees.fetch_add(sumTotalLocal);
+        doubleFetchAddRelaxed(sumIntraWeights, sumIntraLocal);
+        doubleFetchAddRelaxed(sumWeightedDegrees, sumTotalLocal);
     }
 
     std::unique_ptr<InMemVertexCompute> copy() override {
@@ -345,9 +357,9 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            state.currCommInfos.getRef(nodeId).addSize(
+            state.currCommInfos.getRef(nodeId).fetchAddSize(
                 state.nextCommInfos.getRef(nodeId).getSize());
-            state.currCommInfos.getRef(nodeId).addDegree(
+            state.currCommInfos.getRef(nodeId).fetchAddDegree(
                 state.nextCommInfos.getRef(nodeId).getDegree());
         }
     }
