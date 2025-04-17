@@ -41,7 +41,8 @@ class ObjectArray {
 public:
     ObjectArray() : size{0} {}
     ObjectArray(const common::offset_t size, storage::MemoryManager* mm,
-        bool initializeToZero = false) {
+        bool initializeToZero = false)
+        : size{size} {
         allocate(size, mm, initializeToZero);
     }
 
