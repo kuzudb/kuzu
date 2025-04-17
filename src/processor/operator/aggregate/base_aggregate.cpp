@@ -37,33 +37,69 @@ void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     }
 }
 
-BaseAggregateSharedState::HashTableQueue::HashTableQueue(storage::MemoryManager* memoryManager,
-    FactorizedTableSchema tableSchema) {
-    headBlock = new TupleBlock(memoryManager, std::move(tableSchema));
-    numTuplesPerBlock = headBlock.load()->table.getNumTuplesPerBlock();
+struct TupleBlock {
+    explicit TupleBlock(std::unique_ptr<AggregateFactorizedTable> table)
+        : numTuplesReserved{0}, numTuplesWritten{0}, table{std::move(table)} {
+        // Start at a fixed capacity of one full block (so that concurrent writes are safe).
+        // If it is not filled, we resize it to the actual capacity before writing it to the
+        // hashTable
+        this->table->resize(this->table->getNumTuplesPerBlock());
+    }
+    // numTuplesReserved may be greater than the capacity of the factorizedTable
+    // if threads try to write to it while a new block is being allocated
+    // So it should not be relied on for anything other than reserving tuples
+    std::atomic<uint64_t> numTuplesReserved;
+    // Set after the tuple has been written to the block.
+    // Once numTuplesWritten == factorizedTable.getNumTuplesPerBlock() all writes have
+    // finished
+    std::atomic<uint64_t> numTuplesWritten;
+    std::unique_ptr<AggregateFactorizedTable> table;
+};
+
+BaseAggregateSharedState::HashTableQueue::HashTableQueue(
+    std::unique_ptr<AggregateFactorizedTable> factorizedTable) {
+    headBlock = new TupleBlock(std::move(factorizedTable));
+    numTuplesPerBlock = headBlock.load()->table->getNumTuplesPerBlock();
 }
 
 BaseAggregateSharedState::HashTableQueue::~HashTableQueue() {
-    delete headBlock.load();
+    auto headBlock = this->headBlock.load();
+    if (headBlock) {
+        headBlock->table->resize(headBlock->numTuplesWritten);
+        delete headBlock;
+    }
     TupleBlock* block = nullptr;
     while (queuedTuples.pop(block)) {
+        block->table->resize(block->numTuplesWritten);
         delete block;
     }
 }
 
-void BaseAggregateSharedState::HashTableQueue::appendTuple(std::span<uint8_t> tuple) {
+bool BaseAggregateSharedState::HashTableQueue::empty() const {
+    auto headBlock = this->headBlock.load();
+    return (headBlock == nullptr || headBlock->numTuplesReserved == 0) &&
+           queuedTuples.approxSize() == 0;
+}
+
+std::unique_ptr<BaseAggregateSharedState::HashTableQueue>
+BaseAggregateSharedState::HashTableQueue::copy() const {
+    return std::make_unique<HashTableQueue>(headBlock.load()->table->createEmptyCopy());
+}
+
+void BaseAggregateSharedState::HashTableQueue::moveTuple(std::span<uint8_t> tuple) {
     while (true) {
         auto* block = headBlock.load();
-        KU_ASSERT(tuple.size() == block->table.getTableSchema()->getNumBytesPerTuple());
+        KU_ASSERT(tuple.size() == block->table->getTableSchema()->getNumBytesPerTuple());
         auto posToWrite = block->numTuplesReserved++;
         if (posToWrite < numTuplesPerBlock) {
-            memcpy(block->table.getTuple(posToWrite), tuple.data(), tuple.size());
+            memcpy(block->table->getTuple(posToWrite), tuple.data(), tuple.size());
+            // Clear tuple in original table so that the aggregate state doesn't get double-freed
+            memset(tuple.data(), 0, tuple.size());
             block->numTuplesWritten++;
             return;
         } else {
             // No more space in the block, allocate and replace it
-            auto* newBlock = new TupleBlock(block->table.getMemoryManager(),
-                block->table.getTableSchema()->copy());
+            auto* newBlock = new TupleBlock(block->table->createEmptyCopy());
             if (headBlock.compare_exchange_strong(block, newBlock)) {
                 // TODO(bmwinger): if the queuedTuples has at least a certain size (benchmark to see
                 // if there's a benefit to waiting for multiple blocks) then cycle through the queue
@@ -72,6 +108,7 @@ void BaseAggregateSharedState::HashTableQueue::appendTuple(std::span<uint8_t> tu
             } else {
                 // If the block was replaced by another thread, discard the block we created and try
                 // again with the block allocated by the other thread
+                newBlock->table->clear();
                 delete newBlock;
             }
         }
@@ -91,20 +128,39 @@ void BaseAggregateSharedState::HashTableQueue::mergeInto(AggregateHashTable& has
     auto headBlock = this->headBlock.load();
     KU_ASSERT(headBlock != nullptr);
     hashTable.resizeHashTableIfNecessary(
-        queuedTuples.approxSize() * headBlock->table.getNumTuplesPerBlock() +
+        queuedTuples.approxSize() * headBlock->table->getNumTuplesPerBlock() +
         headBlock->numTuplesWritten);
     while (queuedTuples.pop(partitionToMerge)) {
         KU_ASSERT(
-            partitionToMerge->numTuplesWritten == partitionToMerge->table.getNumTuplesPerBlock());
+            partitionToMerge->numTuplesWritten == partitionToMerge->table->getNumTuplesPerBlock());
         hashTable.merge(std::move(partitionToMerge->table));
         delete partitionToMerge;
     }
     if (headBlock->numTuplesWritten > 0) {
-        headBlock->table.resize(headBlock->numTuplesWritten);
+        headBlock->table->resize(headBlock->numTuplesWritten);
         hashTable.merge(std::move(headBlock->table));
+    } else {
+        // Numtuples will be >0, however the AggregateStates were never written to and will not have
+        // been properly initialized (null vptr which will be accessed in the destructor)
+        headBlock->table->clear();
     }
     delete headBlock;
     this->headBlock = nullptr;
+}
+
+AggregateFactorizedTable::~AggregateFactorizedTable() {
+    if (numAggregateFunctions > 0 && flatTupleBlockCollection) {
+        forEach([&](auto* tuple) {
+            for (size_t colIdx = aggStateColIndex;
+                 colIdx < aggStateColIndex + numAggregateFunctions; colIdx++) {
+                auto state =
+                    reinterpret_cast<AggregateState*>(tuple + tableSchema.getColOffset(colIdx));
+                if (state->isValid) {
+                    state->~AggregateState();
+                }
+            }
+        });
+    }
 }
 
 } // namespace processor

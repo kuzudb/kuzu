@@ -59,9 +59,11 @@ SimpleAggregateSharedState::SimpleAggregateSharedState(main::ClientContext* cont
                 auto hashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
                     std::move(keyTypes), std::vector<LogicalType>{} /*payloadTypes*/,
                     std::vector<AggregateFunction>{}, std::vector<LogicalType>{}, 0, schema.copy());
-                auto queue = std::make_unique<HashTableQueue>(context->getMemoryManager(),
-                    AggregateHashTableUtils::getTableSchemaForKeys(std::vector<LogicalType>{},
-                        aggInfos[funcIdx].distinctAggKeyType));
+                auto queue = std::make_unique<HashTableQueue>(
+                    std::make_unique<AggregateFactorizedTable>(context->getMemoryManager(),
+                        AggregateHashTableUtils::getTableSchemaForKeys(std::vector<LogicalType>{},
+                            aggInfos[funcIdx].distinctAggKeyType),
+                        0, 0));
                 partition.distinctTables.emplace_back(Partition::DistinctData{std::move(hashTable),
                     std::move(queue), aggregateFunction.createInitialNullAggregateState()});
             }
@@ -114,7 +116,7 @@ std::pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
     return std::make_pair(startOffset, currentOffset);
 }
 
-void SimpleAggregateSharedState::SimpleAggregatePartitioningData::appendTuples(
+void SimpleAggregateSharedState::SimpleAggregatePartitioningData::moveTuples(
     const FactorizedTable& factorizedTable, ft_col_offset_t hashOffset) {
     KU_ASSERT(sharedState->globalPartitions.size() > 0);
     auto numBytesPerTuple = factorizedTable.getTableSchema()->getNumBytesPerTuple();
@@ -124,13 +126,12 @@ void SimpleAggregateSharedState::SimpleAggregatePartitioningData::appendTuples(
         auto& partition =
             sharedState->globalPartitions[(hash >> sharedState->shiftForPartitioning) %
                                           sharedState->globalPartitions.size()];
-        partition.distinctTables[functionIdx].queue->appendTuple(
-            std::span(tuple, numBytesPerTuple));
+        partition.distinctTables[functionIdx].queue->moveTuple(std::span(tuple, numBytesPerTuple));
     }
 }
 
 // LCOV_EXCL_START
-void SimpleAggregateSharedState::SimpleAggregatePartitioningData::appendDistinctTuple(size_t,
+void SimpleAggregateSharedState::SimpleAggregatePartitioningData::moveDistinctTuple(size_t,
     std::span<uint8_t>, common::hash_t) {
     KU_UNREACHABLE;
 }

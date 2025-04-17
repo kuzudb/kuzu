@@ -41,9 +41,12 @@ struct MinMaxFunction {
     static void updateSingleValue(MinMaxState* state, common::ValueVector* input, uint32_t pos,
         storage::MemoryManager* memoryManager) {
         T val = input->getValue<T>(pos);
-        if (state->isNull) {
+        if (!state->isValid) {
+            // setVal may fail if an allocation fails, so the state must be marked as valid
+            // so that the AggregateFactorizedTable destructor destroys this state object (with any
+            // memory successfully allocated beforehand)
+            state->isValid = true;
             state->setVal(val, memoryManager);
-            state->isNull = false;
         } else {
             uint8_t compare_result = 0;
             OP::template operation<T, T>(val, state->val, compare_result, nullptr /* leftVector */,
@@ -58,13 +61,13 @@ struct MinMaxFunction {
     static void combine(uint8_t* state_, uint8_t* otherState_,
         storage::MemoryManager* memoryManager) {
         auto* otherState = reinterpret_cast<MinMaxState*>(otherState_);
-        if (otherState->isNull) {
+        if (!otherState->isValid) {
             return;
         }
         auto* state = reinterpret_cast<MinMaxState*>(state_);
-        if (state->isNull) {
+        if (!state->isValid) {
             state->setVal(otherState->val, memoryManager);
-            state->isNull = false;
+            state->isValid = true;
         } else {
             uint8_t compareResult = 0;
             OP::template operation<T, T>(otherState->val, state->val, compareResult,

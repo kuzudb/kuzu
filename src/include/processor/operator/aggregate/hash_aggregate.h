@@ -48,22 +48,22 @@ public:
         std::span<AggregateInfo> aggregateInfos, std::vector<common::LogicalType> keyTypes,
         std::vector<common::LogicalType> payloadTypes);
 
-    void appendTuples(const FactorizedTable& factorizedTable, ft_col_offset_t hashOffset) override {
+    void moveTuples(const FactorizedTable& factorizedTable, ft_col_offset_t hashOffset) override {
         auto numBytesPerTuple = factorizedTable.getTableSchema()->getNumBytesPerTuple();
         for (ft_tuple_idx_t tupleIdx = 0; tupleIdx < factorizedTable.getNumTuples(); tupleIdx++) {
             auto tuple = factorizedTable.getTuple(tupleIdx);
             auto hash = *reinterpret_cast<common::hash_t*>(tuple + hashOffset);
             auto& partition =
                 globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
-            partition.queue->appendTuple(std::span(tuple, numBytesPerTuple));
+            partition.queue->moveTuple(std::span(tuple, numBytesPerTuple));
         }
     }
 
-    void appendDistinctTuple(size_t distinctFuncIndex, std::span<uint8_t> tuple,
+    void moveDistinctTuple(size_t distinctFuncIndex, std::span<uint8_t> tuple,
         common::hash_t hash) override {
         auto& partition =
             globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
-        partition.distinctTableQueues[distinctFuncIndex]->appendTuple(tuple);
+        partition.distinctTableQueues[distinctFuncIndex]->moveTuple(tuple);
     }
 
     void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) override {

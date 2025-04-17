@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "aggregate_input.h"
+#include "common/copy_constructors.h"
 #include "common/mpsc_queue.h"
 #include "function/aggregate_function.h"
 #include "processor/operator/sink.h"
@@ -18,6 +19,30 @@ class AggregateHashTable;
 
 size_t getNumPartitionsForParallelism(main::ClientContext* context);
 
+// FactorizedTable which stores AggregateStates, which may contain heap-allocated memory that must
+// be destroyed
+// If you move a tuple containing an AggregateState to another table, the memory
+// should be cleared (or the numTuples updated) so that it won't be destroyed when the source table
+// is destroyed
+class AggregateFactorizedTable : public FactorizedTable {
+public:
+    AggregateFactorizedTable(storage::MemoryManager* memoryManager, FactorizedTableSchema schema,
+        uint32_t aggStateColIdx, uint32_t numAggregateFunctions)
+        : FactorizedTable(memoryManager, std::move(schema)), aggStateColIndex{aggStateColIdx},
+          numAggregateFunctions{numAggregateFunctions} {}
+    ~AggregateFactorizedTable() override;
+
+    std::unique_ptr<AggregateFactorizedTable> createEmptyCopy() const {
+        return std::make_unique<AggregateFactorizedTable>(memoryManager, tableSchema.copy(),
+            aggStateColIndex, numAggregateFunctions);
+    }
+
+private:
+    uint32_t aggStateColIndex;
+    uint32_t numAggregateFunctions;
+};
+
+struct TupleBlock;
 class BaseAggregateSharedState {
     friend class BaseAggregate;
 
@@ -56,43 +81,16 @@ protected:
 
     class HashTableQueue {
     public:
-        HashTableQueue(storage::MemoryManager* memoryManager, FactorizedTableSchema tableSchema);
+        explicit HashTableQueue(std::unique_ptr<AggregateFactorizedTable> factorizedTable);
 
-        std::unique_ptr<HashTableQueue> copy() const {
-            return std::make_unique<HashTableQueue>(headBlock.load()->table.getMemoryManager(),
-                headBlock.load()->table.getTableSchema()->copy());
-        }
+        std::unique_ptr<HashTableQueue> copy() const;
         ~HashTableQueue();
 
-        void appendTuple(std::span<uint8_t> tuple);
+        void moveTuple(std::span<uint8_t> tuple);
 
         void mergeInto(AggregateHashTable& hashTable);
 
-        bool empty() const {
-            auto headBlock = this->headBlock.load();
-            return (headBlock == nullptr || headBlock->numTuplesReserved == 0) &&
-                   queuedTuples.approxSize() == 0;
-        }
-
-        struct TupleBlock {
-            TupleBlock(storage::MemoryManager* memoryManager, FactorizedTableSchema tableSchema)
-                : numTuplesReserved{0}, numTuplesWritten{0},
-                  table{memoryManager, std::move(tableSchema)} {
-                // Start at a fixed capacity of one full block (so that concurrent writes are safe).
-                // If it is not filled, we resize it to the actual capacity before writing it to the
-                // hashTable
-                table.resize(table.getNumTuplesPerBlock());
-            }
-            // numTuplesReserved may be greater than the capacity of the factorizedTable
-            // if threads try to write to it while a new block is being allocated
-            // So it should not be relied on for anything other than reserving tuples
-            std::atomic<uint64_t> numTuplesReserved;
-            // Set after the tuple has been written to the block.
-            // Once numTuplesWritten == factorizedTable.getNumTuplesPerBlock() all writes have
-            // finished
-            std::atomic<uint64_t> numTuplesWritten;
-            FactorizedTable table;
-        };
+        bool empty() const;
         common::MPSCQueue<TupleBlock*> queuedTuples;
         // When queueing tuples, they are always added to the headBlock until the headBlock is full
         // (numTuplesReserved >= factorizedTable.getNumTuplesPerBlock()), then pushed into the

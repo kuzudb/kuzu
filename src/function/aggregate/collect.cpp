@@ -51,7 +51,7 @@ static void updateSingleValue(CollectState* state, ValueVector* input, uint32_t 
     initCollectStateIfNecessary(state, memoryManager, input->dataType);
     for (auto i = 0u; i < multiplicity; ++i) {
         auto tuple = state->factorizedTable->appendEmptyTuple();
-        state->isNull = false;
+        state->isValid = true;
         input->copyToRowData(pos, tuple, state->factorizedTable->getInMemOverflowBuffer());
     }
 }
@@ -86,18 +86,18 @@ static void finalize(uint8_t* /*state_*/) {}
 
 static void combine(uint8_t* state_, uint8_t* otherState_, MemoryManager* /*memoryManager*/) {
     auto otherState = reinterpret_cast<CollectState*>(otherState_);
-    if (otherState->isNull) {
+    if (!otherState->isValid) {
         return;
     }
     auto state = reinterpret_cast<CollectState*>(state_);
-    if (state->isNull) {
+    if (!state->isValid) {
         state->factorizedTable = std::move(otherState->factorizedTable);
-        state->isNull = false;
+        state->isValid = true;
     } else {
         state->factorizedTable->merge(*otherState->factorizedTable);
     }
     otherState->factorizedTable.reset();
-    otherState->isNull = true;
+    otherState->isValid = false;
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {

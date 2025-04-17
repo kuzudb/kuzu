@@ -58,9 +58,9 @@ protected:
         SimpleAggregatePartitioningData(SimpleAggregateSharedState* sharedState, size_t functionIdx)
             : sharedState{sharedState}, functionIdx{functionIdx} {}
 
-        void appendTuples(const FactorizedTable& factorizedTable,
+        void moveTuples(const FactorizedTable& factorizedTable,
             ft_col_offset_t hashOffset) override;
-        void appendDistinctTuple(size_t, std::span<uint8_t>, common::hash_t) override;
+        void moveDistinctTuple(size_t, std::span<uint8_t>, common::hash_t) override;
         void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) override;
 
     private:

@@ -19,7 +19,7 @@ struct BaseCountFunction {
 
     static std::unique_ptr<AggregateState> initialize() {
         auto state = std::make_unique<CountState>();
-        state->isNull = false;
+        state->isValid = true;
         return state;
     }
 
