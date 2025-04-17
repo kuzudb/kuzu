@@ -15,32 +15,58 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-// Use the three largest offset_t values as special markers to avoid allocating another array.
-// PROCESSED implies node has been VISITED and added to the backward DFS stack.
-static constexpr offset_t PROCESSED = numeric_limits<offset_t>::max();
-static constexpr offset_t VISITED = numeric_limits<offset_t>::max() - 1;
-static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max() - 2;
+class KosarajuComponentIDs {
+public:
+    KosarajuComponentIDs(const offset_t tableID, const offset_t maxOffset, MemoryManager* mm) {
+        denseObjects.allocate(tableID, maxOffset, mm);
+        curData = denseObjects.getData(tableID);
+        for (auto i = 0u; i < maxOffset; ++i) {
+            curData[i] = INVALID_OFFSET;
+        }
+    }
 
-class SCCComponentIDs {
+    void pinTableID(table_id_t tableID) {
+        curData = denseObjects.getData(tableID);
+    }
+
+
+    void setID(offset_t offset, offset_t componentID) {
+        curData[offset] = componentID;
+    }
+
+    bool hasID(offset_t offset) const {
+        return getID(offset) != INVALID_OFFSET;
+    }
+    offset_t getID(offset_t offset) const {
+        return curData[offset];
+    }
 
 private:
     offset_t* curData = nullptr;
     GDSDenseObjectManager<offset_t> denseObjects;
 };
 
-class SCCDFSStack {
+class KosarajuDFSStack {
 public:
-    SCCDFSStack(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
-        denseObjects.allocate(tableID, numNodes, mm);
+    KosarajuDFSStack(const offset_t tableID, const offset_t maxOffset, MemoryManager* mm) {
+        denseObjects.allocate(tableID, maxOffset, mm);
         curData = denseObjects.getData(tableID);
-        for (auto i = 0u; i < numNodes; ++i) {
+        for (auto i = 0u; i < maxOffset; ++i) {
             curData[i] = INVALID_OFFSET;
         }
+    }
+
+    void pinTableID(table_id_t tableID) {
+        curData = denseObjects.getData(tableID);
     }
 
     void add(offset_t offset) {
         KU_ASSERT(curData);
         curData[counter++] = offset;
+    }
+
+    offset_t getOffset(offset_t offset) const {
+        return curData[offset];
     }
 
 private:
@@ -49,14 +75,18 @@ private:
     GDSDenseObjectManager<offset_t> denseObjects;
 };
 
-class SCCVisitedArray {
+class KosarajuVisitedArray {
 public:
-    SCCVisitedArray(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
+    KosarajuVisitedArray(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
         denseObjects.allocate(tableID, numNodes, mm);
         curData = denseObjects.getData(tableID);
         for (auto i = 0u; i < numNodes; ++i) {
             curData[i] = false;
         }
+    }
+
+    void pinTableID(table_id_t tableID) {
+        curData = denseObjects.getData(tableID);
     }
 
     void visit(offset_t offset) {
@@ -74,8 +104,36 @@ private:
     GDSDenseObjectManager<bool> denseObjects;
 };
 
-class SCCCompute {
+class Kosaraju {
 public:
+    Kosaraju(main::ClientContext* context, Graph* graph, table_id_t tableID,
+        NbrScanState& scanState, KosarajuDFSStack& stack, KosarajuVisitedArray& visitedArray,
+        KosarajuComponentIDs& componentIDs)
+        : context{context}, graph {graph}, tableID{tableID}, scanState{scanState}, stack {stack},
+        visitedArray {visitedArray}, componentIDs {componentIDs} {
+        KU_ASSERT(graph->getNodeTableIDs().size() == 1 && graph->getRelTableIDs().size() == 1);
+        nodeTableID = graph->getNodeTableIDs()[0];
+        
+    }
+
+    void exec() {
+        auto maxOffset = graph->getMaxOffset(context->getTransaction(), tableID);
+        for (auto i = 0u; i < maxOffset; ++i) {
+            if (visitedArray.visited(i)) {
+                continue;
+            }
+            dfsForward(i);
+        }
+        for (auto i = 0u; i < maxOffset; ++i) {
+            auto offset = stack.getOffset(i);
+            if (componentIDs.hasID(offset)) {
+                continue;
+            }
+            dfsBackward(offset, offset);
+        }
+    }
+
+private:
     void dfsForward(offset_t offset) {
         visitedArray.visit(offset);
         auto nodeID = nodeID_t{offset, tableID};
@@ -89,40 +147,32 @@ public:
         stack.add(offset);
     }
 
-    // void backwardsDFS(offset_t node, const offset_t root, const offset_t tableID,
-    //     NbrScanState& scanState, vector<offset_t>& toProcess) {
-    //     toProcess.push_back(node);
-    //     while (!toProcess.empty()) {
-    //         auto nextNode = toProcess.back();
-    //         toProcess.pop_back();
-    //         if (sccState.componentIDSet(nextNode)) {
-    //             continue;
-    //         }
-    //         sccState.setComponentID(nextNode, root);
-    //         auto nextNodeID = nodeID_t{nextNode, tableID};
-    //         for (auto chunk : graph->scanBwd(nextNodeID, scanState)) {
-    //             chunk.forEach([&](auto nbrNodeID, auto) {
-    //                 if (!sccState.componentIDSet(nbrNodeID.offset)) {
-    //                     toProcess.push_back(nbrNodeID.offset);
-    //                 }
-    //             });
-    //         }
-    //     }
-    // }
+    void dfsBackward(offset_t offset, offset_t componentID) {
+        componentIDs.setID(offset, componentID);
+        auto nodeID = nodeID_t{offset, tableID};
+        for (auto chunk :  graph->scanBwd(nodeID, scanState)) {
+            chunk.forEach([&](auto nbrNodeID, auto) {
+                if (!componentIDs.hasID(nodeID.offset)) {
+                    dfsBackward(offset, componentID);
+                }
+            });
+        }
+    }
 
 private:
+    main::ClientContext* context;
     Graph* graph;
-    common::table_id_t tableID;
+    table_id_t nodeTableID;
     NbrScanState& scanState;
-    SCCDFSStack& stack;
-    SCCVisitedArray& visitedArray;
-    // SCCState& sccState;
+    KosarajuDFSStack& stack;
+    KosarajuVisitedArray& visitedArray;
+    KosarajuComponentIDs& componentIDs;
 };
 
 class SCCVertexCompute : public GDSResultVertexCompute {
 public:
-    SCCVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState, SCCComponentIDs& sccState)
-        : GDSResultVertexCompute{mm, sharedState}, sccState{sccState} {
+    SCCVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState, KosarajuComponentIDs& componentIDs)
+        : GDSResultVertexCompute{mm, sharedState}, componentIDs{componentIDs} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         componentIDVector = createVector(LogicalType::UINT64());
     }
@@ -134,18 +184,17 @@ public:
         for (auto i = startOffset; i < endOffset; ++i) {
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            componentIDVector->setValue<uint64_t>(0, sccState.getComponentID(i));
+            componentIDVector->setValue<uint64_t>(0, componentIDs.getID(i));
             localFT->append(vectors);
         }
     }
 
     unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<SCCVertexCompute>(mm, sharedState, sccState);
+        return std::make_unique<SCCVertexCompute>(mm, sharedState, componentIDs);
     }
 
 private:
-    // SCCState& sccState;
-    SCCComponentIDs componentIDs;
+    KosarajuComponentIDs& componentIDs;
     unique_ptr<ValueVector> nodeIDVector;
     unique_ptr<ValueVector> componentIDVector;
 };
@@ -159,9 +208,14 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto tableID = graph->getNodeTableIDs()[0];
     auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
 
-    auto sccState = SCCState(tableID, maxOffset, mm);
-    auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
-    edgeCompute->compute(tableID, maxOffset);
+    auto componentIDs = KosarajuComponentIDs(tableID, maxOffset, mm);
+    auto visitedArray = KosarajuVisitedArray(tableID, maxOffset, mm);
+    auto stack = KosarajuDFSStack(tableID, maxOffset, mm);
+
+
+    // auto sccState = SCCState(tableID, maxOffset, mm);
+    // auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
+    // edgeCompute->compute(tableID, maxOffset);
 
     auto vertexCompute = make_unique<SCCVertexCompute>(mm, sharedState, sccState);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
@@ -176,12 +230,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto graphName = input->getLiteralVal<std::string>(0);
     auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
-    if (graphEntry.nodeInfos.size() != 1) {
+    if (graphEntry.nodeInfos.size() != 1 || graphEntry.relInfos.size() != 1) {
         throw RuntimeException("Kosaraju's SCC only supports operations on one node table.");
     }
-    if (graphEntry.relInfos.size() != 1) {
-        throw RuntimeException("Kosaraju's SCC only supports operations on one edge table.");
-    }
+    // if (graphEntry.relInfos.size() != 1) {
+    //     throw RuntimeException("Kosaraju's SCC only supports operations on one edge table.");
+    // }
     expression_vector columns;
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     columns.push_back(nodeOutput->constPtrCast<NodeExpression>()->getInternalID());
