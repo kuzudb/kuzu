@@ -302,7 +302,7 @@ public:
                                2 * degree * (newWeightedDegrees - prevWeightedDegrees) *
                                    state.modularityConstant;
                 if (modGain > newCommModGain || ((newCommModGain - modGain) < THRESHOLD &&
-                                                     modGain != 0 && (nbrCommId < newComm))) {
+                                                    modGain != 0 && (nbrCommId < newComm))) {
                     // Move if gain is higher, or gain is the same but nbrComm has a lower ID.
                     newCommModGain = modGain;
                     newComm = nbrCommId;
