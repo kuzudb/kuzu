@@ -62,9 +62,7 @@ public:
 
     double getDegree() const { return degree.load(memory_order_relaxed); }
     void setDegree(const double d) { degree.store(d); }
-    void fetchAddDegree(double add) {
-        doubleFetchAddRelaxed(degree, add);
-    }
+    void fetchAddDegree(double add) { doubleFetchAddRelaxed(degree, add); }
 
 private:
     std::atomic<offset_t> size;
