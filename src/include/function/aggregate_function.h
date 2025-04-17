@@ -3,6 +3,7 @@
 #include <functional>
 #include <utility>
 
+#include "common/in_mem_overflow_buffer.h"
 #include "common/vector/value_vector.h"
 #include "function/function.h"
 
@@ -20,11 +21,11 @@ struct AggregateState {
 using param_rewrite_function_t = std::function<void(binder::expression_vector&)>;
 using aggr_initialize_function_t = std::function<std::unique_ptr<AggregateState>()>;
 using aggr_update_all_function_t = std::function<void(uint8_t* state, common::ValueVector* input,
-    uint64_t multiplicity, storage::MemoryManager* memoryManager)>;
+    uint64_t multiplicity, common::InMemOverflowBuffer* overflowBuffer)>;
 using aggr_update_pos_function_t = std::function<void(uint8_t* state, common::ValueVector* input,
-    uint64_t multiplicity, uint32_t pos, storage::MemoryManager* memoryManager)>;
-using aggr_combine_function_t =
-    std::function<void(uint8_t* state, uint8_t* otherState, storage::MemoryManager* memoryManager)>;
+    uint64_t multiplicity, uint32_t pos, common::InMemOverflowBuffer* overflowBuffer)>;
+using aggr_combine_function_t = std::function<void(uint8_t* state, uint8_t* otherState,
+    common::InMemOverflowBuffer* overflowBuffer)>;
 using aggr_finalize_function_t = std::function<void(uint8_t* state)>;
 
 struct AggregateFunction final : public ScalarOrAggregateFunction {
@@ -66,18 +67,18 @@ struct AggregateFunction final : public ScalarOrAggregateFunction {
     }
 
     void updateAllState(uint8_t* state, common::ValueVector* input, uint64_t multiplicity,
-        storage::MemoryManager* memoryManager) const {
-        return updateAllFunc(state, input, multiplicity, memoryManager);
+        common::InMemOverflowBuffer* overflowBuffer) const {
+        return updateAllFunc(state, input, multiplicity, overflowBuffer);
     }
 
     void updatePosState(uint8_t* state, common::ValueVector* input, uint64_t multiplicity,
-        uint32_t pos, storage::MemoryManager* memoryManager) const {
-        return updatePosFunc(state, input, multiplicity, pos, memoryManager);
+        uint32_t pos, common::InMemOverflowBuffer* overflowBuffer) const {
+        return updatePosFunc(state, input, multiplicity, pos, overflowBuffer);
     }
 
     void combineState(uint8_t* state, uint8_t* otherState,
-        storage::MemoryManager* memoryManager) const {
-        return combineFunc(state, otherState, memoryManager);
+        common::InMemOverflowBuffer* overflowBuffer) const {
+        return combineFunc(state, otherState, overflowBuffer);
     }
 
     void finalizeState(uint8_t* state) const { return finalizeFunc(state); }

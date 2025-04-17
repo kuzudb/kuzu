@@ -9,11 +9,11 @@ struct CountFunction : public BaseCountFunction {
     static constexpr const char* name = "COUNT";
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        storage::MemoryManager* memoryManager);
+        common::InMemOverflowBuffer* overflowBuffer);
 
     // NOLINTNEXTLINE(readability-non-const-parameter): Would cast away qualifiers.
     static inline void updatePos(uint8_t* state_, common::ValueVector* /*input*/,
-        uint64_t multiplicity, uint32_t /*pos*/, storage::MemoryManager* /*memoryManager*/) {
+        uint64_t multiplicity, uint32_t /*pos*/, common::InMemOverflowBuffer* /*overflowBuffer*/) {
         reinterpret_cast<CountState*>(state_)->count += multiplicity;
     }
 

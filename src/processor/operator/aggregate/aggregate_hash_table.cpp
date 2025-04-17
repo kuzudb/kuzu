@@ -82,7 +82,8 @@ void AggregateHashTable::merge(FactorizedTable&& table) {
                 for (auto i = 0u; i < numTuplesToScan; i++) {
                     aggregateFunction.combineState(hashSlotsToUpdateAggState[i]->entry +
                                                        aggregateStateOffset,
-                        table.getTuple(startTupleIdx + i) + aggregateStateOffset, memoryManager);
+                        table.getTuple(startTupleIdx + i) + aggregateStateOffset,
+                        factorizedTable->getInMemOverflowBuffer());
                 }
             }
             aggregateStateOffset += aggregateFunction.getAggregateStateSize();
@@ -156,7 +157,7 @@ void AggregateHashTable::mergeDistinctAggregateInfo() {
                         1 /* Distinct aggregate should ignore multiplicity since they are known to
                              be non-distinct. */
                         ,
-                        i, memoryManager);
+                        i, factorizedTable->getInMemOverflowBuffer());
                 }
                 distinctHashEntriesProcessed[distinctIdx] += numTuplesToScan;
             }
@@ -667,11 +668,12 @@ void AggregateHashTable::updateNullAggVectorState(const DataChunkState& keyState
     if (keyState.isFlat()) {
         auto pos = keyState.getSelVector()[0];
         aggregateFunction.updatePosState(hashSlotsToUpdateAggState[pos]->entry + aggStateOffset,
-            nullptr, multiplicity, 0 /* dummy pos */, memoryManager);
+            nullptr, multiplicity, 0 /* dummy pos */, factorizedTable->getInMemOverflowBuffer());
     } else {
         keyState.getSelVector().forEach([&](auto pos) {
             aggregateFunction.updatePosState(hashSlotsToUpdateAggState[pos]->entry + aggStateOffset,
-                nullptr, multiplicity, 0 /* dummy pos */, memoryManager);
+                nullptr, multiplicity, 0 /* dummy pos */,
+                factorizedTable->getInMemOverflowBuffer());
         });
     }
 }
@@ -682,7 +684,7 @@ void AggregateHashTable::updateBothFlatAggVectorState(AggregateFunction& aggrega
     if (!aggVector->isNull(aggPos)) {
         aggregateFunction.updatePosState(
             hashSlotsToUpdateAggState[hashVector->state->getSelVector()[0]]->entry + aggStateOffset,
-            aggVector, multiplicity, aggPos, memoryManager);
+            aggVector, multiplicity, aggPos, factorizedTable->getInMemOverflowBuffer());
     }
 }
 
@@ -693,7 +695,7 @@ void AggregateHashTable::updateFlatUnFlatKeyFlatAggVectorState(const DataChunkSt
     if (!aggVector->isNull(aggPos)) {
         unFlatKeyState.getSelVector().forEach([&](auto pos) {
             aggregateFunction.updatePosState(hashSlotsToUpdateAggState[pos]->entry + aggStateOffset,
-                aggVector, multiplicity, aggPos, memoryManager);
+                aggVector, multiplicity, aggPos, factorizedTable->getInMemOverflowBuffer());
         });
     }
 }
@@ -705,7 +707,7 @@ void AggregateHashTable::updateFlatKeyUnFlatAggVectorState(
     aggVector->forEachNonNull([&](auto pos) {
         aggregateFunction.updatePosState(hashSlotsToUpdateAggState[groupByKeyPos]->entry +
                                              aggStateOffset,
-            aggVector, multiplicity, pos, memoryManager);
+            aggVector, multiplicity, pos, factorizedTable->getInMemOverflowBuffer());
     });
 }
 
@@ -713,7 +715,7 @@ void AggregateHashTable::updateBothUnFlatSameDCAggVectorState(AggregateFunction&
     ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset) {
     aggVector->forEachNonNull([&](auto pos) {
         aggregateFunction.updatePosState(hashSlotsToUpdateAggState[pos]->entry + aggStateOffset,
-            aggVector, multiplicity, pos, memoryManager);
+            aggVector, multiplicity, pos, factorizedTable->getInMemOverflowBuffer());
     });
 }
 
@@ -722,7 +724,7 @@ void AggregateHashTable::updateBothUnFlatDifferentDCAggVectorState(
     ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset) {
     unFlatKeyState.getSelVector().forEach([&](auto pos) {
         aggregateFunction.updateAllState(hashSlotsToUpdateAggState[pos]->entry + aggStateOffset,
-            aggVector, multiplicity, memoryManager);
+            aggVector, multiplicity, factorizedTable->getInMemOverflowBuffer());
     });
 }
 

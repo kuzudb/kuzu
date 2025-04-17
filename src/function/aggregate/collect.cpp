@@ -35,20 +35,20 @@ static std::unique_ptr<AggregateState> initialize() {
     return std::make_unique<CollectState>();
 }
 
-static void initCollectStateIfNecessary(CollectState* state, MemoryManager* memoryManager,
+static void initCollectStateIfNecessary(CollectState* state, InMemOverflowBuffer* overflowBuffer,
     LogicalType& dataType) {
     if (state->factorizedTable == nullptr) {
         auto tableSchema = FactorizedTableSchema();
         tableSchema.appendColumn(ColumnSchema(false /* isUnflat */, 0 /* groupID */,
             StorageUtils::getDataTypeSize(dataType)));
-        state->factorizedTable =
-            std::make_unique<FactorizedTable>(memoryManager, std::move(tableSchema));
+        state->factorizedTable = std::make_unique<FactorizedTable>(
+            overflowBuffer->getMemoryManager(), std::move(tableSchema));
     }
 }
 
 static void updateSingleValue(CollectState* state, ValueVector* input, uint32_t pos,
-    uint64_t multiplicity, MemoryManager* memoryManager) {
-    initCollectStateIfNecessary(state, memoryManager, input->dataType);
+    uint64_t multiplicity, InMemOverflowBuffer* overflowBuffer) {
+    initCollectStateIfNecessary(state, overflowBuffer, input->dataType);
     for (auto i = 0u; i < multiplicity; ++i) {
         auto tuple = state->factorizedTable->appendEmptyTuple();
         state->isNull = false;
@@ -57,34 +57,35 @@ static void updateSingleValue(CollectState* state, ValueVector* input, uint32_t 
 }
 
 static void updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity,
-    MemoryManager* memoryManager) {
+    InMemOverflowBuffer* overflowBuffer) {
     KU_ASSERT(!input->state->isFlat());
     auto state = reinterpret_cast<CollectState*>(state_);
     auto& inputSelVector = input->state->getSelVector();
     if (input->hasNoNullsGuarantee()) {
         for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
             auto pos = inputSelVector[i];
-            updateSingleValue(state, input, pos, multiplicity, memoryManager);
+            updateSingleValue(state, input, pos, multiplicity, overflowBuffer);
         }
     } else {
         for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
             auto pos = inputSelVector[i];
             if (!input->isNull(pos)) {
-                updateSingleValue(state, input, pos, multiplicity, memoryManager);
+                updateSingleValue(state, input, pos, multiplicity, overflowBuffer);
             }
         }
     }
 }
 
 static void updatePos(uint8_t* state_, ValueVector* input, uint64_t multiplicity, uint32_t pos,
-    MemoryManager* memoryManager) {
+    InMemOverflowBuffer* overflowBuffer) {
     auto state = reinterpret_cast<CollectState*>(state_);
-    updateSingleValue(state, input, pos, multiplicity, memoryManager);
+    updateSingleValue(state, input, pos, multiplicity, overflowBuffer);
 }
 
 static void finalize(uint8_t* /*state_*/) {}
 
-static void combine(uint8_t* state_, uint8_t* otherState_, MemoryManager* /*memoryManager*/) {
+static void combine(uint8_t* state_, uint8_t* otherState_,
+    InMemOverflowBuffer* /*overflowBuffer*/) {
     auto otherState = reinterpret_cast<CollectState*>(otherState_);
     if (otherState->isNull) {
         return;
