@@ -62,7 +62,6 @@ struct PhaseState {
     AtomicObjectArray<double> nodeWeightedDegrees;
     ObjectArray<CommInfo> currCommInfos;
     ObjectArray<CommInfo> nextCommInfos;
-    AtomicObjectArray<offset_t> pastComm;
     AtomicObjectArray<offset_t> currComm;
     AtomicObjectArray<offset_t> nextComm;
     AtomicObjectArray<double> clusterWeightInternal;
@@ -83,7 +82,6 @@ struct PhaseState {
         graph.initNextNode();
         currCommInfos.getRef(nodeId).setSize(1);
         currCommInfos.getRef(nodeId).setDegree(0.0);
-        pastComm.setRelaxed(nodeId, nodeId);
         currComm.setRelaxed(nodeId, nodeId);
     }
 
@@ -105,7 +103,6 @@ public:
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             state.nodeWeightedDegrees.setRelaxed(nodeId, 0.0);
             state.currCommInfos.set(nodeId, CommInfo());
-            state.pastComm.setRelaxed(nodeId, UNASSIGNED_COMM);
             state.currComm.setRelaxed(nodeId, UNASSIGNED_COMM);
             state.nextComm.setRelaxed(nodeId, UNASSIGNED_COMM);
         }
@@ -144,7 +141,6 @@ void PhaseState::reset(const offset_t numNodes, MemoryManager* mm, ExecutionCont
     graph.reset(numNodes);
     nodeWeightedDegrees.resizeAsNew(numNodes, mm);
     currCommInfos.resizeAsNew(numNodes, mm);
-    pastComm.resizeAsNew(numNodes, mm);
     currComm.resizeAsNew(numNodes, mm);
     nextComm.resizeAsNew(numNodes, mm);
 
@@ -171,13 +167,13 @@ public:
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         if (phaseId == 0) {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-                finalResults.communities[nodeId] = state.pastComm.getRelaxed(nodeId);
+                finalResults.communities[nodeId] = state.currComm.getRelaxed(nodeId);
             }
         } else {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
                 auto prevCommunity = finalResults.communities[nodeId];
                 // Every previous community becomes a node in the current phase.
-                auto newCommunity = state.pastComm.getRelaxed(prevCommunity);
+                auto newCommunity = state.currComm.getRelaxed(prevCommunity);
                 finalResults.communities[nodeId] = newCommunity;
             }
         }
@@ -416,18 +412,18 @@ offset_t renumberCommunities(PhaseState& state) {
     unordered_map<offset_t, offset_t> map;
     offset_t nextCommId = 0;
     offset_t nextUnassignedId = UNASSIGNED_COMM;
-    for (auto i = 0u; i < state.pastComm.getSize(); ++i) {
-        auto commId = state.pastComm.getRelaxed(i);
+    for (auto i = 0u; i < state.currComm.getSize(); ++i) {
+        auto commId = state.currComm.getRelaxed(i);
+        // Assign unique IDs to unassigned nodes, otherwise they will merge into one community.
         if (commId == UNASSIGNED_COMM) {
             commId = nextUnassignedId;
-            state.pastComm.setRelaxed(i, nextUnassignedId);
             nextUnassignedId--;
         }
         if (!map.contains(commId)) {
             map.insert(make_pair(commId, nextCommId));
             nextCommId++;
         }
-        state.pastComm.setRelaxed(i, map.at(commId));
+        state.currComm.setRelaxed(i, map.at(commId));
     }
     return nextCommId;
 }
@@ -439,10 +435,10 @@ void aggregateCommunities(offset_t newCommCount, PhaseState& state, MemoryManage
     for (auto nodeId = 0u; nodeId < state.graph.numNodes; nodeId++) {
         auto beginCSROffset = state.graph.csrOffsets[nodeId];
         auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
-        auto commId = state.pastComm.getRelaxed(nodeId);
+        auto commId = state.currComm.getRelaxed(nodeId);
         for (auto offset = beginCSROffset; offset < endCSROffset; ++offset) {
             auto nbr = state.graph.csrEdges[offset];
-            auto nbrCommId = state.pastComm.getRelaxed(nbr.neighbor);
+            auto nbrCommId = state.currComm.getRelaxed(nbr.neighbor);
             if (commId >= nbrCommId) {
                 // New forward edge.
                 commWeights[commId][nbrCommId] += nbr.weight;
@@ -504,7 +500,6 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             UpdateCommInfosVC updateCommInfosVC(state);
             InMemGDSUtils::runVertexCompute(updateCommInfosVC, state.graph.numNodes, input.context);
 
-            std::swap(state.pastComm, state.currComm);
             std::swap(state.currComm, state.nextComm);
         }
         auto oldCommCount = state.graph.numNodes;
