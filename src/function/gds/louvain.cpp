@@ -36,19 +36,9 @@ constexpr uint32_t MAX_ITERATIONS = 10;
 constexpr double THRESHOLD = 1e-6;
 static constexpr offset_t UNASSIGNED_COMM = numeric_limits<offset_t>::max();
 
-// Custom implementation of `fetch_add` for std::atomic<double>. Can be replaced with the built-in
-// C++20 function once the compiler on all CI platforms (such as macOS) supports it.
-void doubleFetchAddRelaxed(std::atomic<double>& target, double add) {
-    double old = target.load(memory_order_relaxed);
-    double desired = 0.0;
-    do {
-        desired = old + add;
-    } while (!target.compare_exchange_weak(old, desired));
-}
-
 class CommInfo {
 public:
-    CommInfo() : size{0}, degree(0.0) {}
+    CommInfo() : size{0}, degree(0) {}
     CommInfo(const CommInfo& other) {
         size.store(other.getSize());
         degree.store(other.getDegree());
@@ -65,24 +55,24 @@ public:
     void setSize(const offset_t s) { size.store(s); }
     void fetchAddSize(long add) { size.fetch_add(add, memory_order_relaxed); }
 
-    double getDegree() const { return degree.load(memory_order_relaxed); }
-    void setDegree(const double d) { degree.store(d); }
-    void fetchAddDegree(double add) { doubleFetchAddRelaxed(degree, add); }
+    weight_t getDegree() const { return degree.load(memory_order_relaxed); }
+    void setDegree(const weight_t d) { degree.store(d); }
+    void fetchAddDegree(weight_t add) { degree.fetch_add(add); }
 
 private:
-    std::atomic<offset_t> size; // The number of nodes in the community.
-    std::atomic<double> degree; // The sum of the weighted degree of all nodes in the community.
+    std::atomic<offset_t> size;   // The number of nodes in the community.
+    std::atomic<weight_t> degree; // The sum of the weighted degree of all nodes in the community.
 };
 
 struct PhaseState {
     InMemGraph graph;
-    AtomicObjectArray<double> nodeWeightedDegrees;
+    AtomicObjectArray<weight_t> nodeWeightedDegrees;
     ObjectArray<CommInfo> currCommInfos;
     ObjectArray<CommInfo> nextCommInfos;
     AtomicObjectArray<offset_t> currComm;
     AtomicObjectArray<offset_t> nextComm;
-    AtomicObjectArray<double> intraCommWeights;
-    double totalWeight = 0.0;        // Stores 2 * sum of edge weights.
+    AtomicObjectArray<weight_t> intraCommWeights;
+    weight_t totalWeight = 0;        // Stores 2 * sum of edge weights.
     double modularityConstant = 0.0; // 1/2m.
 
     explicit PhaseState(const offset_t numNodes, MemoryManager* mm, ExecutionContext* context)
@@ -100,15 +90,15 @@ struct PhaseState {
         graph.initNextNode();
         // Each community starts with one node.
         currCommInfos.getRef(nodeId).setSize(1);
-        currCommInfos.getRef(nodeId).setDegree(0.0);
+        currCommInfos.getRef(nodeId).setDegree(0);
         // Each node starts in its own community.
         currComm.setRelaxed(nodeId, nodeId);
     }
 
     // Insert a neighbor of the last initialized node. Edges should be inserted in both directions.
-    void insertNbr(const offset_t from, const offset_t to, const double weight = DEFAULT_WEIGHT) {
+    void insertNbr(const offset_t from, const offset_t to, const weight_t weight = DEFAULT_WEIGHT) {
         graph.insertNbr(to, weight);
-        nodeWeightedDegrees.fetchAddRelaxed(from, weight);
+        nodeWeightedDegrees.fetchAdd(from, weight, memory_order_relaxed);
         // The weightedDegree of each community is the weightedDegree of its single node.
         currCommInfos.getRef(from).fetchAddDegree(weight);
         totalWeight += weight;
@@ -123,7 +113,7 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            state.nodeWeightedDegrees.setRelaxed(nodeId, 0.0);
+            state.nodeWeightedDegrees.setRelaxed(nodeId, 0);
             state.currCommInfos.set(nodeId, CommInfo());
             state.currComm.setRelaxed(nodeId, UNASSIGNED_COMM);
             state.nextComm.setRelaxed(nodeId, UNASSIGNED_COMM);
@@ -144,7 +134,7 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            state.intraCommWeights.setRelaxed(nodeId, 0.0);
+            state.intraCommWeights.setRelaxed(nodeId, 0);
             state.nextCommInfos.set(nodeId, CommInfo());
         }
     }
@@ -159,7 +149,7 @@ private:
 
 void PhaseState::reset(const offset_t numNodes, MemoryManager* mm, ExecutionContext* context) {
     // Reuses allocations because `numNodes` monotonically decreases over phases.
-    totalWeight = 0.0;
+    totalWeight = 0;
     graph.reset(numNodes);
     nodeWeightedDegrees.resizeAsNew(numNodes, mm);
     currCommInfos.resizeAsNew(numNodes, mm);
@@ -226,8 +216,8 @@ public:
             auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
             // Self loop weight remains the same when moving between communities. Store this
             // separately for use in the modularity "diff" calculation.
-            double selfLoopWeight = 0.0;
-            vector<double> intraCommWeights;
+            weight_t selfLoopWeight = 0;
+            vector<weight_t> intraCommWeights;
             unordered_map<offset_t, offset_t> commToWeightsIndex;
             if (startCSROffset != endCSROffset) {
                 selfLoopWeight = computeIntraCommWeights(nodeId, startCSROffset, endCSROffset,
@@ -236,7 +226,7 @@ public:
                     commToWeightsIndex);
                 state.nextComm.setRelaxed(nodeId, newComm);
                 // Store the current intra-community weight for use in modularity calculation.
-                state.intraCommWeights.fetchAddRelaxed(nodeId, intraCommWeights[0]);
+                state.intraCommWeights.fetchAdd(nodeId, intraCommWeights[0], memory_order_relaxed);
             } else {
                 // Isolated node.
                 state.nextComm.setRelaxed(nodeId, UNASSIGNED_COMM);
@@ -259,10 +249,10 @@ public:
     }
 
     // Compute the intra community weights for each community `nodeId` can be moved to.
-    double computeIntraCommWeights(offset_t nodeId, offset_t startCSROffset, offset_t endCSROffset,
-        vector<double>& intraCommWeights,
+    weight_t computeIntraCommWeights(offset_t nodeId, offset_t startCSROffset,
+        offset_t endCSROffset, vector<weight_t>& intraCommWeights,
         unordered_map<offset_t, offset_t>& commToWeightsIndex) const {
-        double selfLoopWeight = 0.0;
+        weight_t selfLoopWeight = 0;
         commToWeightsIndex[state.currComm.getRelaxed(nodeId)] = 0; // current community.
         intraCommWeights.push_back(0);
         offset_t nextIndex = 1;
@@ -285,19 +275,21 @@ public:
     }
 
     // Find `nodeId`'s community that maximises the graph modularity gain.
-    offset_t findPotentialNewComm(offset_t nodeId, double selfLoopWeight,
-        vector<double> intraCommWeights,
+    offset_t findPotentialNewComm(offset_t nodeId, weight_t selfLoopWeight,
+        vector<weight_t>& intraCommWeights,
         unordered_map<offset_t, offset_t> commToWeightsIndex) const {
         auto currComm = state.currComm.getRelaxed(nodeId);
-        auto degree = state.nodeWeightedDegrees.getRelaxed(nodeId);
+        auto degree = static_cast<double>(state.nodeWeightedDegrees.getRelaxed(nodeId));
         auto newComm = currComm;
-        auto newCommModGain = 0.0;
-        auto prevIntraCommWeights = intraCommWeights[0] - selfLoopWeight;
-        auto prevWeightedDegrees = state.currCommInfos.getRef(currComm).getDegree() - degree;
+        double newCommModGain = 0.0;
+        auto prevIntraCommWeights = static_cast<double>(intraCommWeights[0] - selfLoopWeight);
+        auto prevWeightedDegrees =
+            static_cast<double>(state.currCommInfos.getRef(currComm).getDegree()) - degree;
         for (auto [nbrCommId, weightIndex] : commToWeightsIndex) {
             if (currComm != nbrCommId) {
-                auto newIntraCommWeights = intraCommWeights[weightIndex];
-                auto newWeightedDegrees = state.currCommInfos.getRef(nbrCommId).getDegree();
+                auto newIntraCommWeights = static_cast<double>(intraCommWeights[weightIndex]);
+                auto newWeightedDegrees =
+                    static_cast<double>(state.currCommInfos.getRef(nbrCommId).getDegree());
                 auto modGain = 2 * (newIntraCommWeights - prevIntraCommWeights) -
                                2 * degree * (newWeightedDegrees - prevWeightedDegrees) *
                                    state.modularityConstant;
@@ -327,26 +319,26 @@ private:
 
 class ComputeModularityVC : public InMemVertexCompute {
 public:
-    static std::atomic<double> sumIntraWeights;
-    static std::atomic<double> sumWeightedDegrees;
+    static std::atomic<weight_t> sumIntraWeights;
+    static std::atomic<weight_t> sumWeightedDegrees;
 
     explicit ComputeModularityVC(PhaseState& state) : state{state} {}
 
     static void reset() {
-        sumIntraWeights.store(0.0);
-        sumWeightedDegrees.store(0.0);
+        sumIntraWeights.store(0);
+        sumWeightedDegrees.store(0);
     }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
-        double sumIntraLocal = 0.0;
-        double sumTotalLocal = 0.0;
+        auto sumIntraLocal = 0;
+        auto sumTotalLocal = 0;
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             sumIntraLocal += state.intraCommWeights.getRelaxed(nodeId);
             auto degree = state.currCommInfos.getRef(nodeId).getDegree();
             sumTotalLocal += degree * degree;
         }
-        doubleFetchAddRelaxed(sumIntraWeights, sumIntraLocal);
-        doubleFetchAddRelaxed(sumWeightedDegrees, sumTotalLocal);
+        sumIntraWeights.fetch_add(sumIntraLocal);
+        sumWeightedDegrees.fetch_add(sumTotalLocal);
     }
 
     std::unique_ptr<InMemVertexCompute> copy() override {
@@ -356,13 +348,13 @@ public:
 private:
     PhaseState& state;
 };
-std::atomic<double> ComputeModularityVC::sumIntraWeights{0.0};
-std::atomic<double> ComputeModularityVC::sumWeightedDegrees{0.0};
+std::atomic<weight_t> ComputeModularityVC::sumIntraWeights{0};
+std::atomic<weight_t> ComputeModularityVC::sumWeightedDegrees{0};
 
 class UpdateCommInfosVC : public InMemVertexCompute {
 public:
-    static std::atomic<double> sumIntra;
-    static std::atomic<double> sumTotal;
+    static std::atomic<weight_t> sumIntra;
+    static std::atomic<weight_t> sumTotal;
 
     explicit UpdateCommInfosVC(PhaseState& state) : state{state} {}
 
@@ -462,7 +454,7 @@ offset_t renumberCommunities(PhaseState& state) {
 
 void aggregateCommunities(offset_t newCommCount, PhaseState& state, MemoryManager* mm,
     ExecutionContext* context) {
-    vector<unordered_map<offset_t, double>> commWeights;
+    vector<unordered_map<offset_t, weight_t>> commWeights;
     commWeights.resize(newCommCount);
     for (auto nodeId = 0u; nodeId < state.graph.numNodes; nodeId++) {
         auto beginCSROffset = state.graph.csrOffsets[nodeId];

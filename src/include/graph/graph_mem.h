@@ -9,11 +9,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace graph {
 
-constexpr double DEFAULT_WEIGHT = 1.0;
+using weight_t = offset_t;
+constexpr weight_t DEFAULT_WEIGHT = 1.0;
 
 struct Neighbor {
     offset_t neighbor;
-    double weight;
+    weight_t weight;
 };
 
 // CSR-like in-memory representation of an undirected weighted graph. Insert nodes in sequence
@@ -35,7 +36,7 @@ struct InMemGraph {
     void initNextNode();
 
     // Insert a neighbor of the last initialized node.
-    void insertNbr(offset_t to, double weight = DEFAULT_WEIGHT);
+    void insertNbr(offset_t to, weight_t weight = DEFAULT_WEIGHT);
 };
 
 } // namespace graph

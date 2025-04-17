@@ -18,7 +18,7 @@ void InMemGraph::initNextNode() {
     csrOffsets.push_back(csrEdges.size());
 }
 
-void InMemGraph::insertNbr(const offset_t to, const double weight) {
+void InMemGraph::insertNbr(const offset_t to, const weight_t weight) {
     Neighbor neighbor{to, weight};
     csrEdges.push_back(neighbor);
     numEdges++;
