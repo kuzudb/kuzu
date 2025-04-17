@@ -265,6 +265,12 @@ void ChunkedCSRNodeGroup::flush(FileHandle& dataFH) {
     }
 }
 
+void ChunkedCSRNodeGroup ::commitDrop(FileHandle& dataFH) {
+    ChunkedNodeGroup::commitDrop(dataFH);
+    csrHeader.offset->commitDrop(dataFH);
+    csrHeader.length->commitDrop(dataFH);
+}
+
 void ChunkedCSRNodeGroup::scanCSRHeader(MemoryManager& memoryManager,
     CSRNodeGroupCheckpointState& csrState) const {
     if (!csrState.oldHeader) {

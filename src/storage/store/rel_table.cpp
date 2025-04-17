@@ -453,6 +453,18 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     localRelTable.clear();
 }
 
+void RelTable::commitDrop(FileHandle& dataFH) {
+    for (auto& relData : directedRelData) {
+        relData->commitDrop(dataFH);
+    }
+}
+
+void RelTable::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
+    for (auto& relData : directedRelData) {
+        relData->commitDropColumn(dataFH, columnID);
+    }
+}
+
 void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     const offset_t maxCommittedOffset = reserveRelOffsets(localNodeGroup.getNumRows());

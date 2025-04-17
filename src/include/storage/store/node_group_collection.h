@@ -77,6 +77,8 @@ public:
     uint64_t getEstimatedMemoryUsage() const;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
+    void commitDrop(FileHandle& dataFH);
+    void commitDropColumn(FileHandle& dataFH, common::column_id_t columnID);
 
     TableStats getStats() const {
         auto lock = nodeGroups.lock();

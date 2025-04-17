@@ -286,5 +286,13 @@ void RelTableData::rollbackGroupCollectionInsert(row_idx_t numRows_, bool isPers
     nodeGroups->rollbackInsert(numRows_, !isPersistent);
 }
 
+void RelTableData::commitDrop(FileHandle& dataFH) {
+    nodeGroups->commitDrop(dataFH);
+}
+
+void RelTableData::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
+    nodeGroups->commitDropColumn(dataFH, columnID);
+}
+
 } // namespace storage
 } // namespace kuzu

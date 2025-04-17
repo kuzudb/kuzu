@@ -1,7 +1,9 @@
 #pragma once
 
 #include <mutex>
+#include <optional>
 
+#include "binder/ddl/bound_alter_info.h"
 #include "buffer_manager/memory_manager.h"
 #include "common/types/types.h"
 
@@ -78,9 +80,11 @@ public:
         DELETE_INFO = 8,
     };
 
-    explicit UndoBuffer(MemoryManager* mm) : mm{mm} {}
+    explicit UndoBuffer(MemoryManager* mm, main::ClientContext* ctx) : mm{mm}, ctx(ctx) {}
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
+    void createAlterCatalogEntry(catalog::CatalogSet& catalogSet,
+        catalog::CatalogEntry& catalogEntry, const binder::BoundAlterInfo& alterInfo);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
     void createInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
@@ -96,18 +100,23 @@ public:
     uint64_t getMemUsage() const;
 
 private:
-    uint8_t* createUndoRecord(uint64_t size);
+    template<typename UndoEntry>
+    uint8_t* createUndoRecord(UndoRecordType recordType);
+
+    void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry,
+        bool dropStorage, std::optional<common::column_id_t> droppedColumn = std::nullopt);
 
     void createVersionInfo(UndoRecordType recordType, common::row_idx_t startRow,
         common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
         common::node_group_idx_t nodeGroupIdx = 0);
 
-    static void commitRecord(UndoRecordType recordType, const uint8_t* record,
-        common::transaction_t commitTS);
+    void commitRecord(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS) const;
     static void rollbackRecord(const transaction::Transaction* transaction,
         UndoRecordType recordType, const uint8_t* record);
 
-    static void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS);
+    void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
+
     static void rollbackCatalogEntryRecord(const uint8_t* record);
 
     static void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS);
@@ -125,6 +134,7 @@ private:
 private:
     std::mutex mtx;
     MemoryManager* mm;
+    main::ClientContext* ctx;
     std::vector<UndoMemoryBuffer> memoryBuffers;
 };
 
