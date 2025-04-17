@@ -31,10 +31,10 @@ struct InMemGraph {
     // Resets to an empty graph. Reuses allocations, if any.
     void reset(offset_t numNodes);
 
-    // Initialize the next node in sequence. To be called before inserting any edges for the node.
+    // Initialize the next node in sequence. Should be called before inserting edges for the node.
     void initNextNode();
 
-    // Insert a neighbor edge of the last initialized node.
+    // Insert a neighbor of the last initialized node.
     void insertNbr(offset_t to, double weight = DEFAULT_WEIGHT);
 };
 
