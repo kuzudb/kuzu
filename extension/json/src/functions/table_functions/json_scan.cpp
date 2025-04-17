@@ -697,12 +697,13 @@ uint64_t JSONScanLocalState::readNext(
 }
 
 struct JsonScanBindData : public ScanFileBindData {
-    case_insensitive_map_t<idx_t> colNameToIdx;
+    // Note: JSON keys are case-sensitive.
+    std::unordered_map<std::string, idx_t> colNameToIdx;
     JsonScanFormat format;
 
     JsonScanBindData(binder::expression_vector columns, column_id_t numWarningDataColumns,
         FileScanInfo fileScanInfo, main::ClientContext* ctx,
-        case_insensitive_map_t<idx_t> colNameToIdx, JsonScanFormat format)
+        std::unordered_map<std::string, idx_t> colNameToIdx, JsonScanFormat format)
         : ScanFileBindData(columns, 0 /* numRows */, std::move(fileScanInfo), ctx,
               numWarningDataColumns),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
@@ -719,23 +720,19 @@ private:
 };
 
 uint64_t JsonScanBindData::getFieldIdx(const std::string& fieldName) const {
-    auto normalizedName = fieldName;
-    // TODO(Ziyi): this is a temporary fix for the json testing framework, since copy-to-json
-    // always outputs the property name, so we have to remove the property name prefix for
-    // matching.
-    if (!colNameToIdx.contains(fieldName)) {
-        std::regex pattern(R"(^[^.]+\.(.*))");
-        std::smatch match;
-        if (std::regex_match(fieldName, match, pattern) && match.size() > 1) {
-            normalizedName = match[1]; // Return the part of the string after the "xxx."
-        }
+    // From and to are case-insensitive for backward compatibility.
+    if (StringUtils::getLower(fieldName) == "from") {
+        return colNameToIdx.at("from");
+    } else if (StringUtils::getLower(fieldName) == "to") {
+        return colNameToIdx.at("to");
     }
-    return colNameToIdx.contains(normalizedName) ? colNameToIdx.at(normalizedName) : UINT64_MAX;
+    auto itr = colNameToIdx.find(fieldName);
+    return itr == colNameToIdx.end() ? UINT64_MAX : itr->second;
 }
 
 static JsonScanFormat autoDetect(main::ClientContext* context, const std::string& filePath,
     JsonScanConfig& config, std::vector<LogicalType>& types, std::vector<std::string>& names,
-    case_insensitive_map_t<idx_t>& colNameToIdx) {
+    std::unordered_map<std::string, idx_t>& colNameToIdx) {
     auto numRowsToDetect = config.breadth;
     JSONScanSharedState sharedState(*context, filePath, config.format);
     JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
@@ -754,13 +751,6 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
                 ele = yyjson_obj_iter_get_val(key);
                 KU_ASSERT(yyjson_get_type(doc->root) == YYJSON_TYPE_OBJ);
                 std::string fieldName = yyjson_get_str(key);
-                if (!colNameToIdx.contains(fieldName)) {
-                    std::regex pattern(R"(^[^.]+\.(.*))");
-                    std::smatch match;
-                    if (std::regex_match(fieldName, match, pattern) && match.size() > 1) {
-                        fieldName = match[1];
-                    }
-                }
                 idx_t colIdx = 0;
                 if (colNameToIdx.contains(fieldName)) {
                     colIdx = colNameToIdx.at(fieldName);
@@ -789,7 +779,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<LogicalType> columnTypes;
     std::vector<std::string> columnNames;
     JsonScanConfig scanConfig(scanInput->fileScanInfo.options);
-    case_insensitive_map_t<idx_t> colNameToIdx;
+    std::unordered_map<std::string, idx_t> colNameToIdx;
     if (!scanInput->expectedColumnNames.empty() || !scanConfig.autoDetect) {
         if (scanInput->expectedColumnNames.empty()) {
             throw BinderException{
