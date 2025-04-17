@@ -181,6 +181,12 @@ jobs:
         run: |
           make test
 
+      - name: Test sparse frontier threshold at 2
+        env:
+          SPARSE_FRONTIER_THRESHOLD: 2
+        run: |
+          make test
+
       - name: Python test
         run: make pytest
 
@@ -692,6 +698,14 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test DEFAULT_REL_STORAGE_DIRECTION=BOTH
 
+      - name: Test sparse frontier threshold at 2
+        shell: cmd
+        env:
+          SPARSE_FRONTIER_THRESHOLD: 2
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make test
+
       - name: Python test
         shell: cmd
         run: |
@@ -942,6 +956,12 @@ jobs:
         env:
           AUTO_CHECKPOINT: true
           CHECKPOINT_THRESHOLD: 0
+        run: |
+          make test
+
+      - name: Test sparse frontier threshold at 2
+        env:
+          SPARSE_FRONTIER_THRESHOLD: 2
         run: |
           make test
 

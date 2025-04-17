@@ -193,7 +193,7 @@ public:
     virtual std::unordered_set<common::offset_t> getActiveNodesOnCurrentFrontier() = 0;
 
     virtual GDSDensityState getState() const = 0;
-    virtual bool needSwitchToDense() const = 0;
+    virtual bool needSwitchToDense(uint64_t threshold) const = 0;
     virtual void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) = 0;
 
     template<class TARGET>
@@ -212,8 +212,6 @@ protected:
     Frontier* currentFrontier = nullptr;
     Frontier* nextFrontier = nullptr;
 };
-
-constexpr uint64_t SPARSE_FRONTIER_THRESHOLD = 2;
 
 // Shortest path (excluding weighted shortest path )frontier implementation. Different from other
 // recursive algorithms, shortest path has the guarantee that a node will not be visited repeatedly
@@ -234,9 +232,8 @@ public:
     std::unordered_set<common::offset_t> getActiveNodesOnCurrentFrontier() override;
 
     GDSDensityState getState() const override { return state; }
-    bool needSwitchToDense() const override {
-        return state == GDSDensityState::SPARSE &&
-               sparseFrontier->size() > SPARSE_FRONTIER_THRESHOLD;
+    bool needSwitchToDense(uint64_t threshold) const override {
+        return state == GDSDensityState::SPARSE && sparseFrontier->size() > threshold;
     }
     void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) override;
 
@@ -261,9 +258,8 @@ public:
     std::unordered_set<common::offset_t> getActiveNodesOnCurrentFrontier() override;
 
     GDSDensityState getState() const override { return state; }
-    bool needSwitchToDense() const override {
-        return state == GDSDensityState::SPARSE &&
-               nextSparseFrontier->size() > SPARSE_FRONTIER_THRESHOLD;
+    bool needSwitchToDense(uint64_t threshold) const override {
+        return state == GDSDensityState::SPARSE && nextSparseFrontier->size() > threshold;
     }
     void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) override;
 
@@ -296,7 +292,7 @@ public:
     }
 
     GDSDensityState getState() const override { return GDSDensityState::DENSE; }
-    bool needSwitchToDense() const override { return false; }
+    bool needSwitchToDense(uint64_t) const override { return false; }
     void switchToDense(processor::ExecutionContext*, graph::Graph*) override {
         // Do nothing.
     }

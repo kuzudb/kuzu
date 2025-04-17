@@ -71,13 +71,17 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
 void BaseGraphTest::createConns(const std::set<std::string>& connNames) {
     if (connNames.size() == 0) { // impart a default connName
         conn = std::make_unique<Connection>(database.get());
+        TestHelper::updateClientConfigFromEnv(*conn->getClientContext()->getClientConfigUnsafe());
     } else {
         for (auto connName : connNames) {
             if (connMap.contains(connName)) {
                 throw RuntimeException(stringFormat(
                     "Cannot create connection with name {} because it already exists.", connName));
             }
-            connMap[connName] = std::make_unique<Connection>(database.get());
+            auto newConn = std::make_unique<Connection>(database.get());
+            TestHelper::updateClientConfigFromEnv(
+                *newConn->getClientContext()->getClientConfigUnsafe());
+            connMap[connName] = std::move(newConn);
         }
     }
 }
