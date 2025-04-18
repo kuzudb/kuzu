@@ -17,7 +17,7 @@ struct ExtraCreateTableInfo {
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const TARGET&>(*this);
+        return ku_dynamic_cast<const TARGET&>(*this);
     }
 };
 

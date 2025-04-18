@@ -14,17 +14,15 @@ namespace kuzu {
 namespace function {
 
 struct StatsInfoBindData final : TableFuncBindData {
-    TableCatalogEntry* tableEntry;
     storage::Table* table;
     const ClientContext* context;
 
-    StatsInfoBindData(binder::expression_vector columns, TableCatalogEntry* tableEntry,
-        storage::Table* table, const ClientContext* context)
-        : TableFuncBindData{std::move(columns), 1 /*numRows*/}, tableEntry{tableEntry},
-          table{table}, context{context} {}
+    StatsInfoBindData(binder::expression_vector columns, storage::Table* table,
+        const ClientContext* context)
+        : TableFuncBindData{std::move(columns), 1 /*numRows*/}, table{table}, context{context} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<StatsInfoBindData>(columns, tableEntry, table, context);
+        return std::make_unique<StatsInfoBindData>(columns, table, context);
     }
 };
 
@@ -52,27 +50,30 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto catalog = context->getCatalog();
-    if (!catalog->containsTable(context->getTransaction(), tableName)) {
-        throw BinderException{"Table " + tableName + " does not exist!"};
-    }
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
-    if (tableEntry->getTableType() != TableType::NODE) {
+    if (catalog->containsTable(context->getTransaction(), tableName)) {
+        auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
+        if (tableEntry->getTableType() == TableType::NODE) {
+            std::vector<std::string> columnNames = {"cardinality"};
+            std::vector<LogicalType> columnTypes;
+            columnTypes.push_back(LogicalType::INT64());
+            for (auto& propDef : tableEntry->getProperties()) {
+                columnNames.push_back(propDef.getName() + "_distinct_count");
+                columnTypes.push_back(LogicalType::INT64());
+            }
+            const auto storageManager = context->getStorageManager();
+            auto table = storageManager->getTable(tableEntry->getTableID());
+            columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+            auto columns = input->binder->createVariables(columnNames, columnTypes);
+            return std::make_unique<StatsInfoBindData>(columns, table, context);
+        }
         throw BinderException{
             "Stats from a non-node table " + tableName + " is not supported yet!"};
     }
-
-    std::vector<std::string> columnNames = {"cardinality"};
-    std::vector<LogicalType> columnTypes;
-    columnTypes.push_back(LogicalType::INT64());
-    for (auto& propDef : tableEntry->getProperties()) {
-        columnNames.push_back(propDef.getName() + "_distinct_count");
-        columnTypes.push_back(LogicalType::INT64());
+    if (catalog->containsRelGroup(context->getTransaction(), tableName)) {
+        throw BinderException{
+            "Stats from a non-node table " + tableName + " is not supported yet!"};
     }
-    const auto storageManager = context->getStorageManager();
-    auto table = storageManager->getTable(tableEntry->getTableID());
-    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
-    auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<StatsInfoBindData>(columns, tableEntry, table, context);
+    throw BinderException{"Table " + tableName + " does not exist!"};
 }
 
 function_set StatsInfoFunction::getFunctionSet() {

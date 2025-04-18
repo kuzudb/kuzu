@@ -35,8 +35,7 @@ void CreateTable::executeInternal(ExecutionContext* context) {
     // Create table.
     CatalogEntry* entry = nullptr;
     switch (info.type) {
-    case CatalogEntryType::NODE_TABLE_ENTRY:
-    case CatalogEntryType::REL_TABLE_ENTRY: {
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
         entry = catalog->createTableEntry(transaction, info);
     } break;
     case CatalogEntryType::REL_GROUP_ENTRY: {

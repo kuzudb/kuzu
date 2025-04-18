@@ -14,7 +14,7 @@ class ClientContext;
 
 namespace function {
 
-struct KUZU_API GDSBindData : public TableFuncBindData {
+struct KUZU_API GDSBindData : TableFuncBindData {
     graph::GraphEntry graphEntry;
     std::shared_ptr<binder::Expression> nodeOutput;
 
@@ -39,7 +39,7 @@ private:
     std::shared_ptr<processor::FactorizedTable> resultTable;
 };
 
-struct KUZU_API GDSFuncSharedState : public TableFuncSharedState {
+struct KUZU_API GDSFuncSharedState : TableFuncSharedState {
     std::unique_ptr<graph::Graph> graph;
 
     GDSFuncSharedState(std::shared_ptr<processor::FactorizedTable> fTable,

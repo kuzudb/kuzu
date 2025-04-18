@@ -39,7 +39,8 @@ static expression_vector getResultColumns(const std::string& cypher, ClientConte
 }
 
 static void validateNodeProjected(table_id_t tableID, const table_id_set_t& projectedNodeIDSet,
-    const std::string& relName, Catalog* catalog, transaction::Transaction* transaction) {
+    const std::string& relName, const Catalog* catalog,
+    const transaction::Transaction* transaction) {
     if (projectedNodeIDSet.contains(tableID)) {
         return;
     }
@@ -49,8 +50,8 @@ static void validateNodeProjected(table_id_t tableID, const table_id_set_t& proj
 }
 
 static void validateRelSrcDstNodeAreProjected(const TableCatalogEntry& entry,
-    const std::string printableRelName, const table_id_set_t& projectedNodeIDSet, Catalog* catalog,
-    transaction::Transaction* transaction) {
+    const std::string& printableRelName, const table_id_set_t& projectedNodeIDSet,
+    const Catalog* catalog, const transaction::Transaction* transaction) {
     auto& relEntry = entry.constCast<RelTableCatalogEntry>();
     validateNodeProjected(relEntry.getSrcTableID(), projectedNodeIDSet, printableRelName, catalog,
         transaction);
@@ -69,21 +70,24 @@ static BoundGraphEntryTableInfo bindNodeEntry(ClientContext& context, const std:
     const std::string& predicate) {
     auto catalog = context.getCatalog();
     auto transaction = context.getTransaction();
-    auto nodeEntry = catalog->getTableCatalogEntry(transaction, tableName);
-    if (nodeEntry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
-        throw BinderException(stringFormat("{} is not a NODE table.", tableName));
+    if (catalog->containsTable(transaction, tableName)) {
+        auto nodeEntry = catalog->getTableCatalogEntry(transaction, tableName);
+        if (nodeEntry->getType() == CatalogEntryType::NODE_TABLE_ENTRY) {
+            if (!predicate.empty()) {
+                auto cypher =
+                    stringFormat("MATCH (n:`{}`) RETURN n, {}", nodeEntry->getName(), predicate);
+                auto columns = getResultColumns(cypher, &context);
+                KU_ASSERT(columns.size() == 2);
+                return {nodeEntry, columns[0], columns[1]};
+            } else {
+                auto cypher = stringFormat("MATCH (n:`{}`) RETURN n", nodeEntry->getName());
+                auto columns = getResultColumns(cypher, &context);
+                KU_ASSERT(columns.size() == 1);
+                return {nodeEntry, columns[0], nullptr /* empty predicate */};
+            }
+        }
     }
-    if (!predicate.empty()) {
-        auto cypher = stringFormat("MATCH (n:`{}`) RETURN n, {}", nodeEntry->getName(), predicate);
-        auto columns = getResultColumns(cypher, &context);
-        KU_ASSERT(columns.size() == 2);
-        return {nodeEntry, columns[0], columns[1]};
-    } else {
-        auto cypher = stringFormat("MATCH (n:`{}`) RETURN n", nodeEntry->getName());
-        auto columns = getResultColumns(cypher, &context);
-        KU_ASSERT(columns.size() == 1);
-        return {nodeEntry, columns[0], nullptr /* empty predicate */};
-    }
+    throw BinderException(stringFormat("{} is not a NODE table.", tableName));
 }
 
 static BoundGraphEntryTableInfo bindRelEntry(ClientContext& context, const std::string& tableName,
@@ -142,7 +146,7 @@ GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const ParsedGraph
 }
 
 std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput& bindInput,
-    const std::vector<catalog::TableCatalogEntry*>& nodeEntries) {
+    const std::vector<TableCatalogEntry*>& nodeEntries) {
     std::string nodeColumnName = NODE_COLUMN_NAME;
     if (!bindInput.yieldVariables.empty()) {
         nodeColumnName = bindColumnName(bindInput.yieldVariables[0], nodeColumnName);
@@ -155,8 +159,7 @@ std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput
 std::string GDSFunction::bindColumnName(const parser::YieldVariable& yieldVariable,
     std::string expressionName) {
     if (yieldVariable.name != expressionName) {
-        throw common::BinderException{
-            common::stringFormat("Unknown variable name: {}.", yieldVariable.name)};
+        throw BinderException{stringFormat("Unknown variable name: {}.", yieldVariable.name)};
     }
     if (yieldVariable.hasAlias()) {
         return yieldVariable.alias;
@@ -187,8 +190,8 @@ std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskPlanRoots(const GDSBind
 };
 
 void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& readingClause,
-    binder::expression_vector predicates, std::vector<std::unique_ptr<LogicalPlan>>& logicalPlans) {
-    auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
+    expression_vector predicates, std::vector<std::unique_ptr<LogicalPlan>>& logicalPlans) {
+    auto& call = readingClause.constCast<BoundTableFunctionCall>();
     auto bindData = call.getBindData()->constPtrCast<GDSBindData>();
     auto maskRoots = getNodeMaskPlanRoots(*bindData, planner);
     for (auto& plan : logicalPlans) {
