@@ -4,6 +4,9 @@
 
 #include "storage/buffer_manager/memory_manager.h"
 
+using namespace std;
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace function {
 
@@ -12,79 +15,115 @@ namespace function {
 template<typename T>
 class ObjectBlock {
 public:
-    ObjectBlock(std::unique_ptr<storage::MemoryBuffer> block, uint64_t sizeInBytes)
+    ObjectBlock(unique_ptr<storage::MemoryBuffer> block, uint64_t sizeInBytes)
         : block{std::move(block)} {
-        maxElements.store(sizeInBytes / (sizeof(T)), std::memory_order_relaxed);
-        nextPosToWrite.store(0, std::memory_order_relaxed);
+        maxElements.store(sizeInBytes / (sizeof(T)), memory_order_relaxed);
+        nextPosToWrite.store(0, memory_order_relaxed);
     }
 
-    T* reserveNext() { return getData() + nextPosToWrite.fetch_add(1, std::memory_order_relaxed); }
-    void revertLast() { nextPosToWrite.fetch_sub(1, std::memory_order_relaxed); }
+    T* reserveNext() { return getData() + nextPosToWrite.fetch_add(1, memory_order_relaxed); }
+    void revertLast() { nextPosToWrite.fetch_sub(1, memory_order_relaxed); }
 
     bool hasSpace() const {
-        return nextPosToWrite.load(std::memory_order_relaxed) <
-               maxElements.load(std::memory_order_relaxed);
+        return nextPosToWrite.load(memory_order_relaxed) < maxElements.load(memory_order_relaxed);
     }
 
 private:
     T* getData() const { return reinterpret_cast<T*>(block->getData()); }
 
 private:
-    std::unique_ptr<storage::MemoryBuffer> block;
-    std::atomic<uint64_t> maxElements;
-    std::atomic<uint64_t> nextPosToWrite;
+    unique_ptr<storage::MemoryBuffer> block;
+    atomic<uint64_t> maxElements;
+    atomic<uint64_t> nextPosToWrite;
 };
 
 // Pre-allocated array of objects.
 template<typename T>
 class ObjectArray {
 public:
-    ObjectArray(const common::offset_t size, storage::MemoryManager* mm,
-        bool initializeToZero = false)
-        : allocation{mm->allocateBuffer(initializeToZero, size * sizeof(T))} {
-        data = std::span<T>(reinterpret_cast<T*>(allocation->getData()), size);
+    ObjectArray() : size{0} {}
+    ObjectArray(const offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
+        : size{size}, mm{mm} {
+        allocate(size, mm, initializeToZero);
     }
 
-    void set(const common::offset_t pos, const T value) {
-        KU_ASSERT(pos < data.size());
+    void allocate(const offset_t size, storage::MemoryManager* mm, bool initializeToZero) {
+        allocation = mm->allocateBuffer(initializeToZero, size * sizeof(T));
+        data = span<T>(reinterpret_cast<T*>(allocation->getData()), size);
+        this->size = size;
+    }
+
+    offset_t getSize() const { return size; }
+
+    void resizeAsNew(const offset_t newSize, storage::MemoryManager* mm) {
+        if (newSize > size) {
+            allocate(newSize, mm, false /* initializeToZero */);
+        }
+    }
+
+    void set(const offset_t pos, const T value) {
+        KU_ASSERT(pos < size);
         data[pos] = value;
     }
 
-    T get(const common::offset_t pos) {
-        KU_ASSERT(pos < data.size());
+    T get(const offset_t pos) {
+        KU_ASSERT(pos < size);
+        return data[pos];
+    }
+
+    T& getRef(const offset_t pos) {
+        KU_ASSERT(pos < size);
         return data[pos];
     }
 
 private:
     template<typename U>
     friend class AtomicObjectArray;
-    std::span<T> data;
-    std::unique_ptr<storage::MemoryBuffer> allocation;
+    offset_t size;
+    span<T> data;
+    unique_ptr<storage::MemoryBuffer> allocation;
+    storage::MemoryManager* mm = nullptr;
 };
 
 // Pre-allocated array of atomic objects.
 template<typename T>
 class AtomicObjectArray {
 public:
-    AtomicObjectArray(const common::offset_t size, storage::MemoryManager* mm,
+    AtomicObjectArray() = default;
+    AtomicObjectArray(const offset_t size, storage::MemoryManager* mm,
         bool initializeToZero = false)
-        : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {}
+        : array{ObjectArray<atomic<T>>(size, mm, initializeToZero)} {}
 
-    void setRelaxed(common::offset_t pos, const T& value) {
-        KU_ASSERT(pos < array.data.size());
-        array.data[pos].store(value, std::memory_order_relaxed);
+    offset_t getSize() const { return array.size; }
+
+    void resizeAsNew(const offset_t newSize, storage::MemoryManager* mm) {
+        array.resizeAsNew(newSize, mm);
     }
 
-    T getRelaxed(const common::offset_t pos) {
-        KU_ASSERT(pos < array.data.size());
-        return array.data[pos].load(std::memory_order_relaxed);
+    void set(offset_t pos, const T& value, memory_order order = memory_order_seq_cst) {
+        KU_ASSERT(pos < array.size);
+        array.data[pos].store(value, order);
     }
 
-    bool compare_exchange_strong_max(const common::offset_t src, const common::offset_t dest) {
-        auto srcValue = getRelaxed(src);
-        auto dstValue = getRelaxed(dest);
+    T get(const offset_t pos, memory_order order = memory_order_seq_cst) {
+        KU_ASSERT(pos < array.size);
+        return array.data[pos].load(order);
+    }
+
+    void fetchAdd(offset_t pos, const T& value, memory_order order = memory_order_seq_cst) {
+        KU_ASSERT(pos < array.size);
+        array.data[pos].fetch_add(value, order);
+    }
+
+    bool compare_exchange_max(const offset_t src, const offset_t dest,
+        memory_order order = memory_order_seq_cst) {
+        auto srcValue = get(src, order);
+        auto dstValue = get(dest, order);
+        // From https://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange:
+        // When a compare-and-exchange is in a loop, the weak version will yield better performance
+        // on some platforms.
         while (dstValue < srcValue) {
-            if (array.data[dest].compare_exchange_strong(dstValue, srcValue)) {
+            if (array.data[dest].compare_exchange_weak(dstValue, srcValue)) {
                 return true;
             }
         }
@@ -92,53 +131,49 @@ public:
     }
 
 private:
-    ObjectArray<std::atomic<T>> array;
+    ObjectArray<atomic<T>> array;
 };
 
 // ObjectArraysMap represents a pre-allocated amount of object per tableID.
 template<typename T>
 class GDSDenseObjectManager {
 public:
-    void allocate(common::table_id_t tableID, common::offset_t maxOffset,
-        storage::MemoryManager* mm) {
+    void allocate(table_id_t tableID, offset_t maxOffset, storage::MemoryManager* mm) {
         auto buffer = mm->allocateBuffer(false, maxOffset * sizeof(T));
         bufferPerTable.insert({tableID, std::move(buffer)});
     }
 
-    T* getData(common::table_id_t tableID) const {
+    T* getData(table_id_t tableID) const {
         KU_ASSERT(bufferPerTable.contains(tableID));
         return reinterpret_cast<T*>(bufferPerTable.at(tableID)->getData());
     }
 
 private:
-    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> bufferPerTable;
+    table_id_map_t<unique_ptr<storage::MemoryBuffer>> bufferPerTable;
 };
 
 template<typename T>
 class GDSSpareObjectManager {
 public:
-    explicit GDSSpareObjectManager(
-        const common::table_id_map_t<common::offset_t>& nodeMaxOffsetMap) {
+    explicit GDSSpareObjectManager(const table_id_map_t<offset_t>& nodeMaxOffsetMap) {
         for (auto& [tableID, _] : nodeMaxOffsetMap) {
             allocate(tableID);
         }
     }
 
-    void allocate(common::table_id_t tableID) {
+    void allocate(table_id_t tableID) {
         KU_ASSERT(!mapPerTable.contains(tableID));
         mapPerTable.insert({tableID, {}});
     }
 
-    const common::table_id_map_t<std::unordered_map<common::offset_t, T>>& getData() {
-        return mapPerTable;
-    }
+    const table_id_map_t<unordered_map<offset_t, T>>& getData() { return mapPerTable; }
 
-    std::unordered_map<common::offset_t, T>* getMap(common::table_id_t tableID) {
+    unordered_map<offset_t, T>* getMap(table_id_t tableID) {
         KU_ASSERT(mapPerTable.contains(tableID));
         return &mapPerTable.at(tableID);
     }
 
-    std::unordered_map<common::offset_t, T>* getData(common::table_id_t tableID) {
+    unordered_map<offset_t, T>* getData(table_id_t tableID) {
         if (!mapPerTable.contains(tableID)) {
             mapPerTable.insert({tableID, {}});
         }
@@ -155,7 +190,7 @@ public:
     }
 
 private:
-    common::table_id_map_t<std::unordered_map<common::offset_t, T>> mapPerTable;
+    table_id_map_t<unordered_map<offset_t, T>> mapPerTable;
 };
 
 } // namespace function

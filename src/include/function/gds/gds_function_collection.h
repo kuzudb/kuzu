@@ -12,6 +12,12 @@ struct WeaklyConnectedComponentsFunction {
     static function_set getFunctionSet();
 };
 
+struct LouvainFunction {
+    static constexpr const char* name = "LOUVAIN";
+
+    static function_set getFunctionSet();
+};
+
 struct SCCKosarajuFunction {
     static constexpr const char* name = "STRONGLY_CONNECTED_COMPONENTS_KOSARAJU";
 

@@ -30,7 +30,9 @@ struct SccComputationState : GDSAuxiliaryState {
         allSccIdsSet.store(false, std::memory_order_relaxed);
     }
 
-    bool isSccIdSet(offset_t nodeId) { return sccIDs.getRelaxed(nodeId) != SCC_UNSET; }
+    bool isSccIdSet(offset_t nodeId) {
+        return sccIDs.get(nodeId, memory_order_relaxed) != SCC_UNSET;
+    }
 
     // Start by assuming all scc ids are set. `memory_order_seq_cst` is used to ensure that
     // all threads see the initial value of `allSccIdsSet`.
@@ -53,7 +55,7 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            computationState.sccIDs.setRelaxed(i, SCC_UNSET);
+            computationState.sccIDs.set(i, SCC_UNSET, memory_order_relaxed);
         }
     }
 
@@ -77,10 +79,10 @@ public:
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             if (!computationState.isSccIdSet(i)) {
-                auto fwdColor = computationState.fwdColors.getRelaxed(i);
-                auto bwdColor = computationState.bwdColors.getRelaxed(i);
+                auto fwdColor = computationState.fwdColors.get(i, memory_order_relaxed);
+                auto bwdColor = computationState.bwdColors.get(i, memory_order_relaxed);
                 if (fwdColor == bwdColor) {
-                    computationState.sccIDs.setRelaxed(i, fwdColor);
+                    computationState.sccIDs.set(i, fwdColor, memory_order_relaxed);
                 } else {
                     computationState.allSccIdsSet.store(false, std::memory_order_relaxed);
                 }
@@ -106,8 +108,8 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            computationState.fwdColors.setRelaxed(i, i);
-            computationState.bwdColors.setRelaxed(i, i);
+            computationState.fwdColors.set(i, i, memory_order_relaxed);
+            computationState.bwdColors.set(i, i, memory_order_relaxed);
         }
     }
 
@@ -154,16 +156,16 @@ struct SccComputeColors : public EdgeCompute {
     explicit SccComputeColors(SccComputationState& computationState)
         : computationState{computationState} {}
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+    std::vector<nodeID_t> edgeCompute(nodeID_t nodeID, graph::NbrScanState::Chunk& chunk,
         bool isFwd) override {
         std::vector<nodeID_t> result;
-        if (computationState.isSccIdSet(boundNodeID.offset)) {
+        if (computationState.isSccIdSet(nodeID.offset)) {
             return result;
         }
         chunk.forEach([&](auto nbrNodeID, auto) {
             if (!computationState.isSccIdSet(nbrNodeID.offset)) {
                 auto& colors = isFwd ? computationState.fwdColors : computationState.bwdColors;
-                if (colors.compare_exchange_strong_max(boundNodeID.offset, nbrNodeID.offset)) {
+                if (colors.compare_exchange_max(nodeID.offset, nbrNodeID.offset)) {
                     result.push_back(nbrNodeID);
                 }
             }
@@ -194,7 +196,8 @@ public:
             }
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            componentIDVector->setValue<uint64_t>(0, computationState.sccIDs.getRelaxed(i));
+            componentIDVector->setValue<uint64_t>(0,
+                computationState.sccIDs.get(i, memory_order_relaxed));
             localFT->append(vectors);
         }
     }
