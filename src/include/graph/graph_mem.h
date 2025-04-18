@@ -2,15 +2,17 @@
 
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
+#include <function/gds/gds_object_manager.h>
 
 using namespace std;
 using namespace kuzu::common;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace graph {
 
 using weight_t = offset_t;
-constexpr weight_t DEFAULT_WEIGHT = 1.0;
+constexpr weight_t DEFAULT_WEIGHT = 1;
 
 struct Neighbor {
     offset_t neighbor;
@@ -20,6 +22,7 @@ struct Neighbor {
 // CSR-like in-memory representation of an undirected weighted graph. Insert nodes in sequence
 // by first calling `initNextNode()` and then insert all its neighbors using `insertNbr()`.
 // Undirected edges should be explicitly inserted twice.
+// Note: modifying the in-memory graph is NOT thread-safe.
 struct InMemGraph {
     vector<offset_t> csrOffsets;
     vector<Neighbor> csrEdges;
