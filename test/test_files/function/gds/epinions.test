@@ -1,0 +1,48 @@
+-DATASET CSV snap/epinions
+
+--
+
+-CASE Epinions
+
+-STATEMENT CALL create_projected_graph('G', ['N'], ['R'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c;
+---- 2
+75877
+2
+-STATEMENT CALL weakly_connected_component('G') WITH group_id, node WHERE group_id > 0 RETURN node.ID;
+---- 2
+71749
+74845
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+18
+737
+118
+1719
+136
+790
+143
+40
+1619
+725
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 10
+1|31940
+2|14348
+3|6088
+4|4262
+5|2518
+6|2145
+7|1417
+8|1253
+9|903
+10|787
