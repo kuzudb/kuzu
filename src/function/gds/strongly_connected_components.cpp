@@ -196,7 +196,8 @@ public:
             }
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            componentIDVector->setValue<uint64_t>(0, computationState.sccIDs.get(i, memory_order_relaxed));
+            componentIDVector->setValue<uint64_t>(0,
+                computationState.sccIDs.get(i, memory_order_relaxed));
             localFT->append(vectors);
         }
     }
@@ -254,7 +255,6 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             *initializeFrontiers);
         GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::FWD,
             MAX_ITERATION);
-
 
         // Bwd colors.
         computeState.frontierPair->resetCurrentIter();
