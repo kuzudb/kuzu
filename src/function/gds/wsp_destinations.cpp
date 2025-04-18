@@ -63,6 +63,7 @@ public:
         bool) override {
         std::vector<nodeID_t> result;
         chunk.forEach<T>([&](auto nbrNodeID, auto /* edgeID */, auto weight) {
+            checkWeight(weight);
             if (costs->update(boundNodeID.offset, nbrNodeID.offset, (double)weight)) {
                 result.push_back(nbrNodeID);
             }

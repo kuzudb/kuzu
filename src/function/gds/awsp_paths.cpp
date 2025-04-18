@@ -26,6 +26,7 @@ public:
         bool fwdEdge) override {
         std::vector<nodeID_t> result;
         chunk.forEach<T>([&](auto nbrNodeID, auto edgeID, auto weight) {
+            checkWeight(weight);
             if (!block->hasSpace()) {
                 block = bfsGraphManager->getCurrentGraph()->addNewBlock();
             }

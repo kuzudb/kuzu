@@ -49,3 +49,13 @@ D|B|40.000000|[D,B]|[40]
 D|C|40.000000|[D,C]|[40]
 D|E|30.000000|[D,E]|[30]
 D|F|70.000000|[D,E,F]|[30,40]
+
+-LOG NegativeWeight
+-STATEMENT MATCH (a {name:'A'}), (b {name: 'B'}) CREATE (a)-[{cost: -3}]->(b)
+---- ok
+-STATEMENT MATCH (a)-[e* ALL WSHORTEST(cost)]->(b) RETURN b;
+---- error
+Runtime exception: Found negative weight -3. This is not supported in weighted shortest path.
+-STATEMENT MATCH p=(a)-[e* ALL WSHORTEST(cost)]->(b) RETURN p;
+---- error
+Runtime exception: Found negative weight -3. This is not supported in weighted shortest path.
