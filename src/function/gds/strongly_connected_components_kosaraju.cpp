@@ -1,10 +1,11 @@
+#include <stack>
+
 #include "binder/binder.h"
 #include "common/exception/runtime.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
-#include <stack>
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -70,9 +71,7 @@ public:
         return curData[size_];
     }
 
-    uint64_t size() {
-        return size_;
-    }
+    uint64_t size() { return size_; }
 
 private:
     offset_t* curData = nullptr;
@@ -167,7 +166,8 @@ private:
 
 class KosarajuVertexCompute : public GDSResultVertexCompute {
 public:
-    KosarajuVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState, KosarajuVisitedState& visitedState)
+    KosarajuVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState,
+        KosarajuVisitedState& visitedState)
         : GDSResultVertexCompute{mm, sharedState}, visitedState{visitedState} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         componentIDVector = createVector(LogicalType::UINT64());
