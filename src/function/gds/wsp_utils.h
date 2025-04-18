@@ -42,8 +42,9 @@ static auto visit(const common::LogicalType& dataType, Fs... funcs) {
 
 template<typename T>
 static void checkWeight(T weight) {
-    if (weight < 0) { [[unlikely]]
-        throw common::RuntimeException(common::stringFormat("Found negative weight {}. This is not supported in weighted shortest path.", weight));
+    if (weight < 0) {
+        [[unlikely]] throw common::RuntimeException(common::stringFormat(
+            "Found negative weight {}. This is not supported in weighted shortest path.", weight));
     }
 }
 
