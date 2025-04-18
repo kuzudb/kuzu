@@ -242,8 +242,8 @@ public:
         offset_t endCSROffset, vector<weight_t>& intraCommWeights,
         unordered_map<offset_t, offset_t>& commToWeightsIndex) const {
         weight_t selfLoopWeight = 0;
-        commToWeightsIndex[state.currComm.get(nodeId, memory_order_relaxed)] =
-            0; // current community.
+        auto currComm = state.currComm.get(nodeId, memory_order_relaxed);
+        commToWeightsIndex[currComm] = 0;
         intraCommWeights.push_back(0);
         offset_t nextIndex = 1;
         for (auto offset = startCSROffset; offset < endCSROffset; offset++) {
@@ -297,7 +297,7 @@ public:
                 //   ((degree_n+degree_{other nodes in c})^2+(degree_{other nodes in d})^2)/(2m)^2
                 // sumWeightedDegrees after move =
                 //   ((degree_{other nodes in c})^2+(degree_n+degree_{other nodes in d})^2)/(2m)^2
-                // sumWeightedDegrees after move =
+                // sumWeightedDegrees diff =
                 //   2*degree_n*(degree_{other nodes in d}-degree_{other nodes in c})/(2m)^2
                 auto changeSumWeightedDegrees = 2 * degree * state.modularityConstant *
                                                 (newWeightedDegrees - prevWeightedDegrees);
@@ -363,9 +363,6 @@ std::atomic<weight_t> ComputeModularityVC::sumWeightedDegrees{0};
 
 class UpdateCommInfosVC : public InMemVertexCompute {
 public:
-    static std::atomic<weight_t> sumIntra;
-    static std::atomic<weight_t> sumTotal;
-
     explicit UpdateCommInfosVC(PhaseState& state) : state{state} {}
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
