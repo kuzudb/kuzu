@@ -16,7 +16,7 @@ template<typename T>
 class ObjectBlock {
 public:
     ObjectBlock(unique_ptr<storage::MemoryBuffer> block, uint64_t sizeInBytes)
-        : block{move(block)} {
+        : block{std::move(block)} {
         maxElements.store(sizeInBytes / (sizeof(T)), memory_order_relaxed);
         nextPosToWrite.store(0, memory_order_relaxed);
     }
@@ -140,7 +140,7 @@ class GDSDenseObjectManager {
 public:
     void allocate(table_id_t tableID, offset_t maxOffset, storage::MemoryManager* mm) {
         auto buffer = mm->allocateBuffer(false, maxOffset * sizeof(T));
-        bufferPerTable.insert({tableID, move(buffer)});
+        bufferPerTable.insert({tableID, std::move(buffer)});
     }
 
     T* getData(table_id_t tableID) const {
