@@ -20,6 +20,9 @@ public class Native {
             String os_arch;
             String os_name_detect = System.getProperty("os.name").toLowerCase().trim();
             String os_arch_detect = System.getProperty("os.arch").toLowerCase().trim();
+            boolean isAndroid = System.getProperty("java.runtime.name", "").toLowerCase().contains("android")
+                || System.getProperty("java.vendor", "").toLowerCase().contains("android")
+                || System.getProperty("java.vm.name", "").toLowerCase().contains("dalvik");
             switch (os_arch_detect) {
                 case "x86_64":
                 case "amd64":
@@ -35,7 +38,10 @@ public class Native {
                 default:
                     throw new IllegalStateException("Unsupported system architecture");
             }
-            if (os_name_detect.startsWith("windows")) {
+            if (isAndroid){
+                os_name = "android";
+            }
+            else if (os_name_detect.startsWith("windows")) {
                 os_name = "windows";
             } else if (os_name_detect.startsWith("mac")) {
                 os_name = "osx";

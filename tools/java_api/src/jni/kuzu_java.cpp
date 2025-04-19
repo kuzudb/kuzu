@@ -21,7 +21,11 @@ using namespace kuzu::main;
 using namespace kuzu::common;
 using namespace kuzu::processor;
 
+#ifdef __ANDROID__
+static jint JNI_VERSION = JNI_VERSION_1_6;
+#else
 static jint JNI_VERSION = JNI_VERSION_1_8;
+#endif
 
 // map
 static jclass J_C_Map;
