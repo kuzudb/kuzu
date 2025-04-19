@@ -959,6 +959,178 @@ impl From<&str> for Value {
     }
 }
 
+impl Value {
+    /// Returns the inner String if this Value is a String, otherwise None
+    pub fn as_string(&self) -> Option<&String> {
+        match self {
+            Value::String(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    /// Consumes the Value and returns the inner String if this Value is a String, otherwise None
+    pub fn into_string(self) -> Option<String> {
+        match self {
+            Value::String(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner bool if this Value is a Bool, otherwise None
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Value::Bool(b) => Some(*b),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner i64 if this Value is an Int64, otherwise None
+    pub fn as_i64(&self) -> Option<i64> {
+        match self {
+            Value::Int64(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner i32 if this Value is an Int32, otherwise None
+    pub fn as_i32(&self) -> Option<i32> {
+        match self {
+            Value::Int32(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner i16 if this Value is an Int16, otherwise None
+    pub fn as_i16(&self) -> Option<i16> {
+        match self {
+            Value::Int16(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner i8 if this Value is an Int8, otherwise None
+    pub fn as_i8(&self) -> Option<i8> {
+        match self {
+            Value::Int8(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner u64 if this Value is a UInt64, otherwise None
+    pub fn as_u64(&self) -> Option<u64> {
+        match self {
+            Value::UInt64(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner u32 if this Value is a UInt32, otherwise None
+    pub fn as_u32(&self) -> Option<u32> {
+        match self {
+            Value::UInt32(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner u16 if this Value is a UInt16, otherwise None
+    pub fn as_u16(&self) -> Option<u16> {
+        match self {
+            Value::UInt16(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner u8 if this Value is a UInt8, otherwise None
+    pub fn as_u8(&self) -> Option<u8> {
+        match self {
+            Value::UInt8(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner i128 if this Value is an Int128, otherwise None
+    pub fn as_i128(&self) -> Option<i128> {
+        match self {
+            Value::Int128(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner f64 if this Value is a Double, otherwise None
+    pub fn as_f64(&self) -> Option<f64> {
+        match self {
+            Value::Double(d) => Some(*d),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner f32 if this Value is a Float, otherwise None
+    pub fn as_f32(&self) -> Option<f32> {
+        match self {
+            Value::Float(f) => Some(*f),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner Date if this Value is a Date, otherwise None
+    pub fn as_date(&self) -> Option<&time::Date> {
+        match self {
+            Value::Date(d) => Some(d),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner UUID if this Value is a UUID, otherwise None
+    pub fn as_uuid(&self) -> Option<&uuid::Uuid> {
+        match self {
+            Value::UUID(u) => Some(u),
+            _ => None,
+        }
+    }
+
+    /// Returns the inner Vec<u8> if this Value is a Blob, otherwise None
+    pub fn as_blob(&self) -> Option<&Vec<u8>> {
+        match self {
+            Value::Blob(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    /// Returns a reference to the inner list of Values if this Value is a List, otherwise None
+    pub fn as_list(&self) -> Option<(&LogicalType, &Vec<Value>)> {
+        match self {
+            Value::List(t, v) => Some((t, v)),
+            _ => None,
+        }
+    }
+
+    /// Returns a reference to the inner NodeVal if this Value is a Node, otherwise None
+    pub fn as_node(&self) -> Option<&NodeVal> {
+        match self {
+            Value::Node(n) => Some(n),
+            _ => None,
+        }
+    }
+
+    /// Returns a reference to the inner RelVal if this Value is a Rel, otherwise None
+    pub fn as_rel(&self) -> Option<&RelVal> {
+        match self {
+            Value::Rel(r) => Some(r),
+            _ => None,
+        }
+    }
+
+    /// Returns true if this Value is Null, otherwise false
+    pub fn is_null(&self) -> bool {
+        matches!(self, Value::Null(_))
+    }
+
+    /// Returns the LogicalType of this Value
+    pub fn get_type(&self) -> LogicalType {
+        self.into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::database::SYSTEM_CONFIG_FOR_TESTS;
@@ -1444,5 +1616,217 @@ mod tests {
         );
         temp_dir.close()?;
         Ok(())
+    }
+
+    #[test]
+    fn test_as_string() {
+        let string_value = Value::String("test".to_string());
+        let int_value = Value::Int64(42);
+        
+        assert_eq!(string_value.as_string(), Some(&"test".to_string()));
+        assert_eq!(int_value.as_string(), None);
+    }
+
+    #[test]
+    fn test_into_string() {
+        let string_value = Value::String("test".to_string());
+        let int_value = Value::Int64(42);
+        
+        assert_eq!(string_value.into_string(), Some("test".to_string()));
+        assert_eq!(int_value.into_string(), None);
+    }
+
+    #[test]
+    fn test_as_bool() {
+        let true_value = Value::Bool(true);
+        let false_value = Value::Bool(false);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(true_value.as_bool(), Some(true));
+        assert_eq!(false_value.as_bool(), Some(false));
+        assert_eq!(string_value.as_bool(), None);
+    }
+
+    #[test]
+    fn test_as_i64() {
+        let int_value = Value::Int64(42);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(int_value.as_i64(), Some(42));
+        assert_eq!(string_value.as_i64(), None);
+    }
+
+    #[test]
+    fn test_as_i32() {
+        let int_value = Value::Int32(42);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(int_value.as_i32(), Some(42));
+        assert_eq!(string_value.as_i32(), None);
+    }
+
+    #[test]
+    fn test_as_i16() {
+        let int_value = Value::Int16(42);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(int_value.as_i16(), Some(42));
+        assert_eq!(string_value.as_i16(), None);
+    }
+
+    #[test]
+    fn test_as_i8() {
+        let int_value = Value::Int8(42);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(int_value.as_i8(), Some(42));
+        assert_eq!(string_value.as_i8(), None);
+    }
+
+    #[test]
+    fn test_as_u64() {
+        let int_value = Value::UInt64(42);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(int_value.as_u64(), Some(42));
+        assert_eq!(string_value.as_u64(), None);
+    }
+
+    #[test]
+    fn test_as_u32() {
+        let int_value = Value::UInt32(42);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(int_value.as_u32(), Some(42));
+        assert_eq!(string_value.as_u32(), None);
+    }
+
+    #[test]
+    fn test_as_u16() {
+        let int_value = Value::UInt16(42);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(int_value.as_u16(), Some(42));
+        assert_eq!(string_value.as_u16(), None);
+    }
+
+    #[test]
+    fn test_as_u8() {
+        let int_value = Value::UInt8(42);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(int_value.as_u8(), Some(42));
+        assert_eq!(string_value.as_u8(), None);
+    }
+
+    #[test]
+    fn test_as_i128() {
+        let int_value = Value::Int128(42);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(int_value.as_i128(), Some(42));
+        assert_eq!(string_value.as_i128(), None);
+    }
+
+    #[test]
+    fn test_as_f64() {
+        let double_value = Value::Double(3.14);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(double_value.as_f64(), Some(3.14));
+        assert_eq!(string_value.as_f64(), None);
+    }
+
+    #[test]
+    fn test_as_f32() {
+        let float_value = Value::Float(3.14);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(float_value.as_f32(), Some(3.14));
+        assert_eq!(string_value.as_f32(), None);
+    }
+
+    #[test]
+    fn test_as_date() {
+        let date_value = Value::Date(date!(2023-06-13));
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(date_value.as_date(), Some(&date!(2023-06-13)));
+        assert_eq!(string_value.as_date(), None);
+    }
+
+    #[test]
+    fn test_as_uuid() {
+        let uuid_value = Value::UUID(uuid!("00000000-0000-0000-0000-ffff00000000"));
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(uuid_value.as_uuid(), Some(&uuid!("00000000-0000-0000-0000-ffff00000000")));
+        assert_eq!(string_value.as_uuid(), None);
+    }
+
+    #[test]
+    fn test_as_blob() {
+        let blob_value = Value::Blob(vec![1, 2, 3]);
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(blob_value.as_blob(), Some(&vec![1, 2, 3]));
+        assert_eq!(string_value.as_blob(), None);
+    }
+
+    #[test]
+    fn test_as_list() {
+        let list_value = Value::List(LogicalType::String, vec![Value::String("a".to_string()), Value::String("b".to_string())]);
+        let string_value = Value::String("test".to_string());
+        
+        if let Some((typ, values)) = list_value.as_list() {
+            assert_eq!(typ, &LogicalType::String);
+            assert_eq!(values.len(), 2);
+            assert_eq!(values[0].as_string(), Some(&"a".to_string()));
+            assert_eq!(values[1].as_string(), Some(&"b".to_string()));
+        } else {
+            panic!("Expected list but got None");
+        }
+        
+        assert_eq!(string_value.as_list(), None);
+    }
+
+    #[test]
+    fn test_as_node() {
+        let node = NodeVal::new((0, 0), "Person");
+        let node_value = Value::Node(node.clone());
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(node_value.as_node().unwrap().get_label_name(), node.get_label_name());
+        assert_eq!(string_value.as_node(), None);
+    }
+
+    #[test]
+    fn test_as_rel() {
+        let rel = RelVal::new((0, 0), (1, 0), "KNOWS");
+        let rel_value = Value::Rel(rel.clone());
+        let string_value = Value::String("test".to_string());
+        
+        assert_eq!(rel_value.as_rel().unwrap().get_label_name(), rel.get_label_name());
+        assert_eq!(string_value.as_rel(), None);
+    }
+
+    #[test]
+    fn test_is_null() {
+        let null_value = Value::Null(LogicalType::String);
+        let string_value = Value::String("test".to_string());
+        
+        assert!(null_value.is_null());
+        assert!(!string_value.is_null());
+    }
+
+    #[test]
+    fn test_get_type() {
+        let string_value = Value::String("test".to_string());
+        let int_value = Value::Int64(42);
+        let bool_value = Value::Bool(true);
+        
+        assert_eq!(string_value.get_type(), LogicalType::String);
+        assert_eq!(int_value.get_type(), LogicalType::Int64);
+        assert_eq!(bool_value.get_type(), LogicalType::Bool);
     }
 }
