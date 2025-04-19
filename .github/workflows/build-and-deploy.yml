@@ -148,6 +148,11 @@ jobs:
         with:
           name: java-lib-win-x86_64
           path: tools/java_api/src/main/resources
+        
+      - uses: actions/download-artifact@v4
+        with:
+          name: java-lib-android-armv8a
+          path: tools/java_api/src/main/resources
 
       - name: Create Java JAR
         working-directory: tools/java_api
