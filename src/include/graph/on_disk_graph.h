@@ -30,12 +30,15 @@ public:
     OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
         std::shared_ptr<binder::Expression> predicate);
     OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
-        std::shared_ptr<binder::Expression> predicate, const std::string& propertyName,
+        std::shared_ptr<binder::Expression> predicate, std::vector<std::string> relProperties,
         bool randomLookup = false);
 
     Chunk getChunk() override {
-        return createChunk(currentIter->getNbrNodes(), currentIter->getEdges(),
-            currentIter->getSelVectorUnsafe(), propertyVector.get());
+        std::vector<common::ValueVector*> vectors;
+        for (auto& propertyVector : propertyVectors) {
+            vectors.push_back(propertyVector.get());
+        }
+        return createChunk(currentIter->getNbrNodes(), currentIter->getSelVectorUnsafe(), vectors);
     }
     bool next() override;
 
@@ -56,14 +59,6 @@ public:
             return std::span(&dstVector().getValue<const common::nodeID_t>(0),
                 common::DEFAULT_VECTOR_CAPACITY);
         }
-        std::span<const common::nodeID_t> getEdges() const {
-            RUNTIME_CHECK(for (size_t i = 0; i < getSelVector().getSelSize(); i++) {
-                KU_ASSERT(
-                    getSelVector().getSelectedPositions()[i] < common::DEFAULT_VECTOR_CAPACITY);
-            });
-            return std::span(&relIDVector().getValue<const common::nodeID_t>(0),
-                common::DEFAULT_VECTOR_CAPACITY);
-        }
 
         common::SelectionVector& getSelVectorUnsafe() {
             return tableScanState->outState->getSelVectorUnsafe();
@@ -80,7 +75,6 @@ public:
 
     private:
         common::ValueVector& dstVector() const { return *tableScanState->outputVectors[0]; }
-        common::ValueVector& relIDVector() const { return *tableScanState->outputVectors[1]; }
 
         const main::ClientContext* context;
         storage::RelTable* relTable;
@@ -90,8 +84,7 @@ public:
 private:
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
-    std::unique_ptr<common::ValueVector> relIDVector;
-    std::unique_ptr<common::ValueVector> propertyVector;
+    std::vector<std::unique_ptr<common::ValueVector>> propertyVectors;
 
     std::unique_ptr<evaluator::ExpressionEvaluator> relPredicateEvaluator;
     common::SemiMask* nbrNodeMask = nullptr;
@@ -153,7 +146,7 @@ public:
     std::vector<NbrTableInfo> getForwardNbrTableInfos(common::table_id_t srcNodeTableID) override;
 
     std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,
-        catalog::TableCatalogEntry* nbrNodeEntry, const std::string& property) override;
+        catalog::TableCatalogEntry* nbrNodeEntry, std::vector<std::string> relProperties) override;
     // This is used for few random lookups in the relationship table. Internally we skip caching the
     // CSR header during scan.
     std::unique_ptr<NbrScanState> prepareRelLookup(catalog::TableCatalogEntry* tableEntry) const;

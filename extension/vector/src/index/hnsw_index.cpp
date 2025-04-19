@@ -320,7 +320,8 @@ common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction*
         auto neighborItr =
             upperGraph->scanFwd(common::nodeID_t{currentNodeOffset, nodeTableID}, *scanState);
         for (const auto neighborChunk : neighborItr) {
-            neighborChunk.forEach([&](auto neighbor, auto) {
+            neighborChunk.forEach([&](auto neighbors, auto, auto i) {
+                auto neighbor = neighbors[i];
                 const auto nbrVector =
                     embeddings->getEmbedding(transaction, embeddingScanState, neighbor.offset);
                 const auto dist = metricFunc(queryVector, nbrVector, embeddings->getDimension());
@@ -439,7 +440,8 @@ void OnDiskHNSWIndex::oneHopSearch(transaction::Transaction* transaction, const 
     graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
     min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const {
     for (const auto neighborChunk : nbrItr) {
-        neighborChunk.forEach([&](auto nbr, auto) {
+        neighborChunk.forEach([&](auto neighbors, auto, auto i) {
+            const auto nbr = neighbors[i];
             if (!searchState.visited.contains(nbr.offset) && searchState.isMasked(nbr.offset)) {
                 const auto nbrVector = embeddings->getEmbedding(transaction,
                     *searchState.embeddingScanState.scanState, nbr.offset);
@@ -467,7 +469,8 @@ min_node_priority_queue_t OnDiskHNSWIndex::collectFirstHopNbrsDirected(
     int64_t& numVisitedNbrs) const {
     min_node_priority_queue_t candidatesForSecHop;
     for (const auto& neighborChunk : nbrItr) {
-        neighborChunk.forEach([&](auto neighbor, auto) {
+        neighborChunk.forEach([&](auto neighbors, auto, auto i) {
+            const auto neighbor = neighbors[i];
             auto nbrOffset = neighbor.offset;
             if (!searchState.visited.contains(nbrOffset)) {
                 const auto nbrVector = embeddings->getEmbedding(transaction,
@@ -509,7 +512,8 @@ common::offset_vec_t OnDiskHNSWIndex::collectFirstHopNbrsBlind(
     common::offset_vec_t secondHopCandidates;
     secondHopCandidates.reserve(config.ml);
     for (const auto& neighborChunk : nbrItr) {
-        neighborChunk.forEach([&](auto nbr, auto) {
+        neighborChunk.forEach([&](auto neighbors, auto, auto i) {
+            const auto nbr = neighbors[i];
             if (!searchState.visited.contains(nbr.offset)) {
                 secondHopCandidates.push_back(nbr.offset);
                 if (searchState.isMasked(nbr.offset)) {
@@ -569,7 +573,8 @@ bool OnDiskHNSWIndex::searchOverSecondHopNbrs(transaction::Transaction* transact
         if (numVisitedNbrs >= config.ml) {
             return false;
         }
-        secondHopNbrChunk.forEachBreakWhenFalse([&](auto nbr, auto) -> bool {
+        secondHopNbrChunk.forEachBreakWhenFalse([&](auto neighbors, auto i) -> bool {
+            auto nbr = neighbors[i];
             if (!searchState.visited.contains(nbr.offset) && searchState.isMasked(nbr.offset)) {
                 auto nbrVector = embeddings->getEmbedding(transaction,
                     *searchState.embeddingScanState.scanState, nbr.offset);

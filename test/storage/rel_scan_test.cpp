@@ -23,7 +23,7 @@ namespace testing {
 class RelScanTest : public PrivateApiTest {
 public:
     void SetUp() override {
-        kuzu::testing::PrivateApiTest::SetUp();
+        PrivateApiTest::SetUp();
         conn->query("BEGIN TRANSACTION");
         context = getClientContext(*conn);
         catalog = context->getCatalog();
@@ -37,13 +37,13 @@ public:
             relEntries.push_back(entry);
         }
         auto entry = graph::GraphEntry(nodeEntries, relEntries);
-        graph = std::make_unique<kuzu::graph::OnDiskGraph>(context, std::move(entry));
+        graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
 
         fwdStorageOnly = (common::DEFAULT_EXTEND_DIRECTION == common::ExtendDirection::FWD);
     }
 
 public:
-    std::unique_ptr<kuzu::graph::OnDiskGraph> graph;
+    std::unique_ptr<graph::OnDiskGraph> graph;
     main::ClientContext* context;
     catalog::Catalog* catalog;
     bool fwdStorageOnly;
@@ -51,7 +51,7 @@ public:
 
 class RelScanTestAmazon : public RelScanTest {
     std::string getInputDir() override {
-        return kuzu::testing::TestHelper::appendKuzuRootPath("dataset/snap/amazon0601/csv/");
+        return TestHelper::appendKuzuRootPath("dataset/snap/amazon0601/csv/");
     }
 };
 
@@ -61,9 +61,10 @@ TEST_F(RelScanTest, ScanFwd) {
     auto nodeEntry = catalog->getTableCatalogEntry(transaction, "person");
     auto tableID = nodeEntry->getTableID();
     auto relEntry = catalog->getTableCatalogEntry(transaction, "knows");
-    auto scanState = graph->prepareRelScan(relEntry, nodeEntry, "date");
+    auto scanState =
+        graph->prepareRelScan(relEntry, nodeEntry, {common::InternalKeyword::ID, "date"});
 
-    std::unordered_map<offset_t, common::date_t> expectedDates = {
+    std::unordered_map<offset_t, date_t> expectedDates = {
         {0, Date::fromDate(2021, 6, 30)},
         {1, Date::fromDate(2021, 6, 30)},
         {2, Date::fromDate(2021, 6, 30)},
@@ -82,19 +83,22 @@ TEST_F(RelScanTest, ScanFwd) {
                              common::offset_vec_t expectedFwdRelOffsets,
                              common::offset_vec_t expectedBwdRelOffsets) {
         common::offset_vec_t resultNodeOffsets;
-        std::vector<common::nodeID_t> expectedNodes;
+        std::vector<nodeID_t> expectedNodes;
         std::transform(expectedNodeOffsets.begin(), expectedNodeOffsets.end(),
             std::back_inserter(expectedNodes),
             [&](auto offset) { return nodeID_t{offset, tableID}; });
 
         common::offset_vec_t resultRelOffsets;
-        std::vector<common::date_t> resultDates;
+        std::vector<date_t> resultDates;
         for (const auto chunk : graph->scanFwd(nodeID_t{node, tableID}, *scanState)) {
-            chunk.forEach<common::date_t>([&](auto nbr, auto edgeID, auto date) {
+            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+                auto nbr = neighbors[i];
                 EXPECT_EQ(nbr.tableID, tableID);
+                auto edgeID = propertyVectors[0]->template getValue<nodeID_t>(i);
                 resultNodeOffsets.push_back(nbr.offset);
                 EXPECT_EQ(edgeID.tableID, relEntry->getTableID());
                 resultRelOffsets.push_back(edgeID.offset);
+                auto date = propertyVectors[1]->template getValue<date_t>(i);
                 resultDates.push_back(date);
             });
         }
@@ -115,7 +119,10 @@ TEST_F(RelScanTest, ScanFwd) {
             resultDates.clear();
 
             for (const auto chunk : graph->scanBwd(nodeID_t{node, tableID}, *scanState)) {
-                chunk.forEach<common::date_t>([&](auto nbr, auto edgeID, auto date) {
+                chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+                    auto nbr = neighbors[i];
+                    auto edgeID = propertyVectors[0]->template getValue<nodeID_t>(i);
+                    auto date = propertyVectors[1]->template getValue<date_t>(i);
                     EXPECT_EQ(nbr.tableID, tableID);
                     resultNodeOffsets.push_back(nbr.offset);
                     EXPECT_EQ(edgeID.tableID, relEntry->getTableID());

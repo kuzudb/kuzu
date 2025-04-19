@@ -21,7 +21,8 @@ public:
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& resultChunk,
         bool fwdEdge) override {
         std::vector<nodeID_t> activeNodes;
-        resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
+        resultChunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+            auto nbrNodeID = neighbors[i];
             auto iter = frontierPair->getNextFrontierValue(nbrNodeID.offset);
             // We should update in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
@@ -33,6 +34,7 @@ public:
                 if (!block->hasSpace()) {
                     block = bfsGraphManager->getCurrentGraph()->addNewBlock();
                 }
+                auto edgeID = propertyVectors[0]->template getValue<nodeID_t>(i);
                 bfsGraphManager->getCurrentGraph()->addParent(frontierPair->getCurrentIter(),
                     boundNodeID, edgeID, nbrNodeID, fwdEdge, block);
             }

@@ -78,7 +78,7 @@ private:
 
 struct DegreesUtils {
     static void computeDegree(processor::ExecutionContext* context, graph::Graph* graph,
-        common::NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees, ExtendDirection direction) {
+        NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees, ExtendDirection direction) {
         auto currentFrontier = DenseFrontier::getUnvisitedFrontier(context, graph);
         auto nextFrontier = DenseFrontier::getVisitedFrontier(context, graph, nodeOffsetMaskMap);
         auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier),

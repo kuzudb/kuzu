@@ -69,8 +69,11 @@ class RemoveVertexEdgeCompute : public EdgeCompute {
 public:
     explicit RemoveVertexEdgeCompute(Degrees& degrees) : degrees{degrees} {}
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t, graph::NbrScanState::Chunk& chunk, bool) override {
-        chunk.forEach([&](auto nbrNodeID, auto) { degrees.decreaseDegreeByOne(nbrNodeID.offset); });
+    std::vector<nodeID_t> edgeCompute(nodeID_t, NbrScanState::Chunk& chunk, bool) override {
+        chunk.forEach([&](auto neighbors, auto, auto i) {
+            auto nbrNodeID = neighbors[i];
+            degrees.decreaseDegreeByOne(nbrNodeID.offset);
+        });
         return {};
     }
 

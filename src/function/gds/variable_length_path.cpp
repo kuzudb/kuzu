@@ -59,8 +59,10 @@ public:
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool fwdEdge) override {
         std::vector<nodeID_t> activeNodes;
-        chunk.forEach([&](auto nbrNodeID, auto edgeID) {
+        chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
             // We should always update the nbrID in variable length joins
+            auto nbrNodeID = neighbors[i];
+            auto edgeID = propertyVectors[0]->template getValue<relID_t>(i);
             if (!block->hasSpace()) {
                 block = bfsGraphManager->getCurrentGraph()->addNewBlock();
             }
