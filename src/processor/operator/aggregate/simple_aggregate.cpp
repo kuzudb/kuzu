@@ -6,6 +6,7 @@
 
 #include "binder/expression/expression_util.h"
 #include "common/data_chunk/data_chunk_state.h"
+#include "common/in_mem_overflow_buffer.h"
 #include "common/system_config.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
@@ -44,7 +45,8 @@ SimpleAggregateSharedState::SimpleAggregateSharedState(main::ClientContext* cont
           // Only distinct functions need partitioning
           getNumPartitionsForParallelism(context)},
       hasDistinct{isAnyFunctionDistinct(aggregateFunctions)},
-      globalPartitions{hasDistinct ? getNumPartitionsForParallelism(context) : 0} {
+      globalPartitions{hasDistinct ? getNumPartitionsForParallelism(context) : 0},
+      aggregateOverflowBuffer{context->getMemoryManager()} {
     for (size_t funcIdx = 0; funcIdx < this->aggregateFunctions.size(); funcIdx++) {
         auto& aggregateFunction = this->aggregateFunctions[funcIdx];
         globalAggregateStates.push_back(aggregateFunction.createInitialNullAggregateState());
@@ -75,28 +77,30 @@ SimpleAggregateSharedState::SimpleAggregateSharedState(main::ClientContext* cont
 
 void SimpleAggregateSharedState::combineAggregateStates(
     const std::vector<std::unique_ptr<AggregateState>>& localAggregateStates,
-    storage::MemoryManager* memoryManager) {
+    common::InMemOverflowBuffer&& localOverflowBuffer) {
     KU_ASSERT(localAggregateStates.size() == globalAggregateStates.size());
     std::unique_lock lck{mtx};
     for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
         // Distinct functions will be combined accross the partitions in
         // finalizeAggregateStates
+        aggregateOverflowBuffer.merge(localOverflowBuffer);
         if (!aggregateFunctions[i].isDistinct) {
             aggregateFunctions[i].combineState(
                 reinterpret_cast<uint8_t*>(globalAggregateStates[i].get()),
-                reinterpret_cast<uint8_t*>(localAggregateStates[i].get()), memoryManager);
+                reinterpret_cast<uint8_t*>(localAggregateStates[i].get()),
+                &aggregateOverflowBuffer);
         }
     }
 }
 
-void SimpleAggregateSharedState::finalizeAggregateStates(storage::MemoryManager* memoryManager) {
+void SimpleAggregateSharedState::finalizeAggregateStates() {
     std::unique_lock lck{mtx};
     for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
         if (aggregateFunctions[i].isDistinct) {
             for (auto& partition : globalPartitions) {
                 aggregateFunctions[i].combineState(reinterpret_cast<uint8_t*>(getAggregateState(i)),
                     reinterpret_cast<uint8_t*>(partition.distinctTables[i].state.get()),
-                    memoryManager);
+                    &aggregateOverflowBuffer);
             }
         }
         aggregateFunctions[i].finalizeState(
@@ -166,7 +170,7 @@ void SimpleAggregateSharedState::finalizePartitions(storage::MemoryManager* memo
             while (numTuplesToScan > 0) {
                 ft->scan(vectors, startTupleIdx, numTuplesToScan, colIdxToScan);
                 aggregateFunctions[i].updateAllState((uint8_t*)state.get(), &aggregateVector,
-                    1 /*multiplicity*/, memoryManager);
+                    1 /*multiplicity*/, &aggregateOverflowBuffer);
                 startTupleIdx += numTuplesToScan;
                 numTuplesToScan =
                     std::min(DEFAULT_VECTOR_CAPACITY, ft->getNumTuples() - startTupleIdx);
@@ -202,7 +206,7 @@ void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 }
 
 void SimpleAggregate::executeInternal(ExecutionContext* context) {
-    auto memoryManager = context->clientContext->getMemoryManager();
+    InMemOverflowBuffer localOverflowBuffer(context->clientContext->getMemoryManager());
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = &aggregateFunctions[i];
@@ -213,7 +217,7 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
                     aggInputs[i].aggregateVector, aggInputs[i].aggregateVector->state.get());
             } else {
                 computeAggregate(aggregateFunction, &aggInputs[i], localAggregateStates[i].get(),
-                    memoryManager);
+                    localOverflowBuffer);
             }
         }
     }
@@ -222,11 +226,11 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
             hashTable->mergeIfFull(0 /*tuplesToAdd*/, true /*mergeAll*/);
         }
     }
-    getSharedState().combineAggregateStates(localAggregateStates, memoryManager);
+    getSharedState().combineAggregateStates(localAggregateStates, std::move(localOverflowBuffer));
 }
 
 void SimpleAggregate::computeAggregate(function::AggregateFunction* function, AggregateInput* input,
-    function::AggregateState* state, storage::MemoryManager* memoryManager) {
+    function::AggregateState* state, common::InMemOverflowBuffer& overflowBuffer) {
     auto multiplicity = resultSet->multiplicity;
     for (auto dataChunk : input->multiplicityChunks) {
         multiplicity *= dataChunk->state->getSelVector().getSelSize();
@@ -235,16 +239,16 @@ void SimpleAggregate::computeAggregate(function::AggregateFunction* function, Ag
         auto pos = input->aggregateVector->state->getSelVector()[0];
         if (!input->aggregateVector->isNull(pos)) {
             function->updatePosState((uint8_t*)state, input->aggregateVector, multiplicity, pos,
-                memoryManager);
+                &overflowBuffer);
         }
     } else {
         function->updateAllState((uint8_t*)state, input->aggregateVector, multiplicity,
-            memoryManager);
+            &overflowBuffer);
     }
 }
 
-void SimpleAggregateFinalize::finalizeInternal(ExecutionContext* context) {
-    sharedState->finalizeAggregateStates(context->clientContext->getMemoryManager());
+void SimpleAggregateFinalize::finalizeInternal(ExecutionContext* /*context*/) {
+    sharedState->finalizeAggregateStates();
     if (metrics) {
         metrics->numOutputTuple.incrementByOne();
     }

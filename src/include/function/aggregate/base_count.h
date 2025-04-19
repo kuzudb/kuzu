@@ -24,7 +24,7 @@ struct BaseCountFunction {
     }
 
     static void combine(uint8_t* state_, uint8_t* otherState_,
-        storage::MemoryManager* /*memoryManager*/) {
+        common::InMemOverflowBuffer* /*overflowBuffer*/) {
         auto state = reinterpret_cast<CountState*>(state_);
         auto otherState = reinterpret_cast<CountState*>(otherState_);
         state->count += otherState->count;
