@@ -68,8 +68,6 @@ jobs:
           cd build
           cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DBUILD_JAVA=TRUE -DBUILD_SHELL=FALSE ..
           make -j$(nproc)
-          cd ..
-          cmake --install build --prefix install
     
       - name: Rename artifact
         run: |
@@ -77,5 +75,5 @@ jobs:
       
       - uses: actions/upload-artifact@v4
         with:
-          name: java-lib-linux-armv8a
+          name: java-lib-android-armv8a
           path: tools/java_api/build/libkuzu_java_native*
