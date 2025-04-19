@@ -2,7 +2,8 @@
 
 namespace kuzu::graph {
 
-InMemGraph::InMemGraph(const offset_t numNodes) {
+InMemGraph::InMemGraph(const offset_t numNodes, storage::MemoryManager* mm)
+    : alloc{KuzuAllocator<offset_t>(mm)}, alloc2{KuzuAllocator<Neighbor>(mm)}, csrOffsets(alloc), csrEdges(alloc2) {
     reset(numNodes);
 }
 

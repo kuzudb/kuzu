@@ -67,7 +67,7 @@ struct PhaseState {
     double modularityConstant = 0.0; // 1/2m.
 
     explicit PhaseState(const offset_t numNodes, MemoryManager* mm, ExecutionContext* context)
-        : graph{InMemGraph(numNodes)} {
+        : graph{InMemGraph(numNodes, mm)} {
         reset(numNodes, mm, context);
     }
     DELETE_BOTH_COPY(PhaseState);

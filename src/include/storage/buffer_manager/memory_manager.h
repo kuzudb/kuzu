@@ -83,7 +83,6 @@ public:
 
     BufferManager* getBufferManager() const { return bm; }
 
-private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
     std::span<uint8_t> mallocBuffer(bool initializeToZero, uint64_t size);
 
