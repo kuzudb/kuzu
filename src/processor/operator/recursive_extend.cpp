@@ -103,11 +103,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
             auto gdsComputeState = rjCompState.gdsComputeState.get();
             gdsComputeState->initSource(sourceNodeID);
             std::vector<std::string> propertyNames;
-            if (function->getFunctionName() == WeightedSPPathsFunction::name ||
-                function->getFunctionName() == SingleSPPathsFunction::name ||
-                function->getFunctionName() == AllSPPathsFunction::name ||
-                function->getFunctionName() == AllWeightedSPPathsFunction::name ||
-                function->getFunctionName() == VarLenJoinsFunction::name) {
+            if (requireRelID(*function)) {
                 propertyNames.push_back(InternalKeyword::ID);
             }
             if (bindData.weightPropertyExpr != nullptr) {
@@ -153,6 +149,17 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
         }
     }
     sharedState->factorizedTablePool.mergeLocalTables();
+}
+
+bool RecursiveExtend::requireRelID(const RJAlgorithm& function) {
+    if (function.getFunctionName() == WeightedSPPathsFunction::name ||
+        function.getFunctionName() == SingleSPPathsFunction::name ||
+        function.getFunctionName() == AllSPPathsFunction::name ||
+        function.getFunctionName() == AllWeightedSPPathsFunction::name ||
+        function.getFunctionName() == VarLenJoinsFunction::name) {
+        return true;
+    }
+    return false;
 }
 
 } // namespace processor

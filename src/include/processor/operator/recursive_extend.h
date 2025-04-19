@@ -47,6 +47,9 @@ public:
     }
 
 private:
+    static bool requireRelID(const function::RJAlgorithm& function);
+
+private:
     std::unique_ptr<function::RJAlgorithm> function;
     function::RJBindData bindData;
     std::shared_ptr<RecursiveExtendSharedState> sharedState;
