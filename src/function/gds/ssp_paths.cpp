@@ -21,12 +21,14 @@ public:
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& resultChunk,
         bool isFwd) override {
         std::vector<nodeID_t> activeNodes;
-        resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
+        resultChunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+            auto nbrNodeID = neighbors[i];
             if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset) ==
                 PathLengths::UNVISITED) {
                 if (!block->hasSpace()) {
                     block = bfsGraph->addNewBlock();
                 }
+                auto edgeID = propertyVectors[0]->template getValue<nodeID_t>(i);
                 bfsGraph->addSingleParent(frontierPair->getCurrentIter(), boundNodeID, edgeID,
                     nbrNodeID, isFwd, block);
                 activeNodes.push_back(nbrNodeID);

@@ -17,13 +17,13 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-static std::shared_ptr<FrontierTask> getFrontierTask(TableCatalogEntry* fromEntry,
-    TableCatalogEntry* toEntry, TableCatalogEntry* relEntry, Graph* graph,
-    ExtendDirection extendDirection, GDSComputeState& computeState, main::ClientContext* context,
-    const std::string& propertyToScan) {
+static std::shared_ptr<FrontierTask> getFrontierTask(const main::ClientContext* context,
+    TableCatalogEntry* fromEntry, TableCatalogEntry* toEntry, TableCatalogEntry* relEntry,
+    Graph* graph, ExtendDirection extendDirection, const GDSComputeState& computeState,
+    std::vector<std::string> propertiesToScan) {
     computeState.beginFrontierCompute(fromEntry->getTableID(), toEntry->getTableID());
     auto info = FrontierTaskInfo(fromEntry, toEntry, relEntry, graph, extendDirection,
-        *computeState.edgeCompute, propertyToScan);
+        *computeState.edgeCompute, std::move(propertiesToScan));
     auto numThreads = context->getMaxNumThreadForExec();
     auto sharedState =
         std::make_shared<FrontierTaskSharedState>(numThreads, *computeState.frontierPair);
@@ -32,12 +32,13 @@ static std::shared_ptr<FrontierTask> getFrontierTask(TableCatalogEntry* fromEntr
     return std::make_shared<FrontierTask>(numThreads, info, sharedState);
 }
 
-static void scheduleFrontierTask(TableCatalogEntry* fromEntry, TableCatalogEntry* toEntry,
-    TableCatalogEntry* relEntry, Graph* graph, ExtendDirection extendDirection,
-    GDSComputeState& computeState, ExecutionContext* context, const std::string& propertyToScan) {
+static void scheduleFrontierTask(ExecutionContext* context, TableCatalogEntry* fromEntry,
+    TableCatalogEntry* toEntry, TableCatalogEntry* relEntry, Graph* graph,
+    ExtendDirection extendDirection, const GDSComputeState& computeState,
+    std::vector<std::string> propertiesToScan) {
     auto clientContext = context->clientContext;
-    auto task = getFrontierTask(fromEntry, toEntry, relEntry, graph, extendDirection, computeState,
-        clientContext, propertyToScan);
+    auto task = getFrontierTask(clientContext, fromEntry, toEntry, relEntry, graph, extendDirection,
+        computeState, std::move(propertiesToScan));
     if (computeState.frontierPair->isCurFrontierSparse()) {
         task->runSparse();
         return;
@@ -55,26 +56,26 @@ static void scheduleFrontierTask(TableCatalogEntry* fromEntry, TableCatalogEntry
 }
 
 static void runOnGraph(ExecutionContext* context, Graph* graph, ExtendDirection extendDirection,
-    GDSComputeState& compState, const std::string& propertyToScan) {
-    for (auto info : graph->getGraphEntry()->nodeInfos) {
+    const GDSComputeState& compState, const std::vector<std::string>& propertiesToScan) {
+    for (const auto& info : graph->getGraphEntry()->nodeInfos) {
         auto fromEntry = info.entry;
-        for (auto& nbrInfo : graph->getForwardNbrTableInfos(fromEntry->getTableID())) {
+        for (const auto& nbrInfo : graph->getForwardNbrTableInfos(fromEntry->getTableID())) {
             auto toEntry = nbrInfo.nodeEntry;
             auto relEntry = nbrInfo.relEntry;
             switch (extendDirection) {
             case ExtendDirection::FWD: {
-                scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
-                    compState, context, propertyToScan);
+                scheduleFrontierTask(context, fromEntry, toEntry, relEntry, graph,
+                    ExtendDirection::FWD, compState, propertiesToScan);
             } break;
             case ExtendDirection::BWD: {
-                scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
-                    compState, context, propertyToScan);
+                scheduleFrontierTask(context, toEntry, fromEntry, relEntry, graph,
+                    ExtendDirection::BWD, compState, propertiesToScan);
             } break;
             case ExtendDirection::BOTH: {
-                scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
-                    compState, context, propertyToScan);
-                scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
-                    compState, context, propertyToScan);
+                scheduleFrontierTask(context, fromEntry, toEntry, relEntry, graph,
+                    ExtendDirection::FWD, compState, propertiesToScan);
+                scheduleFrontierTask(context, toEntry, fromEntry, relEntry, graph,
+                    ExtendDirection::BWD, compState, propertiesToScan);
             } break;
             default:
                 KU_UNREACHABLE;
@@ -83,18 +84,20 @@ static void runOnGraph(ExecutionContext* context, Graph* graph, ExtendDirection 
     }
 }
 
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
-    Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration) {
+void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context,
+    const GDSComputeState& compState, Graph* graph, ExtendDirection extendDirection,
+    uint64_t maxIteration) {
     auto frontierPair = compState.frontierPair.get();
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
-        runOnGraph(context, graph, extendDirection, compState, "" /* empty */);
+        runOnGraph(context, graph, extendDirection, compState, {});
     }
 }
 
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
-    Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration,
-    common::NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan) {
+void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context,
+    const GDSComputeState& compState, Graph* graph, ExtendDirection extendDirection,
+    uint64_t maxIteration, NodeOffsetMaskMap* outputNodeMask,
+    const std::vector<std::string>& propertyToScan) {
     auto frontierPair = compState.frontierPair.get();
     compState.edgeCompute->resetSingleThreadState();
     while (frontierPair->continueNextIter(maxIteration)) {
@@ -106,8 +109,8 @@ void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComput
     }
 }
 
-static void runVertexComputeInternal(catalog::TableCatalogEntry* currentEntry, graph::Graph* graph,
-    std::shared_ptr<VertexComputeTask> task, processor::ExecutionContext* context) {
+static void runVertexComputeInternal(const TableCatalogEntry* currentEntry, const Graph* graph,
+    std::shared_ptr<VertexComputeTask> task, ExecutionContext* context) {
     auto maxOffset =
         graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
     auto sharedState = task->getSharedState();
@@ -116,11 +119,11 @@ static void runVertexComputeInternal(catalog::TableCatalogEntry* currentEntry, g
         true /* launchNewWorkerThread */);
 }
 
-void GDSUtils::runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
-    VertexCompute& vc, std::vector<std::string> propertiesToScan) {
+void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc,
+    const std::vector<std::string>& propertiesToScan) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
-    for (auto& nodeInfo : graph->getGraphEntry()->nodeInfos) {
+    for (const auto& nodeInfo : graph->getGraphEntry()->nodeInfos) {
         auto entry = nodeInfo.entry;
         if (!vc.beginOnTable(entry->getTableID())) {
             continue;
@@ -136,7 +139,7 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
 }
 
 void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc,
-    catalog::TableCatalogEntry* entry, std::vector<std::string> propertiesToScan) {
+    TableCatalogEntry* entry, const std::vector<std::string>& propertiesToScan) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto info = VertexComputeTaskInfo(vc, graph, entry, propertiesToScan);
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
@@ -147,9 +150,9 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
     runVertexComputeInternal(entry, graph, task, context);
 }
 
-void GDSUtils::runVertexComputeSparse(SparseFrontier& sparseFrontier, graph::Graph* graph,
+void GDSUtils::runVertexComputeSparse(SparseFrontier& sparseFrontier, const Graph* graph,
     VertexCompute& vc) {
-    for (auto& tableID : graph->getNodeTableIDs()) {
+    for (auto tableID : graph->getNodeTableIDs()) {
         if (!vc.beginOnTable(tableID)) {
             continue;
         }

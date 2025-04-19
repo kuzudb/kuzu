@@ -62,8 +62,10 @@ public:
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
         std::vector<nodeID_t> result;
-        chunk.forEach<T>([&](auto nbrNodeID, auto /* edgeID */, auto weight) {
-            if (costs->update(boundNodeID.offset, nbrNodeID.offset, (double)weight)) {
+        chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+            auto nbrNodeID = neighbors[i];
+            auto weight = propertyVectors[0]->template getValue<T>(i);
+            if (costs->update(boundNodeID.offset, nbrNodeID.offset, static_cast<double>(weight))) {
                 result.push_back(nbrNodeID);
             }
         });

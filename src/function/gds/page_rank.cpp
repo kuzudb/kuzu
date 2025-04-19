@@ -19,16 +19,16 @@ namespace kuzu {
 namespace function {
 
 struct PageRankOptionalParams {
-    std::shared_ptr<binder::Expression> dampingFactor;
-    std::shared_ptr<binder::Expression> maxIteration;
-    std::shared_ptr<binder::Expression> tolerance;
+    std::shared_ptr<Expression> dampingFactor;
+    std::shared_ptr<Expression> maxIteration;
+    std::shared_ptr<Expression> tolerance;
 
-    explicit PageRankOptionalParams(const binder::expression_vector& optionalParams);
+    explicit PageRankOptionalParams(const expression_vector& optionalParams);
 
     PageRankConfig getConfig() const;
 };
 
-PageRankOptionalParams::PageRankOptionalParams(const binder::expression_vector& optionalParams) {
+PageRankOptionalParams::PageRankOptionalParams(const expression_vector& optionalParams) {
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == DampingFactor::NAME) {
@@ -38,8 +38,7 @@ PageRankOptionalParams::PageRankOptionalParams(const binder::expression_vector& 
         } else if (paramName == Tolerance::NAME) {
             tolerance = optionalParam;
         } else {
-            throw common::BinderException{
-                "Unknown optional parameter: " + optionalParam->getAlias()};
+            throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
         }
     }
 }
@@ -64,8 +63,8 @@ PageRankConfig PageRankOptionalParams::getConfig() const {
 struct PageRankBindData final : public GDSBindData {
     PageRankOptionalParams optionalParams;
 
-    PageRankBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> nodeOutput, PageRankOptionalParams optionalParams)
+    PageRankBindData(expression_vector columns, graph::GraphEntry graphEntry,
+        std::shared_ptr<Expression> nodeOutput, PageRankOptionalParams optionalParams)
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput)},
           optionalParams{std::move(optionalParams)} {}
     PageRankBindData(const PageRankBindData& other)
@@ -141,7 +140,8 @@ public:
         bool) override {
         if (chunk.size() > 0) {
             double valToAdd = 0;
-            chunk.forEach([&](auto nbrNodeID, auto) {
+            chunk.forEach([&](auto neighbors, auto, auto i) {
+                auto nbrNodeID = neighbors[i];
                 valToAdd +=
                     pCurrent.getValue(nbrNodeID.offset) / degrees.getValue(nbrNodeID.offset);
             });
@@ -168,7 +168,7 @@ public:
         : GDSVertexCompute{nodeMask}, dampingFactor{dampingFactor}, constant{constant},
           pNext{pNext} {}
 
-    void beginOnTableInternal(common::table_id_t tableID) override { pNext.pinTable(tableID); }
+    void beginOnTableInternal(table_id_t tableID) override { pNext.pinTable(tableID); }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
@@ -259,7 +259,7 @@ private:
     std::unique_ptr<ValueVector> rankVector;
 };
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto transaction = clientContext->getTransaction();
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();

@@ -157,7 +157,8 @@ struct SccComputeColors : public EdgeCompute {
         if (computationState.isSccIdSet(boundNodeID.offset)) {
             return result;
         }
-        chunk.forEach([&](auto nbrNodeID, auto) {
+        chunk.forEach([&](auto neighbors, auto, auto i) {
+            auto nbrNodeID = neighbors[i];
             if (!computationState.isSccIdSet(nbrNodeID.offset)) {
                 auto& colors = isFwd ? computationState.fwdColors : computationState.bwdColors;
                 if (colors.compare_exchange_strong_max(boundNodeID.offset, nbrNodeID.offset)) {

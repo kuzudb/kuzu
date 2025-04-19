@@ -66,7 +66,7 @@ class DegreesGDSAuxiliaryState : public GDSAuxiliaryState {
 public:
     explicit DegreesGDSAuxiliaryState(Degrees* degrees) : degrees{degrees} {};
 
-    void beginFrontierCompute(common::table_id_t curTableID, common::table_id_t) override {
+    void beginFrontierCompute(table_id_t curTableID, table_id_t) override {
         degrees->pinTable(curTableID);
     }
 
@@ -76,7 +76,7 @@ private:
 
 struct DegreesUtils {
     static void computeDegree(processor::ExecutionContext* context, graph::Graph* graph,
-        common::NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees, ExtendDirection direction) {
+        NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees, ExtendDirection direction) {
         auto currentFrontier = PathLengths::getUnvisitedFrontier(context, graph);
         auto nextFrontier = PathLengths::getVisitedFrontier(context, graph, nodeOffsetMaskMap);
         auto frontierPair =

@@ -38,37 +38,25 @@ public:
         // Used in GDSTask/EdgeCompute for updating the frontier
         template<class Func>
         void forEach(Func&& func) const {
-            selVector.forEach([&](auto i) { func(nbrNodes[i], edges[i]); });
+            selVector.forEach([&](auto i) { func(nbrNodes, propertyVectors, i); });
         }
         template<class Func>
         void forEachBreakWhenFalse(Func&& func) const {
-            selVector.forEachBreakWhenFalse(
-                [&](auto i) -> bool { return func(nbrNodes[i], edges[i]); });
-        }
-
-        // Any neighbour for which the given function returns false
-        // will be omitted from future iterations
-        // Used in GDSTask/EdgeCompute for updating the frontier
-        template<class T, class Func>
-        void forEach(Func&& func) const {
-            KU_ASSERT(propertyVector);
-            selVector.forEach(
-                [&](auto i) { func(nbrNodes[i], edges[i], propertyVector->getValue<T>(i)); });
+            selVector.forEachBreakWhenFalse([&](auto i) -> bool { return func(nbrNodes, i); });
         }
 
         uint64_t size() const { return selVector.getSelSize(); }
 
     private:
-        Chunk(std::span<const common::nodeID_t> nbrNodes, std::span<const common::relID_t> edges,
-            common::SelectionVector& selVector, const common::ValueVector* propertyVector);
+        Chunk(std::span<const common::nodeID_t> nbrNodes, common::SelectionVector& selVector,
+            std::vector<common::ValueVector*> propertyVectors);
 
     private:
         std::span<const common::nodeID_t> nbrNodes;
-        std::span<const common::relID_t> edges;
         // this reference can be modified, but the underlying data will be reset the next time next
         // is called
         common::SelectionVector& selVector;
-        const common::ValueVector* propertyVector;
+        std::vector<common::ValueVector*> propertyVectors;
     };
 
     virtual ~NbrScanState() = default;
@@ -78,10 +66,9 @@ public:
     virtual bool next() = 0;
 
 protected:
-    Chunk createChunk(std::span<const common::nodeID_t> nbrNodes,
-        std::span<const common::relID_t> edges, common::SelectionVector& selVector,
-        const common::ValueVector* propertyVector) {
-        return Chunk{nbrNodes, edges, selVector, propertyVector};
+    static Chunk createChunk(std::span<const common::nodeID_t> nbrNodes,
+        common::SelectionVector& selVector, std::vector<common::ValueVector*> propertyVectors) {
+        return Chunk{nbrNodes, selVector, std::move(propertyVectors)};
     }
 };
 
@@ -114,8 +101,8 @@ public:
     virtual ~VertexScanState() = default;
 
 protected:
-    Chunk createChunk(std::span<const common::nodeID_t> nodeIDs,
-        std::span<const std::shared_ptr<common::ValueVector>> propertyVectors) const {
+    static Chunk createChunk(std::span<const common::nodeID_t> nodeIDs,
+        std::span<const std::shared_ptr<common::ValueVector>> propertyVectors) {
         return Chunk{nodeIDs, propertyVectors};
     }
 };
@@ -152,7 +139,7 @@ public:
             return scanState == nullptr && other.scanState == nullptr;
         }
         // Counts and consumes the iterator
-        uint64_t count() {
+        uint64_t count() const {
             // TODO(bmwinger): avoid scanning if all that's necessary is to count the results
             uint64_t result = 0;
             do {
@@ -166,7 +153,7 @@ public:
             for (const auto chunk : *this) {
                 nbrNodes.reserve(nbrNodes.size() + chunk.size());
                 chunk.forEach(
-                    [&](auto nbrNodeID, auto /*edgeID*/) { nbrNodes.push_back(nbrNodeID); });
+                    [&](auto neighbors, auto, auto i) { nbrNodes.push_back(neighbors[i]); });
             }
             return nbrNodes;
         }
@@ -207,7 +194,7 @@ public:
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
     virtual std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* relEntry,
-        catalog::TableCatalogEntry* nbrNodeEntry, const std::string& relProperty) = 0;
+        catalog::TableCatalogEntry* nbrNodeEntry, std::vector<std::string> relProperties) = 0;
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
     virtual EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) = 0;

@@ -57,7 +57,8 @@ public:
     std::vector<nodeID_t> edgeCompute(nodeID_t, graph::NbrScanState::Chunk& resultChunk,
         bool) override {
         std::vector<nodeID_t> activeNodes;
-        resultChunk.forEach([&](auto nbrNode, auto) {
+        resultChunk.forEach([&](auto neighbors, auto, auto i) {
+            auto nbrNode = neighbors[i];
             if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNode.offset) ==
                 PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNode);

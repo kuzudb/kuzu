@@ -48,10 +48,12 @@ struct QFTSEdgeCompute final : EdgeCompute {
         KU_ASSERT(dfs.contains(boundNodeID.offset));
         auto df = dfs.at(boundNodeID.offset);
         std::vector<nodeID_t> activeNodes;
-        resultChunk.forEach<uint64_t>([&](auto docNodeID, auto /* edgeID */, auto tf) {
+        resultChunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+            auto docNodeID = neighbors[i];
             if (!scores.contains(docNodeID)) {
                 scores.emplace(docNodeID, ScoreInfo{});
             }
+            auto tf = propertyVectors[0]->template getValue<uint64_t>(i);
             scores.at(docNodeID).addEdge(df, tf);
             activeNodes.push_back(docNodeID);
         });
@@ -270,7 +272,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto compState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
     GDSUtils::runFrontiersUntilConvergence(input.context, compState, graph, ExtendDirection::FWD,
-        1 /* maxIters */, nullptr /* outputNodeMask */, TERM_FREQUENCY_PROP_NAME);
+        1 /* maxIters */, nullptr /* outputNodeMask */, {TERM_FREQUENCY_PROP_NAME});
 
     // Do vertex compute to calculate the score for doc with the length property.
     auto mm = clientContext->getMemoryManager();

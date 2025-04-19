@@ -5,6 +5,7 @@
 #include "common/exception/interrupt.h"
 #include "common/task_system/progress_bar.h"
 #include "function/gds/compute.h"
+#include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
 
@@ -101,14 +102,21 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
                 function->getRJCompState(context, sourceNodeID, bindData, sharedState.get());
             auto gdsComputeState = rjCompState.gdsComputeState.get();
             gdsComputeState->initSource(sourceNodeID);
-            std::string propertyName;
+            std::vector<std::string> propertyNames;
+            if (function->getFunctionName() == WeightedSPPathsFunction::name ||
+                function->getFunctionName() == SingleSPPathsFunction::name ||
+                function->getFunctionName() == AllSPPathsFunction::name ||
+                function->getFunctionName() == AllWeightedSPPathsFunction::name ||
+                function->getFunctionName() == VarLenJoinsFunction::name) {
+                propertyNames.push_back(InternalKeyword::ID);
+            }
             if (bindData.weightPropertyExpr != nullptr) {
-                propertyName =
-                    bindData.weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
+                propertyNames.push_back(
+                    bindData.weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName());
             }
             GDSUtils::runFrontiersUntilConvergence(context, *gdsComputeState, graph,
                 bindData.extendDirection, bindData.upperBound, sharedState->getOutputNodeMaskMap(),
-                propertyName);
+                propertyNames);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
                     sharedState.get(), rjCompState.outputWriter->copy(),
