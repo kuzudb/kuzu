@@ -31,8 +31,8 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-constexpr uint32_t MAX_PHASES = 10;
-constexpr uint32_t MAX_ITERATIONS = 10;
+constexpr uint32_t MAX_PHASES = 100;
+constexpr uint32_t MAX_ITERATIONS = 100;
 constexpr double THRESHOLD = 1e-6;
 static constexpr offset_t UNASSIGNED_COMM = numeric_limits<offset_t>::max();
 
