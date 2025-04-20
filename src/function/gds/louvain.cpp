@@ -127,6 +127,7 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
+            state.intraCommWeights.set(nodeId, 0, memory_order_relaxed);
             state.nextCommInfos.set(nodeId, CommInfo());
         }
     }
@@ -177,14 +178,24 @@ public:
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         if (phaseId == 0) {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-                finalResults.communities[nodeId] = state.previousComm.get(nodeId, memory_order_relaxed);
+                finalResults.communities[nodeId] =
+                    state.previousComm.get(nodeId, memory_order_relaxed);
+                if (nodeId == 1034) {
+                    printf(" ! %lu %lu\n", nodeId, finalResults.communities[nodeId]);
+                }
             }
         } else {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
                 auto prevCommunity = finalResults.communities[nodeId];
+                if (prevCommunity == UNASSIGNED_COMM) {
+                    continue;
+                }
                 // Every previous community becomes a node in the current phase.
                 auto newCommunity = state.previousComm.get(prevCommunity, memory_order_relaxed);
                 finalResults.communities[nodeId] = newCommunity;
+                if (nodeId == 1034) {
+                    printf(" > %lu %lu %lu\n", nodeId, prevCommunity, newCommunity);
+                }
             }
         }
     }
@@ -224,9 +235,21 @@ public:
                 // Isolated node.
                 state.nextComm.set(nodeId, UNASSIGNED_COMM, memory_order_relaxed);
             }
+            // if (state.currComm.get(nodeId, memory_order_relaxed) !=
+            //     state.nextComm.get(nodeId, memory_order_relaxed)) {
+            //     printf("> %lu %ld->%ld\n", nodeId, state.currComm.get(nodeId,
+            //     memory_order_relaxed),
+            //         state.nextComm.get(nodeId, memory_order_relaxed));
+            // } else {
+            //     printf("  %lu maintain %ld\n", nodeId,
+            //         state.currComm.get(nodeId, memory_order_relaxed));
+            // }
 
             auto currCommId = state.currComm.get(nodeId, memory_order_relaxed);
             auto targetCommId = state.nextComm.get(nodeId, memory_order_relaxed);
+            if (nodeId == 1034) {
+                printf("  %lu %lu->%lu\n", nodeId, currCommId, targetCommId);
+            }
             if (targetCommId != currCommId && targetCommId != UNASSIGNED_COMM) {
                 auto nodeDegree = state.nodeWeightedDegrees.get(nodeId, memory_order_relaxed);
                 // Add node contribution to the new community.
@@ -344,8 +367,8 @@ public:
     }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
-        auto sumIntraLocal = 0;
-        auto sumTotalLocal = 0;
+        weight_t sumIntraLocal = 0;
+        weight_t sumTotalLocal = 0;
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             sumIntraLocal += state.intraCommWeights.get(nodeId, memory_order_relaxed);
             auto degree = state.currCommInfos.getRef(nodeId).degree.load(memory_order_relaxed);
@@ -371,8 +394,8 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            auto size = state.nextCommInfos.getRef(nodeId).size.load(memory_order_relaxed);
-            auto degree = state.nextCommInfos.getRef(nodeId).degree.load(memory_order_relaxed);
+            offset_t size = state.nextCommInfos.getRef(nodeId).size.load(memory_order_relaxed);
+            weight_t degree = state.nextCommInfos.getRef(nodeId).degree.load(memory_order_relaxed);
             state.currCommInfos.getRef(nodeId).size.fetch_add(size, memory_order_relaxed);
             state.currCommInfos.getRef(nodeId).degree.fetch_add(degree, memory_order_relaxed);
         }
@@ -447,17 +470,20 @@ void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph*
 offset_t renumberCommunities(PhaseState& state) {
     unordered_map<offset_t, offset_t> map;
     offset_t nextCommId = 0;
-    offset_t nextUnassignedId = UNASSIGNED_COMM;
-    for (auto i = 0u; i < state.graph.numNodes; ++i) {
-        auto commId = state.previousComm.get(i, memory_order_relaxed);
+    // printf("Renumbering communities: %lu\n", state.graph.numNodes);
+    for (auto nodeId = 0LU; nodeId < state.graph.numNodes; ++nodeId) {
+        auto commId = state.previousComm.get(nodeId, memory_order_relaxed);
         if (commId == UNASSIGNED_COMM) {
+            // printf(" %lu: skip %lu\n", nodeId, commId);
+            // Skip creating communities for isolated nodes.
             continue;
         }
         if (!map.contains(commId)) {
             map.insert(make_pair(commId, nextCommId));
             nextCommId++;
         }
-        state.previousComm.set(i, map.at(commId), memory_order_relaxed);
+        state.previousComm.set(nodeId, map.at(commId), memory_order_relaxed);
+        // printf(" %lu: %lu->%lu\n", nodeId, commId, map.at(commId));
     }
     return nextCommId;
 }
@@ -510,6 +536,19 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
     for (auto phase = 0u; phase < MAX_PHASES; ++phase) {
         double oldMod = -1;
+        printf("Phase %u\n", phase);
+
+        // printf("Graph:\n");
+        // for (long nodeId = 0; nodeId < state.graph.numNodes; nodeId++) {
+        //     printf(" %ld [", nodeId);
+        //     auto startCSROffset = state.graph.csrOffsets[nodeId];
+        //     auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
+        //     for (auto offset = startCSROffset; offset < endCSROffset; offset++) {
+        //         auto nbrEntry = state.graph.csrEdges[offset];
+        //         printf("%lu:%lu,", nbrEntry.neighbor, nbrEntry.weight);
+        //     }
+        //     printf("]\n");
+        // }
 
         for (auto iter = 0u; iter < MAX_ITERATIONS; ++iter) {
             // Reset state.
@@ -528,6 +567,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
                 ComputeModularityVC::sumIntraWeights.load() * state.modularityConstant -
                 (ComputeModularityVC::sumWeightedDegrees.load() * state.modularityConstant *
                     state.modularityConstant);
+            printf("%d \t %lu \t %lu \t %lf\n", iter, ComputeModularityVC::sumIntraWeights.load(),
+                ComputeModularityVC::sumWeightedDegrees.load(), currMod);
 
             if (currMod - oldMod < THRESHOLD) {
                 break;
@@ -556,6 +597,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
     auto vertexCompute = make_unique<WriteResultsVC>(mm, sharedState, finalResults);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
+
+    printf("\n\n\n");
 
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
