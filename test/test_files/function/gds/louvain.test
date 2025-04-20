@@ -35,8 +35,8 @@
 -STATEMENT CALL LOUVAIN('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 3
 0|3|[0,1,2]
-5|3|[5,6,7]
 3|4|[3,4,8,9]
+5|3|[5,6,7]
 
 -CASE OnlyNodes
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
@@ -48,7 +48,8 @@
             (u2:Node {id: 2}),
             (u3:Node {id: 3}),
             (u4:Node {id: 4}),
-            (u5:Node {id: 5});
+            (u5:Node {id: 5}),
+            (u0)-[:Edge]->(u0);
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
