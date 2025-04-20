@@ -69,9 +69,7 @@ public:
         return curData[size_];
     }
 
-    uint64_t size() const {
-        return size_;
-    }
+    uint64_t size() const { return size_; }
 
 private:
     offset_t* curData = nullptr;
@@ -166,7 +164,8 @@ private:
 
 class KosarajuVertexCompute : public GDSResultVertexCompute {
 public:
-    KosarajuVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState, KosarajuVisitedState& visitedState)
+    KosarajuVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState,
+        KosarajuVisitedState& visitedState)
         : GDSResultVertexCompute{mm, sharedState}, visitedState{visitedState} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         componentIDVector = createVector(LogicalType::UINT64());
