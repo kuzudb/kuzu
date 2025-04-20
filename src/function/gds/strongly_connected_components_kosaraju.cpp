@@ -5,7 +5,6 @@
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
 
-using namespace std;
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -17,13 +16,13 @@ namespace function {
 
 // Use the three largest offset_t values as special markers to avoid allocating another array.
 // PROCESSED implies node has been VISITED and added to the backward DFS stack.
-static constexpr offset_t PROCESSED = numeric_limits<offset_t>::max();
-static constexpr offset_t VISITED = numeric_limits<offset_t>::max() - 1;
-static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max() - 2;
+static constexpr offset_t PROCESSED = INVALID_OFFSET;
+static constexpr offset_t VISITED = INVALID_OFFSET - 1;
+static constexpr offset_t NOT_VISITED = INVALID_OFFSET - 2;
 
-class SCCState {
+class KosarajuVisitedState {
 public:
-    SCCState(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
+    KosarajuVisitedState(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
         denseObjects.allocate(tableID, numNodes, mm);
         componentIDs = denseObjects.getData(tableID);
         for (auto i = 0u; i < numNodes; ++i) {
@@ -31,20 +30,18 @@ public:
         }
     }
 
+    // Visited meaning an offset has been visited in DFS traversal
     void setVisited(const offset_t offset) const { componentIDs[offset] = VISITED; }
-
     bool visited(const offset_t offset) const { return componentIDs[offset] >= VISITED; }
 
+    // Processed meaning an offset has been pushed to KosarajuVisitedOrder
     void setProcessed(const offset_t offset) const { componentIDs[offset] = PROCESSED; }
-
     bool processed(const offset_t offset) const { return componentIDs[offset] == PROCESSED; }
 
     bool componentIDSet(const offset_t offset) const { return componentIDs[offset] < NOT_VISITED; }
-
     void setComponentID(const offset_t offset, const offset_t value) const {
         componentIDs[offset] = value;
     }
-
     offset_t getComponentID(const offset_t offset) const { return componentIDs[offset]; }
 
 private:
@@ -52,48 +49,85 @@ private:
     GDSDenseObjectManager<offset_t> denseObjects;
 };
 
-class SCCCompute {
+// Maintain a visited order of DFS traversal. The last seen element is the first element in this
+// class, i.e. this class is a stack implementation
+class KosarajuVisitedOrder {
 public:
-    SCCCompute(Graph* graph, SCCState& sccState) : graph{graph}, sccState{sccState} {}
+    KosarajuVisitedOrder(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
+        denseObjects.allocate(tableID, numNodes, mm);
+        curData = denseObjects.getData(tableID);
+    }
 
-    void compute(const offset_t tableID, const offset_t numNodes) {
-        auto nbrTables = graph->getForwardNbrTableInfos(tableID);
-        auto nbrInfo = nbrTables[0];
-        auto scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, "");
-        vector<offset_t> toProcess;
-        vector<offset_t> dfsStack;
-        for (auto i = 0u; i < numNodes; ++i) {
-            if (!sccState.visited(i)) {
-                forwardDFS(i, tableID, *scanState, toProcess, dfsStack);
+    void push(offset_t offset) {
+        KU_ASSERT(curData);
+        curData[size_++] = offset;
+    }
+
+    offset_t pop() {
+        KU_ASSERT(curData && size_ > 0);
+        size_--;
+        return curData[size_];
+    }
+
+    uint64_t size() const { return size_; }
+
+private:
+    offset_t* curData = nullptr;
+    uint64_t size_ = 0;
+    GDSDenseObjectManager<offset_t> denseObjects;
+};
+
+class Kosaraju {
+public:
+    Kosaraju(Graph* graph, KosarajuVisitedState& visitedState, KosarajuVisitedOrder& visitedOrder)
+        : graph{graph}, visitedState{visitedState}, visitedOrder{visitedOrder} {
+        KU_ASSERT(graph->getNodeTableIDs().size() == 1);
+        nodeTableID = graph->getNodeTableIDs()[0];
+        auto nbrInfos = graph->getForwardNbrTableInfos(nodeTableID);
+        KU_ASSERT(nbrInfos.size() == 1);
+        auto nbrInfo = nbrInfos[0];
+        scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, "");
+    }
+
+    void compute(const offset_t maxOffset, NodeOffsetMaskMap* map) {
+        std::vector<offset_t> toProcess;
+        for (auto i = 0u; i < maxOffset; ++i) {
+            if (map && !map->valid(i)) { // Skip nodes not in mask
+                continue;
             }
+            if (visitedState.visited(i)) { // Skip visited nodes
+                continue;
+            }
+            KU_ASSERT(toProcess.empty());
+            toProcess.push_back(i);
+            forwardDFS(toProcess);
         }
-        KU_ASSERT(toProcess.size() == 0);
-        for (auto it = dfsStack.end() - 1; it >= dfsStack.begin(); --it) {
-            auto node = *it;
-            if (!sccState.componentIDSet(node)) {
-                backwardsDFS(node, node, tableID, *scanState, toProcess);
+        while (visitedOrder.size() > 0) {
+            auto offset = visitedOrder.pop();
+            if (!visitedState.componentIDSet(offset)) {
+                KU_ASSERT(toProcess.empty());
+                toProcess.push_back(offset);
+                backwardsDFS(offset, toProcess);
             }
         }
     }
 
-    void forwardDFS(const offset_t node, const offset_t tableID, NbrScanState& scanState,
-        vector<offset_t>& toProcess, vector<offset_t>& dfsStack) {
-        toProcess.push_back(node);
+    void forwardDFS(std::vector<offset_t>& toProcess) {
         while (!toProcess.empty()) {
-            auto nextNode = toProcess.back();
-            if (sccState.visited(nextNode)) {
+            auto offset = toProcess.back();
+            if (visitedState.visited(offset)) {
                 toProcess.pop_back();
-                if (!sccState.processed(nextNode)) {
-                    dfsStack.push_back(nextNode);
-                    sccState.setProcessed(nextNode);
+                if (!visitedState.processed(offset)) {
+                    visitedOrder.push(offset);
+                    visitedState.setProcessed(offset);
                 }
                 continue;
             }
-            sccState.setVisited(nextNode);
-            auto nextNodeID = nodeID_t{nextNode, tableID};
-            for (auto chunk : graph->scanFwd(nextNodeID, scanState)) {
+            visitedState.setVisited(offset);
+            auto nextNodeID = nodeID_t{offset, nodeTableID};
+            for (auto chunk : graph->scanFwd(nextNodeID, *scanState)) {
                 chunk.forEach([&](auto nbrNodeID, auto) {
-                    if (!sccState.visited(nbrNodeID.offset)) {
+                    if (!visitedState.visited(nbrNodeID.offset)) {
                         toProcess.push_back(nbrNodeID.offset);
                     }
                 });
@@ -101,17 +135,18 @@ public:
         }
     }
 
-    void backwardsDFS(offset_t node, const offset_t root, const offset_t tableID,
-        NbrScanState& scanState, vector<offset_t>& toProcess) {
-        toProcess.push_back(node);
+    void backwardsDFS(offset_t componentID, std::vector<offset_t>& toProcess) {
         while (!toProcess.empty()) {
             auto nextNode = toProcess.back();
             toProcess.pop_back();
-            sccState.setComponentID(nextNode, root);
-            auto nextNodeID = nodeID_t{nextNode, tableID};
-            for (auto chunk : graph->scanBwd(nextNodeID, scanState)) {
+            if (visitedState.componentIDSet(nextNode)) {
+                continue;
+            }
+            visitedState.setComponentID(nextNode, componentID);
+            auto nextNodeID = nodeID_t{nextNode, nodeTableID};
+            for (auto chunk : graph->scanBwd(nextNodeID, *scanState)) {
                 chunk.forEach([&](auto nbrNodeID, auto) {
-                    if (!sccState.componentIDSet(nbrNodeID.offset)) {
+                    if (!visitedState.componentIDSet(nbrNodeID.offset)) {
                         toProcess.push_back(nbrNodeID.offset);
                     }
                 });
@@ -121,13 +156,17 @@ public:
 
 private:
     Graph* graph;
-    SCCState& sccState;
+    table_id_t nodeTableID;
+    std::unique_ptr<NbrScanState> scanState;
+    KosarajuVisitedState& visitedState;
+    KosarajuVisitedOrder& visitedOrder;
 };
 
-class SCCVertexCompute : public GDSResultVertexCompute {
+class KosarajuVertexCompute : public GDSResultVertexCompute {
 public:
-    SCCVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState, SCCState& sccState)
-        : GDSResultVertexCompute{mm, sharedState}, sccState{sccState} {
+    KosarajuVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState,
+        KosarajuVisitedState& visitedState)
+        : GDSResultVertexCompute{mm, sharedState}, visitedState{visitedState} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         componentIDVector = createVector(LogicalType::UINT64());
     }
@@ -137,39 +176,45 @@ public:
     void vertexCompute(const offset_t startOffset, const offset_t endOffset,
         const table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
+            if (skip(i)) {
+                continue;
+            }
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            componentIDVector->setValue<uint64_t>(0, sccState.getComponentID(i));
+            componentIDVector->setValue<uint64_t>(0, visitedState.getComponentID(i));
             localFT->append(vectors);
         }
     }
 
-    unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<SCCVertexCompute>(mm, sharedState, sccState);
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<KosarajuVertexCompute>(mm, sharedState, visitedState);
     }
 
 private:
-    SCCState& sccState;
-    unique_ptr<ValueVector> nodeIDVector;
-    unique_ptr<ValueVector> componentIDVector;
+    KosarajuVisitedState& visitedState;
+    std::unique_ptr<ValueVector> nodeIDVector;
+    std::unique_ptr<ValueVector> componentIDVector;
 };
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto mm = clientContext->getMemoryManager();
     auto graph = sharedState->graph.get();
     KU_ASSERT(graph->getNodeTableIDs().size() == 1);
     auto tableID = graph->getNodeTableIDs()[0];
+    auto nodeMask = sharedState->getGraphNodeMaskMap();
+    if (nodeMask) {
+        nodeMask->pin(tableID);
+    }
     auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
+    auto visitedState = KosarajuVisitedState(tableID, maxOffset, mm);
+    auto visitedOrder = KosarajuVisitedOrder(tableID, maxOffset, mm);
+    auto kosaraju = Kosaraju(graph, visitedState, visitedOrder);
+    kosaraju.compute(maxOffset, nodeMask);
 
-    auto sccState = SCCState(tableID, maxOffset, mm);
-    auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
-    edgeCompute->compute(tableID, maxOffset);
-
-    auto vertexCompute = make_unique<SCCVertexCompute>(mm, sharedState, sccState);
+    auto vertexCompute = std::make_unique<KosarajuVertexCompute>(mm, sharedState, visitedState);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
-
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
