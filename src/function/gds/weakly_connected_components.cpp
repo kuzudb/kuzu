@@ -1,8 +1,9 @@
 #include "binder/binder.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "gds_vertex_compute.h"
+
 #include "processor/execution_context.h"
+#include "component_ids.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -13,93 +14,31 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-struct OffsetManager {
-    explicit OffsetManager(const table_id_map_t<offset_t>& maxOffsetMap) {
-        std::vector<table_id_t> tableIDVector;
-        for (auto [tableID, maxOffset] : maxOffsetMap) {
-            tableIDVector.push_back(tableID);
-        }
-        std::sort(tableIDVector.begin(), tableIDVector.end());
-        auto offset = 0u;
-        for (auto tableID : tableIDVector) {
-            tableIDToStartOffset.insert({tableID, offset});
-            offset += maxOffsetMap.at(tableID);
-        }
-    }
-
-    offset_t getStartOffset(table_id_t tableID) const { return tableIDToStartOffset.at(tableID); }
-
-private:
-    table_id_map_t<offset_t> tableIDToStartOffset;
-};
-
-class ComponentIDs {
-public:
-    ComponentIDs(const table_id_map_t<offset_t>& maxOffsetMap, const OffsetManager& offsetManager,
-        MemoryManager* mm) {
-        for (const auto& [tableID, maxOffset] : maxOffsetMap) {
-            componentIDsMap.allocate(tableID, maxOffset, mm);
-            pinTable(tableID);
-            auto startOffset = offsetManager.getStartOffset(tableID);
-            for (auto i = 0u; i < maxOffset; ++i) {
-                toComponentIDs[i].store(i + startOffset, std::memory_order_relaxed);
-            }
-        }
-    }
-
-    void pinFromTable(table_id_t tableID) { fromComponentIDs = componentIDsMap.getData(tableID); }
-    void pinToTable(table_id_t tableID) { toComponentIDs = componentIDsMap.getData(tableID); }
-    void pinTable(table_id_t tableID) { toComponentIDs = componentIDsMap.getData(tableID); }
-
-    bool update(offset_t boundOffset, offset_t nbrOffset) {
-        auto boundValue = fromComponentIDs[boundOffset].load(std::memory_order_relaxed);
-        auto tmp = toComponentIDs[nbrOffset].load(std::memory_order_relaxed);
-        while (tmp > boundValue) {
-            if (toComponentIDs[nbrOffset].compare_exchange_strong(tmp, boundValue)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    offset_t getComponentID(offset_t offset) {
-        return toComponentIDs[offset].load(std::memory_order_relaxed);
-    }
-
-private:
-    std::atomic<offset_t>* fromComponentIDs = nullptr;
-    std::atomic<offset_t>* toComponentIDs = nullptr;
-    GDSDenseObjectManager<std::atomic<offset_t>> componentIDsMap;
-};
-
 class WCCAuxiliaryState : public GDSAuxiliaryState {
 public:
-    explicit WCCAuxiliaryState(ComponentIDs& componentIDs) : componentIDs{componentIDs} {}
+    explicit WCCAuxiliaryState(ComponentIDsPair& componentIDsPair) : componentIDsPair{componentIDsPair} {}
 
     void beginFrontierCompute(table_id_t fromTableID, table_id_t toTableID) override {
-        componentIDs.pinFromTable(fromTableID);
-        componentIDs.pinToTable(toTableID);
-    }
-
-    bool update(offset_t boundOffset, offset_t nbrOffset) {
-        return componentIDs.update(boundOffset, nbrOffset);
+        componentIDsPair.pinCurTableID(fromTableID);
+        componentIDsPair.pinNextTableID(toTableID);
     }
 
     void switchToDense(ExecutionContext*, Graph*) override {}
 
 private:
-    ComponentIDs& componentIDs;
+    ComponentIDsPair& componentIDsPair;
 };
 
 class WCCEdgeCompute : public EdgeCompute {
 public:
-    explicit WCCEdgeCompute(WCCAuxiliaryState& auxiliaryState) : auxiliaryState{auxiliaryState} {}
+    explicit WCCEdgeCompute(ComponentIDsPair& componentIDsPair)
+        : componentIDsPair{componentIDsPair} {}
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
-        std::vector<nodeID_t> result;
+        std::vector<common::nodeID_t> result;
         chunk.forEach([&](auto nbrNodeID, auto) {
-            if (auxiliaryState.update(boundNodeID.offset, nbrNodeID.offset)) {
+            if (componentIDsPair.update(boundNodeID.offset, nbrNodeID.offset)) {
                 result.push_back(nbrNodeID);
             }
         });
@@ -107,44 +46,11 @@ public:
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<WCCEdgeCompute>(auxiliaryState);
+        return std::make_unique<WCCEdgeCompute>(componentIDsPair);
     }
 
 private:
-    WCCAuxiliaryState& auxiliaryState;
-};
-
-class WCCVertexCompute : public GDSResultVertexCompute {
-public:
-    WCCVertexCompute(storage::MemoryManager* mm, GDSFuncSharedState* sharedState,
-        ComponentIDs& componentIDs)
-        : GDSResultVertexCompute{mm, sharedState}, componentIDs{componentIDs} {
-        nodeIDVector = createVector(LogicalType::INTERNAL_ID());
-        componentIDVector = createVector(LogicalType::UINT64());
-    }
-
-    void beginOnTableInternal(table_id_t tableID) override { componentIDs.pinTable(tableID); }
-
-    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
-        for (auto i = startOffset; i < endOffset; ++i) {
-            if (skip(i)) {
-                continue;
-            }
-            auto nodeID = nodeID_t{i, tableID};
-            nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            componentIDVector->setValue<uint64_t>(0, componentIDs.getComponentID(i));
-            localFT->append(vectors);
-        }
-    }
-
-    std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WCCVertexCompute>(mm, sharedState, componentIDs);
-    }
-
-private:
-    ComponentIDs& componentIDs;
-    std::unique_ptr<ValueVector> nodeIDVector;
-    std::unique_ptr<ValueVector> componentIDVector;
+    ComponentIDsPair& componentIDsPair;
 };
 
 static constexpr uint8_t MAX_ITERATION = 100;
@@ -161,11 +67,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     frontierPair->setActiveNodesForNextIter();
     auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
     auto offsetManager = OffsetManager(maxOffsetMap);
-    auto componentIDs =
-        ComponentIDs(maxOffsetMap, offsetManager, clientContext->getMemoryManager());
-    auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(componentIDs);
-    auto edgeCompute = std::make_unique<WCCEdgeCompute>(*auxiliaryState);
-    auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
+    auto componentIDs = ComponentIDs::getSequenceComponentIDs(maxOffsetMap, offsetManager, clientContext->getMemoryManager());
+    auto componentIDsPair = ComponentIDsPair(componentIDs);
+    auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(componentIDsPair);
+    auto edgeCompute = std::make_unique<WCCEdgeCompute>(componentIDsPair);
+    auto vertexCompute = std::make_unique<ComponentIDsOutputVertexCompute>(clientContext->getMemoryManager(),
         sharedState, componentIDs);
     auto computeState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));

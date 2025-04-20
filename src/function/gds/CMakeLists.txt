@@ -4,6 +4,7 @@ add_library(kuzu_function_algorithm
         asp_paths.cpp
         awsp_paths.cpp
         bfs_graph.cpp
+        component_ids.cpp
         frontier_morsel.cpp
         gds.cpp
         gds_frontier.cpp
