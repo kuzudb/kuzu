@@ -110,8 +110,8 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, Fil
         throw IOException(stringFormat("Cannot open file. path: {} - Error {}: {}", fullPath,
             GetLastError(), std::system_category().message(GetLastError())));
     }
-    if (lock_type != FileLockType::NO_LOCK) {
-        DWORD dwFlags = lock_type == FileLockType::READ_LOCK ?
+    if (flags.lockType != FileLockType::NO_LOCK) {
+        DWORD dwFlags = flags.lockType == FileLockType::READ_LOCK ?
                             LOCKFILE_FAIL_IMMEDIATELY :
                             LOCKFILE_FAIL_IMMEDIATELY | LOCKFILE_EXCLUSIVE_LOCK;
         OVERLAPPED overlapped = {0};

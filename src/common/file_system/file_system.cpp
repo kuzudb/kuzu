@@ -39,7 +39,7 @@ std::string FileSystem::getFileExtension(const std::filesystem::path& path) {
     if (extension.string() == ".gz") {
         extension = path.stem().extension();
     }
-    return extension;
+    return extension.string();
 }
 
 bool FileSystem::isCompressedFile(const std::filesystem::path& path) {
