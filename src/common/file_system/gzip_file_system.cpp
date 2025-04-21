@@ -100,7 +100,7 @@ bool MiniZStreamWrapper::read(StreamData& sd) {
         verifyGZIPHeader(gzipHdr, GZipFileSystem::GZIP_HEADER_MINSIZE);
         bodyPtr += GZipFileSystem::GZIP_HEADER_MINSIZE;
         if (gzipHdr[3] & GZipFileSystem::GZIP_FLAG_EXTRA) {
-            auto xlen = (uint8_t)*bodyPtr | (uint8_t)*(bodyPtr + 1) << 8;
+            auto xlen = (uint8_t)*bodyPtr | (uint8_t) * (bodyPtr + 1) << 8;
             bodyPtr += xlen + 2;
             KU_ASSERT((common::idx_t)(GZipFileSystem::GZIP_FOOTER_SIZE +
                                       GZipFileSystem::GZIP_HEADER_MINSIZE + 2 + xlen) <
