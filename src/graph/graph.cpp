@@ -1,7 +1,5 @@
 #include "graph/graph.h"
 
-#include <utility>
-
 #include "common/system_config.h"
 
 namespace kuzu::graph {

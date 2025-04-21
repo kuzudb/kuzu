@@ -33,6 +33,7 @@ public:
     struct Chunk {
         friend class NbrScanState;
 
+        EXPLICIT_COPY_METHOD(Chunk);
         // Any neighbour for which the given function returns false
         // will be omitted from future iterations
         // Used in GDSTask/EdgeCompute for updating the frontier
@@ -50,6 +51,10 @@ public:
     private:
         Chunk(std::span<const common::nodeID_t> nbrNodes, common::SelectionVector& selVector,
             std::vector<common::ValueVector*> propertyVectors);
+
+        Chunk(const Chunk& other) noexcept
+            : nbrNodes{other.nbrNodes}, selVector{other.selVector},
+              propertyVectors{other.propertyVectors} {}
 
     private:
         std::span<const common::nodeID_t> nbrNodes;
