@@ -271,8 +271,10 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
 
         for result in conn.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")? {
             assert_eq!(result.len(), 2);
-            assert_eq!(result[0], Value::String("Alice".to_string()));
-            assert_eq!(result[1], Value::Int16(25));
+            let age: &i16 = (&result[1]).try_into()?;
+            let name: &String = (&result[0]).try_into()?;
+            assert_eq!(*name, "Alice");
+            assert_eq!(*age, 25);
         }
         temp_dir.close()?;
         Ok(())

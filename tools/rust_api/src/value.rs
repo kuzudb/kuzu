@@ -269,6 +269,146 @@ pub enum Value {
     Decimal(rust_decimal::Decimal),
 }
 
+macro_rules! try_from_value {
+    ( $var:ident, $typ:ty) => {
+        impl TryFrom<Value> for $typ {
+            type Error = crate::Error;
+            fn try_from(value: Value) -> Result<$typ, Self::Error> {
+                if let Value::$var(value) = value {
+                    Ok(value)
+                } else {
+                    let typ: LogicalType = (&value).into();
+                    let expected = stringify!($expr);
+                    Err(crate::Error::UnexpectedType(format!(
+                        "Expected type {expected}, but the value was actually a {typ:?}"
+                    )))
+                }
+            }
+        }
+        impl<'a> TryFrom<&'a Value> for &'a $typ {
+            type Error = crate::Error;
+            fn try_from(value: &Value) -> Result<&$typ, Self::Error> {
+                if let Value::$var(value) = value {
+                    Ok(value)
+                } else {
+                    let typ: LogicalType = value.into();
+                    let expected = stringify!($expr);
+                    Err(crate::Error::UnexpectedType(format!(
+                        "Expected type {expected}, but the value was actually a {typ:?}"
+                    )))
+                }
+            }
+        }
+    };
+}
+
+try_from_value!(Int8, i8);
+try_from_value!(Int16, i16);
+try_from_value!(Int32, i32);
+try_from_value!(Int64, i64);
+try_from_value!(UInt8, u8);
+try_from_value!(UInt16, u16);
+try_from_value!(UInt32, u32);
+try_from_value!(UInt64, u64);
+try_from_value!(Int128, i128);
+try_from_value!(Float, f32);
+try_from_value!(Double, f64);
+try_from_value!(Bool, bool);
+try_from_value!(UUID, uuid::Uuid);
+try_from_value!(Date, time::Date);
+try_from_value!(Interval, time::Duration);
+try_from_value!(InternalID, InternalID);
+try_from_value!(String, String);
+// Note that blob is skipped since it is indistinguishable from a List<u8>
+
+impl TryFrom<Value> for time::OffsetDateTime {
+    type Error = crate::Error;
+    fn try_from(value: Value) -> Result<time::OffsetDateTime, Self::Error> {
+        match value {
+            Value::Timestamp(time)
+            | Value::TimestampTz(time)
+            | Value::TimestampNs(time)
+            | Value::TimestampMs(time)
+            | Value::TimestampSec(time) => Ok(time),
+            _ => {
+                let typ: LogicalType = (&value).into();
+                Err(crate::Error::UnexpectedType(format!(
+                    "Expected a Timestamp type, but the value was actually a {typ:?}"
+                )))
+            }
+        }
+    }
+}
+impl<'a> TryFrom<&'a Value> for &'a time::OffsetDateTime {
+    type Error = crate::Error;
+    fn try_from(value: &Value) -> Result<&time::OffsetDateTime, Self::Error> {
+        if let Value::Timestamp(time)
+        | Value::TimestampTz(time)
+        | Value::TimestampNs(time)
+        | Value::TimestampMs(time)
+        | Value::TimestampSec(time) = value
+        {
+            Ok(time)
+        } else {
+            let typ: LogicalType = value.into();
+            Err(crate::Error::UnexpectedType(format!(
+                "Expected a Timestamp type, but the value was actually a {typ:?}"
+            )))
+        }
+    }
+}
+
+impl<T: TryFrom<Value>> TryFrom<Value> for Vec<T>
+where
+    <T as TryFrom<Value>>::Error: Into<crate::Error>,
+    <T as TryFrom<Value>>::Error: 'static,
+{
+    type Error = crate::Error;
+    fn try_from(value: Value) -> Result<Vec<T>, Self::Error> {
+        if let Value::List(_, list) = value {
+            let result: Vec<T> = list
+                .into_iter()
+                .map(|x| T::try_from(x).map_err(|x| x.into()))
+                .collect::<Result<Vec<T>, Self::Error>>()?;
+            Ok(result)
+        } else {
+            let typ: LogicalType = (&value).into();
+            Err(crate::Error::UnexpectedType(format!(
+                "Expected a List type, but the value was actually a {typ:?}"
+            )))
+        }
+    }
+}
+
+impl<T: TryFrom<Value>, const N: usize> TryFrom<Value> for [T; N]
+where
+    T: std::fmt::Debug,
+    <T as TryFrom<Value>>::Error: Into<crate::Error>,
+    <T as TryFrom<Value>>::Error: 'static,
+{
+    type Error = crate::Error;
+    fn try_from(value: Value) -> Result<[T; N], Self::Error> {
+        if let Value::Array(_, list) = value {
+            let result: Result<Vec<T>, _> = list.into_iter().map(TryFrom::try_from).collect();
+            let result: Vec<T> = result.map_err(|error| error.into())?;
+            if result.len() == N {
+                Ok(result.try_into().unwrap())
+            } else {
+                // This should be unreachable except in the case of internal errors
+                Err(crate::Error::UnexpectedType(format!(
+                    "Expected an array of length {N}, but the length was actually {}",
+                    result.len()
+                )))
+            }
+        } else {
+            let typ: LogicalType = (&value).into();
+            Err(crate::Error::UnexpectedType(format!(
+                "Expected a List type, but the value was actually a {typ:?}"
+            )))
+        }
+    }
+}
+
 fn display_list<T: std::fmt::Display>(f: &mut fmt::Formatter<'_>, list: &[T]) -> fmt::Result {
     write!(f, "[")?;
     for (i, value) in list.iter().enumerate() {
@@ -1443,6 +1583,41 @@ mod tests {
             ]
         );
         temp_dir.close()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_try_from_list() -> Result<()> {
+        let db = Database::in_memory(SYSTEM_CONFIG_FOR_TESTS)?;
+        let conn = Connection::new(&db)?;
+        conn.query("CREATE NODE TABLE test(a SERIAL, b INT64[], PRIMARY KEY(a));")?;
+        conn.query("CREATE (:test{b: [1,2,3]});")?;
+        let mut result = conn.query("MATCH (t:test) return t.b;")?;
+        let list: Vec<i64> = result.next().unwrap().pop().unwrap().try_into()?;
+        assert_eq!(list, [1, 2, 3]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_try_from_array() -> Result<()> {
+        let db = Database::in_memory(SYSTEM_CONFIG_FOR_TESTS)?;
+        let conn = Connection::new(&db)?;
+        conn.query("CREATE NODE TABLE test(a SERIAL, b INT64[3], PRIMARY KEY(a));")?;
+        conn.query("CREATE (:test{b: [1,2,3]});")?;
+        let mut result = conn.query("MATCH (t:test) return t.b;")?;
+        let value: Value = result.next().unwrap().pop().unwrap();
+        let list: [i64; 3] = value.clone().try_into()?;
+        assert_eq!(list, [1, 2, 3]);
+
+        let list: Result<[i64; 4], crate::Error> = value.try_into();
+        if let Err(error) = list {
+            assert_eq!(
+                "Expected an array of length 4, but the length was actually 3",
+                format!("{error}")
+            );
+        } else {
+            unreachable!()
+        };
         Ok(())
     }
 }

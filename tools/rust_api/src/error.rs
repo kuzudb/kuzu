@@ -12,6 +12,7 @@ pub enum Error {
     ReadOnlyType(LogicalType),
     #[cfg(feature = "arrow")]
     ArrowError(arrow::error::ArrowError),
+    UnexpectedType(String),
 }
 
 impl std::fmt::Display for Error {
@@ -27,6 +28,7 @@ impl std::fmt::Display for Error {
             }
             #[cfg(feature = "arrow")]
             Error::ArrowError(err) => write!(f, "{err}"),
+            Error::UnexpectedType(err) => write!(f, "{err}"),
         }
     }
 }
