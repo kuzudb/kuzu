@@ -3,6 +3,7 @@
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
 #include "function/table/table_function.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
@@ -10,8 +11,6 @@
 using namespace kuzu::common;
 using namespace kuzu::function;
 
-#include "common/file_system/virtual_file_system.h"
-#include "main/client_context.h"
 namespace kuzu {
 namespace processor {
 

@@ -153,7 +153,7 @@ void Database::openLockFile() {
     }
     FileOpenFlags openFlags{flags};
     openFlags.lockType = lock;
-    lockFile = vfs->openFile(lockFilePath, std::move(openFlags), nullptr /* clientContext */);
+    lockFile = vfs->openFile(lockFilePath, openFlags, nullptr /* clientContext */);
 }
 
 void Database::initAndLockDBDir() {

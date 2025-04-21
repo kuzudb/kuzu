@@ -1,7 +1,6 @@
 #include "common/file_system/virtual_file_system.h"
 
 #include "common/assert.h"
-#include "common/exception/runtime.h"
 #include "common/file_system/gzip_file_system.h"
 #include "common/file_system/local_file_system.h"
 #include "main/client_context.h"
