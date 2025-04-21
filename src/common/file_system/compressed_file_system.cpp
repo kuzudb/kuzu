@@ -1,5 +1,7 @@
 #include "common/file_system/compressed_file_system.h"
 
+#include <string.h>
+
 namespace kuzu {
 namespace common {
 
