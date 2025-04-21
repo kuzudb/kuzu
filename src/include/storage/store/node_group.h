@@ -158,7 +158,8 @@ public:
     void applyFuncToChunkedGroups(version_record_handler_op_t func, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const;
     void rollbackInsert(common::row_idx_t startRow);
-    virtual void reclaimStorage(FileHandle& dataFH);
+    void reclaimStorage(FileHandle& dataFH);
+    virtual void reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock);
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 

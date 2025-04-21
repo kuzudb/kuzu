@@ -372,7 +372,10 @@ void NodeGroup::rollbackInsert(row_idx_t startRow) {
 }
 
 void NodeGroup::reclaimStorage(FileHandle& dataFH) {
-    const auto lock = chunkedGroups.lock();
+    reclaimStorage(dataFH, chunkedGroups.lock());
+}
+
+void NodeGroup::reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) {
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         chunkedGroup->reclaimStorage(dataFH);
     }
@@ -389,12 +392,21 @@ void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointStat
     // Re-populate version info here first.
     auto checkpointedVersionInfo = checkpointVersionInfo(lock, &DUMMY_CHECKPOINT_TRANSACTION);
     std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
-    if (hasPersistentData) {
-        checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
+    if (checkpointedVersionInfo->getNumDeletions(&DUMMY_CHECKPOINT_TRANSACTION, 0, numRows) ==
+        numRows) {
+        reclaimStorage(state.dataFH, lock);
+        // TODO(Royi) figure out how to make this rollback-friendly
+        checkpointedChunkedGroup =
+            std::make_unique<ChunkedNodeGroup>(memoryManager, dataTypes, enableCompression,
+                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, 0, ResidencyState::IN_MEMORY);
     } else {
-        checkpointedChunkedGroup = checkpointInMemOnly(memoryManager, lock, state);
+        if (hasPersistentData) {
+            checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
+        } else {
+            checkpointedChunkedGroup = checkpointInMemOnly(memoryManager, lock, state);
+        }
+        checkpointedChunkedGroup->setVersionInfo(std::move(checkpointedVersionInfo));
     }
-    checkpointedChunkedGroup->setVersionInfo(std::move(checkpointedVersionInfo));
     chunkedGroups.clear(lock);
     chunkedGroups.appendGroup(lock, std::move(checkpointedChunkedGroup));
     checkpointDataTypesNoLock(state);
