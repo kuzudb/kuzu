@@ -36,7 +36,7 @@ std::string FileSystem::joinPath(const std::string& base, const std::string& par
 
 std::string FileSystem::getFileExtension(const std::filesystem::path& path) {
     auto extension = path.extension();
-    if (extension.string() == ".gz") {
+    if (isCompressedFile(path)) {
         extension = path.stem().extension();
     }
     return extension.string();

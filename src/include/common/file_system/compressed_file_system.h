@@ -14,7 +14,6 @@ struct StreamData {
     uint8_t* inputBufEnd = nullptr;
     uint8_t* outputBufStart = nullptr;
     uint8_t* outputBufEnd = nullptr;
-
     common::idx_t inputBufSize = 0;
     common::idx_t outputBufSize = 0;
 };
@@ -23,14 +22,12 @@ struct CompressedFileInfo;
 
 struct StreamWrapper {
     virtual ~StreamWrapper() = default;
-
     virtual void initialize(CompressedFileInfo& file) = 0;
     virtual bool read(StreamData& stream_data) = 0;
     virtual void close() = 0;
 };
 
 class CompressedFileSystem : public FileSystem {
-
 public:
     virtual std::unique_ptr<FileInfo> openCompressedFile(std::unique_ptr<FileInfo> fileInfo) = 0;
     virtual std::unique_ptr<StreamWrapper> createStream() = 0;

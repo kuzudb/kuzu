@@ -39,14 +39,13 @@ public:
 };
 
 static void verifyGZIPHeader(const uint8_t gzip_hdr[], idx_t read_count) {
-    // check for incorrectly formatted files
     if (read_count != GZipFileSystem::GZIP_HEADER_MINSIZE) {
         throw IOException("Input is not a GZIP stream.");
     }
-    if (gzip_hdr[0] != 0x1F || gzip_hdr[1] != 0x8B) { // magic header
+    if (gzip_hdr[0] != 0x1F || gzip_hdr[1] != 0x8B) {
         throw IOException("Input is not a GZIP stream.");
     }
-    if (gzip_hdr[2] != GZipFileSystem::GZIP_COMPRESSION_DEFLATE) { // compression method
+    if (gzip_hdr[2] != GZipFileSystem::GZIP_COMPRESSION_DEFLATE) {
         throw IOException("Unsupported GZIP compression method.");
     }
     if (gzip_hdr[3] & GZipFileSystem::GZIP_FLAG_UNSUPPORTED) {
@@ -100,7 +99,7 @@ bool MiniZStreamWrapper::read(StreamData& sd) {
         verifyGZIPHeader(gzipHdr, GZipFileSystem::GZIP_HEADER_MINSIZE);
         bodyPtr += GZipFileSystem::GZIP_HEADER_MINSIZE;
         if (gzipHdr[3] & GZipFileSystem::GZIP_FLAG_EXTRA) {
-            auto xlen = (uint8_t)*bodyPtr | (uint8_t) * (bodyPtr + 1) << 8;
+            auto xlen = (uint8_t)*bodyPtr | (uint8_t)*(bodyPtr + 1) << 8;
             bodyPtr += xlen + 2;
             KU_ASSERT((common::idx_t)(GZipFileSystem::GZIP_FOOTER_SIZE +
                                       GZipFileSystem::GZIP_HEADER_MINSIZE + 2 + xlen) <

@@ -36,3 +36,22 @@
 7|Elizabeth|1|False|True|20|4.7|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463|{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}
 8|Farooq|2|True|False|25|4.5|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|[80,78,34,83]|1.510|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A16
 9|Greg|2|False|False|40|4.9|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|[43,83,67,43]|1.600|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A17
+-LOG GZIPWithExtraFieldFlag
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/extra_field_flag.csv.gz" return *
+---- 1
+5
+
+-CASE CorruptGZIP
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/test_invalid_magic.csv.gz" return *
+---- error
+IO exception: Input is not a GZIP stream.
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/truncated_header.csv.gz" return *
+---- error
+IO exception: Input is not a GZIP stream.
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/invalid_compression_method.csv.gz" return *
+---- error
+IO exception: Unsupported GZIP compression method.
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/unsupported_flags.csv.gz" return *
+---- error
+IO exception: Unsupported GZIP archive.
+
