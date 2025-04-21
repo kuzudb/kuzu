@@ -36,8 +36,8 @@ void JsonFileHandle::readAtPosition(uint8_t* pointer, uint64_t size, uint64_t po
 BufferedJsonReader::BufferedJsonReader(main::ClientContext& context, std::string fileName,
     BufferedJSONReaderOptions options)
     : fileName{std::move(fileName)}, options{options}, bufferIdx{0} {
-    auto fileInfo =
-        context.getVFSUnsafe()->openFile(this->fileName, FileFlags::READ_ONLY, &context);
+    auto fileInfo = context.getVFSUnsafe()->openFile(this->fileName,
+        FileOpenFlags(FileFlags::READ_ONLY), &context);
     fileHandle = std::make_unique<JsonFileHandle>(std::move(fileInfo));
 }
 

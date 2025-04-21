@@ -1,9 +1,11 @@
 add_library(kuzu_file_system
         OBJECT
+        compressed_file_system.cpp
         file_info.cpp
         file_system.cpp
         local_file_system.cpp
-        virtual_file_system.cpp)
+        virtual_file_system.cpp
+        gzip_file_system.cpp)
 
 target_link_libraries(kuzu_file_system Glob)
 

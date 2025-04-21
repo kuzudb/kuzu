@@ -122,12 +122,12 @@ void HTTPFileInfo::initializeClient() {
     httpClient = HTTPFileSystem::getClient(host.c_str());
 }
 
-std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* context, common::FileLockType /*lock_type*/) {
+std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& path,
+    FileOpenFlags flags, main::ClientContext* context) {
     if (context->getCurrentSetting(HTTPCacheFileConfig::HTTP_CACHE_FILE_OPTION).getValue<bool>()) {
         initCachedFileManager(context);
     }
-    auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags, context);
+    auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags.flags, context);
     httpFileInfo->initialize(context);
     return httpFileInfo;
 }
@@ -143,8 +143,10 @@ bool HTTPFileSystem::canHandleFile(const std::string_view path) const {
 }
 
 bool HTTPFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* context) {
+    FileOpenFlags flags{FileFlags::READ_ONLY};
+    flags.lockType = FileLockType::READ_LOCK;
     try {
-        auto fileInfo = openFile(path, FileFlags::READ_ONLY, context, FileLockType::READ_LOCK);
+        auto fileInfo = openFile(path, flags, context);
         auto httpFileInfo = fileInfo->constPtrCast<HTTPFileInfo>();
         if (httpFileInfo->cachedFileInfo != nullptr) {
             return true;

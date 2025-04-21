@@ -1,5 +1,7 @@
 #include "common/file_system/file_system.h"
 
+#include "common/string_utils.h"
+
 namespace kuzu {
 namespace common {
 
@@ -33,7 +35,15 @@ std::string FileSystem::joinPath(const std::string& base, const std::string& par
 }
 
 std::string FileSystem::getFileExtension(const std::filesystem::path& path) {
-    return path.extension().string();
+    auto extension = path.extension();
+    if (extension.string() == ".gz") {
+        extension = path.stem().extension();
+    }
+    return extension;
+}
+
+bool FileSystem::isCompressedFile(const std::filesystem::path& path) {
+    return isGZIPCompressed(path);
 }
 
 std::string FileSystem::getFileName(const std::filesystem::path& path) {
@@ -47,6 +57,14 @@ void FileSystem::writeFile(FileInfo& /*fileInfo*/, const uint8_t* /*buffer*/, ui
 
 void FileSystem::truncate(FileInfo& /*fileInfo*/, uint64_t /*size*/) const {
     KU_UNREACHABLE;
+}
+
+void FileSystem::reset(kuzu::common::FileInfo& fileInfo) {
+    fileInfo.seek(0, SEEK_SET);
+}
+
+bool FileSystem::isGZIPCompressed(const std::filesystem::path& path) {
+    return StringUtils::getLower(path.extension().string()) == ".gz";
 }
 
 } // namespace common

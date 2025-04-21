@@ -1,18 +1,19 @@
 #include "common/file_system/virtual_file_system.h"
 
 #include "common/assert.h"
+#include "common/exception/runtime.h"
+#include "common/file_system/gzip_file_system.h"
 #include "common/file_system/local_file_system.h"
 #include "main/client_context.h"
 
 namespace kuzu {
 namespace common {
 
-VirtualFileSystem::VirtualFileSystem() {
-    defaultFS = std::make_unique<LocalFileSystem>("");
-}
+VirtualFileSystem::VirtualFileSystem() : VirtualFileSystem{""} {}
 
 VirtualFileSystem::VirtualFileSystem(std::string homeDir) {
     defaultFS = std::make_unique<LocalFileSystem>(homeDir);
+    compressedFileSystem.emplace(FileCompressionType::GZIP, std::make_unique<GZipFileSystem>());
 }
 
 VirtualFileSystem::~VirtualFileSystem() = default;
@@ -21,9 +22,24 @@ void VirtualFileSystem::registerFileSystem(std::unique_ptr<FileSystem> fileSyste
     subSystems.push_back(std::move(fileSystem));
 }
 
-std::unique_ptr<FileInfo> VirtualFileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* context, FileLockType lockType) {
-    return findFileSystem(path)->openFile(path, flags, context, lockType);
+FileCompressionType VirtualFileSystem::autoDetectCompressionType(const std::string& path) const {
+    if (isGZIPCompressed(path)) {
+        return FileCompressionType::GZIP;
+    }
+    return FileCompressionType::UNCOMPRESSED;
+}
+
+std::unique_ptr<FileInfo> VirtualFileSystem::openFile(const std::string& path, FileOpenFlags flags,
+    main::ClientContext* context) {
+    auto compressionType = flags.compressionType;
+    if (compressionType == FileCompressionType::AUTO_DETECT) {
+        compressionType = autoDetectCompressionType(path);
+    }
+    auto fileHandle = findFileSystem(path)->openFile(path, flags, context);
+    if (compressionType == FileCompressionType::UNCOMPRESSED) {
+        return fileHandle;
+    }
+    return compressedFileSystem.at(compressionType)->openCompressedFile(std::move(fileHandle));
 }
 
 std::vector<std::string> VirtualFileSystem::glob(main::ClientContext* context,

@@ -23,11 +23,11 @@ static std::string getQueryFromFile(VirtualFileSystem* vfs, const std::string& b
         }
         throw BinderException(stringFormat("File {} does not exist.", filePath));
     }
-    auto fileInfo = vfs->openFile(filePath, FileFlags::READ_ONLY
+    auto fileInfo = vfs->openFile(filePath, FileOpenFlags(FileFlags::READ_ONLY
 #ifdef _WIN32
-                                                | FileFlags::BINARY
+                                                          | FileFlags::BINARY
 #endif
-    );
+                                                ));
     auto fsize = fileInfo->getFileSize();
     auto buffer = std::make_unique<char[]>(fsize);
     fileInfo->readFile(buffer.get(), fsize);

@@ -19,7 +19,7 @@ ParquetWriter::ParquetWriter(std::string fileName, std::vector<common::LogicalTy
     : fileName{std::move(fileName)}, types{std::move(types)}, columnNames{std::move(columnNames)},
       codec{codec}, fileOffset{0}, mm{context->getMemoryManager()} {
     fileInfo = context->getVFSUnsafe()->openFile(this->fileName,
-        FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS, context);
+        FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), context);
     // Parquet files start with the string "PAR1".
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ParquetConstants::PARQUET_MAGIC_WORDS),
         strlen(ParquetConstants::PARQUET_MAGIC_WORDS), fileOffset);

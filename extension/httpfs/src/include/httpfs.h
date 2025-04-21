@@ -64,9 +64,8 @@ class HTTPFileSystem : public common::FileSystem {
     friend struct HTTPFileInfo;
 
 public:
-    std::unique_ptr<common::FileInfo> openFile(const std::string& path, int flags,
-        main::ClientContext* context = nullptr,
-        common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
+    std::unique_ptr<common::FileInfo> openFile(const std::string& path, common::FileOpenFlags flags,
+        main::ClientContext* context = nullptr) override;
 
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;

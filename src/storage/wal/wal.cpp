@@ -25,8 +25,9 @@ WAL::WAL(const std::string& directory, bool readOnly, VirtualFileSystem* vfs,
     }
     fileInfo =
         vfs->openFile(vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
-            readOnly ? FileFlags::READ_ONLY :
-                       FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::READ_ONLY | FileFlags::WRITE,
+            FileOpenFlags(readOnly ? FileFlags::READ_ONLY :
+                                     FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::READ_ONLY |
+                                         FileFlags::WRITE),
             context);
     bufferedWriter = std::make_shared<BufferedFileWriter>(*fileInfo);
     // WAL should always be APPEND only. We don't want to overwrite the file as it may still contain

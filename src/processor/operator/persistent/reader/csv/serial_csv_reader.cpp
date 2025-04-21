@@ -10,6 +10,8 @@
 using namespace kuzu::common;
 using namespace kuzu::function;
 
+#include "common/file_system/virtual_file_system.h"
+#include "main/client_context.h"
 namespace kuzu {
 namespace processor {
 
@@ -285,12 +287,7 @@ function_set SerialCSVScan::getFunctionSet() {
 
 void SerialCSVReader::resetReaderState() {
     // Reset file position to the beginning.
-    if (-1 == fileInfo->seek(0, SEEK_SET)) {
-        handleCopyException(
-            stringFormat("Failed to seek to the beginning of the file:, errno: {}.", errno), true);
-        return;
-    }
-
+    fileInfo->reset();
     buffer.reset();
     bufferSize = 0;
     position = 0;

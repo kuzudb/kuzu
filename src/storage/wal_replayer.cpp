@@ -37,7 +37,8 @@ void WALReplayer::replay() const {
     if (!clientContext.getVFSUnsafe()->fileOrPathExists(walFilePath, &clientContext)) {
         return;
     }
-    auto fileInfo = clientContext.getVFSUnsafe()->openFile(walFilePath, FileFlags::READ_ONLY);
+    auto fileInfo =
+        clientContext.getVFSUnsafe()->openFile(walFilePath, FileOpenFlags(FileFlags::READ_ONLY));
     const auto walFileSize = fileInfo->getFileSize();
     // Check if the wal file is empty or corrupted. so nothing to read.
     if (walFileSize == 0) {

@@ -109,7 +109,7 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
 
     void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
-            FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS, &context);
+            FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
         writeHeader(bindData);
     }
 
