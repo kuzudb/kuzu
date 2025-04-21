@@ -149,6 +149,9 @@ void SimpleAggregateSharedState::finalizePartitions(storage::MemoryManager* memo
     }
     BaseAggregateSharedState::finalizePartitions(globalPartitions, [&](auto& partition) {
         for (size_t i = 0; i < partition.distinctTables.size(); i++) {
+            if (!aggregateFunctions[i].isDistinct) {
+                continue;
+            }
             auto& [hashTable, queue, state] = partition.distinctTables[i];
             if (queue) {
                 KU_ASSERT(hashTable);
@@ -219,7 +222,9 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
     }
     if (getSharedState().hasDistinct) {
         for (auto& hashTable : distinctHashTables) {
-            hashTable->mergeIfFull(0 /*tuplesToAdd*/, true /*mergeAll*/);
+            if (hashTable) {
+                hashTable->mergeIfFull(0 /*tuplesToAdd*/, true /*mergeAll*/);
+            }
         }
     }
     getSharedState().combineAggregateStates(localAggregateStates, memoryManager);

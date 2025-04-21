@@ -119,3 +119,6 @@ Bob|Dan
 -STATEMENT MATCH (:person), (a:person)-[t:knows*2..2]->(b:person) RETURN count(DISTINCT t);
 ---- 1
 36
+-STATEMENT MATCH (:person), (a:person)-[t:knows*2..2]->(b:person) RETURN count(*), count(DISTINCT t);
+---- 1
+288|36
