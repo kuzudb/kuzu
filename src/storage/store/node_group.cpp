@@ -375,7 +375,7 @@ void NodeGroup::reclaimStorage(FileHandle& dataFH) {
     reclaimStorage(dataFH, chunkedGroups.lock());
 }
 
-void NodeGroup::reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) {
+void NodeGroup::reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) const {
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         chunkedGroup->reclaimStorage(dataFH);
     }

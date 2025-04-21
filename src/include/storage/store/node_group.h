@@ -159,7 +159,7 @@ public:
         common::row_idx_t numRows, common::transaction_t commitTS) const;
     void rollbackInsert(common::row_idx_t startRow);
     void reclaimStorage(FileHandle& dataFH);
-    virtual void reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock);
+    virtual void reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) const;
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 

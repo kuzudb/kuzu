@@ -210,7 +210,7 @@ public:
         FileHandle* dataFH, ColumnStats* newColumnStats) override;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
-    void reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) override;
+    void reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) const override;
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
@@ -248,7 +248,8 @@ private:
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
-    void checkpointInMemAndOnDisk(const common::UniqLock& lock, NodeGroupCheckpointState& state);
+    void checkpointInMemAndOnDisk(const common::UniqLock& lock, MemoryManager& memoryManager,
+        NodeGroupCheckpointState& state);
 
     void populateCSRLengthInMemOnly(const common::UniqLock& lock, common::offset_t numNodes,
         const CSRNodeGroupCheckpointState& csrState);

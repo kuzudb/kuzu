@@ -58,3 +58,20 @@
 -STATEMENT MATCH (a:person) WHERE a.ID = 0 DETACH DELETE a;
 ---- error
 Runtime exception: Cannot detach delete from node table 'person' as it has connected edges in rel table 'knows' (detach delete only supports deleting from rel tables with storage direction 'both').
+
+-CASE DeleteAllRels
+-STATEMENT create node table Person (id INT64, firstName STRING, lastName STRING, gender STRING, birthday INT64, creationDate INT64, locationIP STRING, browserUsed STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT create rel table knows (FROM Person TO Person, creationDate INT64, MANY_MANY);
+---- ok
+-STATEMENT copy Person from "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv"
+---- ok
+-STATEMENT copy knows from ["${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv","${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv"]
+---- ok
+-STATEMENT call checkpoint_threshold=0
+---- ok
+-STATEMENT match (a)-[k:knows]->(b) delete k
+---- ok
+-STATEMENT call fsm_info() return sum(num_pages) > 0
+---- 1
+True

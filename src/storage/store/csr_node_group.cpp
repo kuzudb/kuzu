@@ -458,17 +458,17 @@ void CSRNodeGroup::serialize(Serializer& serializer) {
     }
 }
 
-void CSRNodeGroup::checkpoint(MemoryManager&, NodeGroupCheckpointState& state) {
+void CSRNodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {
     const auto lock = chunkedGroups.lock();
     if (!persistentChunkGroup) {
         checkpointInMemOnly(lock, state);
     } else {
-        checkpointInMemAndOnDisk(lock, state);
+        checkpointInMemAndOnDisk(lock, memoryManager, state);
     }
     checkpointDataTypesNoLock(state);
 }
 
-void CSRNodeGroup::reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) {
+void CSRNodeGroup::reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) const {
     NodeGroup::reclaimStorage(dataFH, lock);
     if (persistentChunkGroup) {
         persistentChunkGroup->reclaimStorage(dataFH);
@@ -484,7 +484,8 @@ static std::unique_ptr<ChunkedCSRNodeGroup> createNewPersistentChunkGroup(
     return newGroup;
 }
 
-void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheckpointState& state) {
+void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, MemoryManager& memoryManager,
+    NodeGroupCheckpointState& state) {
     // TODO(Guodong): Should skip early here if no changes in the node group, so we avoid scanning
     // the csr header. Case: No insertions/deletions in persistent chunk and no in-mem chunks.
     auto& csrState = state.cast<CSRNodeGroupCheckpointState>();
@@ -524,13 +525,24 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
                       csrState.newHeader->getStartCSROffset(region.leftNodeOffset));
         }
     }
-    KU_ASSERT(csrState.newHeader->sanityCheck());
-    for (const auto columnID : csrState.columnIDs) {
-        checkpointColumn(lock, columnID, csrState, regionsToCheckpoint);
+
+    int64_t totalSizeChange = 0;
+    for (const auto& region : regionsToCheckpoint) {
+        totalSizeChange += region.sizeChange;
     }
-    checkpointCSRHeaderColumns(csrState);
-    persistentChunkGroup =
-        createNewPersistentChunkGroup(persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState);
+    if (numRows + persistentChunkGroup->getNumRows() + totalSizeChange == 0) {
+        reclaimStorage(csrState.dataFH, lock);
+        persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(memoryManager, dataTypes,
+            enableCompression, capacity, 0, ResidencyState::IN_MEMORY);
+    } else {
+        KU_ASSERT(csrState.newHeader->sanityCheck());
+        for (const auto columnID : csrState.columnIDs) {
+            checkpointColumn(lock, columnID, csrState, regionsToCheckpoint);
+        }
+        checkpointCSRHeaderColumns(csrState);
+        persistentChunkGroup = createNewPersistentChunkGroup(
+            persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState);
+    }
     finalizeCheckpoint(lock);
 }
 
