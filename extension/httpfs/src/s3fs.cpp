@@ -92,15 +92,15 @@ S3UploadParams getS3UploadParams(main::ClientContext* context) {
 
 S3FileSystem::S3FileSystem(S3FileSystemConfig fsConfig) : fsConfig(std::move(fsConfig)) {}
 
-std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path, int flags,
-    main::ClientContext* context, common::FileLockType /*lock_type*/) {
+std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path,
+    FileOpenFlags flags, main::ClientContext* context) {
     auto authParams = fsConfig.getAuthParams(context);
     auto uploadParams = getS3UploadParams(context);
     if (context->getCurrentSetting(HTTPCacheFileConfig::HTTP_CACHE_FILE_OPTION).getValue<bool>()) {
         initCachedFileManager(context);
     }
     auto s3FileInfo =
-        std::make_unique<S3FileInfo>(path, this, flags, context, authParams, uploadParams);
+        std::make_unique<S3FileInfo>(path, this, flags.flags, context, authParams, uploadParams);
     s3FileInfo->initialize(context);
     return s3FileInfo;
 }

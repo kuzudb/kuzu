@@ -48,11 +48,11 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, common::idx_t fileIdx,
       bufferIdx(0), bufferSize{0}, position{0}, lineContext(), osFileOffset{0}, fileIdx(fileIdx),
       errorHandler(errorHandler), rowEmpty{false} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
-        FileFlags::READ_ONLY
+        FileOpenFlags(FileFlags::READ_ONLY
 #ifdef _WIN32
-            | FileFlags::BINARY
+                      | FileFlags::BINARY
 #endif
-        ,
+            ),
         context);
 }
 

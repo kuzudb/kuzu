@@ -29,9 +29,8 @@ class KUZU_API LocalFileSystem final : public FileSystem {
 public:
     explicit LocalFileSystem(std::string homeDir) : FileSystem(std::move(homeDir)) {}
 
-    std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
-        main::ClientContext* context = nullptr,
-        FileLockType lock_type = FileLockType::NO_LOCK) override;
+    std::unique_ptr<FileInfo> openFile(const std::string& path, FileOpenFlags flags,
+        main::ClientContext* context = nullptr) override;
 
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;
@@ -49,8 +48,6 @@ public:
     std::string expandPath(main::ClientContext* context, const std::string& path) const override;
 
     void syncFile(const FileInfo& fileInfo) const override;
-
-    void cleanUP(main::ClientContext* /*context*/) override {};
 
     static bool isLocalPath(const std::string& path);
 

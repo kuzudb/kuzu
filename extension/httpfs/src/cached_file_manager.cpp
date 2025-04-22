@@ -25,11 +25,12 @@ std::unique_ptr<FileInfo> CachedFileManager::getCachedFileInfo(HTTPFileInfo* htt
     auto fileName = FileSystem::getFileName(httpFileInfo->path);
     auto cacheFilePath = getCachedFilePath(fileName, transactionID);
     if (!vfs->fileOrPathExists(cacheFilePath)) {
-        auto cacheFileInfo = vfs->openFile(cacheFilePath,
-            FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::READ_ONLY | FileFlags::WRITE);
+        auto cacheFileInfo =
+            vfs->openFile(cacheFilePath, FileOpenFlags(FileFlags::CREATE_IF_NOT_EXISTS |
+                                                       FileFlags::READ_ONLY | FileFlags::WRITE));
         downloadFile(httpFileInfo, cacheFileInfo.get());
     }
-    return vfs->openFile(cacheFilePath, FileFlags::READ_ONLY);
+    return vfs->openFile(cacheFilePath, FileOpenFlags(FileFlags::READ_ONLY));
 }
 
 void CachedFileManager::cleanUP(main::ClientContext* context) {

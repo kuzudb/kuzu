@@ -35,7 +35,8 @@ void ParquetReader::initializeScan(ParquetReaderScanState& state,
     state.groupIdxList = std::move(groups_to_read);
     if (!state.fileInfo || state.fileInfo->path != filePath) {
         state.prefetchMode = false;
-        state.fileInfo = vfs->openFile(filePath, FileFlags::READ_ONLY, context);
+        state.fileInfo =
+            vfs->openFile(filePath, common::FileOpenFlags(FileFlags::READ_ONLY), context);
     }
 
     state.thriftFileProto = createThriftProtocol(state.fileInfo.get(), state.prefetchMode);
@@ -170,7 +171,8 @@ void ParquetReader::scan(processor::ParquetReaderScanState& state, DataChunk& re
 }
 
 void ParquetReader::initMetadata() {
-    auto fileInfo = context->getVFSUnsafe()->openFile(filePath, FileFlags::READ_ONLY, context);
+    auto fileInfo =
+        context->getVFSUnsafe()->openFile(filePath, FileOpenFlags(FileFlags::READ_ONLY), context);
     auto proto = createThriftProtocol(fileInfo.get(), false);
     auto& transport = ku_dynamic_cast<ThriftFileTransport&>(*proto->getTransport());
     auto fileSize = transport.GetSize();

@@ -151,7 +151,9 @@ void Database::openLockFile() {
     } else {
         getLockFileFlagsAndType(dbConfig.readOnly, false, flags, lock);
     }
-    lockFile = vfs->openFile(lockFilePath, flags, nullptr /* clientContext */, lock);
+    FileOpenFlags openFlags{flags};
+    openFlags.lockType = lock;
+    lockFile = vfs->openFile(lockFilePath, openFlags, nullptr /* clientContext */);
 }
 
 void Database::initAndLockDBDir() {

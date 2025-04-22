@@ -38,7 +38,7 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
         openFlags = FileFlags::WRITE | FileFlags::READ_ONLY |
                     ((createFileIfNotExists()) ? FileFlags::CREATE_IF_NOT_EXISTS : 0x00000000);
     }
-    fileInfo = vfs->openFile(path, openFlags, context);
+    fileInfo = vfs->openFile(path, FileOpenFlags{openFlags}, context);
     const auto fileLength = fileInfo->getFileSize();
     numPages = ceil(static_cast<double>(fileLength) / static_cast<double>(getPageSize()));
     pageCapacity = 0;

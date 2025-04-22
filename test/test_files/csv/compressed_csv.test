@@ -1,0 +1,57 @@
+-DATASET CSV csv-dialect-detection
+--
+
+-CASE SCAN_COMPRESSED_CSV
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv.gz" return *
+---- 5
+0|Alice|1|True|False|35|5.0|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11
+2|Bob|2|True|False|30|5.1|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990|{a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12}
+3|Carol|1|False|True|45|5.0|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000|a0eebc999c0b4ef8bb6d6bb9bd380a13
+5|Dan|2|False|True|20|4.8|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14
+7|Elizabeth|1|False|True|20|4.7|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463|{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv.gz'
+---- ok
+-STATEMENT MATCH (p:person) return p.*
+---- 5
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13
+5|Dan|2|False|True|20|4.800000|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14
+7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv.gz" where id = 10 return *
+---- 1
+10|92|36.70182958327007600|True|1241-11-20|1241-11-20 23:09:12|UKeMUtbLuPueVzNxsMlpktgJYd|[59,97,49,49,51]
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson*.gz"(header=true) return count(*)
+---- 1
+7
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/concat_vperson.csv.gz" return *
+---- 8
+0|Alice|1|True|False|35|5.0|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.9|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A18
+2|Bob|2|True|False|30|5.1|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990|{a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12}
+3|Carol|1|False|True|45|5.0|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000|a0eebc999c0b4ef8bb6d6bb9bd380a13
+5|Dan|2|False|True|20|4.8|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14
+7|Elizabeth|1|False|True|20|4.7|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463|{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}
+8|Farooq|2|True|False|25|4.5|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|[80,78,34,83]|1.510|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A16
+9|Greg|2|False|False|40|4.9|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|[43,83,67,43]|1.600|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A17
+-LOG GZIPWithExtraFieldFlag
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/extra_field_flag.csv.gz" return *
+---- 1
+5
+
+-CASE CorruptGZIP
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/test_invalid_magic.csv.gz" return *
+---- error
+IO exception: Input is not a GZIP stream.
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/truncated_header.csv.gz" return *
+---- error
+IO exception: Input is not a GZIP stream.
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/invalid_compression_method.csv.gz" return *
+---- error
+IO exception: Unsupported GZIP compression method.
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/unsupported_flags.csv.gz" return *
+---- error
+IO exception: Unsupported GZIP archive.
+

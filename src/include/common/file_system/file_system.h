@@ -16,6 +16,8 @@ namespace common {
 
 enum class FileLockType : uint8_t { NO_LOCK = 0, READ_LOCK = 1, WRITE_LOCK = 2 };
 
+enum class FileCompressionType : uint8_t { AUTO_DETECT = 0, UNCOMPRESSED = 1, GZIP = 2, ZSTD = 3 };
+
 struct FileFlags {
     static constexpr uint8_t READ_ONLY = 1 << 0;
     static constexpr uint8_t WRITE = 1 << 1;
@@ -32,6 +34,14 @@ struct FileFlags {
 #endif
 };
 
+struct FileOpenFlags {
+    int flags;
+    FileLockType lockType = FileLockType::NO_LOCK;
+    FileCompressionType compressionType = FileCompressionType::AUTO_DETECT;
+
+    explicit FileOpenFlags(int flags) : flags{flags} {}
+};
+
 class KUZU_API FileSystem {
     friend struct FileInfo;
 
@@ -42,11 +52,15 @@ public:
 
     virtual ~FileSystem() = default;
 
-    virtual std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
-        main::ClientContext* context = nullptr, FileLockType lock_type = FileLockType::NO_LOCK) = 0;
+    virtual std::unique_ptr<FileInfo> openFile(const std::string& /*path*/, FileOpenFlags /*flags*/,
+        main::ClientContext* /*context*/ = nullptr) {
+        KU_UNREACHABLE;
+    }
 
-    virtual std::vector<std::string> glob(main::ClientContext* context,
-        const std::string& path) const = 0;
+    virtual std::vector<std::string> glob(main::ClientContext* /*context*/,
+        const std::string& /*path*/) const {
+        KU_UNREACHABLE;
+    }
 
     virtual void overwriteFile(const std::string& from, const std::string& to);
 
@@ -64,6 +78,8 @@ public:
 
     static std::string getFileExtension(const std::filesystem::path& path);
 
+    static bool isCompressedFile(const std::filesystem::path& path);
+
     static std::string getFileName(const std::filesystem::path& path);
 
     virtual bool canHandleFile(const std::string_view /*path*/) const { KU_UNREACHABLE; }
@@ -80,22 +96,26 @@ public:
         return common::ku_dynamic_cast<const TARGET*>(this);
     }
 
-    virtual void cleanUP(main::ClientContext* context) = 0;
+    virtual void cleanUP(main::ClientContext* /*context*/) {}
 
 protected:
     virtual void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const = 0;
 
-    virtual int64_t readFile(FileInfo& fileInfo, void* buf, size_t nbyte) const = 0;
+    virtual int64_t readFile(FileInfo& fileInfo, void* buf, size_t numBytes) const = 0;
 
     virtual void writeFile(FileInfo& fileInfo, const uint8_t* buffer, uint64_t numBytes,
         uint64_t offset) const;
 
     virtual int64_t seek(FileInfo& fileInfo, uint64_t offset, int whence) const = 0;
 
+    virtual void reset(FileInfo& fileInfo);
+
     virtual void truncate(FileInfo& fileInfo, uint64_t size) const;
 
     virtual uint64_t getFileSize(const FileInfo& fileInfo) const = 0;
+
+    static bool isGZIPCompressed(const std::filesystem::path& path);
 
     std::string homeDir;
 };

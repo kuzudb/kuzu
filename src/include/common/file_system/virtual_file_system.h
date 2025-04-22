@@ -1,8 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
+#include "compressed_file_system.h"
 #include "file_system.h"
 
 namespace kuzu {
@@ -26,9 +28,8 @@ public:
 
     void registerFileSystem(std::unique_ptr<FileSystem> fileSystem);
 
-    std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
-        main::ClientContext* context = nullptr,
-        FileLockType lockType = FileLockType::NO_LOCK) override;
+    std::unique_ptr<FileInfo> openFile(const std::string& path, FileOpenFlags flags,
+        main::ClientContext* context = nullptr) override;
 
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;
@@ -65,9 +66,13 @@ protected:
 private:
     FileSystem* findFileSystem(const std::string& path) const;
 
+    FileCompressionType autoDetectCompressionType(const std::string& path) const;
+
 private:
     std::vector<std::unique_ptr<FileSystem>> subSystems;
     std::unique_ptr<FileSystem> defaultFS;
+    std::unordered_map<FileCompressionType, std::unique_ptr<CompressedFileSystem>>
+        compressedFileSystem;
 };
 
 } // namespace common

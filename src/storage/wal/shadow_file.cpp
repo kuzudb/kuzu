@@ -140,7 +140,8 @@ std::unique_ptr<FileInfo> ShadowFile::getFileInfo(const ClientContext& context, 
         KU_UNREACHABLE;
     }
     }
-    return context.getVFSUnsafe()->openFile(fileName, FileFlags::READ_ONLY | FileFlags::WRITE);
+    return context.getVFSUnsafe()->openFile(fileName,
+        FileOpenFlags(FileFlags::READ_ONLY | FileFlags::WRITE));
 }
 
 } // namespace storage

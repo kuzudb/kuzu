@@ -238,8 +238,18 @@ TableFunction Binder::getScanFunction(const FileTypeInfo& typeInfo,
             entry->ptrCast<FunctionCatalogEntry>());
     } break;
     case FileType::CSV: {
+        bool containCompressedCSV = std::any_of(fileScanInfo.filePaths.begin(),
+            fileScanInfo.filePaths.end(), [&](const auto& file) {
+                return clientContext->getVFSUnsafe()->isCompressedFile(file);
+            });
         auto csvConfig = CSVReaderConfig::construct(fileScanInfo.options);
-        auto name = csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name;
+        // Parallel CSV scanning is only allowed:
+        // 1. No newline character inside the csv body.
+        // 2. The CSV file to scan is not compressed (because we couldn't perform seek in such
+        // case).
+        // 3. Not explicitly set by the user to use the serial csv reader.
+        auto name = (csvConfig.parallel && !containCompressedCSV) ? ParallelCSVScan::name :
+                                                                    SerialCSVScan::name;
         auto entry = catalog->getFunctionEntry(transaction, name);
         func = BuiltInFunctionsUtils::matchFunction(name, inputTypes,
             entry->ptrCast<FunctionCatalogEntry>());
