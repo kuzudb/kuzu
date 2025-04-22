@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.9.1 LANGUAGES CXX C)
+project(Kuzu VERSION 0.9.2 LANGUAGES CXX C)
 
 option(SINGLE_THREADED "Single-threaded mode" FALSE)
 if(SINGLE_THREADED)
