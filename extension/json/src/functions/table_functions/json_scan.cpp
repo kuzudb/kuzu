@@ -721,9 +721,9 @@ private:
 
 uint64_t JsonScanBindData::getFieldIdx(const std::string& fieldName) const {
     // From and to are case-insensitive for backward compatibility.
-    if (StringUtils::getLower(fieldName) == "from") {
+    if (StringUtils::caseInsensitiveEquals(fieldName, "from")) {
         return colNameToIdx.at("from");
-    } else if (StringUtils::getLower(fieldName) == "to") {
+    } else if (StringUtils::caseInsensitiveEquals(fieldName, "to")) {
         return colNameToIdx.at("to");
     }
     auto itr = colNameToIdx.find(fieldName);
