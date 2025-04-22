@@ -371,6 +371,13 @@ void NodeGroup::rollbackInsert(row_idx_t startRow) {
     numRows = startRow;
 }
 
+void NodeGroup::reclaimStorage(FileHandle& dataFH) {
+    const auto lock = chunkedGroups.lock();
+    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
+        chunkedGroup->reclaimStorage(dataFH);
+    }
+}
+
 void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {
     // We don't need to consider deletions here, as they are flushed separately as metadata.
     // TODO(Guodong): A special case can be all rows are deleted or rollbacked, then we can skip
@@ -442,12 +449,15 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
             std::move(chunkCheckpointStates));
         state.columns[i]->checkpointColumnChunk(columnCheckpointState);
     }
-    // Clear all chunked groups except for the first one.
     auto checkpointedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(*chunkedGroups.getGroup(lock, 0), state.columnIDs);
     KU_ASSERT(checkpointedChunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
     checkpointedChunkedGroup->resetNumRowsFromChunks();
     checkpointedChunkedGroup->resetVersionAndUpdateInfo();
+    // The first chunked group is the only persistent one
+    // The checkpointed columns have been moved to the checkpointedChunkedGroup, the
+    // remaining must have been dropped
+    chunkedGroups.getGroup(lock, 0)->reclaimStorage(state.dataFH);
     return checkpointedChunkedGroup;
 }
 

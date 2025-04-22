@@ -489,6 +489,18 @@ void ChunkedNodeGroup::rollbackDelete(row_idx_t startRow, row_idx_t numRows_, tr
     versionInfo->rollbackDelete(startRow, numRows_);
 }
 
+void ChunkedNodeGroup::reclaimStorage(FileHandle& dataFH) {
+    for (auto& columnChunk : chunks) {
+        if (columnChunk) {
+            columnChunk->reclaimStorage(dataFH);
+        }
+    }
+}
+
+void ChunkedNodeGroup::reclaimColumn(FileHandle& dataFH, common::column_id_t columnID) {
+    chunks[columnID]->reclaimStorage(dataFH);
+}
+
 void ChunkedNodeGroup::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
     serializer.writeDebuggingInfo("chunks");

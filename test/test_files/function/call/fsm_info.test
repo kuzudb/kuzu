@@ -54,7 +54,9 @@ True
 -STATEMENT COPY person1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
 ---- ok
 # allow margin equal to the largest page range for a column chunk in the table
--STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages call storage_info('person1') with num_free_pages, max(num_pages) as largest_range return num_free_pages is null or largest_range >= num_free_pages
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages
+           call storage_info('person1') with num_free_pages, max(num_pages) as largest_range
+           return num_free_pages is null or largest_range >= num_free_pages
 ---- 1
 True
 

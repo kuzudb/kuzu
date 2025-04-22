@@ -171,6 +171,7 @@ public:
         LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override;
+    void reclaimStorage(FileHandle& dataFH) override;
 
     void rollbackPKIndexInsert(const transaction::Transaction* transaction,
         common::row_idx_t startRow, common::row_idx_t numRows_,

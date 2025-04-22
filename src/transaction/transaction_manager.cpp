@@ -151,6 +151,10 @@ bool TransactionManager::canCheckpointNoLock() const {
     return activeWriteTransactions.empty() && activeReadOnlyTransactions.empty();
 }
 
+void TransactionManager::finalizeCheckpointNoLock(main::ClientContext& clientContext) {
+    clientContext.getStorageManager()->finalizeCheckpoint(clientContext);
+}
+
 void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // Note: It is enough to stop and wait transactions to leave the system instead of
     // for example checking on the query processor's task scheduler. This is because the
@@ -183,6 +187,7 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
         clientContext.getStorageManager()->getShadowFile().clearAll(clientContext);
         StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
             clientContext.getVFSUnsafe());
+        finalizeCheckpointNoLock(clientContext);
     } catch (std::exception& e) {
         rollbackCheckpoint(clientContext);
         throw CheckpointException{e};

@@ -595,6 +595,10 @@ void NodeTable::rollbackCheckpoint() {
     pkIndex->rollbackCheckpoint();
 }
 
+void NodeTable::reclaimStorage(FileHandle& dataFH) {
+    nodeGroups->reclaimStorage(dataFH);
+}
+
 TableStats NodeTable::getStats(const Transaction* transaction) const {
     auto stats = nodeGroups->getStats();
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,

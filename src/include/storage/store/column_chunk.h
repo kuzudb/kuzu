@@ -105,6 +105,8 @@ public:
     MergedColumnChunkStats getMergedColumnChunkStats(
         const transaction::Transaction* transaction) const;
 
+    void reclaimStorage(FileHandle& dataFH);
+
 private:
     void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,
         common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned,

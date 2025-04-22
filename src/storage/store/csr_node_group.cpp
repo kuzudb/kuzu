@@ -468,6 +468,22 @@ void CSRNodeGroup::checkpoint(MemoryManager&, NodeGroupCheckpointState& state) {
     checkpointDataTypesNoLock(state);
 }
 
+void CSRNodeGroup::reclaimStorage(FileHandle& dataFH) {
+    NodeGroup::reclaimStorage(dataFH);
+    if (persistentChunkGroup) {
+        persistentChunkGroup->reclaimStorage(dataFH);
+    }
+}
+
+static std::unique_ptr<ChunkedCSRNodeGroup> createNewPersistentChunkGroup(
+    ChunkedCSRNodeGroup& oldPersistentChunkGroup, CSRNodeGroupCheckpointState& csrState) {
+    auto newGroup =
+        std::make_unique<ChunkedCSRNodeGroup>(oldPersistentChunkGroup, csrState.columnIDs);
+    // checkpointed columns have been moved to the new group, reclaim storage for dropped column
+    oldPersistentChunkGroup.reclaimStorage(csrState.dataFH);
+    return newGroup;
+}
+
 void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheckpointState& state) {
     // TODO(Guodong): Should skip early here if no changes in the node group, so we avoid scanning
     // the csr header. Case: No insertions/deletions in persistent chunk and no in-mem chunks.
@@ -490,8 +506,8 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
         if (csrState.columnIDs.size() != persistentChunkGroup->getNumColumns()) {
             // The column set of the node group has changed. We need to re-create the persistent
             // chunked group.
-            persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(
-                persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState.columnIDs);
+            persistentChunkGroup = createNewPersistentChunkGroup(
+                persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState);
         }
         return;
     }
@@ -513,8 +529,8 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
         checkpointColumn(lock, columnID, csrState, regionsToCheckpoint);
     }
     checkpointCSRHeaderColumns(csrState);
-    persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(
-        persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState.columnIDs);
+    persistentChunkGroup =
+        createNewPersistentChunkGroup(persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState);
     finalizeCheckpoint(lock);
 }
 

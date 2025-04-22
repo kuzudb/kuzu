@@ -265,6 +265,16 @@ void ChunkedCSRNodeGroup::flush(FileHandle& dataFH) {
     }
 }
 
+void ChunkedCSRNodeGroup ::reclaimStorage(FileHandle& dataFH) {
+    ChunkedNodeGroup::reclaimStorage(dataFH);
+    if (csrHeader.offset) {
+        csrHeader.offset->reclaimStorage(dataFH);
+    }
+    if (csrHeader.length) {
+        csrHeader.length->reclaimStorage(dataFH);
+    }
+}
+
 void ChunkedCSRNodeGroup::scanCSRHeader(MemoryManager& memoryManager,
     CSRNodeGroupCheckpointState& csrState) const {
     if (!csrState.oldHeader) {

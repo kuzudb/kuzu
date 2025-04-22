@@ -6,6 +6,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/file_handle.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
 #include "storage/store/string_column.h"
@@ -20,7 +21,7 @@ StringChunkData::StringChunkData(MemoryManager& mm, LogicalType dataType, uint64
     : ColumnChunkData{mm, std::move(dataType), capacity, enableCompression, residencyState,
           true /*hasNullData*/},
       indexColumnChunk{ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT32(),
-          enableCompression, capacity, residencyState)},
+          enableCompression, capacity, residencyState, false /*hasNullData*/)},
       dictionaryChunk{std::make_unique<DictionaryChunk>(mm,
           residencyState == ResidencyState::IN_MEMORY ? 0 : capacity, enableCompression,
           residencyState)},
@@ -254,6 +255,13 @@ void StringChunkData::flush(FileHandle& dataFH) {
     ColumnChunkData::flush(dataFH);
     indexColumnChunk->flush(dataFH);
     dictionaryChunk->flush(dataFH);
+}
+
+void StringChunkData::reclaimStorage(FileHandle& dataFH) {
+    ColumnChunkData::reclaimStorage(dataFH);
+    indexColumnChunk->reclaimStorage(dataFH);
+    dictionaryChunk->getOffsetChunk()->reclaimStorage(dataFH);
+    dictionaryChunk->getStringDataChunk()->reclaimStorage(dataFH);
 }
 
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {

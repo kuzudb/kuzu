@@ -1000,11 +1000,23 @@ void ColumnChunkData::loadFromDisk() {
     buffer->getMemoryManager()->getBufferManager()->getSpillerOrSkip(
         [&](auto& spiller) { spiller.loadFromDisk(*this); });
 }
+
 uint64_t ColumnChunkData::spillToDisk() {
     uint64_t spilledBytes = 0;
     buffer->getMemoryManager()->getBufferManager()->getSpillerOrSkip(
         [&](auto& spiller) { spilledBytes = spiller.spillToDisk(*this); });
     return spilledBytes;
+}
+
+void ColumnChunkData::reclaimStorage(FileHandle& dataFH) {
+    if (nullData) {
+        nullData->reclaimStorage(dataFH);
+    }
+    if (residencyState == ResidencyState::ON_DISK) {
+        if (metadata.getStartPageIdx() != INVALID_PAGE_IDX) {
+            dataFH.getPageManager()->freePageRange(metadata.pageRange);
+        }
+    }
 }
 
 ColumnChunkData::~ColumnChunkData() = default;

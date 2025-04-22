@@ -192,6 +192,7 @@ public:
         LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override {};
+    void reclaimStorage(FileHandle& dataFH) override;
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 

@@ -75,8 +75,15 @@ bool Catalog::containsTable(const Transaction* transaction, const std::string& t
     return false;
 }
 
-bool Catalog::containsTable(const Transaction* transaction, table_id_t tableID) const {
-    return tables->getEntryOfOID(transaction, tableID) != nullptr;
+bool Catalog::containsTable(const Transaction* transaction, table_id_t tableID,
+    bool useInternal) const {
+    if (tables->getEntryOfOID(transaction, tableID) != nullptr) {
+        return true;
+    }
+    if (useInternal) {
+        return internalTables->getEntryOfOID(transaction, tableID) != nullptr;
+    }
+    return false;
 }
 
 TableCatalogEntry* Catalog::getTableCatalogEntry(const Transaction* transaction,

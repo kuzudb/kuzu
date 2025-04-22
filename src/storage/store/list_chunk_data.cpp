@@ -439,5 +439,12 @@ void ListChunkData::flush(FileHandle& dataFH) {
     offsetColumnChunk->flush(dataFH);
 }
 
+void ListChunkData::reclaimStorage(FileHandle& dataFH) {
+    ColumnChunkData::reclaimStorage(dataFH);
+    sizeColumnChunk->reclaimStorage(dataFH);
+    dataColumnChunk->reclaimStorage(dataFH);
+    offsetColumnChunk->reclaimStorage(dataFH);
+}
+
 } // namespace storage
 } // namespace kuzu

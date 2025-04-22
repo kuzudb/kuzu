@@ -50,6 +50,7 @@ public:
     }
 
     void flush(FileHandle& dataFH) override;
+    void reclaimStorage(FileHandle& dataFH) override;
 
 protected:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,

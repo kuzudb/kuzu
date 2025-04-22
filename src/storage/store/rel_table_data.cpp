@@ -286,5 +286,9 @@ void RelTableData::rollbackGroupCollectionInsert(row_idx_t numRows_, bool isPers
     nodeGroups->rollbackInsert(numRows_, !isPersistent);
 }
 
+void RelTableData::reclaimStorage(FileHandle& dataFH) {
+    nodeGroups->reclaimStorage(dataFH);
+}
+
 } // namespace storage
 } // namespace kuzu

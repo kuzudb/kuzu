@@ -453,6 +453,12 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     localRelTable.clear();
 }
 
+void RelTable::reclaimStorage(FileHandle& dataFH) {
+    for (auto& relData : directedRelData) {
+        relData->reclaimStorage(dataFH);
+    }
+}
+
 void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     const offset_t maxCommittedOffset = reserveRelOffsets(localNodeGroup.getNumRows());

@@ -32,6 +32,7 @@ public:
     void createTable(catalog::CatalogEntry* entry, main::ClientContext* context);
 
     void checkpoint(main::ClientContext& clientContext);
+    void finalizeCheckpoint(main::ClientContext& clientContext);
     void rollbackCheckpoint(main::ClientContext& clientContext);
 
     Table* getTable(common::table_id_t tableID) {
@@ -56,6 +57,8 @@ private:
     void createNodeTable(catalog::NodeTableCatalogEntry* entry, main::ClientContext* context);
     void createRelTable(catalog::RelTableCatalogEntry* entry);
     void createRelTableGroup(catalog::RelGroupCatalogEntry* entry, main::ClientContext* context);
+
+    void reclaimDroppedTables(const main::ClientContext& clientContext);
 
 private:
     std::mutex mtx;

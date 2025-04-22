@@ -62,14 +62,14 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
             Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
             std::string key;
             uint64_t numTables = 0;
-            deSer.validateDebuggingInfo(key, "page_manager");
-            dataFH->getPageManager()->deserialize(deSer);
             deSer.validateDebuggingInfo(key, "num_tables");
             deSer.deserializeValue<uint64_t>(numTables);
             for (auto i = 0u; i < numTables; i++) {
                 auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
                 tables[table->getTableID()] = std::move(table);
             }
+            deSer.validateDebuggingInfo(key, "page_manager");
+            dataFH->getPageManager()->deserialize(deSer);
         }
     }
 }
@@ -142,6 +142,20 @@ ShadowFile& StorageManager::getShadowFile() const {
     return *shadowFile;
 }
 
+void StorageManager::reclaimDroppedTables(const main::ClientContext& clientContext) {
+    std::vector<table_id_t> droppedTables;
+    for (const auto& [tableID, table] : tables) {
+        if (!clientContext.getCatalog()->containsTable(&DUMMY_CHECKPOINT_TRANSACTION, tableID,
+                true)) {
+            table->reclaimStorage(*dataFH);
+            droppedTables.push_back(tableID);
+        }
+    }
+    for (auto tableID : droppedTables) {
+        tables.erase(tableID);
+    }
+}
+
 void StorageManager::checkpoint(main::ClientContext& clientContext) {
     if (main::DBConfig::isDBPathInMemory(databasePath)) {
         return;
@@ -154,9 +168,6 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
         &clientContext);
     const auto writer = std::make_shared<BufferedFileWriter>(*metadataFileInfo);
     Serializer ser(writer);
-    ser.writeDebuggingInfo("page_manager");
-    dataFH->getPageManager()->serialize(ser);
-
     const auto nodeTableEntries =
         clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     const auto relTableEntries =
@@ -180,15 +191,21 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
         }
         tables.at(tableEntry->getTableID())->checkpoint(ser, tableEntry);
     }
+    reclaimDroppedTables(clientContext);
+    ser.writeDebuggingInfo("page_manager");
+    dataFH->getPageManager()->serialize(ser);
     writer->flush();
     writer->sync();
     shadowFile->flushAll();
-    dataFH->getPageManager()->finalizeCheckpoint();
     // When a page is freed by the FSM it evicts it from the BM. However if the page is freed then
     // reused over and over it can be appended to the eviction queue multiple times. To prevent
     // multiple entries of the same page from existing in the eviction queue, at the end of each
     // checkpoint we remove any already-evicted pages.
     memoryManager.getBufferManager()->removeEvictedCandidates();
+}
+
+void StorageManager::finalizeCheckpoint(main::ClientContext&) {
+    dataFH->getPageManager()->finalizeCheckpoint();
 }
 
 void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {
@@ -202,6 +219,7 @@ void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {
         KU_ASSERT(tables.contains(tableEntry->getTableID()));
         tables.at(tableEntry->getTableID())->rollbackCheckpoint();
     }
+    dataFH->getPageManager()->rollbackCheckpoint();
 }
 
 } // namespace storage
