@@ -370,7 +370,7 @@ void ChunkedNodeGroup::addColumn(const Transaction* transaction,
     auto& dataType = addColumnState.propertyDefinition.getType();
     chunks.push_back(
         std::make_unique<ColumnChunk>(*transaction->getClientContext()->getMemoryManager(),
-            dataType, capacity, enableCompression, ResidencyState::IN_MEMORY));
+            dataType.copy(), capacity, enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     auto numExistingRows = getNumRows();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numExistingRows,
