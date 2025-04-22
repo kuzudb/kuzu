@@ -130,7 +130,7 @@ public:
         transaction::Transaction* transaction, FileHandle& dataFH) const override;
 
     void flush(FileHandle& dataFH) override;
-    void commitDrop(FileHandle& dataFH) override;
+    void reclaimStorage(FileHandle& dataFH) override;
 
     // this does not override ChunkedNodeGroup::merge() since clang-tidy analyzer
     // seems to struggle with detecting the std::move of the header unless this is inlined

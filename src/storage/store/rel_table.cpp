@@ -453,15 +453,9 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     localRelTable.clear();
 }
 
-void RelTable::commitDrop(FileHandle& dataFH) {
+void RelTable::reclaimStorage(FileHandle& dataFH) {
     for (auto& relData : directedRelData) {
-        relData->commitDrop(dataFH);
-    }
-}
-
-void RelTable::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
-    for (auto& relData : directedRelData) {
-        relData->commitDropColumn(dataFH, columnID);
+        relData->reclaimStorage(dataFH);
     }
 }
 

@@ -109,8 +109,8 @@ void StorageManager::createRelTableGroup(catalog::RelGroupCatalogEntry* entry,
     main::ClientContext* context) {
     for (const auto id : entry->getRelTableIDs()) {
         createRelTable(context->getCatalog()
-                           ->getTableCatalogEntry(context->getTransaction(), id)
-                           ->ptrCast<RelTableCatalogEntry>());
+                ->getTableCatalogEntry(context->getTransaction(), id)
+                ->ptrCast<RelTableCatalogEntry>());
     }
 }
 
@@ -140,6 +140,19 @@ WAL& StorageManager::getWAL() const {
 ShadowFile& StorageManager::getShadowFile() const {
     KU_ASSERT(shadowFile);
     return *shadowFile;
+}
+
+void StorageManager::reclaimDroppedTables(const main::ClientContext& clientContext) {
+    std::vector<table_id_t> droppedTables;
+    for (const auto& [tableID, table] : tables) {
+        if (!clientContext.getCatalog()->containsTable(&DUMMY_CHECKPOINT_TRANSACTION, tableID)) {
+            table->reclaimStorage(*dataFH);
+            droppedTables.push_back(tableID);
+        }
+    }
+    for (auto tableID : droppedTables) {
+        tables.erase(tableID);
+    }
 }
 
 void StorageManager::checkpoint(main::ClientContext& clientContext) {
@@ -177,6 +190,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
         }
         tables.at(tableEntry->getTableID())->checkpoint(ser, tableEntry);
     }
+    reclaimDroppedTables(clientContext);
     dataFH->getPageManager()->finalizeCheckpoint();
     // we serialize the page manager after calling finalizeCheckpoint() as this function can add new
     // free page ranges

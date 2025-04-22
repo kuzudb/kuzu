@@ -439,11 +439,11 @@ void ListChunkData::flush(FileHandle& dataFH) {
     offsetColumnChunk->flush(dataFH);
 }
 
-void ListChunkData::commitDrop(FileHandle& dataFH) {
-    ColumnChunkData::commitDrop(dataFH);
-    sizeColumnChunk->commitDrop(dataFH);
-    dataColumnChunk->commitDrop(dataFH);
-    offsetColumnChunk->commitDrop(dataFH);
+void ListChunkData::reclaimStorage(FileHandle& dataFH) {
+    ColumnChunkData::reclaimStorage(dataFH);
+    sizeColumnChunk->reclaimStorage(dataFH);
+    dataColumnChunk->reclaimStorage(dataFH);
+    offsetColumnChunk->reclaimStorage(dataFH);
 }
 
 } // namespace storage

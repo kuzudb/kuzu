@@ -211,17 +211,10 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     types = std::move(typesAfterCheckpoint);
 }
 
-void NodeGroupCollection::commitDrop(FileHandle& dataFH) {
+void NodeGroupCollection::reclaimStorage(FileHandle& dataFH) {
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->commitDrop(dataFH);
-    }
-}
-
-void NodeGroupCollection::commitDropColumn(FileHandle& dataFH, common::column_id_t columnID) {
-    const auto lock = nodeGroups.lock();
-    for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->commitDropColumn(dataFH, columnID);
+        nodeGroup->reclaimStorage(dataFH);
     }
 }
 

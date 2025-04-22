@@ -1008,9 +1008,9 @@ uint64_t ColumnChunkData::spillToDisk() {
     return spilledBytes;
 }
 
-void ColumnChunkData::commitDrop(FileHandle& dataFH) {
+void ColumnChunkData::reclaimStorage(FileHandle& dataFH) {
     if (nullData) {
-        nullData->commitDrop(dataFH);
+        nullData->reclaimStorage(dataFH);
     }
     if (residencyState == ResidencyState::ON_DISK) {
         if (metadata.getStartPageIdx() != INVALID_PAGE_IDX) {

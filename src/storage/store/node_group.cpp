@@ -371,17 +371,10 @@ void NodeGroup::rollbackInsert(row_idx_t startRow) {
     numRows = startRow;
 }
 
-void NodeGroup::commitDrop(FileHandle& dataFH) {
+void NodeGroup::reclaimStorage(FileHandle& dataFH) {
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->commitDrop(dataFH);
-    }
-}
-
-void NodeGroup::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
-    const auto lock = chunkedGroups.lock();
-    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->commitDropColumn(dataFH, columnID);
+        chunkedGroup->reclaimStorage(dataFH);
     }
 }
 
@@ -456,12 +449,15 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
             std::move(chunkCheckpointStates));
         state.columns[i]->checkpointColumnChunk(columnCheckpointState);
     }
-    // Clear all chunked groups except for the first one.
     auto checkpointedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(*chunkedGroups.getGroup(lock, 0), state.columnIDs);
     KU_ASSERT(checkpointedChunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
     checkpointedChunkedGroup->resetNumRowsFromChunks();
     checkpointedChunkedGroup->resetVersionAndUpdateInfo();
+    // The first chunked group is the only persistent one
+    // The checkpointed columns have been moved to the checkpointedChunkedGroup, the
+    // remaining must have been dropped
+    chunkedGroups.getGroup(lock, 0)->reclaimStorage(state.dataFH);
     return checkpointedChunkedGroup;
 }
 

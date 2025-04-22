@@ -468,18 +468,20 @@ void CSRNodeGroup::checkpoint(MemoryManager&, NodeGroupCheckpointState& state) {
     checkpointDataTypesNoLock(state);
 }
 
-void CSRNodeGroup::commitDrop(FileHandle& dataFH) {
-    NodeGroup::commitDrop(dataFH);
+void CSRNodeGroup::reclaimStorage(FileHandle& dataFH) {
+    NodeGroup::reclaimStorage(dataFH);
     if (persistentChunkGroup) {
-        persistentChunkGroup->commitDrop(dataFH);
+        persistentChunkGroup->reclaimStorage(dataFH);
     }
 }
 
-void CSRNodeGroup::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
-    NodeGroup::commitDropColumn(dataFH, columnID);
-    if (persistentChunkGroup) {
-        persistentChunkGroup->commitDropColumn(dataFH, columnID);
-    }
+static std::unique_ptr<ChunkedCSRNodeGroup> createNewPersistentChunkGroup(
+    ChunkedCSRNodeGroup& oldPersistentChunkGroup, CSRNodeGroupCheckpointState& csrState) {
+    auto newGroup =
+        std::make_unique<ChunkedCSRNodeGroup>(oldPersistentChunkGroup, csrState.columnIDs);
+    // checkpointed columns have been moved to the new group, reclaim storage for dropped column
+    oldPersistentChunkGroup.reclaimStorage(csrState.dataFH);
+    return newGroup;
 }
 
 void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheckpointState& state) {
@@ -504,8 +506,8 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
         if (csrState.columnIDs.size() != persistentChunkGroup->getNumColumns()) {
             // The column set of the node group has changed. We need to re-create the persistent
             // chunked group.
-            persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(
-                persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState.columnIDs);
+            persistentChunkGroup = createNewPersistentChunkGroup(
+                persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState);
         }
         return;
     }
@@ -527,8 +529,8 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
         checkpointColumn(lock, columnID, csrState, regionsToCheckpoint);
     }
     checkpointCSRHeaderColumns(csrState);
-    persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(
-        persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState.columnIDs);
+    persistentChunkGroup =
+        createNewPersistentChunkGroup(persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState);
     finalizeCheckpoint(lock);
 }
 
@@ -605,7 +607,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     dummyChunkForNulls->getData().resetToAllNull();
     // Copy per csr list from old chunk and merge with new insertions into the newChunkData.
     for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-         nodeOffset++) {
+        nodeOffset++) {
         const auto oldCSRLength = csrState.oldHeader->getCSRLength(nodeOffset);
         KU_ASSERT(csrState.oldHeader->getStartCSROffset(nodeOffset) >= leftCSROffset);
         const auto oldStartRow = csrState.oldHeader->getStartCSROffset(nodeOffset) - leftCSROffset;
@@ -690,7 +692,7 @@ void CSRNodeGroup::collectInMemRegionChangesAndUpdateHeaderLength(const UniqLock
     row_idx_t numInsertionsInRegion = 0u;
     if (csrIndex) {
         for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-             nodeOffset++) {
+            nodeOffset++) {
             auto rows = csrIndex->indices[nodeOffset].getRows();
             row_idx_t numInsertedRows = rows.size();
             row_idx_t numInMemDeletionsInCSR = 0;
@@ -723,7 +725,7 @@ void CSRNodeGroup::collectOnDiskRegionChangesAndUpdateHeaderLength(const UniqLoc
     int64_t numDeletionsInRegion = 0u;
     if (persistentChunkGroup) {
         for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-             nodeOffset++) {
+            nodeOffset++) {
             const auto numDeletedRows =
                 getNumDeletionsForNodeInPersistentData(nodeOffset, csrState);
             if (numDeletedRows == 0) {

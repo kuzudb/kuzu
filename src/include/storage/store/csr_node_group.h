@@ -210,8 +210,7 @@ public:
         FileHandle* dataFH, ColumnStats* newColumnStats) override;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
-    void commitDrop(FileHandle& dataFH) override;
-    void commitDropColumn(FileHandle& dataFH, common::column_id_t columnID) override;
+    void reclaimStorage(FileHandle& dataFH) override;
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 

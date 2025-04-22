@@ -257,11 +257,11 @@ void StringChunkData::flush(FileHandle& dataFH) {
     dictionaryChunk->flush(dataFH);
 }
 
-void StringChunkData::commitDrop(FileHandle& dataFH) {
-    ColumnChunkData::commitDrop(dataFH);
-    indexColumnChunk->commitDrop(dataFH);
-    dictionaryChunk->getOffsetChunk()->commitDrop(dataFH);
-    dictionaryChunk->getStringDataChunk()->commitDrop(dataFH);
+void StringChunkData::reclaimStorage(FileHandle& dataFH) {
+    ColumnChunkData::reclaimStorage(dataFH);
+    indexColumnChunk->reclaimStorage(dataFH);
+    dictionaryChunk->getOffsetChunk()->reclaimStorage(dataFH);
+    dictionaryChunk->getStringDataChunk()->reclaimStorage(dataFH);
 }
 
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {

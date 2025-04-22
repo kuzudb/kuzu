@@ -489,14 +489,16 @@ void ChunkedNodeGroup::rollbackDelete(row_idx_t startRow, row_idx_t numRows_, tr
     versionInfo->rollbackDelete(startRow, numRows_);
 }
 
-void ChunkedNodeGroup::commitDrop(FileHandle& dataFH) {
+void ChunkedNodeGroup::reclaimStorage(FileHandle& dataFH) {
     for (auto& columnChunk : chunks) {
-        columnChunk->commitDrop(dataFH);
+        if (columnChunk) {
+            columnChunk->reclaimStorage(dataFH);
+        }
     }
 }
 
-void ChunkedNodeGroup::commitDropColumn(FileHandle& dataFH, common::column_id_t columnID) {
-    chunks[columnID]->commitDrop(dataFH);
+void ChunkedNodeGroup::reclaimColumn(FileHandle& dataFH, common::column_id_t columnID) {
+    chunks[columnID]->reclaimStorage(dataFH);
 }
 
 void ChunkedNodeGroup::serialize(Serializer& serializer) const {

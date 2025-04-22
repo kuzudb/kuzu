@@ -262,8 +262,8 @@ std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChun
     return {std::move(updatedRows), std::move(updatedData)};
 }
 
-void ColumnChunk::commitDrop(FileHandle& dataFH) {
-    data->commitDrop(dataFH);
+void ColumnChunk::reclaimStorage(FileHandle& dataFH) {
+    data->reclaimStorage(dataFH);
 }
 
 } // namespace storage

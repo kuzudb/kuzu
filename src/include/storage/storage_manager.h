@@ -57,6 +57,8 @@ private:
     void createRelTable(catalog::RelTableCatalogEntry* entry);
     void createRelTableGroup(catalog::RelGroupCatalogEntry* entry, main::ClientContext* context);
 
+    void reclaimDroppedTables(const main::ClientContext& clientContext);
+
 private:
     std::mutex mtx;
     std::string databasePath;

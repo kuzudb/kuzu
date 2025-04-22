@@ -87,10 +87,10 @@ void StructChunkData::flush(FileHandle& dataFH) {
     }
 }
 
-void StructChunkData::commitDrop(FileHandle& dataFH) {
-    ColumnChunkData::commitDrop(dataFH);
+void StructChunkData::reclaimStorage(FileHandle& dataFH) {
+    ColumnChunkData::reclaimStorage(dataFH);
     for (const auto& childChunk : childChunks) {
-        childChunk->commitDrop(dataFH);
+        childChunk->reclaimStorage(dataFH);
     }
 }
 
