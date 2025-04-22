@@ -145,7 +145,8 @@ ShadowFile& StorageManager::getShadowFile() const {
 void StorageManager::reclaimDroppedTables(const main::ClientContext& clientContext) {
     std::vector<table_id_t> droppedTables;
     for (const auto& [tableID, table] : tables) {
-        if (!clientContext.getCatalog()->containsTable(&DUMMY_CHECKPOINT_TRANSACTION, tableID)) {
+        if (!clientContext.getCatalog()->containsTable(&DUMMY_CHECKPOINT_TRANSACTION,
+                table->getTableName(), true)) {
             table->reclaimStorage(*dataFH);
             droppedTables.push_back(tableID);
         }
