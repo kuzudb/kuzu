@@ -1,9 +1,8 @@
 #include "binder/binder.h"
+#include "component_ids.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-
 #include "processor/execution_context.h"
-#include "component_ids.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -16,7 +15,8 @@ namespace function {
 
 class WCCAuxiliaryState : public GDSAuxiliaryState {
 public:
-    explicit WCCAuxiliaryState(ComponentIDsPair& componentIDsPair) : componentIDsPair{componentIDsPair} {}
+    explicit WCCAuxiliaryState(ComponentIDsPair& componentIDsPair)
+        : componentIDsPair{componentIDsPair} {}
 
     void beginFrontierCompute(table_id_t fromTableID, table_id_t toTableID) override {
         componentIDsPair.pinCurTableID(fromTableID);
@@ -34,8 +34,8 @@ public:
     explicit WCCEdgeCompute(ComponentIDsPair& componentIDsPair)
         : componentIDsPair{componentIDsPair} {}
 
-    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
-        bool) override {
+    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
+        graph::NbrScanState::Chunk& chunk, bool) override {
         std::vector<common::nodeID_t> result;
         chunk.forEach([&](auto nbrNodeID, auto) {
             if (componentIDsPair.update(boundNodeID.offset, nbrNodeID.offset)) {
@@ -67,12 +67,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     frontierPair->setActiveNodesForNextIter();
     auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
     auto offsetManager = OffsetManager(maxOffsetMap);
-    auto componentIDs = ComponentIDs::getSequenceComponentIDs(maxOffsetMap, offsetManager, clientContext->getMemoryManager());
+    auto componentIDs = ComponentIDs::getSequenceComponentIDs(maxOffsetMap, offsetManager,
+        clientContext->getMemoryManager());
     auto componentIDsPair = ComponentIDsPair(componentIDs);
     auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(componentIDsPair);
     auto edgeCompute = std::make_unique<WCCEdgeCompute>(componentIDsPair);
-    auto vertexCompute = std::make_unique<ComponentIDsOutputVertexCompute>(clientContext->getMemoryManager(),
-        sharedState, componentIDs);
+    auto vertexCompute = std::make_unique<ComponentIDsOutputVertexCompute>(
+        clientContext->getMemoryManager(), sharedState, componentIDs);
     auto computeState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
     GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::BOTH,

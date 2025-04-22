@@ -11,9 +11,7 @@ static constexpr common::offset_t INVALID_COMPONENT_ID = common::INVALID_OFFSET;
 struct OffsetManager {
     explicit OffsetManager(const common::table_id_map_t<common::offset_t>& maxOffsetMap);
 
-    void pinTableID(common::table_id_t tableID) {
-        curOffset = getStartOffset(tableID);
-    }
+    void pinTableID(common::table_id_t tableID) { curOffset = getStartOffset(tableID); }
     common::offset_t getStartOffset(common::table_id_t tableID) const {
         KU_ASSERT(tableIDToStartOffset.contains(tableID));
         return tableIDToStartOffset.at(tableID);
@@ -33,9 +31,7 @@ public:
     std::atomic<common::offset_t>* getData(common::table_id_t tableID) {
         return denseObjects.getData(tableID);
     }
-    void pinTableID(common::table_id_t tableID) {
-        curData = denseObjects.getData(tableID);
-    }
+    void pinTableID(common::table_id_t tableID) { curData = denseObjects.getData(tableID); }
 
     void setComponentID(common::offset_t offset, common::offset_t componentID) {
         KU_ASSERT(curData != nullptr);
@@ -50,10 +46,11 @@ public:
         return getComponentID(offset) != INVALID_COMPONENT_ID;
     }
 
-    static ComponentIDs getSequenceComponentIDs(const common::table_id_map_t<common::offset_t>& maxOffsetMap, const OffsetManager& offsetManager,
-        storage::MemoryManager* mm);
-    static ComponentIDs getUnvisitedComponentIDs(const common::table_id_map_t<common::offset_t>& maxOffsetMap,
-        storage::MemoryManager* mm);
+    static ComponentIDs getSequenceComponentIDs(
+        const common::table_id_map_t<common::offset_t>& maxOffsetMap,
+        const OffsetManager& offsetManager, storage::MemoryManager* mm);
+    static ComponentIDs getUnvisitedComponentIDs(
+        const common::table_id_map_t<common::offset_t>& maxOffsetMap, storage::MemoryManager* mm);
 
 private:
     std::atomic<common::offset_t>* curData = nullptr;
@@ -71,7 +68,8 @@ public:
         return true;
     }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t) override {
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             componentIDs.setComponentID(i, i + offsetManager.getCurrentOffset());
         }
@@ -90,13 +88,9 @@ class ComponentIDsPair {
 public:
     explicit ComponentIDsPair(ComponentIDs& componentIDs) : componentIDs{componentIDs} {}
 
-    void pinCurTableID(common::table_id_t tableID) {
-        curData = componentIDs.getData(tableID);
-    }
+    void pinCurTableID(common::table_id_t tableID) { curData = componentIDs.getData(tableID); }
 
-    void pinNextTableID(common::table_id_t tableID) {
-        nextData = componentIDs.getData(tableID);
-    }
+    void pinNextTableID(common::table_id_t tableID) { nextData = componentIDs.getData(tableID); }
 
     bool update(common::offset_t boundOffset, common::offset_t nbrOffset);
 
@@ -115,9 +109,12 @@ public:
         componentIDVector = createVector(common::LogicalType::UINT64());
     }
 
-    void beginOnTableInternal(common::table_id_t tableID) override { componentIDs.pinTableID(tableID); }
+    void beginOnTableInternal(common::table_id_t tableID) override {
+        componentIDs.pinTableID(tableID);
+    }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) override;
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t tableID) override;
 
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<ComponentIDsOutputVertexCompute>(mm, sharedState, componentIDs);
@@ -129,5 +126,5 @@ private:
     std::unique_ptr<common::ValueVector> componentIDVector;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu

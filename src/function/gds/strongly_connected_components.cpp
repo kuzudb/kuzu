@@ -1,10 +1,10 @@
 #include "binder/binder.h"
+#include "component_ids.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
-#include "component_ids.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -22,8 +22,10 @@ using ColorsPair = ComponentIDsPair;
 // Also check if there is still different color.
 class UpdateComponentIDVertexCompute : public GDSVertexCompute {
 public:
-    UpdateComponentIDVertexCompute(NodeOffsetMaskMap* nodeMask, ComponentIDs& componentIDs, Colors& fwdColors, Colors& bwdColors, std::atomic<bool>& hasDifferentColor)
-        : GDSVertexCompute{nodeMask}, componentIDs{componentIDs}, fwdColors {fwdColors}, bwdColors{bwdColors}, hasDifferentColor {hasDifferentColor} {}
+    UpdateComponentIDVertexCompute(NodeOffsetMaskMap* nodeMask, ComponentIDs& componentIDs,
+        Colors& fwdColors, Colors& bwdColors, std::atomic<bool>& hasDifferentColor)
+        : GDSVertexCompute{nodeMask}, componentIDs{componentIDs}, fwdColors{fwdColors},
+          bwdColors{bwdColors}, hasDifferentColor{hasDifferentColor} {}
 
     void beginOnTableInternal(table_id_t tableID) override {
         componentIDs.pinTableID(tableID);
@@ -50,7 +52,8 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<UpdateComponentIDVertexCompute>(nodeMask, componentIDs, fwdColors, bwdColors, hasDifferentColor);
+        return std::make_unique<UpdateComponentIDVertexCompute>(nodeMask, componentIDs, fwdColors,
+            bwdColors, hasDifferentColor);
     }
 
 private:
@@ -62,7 +65,8 @@ private:
 
 class InitFwdColoringVertexCompute : public GDSVertexCompute {
 public:
-    InitFwdColoringVertexCompute(NodeOffsetMaskMap* nodeMask, DenseFrontierPair& frontierPair, ComponentIDs& componentIDs)
+    InitFwdColoringVertexCompute(NodeOffsetMaskMap* nodeMask, DenseFrontierPair& frontierPair,
+        ComponentIDs& componentIDs)
         : GDSVertexCompute{nodeMask}, frontierPair{frontierPair}, componentIDs{componentIDs} {}
 
     void beginOnTableInternal(table_id_t tableID) override {
@@ -94,8 +98,10 @@ private:
 
 class InitBwdColoringVertexCompute : public GDSVertexCompute {
 public:
-    InitBwdColoringVertexCompute(NodeOffsetMaskMap* nodeMask, DenseFrontierPair& frontierPair, ComponentIDs& componentIDs, Colors& fwdColors, OffsetManager& offsetManager)
-        : GDSVertexCompute{nodeMask}, frontierPair{frontierPair}, componentIDs{componentIDs}, fwdColors{fwdColors}, offsetManager{offsetManager} {}
+    InitBwdColoringVertexCompute(NodeOffsetMaskMap* nodeMask, DenseFrontierPair& frontierPair,
+        ComponentIDs& componentIDs, Colors& fwdColors, OffsetManager& offsetManager)
+        : GDSVertexCompute{nodeMask}, frontierPair{frontierPair}, componentIDs{componentIDs},
+          fwdColors{fwdColors}, offsetManager{offsetManager} {}
 
     void beginOnTableInternal(table_id_t tableID) override {
         componentIDs.pinTableID(tableID);
@@ -122,7 +128,8 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<InitBwdColoringVertexCompute>(nodeMask, frontierPair, componentIDs, fwdColors, offsetManager);
+        return std::make_unique<InitBwdColoringVertexCompute>(nodeMask, frontierPair, componentIDs,
+            fwdColors, offsetManager);
     }
 
 private:
@@ -134,7 +141,8 @@ private:
 
 class PropagateIDAuxiliaryState : public GDSAuxiliaryState {
 public:
-    PropagateIDAuxiliaryState(ComponentIDs& componentIDs, ColorsPair& colorsPair) : componentIDs{componentIDs}, colorsPair{colorsPair} {}
+    PropagateIDAuxiliaryState(ComponentIDs& componentIDs, ColorsPair& colorsPair)
+        : componentIDs{componentIDs}, colorsPair{colorsPair} {}
 
     void beginFrontierCompute(table_id_t fromTableID, table_id_t toTableID) override {
         componentIDs.pinTableID(toTableID);
@@ -158,7 +166,8 @@ public:
         bool) override {
         std::vector<nodeID_t> result;
         chunk.forEach([&](auto nbrNodeID, auto) {
-            if (!componentIDs.hasValidComponentID(nbrNodeID.offset) && colorsPair.update(boundNodeID.offset, nbrNodeID.offset)) {
+            if (!componentIDs.hasValidComponentID(nbrNodeID.offset) &&
+                colorsPair.update(boundNodeID.offset, nbrNodeID.offset)) {
                 result.push_back(nbrNodeID);
             }
         });
@@ -196,23 +205,35 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto fwdColorsPair = ComponentIDsPair(fwdColors);
     auto bwdColorsPair = ComponentIDsPair(bwdColors);
 
-    auto initFwdComponentIDsVertexCompute = InitSequenceComponentIDsVertexCompute(fwdColors, offsetManager);
-    auto initBwdComponentIDsVertexCompute = InitSequenceComponentIDsVertexCompute(bwdColors, offsetManager);
+    auto initFwdComponentIDsVertexCompute =
+        InitSequenceComponentIDsVertexCompute(fwdColors, offsetManager);
+    auto initBwdComponentIDsVertexCompute =
+        InitSequenceComponentIDsVertexCompute(bwdColors, offsetManager);
 
-    auto initFwdColoringVertexCompute = InitFwdColoringVertexCompute(nodeMask, *frontierPair, componentIDs);
-    auto fwdColoringEdgeCompute = std::make_unique<PropagateIDEdgeCompute>(componentIDs, fwdColorsPair);
-    auto fwdAuxiliaryState = std::make_unique<PropagateIDAuxiliaryState>(componentIDs, fwdColorsPair);
-    auto fwdComputeState = GDSComputeState(frontierPair, std::move(fwdColoringEdgeCompute), std::move(fwdAuxiliaryState));
+    auto initFwdColoringVertexCompute =
+        InitFwdColoringVertexCompute(nodeMask, *frontierPair, componentIDs);
+    auto fwdColoringEdgeCompute =
+        std::make_unique<PropagateIDEdgeCompute>(componentIDs, fwdColorsPair);
+    auto fwdAuxiliaryState =
+        std::make_unique<PropagateIDAuxiliaryState>(componentIDs, fwdColorsPair);
+    auto fwdComputeState = GDSComputeState(frontierPair, std::move(fwdColoringEdgeCompute),
+        std::move(fwdAuxiliaryState));
 
-    auto initBwdColoringVertexCompute = InitBwdColoringVertexCompute(nodeMask, *frontierPair, componentIDs, fwdColors, offsetManager);
-    auto bwdColoringEdgeCompute = std::make_unique<PropagateIDEdgeCompute>(componentIDs, bwdColorsPair);
-    auto bwdAuxiliaryState = std::make_unique<PropagateIDAuxiliaryState>(componentIDs, bwdColorsPair);
-    auto bwdComputeState = GDSComputeState(frontierPair, std::move(bwdColoringEdgeCompute), std::move(bwdAuxiliaryState));
+    auto initBwdColoringVertexCompute = InitBwdColoringVertexCompute(nodeMask, *frontierPair,
+        componentIDs, fwdColors, offsetManager);
+    auto bwdColoringEdgeCompute =
+        std::make_unique<PropagateIDEdgeCompute>(componentIDs, bwdColorsPair);
+    auto bwdAuxiliaryState =
+        std::make_unique<PropagateIDAuxiliaryState>(componentIDs, bwdColorsPair);
+    auto bwdComputeState = GDSComputeState(frontierPair, std::move(bwdColoringEdgeCompute),
+        std::move(bwdAuxiliaryState));
 
     for (auto i = 0; i < MAX_ITERATION; i++) {
         // Init fwd and bwd component IDs to node offsets.
-        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, initFwdComponentIDsVertexCompute);
-        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, initBwdComponentIDsVertexCompute);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
+            initFwdComponentIDsVertexCompute);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
+            initBwdComponentIDsVertexCompute);
 
         // Fwd colors.
         frontierPair->resetValue(input.context, graph, FRONTIER_UNVISITED);
@@ -220,8 +241,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         fwdComputeState.frontierPair->setActiveNodesForNextIter();
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
             initFwdColoringVertexCompute);
-        GDSUtils::runAlgorithmEdgeCompute(input.context, fwdComputeState, graph, ExtendDirection::FWD,
-            MAX_ITERATION);
+        GDSUtils::runAlgorithmEdgeCompute(input.context, fwdComputeState, graph,
+            ExtendDirection::FWD, MAX_ITERATION);
 
         // Bwd colors.
         frontierPair->resetValue(input.context, graph, FRONTIER_UNVISITED);
@@ -229,13 +250,15 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         bwdComputeState.frontierPair->setActiveNodesForNextIter();
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
             initBwdColoringVertexCompute);
-        GDSUtils::runAlgorithmEdgeCompute(input.context, bwdComputeState, graph, ExtendDirection::BWD,
-            MAX_ITERATION);
+        GDSUtils::runAlgorithmEdgeCompute(input.context, bwdComputeState, graph,
+            ExtendDirection::BWD, MAX_ITERATION);
 
         // Find new SCC IDs and exit if all IDs have been found.
         std::atomic<bool> hasDifferentColor = false;
-        auto updateComponentIDsVertexCompute = UpdateComponentIDVertexCompute(nodeMask, componentIDs, fwdColors, bwdColors, hasDifferentColor);
-        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, updateComponentIDsVertexCompute);
+        auto updateComponentIDsVertexCompute = UpdateComponentIDVertexCompute(nodeMask,
+            componentIDs, fwdColors, bwdColors, hasDifferentColor);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
+            updateComponentIDsVertexCompute);
         if (!hasDifferentColor) {
             break;
         }
