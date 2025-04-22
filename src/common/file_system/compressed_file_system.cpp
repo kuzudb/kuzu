@@ -27,6 +27,11 @@ void CompressedFileSystem::syncFile(const kuzu::common::FileInfo& fileInfo) cons
     return compressedFileInfo.childFileInfo->syncFile();
 }
 
+void CompressedFileSystem::readFromFile(FileInfo& /*fileInfo*/, void* /*buffer*/,
+    uint64_t /*numBytes*/, uint64_t /*position*/) const {
+    throw IOException("Only sequential read is allowed in compressed file system.");
+}
+
 void CompressedFileInfo::initialize() {
     close();
     streamData.inputBufSize = compressedFS.getInputBufSize();

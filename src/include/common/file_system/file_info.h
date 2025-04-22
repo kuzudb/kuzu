@@ -33,6 +33,8 @@ struct KUZU_API FileInfo {
 
     void truncate(uint64_t size);
 
+    bool canPerformSeek() const;
+
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);

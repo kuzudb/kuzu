@@ -34,6 +34,8 @@ public:
     virtual idx_t getInputBufSize() = 0;
     virtual idx_t getOutputBufSize() = 0;
 
+    bool canPerformSeek() const override { return false; }
+
 protected:
     std::vector<std::string> glob(main::ClientContext* /*context*/,
         const std::string& /*path*/) const override {
@@ -41,10 +43,7 @@ protected:
     }
 
     void readFromFile(FileInfo& /*fileInfo*/, void* /*buffer*/, uint64_t /*numBytes*/,
-        uint64_t /*position*/) const override {
-        // Only sequential read is allowed in compressed file system.
-        KU_UNREACHABLE;
-    }
+        uint64_t /*position*/) const override;
 
     int64_t readFile(FileInfo& fileInfo, void* buf, size_t numBytes) const override;
 

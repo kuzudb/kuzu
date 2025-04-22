@@ -43,5 +43,9 @@ void FileInfo::truncate(uint64_t size) {
     fileSystem->truncate(*this, size);
 }
 
+bool FileInfo::canPerformSeek() const {
+    return fileSystem->canPerformSeek();
+}
+
 } // namespace common
 } // namespace kuzu
