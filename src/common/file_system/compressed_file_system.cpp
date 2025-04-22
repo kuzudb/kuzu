@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "common/exception/io.h"
+
 namespace kuzu {
 namespace common {
 
