@@ -105,8 +105,12 @@ void DenseFrontier::init(ExecutionContext* context, Graph* graph, iteration_t va
     for (const auto& [tableID, maxOffset] : nodeMaxOffsetMap) {
         denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
     }
-    auto vc = std::make_unique<DenseFrontierInitVertexCompute>(*this, val);
-    GDSUtils::runVertexCompute(context, GDSDensityState::DENSE, graph, *vc);
+    resetValue(context, graph, val);
+}
+
+void DenseFrontier::resetValue(ExecutionContext* context, Graph* graph, iteration_t val) {
+    auto vc = DenseFrontierInitVertexCompute(*this, val);
+    GDSUtils::runVertexCompute(context, GDSDensityState::DENSE, graph, vc);
 }
 
 void DenseFrontier::pinTableID(table_id_t tableID) {
@@ -394,6 +398,11 @@ void DenseFrontierPair::beginNewIterationInternalNoLock() {
     std::swap(curDenseFrontier, nextDenseFrontier);
     currentFrontier = curDenseFrontier.get();
     nextFrontier = nextDenseFrontier.get();
+}
+
+void DenseFrontierPair::resetValue(ExecutionContext* context, Graph* graph, iteration_t val) {
+    curDenseFrontier->resetValue(context, graph, val);
+    nextDenseFrontier->resetValue(context, graph, val);
 }
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;

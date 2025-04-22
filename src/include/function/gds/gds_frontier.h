@@ -110,6 +110,7 @@ public:
 
     // Allocate memory and initialize.
     void init(processor::ExecutionContext* context, graph::Graph* graph, iteration_t val);
+    void resetValue(processor::ExecutionContext* context, graph::Graph* graph, iteration_t val);
 
     void pinTableID(common::table_id_t tableID) override;
 
@@ -284,12 +285,7 @@ public:
         KU_UNREACHABLE;
     }
 
-    void setValueToCurFrontier(common::offset_t offset, iteration_t iter) {
-        curDenseFrontier->addNode(offset, iter);
-    }
-    void setValueToNextFrontier(common::offset_t offset, iteration_t iter) {
-        nextDenseFrontier->addNode(offset, iter);
-    }
+    void resetValue(processor::ExecutionContext* context, graph::Graph* graph, iteration_t val);
 
     GDSDensityState getState() const override { return GDSDensityState::DENSE; }
     bool needSwitchToDense(uint64_t) const override { return false; }
