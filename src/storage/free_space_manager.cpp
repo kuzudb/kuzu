@@ -16,7 +16,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -74,21 +74,41 @@ PageRange FreeSpaceManager::splitPageRange(PageRange chunk, common::page_idx_t n
     return ret;
 }
 
-void FreeSpaceManager::serialize(common::Serializer& ser) const {
-    const auto numEntries = getNumEntries();
-    ser.writeDebuggingInfo("numEntries");
-    ser.write(numEntries);
-    ser.writeDebuggingInfo("entries");
+static common::row_idx_t serializeCheckpointedEntries(common::Serializer& ser,
+    const std::vector<FreeSpaceManager::sorted_free_list_t>& freeLists) {
     auto entryIt = FreeEntryIterator{freeLists};
-    RUNTIME_CHECK(common::row_idx_t numWrittenEntries = 0);
+    common::row_idx_t numWrittenEntries = 0;
     while (!entryIt.done()) {
         const auto entry = *entryIt;
         ser.write(entry.startPageIdx);
         ser.write(entry.numPages);
         ++entryIt;
-        RUNTIME_CHECK(++numWrittenEntries);
+        ++numWrittenEntries;
     }
-    KU_ASSERT(numWrittenEntries == numEntries);
+    return numWrittenEntries;
+}
+
+static common::row_idx_t serializeUncheckpointedEntries(common::Serializer& ser,
+    const FreeSpaceManager::free_list_t& uncheckpointedEntries) {
+    for (const auto& entry : uncheckpointedEntries) {
+        ser.write(entry.startPageIdx);
+        ser.write(entry.numPages);
+    }
+    return uncheckpointedEntries.size();
+}
+
+void FreeSpaceManager::serialize(common::Serializer& ser) const {
+    // we also serialize uncheckpointed entries as serialize() may be called before
+    // finalizeCheckpoint()
+    const auto numEntries = getNumEntries() + uncheckpointedFreePageRanges.size();
+    ser.writeDebuggingInfo("numEntries");
+    ser.write(numEntries);
+    ser.writeDebuggingInfo("entries");
+    [[maybe_unused]] const auto numCheckpointedEntries =
+        serializeCheckpointedEntries(ser, freeLists);
+    [[maybe_unused]] const auto numUncheckpointedEntries =
+        serializeUncheckpointedEntries(ser, uncheckpointedFreePageRanges);
+    KU_ASSERT(numCheckpointedEntries + numUncheckpointedEntries == numEntries);
 }
 
 void FreeSpaceManager::deserialize(common::Deserializer& deSer) {

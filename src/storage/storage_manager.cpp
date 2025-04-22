@@ -191,20 +191,20 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
         tables.at(tableEntry->getTableID())->checkpoint(ser, tableEntry);
     }
     reclaimDroppedTables(clientContext);
-    dataFH->getPageManager()->finalizeCheckpoint();
-    // we serialize the page manager after calling finalizeCheckpoint() as this function can add new
-    // free page ranges
     ser.writeDebuggingInfo("page_manager");
     dataFH->getPageManager()->serialize(ser);
     writer->flush();
     writer->sync();
     shadowFile->flushAll();
-
     // When a page is freed by the FSM it evicts it from the BM. However if the page is freed then
     // reused over and over it can be appended to the eviction queue multiple times. To prevent
     // multiple entries of the same page from existing in the eviction queue, at the end of each
     // checkpoint we remove any already-evicted pages.
     memoryManager.getBufferManager()->removeEvictedCandidates();
+}
+
+void StorageManager::finalizeCheckpoint(main::ClientContext&) {
+    dataFH->getPageManager()->finalizeCheckpoint();
 }
 
 void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {

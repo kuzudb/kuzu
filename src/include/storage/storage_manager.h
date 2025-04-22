@@ -32,6 +32,7 @@ public:
     void createTable(catalog::CatalogEntry* entry, main::ClientContext* context);
 
     void checkpoint(main::ClientContext& clientContext);
+    void finalizeCheckpoint(main::ClientContext& clientContext);
     void rollbackCheckpoint(main::ClientContext& clientContext);
 
     Table* getTable(common::table_id_t tableID) {
