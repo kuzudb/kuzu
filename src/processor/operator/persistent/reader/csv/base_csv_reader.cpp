@@ -201,13 +201,20 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
     return readCount > 0;
 }
 
-std::string BaseCSVReader::reconstructLine(uint64_t startPosition, uint64_t endPosition) {
+std::string BaseCSVReader::reconstructLine(uint64_t startPosition, uint64_t endPosition,
+    bool completeLine) {
     KU_ASSERT(endPosition >= startPosition);
 
     std::string res;
-    res.resize(endPosition - startPosition);
+    // For cases where we cannot perform a seek (e.g. compressed file system) we just return an
+    // empty string
+    if (fileInfo->canPerformSeek()) {
+        res.resize(endPosition - startPosition);
+        fileInfo->readFromFile(res.data(), res.size(), startPosition);
 
-    (void)fileInfo->readFromFile(res.data(), res.size(), startPosition);
+        const char* incompleteLineSuffix = completeLine ? "" : "...";
+        res += incompleteLineSuffix;
+    }
 
     return StringUtils::ltrimNewlines(StringUtils::rtrimNewlines(res));
 }
@@ -545,16 +552,14 @@ column_id_t BaseCSVReader::appendWarningDataColumns(std::vector<std::string>& re
 
 PopulatedCopyFromError BaseCSVReader::basePopulateErrorFunc(CopyFromFileError error,
     const SharedFileErrorHandler* sharedErrorHandler, BaseCSVReader* reader, std::string filePath) {
-    const char* incompleteLineSuffix = error.completedLine ? "" : "...";
     const auto warningData = CSVWarningSourceData::constructFrom(error.warningData);
     const auto lineNumber =
         sharedErrorHandler->getLineNumber(warningData.blockIdx, warningData.offsetInBlock);
     return PopulatedCopyFromError{
         .message = std::move(error.message),
         .filePath = std::move(filePath),
-        .skippedLineOrRecord =
-            reader->reconstructLine(warningData.startByteOffset, warningData.endByteOffset) +
-            incompleteLineSuffix,
+        .skippedLineOrRecord = reader->reconstructLine(warningData.startByteOffset,
+            warningData.endByteOffset, error.completedLine),
         .lineNumber = lineNumber,
     };
 }

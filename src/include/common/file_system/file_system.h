@@ -86,6 +86,8 @@ public:
 
     virtual void syncFile(const FileInfo& fileInfo) const = 0;
 
+    virtual bool canPerformSeek() const { return true; }
+
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);

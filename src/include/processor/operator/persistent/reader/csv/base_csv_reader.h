@@ -69,7 +69,7 @@ public:
     // Get the file offset of the current buffer position.
     uint64_t getFileOffset() const;
 
-    std::string reconstructLine(uint64_t startPosition, uint64_t endPosition);
+    std::string reconstructLine(uint64_t startPosition, uint64_t endPosition, bool completedLine);
 
     static common::column_id_t appendWarningDataColumns(std::vector<std::string>& resultColumnNames,
         std::vector<common::LogicalType>& resultColumnTypes,

@@ -401,3 +401,14 @@ Conversion exception: Cast failed. Could not convert "1111111111111111111111111"
 Conversion exception: Cast failed. Could not convert "412316860444aa" to INT64.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment.csv|26|412316860444aa...
 Conversion exception: Cast failed. Could not convert "549755815939aa" to INT64.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment.csv|536|549755815939aa...
 Conversion exception: Cast failed. Could not convert "687194770008aa" to INT64.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment.csv|995|687194770008aa...
+
+-CASE SkipInvalidLoadFromCompressedCSV
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv.gz" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", AUTO_DETECT=false) RETURN COUNT(*)
+---- 1
+6
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line_or_record
+---- 4
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv.gz|4|
+quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv.gz|6|
+expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv.gz|8|
+unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv.gz|11|

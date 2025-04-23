@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "common/exception/io.h"
+
 namespace kuzu {
 namespace common {
 
@@ -25,6 +27,11 @@ uint64_t CompressedFileSystem::getFileSize(const kuzu::common::FileInfo& fileInf
 void CompressedFileSystem::syncFile(const kuzu::common::FileInfo& fileInfo) const {
     auto& compressedFileInfo = fileInfo.constCast<CompressedFileInfo>();
     return compressedFileInfo.childFileInfo->syncFile();
+}
+
+void CompressedFileSystem::readFromFile(FileInfo& /*fileInfo*/, void* /*buffer*/,
+    uint64_t /*numBytes*/, uint64_t /*position*/) const {
+    throw IOException("Only sequential read is allowed in compressed file system.");
 }
 
 void CompressedFileInfo::initialize() {
