@@ -84,17 +84,6 @@ Alice|Dan||1
 Alice||CsWork|2
 Alice||DEsWork|2
 
--STATEMENT CALL k_core_decomposition('PK') RETURN node.fName, k_degree;
----- 8
-Alice|6
-Bob|6
-Carol|6
-Dan|6
-Elizabeth|1
-Farooq|1
-Greg|1
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0
-
 -STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) WHERE a.ID = 0 RETURN properties(nodes(p),'fName'), properties(rels(p), 'date'), properties(rels(e), '_src'), properties(rels(e), '_dst'), a.fName, b.fName
 ---- 12
 [Alice,Bob,Alice]|[2021-06-30,2021-06-30]|[0:0,0:1]|[0:1,0:0]|Alice|Alice

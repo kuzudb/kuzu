@@ -32,7 +32,7 @@ struct PageRankFunction {
 struct KCoreDecompositionFunction {
     static constexpr const char* name = "K_CORE_DECOMPOSITION";
 
-    static function::function_set getFunctionSet();
+    static function_set getFunctionSet();
 };
 
 } // namespace gds_extension

@@ -3,6 +3,8 @@
 --
 
 -CASE SpecialProjectedGraph
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+---- ok
 -STATEMENT CALL create_projected_graph('empty', [], []);
 ---- ok
 -STATEMENT CALL weakly_connected_component('empty') RETURN *;

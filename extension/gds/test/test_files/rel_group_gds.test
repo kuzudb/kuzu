@@ -3,6 +3,8 @@
 --
 
 -CASE RelGroupGDS
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+---- ok
 -STATEMENT CREATE NODE TABLE N1(id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE NODE TABLE N2(id INT64 PRIMARY KEY);

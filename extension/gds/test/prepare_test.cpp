@@ -1,0 +1,27 @@
+#include "main_test_helper/main_test_helper.h"
+
+using namespace kuzu::common;
+
+namespace kuzu {
+namespace testing {
+
+TEST_F(ApiTest, GDSPrepare) {
+    ASSERT_TRUE(conn
+            ->query(common::stringFormat("LOAD EXTENSION '{}'",
+                TestHelper::appendKuzuRootPath("extension/gds/build/libgds.kuzu_extension")))
+            ->isSuccess());
+    ASSERT_TRUE(
+        conn->query("CALL create_projected_graph('PK', ['person'], ['knows'])")->isSuccess());
+    auto preparedStatement = conn->prepare("CALL page_rank('PK', dampingFactor := $dp, "
+                                           "tolerance := $tl) RETURN node.fName, rank;");
+    std::unordered_map<std::string, std::unique_ptr<Value>> params;
+    auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("dp"), 0.56),
+        std::make_pair(std::string("tl"), 0.0002));
+    auto groundTruth = std::vector<std::string>{"Alice|0.125000", "Bob|0.125000", "Carol|0.125000",
+        "Dan|0.125000", "Elizabeth|0.055000", "Farooq|0.070400", "Greg|0.070400",
+        "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.055000"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+} // namespace testing
+} // namespace kuzu

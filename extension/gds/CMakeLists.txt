@@ -5,5 +5,6 @@ include_directories(
 
 add_subdirectory(src/main)
 add_subdirectory(src/function)
+add_subdirectory(test)
 
 build_extension_lib(${BUILD_STATIC_EXTENSION} "gds")
