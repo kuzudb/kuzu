@@ -400,6 +400,7 @@ void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointStat
         checkpointedChunkedGroup =
             std::make_unique<ChunkedNodeGroup>(memoryManager, dataTypes, enableCompression,
                 StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, numRows, ResidencyState::IN_MEMORY);
+        checkpointedChunkedGroup->flush(state.dataFH);
     } else {
         if (hasPersistentData) {
             checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
@@ -581,11 +582,11 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager, 
 }
 
 std::pair<idx_t, row_idx_t> NodeGroup::findChunkedGroupIdxFromRowIdxNoLock(row_idx_t rowIdx) const {
-    const auto startRow = chunkedGroups.getFirstGroupNoLock()->getStartRowIdx();
-    if (chunkedGroups.getNumGroupsNoLock() == 0 || rowIdx < startRow) {
+    if (chunkedGroups.getNumGroupsNoLock() == 0 ||
+        rowIdx < chunkedGroups.getFirstGroupNoLock()->getStartRowIdx()) {
         return {INVALID_CHUNKED_GROUP_IDX, INVALID_START_ROW_IDX};
     }
-    rowIdx -= startRow;
+    rowIdx -= chunkedGroups.getFirstGroupNoLock()->getStartRowIdx();
     const auto numRowsInFirstGroup = chunkedGroups.getFirstGroupNoLock()->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
         return {0, rowIdx};
