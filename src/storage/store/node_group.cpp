@@ -135,8 +135,8 @@ void NodeGroup::initializeScanState(const Transaction*, const UniqLock& lock,
     TableScanState& state) const {
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     nodeGroupScanState.chunkedGroupIdx = 0;
-    nodeGroupScanState.nextRowToScan = 0;
     ChunkedNodeGroup* firstChunkedGroup = chunkedGroups.getFirstGroup(lock);
+    nodeGroupScanState.nextRowToScan = firstChunkedGroup->getStartRowIdx();
     initializeScanStateForChunkedGroup(state, firstChunkedGroup);
 }
 
@@ -346,9 +346,10 @@ void NodeGroup::flush(const Transaction* transaction, FileHandle& dataFH) {
         chunkedGroupToFlush->flush(dataFH);
     } else {
         // Merge all chunkedGroups into a single one first. Then flush it to disk.
-        auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(
-            *transaction->getClientContext()->getMemoryManager(), dataTypes, enableCompression,
-            StorageConfig::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
+        auto mergedChunkedGroup =
+            std::make_unique<ChunkedNodeGroup>(*transaction->getClientContext()->getMemoryManager(),
+                dataTypes, enableCompression, StorageConfig::NODE_GROUP_SIZE,
+                chunkedGroups.getFirstGroup(lock)->getStartRowIdx(), ResidencyState::IN_MEMORY);
         std::vector<column_id_t> dummyColumnIDs;
         for (auto i = 0u; i < dataTypes.size(); i++) {
             dummyColumnIDs.push_back(i);
@@ -398,7 +399,7 @@ void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointStat
         // TODO(Royi) figure out how to make this rollback-friendly
         checkpointedChunkedGroup =
             std::make_unique<ChunkedNodeGroup>(memoryManager, dataTypes, enableCompression,
-                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, 0, ResidencyState::IN_MEMORY);
+                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, numRows, ResidencyState::IN_MEMORY);
     } else {
         if (hasPersistentData) {
             checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
@@ -580,9 +581,11 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager, 
 }
 
 std::pair<idx_t, row_idx_t> NodeGroup::findChunkedGroupIdxFromRowIdxNoLock(row_idx_t rowIdx) const {
-    if (chunkedGroups.getNumGroupsNoLock() == 0) {
+    const auto startRow = chunkedGroups.getFirstGroupNoLock()->getStartRowIdx();
+    if (chunkedGroups.getNumGroupsNoLock() == 0 || rowIdx < startRow) {
         return {INVALID_CHUNKED_GROUP_IDX, INVALID_START_ROW_IDX};
     }
+    rowIdx -= startRow;
     const auto numRowsInFirstGroup = chunkedGroups.getFirstGroupNoLock()->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
         return {0, rowIdx};
@@ -636,7 +639,8 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
         columnTypes.push_back(column->getDataType().copy());
     }
     auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(memoryManager, columnTypes,
-        enableCompression, numResidentRows, 0, ResidencyState::IN_MEMORY);
+        enableCompression, numResidentRows, chunkedGroups.getFirstGroup(lock)->getStartRowIdx(),
+        ResidencyState::IN_MEMORY);
     auto scanState = std::make_unique<TableScanState>(columnIDs, columns);
     scanState->nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
     initializeScanState(&DUMMY_CHECKPOINT_TRANSACTION, lock, *scanState);

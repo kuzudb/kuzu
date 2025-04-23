@@ -131,6 +131,13 @@ def test_fsm_reclaim_node_table(fsm_node_table_setup) -> None:
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
 
+def test_fsm_reclaim_node_table_delete(fsm_node_table_setup) -> None:
+    _, conn = fsm_node_table_setup
+    used_pages = get_used_page_ranges(conn, "person")
+    conn.execute("match (p:person) delete p")
+    conn.execute("checkpoint")
+    free_pages = get_free_page_ranges(conn)
+    compare_page_range_lists(used_pages, free_pages)
 
 def test_fsm_reclaim_rel_table(fsm_rel_table_setup) -> None:
     _, conn = fsm_rel_table_setup
@@ -140,6 +147,13 @@ def test_fsm_reclaim_rel_table(fsm_rel_table_setup) -> None:
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
 
+def test_fsm_reclaim_rel_table_delete(fsm_node_table_setup) -> None:
+    _, conn = fsm_node_table_setup
+    used_pages = get_used_page_ranges(conn, "person")
+    conn.execute("match (p:person) delete p")
+    conn.execute("checkpoint")
+    free_pages = get_free_page_ranges(conn)
+    compare_page_range_lists(used_pages, free_pages)
 
 def test_fsm_reclaim_struct(fsm_rel_table_setup) -> None:
     _, conn = fsm_rel_table_setup
