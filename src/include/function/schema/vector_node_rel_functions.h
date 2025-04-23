@@ -44,5 +44,11 @@ struct LabelsFunction {
     static constexpr const char* name = "LABELS";
 };
 
+struct CostFunction {
+    static constexpr const char* name = "COST";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
