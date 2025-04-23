@@ -461,7 +461,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
             recursivePatternInfo->weightPropertyName);
         checkWeightedShortestPathSupportedType(propertyExpr->getDataType());
         bindData->weightPropertyExpr = propertyExpr;
-        bindData->weightOutputExpr = createVariable(parsedName + "_weight", LogicalType::DOUBLE());
+        bindData->weightOutputExpr =
+            createInvisibleVariable(parsedName + "_cost", LogicalType::DOUBLE());
     }
 
     auto recursiveInfo = std::make_unique<RecursiveInfo>();
