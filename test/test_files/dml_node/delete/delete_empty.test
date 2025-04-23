@@ -89,6 +89,7 @@
 ---- 0
 
 -CASE DeleteFirstNodeGroup
+-SKIP_IN_MEM
 -STATEMENT create node table Post (id INT64, imageFile STRING, creationDate INT64, locationIP STRING, browserUsed STRING, language STRING, content STRING, length INT32, PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"

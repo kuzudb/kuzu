@@ -60,6 +60,7 @@
 Runtime exception: Cannot detach delete from node table 'person' as it has connected edges in rel table 'knows' (detach delete only supports deleting from rel tables with storage direction 'both').
 
 -CASE DeleteAllRels
+-SKIP_IN_MEM
 -STATEMENT create node table Person (id INT64, firstName STRING, lastName STRING, gender STRING, birthday INT64, creationDate INT64, locationIP STRING, browserUsed STRING, PRIMARY KEY (id));
 ---- ok
 -STATEMENT create rel table knows (FROM Person TO Person, creationDate INT64, MANY_MANY);
