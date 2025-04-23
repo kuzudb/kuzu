@@ -1,8 +1,8 @@
 #include "binder/binder.h"
 #include "common/exception/runtime.h"
-#include "function/gds_function.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
+#include "function/gds_function.h"
 #include "processor/execution_context.h"
 
 using namespace std;
