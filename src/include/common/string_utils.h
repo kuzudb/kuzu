@@ -82,7 +82,7 @@ public:
 
     static uint64_t caseInsensitiveHash(const std::string& str);
 
-    static bool caseInsensitiveEquals(const std::string& left, const std::string& right);
+    static bool caseInsensitiveEquals(std::string_view left, std::string_view right);
 
     // join multiple strings into one string. Components are concatenated by the given separator
     static std::string join(const std::vector<std::string>& input, const std::string& separator);

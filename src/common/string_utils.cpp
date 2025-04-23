@@ -211,7 +211,7 @@ uint64_t StringUtils::caseInsensitiveHash(const std::string& str) {
     return hash;
 }
 
-bool StringUtils::caseInsensitiveEquals(const std::string& left, const std::string& right) {
+bool StringUtils::caseInsensitiveEquals(std::string_view left, std::string_view right) {
     if (left.size() != right.size()) {
         return false;
     }
