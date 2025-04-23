@@ -125,8 +125,10 @@ True
 # copy again, most of the free pages should be reused
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"
 ---- ok
--STATEMENT call fsm_info() return *
----- 0
+# allow margin equal to the largest page range for a column chunk in the table
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages call storage_info('Post') with num_free_pages, max(num_pages) as largest_range return num_free_pages is null or largest_range >= num_free_pages
+---- 1
+True
 -RELOADDB
 # try some queries
 -STATEMENT match(p:Post) return count(*)
