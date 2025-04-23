@@ -127,3 +127,14 @@ True
 ---- ok
 -STATEMENT call fsm_info() return *
 ---- 0
+-RELOADDB
+# try some queries
+-STATEMENT match(p:Post) return count(*)
+---- 1
+135701
+-STATEMENT match(p:Post) where p.id = 481036337190 return p.imageFile
+---- 1
+photo481036337190.jpg
+-STATEMENT match(p:Post) where p.id = 1030792523146 return p.imageFile
+---- 1
+photo1030792523146.jpg

@@ -95,7 +95,8 @@ public:
         common::row_idx_t capacity = common::StorageConfig::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
-          numRows{chunkedNodeGroup->getNumRows()}, nextRowToAppend{numRows}, capacity{capacity} {
+          numRows{chunkedNodeGroup->getStartRowIdx() + chunkedNodeGroup->getNumRows()},
+          nextRowToAppend{numRows}, capacity{capacity} {
         for (auto i = 0u; i < chunkedNodeGroup->getNumColumns(); i++) {
             dataTypes.push_back(chunkedNodeGroup->getColumnChunk(i).getDataType().copy());
         }
