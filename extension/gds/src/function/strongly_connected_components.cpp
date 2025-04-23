@@ -1,9 +1,9 @@
 #include "binder/binder.h"
-#include "component_ids.h"
+#include "function/component_ids.h"
 #include "function/gds/gds_frontier.h"
-#include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "gds_vertex_compute.h"
+#include "function/gds/gds_vertex_compute.h"
+#include "function/gds_function.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::binder;
@@ -11,9 +11,10 @@ using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
 using namespace kuzu::graph;
+using namespace kuzu::function;
 
 namespace kuzu {
-namespace function {
+namespace gds_extension {
 
 using Colors = ComponentIDs;
 using ColorsPair = ComponentIDsPair;
@@ -301,5 +302,5 @@ function_set SCCFunction::getFunctionSet() {
     return result;
 }
 
-} // namespace function
+} // namespace gds_extension
 } // namespace kuzu

@@ -3,6 +3,8 @@
 --
 
 -CASE WCC
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+---- ok
 -STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
 ---- ok
 -STATEMENT CALL weakly_connected_component('PK') RETURN node.fName, group_id;

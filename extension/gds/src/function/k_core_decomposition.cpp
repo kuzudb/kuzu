@@ -1,8 +1,8 @@
 #include "binder/binder.h"
-#include "degrees.h"
-#include "function/gds/gds_function_collection.h"
+#include "function/degrees.h"
 #include "function/gds/gds_utils.h"
-#include "gds_vertex_compute.h"
+#include "function/gds/gds_vertex_compute.h"
+#include "function/gds_function.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::binder;
@@ -10,9 +10,10 @@ using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
 using namespace kuzu::graph;
+using namespace kuzu::function;
 
 namespace kuzu {
-namespace function {
+namespace gds_extension {
 
 class CoreValues {
 public:
@@ -246,5 +247,5 @@ function_set KCoreDecompositionFunction::getFunctionSet() {
     return result;
 }
 
-} // namespace function
+} // namespace gds_extension
 } // namespace kuzu

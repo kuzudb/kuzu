@@ -240,11 +240,6 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),
         TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan),
 
-        // Algorithm functions
-        TABLE_FUNCTION(WeaklyConnectedComponentsFunction), TABLE_FUNCTION(SCCKosarajuFunction),
-        TABLE_FUNCTION(SCCFunction), TABLE_FUNCTION(KCoreDecompositionFunction),
-        TABLE_FUNCTION(PageRankFunction),
-
         // Export functions
         EXPORT_FUNCTION(ExportCSVFunction), EXPORT_FUNCTION(ExportParquetFunction),
 

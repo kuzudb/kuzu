@@ -1,0 +1,12 @@
+-DATASET CSV fts-basic
+
+--
+
+-CASE InstallOfficialExtension
+-STATEMENT INSTALL gds FROM 'http://localhost/extension/repo/'
+---- 1
+Extension: gds has been installed from repo: http://localhost/extension/repo/.
+-STATEMENT load gds
+---- ok
+-STATEMENT load gds
+---- ok

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "function/gds/gds_object_manager.h"
-#include "gds_vertex_compute.h"
+#include "function/gds/gds_vertex_compute.h"
 
 namespace kuzu {
-namespace function {
+namespace gds_extension {
 
 static constexpr common::offset_t INVALID_COMPONENT_ID = common::INVALID_OFFSET;
 
@@ -54,10 +54,10 @@ public:
 
 private:
     std::atomic<common::offset_t>* curData = nullptr;
-    GDSDenseObjectManager<std::atomic<common::offset_t>> denseObjects;
+    function::GDSDenseObjectManager<std::atomic<common::offset_t>> denseObjects;
 };
 
-class InitSequenceComponentIDsVertexCompute : public VertexCompute {
+class InitSequenceComponentIDsVertexCompute : public function::VertexCompute {
 public:
     InitSequenceComponentIDsVertexCompute(ComponentIDs& componentIDs, OffsetManager& offsetManager)
         : componentIDs{componentIDs}, offsetManager{offsetManager} {}
@@ -100,10 +100,10 @@ private:
     ComponentIDs& componentIDs;
 };
 
-class ComponentIDsOutputVertexCompute : public GDSResultVertexCompute {
+class ComponentIDsOutputVertexCompute : public function::GDSResultVertexCompute {
 public:
-    ComponentIDsOutputVertexCompute(storage::MemoryManager* mm, GDSFuncSharedState* sharedState,
-        ComponentIDs& componentIDs)
+    ComponentIDsOutputVertexCompute(storage::MemoryManager* mm,
+        function::GDSFuncSharedState* sharedState, ComponentIDs& componentIDs)
         : GDSResultVertexCompute{mm, sharedState}, componentIDs{componentIDs} {
         nodeIDVector = createVector(common::LogicalType::INTERNAL_ID());
         componentIDVector = createVector(common::LogicalType::UINT64());
@@ -126,5 +126,5 @@ private:
     std::unique_ptr<common::ValueVector> componentIDVector;
 };
 
-} // namespace function
+} // namespace gds_extension
 } // namespace kuzu
