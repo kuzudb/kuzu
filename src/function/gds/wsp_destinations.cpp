@@ -29,9 +29,7 @@ public:
     explicit SparseCostsReference(GDSSpareObjectManager<double>& sparseObjects)
         : sparseObjects{sparseObjects} {}
 
-    void pinTableID(table_id_t tableID) override {
-        curData = sparseObjects.getData(tableID);
-    }
+    void pinTableID(table_id_t tableID) override { curData = sparseObjects.getData(tableID); }
 
     void setCost(offset_t offset, double cost) override {
         KU_ASSERT(curData != nullptr);
@@ -66,11 +64,10 @@ private:
 
 class DenseCostsReference : public Costs {
 public:
-    explicit DenseCostsReference(GDSDenseObjectManager<std::atomic<double>>& denseObjects) : denseObjects{denseObjects} {}
+    explicit DenseCostsReference(GDSDenseObjectManager<std::atomic<double>>& denseObjects)
+        : denseObjects{denseObjects} {}
 
-    void pinTableID(table_id_t tableID) override {
-        curData = denseObjects.getData(tableID);
-    }
+    void pinTableID(table_id_t tableID) override { curData = denseObjects.getData(tableID); }
 
     void setCost(offset_t offset, double cost) override {
         KU_ASSERT(curData != nullptr);
@@ -100,8 +97,9 @@ private:
 
 class CostsPair {
 public:
-    explicit CostsPair(const table_id_map_t<offset_t>& maxOffsetMap) : maxOffsetMap{maxOffsetMap},
-        densityState{GDSDensityState::SPARSE}, sparseObjects{maxOffsetMap} {
+    explicit CostsPair(const table_id_map_t<offset_t>& maxOffsetMap)
+        : maxOffsetMap{maxOffsetMap}, densityState{GDSDensityState::SPARSE},
+          sparseObjects{maxOffsetMap} {
         curSparseCosts = std::make_unique<SparseCostsReference>(sparseObjects);
         nextSparseCosts = std::make_unique<SparseCostsReference>(sparseObjects);
         denseObjects = GDSDenseObjectManager<std::atomic<double>>();
@@ -109,9 +107,7 @@ public:
         nextDenseCosts = std::make_unique<DenseCostsReference>(denseObjects);
     }
 
-    Costs* getCurrentCosts() {
-        return curCosts;
-    }
+    Costs* getCurrentCosts() { return curCosts; }
 
     void pinCurTableID(table_id_t tableID) {
         switch (densityState) {
@@ -194,7 +190,8 @@ public:
             auto nbrNodeID = neighbors[i];
             auto weight = propertyVectors[0]->template getValue<T>(i);
             checkWeight(weight);
-            if (costsPair->update(boundNodeID.offset, nbrNodeID.offset, static_cast<double>(weight))) {
+            if (costsPair->update(boundNodeID.offset, nbrNodeID.offset,
+                    static_cast<double>(weight))) {
                 result.push_back(nbrNodeID);
             }
         });
