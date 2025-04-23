@@ -165,7 +165,8 @@ public:
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
         std::vector<nodeID_t> result;
-        chunk.forEach([&](auto nbrNodeID, auto) {
+        chunk.forEach([&](auto neighbors, auto, auto i) {
+            auto nbrNodeID = neighbors[i];
             if (!componentIDs.hasValidComponentID(nbrNodeID.offset) &&
                 colorsPair.update(boundNodeID.offset, nbrNodeID.offset)) {
                 result.push_back(nbrNodeID);

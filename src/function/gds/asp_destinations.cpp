@@ -247,7 +247,8 @@ public:
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk,
         bool) override {
         std::vector<nodeID_t> activeNodes;
-        resultChunk.forEach([&](auto nbrNodeID, auto /*edgeID*/) {
+        resultChunk.forEach([&](auto neighbors, auto, auto i) {
+            auto nbrNodeID = neighbors[i];
             auto nbrVal = frontierPair->getNextFrontierValue(nbrNodeID.offset);
             // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is

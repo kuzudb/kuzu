@@ -34,10 +34,11 @@ public:
     explicit WCCEdgeCompute(ComponentIDsPair& componentIDsPair)
         : componentIDsPair{componentIDsPair} {}
 
-    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
-        graph::NbrScanState::Chunk& chunk, bool) override {
-        std::vector<common::nodeID_t> result;
-        chunk.forEach([&](auto nbrNodeID, auto) {
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& chunk,
+        bool) override {
+        std::vector<nodeID_t> result;
+        chunk.forEach([&](auto neighbors, auto, auto i) {
+            auto nbrNodeID = neighbors[i];
             if (componentIDsPair.update(boundNodeID.offset, nbrNodeID.offset)) {
                 result.push_back(nbrNodeID);
             }
@@ -98,8 +99,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {
     function_set result;
-    auto func = std::make_unique<TableFunction>(WeaklyConnectedComponentsFunction::name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY});
+    auto func = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::ANY});
     func->bindFunc = bindFunc;
     func->tableFunc = tableFunc;
     func->initSharedStateFunc = GDSFunction::initSharedState;

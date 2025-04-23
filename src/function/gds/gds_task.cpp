@@ -13,7 +13,7 @@ void FrontierTask::run() {
     FrontierMorsel morsel;
     auto numActiveNodes = 0u;
     auto graph = info.graph;
-    auto scanState = graph->prepareRelScan(info.relEntry, info.nbrEntry, info.propertyToScan);
+    auto scanState = graph->prepareRelScan(info.relEntry, info.nbrEntry, info.propertiesToScan);
     auto ec = info.edgeCompute.copy();
     switch (info.direction) {
     case ExtendDirection::FWD: {
@@ -57,7 +57,7 @@ void FrontierTask::run() {
 void FrontierTask::runSparse() {
     auto numActiveNodes = 0u;
     auto graph = info.graph;
-    auto scanState = graph->prepareRelScan(info.relEntry, info.nbrEntry, info.propertyToScan);
+    auto scanState = graph->prepareRelScan(info.relEntry, info.nbrEntry, info.propertiesToScan);
     auto ec = info.edgeCompute.copy();
     switch (info.direction) {
     case ExtendDirection::FWD: {

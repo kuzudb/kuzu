@@ -16,23 +16,23 @@ public:
     // Run edge compute for full text search
     static void runFTSEdgeCompute(processor::ExecutionContext* context, GDSComputeState& compState,
         graph::Graph* graph, common::ExtendDirection extendDirection,
-        const std::string& propertyToScan);
+        const std::vector<std::string>& propertiesToScan);
     // Run edge compute for recursive join.
     static void runRecursiveJoinEdgeCompute(processor::ExecutionContext* context,
         GDSComputeState& compState, graph::Graph* graph, common::ExtendDirection extendDirection,
         uint64_t maxIteration, common::NodeOffsetMaskMap* outputNodeMask,
-        const std::string& propertyToScan = "");
+        const std::vector<std::string>& propertiesToScan);
 
     // Run vertex compute without property scan
     static void runVertexCompute(processor::ExecutionContext* context, GDSDensityState densityState,
         graph::Graph* graph, VertexCompute& vc);
     // Run vertex compute with property scan
     static void runVertexCompute(processor::ExecutionContext* context, GDSDensityState densityState,
-        graph::Graph* graph, VertexCompute& vc, std::vector<std::string> propertiesToScan);
+        graph::Graph* graph, VertexCompute& vc, const std::vector<std::string>& propertiesToScan);
     // Run vertex compute on specific table with property scan
     static void runVertexCompute(processor::ExecutionContext* context, GDSDensityState densityState,
         graph::Graph* graph, VertexCompute& vc, catalog::TableCatalogEntry* entry,
-        std::vector<std::string> propertiesToScan);
+        const std::vector<std::string>& propertiesToScan);
 };
 
 } // namespace function

@@ -4,6 +4,8 @@
 #include "binder/expression/property_expression.h"
 #include "common/exception/interrupt.h"
 #include "common/task_system/progress_bar.h"
+#include "function/gds/compute.h"
+#include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
 
@@ -70,6 +72,17 @@ static double getRJProgress(offset_t totalNumNodes, offset_t completedNumNodes) 
     return (double)completedNumNodes / totalNumNodes;
 }
 
+static bool requireRelID(const RJAlgorithm& function) {
+    if (function.getFunctionName() == WeightedSPPathsFunction::name ||
+        function.getFunctionName() == SingleSPPathsFunction::name ||
+        function.getFunctionName() == AllSPPathsFunction::name ||
+        function.getFunctionName() == AllWeightedSPPathsFunction::name ||
+        function.getFunctionName() == VarLenJoinsFunction::name) {
+        return true;
+    }
+    return false;
+}
+
 void RecursiveExtend::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     auto graph = sharedState->graph.get();
@@ -82,10 +95,13 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
             totalNumNodes += graph->getMaxOffset(clientContext->getTransaction(), tableID);
         }
     }
-    std::string propertyName;
+    std::vector<std::string> propertyNames;
+    if (requireRelID(*function)) {
+        propertyNames.push_back(InternalKeyword::ID);
+    }
     if (bindData.weightPropertyExpr != nullptr) {
-        propertyName =
-            bindData.weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
+        propertyNames.push_back(
+            bindData.weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName());
     }
     offset_t completedNumNodes = 0;
     auto inputNodeTableIDSet = bindData.nodeInput->constCast<NodeExpression>().getTableIDsSet();
@@ -97,7 +113,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
         if (!inputNodeTableIDSet.contains(tableID)) {
             continue;
         }
-        auto calcFunc = [tableID, propertyName, graph, context, this](offset_t offset) {
+        auto calcFunc = [tableID, propertyNames, graph, context, this](offset_t offset) {
             auto clientContext = context->clientContext;
             if (clientContext->interrupted()) {
                 throw InterruptException{};
@@ -107,7 +123,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
             computeState->initSource(sourceNodeID);
             GDSUtils::runRecursiveJoinEdgeCompute(context, *computeState, graph,
                 bindData.extendDirection, bindData.upperBound, sharedState->getOutputNodeMaskMap(),
-                propertyName);
+                propertyNames);
             auto writer = function->getOutputWriter(context, bindData, *computeState, sourceNodeID,
                 sharedState.get());
             auto vertexCompute = std::make_unique<RJVertexCompute>(

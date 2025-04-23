@@ -4,11 +4,9 @@
 
 namespace kuzu::graph {
 NbrScanState::Chunk::Chunk(std::span<const common::nodeID_t> nbrNodes,
-    std::span<const common::relID_t> edges, common::SelectionVector& selVector,
-    const common::ValueVector* propertyVector)
-    : nbrNodes{nbrNodes}, edges{edges}, selVector{selVector}, propertyVector{propertyVector} {
+    common::SelectionVector& selVector, std::vector<common::ValueVector*> propertyVectors)
+    : nbrNodes{nbrNodes}, selVector{selVector}, propertyVectors{std::move(propertyVectors)} {
     KU_ASSERT(nbrNodes.size() == common::DEFAULT_VECTOR_CAPACITY);
-    KU_ASSERT(edges.size() == common::DEFAULT_VECTOR_CAPACITY);
 }
 
 VertexScanState::Chunk::Chunk(std::span<const common::nodeID_t> nodeIDs,

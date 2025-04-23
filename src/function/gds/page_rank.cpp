@@ -38,8 +38,7 @@ PageRankOptionalParams::PageRankOptionalParams(const expression_vector& optional
         } else if (paramName == Tolerance::NAME) {
             tolerance = optionalParam;
         } else {
-            throw common::BinderException{
-                "Unknown optional parameter: " + optionalParam->getAlias()};
+            throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
         }
     }
 }
@@ -143,7 +142,8 @@ public:
         bool) override {
         if (chunk.size() > 0) {
             double valToAdd = 0;
-            chunk.forEach([&](auto nbrNodeID, auto) {
+            chunk.forEach([&](auto neighbors, auto, auto i) {
+                auto nbrNodeID = neighbors[i];
                 valToAdd +=
                     pCurrent.getValue(nbrNodeID.offset) / degrees.getValue(nbrNodeID.offset);
             });
@@ -170,7 +170,7 @@ public:
         : GDSVertexCompute{nodeMask}, dampingFactor{dampingFactor}, constant{constant},
           pNext{pNext} {}
 
-    void beginOnTableInternal(common::table_id_t tableID) override { pNext.pinTable(tableID); }
+    void beginOnTableInternal(table_id_t tableID) override { pNext.pinTable(tableID); }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
@@ -261,7 +261,7 @@ private:
     std::unique_ptr<ValueVector> rankVector;
 };
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto transaction = clientContext->getTransaction();
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();

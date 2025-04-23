@@ -18,18 +18,19 @@ struct FrontierTaskInfo {
     graph::Graph* graph;
     common::ExtendDirection direction;
     EdgeCompute& edgeCompute;
-    std::string propertyToScan;
+    std::vector<std::string> propertiesToScan;
 
     FrontierTaskInfo(catalog::TableCatalogEntry* boundEntry, catalog::TableCatalogEntry* nbrEntry,
         catalog::TableCatalogEntry* relEntry, graph::Graph* graph,
-        common::ExtendDirection direction, EdgeCompute& edgeCompute, std::string propertyToScan)
+        common::ExtendDirection direction, EdgeCompute& edgeCompute,
+        std::vector<std::string> propertiesToScan)
         : boundEntry{boundEntry}, nbrEntry{nbrEntry}, relEntry{relEntry}, graph{graph},
           direction{direction}, edgeCompute{edgeCompute},
-          propertyToScan{std::move(propertyToScan)} {}
+          propertiesToScan{std::move(propertiesToScan)} {}
     FrontierTaskInfo(const FrontierTaskInfo& other)
         : boundEntry{other.boundEntry}, nbrEntry{other.nbrEntry}, relEntry{other.relEntry},
           graph{other.graph}, direction{other.direction}, edgeCompute{other.edgeCompute},
-          propertyToScan{other.propertyToScan} {}
+          propertiesToScan{other.propertiesToScan} {}
 };
 
 struct FrontierTaskSharedState {

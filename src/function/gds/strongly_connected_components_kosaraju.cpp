@@ -5,6 +5,7 @@
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
 
+using namespace std;
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -16,9 +17,9 @@ namespace function {
 
 // Use the three largest offset_t values as special markers to avoid allocating another array.
 // PROCESSED implies node has been VISITED and added to the backward DFS stack.
-static constexpr offset_t PROCESSED = INVALID_OFFSET;
-static constexpr offset_t VISITED = INVALID_OFFSET - 1;
-static constexpr offset_t NOT_VISITED = INVALID_OFFSET - 2;
+static constexpr offset_t PROCESSED = numeric_limits<offset_t>::max();
+static constexpr offset_t VISITED = numeric_limits<offset_t>::max() - 1;
+static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max() - 2;
 
 class KosarajuVisitedState {
 public:
@@ -86,7 +87,7 @@ public:
         auto nbrInfos = graph->getForwardNbrTableInfos(nodeTableID);
         KU_ASSERT(nbrInfos.size() == 1);
         auto nbrInfo = nbrInfos[0];
-        scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, "");
+        scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, {});
     }
 
     void compute(const offset_t maxOffset, NodeOffsetMaskMap* map) {
@@ -126,7 +127,8 @@ public:
             visitedState.setVisited(offset);
             auto nextNodeID = nodeID_t{offset, nodeTableID};
             for (auto chunk : graph->scanFwd(nextNodeID, *scanState)) {
-                chunk.forEach([&](auto nbrNodeID, auto) {
+                chunk.forEach([&](auto neighbors, auto, auto i) {
+                    auto nbrNodeID = neighbors[i];
                     if (!visitedState.visited(nbrNodeID.offset)) {
                         toProcess.push_back(nbrNodeID.offset);
                     }
@@ -145,7 +147,8 @@ public:
             visitedState.setComponentID(nextNode, componentID);
             auto nextNodeID = nodeID_t{nextNode, nodeTableID};
             for (auto chunk : graph->scanBwd(nextNodeID, *scanState)) {
-                chunk.forEach([&](auto nbrNodeID, auto) {
+                chunk.forEach([&](auto neighbors, auto, auto i) {
+                    auto nbrNodeID = neighbors[i];
                     if (!visitedState.componentIDSet(nbrNodeID.offset)) {
                         toProcess.push_back(nbrNodeID.offset);
                     }
@@ -240,8 +243,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
 function_set SCCKosarajuFunction::getFunctionSet() {
     function_set result;
-    auto func = std::make_unique<TableFunction>(SCCKosarajuFunction::name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY});
+    auto func = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::ANY});
     func->bindFunc = bindFunc;
     func->tableFunc = tableFunc;
     func->initSharedStateFunc = GDSFunction::initSharedState;

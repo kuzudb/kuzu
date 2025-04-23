@@ -25,13 +25,16 @@ public:
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool fwdEdge) override {
         std::vector<nodeID_t> result;
-        chunk.forEach<T>([&](auto nbrNodeID, auto edgeID, auto weight) {
+        chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+            auto nbrNodeID = neighbors[i];
+            auto edgeID = propertyVectors[0]->template getValue<relID_t>(i);
+            auto weight = propertyVectors[1]->template getValue<T>(i);
             checkWeight(weight);
             if (!block->hasSpace()) {
                 block = bfsGraphManager->getCurrentGraph()->addNewBlock();
             }
             if (bfsGraphManager->getCurrentGraph()->tryAddParentWithWeight(boundNodeID, edgeID,
-                    nbrNodeID, fwdEdge, (double)weight, block)) {
+                    nbrNodeID, fwdEdge, static_cast<double>(weight), block)) {
                 result.push_back(nbrNodeID);
             }
         });
