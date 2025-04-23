@@ -216,6 +216,48 @@ E|F|40.000000
 ---- error
 Binder exception: DECIMAL(38, 4) weight type is not supported for weighted shortest path.
 
+-STATEMENT CREATE NODE TABLE N2 (ID STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE (:N2 {ID:'AA'});
+---- ok
+-STATEMENT CREATE REL TABLE NRN2 (FROM N TO N2, cost1 INT64);
+---- ok
+-STATEMENT CREATE REL TABLE N2RN (FROM N2 TO N, cost1 INT64);
+---- ok
+-STATEMENT MATCH (n2:N2 {ID:'AA'}), (a:N {ID:'A'}), (b:N {ID: 'B'})
+            CREATE (a)-[:NRN2{cost1:1}]->(n2)-[:N2RN{cost1:1}]->(b)
+---- ok
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost1) ]->(b)
+        WHERE a.ID = 'A'
+        RETURN b.ID, e_weight
+---- 6
+AA|1.000000
+B|2.000000
+C|50.000000
+D|42.000000
+E|72.000000
+F|112.000000
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost1) ]->(b)
+        WHERE a.ID = 'A'
+        RETURN b.ID, e_weight, properties(nodes(p), "ID"), properties(rels(p), "cost1")
+---- 6
+AA|1.000000|[A,AA]|[1]
+B|2.000000|[A,AA,B]|[1,1]
+C|50.000000|[A,C]|[50]
+D|42.000000|[A,AA,B,D]|[1,1,40]
+E|72.000000|[A,AA,B,D,E]|[1,1,40,30]
+F|112.000000|[A,AA,B,D,E,F]|[1,1,40,30,40]
+
+-STATEMENT MATCH  (a:N {ID:'A'}), (b:N {ID: 'B'})
+            CREATE (a)-[:R{cost1:2}]->(b)
+---- ok
+-STATEMENT MATCH p = (a)-[e* ALL WSHORTEST(cost1) ]->(b)
+        WHERE a.ID = 'A' AND b.ID = 'F'
+        RETURN b.ID, e_weight, properties(nodes(p), "ID"), properties(rels(p), "cost1")
+---- 2
+F|112.000000|[A,AA,B,D,E,F]|[1,1,40,30,40]
+F|112.000000|[A,B,D,E,F]|[2,40,30,40]
+
 -CASE NegativeWeight
 -STATEMENT MATCH (a {ID:'A'}), (b {ID:'B'})
         CREATE (a)-[r {cost1:-1}]->(b)
