@@ -20,9 +20,9 @@ namespace kuzu {
 namespace function {
 
 struct Label {
-    static void operation(internalID_t& left, list_entry_t& right,
-        ku_string_t& result, ValueVector& leftVector,
-        ValueVector& rightVector, ValueVector& resultVector, uint64_t resPos) {
+    static void operation(internalID_t& left, list_entry_t& right, ku_string_t& result,
+        ValueVector& leftVector, ValueVector& rightVector, ValueVector& resultVector,
+        uint64_t resPos) {
         KU_ASSERT(left.tableID < right.size);
         ListExtract::operation(right, left.tableID + 1 /* listExtract requires 1-based index */,
             result, rightVector, leftVector, resultVector, resPos);
@@ -33,9 +33,9 @@ static void execFunction(const std::vector<std::shared_ptr<ValueVector>>& params
     const std::vector<SelectionVector*>& paramSelVectors, ValueVector& result,
     SelectionVector* resultSelVector, void* dataPtr = nullptr) {
     KU_ASSERT(params.size() == 2);
-    BinaryFunctionExecutor::executeSwitch<internalID_t, list_entry_t,
-        ku_string_t, Label, BinaryListExtractFunctionWrapper>(*params[0],
-        paramSelVectors[0], *params[1], paramSelVectors[1], result, resultSelVector, dataPtr);
+    BinaryFunctionExecutor::executeSwitch<internalID_t, list_entry_t, ku_string_t, Label,
+        BinaryListExtractFunctionWrapper>(*params[0], paramSelVectors[0], *params[1],
+        paramSelVectors[1], result, resultSelVector, dataPtr);
 }
 
 static std::shared_ptr<binder::Expression> getLabelsAsLiteral(main::ClientContext* context,
