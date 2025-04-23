@@ -71,7 +71,7 @@ public:
         std::vector<ParentList*> curPath;
         curPath.push_back(parent);
         while (parent->getCost() != 0) {
-            parent = bfsGraph.getParentListHead(parent->getNodeID().offset);
+            parent = bfsGraph.getParentListHead(parent->getNodeID());
             curPath.push_back(parent);
         }
         curPath.pop_back();

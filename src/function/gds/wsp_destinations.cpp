@@ -14,50 +14,178 @@ namespace function {
 
 class Costs {
 public:
-    Costs(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
-        init(maxOffsetMap, mm);
+    virtual ~Costs() = default;
+
+    virtual void pinTableID(table_id_t tableID) = 0;
+
+    virtual void setCost(offset_t offset, double cost) = 0;
+    virtual bool tryReplaceWithMinCost(offset_t offset, double newCost) = 0;
+
+    virtual double getCost(offset_t offset) = 0;
+};
+
+class SparseCostsReference : public Costs {
+public:
+    explicit SparseCostsReference(GDSSpareObjectManager<double>& sparseObjects)
+        : sparseObjects{sparseObjects} {}
+
+    void pinTableID(table_id_t tableID) override {
+        curData = sparseObjects.getData(tableID);
     }
 
-    void pinTable(table_id_t tableID) { costs = costsMap.getData(tableID); }
-
-    double getCost(offset_t offset) { return costs[offset].load(std::memory_order_relaxed); }
-
-    void setCost(offset_t offset, double cost) {
-        costs[offset].store(cost, std::memory_order_relaxed);
+    void setCost(offset_t offset, double cost) override {
+        KU_ASSERT(curData != nullptr);
+        if (curData->contains(offset)) {
+            curData->at(offset) = cost;
+        } else {
+            curData->insert({offset, cost});
+        }
     }
 
-    // CAS update nbrOffset if new path from boundOffset has a smaller cost.
-    bool update(offset_t boundOffset, offset_t nbrOffset, double val) {
-        auto newCost = getCost(boundOffset) + val;
-        auto tmp = getCost(nbrOffset);
-        while (newCost < tmp) {
-            if (costs[nbrOffset].compare_exchange_strong(tmp, newCost)) {
+    bool tryReplaceWithMinCost(offset_t offset, double newCost) override {
+        auto curCost = getCost(offset);
+        if (newCost < curCost) {
+            setCost(offset, newCost);
+            return true;
+        }
+        return false;
+    }
+
+    double getCost(offset_t offset) override {
+        KU_ASSERT(curData != nullptr);
+        if (curData->contains(offset)) {
+            return curData->at(offset);
+        }
+        return std::numeric_limits<double>::max();
+    }
+
+private:
+    std::unordered_map<offset_t, double>* curData = nullptr;
+    GDSSpareObjectManager<double>& sparseObjects;
+};
+
+class DenseCostsReference : public Costs {
+public:
+    explicit DenseCostsReference(GDSDenseObjectManager<std::atomic<double>>& denseObjects) : denseObjects{denseObjects} {}
+
+    void pinTableID(table_id_t tableID) override {
+        curData = denseObjects.getData(tableID);
+    }
+
+    void setCost(offset_t offset, double cost) override {
+        KU_ASSERT(curData != nullptr);
+        curData[offset].store(cost, std::memory_order_relaxed);
+    }
+
+    bool tryReplaceWithMinCost(offset_t offset, double newCost) override {
+        auto curCost = getCost(offset);
+        while (newCost < curCost) {
+            if (curData[offset].compare_exchange_strong(curCost, newCost)) {
                 return true;
             }
         }
         return false;
     }
 
+    double getCost(offset_t offset) override {
+        KU_ASSERT(curData != nullptr);
+        return curData[offset].load(std::memory_order_relaxed);
+    }
+
 private:
-    void init(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
-        for (const auto& [tableID, maxOffset] : maxOffsetMap) {
-            costsMap.allocate(tableID, maxOffset, mm);
-            pinTable(tableID);
-            for (auto i = 0u; i < maxOffset; ++i) {
-                costs[i].store(std::numeric_limits<double>::max(), std::memory_order_relaxed);
+    table_id_map_t<offset_t> nodeMaxOffsetMap;
+    std::atomic<double>* curData = nullptr;
+    GDSDenseObjectManager<std::atomic<double>>& denseObjects;
+};
+
+class CostsPair {
+public:
+    explicit CostsPair(const table_id_map_t<offset_t>& maxOffsetMap) : maxOffsetMap{maxOffsetMap},
+        densityState{GDSDensityState::SPARSE}, sparseObjects{maxOffsetMap} {
+        curSparseCosts = std::make_unique<SparseCostsReference>(sparseObjects);
+        nextSparseCosts = std::make_unique<SparseCostsReference>(sparseObjects);
+        denseObjects = GDSDenseObjectManager<std::atomic<double>>();
+        curDenseCosts = std::make_unique<DenseCostsReference>(denseObjects);
+        nextDenseCosts = std::make_unique<DenseCostsReference>(denseObjects);
+    }
+
+    Costs* getCurrentCosts() {
+        return curCosts;
+    }
+
+    void pinCurTableID(table_id_t tableID) {
+        switch (densityState) {
+        case GDSDensityState::SPARSE: {
+            curSparseCosts->pinTableID(tableID);
+            curCosts = curSparseCosts.get();
+        } break;
+        case GDSDensityState::DENSE: {
+            curDenseCosts->pinTableID(tableID);
+            curCosts = curDenseCosts.get();
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
+    }
+
+    void pinNextTableID(table_id_t tableID) {
+        switch (densityState) {
+        case GDSDensityState::SPARSE: {
+            nextSparseCosts->pinTableID(tableID);
+            nextCosts = nextSparseCosts.get();
+        } break;
+        case GDSDensityState::DENSE: {
+            nextDenseCosts->pinTableID(tableID);
+            nextCosts = nextDenseCosts.get();
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
+    }
+
+    // CAS update nbrOffset if new path from boundOffset has a smaller cost.
+    bool update(offset_t boundOffset, offset_t nbrOffset, double val) {
+        KU_ASSERT(curCosts && nextCosts);
+        auto newCost = curCosts->getCost(boundOffset) + val;
+        return nextCosts->tryReplaceWithMinCost(nbrOffset, newCost);
+    }
+
+    void switchToDense(ExecutionContext* context) {
+        KU_ASSERT(densityState == GDSDensityState::SPARSE);
+        densityState = GDSDensityState::DENSE;
+        for (auto& [tableID, maxOffset] : maxOffsetMap) {
+            denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
+            auto data = denseObjects.getData(tableID);
+            for (auto i = 0u; i < maxOffset; i++) {
+                data[i].store(std::numeric_limits<double>::max());
+            }
+        }
+        for (auto& [tableID, map] : sparseObjects.getData()) {
+            auto data = denseObjects.getData(tableID);
+            for (auto& [offset, cost] : map) {
+                data[offset].store(cost);
             }
         }
     }
 
 private:
-    std::atomic<double>* costs = nullptr;
-    GDSDenseObjectManager<std::atomic<double>> costsMap;
+    table_id_map_t<offset_t> maxOffsetMap;
+    GDSDensityState densityState;
+    GDSSpareObjectManager<double> sparseObjects;
+    std::unique_ptr<SparseCostsReference> curSparseCosts;
+    std::unique_ptr<SparseCostsReference> nextSparseCosts;
+    GDSDenseObjectManager<std::atomic<double>> denseObjects;
+    std::unique_ptr<DenseCostsReference> curDenseCosts;
+    std::unique_ptr<DenseCostsReference> nextDenseCosts;
+
+    Costs* curCosts = nullptr;
+    Costs* nextCosts = nullptr;
 };
 
 template<typename T>
 class WSPDestinationsEdgeCompute : public EdgeCompute {
 public:
-    explicit WSPDestinationsEdgeCompute(std::shared_ptr<Costs> costs) : costs{std::move(costs)} {}
+    explicit WSPDestinationsEdgeCompute(CostsPair* costsPair) : costsPair{costsPair} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
@@ -66,7 +194,7 @@ public:
             auto nbrNodeID = neighbors[i];
             auto weight = propertyVectors[0]->template getValue<T>(i);
             checkWeight(weight);
-            if (costs->update(boundNodeID.offset, nbrNodeID.offset, static_cast<double>(weight))) {
+            if (costsPair->update(boundNodeID.offset, nbrNodeID.offset, static_cast<double>(weight))) {
                 result.push_back(nbrNodeID);
             }
         });
@@ -74,30 +202,36 @@ public:
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<WSPDestinationsEdgeCompute<T>>(costs);
+        return std::make_unique<WSPDestinationsEdgeCompute<T>>(costsPair);
     }
 
 private:
-    std::shared_ptr<Costs> costs;
+    CostsPair* costsPair;
 };
 
 class WSPDestinationsAuxiliaryState : public GDSAuxiliaryState {
 public:
-    explicit WSPDestinationsAuxiliaryState(std::shared_ptr<Costs> costs)
-        : costs{std::move(costs)} {}
+    explicit WSPDestinationsAuxiliaryState(std::unique_ptr<CostsPair> costsPair)
+        : costsPair{std::move(costsPair)} {}
 
-    Costs* getCosts() { return costs.get(); }
+    Costs* getCosts() { return costsPair->getCurrentCosts(); }
 
-    void initSource(nodeID_t sourceNodeID) override { costs->setCost(sourceNodeID.offset, 0); }
-
-    void beginFrontierCompute(table_id_t, table_id_t toTableID) override {
-        costs->pinTable(toTableID);
+    void initSource(nodeID_t sourceNodeID) override {
+        costsPair->pinCurTableID(sourceNodeID.tableID);
+        costsPair->getCurrentCosts()->setCost(sourceNodeID.offset, 0);
     }
 
-    void switchToDense(ExecutionContext*, graph::Graph*) override {}
+    void beginFrontierCompute(table_id_t fromTableID, table_id_t toTableID) override {
+        costsPair->pinCurTableID(fromTableID);
+        costsPair->pinNextTableID(toTableID);
+    }
+
+    void switchToDense(ExecutionContext* context, graph::Graph*) override {
+        costsPair->switchToDense(context);
+    }
 
 private:
-    std::shared_ptr<Costs> costs;
+    std::unique_ptr<CostsPair> costsPair;
 };
 
 class WSPDestinationsOutputWriter : public RJOutputWriter {
@@ -109,7 +243,7 @@ public:
         costVector = createVector(LogicalType::DOUBLE());
     }
 
-    void beginWritingInternal(table_id_t tableID) override { costs->pinTable(tableID); }
+    void beginWritingInternal(table_id_t tableID) override { costs->pinTableID(tableID); }
 
     void write(FactorizedTable& fTable, table_id_t tableID, LimitCounter* counter) override {
         for (auto i = 0u; i < maxOffsetMap.at(tableID); ++i) {
@@ -173,13 +307,13 @@ private:
         auto nextDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(
             std::move(curDenseFrontier), std::move(nextDenseFrontier));
-        auto costs =
-            std::make_shared<Costs>(graph->getMaxOffsetMap(clientContext->getTransaction()),
-                clientContext->getMemoryManager());
-        auto auxiliaryState = std::make_unique<WSPDestinationsAuxiliaryState>(costs);
+        auto costsPair =
+            std::make_unique<CostsPair>(graph->getMaxOffsetMap(clientContext->getTransaction()));
+        auto costPairPtr = costsPair.get();
+        auto auxiliaryState = std::make_unique<WSPDestinationsAuxiliaryState>(std::move(costsPair));
         std::unique_ptr<GDSComputeState> gdsState;
         visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
-            auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costs);
+            auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costPairPtr);
             gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
                 std::move(edgeCompute), std::move(auxiliaryState));
         });

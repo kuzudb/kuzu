@@ -102,8 +102,9 @@ bool DenseBFSGraph::tryAddParentWithWeight(nodeID_t boundNodeID, relID_t edgeID,
                 parent->setNextPtr(nullptr);
                 return true;
             }
-        } else if (parent->getCost() == getCost(expected)) {
-            // New parent has the same cost, append new parent as after existing parents.
+        } else if (parent->getCost() == getCost(expected) && expected->getEdgeID() != edgeID) {
+            // New parent has the same cost and comes from different edge,
+            // append new parent as after existing parents.
             if (curData[nbrNodeID.offset].compare_exchange_strong(expected, parent)) {
                 parent->setNextPtr(expected);
                 return true;
@@ -176,7 +177,8 @@ void SparseBFSGraph::addSingleParent(uint16_t iter, nodeID_t boundNodeID, relID_
 
 bool SparseBFSGraph::tryAddParentWithWeight(nodeID_t boundNodeID, relID_t edgeID,
     nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList>* block) {
-    auto nbrCost = getCost(getParentListHead(nbrNodeID.offset));
+    auto nbrParent = getParentListHead(nbrNodeID.offset);
+    auto nbrCost = getCost(nbrParent);
     auto newCost = getParentListHead(boundNodeID)->getCost() + weight;
     if (newCost < nbrCost) {
         auto parent = reserveParent(boundNodeID, edgeID, fwdEdge, block);
@@ -186,7 +188,10 @@ bool SparseBFSGraph::tryAddParentWithWeight(nodeID_t boundNodeID, relID_t edgeID
         curData->insert({nbrNodeID.offset, parent});
         return true;
     }
-    if (newCost == nbrCost) {
+    // Append parent if newCost is the same as old cost. And the newCost comes from a different edge
+    // Otherwise, for cases like A->B->C, A->D->C, C->E. If ABD and ADC has the same cost, we will
+    // visit twice to E with the same cost and same edge.
+    if (newCost == nbrCost && nbrParent->getEdgeID() != edgeID) {
         auto parent = reserveParent(boundNodeID, edgeID, fwdEdge, block);
         parent->setCost(newCost);
         if (curData->contains(nbrNodeID.offset)) {
