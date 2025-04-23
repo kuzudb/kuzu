@@ -9,7 +9,6 @@
 #include "function/comparison/vector_comparison_functions.h"
 #include "function/date/vector_date_functions.h"
 #include "function/export/export_function.h"
-#include "function/gds/gds_function_collection.h"
 #include "function/hash/vector_hash_functions.h"
 #include "function/internal_id/vector_internal_id_functions.h"
 #include "function/interval/vector_interval_functions.h"
@@ -239,11 +238,6 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),
         TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan),
-
-        // Algorithm functions
-        TABLE_FUNCTION(WeaklyConnectedComponentsFunction), TABLE_FUNCTION(SCCKosarajuFunction),
-        TABLE_FUNCTION(SCCFunction), TABLE_FUNCTION(KCoreDecompositionFunction),
-        TABLE_FUNCTION(PageRankFunction),
 
         // Export functions
         EXPORT_FUNCTION(ExportCSVFunction), EXPORT_FUNCTION(ExportParquetFunction),

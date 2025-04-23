@@ -4,23 +4,17 @@ add_library(kuzu_function_algorithm
         asp_paths.cpp
         awsp_paths.cpp
         bfs_graph.cpp
-        component_ids.cpp
         frontier_morsel.cpp
         gds.cpp
         gds_frontier.cpp
         gds_state.cpp
         gds_task.cpp
         gds_utils.cpp
-        k_core_decomposition.cpp
         output_writer.cpp
-        page_rank.cpp
         rec_joins.cpp
         ssp_destinations.cpp
         ssp_paths.cpp
         variable_length_path.cpp
-        weakly_connected_components.cpp
-        strongly_connected_components_kosaraju.cpp
-        strongly_connected_components.cpp
         wsp_destinations.cpp
         wsp_paths.cpp
         )

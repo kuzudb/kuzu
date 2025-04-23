@@ -1,9 +1,9 @@
-#include "component_ids.h"
+#include "function/component_ids.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
-namespace function {
+namespace gds_extension {
 
 OffsetManager::OffsetManager(const table_id_map_t<offset_t>& maxOffsetMap) {
     std::vector<table_id_t> tableIDVector;
@@ -69,5 +69,5 @@ void ComponentIDsOutputVertexCompute::vertexCompute(offset_t startOffset, offset
     }
 }
 
-} // namespace function
+} // namespace gds_extension
 } // namespace kuzu
