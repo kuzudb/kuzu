@@ -314,9 +314,10 @@ std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(MemoryMana
     deSer.validateDebuggingInfo(key, "chunks");
     deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks,
         [&](Deserializer& deser) { return ColumnChunk::deserialize(memoryManager, deser); });
+    row_idx_t startRowIdx = 0;
+    deSer.deserializeValue<row_idx_t>(startRowIdx);
     auto chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
-        ChunkedCSRHeader{std::move(offset), std::move(length)}, std::move(chunks),
-        0 /*startRowIdx*/);
+        ChunkedCSRHeader{std::move(offset), std::move(length)}, std::move(chunks), startRowIdx);
     bool hasVersions = false;
     deSer.validateDebuggingInfo(key, "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);
