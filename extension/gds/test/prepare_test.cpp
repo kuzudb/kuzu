@@ -6,10 +6,10 @@ namespace kuzu {
 namespace testing {
 
 TEST_F(ApiTest, GDSPrepare) {
-    ASSERT_TRUE(conn
-            ->query(common::stringFormat("LOAD EXTENSION '{}'",
-                TestHelper::appendKuzuRootPath("extension/gds/build/libgds.kuzu_extension")))
-            ->isSuccess());
+    ASSERT_TRUE(conn->query(common::stringFormat("LOAD EXTENSION '{}'",
+                                TestHelper::appendKuzuRootPath(
+                                    "extension/gds/build/libgds.kuzu_extension")))
+                    ->isSuccess());
     ASSERT_TRUE(
         conn->query("CALL create_projected_graph('PK', ['person'], ['knows'])")->isSuccess());
     auto preparedStatement = conn->prepare("CALL page_rank('PK', dampingFactor := $dp, "
