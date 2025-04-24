@@ -704,7 +704,7 @@ struct JSONKey {
 
 struct JSONKeyHash {
     inline std::size_t operator()(const JSONKey& k) const {
-        size_t result;
+        size_t result = 0;
         if (k.len >= sizeof(size_t)) {
             memcpy(&result, k.ptr + k.len - sizeof(size_t), sizeof(size_t));
         } else {
@@ -732,7 +732,7 @@ struct JsonColumnInfo {
     json_key_map_t<idx_t> colNameToIdx;
     std::shared_ptr<std::vector<std::string>> colNames;
 
-    JsonColumnInfo(std::vector<std::string> columnNames);
+    explicit JsonColumnInfo(std::vector<std::string> columnNames);
 
     uint64_t getFieldIdx(yyjson_val* fieldName) const;
 };
@@ -771,7 +771,7 @@ struct JsonScanBindData : public ScanFileBindData {
         JsonScanFormat format)
         : ScanFileBindData(columns, 0 /* numRows */, std::move(fileScanInfo), ctx,
               numWarningDataColumns),
-          columnInfo{columnInfo}, format{format} {}
+          columnInfo{std::move(columnInfo)}, format{format} {}
 
     uint64_t getFieldIdx(yyjson_val* key) const { return columnInfo.getFieldIdx(key); }
 
