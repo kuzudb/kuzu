@@ -125,8 +125,8 @@ True
 # copy again, most of the free pages should be reused
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 ---- ok
-# allow margin equal to the largest page range for a column chunk in the table
--STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages return num_free_pages is null or num_free_pages < 4
+# if most free pages were used the start page idx of free entries should be much larger than their size
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages, min(start_page_idx > 5 * num_pages) as check return num_free_pages is null or check
 ---- 1
 True
 -RELOADDB
