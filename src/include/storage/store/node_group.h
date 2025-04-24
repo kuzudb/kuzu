@@ -231,6 +231,9 @@ private:
         transaction::Transaction* transaction, TableScanState& state, common::offset_t startOffset,
         common::offset_t numRowsToScan) const;
 
+    common::row_idx_t getStartRowIdxInGroupNoLock() const;
+    common::row_idx_t getStartRowIdxInGroup(const common::UniqLock& lock) const;
+
 protected:
     common::node_group_idx_t nodeGroupIdx;
     NodeGroupDataFormat format;

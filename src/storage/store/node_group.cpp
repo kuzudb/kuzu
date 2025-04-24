@@ -346,10 +346,9 @@ void NodeGroup::flush(const Transaction* transaction, FileHandle& dataFH) {
         chunkedGroupToFlush->flush(dataFH);
     } else {
         // Merge all chunkedGroups into a single one first. Then flush it to disk.
-        auto mergedChunkedGroup =
-            std::make_unique<ChunkedNodeGroup>(*transaction->getClientContext()->getMemoryManager(),
-                dataTypes, enableCompression, StorageConfig::NODE_GROUP_SIZE,
-                chunkedGroups.getFirstGroup(lock)->getStartRowIdx(), ResidencyState::IN_MEMORY);
+        auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(
+            *transaction->getClientContext()->getMemoryManager(), dataTypes, enableCompression,
+            StorageConfig::NODE_GROUP_SIZE, getStartRowIdxInGroup(lock), ResidencyState::IN_MEMORY);
         std::vector<column_id_t> dummyColumnIDs;
         for (auto i = 0u; i < dataTypes.size(); i++) {
             dummyColumnIDs.push_back(i);
@@ -582,11 +581,10 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager, 
 }
 
 std::pair<idx_t, row_idx_t> NodeGroup::findChunkedGroupIdxFromRowIdxNoLock(row_idx_t rowIdx) const {
-    if (chunkedGroups.getNumGroupsNoLock() == 0 ||
-        rowIdx < chunkedGroups.getFirstGroupNoLock()->getStartRowIdx()) {
+    if (chunkedGroups.getNumGroupsNoLock() == 0 || rowIdx < getStartRowIdxInGroupNoLock()) {
         return {INVALID_CHUNKED_GROUP_IDX, INVALID_START_ROW_IDX};
     }
-    rowIdx -= chunkedGroups.getFirstGroupNoLock()->getStartRowIdx();
+    rowIdx -= getStartRowIdxInGroupNoLock();
     const auto numRowsInFirstGroup = chunkedGroups.getFirstGroupNoLock()->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
         return {0, rowIdx};
@@ -726,6 +724,14 @@ void NodeGroup::applyFuncToChunkedGroups(version_record_handler_op_t func, row_i
             curStartRowIdxInChunk = 0;
         }
     }
+}
+
+row_idx_t NodeGroup::getStartRowIdxInGroupNoLock() const {
+    return chunkedGroups.getFirstGroupNoLock()->getStartRowIdx();
+}
+
+row_idx_t NodeGroup::getStartRowIdxInGroup(const common::UniqLock& lock) const {
+    return chunkedGroups.getFirstGroup(lock)->getStartRowIdx();
 }
 
 } // namespace storage
