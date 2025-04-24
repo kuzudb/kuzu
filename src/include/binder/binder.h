@@ -129,7 +129,7 @@ public:
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
         catalog::NodeTableCatalogEntry* nodeTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
-        catalog::RelTableCatalogEntry* relTableEntry);
+        catalog::RelTableCatalogEntry* relTableEntry, const std::string& groupName);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
@@ -279,7 +279,9 @@ public:
     /*** bind table entries ***/
     std::vector<catalog::TableCatalogEntry*> bindNodeTableEntries(
         const std::vector<std::string>& tableNames) const;
-    catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name) const;
+    KUZU_API catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name) const;
+    KUZU_API static catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name,
+        main::ClientContext* context);
     std::vector<catalog::TableCatalogEntry*> bindRelTableEntries(
         const std::vector<std::string>& tableNames) const;
 
@@ -288,10 +290,6 @@ public:
         const BoundProjectionBody& boundProjectionBody);
     static bool isOrderByKeyTypeSupported(const common::LogicalType& dataType);
 
-    KUZU_API static void validateTableExistence(const main::ClientContext& context,
-        const std::string& tableName);
-    KUZU_API static void validateNodeTableType(const main::ClientContext& context,
-        const std::string& tableName);
     KUZU_API static void validateColumnExistence(const catalog::TableCatalogEntry* entry,
         const std::string& columnName);
 

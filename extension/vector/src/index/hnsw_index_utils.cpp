@@ -36,12 +36,9 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     }
 }
 
-catalog::NodeTableCatalogEntry* HNSWIndexUtils::bindNodeTable(const main::ClientContext& context,
+catalog::NodeTableCatalogEntry* HNSWIndexUtils::bindNodeTable(main::ClientContext& context,
     const std::string& tableName, const std::string& indexName, IndexOperation indexOperation) {
-    binder::Binder::validateTableExistence(context, tableName);
-    binder::Binder::validateNodeTableType(context, tableName);
-    const auto tableEntry =
-        context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
+    auto tableEntry = binder::Binder::bindNodeTableEntry(tableName, &context);
     validateIndexExistence(context, tableEntry, indexName, indexOperation);
     return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
 }

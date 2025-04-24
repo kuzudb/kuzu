@@ -13,6 +13,7 @@
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -37,9 +38,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
         columnTypes.push_back(
             copyFromInfo.columnExprs[copyFromInfo.columnExprs.size() - i]->getDataType().copy());
     }
-    auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo.tableEntry,
-        clientContext->getStorageManager()->compressionEnabled(), direction, partitioningIdx,
-        offsetVectorIdx, std::move(columnIDs), std::move(columnTypes), numWarningDataColumns);
+    auto relEntry = copyFromInfo.tableEntry->ptrCast<RelTableCatalogEntry>();
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
+    KU_ASSERT(relEntry->hasParentRelGroup(catalog, transaction));
+    auto relGroupEntry = relEntry->getParentRelGroup(catalog, transaction);
+    auto relBatchInsertInfo =
+        std::make_unique<RelBatchInsertInfo>(copyFromInfo.tableEntry, relGroupEntry->getName(),
+            clientContext->getStorageManager()->compressionEnabled(), direction, partitioningIdx,
+            offsetVectorIdx, std::move(columnIDs), std::move(columnTypes), numWarningDataColumns);
     auto printInfo = std::make_unique<RelBatchInsertPrintInfo>(copyFromInfo.tableEntry->getName());
     return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),
         std::move(partitionerSharedState), std::move(sharedState),

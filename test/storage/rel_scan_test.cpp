@@ -61,8 +61,7 @@ TEST_F(RelScanTest, ScanFwd) {
     auto transaction = context->getTransaction();
     auto nodeEntry = catalog->getTableCatalogEntry(transaction, "person");
     auto tableID = nodeEntry->getTableID();
-    auto relGroupEntry = catalog->getRelGroupEntry(transaction, "knows");
-    auto relEntry = catalog->getTableCatalogEntry(transaction, relGroupEntry->getRelTableIDs()[0]);
+    auto relEntry = catalog->getRelTableEntriesFromGroup(transaction, "knows")[0];
     auto scanState =
         graph->prepareRelScan(relEntry, nodeEntry, {common::InternalKeyword::ID, "date"});
 

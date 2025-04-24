@@ -127,8 +127,8 @@ void RelBatchInsert::appendNodeGroup(MemoryManager& mm, transaction::Transaction
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
     const auto leaveGaps = nodeGroup.isEmpty();
-    populateCSRHeaderAndRowIdx(*partitioningBuffer, startNodeOffset, relInfo, localState,
-        sharedState, numNodes, leaveGaps);
+    populateCSRHeaderAndRowIdx(*partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
+        leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
     for (auto& chunkedGroup : partitioningBuffer->getChunkedGroups()) {
@@ -167,14 +167,13 @@ void RelBatchInsert::appendNodeGroup(MemoryManager& mm, transaction::Transaction
 
 void RelBatchInsert::populateCSRHeaderAndRowIdx(InMemChunkedNodeGroupCollection& partition,
     offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
-    const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-    offset_t numNodes, bool leaveGaps) {
+    const RelBatchInsertLocalState& localState, offset_t numNodes, bool leaveGaps) {
     auto& csrNodeGroup = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>();
     auto& csrHeader = csrNodeGroup.getCSRHeader();
     csrHeader.setNumValues(numNodes);
     // Populate lengths for each node and check multiplicity constraint.
     populateCSRLengths(csrHeader, numNodes, partition, relInfo.boundNodeOffsetColumnID);
-    checkRelMultiplicityConstraint(sharedState, csrHeader, startNodeOffset, relInfo);
+    checkRelMultiplicityConstraint(csrHeader, startNodeOffset, relInfo);
     const auto rightCSROffsetOfRegions = csrHeader.populateStartCSROffsetsFromLength(leaveGaps);
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID);
@@ -224,9 +223,8 @@ void RelBatchInsert::setRowIdxFromCSROffsets(ColumnChunkData& rowIdxChunk,
     }
 }
 
-void RelBatchInsert::checkRelMultiplicityConstraint(const BatchInsertSharedState& sharedState,
-    const ChunkedCSRHeader& csrHeader, offset_t startNodeOffset,
-    const RelBatchInsertInfo& relInfo) {
+void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrHeader,
+    offset_t startNodeOffset, const RelBatchInsertInfo& relInfo) {
     auto& relTableEntry = relInfo.tableEntry->constCast<RelTableCatalogEntry>();
     if (!relTableEntry.isSingleMultiplicity(relInfo.direction)) {
         return;
@@ -234,8 +232,7 @@ void RelBatchInsert::checkRelMultiplicityConstraint(const BatchInsertSharedState
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
         if (csrHeader.length->getData().getValue<length_t>(i) > 1) {
             throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
-                sharedState.table->cast<RelTable>().getRelGroupName(),
-                std::to_string(i + startNodeOffset),
+                relInfo.groupName, std::to_string(i + startNodeOffset),
                 RelDirectionUtils::relDirectionToString(relInfo.direction)));
         }
     }

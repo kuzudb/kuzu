@@ -91,6 +91,14 @@ static double createInMemHNSWProgressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(numNodesInserted) / hnswSharedState->numNodes;
 }
 
+static catalog::RelTableCatalogEntry* getSingleRelTableEntryFromGroup(main::ClientContext* context,
+    const std::string& groupName) {
+    auto entries =
+        context->getCatalog()->getRelTableEntriesFromGroup(context->getTransaction(), groupName);
+    KU_ASSERT(entries.size() == 1);
+    return entries[0];
+}
+
 static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp) {
     // _CreateHNSWIndex table function.
@@ -111,7 +119,8 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     // Append _FinalizeHNSWIndex table function.
     auto clientContext = planMapper->clientContext;
     auto catalog = clientContext->getCatalog();
-    auto finalizeFuncEntry = catalog->getFunctionEntry(clientContext->getTransaction(),
+    auto transaction = clientContext->getTransaction();
+    auto finalizeFuncEntry = catalog->getFunctionEntry(transaction,
         InternalFinalizeHNSWIndexFunction::name, true /* useInternal */);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
         finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>());
@@ -143,16 +152,14 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
                          ->ptrCast<storage::NodeTable>();
     auto nodeTableID = nodeTable->getTableID();
-    auto upperRelGroup = catalog->getRelGroupEntry(clientContext->getTransaction(),
+    auto upperRelTableEntry = getSingleRelTableEntryFromGroup(clientContext,
         HNSWIndexUtils::getUpperGraphTableName(nodeTableID, indexName));
-    KU_ASSERT(upperRelGroup->getRelTableIDs().size() == 1);
-    auto upperRelTableID = upperRelGroup->getRelTableIDs()[0];
-    auto upperRelTable = storageManager->getTable(upperRelTableID)->ptrCast<storage::RelTable>();
-    auto lowerRelGroup = catalog->getRelGroupEntry(clientContext->getTransaction(),
+    auto upperRelTable =
+        storageManager->getTable(upperRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
+    auto lowerRelTableEntry = getSingleRelTableEntryFromGroup(clientContext,
         HNSWIndexUtils::getLowerGraphTableName(nodeTableID, indexName));
-    KU_ASSERT(lowerRelGroup->getRelTableIDs().size() == 1);
-    auto lowerRelTableID = lowerRelGroup->getRelTableIDs()[0];
-    auto lowerRelTable = storageManager->getTable(lowerRelTableID)->ptrCast<storage::RelTable>();
+    auto lowerRelTable =
+        storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
     // Initialize partitioner shared state.
     const auto partitionerSharedState = finalizeFuncSharedState->partitionerSharedState;
     partitionerSharedState->setTables(nodeTable, upperRelTable);
@@ -169,8 +176,6 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     std::vector<column_id_t> columnIDs;
     columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
     columnIDs.push_back(0);                            // NBR_ID COLUMN.
-    auto upperRelTableEntry =
-        catalog->getTableCatalogEntry(clientContext->getTransaction(), upperRelTableID);
     for (auto& property : upperRelTableEntry->getProperties()) {
         columnTypes.push_back(property.getType().copy());
         columnIDs.push_back(upperRelTableEntry->getColumnID(property.getName()));
@@ -183,8 +188,6 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
         upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
         LogicalType::copy(columnTypes), planMapper->getOperatorID());
-    auto lowerRelTableEntry =
-        catalog->getTableCatalogEntry(clientContext->getTransaction(), lowerRelTableID);
     binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableEntry);
     lowerCopyFromInfo.tableEntry = lowerRelTableEntry;
     const auto lowerBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
@@ -251,15 +254,13 @@ static void finalizeHNSWTableFinalizeFunc(const processor::ExecutionContext* con
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
     const auto catalog = clientContext->getCatalog();
     auto nodeTableID = bindData->tableEntry->getTableID();
-    const auto upperRelGroup = catalog->getRelGroupEntry(transaction,
+    auto upperRelEntry = getSingleRelTableEntryFromGroup(clientContext,
         HNSWIndexUtils::getUpperGraphTableName(nodeTableID, bindData->indexName));
-    const auto lowerRelGroup = catalog->getRelGroupEntry(transaction,
+    auto lowerRelEntry = getSingleRelTableEntryFromGroup(clientContext,
         HNSWIndexUtils::getLowerGraphTableName(nodeTableID, bindData->indexName));
-    KU_ASSERT(
-        upperRelGroup->getRelTableIDs().size() == 1 && lowerRelGroup->getRelTableIDs().size() == 1);
-    auto auxInfo = std::make_unique<HNSWIndexAuxInfo>(upperRelGroup->getRelTableIDs()[0],
-        lowerRelGroup->getRelTableIDs()[0], index->getUpperEntryPoint(),
-        index->getLowerEntryPoint(), bindData->config.copy());
+    auto auxInfo =
+        std::make_unique<HNSWIndexAuxInfo>(upperRelEntry->getTableID(), lowerRelEntry->getTableID(),
+            index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->config.copy());
     auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(HNSWIndexCatalogEntry::TYPE_NAME,
         bindData->tableEntry->getTableID(), bindData->indexName, std::vector{bindData->propertyID},
         std::move(auxInfo));

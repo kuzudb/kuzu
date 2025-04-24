@@ -5,7 +5,6 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "processor/execution_context.h"
 
@@ -82,17 +81,14 @@ void Drop::dropTable(const main::ClientContext* context) {
                     entry->getName(), indexEntry->getIndexName()));
             }
         }
-        for (auto& relEntry : catalog->getRelTableEntries(transaction)) {
-            if (relEntry->isParent(entry->getTableID())) {
-                auto relGroupEntry = relEntry->getParentRelGroup(catalog, transaction);
-                if (relGroupEntry == nullptr) {
-                    throw RuntimeException(stringFormat(
-                        "Cannot find rel group for rel table {}. This should not happen.",
-                        relEntry->getName()));
+        for (auto& groupEntry : catalog->getRelGroupEntries(transaction)) {
+            for (auto id : groupEntry->getRelTableIDs()) {
+                auto relEntry = catalog->getTableCatalogEntry(transaction, id);
+                if (relEntry->isParent(entry->getTableID())) {
+                    throw BinderException(stringFormat("Cannot delete node table {} because it is "
+                                                       "referenced by relationship table {}.",
+                        entry->getName(), groupEntry->getName()));
                 }
-                throw BinderException(stringFormat("Cannot delete node table {} because it is "
-                                                   "referenced by relationship table {}.",
-                    entry->getName(), relGroupEntry->getName()));
             }
         }
     } break;

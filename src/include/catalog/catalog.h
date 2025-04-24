@@ -104,6 +104,9 @@ public:
     // Get all rel group entries.
     std::vector<RelGroupCatalogEntry*> getRelGroupEntries(
         const transaction::Transaction* transaction) const;
+    // Get all rel table entries under given group
+    std::vector<RelTableCatalogEntry*> getRelTableEntriesFromGroup(
+        const transaction::Transaction* transaction, const std::string& name) const;
 
     // Create rel group entry and its children rel entries.
     CatalogEntry* createRelGroupEntry(transaction::Transaction* transaction,

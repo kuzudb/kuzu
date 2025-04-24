@@ -174,29 +174,6 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
         info->onConflict, std::move(boundExtraInfo), clientContext->useInternalCatalogEntry());
 }
 
-void Binder::validateNodeTableType(const main::ClientContext& context,
-    const std::string& tableName) {
-    auto catalog = context.getCatalog();
-    auto transaction = context.getTransaction();
-    if (catalog->containsRelGroup(transaction, tableName)) {
-        throw BinderException(stringFormat("{} is not of type NODE.", tableName));
-    }
-    if (catalog->containsTable(transaction, tableName, context.useInternalCatalogEntry())) {
-        auto entry = catalog->getTableCatalogEntry(transaction, tableName);
-        if (entry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
-            throw BinderException(stringFormat("{} is not of type NODE.", entry->getName()));
-        }
-    }
-}
-
-void Binder::validateTableExistence(const main::ClientContext& context,
-    const std::string& tableName) {
-    if (!context.getCatalog()->containsTable(context.getTransaction(), tableName) &&
-        !context.getCatalog()->containsRelGroup(context.getTransaction(), tableName)) {
-        throw BinderException{stringFormat("Table {} does not exist.", tableName)};
-    }
-}
-
 void Binder::validateColumnExistence(const TableCatalogEntry* entry,
     const std::string& columnName) {
     if (!entry->containsProperty(columnName)) {
@@ -261,12 +238,12 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     for (auto& [srcTableName, dstTableName] : extraInfo.srcDstTablePairs) {
         auto tableName =
             RelGroupCatalogEntry::getChildTableName(relGroupName, srcTableName, dstTableName);
-        auto relTableCreateInfo = std::make_unique<CreateTableInfo>(
-            CatalogEntryType::REL_TABLE_ENTRY, tableName, info->onConflict);
-        relTableCreateInfo->propertyDefinitions = copyVector(info->propertyDefinitions);
-        relTableCreateInfo->extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
+        auto childCreateInfo = std::make_unique<CreateTableInfo>(CatalogEntryType::REL_TABLE_ENTRY,
+            tableName, info->onConflict);
+        childCreateInfo->propertyDefinitions = copyVector(info->propertyDefinitions);
+        childCreateInfo->extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
             srcTableName, dstTableName, options_t{});
-        auto boundInfo = bindCreateRelTableInfo(relTableCreateInfo.get(), extraInfo.options);
+        auto boundInfo = bindCreateRelTableInfo(childCreateInfo.get(), extraInfo.options);
         boundInfo.hasParent = true;
         boundCreateRelTableInfos.push_back(std::move(boundInfo));
     }

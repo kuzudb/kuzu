@@ -57,8 +57,9 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
 static void collectTableInfos(const transaction::Transaction* transaction, const Catalog* catalog,
     std::string databaseName, bool useInternal, std::vector<TableInfo>& tableInfos) {
     for (const auto& entry : catalog->getTableEntries(transaction, useInternal)) {
-        if (entry->getType() == CatalogEntryType::REL_TABLE_ENTRY &&
-            entry->constCast<RelTableCatalogEntry>().hasParentRelGroup(catalog, transaction)) {
+        if (entry->getType() == CatalogEntryType::REL_TABLE_ENTRY) {
+            KU_ASSERT(
+                entry->constCast<RelTableCatalogEntry>().hasParentRelGroup(catalog, transaction));
             continue;
         }
         tableInfos.emplace_back(entry->getName(), entry->getTableID(),
