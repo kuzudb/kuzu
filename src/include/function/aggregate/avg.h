@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/in_mem_overflow_buffer.h"
 #include "common/types/int128_t.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/add.h"
@@ -44,7 +45,7 @@ struct AvgFunction {
     }
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        storage::MemoryManager* /*memoryManager*/) {
+        common::InMemOverflowBuffer* /*overflowBuffer*/) {
         auto* state = reinterpret_cast<AvgState<RESULT_TYPE>*>(state_);
         KU_ASSERT(!input->state->isFlat());
         input->forEachNonNull(
@@ -52,7 +53,7 @@ struct AvgFunction {
     }
 
     static void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        uint32_t pos, storage::MemoryManager* /*memoryManager*/) {
+        uint32_t pos, common::InMemOverflowBuffer* /*overflowBuffer*/) {
         updateSingleValue(reinterpret_cast<AvgState<RESULT_TYPE>*>(state_), input, pos,
             multiplicity);
     }
@@ -72,7 +73,7 @@ struct AvgFunction {
     }
 
     static void combine(uint8_t* state_, uint8_t* otherState_,
-        storage::MemoryManager* /*memoryManager*/) {
+        common::InMemOverflowBuffer* /*overflowBuffer*/) {
         auto* otherState = reinterpret_cast<AvgState<RESULT_TYPE>*>(otherState_);
         if (otherState->isNull) {
             return;

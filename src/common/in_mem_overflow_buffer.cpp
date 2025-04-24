@@ -24,14 +24,13 @@ uint8_t* BufferBlock::data() const {
 
 uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
     if (requireNewBlock(size)) {
-        if (currentBlock != nullptr && currentBlock->currentOffset == 0) {
+        if (!blocks.empty() && currentBlock()->currentOffset == 0) {
             blocks.pop_back();
-            currentBlock = nullptr;
         }
         allocateNewBlock(size);
     }
-    auto data = currentBlock->data() + currentBlock->currentOffset;
-    currentBlock->currentOffset += size;
+    auto data = currentBlock()->data() + currentBlock()->currentOffset;
+    currentBlock()->currentOffset += size;
     return data;
 }
 
@@ -42,23 +41,21 @@ void InMemOverflowBuffer::resetBuffer() {
         blocks.clear();
         lastBlock->resetCurrentOffset();
         blocks.push_back(std::move(lastBlock));
-        currentBlock = blocks[0].get();
     }
 }
 
 void InMemOverflowBuffer::allocateNewBlock(uint64_t size) {
     std::unique_ptr<BufferBlock> newBlock;
-    if (currentBlock == nullptr) {
+    if (blocks.empty()) {
         newBlock = make_unique<BufferBlock>(
             memoryManager->allocateBuffer(false /* do not initialize to zero */, size));
     } else {
         // Use the doubling strategy so that the initial allocations are small, but if we need many
         // allocations they approach the TEMP_PAGE_SIZE quickly
-        auto min = std::min(TEMP_PAGE_SIZE, std::bit_ceil(currentBlock->size() * 2));
+        auto min = std::min(TEMP_PAGE_SIZE, std::bit_ceil(currentBlock()->size() * 2));
         newBlock = make_unique<BufferBlock>(memoryManager->allocateBuffer(
             false /* do not initialize to zero */, std::max(min, size)));
     }
-    currentBlock = newBlock.get();
     blocks.push_back(std::move(newBlock));
 }
 

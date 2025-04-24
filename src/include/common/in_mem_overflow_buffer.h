@@ -34,7 +34,7 @@ class InMemOverflowBuffer {
 
 public:
     explicit InMemOverflowBuffer(storage::MemoryManager* memoryManager)
-        : memoryManager{memoryManager}, currentBlock{nullptr} {};
+        : memoryManager{memoryManager} {};
 
     DEFAULT_BOTH_MOVE(InMemOverflowBuffer);
 
@@ -47,7 +47,6 @@ public:
         // memoryManager->freeBlock, but it should not because this InMemOverflowBuffer still
         // needs them.
         other.blocks.clear();
-        currentBlock = other.currentBlock;
     }
 
     // Releases all memory accumulated for string overflows so far and re-initializes its state to
@@ -55,18 +54,21 @@ public:
     // they will error.
     void resetBuffer();
 
+    storage::MemoryManager* getMemoryManager() { return memoryManager; }
+
 private:
     bool requireNewBlock(uint64_t sizeToAllocate) {
-        return currentBlock == nullptr ||
-               (currentBlock->currentOffset + sizeToAllocate) > currentBlock->size();
+        return blocks.empty() ||
+               (currentBlock()->currentOffset + sizeToAllocate) > currentBlock()->size();
     }
 
     void allocateNewBlock(uint64_t size);
 
+    BufferBlock* currentBlock() { return blocks.back().get(); }
+
 private:
     std::vector<std::unique_ptr<BufferBlock>> blocks;
     storage::MemoryManager* memoryManager;
-    BufferBlock* currentBlock;
 };
 
 } // namespace common

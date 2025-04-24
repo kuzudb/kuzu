@@ -23,7 +23,7 @@ struct SumFunction {
     }
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        storage::MemoryManager* /*memoryManager*/) {
+        common::InMemOverflowBuffer* /*overflowBuffer*/) {
         KU_ASSERT(!input->state->isFlat());
         auto* state = reinterpret_cast<SumState<RESULT_TYPE>*>(state_);
         input->forEachNonNull(
@@ -31,7 +31,7 @@ struct SumFunction {
     }
 
     static void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        uint32_t pos, storage::MemoryManager* /*memoryManager*/) {
+        uint32_t pos, common::InMemOverflowBuffer* /*overflowBuffer*/) {
         auto* state = reinterpret_cast<SumState<RESULT_TYPE>*>(state_);
         updateSingleValue(state, input, pos, multiplicity);
     }
@@ -50,7 +50,7 @@ struct SumFunction {
     }
 
     static void combine(uint8_t* state_, uint8_t* otherState_,
-        storage::MemoryManager* /*memoryManager*/) {
+        common::InMemOverflowBuffer* /*overflowBuffer*/) {
         auto* otherState = reinterpret_cast<SumState<RESULT_TYPE>*>(otherState_);
         if (otherState->isNull) {
             return;
