@@ -371,7 +371,7 @@ static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t 
             key = yyjson_obj_iter_next(&it);
             value = yyjson_obj_iter_get_val(key);
             StringVector::addString(keyBuffer, listEntry.offset + i,
-                std::string(yyjson_get_str(key)));
+                std::string_view(yyjson_get_str(key)));
             readJsonToValueVector(value, *valBuffer, listEntry.offset + i);
         }
     } break;
@@ -522,7 +522,7 @@ static void readFromJsonNum(NUM_TYPE val, common::ValueVector& vec, uint64_t pos
     }
 }
 
-static void readFromJsonStr(std::string val, common::ValueVector& vec, uint64_t pos) {
+static void readFromJsonStr(std::string_view val, common::ValueVector& vec, uint64_t pos) {
     vec.setNull(pos, false);
     if (vec.dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
         // casting produces undesired behaviour when the dest requires no cast
