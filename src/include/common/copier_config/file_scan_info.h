@@ -56,7 +56,6 @@ struct FileScanInfo {
         }
     }
 
-private:
     FileScanInfo(const FileScanInfo& other)
         : fileTypeInfo{other.fileTypeInfo}, filePaths{other.filePaths}, options{other.options} {}
 };

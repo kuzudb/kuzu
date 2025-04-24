@@ -6,6 +6,7 @@
 #include "common/case_insensitive_map.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "common/fast_mem.h"
 #include "common/json_common.h"
 #include "common/string_utils.h"
 #include "function/table/bind_data.h"
@@ -696,46 +697,98 @@ uint64_t JSONScanLocalState::readNext(
     return numValuesToOutput;
 }
 
-struct JsonScanBindData : public ScanFileBindData {
+struct JSONKey {
+    const char* ptr;
+    size_t len;
+};
+
+struct JSONKeyHash {
+    inline std::size_t operator()(const JSONKey& k) const {
+        size_t result;
+        if (k.len >= sizeof(size_t)) {
+            memcpy(&result, k.ptr + k.len - sizeof(size_t), sizeof(size_t));
+        } else {
+            result = 0;
+            fastMemcpy(&result, k.ptr, k.len);
+        }
+        return result;
+    }
+};
+
+struct JSONKeyEquality {
+    inline bool operator()(const JSONKey& a, const JSONKey& b) const {
+        if (a.len != b.len) {
+            return false;
+        }
+        return FastMemcmp(a.ptr, b.ptr, a.len) == 0;
+    }
+};
+
+template<typename T>
+using json_key_map_t = std::unordered_map<JSONKey, T, JSONKeyHash, JSONKeyEquality>;
+
+struct JsonColumnInfo {
     // Note: JSON keys are case-sensitive.
-    std::unordered_map<std::string, idx_t> colNameToIdx;
+    json_key_map_t<idx_t> colNameToIdx;
+    std::shared_ptr<std::vector<std::string>> colNames;
+
+    JsonColumnInfo(std::vector<std::string> columnNames);
+
+    uint64_t getFieldIdx(yyjson_val* fieldName) const;
+};
+
+JsonColumnInfo::JsonColumnInfo(std::vector<std::string> columnNames) {
+    this->colNames = std::make_shared<std::vector<std::string>>(std::move(columnNames));
+    idx_t colIdx = 0;
+    for (auto& columnName : *this->colNames) {
+        colNameToIdx.insert({{columnName.c_str(), columnName.length()}, colIdx++});
+    }
+}
+
+uint64_t JsonColumnInfo::getFieldIdx(yyjson_val* key) const {
+    auto keyPtr = unsafe_yyjson_get_str(key);
+    auto keyLen = unsafe_yyjson_get_len(key);
+    auto itr = colNameToIdx.find({keyPtr, keyLen});
+    if (itr != colNameToIdx.end()) {
+        return itr->second;
+    }
+    auto fieldName = yyjson_get_str(key);
+    // From and to are case-insensitive for backward compatibility.
+    if (StringUtils::caseInsensitiveEquals(fieldName, "from")) {
+        return colNameToIdx.at({"from", strlen("from")});
+    } else if (StringUtils::caseInsensitiveEquals(fieldName, "to")) {
+        return colNameToIdx.at({"to", strlen("to")});
+    }
+    return UINT64_MAX;
+}
+
+struct JsonScanBindData : public ScanFileBindData {
+    JsonColumnInfo columnInfo;
     JsonScanFormat format;
 
     JsonScanBindData(binder::expression_vector columns, column_id_t numWarningDataColumns,
-        FileScanInfo fileScanInfo, main::ClientContext* ctx,
-        std::unordered_map<std::string, idx_t> colNameToIdx, JsonScanFormat format)
+        FileScanInfo fileScanInfo, main::ClientContext* ctx, JsonColumnInfo columnInfo,
+        JsonScanFormat format)
         : ScanFileBindData(columns, 0 /* numRows */, std::move(fileScanInfo), ctx,
               numWarningDataColumns),
-          colNameToIdx{std::move(colNameToIdx)}, format{format} {}
+          columnInfo{columnInfo}, format{format} {}
 
-    uint64_t getFieldIdx(const std::string& fieldName) const;
+    uint64_t getFieldIdx(yyjson_val* key) const { return columnInfo.getFieldIdx(key); }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::unique_ptr<JsonScanBindData>(new JsonScanBindData(*this));
+        return std::make_unique<JsonScanBindData>(*this);
     }
 
-private:
     JsonScanBindData(const JsonScanBindData& other)
-        : ScanFileBindData{other}, colNameToIdx{other.colNameToIdx}, format{other.format} {}
+        : ScanFileBindData{other}, columnInfo{other.columnInfo}, format{other.format} {}
 };
 
-uint64_t JsonScanBindData::getFieldIdx(const std::string& fieldName) const {
-    // From and to are case-insensitive for backward compatibility.
-    if (StringUtils::caseInsensitiveEquals(fieldName, "from")) {
-        return colNameToIdx.at("from");
-    } else if (StringUtils::caseInsensitiveEquals(fieldName, "to")) {
-        return colNameToIdx.at("to");
-    }
-    auto itr = colNameToIdx.find(fieldName);
-    return itr == colNameToIdx.end() ? UINT64_MAX : itr->second;
-}
-
 static JsonScanFormat autoDetect(main::ClientContext* context, const std::string& filePath,
-    JsonScanConfig& config, std::vector<LogicalType>& types, std::vector<std::string>& names,
-    std::unordered_map<std::string, idx_t>& colNameToIdx) {
+    JsonScanConfig& config, std::vector<LogicalType>& types, std::vector<std::string>& names) {
     auto numRowsToDetect = config.breadth;
     JSONScanSharedState sharedState(*context, filePath, config.format);
     JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
+    std::unordered_map<std::string, idx_t> colNameToIdx;
     while (numRowsToDetect != 0) {
         auto numTuplesRead = localState.readNext();
         if (numTuplesRead == 0) {
@@ -750,16 +803,16 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
             while ((key = yyjson_obj_iter_next(&objIter))) {
                 ele = yyjson_obj_iter_get_val(key);
                 KU_ASSERT(yyjson_get_type(doc->root) == YYJSON_TYPE_OBJ);
-                std::string fieldName = yyjson_get_str(key);
-                idx_t colIdx = 0;
-                if (colNameToIdx.contains(fieldName)) {
-                    colIdx = colNameToIdx.at(fieldName);
+                auto keyPtr = unsafe_yyjson_get_str(key);
+                auto keyLen = unsafe_yyjson_get_len(key);
+                auto itr = colNameToIdx.find({keyPtr, keyLen});
+                if (itr != colNameToIdx.end()) {
+                    auto colIdx = itr->second;
                     types[colIdx] = LogicalTypeUtils::combineTypes(types[colIdx],
                         jsonSchema(ele, config.depth, config.breadth));
                 } else {
-                    colIdx = names.size();
-                    colNameToIdx.emplace(fieldName, colIdx);
-                    names.push_back(fieldName);
+                    colNameToIdx.insert({{keyPtr, keyLen}, (idx_t)names.size()});
+                    names.push_back({keyPtr, keyLen});
                     types.push_back(jsonSchema(ele, config.depth, config.breadth));
                 }
             }
@@ -779,7 +832,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<LogicalType> columnTypes;
     std::vector<std::string> columnNames;
     JsonScanConfig scanConfig(scanInput->fileScanInfo.options);
-    std::unordered_map<std::string, idx_t> colNameToIdx;
+    json_key_map_t<idx_t> colNameToIdx;
     if (!scanInput->expectedColumnNames.empty() || !scanConfig.autoDetect) {
         if (scanInput->expectedColumnNames.empty()) {
             throw BinderException{
@@ -788,11 +841,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
         columnTypes = copyVector(scanInput->expectedColumnTypes);
         columnNames = scanInput->expectedColumnNames;
-        idx_t colIdx = 0;
-        for (auto& columnName : columnNames) {
-            colNameToIdx.emplace(columnName, colIdx++);
-        }
-
         if (scanConfig.format == JsonScanFormat::AUTO_DETECT) {
             JSONScanSharedState sharedState(*context,
                 scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX),
@@ -804,14 +852,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     } else {
         scanConfig.format = autoDetect(context,
             scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX), scanConfig,
-            columnTypes, columnNames, colNameToIdx);
+            columnTypes, columnNames);
     }
     scanInput->tableFunction->canParallelFunc = [scanConfig]() {
         return scanConfig.format == JsonScanFormat::NEWLINE_DELIMITED;
     };
 
-    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
-    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    auto variableNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    auto columns = input->binder->createVariables(variableNames, columnTypes);
 
     bool ignoreErrors = scanInput->fileScanInfo.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
         CopyConstants::DEFAULT_IGNORE_ERRORS);
@@ -832,7 +880,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         columns.push_back(column);
     }
     return std::make_unique<JsonScanBindData>(columns, numWarningDataColumns,
-        scanInput->fileScanInfo.copy(), context, std::move(colNameToIdx), scanConfig.format);
+        scanInput->fileScanInfo.copy(), context, JsonColumnInfo{std::move(columnNames)},
+        scanConfig.format);
 }
 
 static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t numWarningColumns) {
@@ -840,7 +889,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 
     std::vector<ValueVector*> ret;
     for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
-         i < chunk.getNumValueVectors(); ++i) {
+        i < chunk.getNumValueVectors(); ++i) {
         ret.push_back(&chunk.getValueVectorMutable(i));
     }
     return ret;
@@ -872,7 +921,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         auto objIter = yyjson_obj_iter_with(docs[i]->root);
         while ((key = yyjson_obj_iter_next(&objIter))) {
             ele = yyjson_obj_iter_get_val(key);
-            auto columnIdx = bindData->getFieldIdx(yyjson_get_str(key));
+            auto columnIdx = bindData->getFieldIdx(key);
             if (columnIdx == UINT64_MAX || projectionSkips[columnIdx]) {
                 continue;
             }
