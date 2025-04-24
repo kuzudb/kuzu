@@ -1,9 +1,12 @@
 #include "json_scan.h"
 
-#include <regex>
+#include <climits>
+#include <cstdint>
+#include <string_view>
 
 #include "binder/binder.h"
 #include "common/case_insensitive_map.h"
+#include "common/copy_constructors.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/fast_mem.h"
@@ -682,73 +685,77 @@ uint64_t JSONScanLocalState::readNext(
     return numValuesToOutput;
 }
 
-struct JSONKey {
-    const char* ptr;
-    size_t len;
-};
-
 struct JSONKeyHash {
-    inline std::size_t operator()(const JSONKey& k) const {
+    inline std::size_t operator()(std::string_view k) const {
         size_t result = 0;
-        if (k.len >= sizeof(size_t)) {
-            memcpy(&result, k.ptr + k.len - sizeof(size_t), sizeof(size_t));
+        if (k.size() >= sizeof(size_t)) {
+            memcpy(&result, k.data() + k.size() - sizeof(size_t), sizeof(size_t));
         } else {
             result = 0;
-            fastMemcpy(&result, k.ptr, k.len);
+            fastMemcpy(&result, k.data(), k.size());
         }
         return result;
     }
 };
 
 struct JSONKeyEquality {
-    inline bool operator()(const JSONKey& a, const JSONKey& b) const {
-        if (a.len != b.len) {
+    inline bool operator()(std::string_view a, std::string_view b) const {
+        if (a.size() != b.size()) {
             return false;
         }
-        return FastMemcmp(a.ptr, b.ptr, a.len) == 0;
+        return FastMemcmp(a.data(), b.data(), a.size()) == 0;
     }
 };
 
 template<typename T>
-using json_key_map_t = std::unordered_map<JSONKey, T, JSONKeyHash, JSONKeyEquality>;
+using json_key_map_t = std::unordered_map<std::string_view, T, JSONKeyHash, JSONKeyEquality>;
 
-struct JsonColumnInfo {
-    // Note: JSON keys are case-sensitive.
-    json_key_map_t<idx_t> colNameToIdx;
-    std::shared_ptr<std::vector<std::string>> colNames;
-
+class JsonColumnInfo {
+public:
     explicit JsonColumnInfo(std::vector<std::string> columnNames);
+    DELETE_COPY_DEFAULT_MOVE(JsonColumnInfo);
 
     uint64_t getFieldIdx(yyjson_val* fieldName) const;
+
+private:
+    // Note: JSON keys are case-sensitive.
+    json_key_map_t<idx_t> colNameToIdx;
+    std::vector<std::string> colNames;
 };
 
 JsonColumnInfo::JsonColumnInfo(std::vector<std::string> columnNames) {
-    this->colNames = std::make_shared<std::vector<std::string>>(std::move(columnNames));
+    this->colNames = std::move(columnNames);
     idx_t colIdx = 0;
-    for (auto& columnName : *this->colNames) {
-        colNameToIdx.insert({{columnName.c_str(), columnName.length()}, colIdx++});
+    for (auto& columnName : this->colNames) {
+        colNameToIdx.insert({std::string_view(columnName), colIdx++});
     }
 }
 
 uint64_t JsonColumnInfo::getFieldIdx(yyjson_val* key) const {
-    auto keyPtr = unsafe_yyjson_get_str(key);
-    auto keyLen = unsafe_yyjson_get_len(key);
-    auto itr = colNameToIdx.find({keyPtr, keyLen});
-    if (itr != colNameToIdx.end()) {
-        return itr->second;
+    auto fieldName = std::string_view(unsafe_yyjson_get_str(key), unsafe_yyjson_get_len(key));
+    // For a small number of keys, probing a vector is faster than lookups in an unordered_map
+    if (colNames.size() < 24) {
+        auto iter = std::find(colNames.begin(), colNames.end(), fieldName);
+        if (iter != colNames.end()) {
+            return iter - colNames.begin();
+        }
+    } else {
+        auto itr = colNameToIdx.find(fieldName);
+        if (itr != colNameToIdx.end()) {
+            return itr->second;
+        }
     }
-    auto fieldName = yyjson_get_str(key);
     // From and to are case-insensitive for backward compatibility.
     if (StringUtils::caseInsensitiveEquals(fieldName, "from")) {
-        return colNameToIdx.at({"from", strlen("from")});
+        return colNameToIdx.at("from");
     } else if (StringUtils::caseInsensitiveEquals(fieldName, "to")) {
-        return colNameToIdx.at({"to", strlen("to")});
+        return colNameToIdx.at("to");
     }
     return UINT64_MAX;
 }
 
 struct JsonScanBindData : public ScanFileBindData {
-    JsonColumnInfo columnInfo;
+    std::shared_ptr<JsonColumnInfo> columnInfo;
     JsonScanFormat format;
 
     JsonScanBindData(binder::expression_vector columns, column_id_t numWarningDataColumns,
@@ -756,9 +763,9 @@ struct JsonScanBindData : public ScanFileBindData {
         JsonScanFormat format)
         : ScanFileBindData(columns, 0 /* numRows */, std::move(fileScanInfo), ctx,
               numWarningDataColumns),
-          columnInfo{std::move(columnInfo)}, format{format} {}
+          columnInfo{std::make_shared<JsonColumnInfo>(std::move(columnInfo))}, format{format} {}
 
-    uint64_t getFieldIdx(yyjson_val* key) const { return columnInfo.getFieldIdx(key); }
+    uint64_t getFieldIdx(yyjson_val* key) const { return columnInfo->getFieldIdx(key); }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<JsonScanBindData>(*this);
