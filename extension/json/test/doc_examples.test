@@ -3,6 +3,42 @@
 
 --
 
+# the existence of these tests is to maintain that examples provided in the documentation remain valid. If these tests must change, then the documentation must change, and vice versa.
+# note that due to technical differences between the documentation and the testing framework, queries are not 1:1
+
+-CASE LoadFromTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people.json' RETURN * ORDER BY id DESC;
+---- 3
+0|Alice|{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}|2024-07-31
+1|Bob|{height: 1.810000, age: 71, previousUsernames: [theBuilder,theMinion]}|
+2|Gregory||
+
+-STATEMENT LOAD WITH HEADERS (id INT64, name STRING, registryDate DATE, info STRUCT(height DOUBLE, age INT64, previousUsernames STRING[])) FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people.json' RETURN * ORDER BY id DESC;
+---- 3
+0|Alice|2024-07-31|{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}
+1|Bob||{height: 1.810000, age: 71, previousUsernames: [theBuilder,theMinion]}
+2|Gregory||
+
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people-unstructured.json' (format='unstructured') RETURN * ORDER BY id DESC;
+---- 3
+0|Alice|{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}|2024-07-31
+1|Bob|{height: 1.810000, age: 71, previousUsernames: [theBuilder,theMinion]}|
+2|Gregory||
+
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people-unstructured.json' (format='unstructured', sample_size=1) RETURN * ORDER BY id DESC;
+---- 3
+2|Gregory
+1|Bob
+0|Alice
+
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people-unstructured.json' (format='unstructured', sample_size=2) RETURN *;
+---- 3
+2|Gregory|
+1|Bob|{height: 1.810000, age: 71}
+0|Alice|{height: 1.680000, age: 45}
+
 -CASE CopyFromTest
 -SKIP_IN_MEM
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
@@ -34,3 +70,19 @@
 1|Bob|{height: 1.810000, age: 71, previousUsernames: [theBuilder,theMinion]}
 0|Alice|{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}
 
+-CASE JsonTypeDoc
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT CREATE NODE TABLE Person (id INT64, description JSON, primary key(id));
+---- ok
+-STATEMENT CREATE (p:Person {id: 20, description: to_json({height: 52, age: 32, scores: [1,2,5]})});
+---- ok
+-STATEMENT CREATE (p:Person {id: 40, description: to_json({age: 55, scores: [1,32,5,null], name: 'dan'})});
+---- ok
+-STATEMENT MATCH (p:Person) RETURN p.*;
+---- 2
+20|{"height":52,"age":32,"scores":[1,2,5]}
+40|{"age":55,"scores":[1,32,5,null],"name":"dan"}
+-STATEMENT MATCH (p:Person) WHERE json_extract(p.description, 'age') < 50 RETURN p.id AS id, json_extract(p.description, 'age') AS age;
+---- 1
+20|32
