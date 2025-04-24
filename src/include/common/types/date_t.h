@@ -79,7 +79,7 @@ public:
     KUZU_API static std::string toString(date_t date);
     // Try to convert text in a buffer to a date; returns true if parsing was successful
     KUZU_API static bool tryConvertDate(const char* buf, uint64_t len, uint64_t& pos,
-        date_t& result);
+        date_t& result, bool allowTrailing = false);
 
     // private:
     // Returns true if (year) is a leap year, and false otherwise

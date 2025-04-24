@@ -3,7 +3,6 @@
 #include <chrono>
 
 #include "common/exception/conversion.h"
-#include "common/string_utils.h"
 #include "function/arithmetic/multiply.h"
 
 namespace kuzu {
@@ -118,16 +117,7 @@ bool Timestamp::tryConvertTimestamp(const char* str, uint64_t len, timestamp_t& 
     date_t date;
     dtime_t time;
 
-    // Find the string len for date
-    uint32_t dateStrLen = 0;
-    // Skip leading spaces.
-    while (StringUtils::isSpace(str[dateStrLen])) {
-        dateStrLen++;
-    }
-    while (dateStrLen < len && str[dateStrLen] != ' ' && str[dateStrLen] != 'T') {
-        dateStrLen++;
-    }
-    if (!Date::tryConvertDate(str, dateStrLen, pos, date)) {
+    if (!Date::tryConvertDate(str, len, pos, date, true /*allowTrailing*/)) {
         return false;
     }
     if (pos == len) {
@@ -247,9 +237,6 @@ timestamp_t Timestamp::fromDateTime(date_t date, dtime_t time) {
     int32_t year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0, microsecond = -1;
     Date::convert(date, year, month, day);
     Time::convert(time, hour, minute, second, microsecond);
-    if (!Date::isValid(year, month, day) || !Time::isValid(hour, minute, second, microsecond)) {
-        throw ConversionException("Invalid date or time format");
-    }
     result.value = date.days * Interval::MICROS_PER_DAY + time.micros;
     return result;
 }

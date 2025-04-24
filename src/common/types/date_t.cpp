@@ -226,6 +226,7 @@ void Date::convert(date_t date, int32_t& out_year, int32_t& out_month, int32_t& 
     KU_ASSERT(out_day > 0 && out_day <= (is_leap_year ? Date::LEAP_DAYS[out_month] :
                                                         Date::NORMAL_DAYS[out_month]));
     KU_ASSERT(out_month > 0 && out_month <= 12);
+    KU_ASSERT(Date::isValid(out_year, out_month, out_day));
 }
 
 date_t Date::fromDate(int32_t year, int32_t month, int32_t day) {
@@ -260,13 +261,11 @@ bool Date::parseDoubleDigit(const char* buf, uint64_t len, uint64_t& pos, int32_
 }
 
 // Checks if the date std::string given in buf complies with the YYYY:MM:DD format. Ignores leading
-// and trailing spaces. Removes from the original DuckDB code three features: 1) we don't parse
-// "negative years", i.e., date formats that start with -. 2) we don't parse dates that end with
-// trailing "BC". 3) we do not allow the "strict/non-strict" parsing, which lets the caller
-// configure this function to either strictly return false if the date std::string has trailing
-// characters that won't be parsed or just ignore those characters. We always run in strict mode.
-bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& result) {
-    pos = 0;
+// and trailing spaces. Removes from the original DuckDB code the following features:
+// 1) we don't parse "negative years", i.e., date formats that start with -.
+// 2) we don't parse dates that end with trailing "BC".
+bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& result,
+    bool allowTrailing) {
     if (len == 0) {
         return false;
     }
@@ -311,15 +310,12 @@ bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
         return false;
     }
 
-    if (pos >= len) {
+    // Also checks that the separator is not the end of the string
+    if (pos + 1 >= len) {
         return false;
     }
 
     if (buf[pos++] != sep) {
-        return false;
-    }
-
-    if (pos >= len) {
         return false;
     }
 
@@ -333,16 +329,15 @@ bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
         pos++;
     }
     // check position. if end was not reached, non-space chars remaining
-    if (pos < len) {
+    if (pos < len && !allowTrailing) {
         return false;
     }
 
-    // TODO(Ziyi): the following check is duplicated in Date::fromDate.
-    // We should pull the check here, because a tryCast function should not throw exception.
-    if (!Date::isValid(year, month, day)) {
+    try {
+        result = Date::fromDate(year, month, day);
+    } catch (ConversionException& exc) {
         return false;
     }
-    result = Date::fromDate(year, month, day);
     return true;
 }
 
