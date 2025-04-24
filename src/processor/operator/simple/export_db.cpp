@@ -105,7 +105,10 @@ std::string getSchemaCypher(ClientContext* clientContext) {
         ss << catalog->getScalarMacroFunction(transaction, macroName)->toCypher(macroName)
            << std::endl;
     }
-    ss << clientContext->getExtensionManager()->toCypher() << std::endl;
+    auto extensionCypher = clientContext->getExtensionManager()->toCypher();
+    if (!extensionCypher.empty()) {
+        ss << extensionCypher << std::endl;
+    }
     return ss.str();
 }
 

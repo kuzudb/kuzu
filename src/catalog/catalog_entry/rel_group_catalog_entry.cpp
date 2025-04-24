@@ -93,7 +93,7 @@ static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
         catalog->getTableCatalogEntry(transaction, entry.getSrcTableID())->getName();
     auto dstTableName =
         catalog->getTableCatalogEntry(transaction, entry.getDstTableID())->getName();
-    return stringFormat("FROM {} TO {}", srcTableName, dstTableName);
+    return stringFormat("FROM `{}` TO `{}`", srcTableName, dstTableName);
 }
 
 std::string RelGroupCatalogEntry::toCypher(const ToCypherInfo& info) const {

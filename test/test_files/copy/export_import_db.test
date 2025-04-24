@@ -260,5 +260,13 @@ Farooq|1
 ---- ok
 -STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_char" (format="csv");
 ---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_char"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_char";
 ---- ok
+
+-CASE ImportError
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT IMPORT Database "${KUZU_ROOT_DIRECTORY}/dataset/import_db_error"
+---- error
+Runtime exception: Import database failed: Binder exception: Table org does not exist.
