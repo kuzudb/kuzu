@@ -5,17 +5,19 @@
 namespace kuzu {
 namespace json_extension {
 
-yyjson_doc* JSONCommon::readDocument(uint8_t* data, uint64_t size, const yyjson_read_flag flg) {
+yyjson_doc* JSONCommon::readDocument(uint8_t* data, uint64_t size, const yyjson_read_flag flg,
+    yyjson_alc* alc) {
     yyjson_read_err error;
-    auto result = readDocumentUnsafe(data, size, flg, &error);
+    auto result = readDocumentUnsafe(data, size, flg, alc, &error);
     if (error.code != YYJSON_READ_SUCCESS) {
         throwParseError(reinterpret_cast<const char*>(data), size, error);
     }
     return result;
 }
 
-yyjson_doc* JSONCommon::readDocument(const std::string& str, const yyjson_read_flag flg) {
-    return readDocument((uint8_t*)str.c_str(), str.size(), flg);
+yyjson_doc* JSONCommon::readDocument(const std::string& str, const yyjson_read_flag flg,
+    yyjson_alc* alc) {
+    return readDocument((uint8_t*)str.c_str(), str.size(), flg, alc);
 }
 
 void JSONCommon::throwParseError(const char* data, size_t length, yyjson_read_err& err) {

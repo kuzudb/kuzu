@@ -26,7 +26,8 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
         result.setNull(resultPos, isNull);
         if (!isNull) {
             auto paramStr = param.getValue<ku_string_t>(paramPos).getAsString();
-            auto doc = JsonWrapper{JSONCommon::readDocument(paramStr, JSONCommon::READ_FLAG)};
+            auto doc = JsonWrapper{
+                JSONCommon::readDocument(paramStr, JSONCommon::READ_FLAG, nullptr /* jsonAlc */)};
             auto numKeys = yyjson_obj_size(yyjson_doc_get_root(doc.ptr));
             auto resultList = ListVector::addList(&result, numKeys);
             result.setValue<list_entry_t>(resultPos, resultList);

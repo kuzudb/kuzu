@@ -30,7 +30,7 @@ public:
     void resetCurrentOffset() { currentOffset = 0; }
 };
 
-class InMemOverflowBuffer {
+class KUZU_API InMemOverflowBuffer {
 
 public:
     explicit InMemOverflowBuffer(storage::MemoryManager* memoryManager)

@@ -144,6 +144,7 @@ struct JSONScanLocalState : public TableFuncLocalState {
     storage::MemoryManager& mm;
     idx_t lineCountInBuffer;
     std::unique_ptr<processor::LocalFileErrorHandler> errorHandler;
+    JSONAllocator allocator;
 
     JSONScanLocalState(storage::MemoryManager& mm, JSONScanSharedState& sharedState,
         main::ClientContext* context)
@@ -152,7 +153,8 @@ struct JSONScanLocalState : public TableFuncLocalState {
               mm.allocateBuffer(false /* initializeToZero */, JsonConstant::SCAN_BUFFER_CAPACITY)},
           mm{mm}, lineCountInBuffer(0),
           errorHandler(std::make_unique<processor::LocalFileErrorHandler>(
-              &sharedState.sharedErrorHandler, false, context)) {}
+              &sharedState.sharedErrorHandler, false, context)),
+          allocator{mm} {}
 
     ~JSONScanLocalState() override;
 
@@ -381,7 +383,8 @@ std::optional<uint64_t> JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64
     const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
     yyjson_doc* doc = nullptr;
     yyjson_read_err err;
-    doc = JSONCommon::readDocumentUnsafe(jsonStart, remaining, JSONCommon::READ_INSITU_FLAG, &err);
+    doc = JSONCommon::readDocumentUnsafe(jsonStart, remaining, JSONCommon::READ_INSITU_FLAG,
+        allocator.getYYJsonAlc(), &err);
     if (err.code != YYJSON_READ_SUCCESS) {
         handleParseError(err, false);
         return std::nullopt;
@@ -501,14 +504,14 @@ bool JSONScanLocalState::parseNextChunk(
     return true;
 }
 
-static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size) {
+static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size, yyjson_alc* alc) {
     auto lineEnd = nextNewLine(buffer_ptr, buffer_size);
     if (lineEnd != nullptr) {
         idx_t line_size = lineEnd - buffer_ptr;
         skipWhitespace(buffer_ptr, line_size, buffer_size);
         yyjson_read_err error;
         auto doc = yyjson_read_opts(reinterpret_cast<char*>(buffer_ptr), line_size,
-            JSONCommon::READ_FLAG, nullptr /* alc */, &error);
+            JSONCommon::READ_FLAG, alc, &error);
         if (error.code == YYJSON_READ_SUCCESS) {
             const bool isArr = yyjson_is_arr(doc->root);
             yyjson_doc_free(doc);
@@ -537,7 +540,7 @@ static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size
     // array
     yyjson_read_err error;
     auto doc = yyjson_read_opts(reinterpret_cast<char*>(buffer_ptr + buffer_offset), remaining,
-        JSONCommon::READ_STOP_FLAG, nullptr /* alc */, &error);
+        JSONCommon::READ_STOP_FLAG, alc, &error);
     if (error.code == YYJSON_READ_SUCCESS) {
         KU_ASSERT(yyjson_is_arr(doc->root));
         buffer_offset += yyjson_doc_get_read_size(doc);
@@ -585,7 +588,8 @@ bool JSONScanLocalState::readNextBuffer() {
                 {
                     std::lock_guard<std::mutex> mtx(currentReader->lock);
                     if (currentReader->getFormat() == JsonScanFormat::AUTO_DETECT) {
-                        currentReader->setFormat(autoDetectFormat(bufferPtr, bufferSize));
+                        currentReader->setFormat(
+                            autoDetectFormat(bufferPtr, bufferSize, allocator.getYYJsonAlc()));
                     }
                 }
 
@@ -889,7 +893,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 
     std::vector<ValueVector*> ret;
     for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
-         i < chunk.getNumValueVectors(); ++i) {
+        i < chunk.getNumValueVectors(); ++i) {
         ret.push_back(&chunk.getValueVectorMutable(i));
     }
     return ret;

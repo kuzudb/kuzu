@@ -3,12 +3,41 @@
 #include <array>
 
 #include "common/constants.h"
+#include "common/in_mem_overflow_buffer.h"
 #include "common/types/types.h"
+#include "fast_mem.h"
 #include "json_enums.h"
 #include "yyjson.h"
 
 namespace kuzu {
 namespace json_extension {
+
+class JSONAllocator {
+public:
+    explicit JSONAllocator(storage::MemoryManager& mm)
+        : overflowBuffer{&mm}, yyjsonAlc{allocate, reallocate, free, &overflowBuffer} {}
+
+    yyjson_alc* getYYJsonAlc() { return &yyjsonAlc; }
+
+private:
+    static void* allocate(void* context, size_t size) {
+        auto overflowBuffer = reinterpret_cast<common::InMemOverflowBuffer*>(context);
+        return overflowBuffer->allocateSpace(size);
+    }
+
+    static void* reallocate(void* context, void* ptr, size_t oldSize, size_t size) {
+        auto overflowBuffer = reinterpret_cast<common::InMemOverflowBuffer*>(context);
+        auto newMem = allocate(overflowBuffer, size);
+        fastMemcpy(newMem, ptr, oldSize);
+        return newMem;
+    }
+
+    static void free(void* /*ctx*/, void* /*ptr*/) {}
+
+private:
+    common::InMemOverflowBuffer overflowBuffer;
+    yyjson_alc yyjsonAlc;
+};
 
 struct JSONCommon {
 public:
@@ -20,13 +49,15 @@ public:
     static constexpr auto WRITE_PRETTY_FLAG = YYJSON_WRITE_ALLOW_INF_AND_NAN | YYJSON_WRITE_PRETTY;
 
     static yyjson_doc* readDocumentUnsafe(uint8_t* data, uint64_t size, const yyjson_read_flag flg,
-        yyjson_read_err* err = nullptr) {
-        return yyjson_read_opts((char*)data, size, flg, nullptr /* alc */, err);
+        yyjson_alc* alc, yyjson_read_err* err = nullptr) {
+        return yyjson_read_opts((char*)data, size, flg, alc, err);
     }
 
-    static yyjson_doc* readDocument(uint8_t* data, uint64_t size, const yyjson_read_flag flg);
+    static yyjson_doc* readDocument(uint8_t* data, uint64_t size, const yyjson_read_flag flg,
+        yyjson_alc* alc);
 
-    static yyjson_doc* readDocument(const std::string& str, const yyjson_read_flag flg);
+    static yyjson_doc* readDocument(const std::string& str, const yyjson_read_flag flg,
+        yyjson_alc* alc);
 
     static void throwParseError(const char* data, size_t length, yyjson_read_err& err);
 };

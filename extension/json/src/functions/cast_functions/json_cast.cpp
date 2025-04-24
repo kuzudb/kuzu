@@ -22,7 +22,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
         auto str = parameters[0]->getValue<common::ku_string_t>(resultPos);
         yyjson_read_err error;
         auto doc = JSONCommon::readDocumentUnsafe(str.getDataUnsafe(), str.len,
-            JSONCommon::READ_FLAG, &error);
+            JSONCommon::READ_FLAG, nullptr /* alc */, &error);
         if (!doc) {
             yyjson_doc_free(doc);
             throw common::ConversionException{
