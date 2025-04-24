@@ -197,8 +197,9 @@ void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& rea
     std::vector<std::shared_ptr<LogicalSemiMasker>> inputNodeMaskPlanRoots;
     for (auto nodeInput : bindData->nodeInputs) {
         auto& node = nodeInput->cast<NodeExpression>();
-
-        planner->getNodeSemiMaskPlan(SemiMaskTargetType::GDS_GRAPH_NODE, node, *plan);
+        auto includeDummySink = nodeInput == bindData->nodeInputs.back();
+        planner->getNodeSemiMaskPlan(SemiMaskTargetType::GDS_GRAPH_NODE, node, *plan,
+            includeDummySink);
         auto semiMasker = PlanMapper::findSemiMaskerInPlan(plan->getLastOperator());
         inputNodeMaskPlanRoots.push_back(semiMasker);
     }
