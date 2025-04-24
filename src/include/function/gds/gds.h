@@ -32,20 +32,25 @@ struct KUZU_API GDSOptionalParams {
 
 struct KUZU_API GDSBindData : public TableFuncBindData {
     graph::GraphEntry graphEntry;
+    std::vector<std::shared_ptr<binder::Expression>> nodeInputs;
     std::shared_ptr<binder::Expression> nodeOutput;
     std::unique_ptr<GDSOptionalParams> optionalParams;
 
     GDSBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> nodeOutput,
-        std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
+        std::shared_ptr<binder::Expression> nodeOutput,std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
+        : TableFuncBindData{std::move(columns)}, graphEntry{graphEntry.copy()}, nodeOutput{std::move(nodeOutput)} , optionalParams{std::move(optionalParams)} {}
+
+    GDSBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
+        std::vector<std::shared_ptr<binder::Expression>> nodeInputs,
+        std::shared_ptr<binder::Expression> nodeOutput,std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
         : TableFuncBindData{std::move(columns)}, graphEntry{graphEntry.copy()},
-          nodeOutput{std::move(nodeOutput)}, optionalParams{std::move(optionalParams)} {}
+          nodeInputs{std::move(nodeInputs)}, nodeOutput{std::move(nodeOutput)}  , optionalParams{std::move(optionalParams)} {}
+
     GDSBindData(const GDSBindData& other)
         : TableFuncBindData{other}, graphEntry{other.graphEntry.copy()},
-          nodeOutput{other.nodeOutput},
+          nodeInputs{other.nodeInputs}, nodeOutput{other.nodeOutput},
           optionalParams{other.optionalParams == nullptr ? nullptr : other.optionalParams->copy()},
           resultTable{other.resultTable} {}
-
     void setResultFTable(std::shared_ptr<processor::FactorizedTable> table) {
         resultTable = std::move(table);
     }
@@ -71,11 +76,27 @@ struct KUZU_API GDSFuncSharedState : public TableFuncSharedState {
     void setGraphNodeMask(std::unique_ptr<common::NodeOffsetMaskMap> maskMap);
     common::NodeOffsetMaskMap* getGraphNodeMaskMap() const { return graphNodeMask.get(); }
 
+    void addInputGraphNodeMask(std::shared_ptr<binder::Expression> key,
+        std::unique_ptr<common::NodeOffsetMaskMap> maskMap) {
+        inputGraphNodeMask.emplace(key, std::move(maskMap));
+    }
+
+    common::NodeOffsetMaskMap* getInputGraphNodeMaskMap(
+        std::shared_ptr<binder::Expression> key) const {
+        return inputGraphNodeMask.at(key).get();
+    }
+
+    const binder::expression_map<std::unique_ptr<common::NodeOffsetMaskMap>>&
+    getInputGraphNodeMaskMap() const {
+        return inputGraphNodeMask;
+    }
+
 public:
     processor::FactorizedTablePool factorizedTablePool;
 
 private:
     std::unique_ptr<common::NodeOffsetMaskMap> graphNodeMask = nullptr;
+    binder::expression_map<std::unique_ptr<common::NodeOffsetMaskMap>> inputGraphNodeMask;
 };
 
 // Base class for every graph data science algorithm.

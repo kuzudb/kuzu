@@ -212,6 +212,20 @@ std::unique_ptr<SemiMask> PlanMapper::createSemiMask(table_id_t tableID) const {
     return SemiMaskUtil::createMask(table->getNumTotalRows(clientContext->getTransaction()));
 }
 
+std::shared_ptr<LogicalSemiMasker> PlanMapper::findSemiMaskerInPlan(
+    std::shared_ptr<LogicalOperator> logicalOperator) {
+    if (logicalOperator->getOperatorType() == LogicalOperatorType::SEMI_MASKER) {
+        return std::dynamic_pointer_cast<LogicalSemiMasker>(logicalOperator);
+    }
+    for (auto& child : logicalOperator->getChildren()) {
+        const auto semiMasker = findSemiMaskerInPlan(child);
+        if (semiMasker) {
+            return semiMasker;
+        }
+    }
+    return nullptr;
+}
+
 LogicalSemiMasker* PlanMapper::findSemiMaskerInPlan(LogicalOperator* logicalOperator) {
     if (logicalOperator->getOperatorType() == LogicalOperatorType::SEMI_MASKER) {
         return logicalOperator->ptrCast<LogicalSemiMasker>();

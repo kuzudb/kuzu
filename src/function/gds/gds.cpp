@@ -188,14 +188,31 @@ std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskPlanRoots(const GDSBind
 
 void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& readingClause,
     binder::expression_vector predicates, std::vector<std::unique_ptr<LogicalPlan>>& logicalPlans) {
+    KU_ASSERT(logicalPlans.size() == 1);
     auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
     auto bindData = call.getBindData()->constPtrCast<GDSBindData>();
     auto maskRoots = getNodeMaskPlanRoots(*bindData, planner);
-    for (auto& plan : logicalPlans) {
-        auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
-        op->setNodeMaskRoots(maskRoots);
-        op->computeFactorizedSchema();
-        planner->planReadOp(std::move(op), predicates, *plan);
+    auto& plan = logicalPlans.front();
+
+    std::vector<std::shared_ptr<LogicalSemiMasker>> inputNodeMaskPlanRoots;
+    for (auto nodeInput : bindData->nodeInputs) {
+        auto& node = nodeInput->cast<NodeExpression>();
+
+        planner->getNodeSemiMaskPlan(SemiMaskTargetType::GDS_GRAPH_NODE, node, *plan);
+        auto semiMasker = PlanMapper::findSemiMaskerInPlan(plan->getLastOperator());
+        inputNodeMaskPlanRoots.push_back(semiMasker);
+    }
+
+    auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
+    op->setNodeMaskRoots(maskRoots);
+    op->setInputNodeMaskRoots(inputNodeMaskPlanRoots);
+    op->computeFactorizedSchema();
+    if (!plan->isEmpty()) {
+        op->addChild(plan->getLastOperator());
+    }
+    plan->setLastOperator(std::move(op));
+    if (!predicates.empty()) {
+        planner->appendFilters(predicates, *plan);
     }
     auto nodeOutput = bindData->nodeOutput->ptrCast<NodeExpression>();
     KU_ASSERT(nodeOutput != nullptr);
@@ -205,9 +222,7 @@ void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& rea
     }
     expression_vector joinConditions;
     joinConditions.push_back(nodeOutput->getInternalID());
-    for (auto& plan : logicalPlans) {
-        planner->appendHashJoin(joinConditions, JoinType::INNER, *plan, scanPlan, *plan);
-    }
+    planner->appendHashJoin(joinConditions, JoinType::INNER, *plan, scanPlan, *plan);
 }
 
 std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planMapper,
@@ -247,6 +262,18 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
             call->addChild(std::move(root));
         }
         planMapper->logicalOpToPhysicalOpMap.erase(logicalOp);
+    }
+    if (!logicalCall->getInputNodeMaskRoots().empty()) {
+        const auto funcSharedState = sharedState->ptrCast<GDSFuncSharedState>();
+        for (auto logicalSemiMasker : logicalCall->getInputNodeMaskRoots()) {
+            funcSharedState->addInputGraphNodeMask(logicalSemiMasker->getKey(),
+                std::make_unique<NodeOffsetMaskMap>());
+            auto maskMap = funcSharedState->getInputGraphNodeMaskMap(logicalSemiMasker->getKey());
+            logicalSemiMasker->addTarget(logicalOp);
+            for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
+                maskMap->addMask(tableID, planMapper->createSemiMask(tableID));
+            }
+        }
     }
     planMapper->logicalOpToPhysicalOpMap.insert({logicalOp, call.get()});
     physical_op_vector_t children;
