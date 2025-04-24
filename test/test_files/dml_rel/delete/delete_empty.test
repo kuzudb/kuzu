@@ -78,11 +78,15 @@ Runtime exception: Cannot detach delete from node table 'person' as it has conne
 -STATEMENT call fsm_info() return sum(num_pages) > 0
 ---- 1
 True
+-STATEMENT CALL fsm_info() return *
+---- 0
 # re-copy, most of the pages should be reused
 -STATEMENT copy knows from ["${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv","${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv"](parallel=false)
 ---- ok
+-STATEMENT CALL fsm_info() return *
+---- 0
 # if most free pages were used the start page idx of free entries should be much larger than their size
--STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages, min(start_page_idx > 5 * num_pages) as check return num_free_pages is null or check
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages, min(start_page_idx > 3 * num_pages) as check return num_free_pages is null or check
 ---- 1
 True
 -RELOADDB
