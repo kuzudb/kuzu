@@ -61,13 +61,15 @@ Runtime exception: Cannot detach delete from node table 'person' as it has conne
 
 -CASE DeleteAllRels
 -SKIP_IN_MEM
+-STATEMENT call threads=1
+---- ok
 -STATEMENT create node table Person (id INT64, firstName STRING, lastName STRING, gender STRING, birthday INT64, creationDate INT64, locationIP STRING, browserUsed STRING, PRIMARY KEY (id));
 ---- ok
 -STATEMENT create rel table knows (FROM Person TO Person, creationDate INT64, MANY_MANY);
 ---- ok
--STATEMENT copy Person from "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv"
+-STATEMENT copy Person from "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv"(parallel=false)
 ---- ok
--STATEMENT copy knows from ["${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv","${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv"]
+-STATEMENT copy knows from ["${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv","${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv"](parallel=false)
 ---- ok
 -STATEMENT call checkpoint_threshold=0
 ---- ok
@@ -76,3 +78,27 @@ Runtime exception: Cannot detach delete from node table 'person' as it has conne
 -STATEMENT call fsm_info() return sum(num_pages) > 0
 ---- 1
 True
+# re-copy, most of the pages should be reused
+-STATEMENT copy knows from ["${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv","${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv"](parallel=false)
+---- ok
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages return num_free_pages is null or num_free_pages < 4
+---- 1
+True
+-RELOADDB
+# try some queries
+-STATEMENT match (a)-[k:knows]->(b) return count(*)
+---- 1
+14073
+-STATEMENT match (a)-[k:knows]->(b) where a.id = 17592186046041 return k.creationDate
+---- 11
+20110719184529612
+20110929173245977
+20111110222209521
+20111214221549624
+20111225070822925
+20120208132201752
+20120523102741692
+20120610085946076
+20120828085634951
+20120806215110197
+20120903202253152

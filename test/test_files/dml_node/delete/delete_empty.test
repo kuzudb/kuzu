@@ -113,7 +113,7 @@ True
 ---- ok
 -STATEMENT create node table Post (id INT64, imageFile STRING, creationDate INT64, locationIP STRING, browserUsed STRING, language STRING, content STRING, length INT32, PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"
+-STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 ---- ok
 -STATEMENT call fsm_info() return *
 ---- 0
@@ -123,10 +123,10 @@ True
 ---- 1
 True
 # copy again, most of the free pages should be reused
--STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"
+-STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 ---- ok
 # allow margin equal to the largest page range for a column chunk in the table
--STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages call storage_info('Post') with num_free_pages, max(num_pages) as largest_range return num_free_pages is null or largest_range >= num_free_pages
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages return num_free_pages is null or num_free_pages < 4
 ---- 1
 True
 -RELOADDB

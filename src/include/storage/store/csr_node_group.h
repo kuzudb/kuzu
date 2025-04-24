@@ -248,8 +248,7 @@ private:
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
-    void checkpointInMemAndOnDisk(const common::UniqLock& lock, MemoryManager& memoryManager,
-        NodeGroupCheckpointState& state);
+    void checkpointInMemAndOnDisk(const common::UniqLock& lock, NodeGroupCheckpointState& state);
 
     void populateCSRLengthInMemOnly(const common::UniqLock& lock, common::offset_t numNodes,
         const CSRNodeGroupCheckpointState& csrState);

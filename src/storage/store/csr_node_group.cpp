@@ -458,12 +458,12 @@ void CSRNodeGroup::serialize(Serializer& serializer) {
     }
 }
 
-void CSRNodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {
+void CSRNodeGroup::checkpoint(MemoryManager&, NodeGroupCheckpointState& state) {
     const auto lock = chunkedGroups.lock();
     if (!persistentChunkGroup) {
         checkpointInMemOnly(lock, state);
     } else {
-        checkpointInMemAndOnDisk(lock, memoryManager, state);
+        checkpointInMemAndOnDisk(lock, state);
     }
     checkpointDataTypesNoLock(state);
 }
@@ -484,8 +484,7 @@ static std::unique_ptr<ChunkedCSRNodeGroup> createNewPersistentChunkGroup(
     return newGroup;
 }
 
-void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, MemoryManager& memoryManager,
-    NodeGroupCheckpointState& state) {
+void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheckpointState& state) {
     // TODO(Guodong): Should skip early here if no changes in the node group, so we avoid scanning
     // the csr header. Case: No insertions/deletions in persistent chunk and no in-mem chunks.
     auto& csrState = state.cast<CSRNodeGroupCheckpointState>();
@@ -526,14 +525,15 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, MemoryManager&
         }
     }
 
-    int64_t totalSizeChange = 0;
+    uint64_t numTuplesAfterCheckpoint = 0;
     for (const auto& region : regionsToCheckpoint) {
-        totalSizeChange += region.sizeChange;
+        for (auto i = region.leftNodeOffset; i < region.rightNodeOffset; ++i) {
+            numTuplesAfterCheckpoint += csrState.newHeader->getCSRLength(i);
+        }
     }
-    if (numRows + persistentChunkGroup->getNumRows() + totalSizeChange == 0) {
+    if (numTuplesAfterCheckpoint == 0) {
         reclaimStorage(csrState.dataFH, lock);
-        persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(memoryManager, dataTypes,
-            enableCompression, capacity, 0, ResidencyState::IN_MEMORY);
+        persistentChunkGroup = nullptr;
     } else {
         KU_ASSERT(csrState.newHeader->sanityCheck());
         for (const auto columnID : csrState.columnIDs) {
@@ -619,7 +619,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     dummyChunkForNulls->getData().resetToAllNull();
     // Copy per csr list from old chunk and merge with new insertions into the newChunkData.
     for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-         nodeOffset++) {
+        nodeOffset++) {
         const auto oldCSRLength = csrState.oldHeader->getCSRLength(nodeOffset);
         KU_ASSERT(csrState.oldHeader->getStartCSROffset(nodeOffset) >= leftCSROffset);
         const auto oldStartRow = csrState.oldHeader->getStartCSROffset(nodeOffset) - leftCSROffset;
@@ -704,7 +704,7 @@ void CSRNodeGroup::collectInMemRegionChangesAndUpdateHeaderLength(const UniqLock
     row_idx_t numInsertionsInRegion = 0u;
     if (csrIndex) {
         for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-             nodeOffset++) {
+            nodeOffset++) {
             auto rows = csrIndex->indices[nodeOffset].getRows();
             row_idx_t numInsertedRows = rows.size();
             row_idx_t numInMemDeletionsInCSR = 0;
@@ -737,7 +737,7 @@ void CSRNodeGroup::collectOnDiskRegionChangesAndUpdateHeaderLength(const UniqLoc
     int64_t numDeletionsInRegion = 0u;
     if (persistentChunkGroup) {
         for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-             nodeOffset++) {
+            nodeOffset++) {
             const auto numDeletedRows =
                 getNumDeletionsForNodeInPersistentData(nodeOffset, csrState);
             if (numDeletedRows == 0) {
@@ -996,8 +996,10 @@ bool CSRNodeGroup::isWithinDensityBound(const ChunkedCSRHeader& header,
 
 void CSRNodeGroup::finalizeCheckpoint(const UniqLock& lock) {
     // Clean up versions and in mem chunked groups.
-    persistentChunkGroup->resetNumRowsFromChunks();
-    persistentChunkGroup->resetVersionAndUpdateInfo();
+    if (persistentChunkGroup) {
+        persistentChunkGroup->resetNumRowsFromChunks();
+        persistentChunkGroup->resetVersionAndUpdateInfo();
+    }
     chunkedGroups.clear(lock);
     // Set `numRows` back to 0 is to reflect that the in mem part of the node group is empty.
     numRows = 0;
