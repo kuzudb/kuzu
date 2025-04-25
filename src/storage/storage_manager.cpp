@@ -101,27 +101,27 @@ void StorageManager::createNodeTable(NodeTableCatalogEntry* entry, main::ClientC
         std::make_unique<NodeTable>(this, entry, &memoryManager, context->getVFSUnsafe(), context);
 }
 
-void StorageManager::createRelTable(RelTableCatalogEntry* entry) {
-    tables[entry->getTableID()] = std::make_unique<RelTable>(entry, this, &memoryManager);
+void StorageManager::createRelTable(RelGroupCatalogEntry* relGroupEntry,
+    RelTableCatalogEntry* relEntry) {
+    tables[relEntry->getTableID()] =
+        std::make_unique<RelTable>(relGroupEntry, relEntry, this, &memoryManager);
 }
 
-void StorageManager::createRelTableGroup(catalog::RelGroupCatalogEntry* entry,
+void StorageManager::createRelTableGroup(RelGroupCatalogEntry* entry,
     main::ClientContext* context) {
     for (const auto id : entry->getRelTableIDs()) {
-        createRelTable(context->getCatalog()
-                           ->getTableCatalogEntry(context->getTransaction(), id)
-                           ->ptrCast<RelTableCatalogEntry>());
+        auto relTableEntry = context->getCatalog()
+                                 ->getTableCatalogEntry(context->getTransaction(), id)
+                                 ->ptrCast<RelTableCatalogEntry>();
+        createRelTable(entry, relTableEntry);
     }
 }
 
-void StorageManager::createTable(catalog::CatalogEntry* entry, main::ClientContext* context) {
+void StorageManager::createTable(CatalogEntry* entry, main::ClientContext* context) {
     std::lock_guard lck{mtx};
     switch (entry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
         createNodeTable(entry->ptrCast<NodeTableCatalogEntry>(), context);
-    } break;
-    case CatalogEntryType::REL_TABLE_ENTRY: {
-        createRelTable(entry->ptrCast<RelTableCatalogEntry>());
     } break;
     case CatalogEntryType::REL_GROUP_ENTRY: {
         createRelTableGroup(entry->ptrCast<RelGroupCatalogEntry>(), context);

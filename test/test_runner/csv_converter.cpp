@@ -9,6 +9,7 @@
 #include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
+#include <catalog/catalog_entry/rel_table_catalog_entry.h>
 
 using namespace kuzu::common;
 
@@ -195,11 +196,7 @@ void CSVConverter::convertCSVDataset() {
     std::filesystem::remove_all(tempDatabasePath);
 }
 
-static std::string getColumnAlias(main::ClientContext* context, const std::string& tableName) {
-    auto properties =
-        context->getCatalog()
-            ->getTableCatalogEntry(&transaction::DUMMY_CHECKPOINT_TRANSACTION, tableName)
-            ->getProperties();
+static std::string getColumnAlias(const std::vector<binder::PropertyDefinition>& properties) {
     std::string alias;
     for (auto& property : properties) {
         if (property.getName() == "_ID") {
@@ -210,8 +207,14 @@ static std::string getColumnAlias(main::ClientContext* context, const std::strin
     return alias;
 }
 
+static std::string getNodeColumnAlias(main::ClientContext* context, const std::string& tableName) {
+    auto tableEntry = context->getCatalog()->getTableCatalogEntry(
+        &transaction::DUMMY_CHECKPOINT_TRANSACTION, tableName);
+    return getColumnAlias(tableEntry->getProperties());
+}
+
 std::string CSVConverter::NodeTableInfo::getConverterQuery(main::ClientContext* context) const {
-    auto alias = getColumnAlias(context, name);
+    auto alias = getNodeColumnAlias(context, name);
     if (alias.size() > 1) {
         alias = alias.substr(1);
     }
@@ -219,8 +222,15 @@ std::string CSVConverter::NodeTableInfo::getConverterQuery(main::ClientContext* 
         outputFilePath);
 }
 
+static std::string getRelColumnAlias(main::ClientContext* context, const std::string& groupName) {
+    auto relEntries = context->getCatalog()->getRelTableEntriesFromGroup(
+        &transaction::DUMMY_CHECKPOINT_TRANSACTION, groupName);
+    KU_ASSERT(relEntries.size() == 1);
+    return getColumnAlias(relEntries[0]->getProperties());
+}
+
 std::string CSVConverter::RelTableInfo::getConverterQuery(main::ClientContext* context) const {
-    auto alias = getColumnAlias(context, name);
+    auto alias = getRelColumnAlias(context, name);
     return stringFormat(
         "COPY (MATCH (a)-[e:{}]->(b) WITH a.{} AS `from`, b.{} AS `to`{} RETURN *) TO \"{}\";",
         name, fromTable->primaryKey, toTable->primaryKey, alias, outputFilePath);

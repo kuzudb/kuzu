@@ -59,7 +59,6 @@ struct BoundTableScanInfo;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
-
 class Binder {
     friend class ExpressionBinder;
 
@@ -111,18 +110,18 @@ public:
 
     static std::unique_ptr<BoundStatement> bindDrop(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAlter(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement) const;
+    static std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement) const;
-    std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement) const;
-    std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement) const;
+    static std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
+    static std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement);
 
     std::vector<PropertyDefinition> bindPropertyDefinitions(
         const std::vector<parser::ParsedPropertyDefinition>& parsedDefinitions,
         const std::string& tableName);
 
-    std::unique_ptr<parser::ParsedExpression> resolvePropertyDefault(
-        parser::ParsedExpression* parsedDefault, const common::LogicalType& type,
+    static std::unique_ptr<parser::ParsedExpression> resolvePropertyDefault(
+        const parser::ParsedExpression* parsedDefault, const common::LogicalType& type,
         const std::string& tableName, const std::string& propertyName);
 
     /*** bind copy ***/
@@ -130,7 +129,7 @@ public:
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
         catalog::NodeTableCatalogEntry* nodeTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
-        catalog::RelTableCatalogEntry* relTableEntry);
+        catalog::RelTableCatalogEntry* relTableEntry, const std::string& groupName);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
@@ -280,7 +279,9 @@ public:
     /*** bind table entries ***/
     std::vector<catalog::TableCatalogEntry*> bindNodeTableEntries(
         const std::vector<std::string>& tableNames) const;
-    catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name) const;
+    KUZU_API catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name) const;
+    KUZU_API static catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name,
+        main::ClientContext* context);
     std::vector<catalog::TableCatalogEntry*> bindRelTableEntries(
         const std::vector<std::string>& tableNames) const;
 
@@ -289,9 +290,6 @@ public:
         const BoundProjectionBody& boundProjectionBody);
     static bool isOrderByKeyTypeSupported(const common::LogicalType& dataType);
 
-    KUZU_API static void validateTableExistence(const main::ClientContext& context,
-        const std::string& tableName);
-    KUZU_API static void validateNodeTableType(const catalog::TableCatalogEntry* entry);
     KUZU_API static void validateColumnExistence(const catalog::TableCatalogEntry* entry,
         const std::string& columnName);
 

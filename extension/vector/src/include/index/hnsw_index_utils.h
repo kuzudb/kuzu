@@ -25,7 +25,7 @@ struct HNSWIndexUtils {
         const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
         IndexOperation indexOperation);
 
-    static catalog::NodeTableCatalogEntry* bindNodeTable(const main::ClientContext& context,
+    static catalog::NodeTableCatalogEntry* bindNodeTable(main::ClientContext& context,
         const std::string& tableName, const std::string& indexName, IndexOperation indexOperation);
 
     static void validateAutoTransaction(const main::ClientContext& context,

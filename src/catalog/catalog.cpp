@@ -221,6 +221,18 @@ std::vector<RelGroupCatalogEntry*> Catalog::getRelGroupEntries(
     return result;
 }
 
+std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntriesFromGroup(
+    const Transaction* transaction, const std::string& name) const {
+    auto groupEntry = getRelGroupEntry(transaction, name);
+    KU_ASSERT(groupEntry);
+    std::vector<RelTableCatalogEntry*> result;
+    for (auto tableID : groupEntry->getRelTableIDs()) {
+        result.push_back(
+            getTableCatalogEntry(transaction, tableID)->ptrCast<RelTableCatalogEntry>());
+    }
+    return result;
+}
+
 void Catalog::dropRelGroupEntry(Transaction* transaction, oid_t id) {
     dropRelGroupEntry(transaction,
         relGroups->getEntryOfOID(transaction, id)->ptrCast<RelGroupCatalogEntry>());

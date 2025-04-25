@@ -100,7 +100,7 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     case WALRecordType::NODE_DELETION_RECORD: {
         replayNodeDeletionRecord(walRecord);
     } break;
-    case WALRecordType::NODE_UDPATE_RECORD: {
+    case WALRecordType::NODE_UPDATE_RECORD: {
         replayNodeUpdateRecord(walRecord);
     } break;
     case WALRecordType::REL_DELETION_RECORD: {

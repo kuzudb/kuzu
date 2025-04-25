@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/rel_batch_insert.h"
 
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
@@ -231,7 +232,7 @@ void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrH
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
         if (csrHeader.length->getData().getValue<length_t>(i) > 1) {
             throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
-                relInfo.tableEntry->getName(), std::to_string(i + startNodeOffset),
+                relInfo.groupName, std::to_string(i + startNodeOffset),
                 RelDirectionUtils::relDirectionToString(relInfo.direction)));
         }
     }
@@ -241,9 +242,11 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     if (relInfo->direction == RelDataDirection::FWD) {
         KU_ASSERT(relInfo->partitioningIdx == 0);
-
+        auto& relTableEntry = info->tableEntry->cast<RelTableCatalogEntry>();
+        auto relGroupEntry = relTableEntry.getParentRelGroup(context->clientContext->getCatalog(),
+            context->clientContext->getTransaction());
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
-            sharedState->getNumRows(), info->tableEntry->getName());
+            sharedState->getNumRows(), relGroupEntry->getName());
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
 
