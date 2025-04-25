@@ -66,7 +66,7 @@ static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
         if (prop.getType() == LogicalType::INTERNAL_ID()) {
             continue;
         }
-        columns += prop.getName();
+        columns += "`" + prop.getName() + "`";
         columns += i == numProperties - 1 ? "" : ",";
     }
     if (columns.empty()) {

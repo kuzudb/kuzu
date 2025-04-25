@@ -18,11 +18,13 @@ struct ExportedTableData {
 };
 
 class BoundExportDatabase final : public BoundStatement {
+    static constexpr common::StatementType type_ = common::StatementType::EXPORT_DATABASE;
+
 public:
     BoundExportDatabase(std::string filePath, common::FileTypeInfo fileTypeInfo,
         std::vector<ExportedTableData> exportData,
         common::case_insensitive_map_t<common::Value> csvOption)
-        : BoundStatement{common::StatementType::EXPORT_DATABASE,
+        : BoundStatement{type_,
               BoundStatementResult::createSingleStringColumnResult()},
           exportData(std::move(exportData)),
           boundFileInfo(std::move(fileTypeInfo), std::vector{std::move(filePath)}) {
