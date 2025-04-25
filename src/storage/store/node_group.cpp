@@ -382,9 +382,6 @@ void NodeGroup::reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock)
 }
 
 void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {
-    // We don't need to consider deletions here, as they are flushed separately as metadata.
-    // TODO(Guodong): A special case can be all rows are deleted or rollbacked, then we can skip
-    // flushing the data.
     const auto lock = chunkedGroups.lock();
     KU_ASSERT(chunkedGroups.getNumGroups(lock) >= 1);
     const auto firstGroup = chunkedGroups.getFirstGroup(lock);
