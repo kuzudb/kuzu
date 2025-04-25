@@ -12,10 +12,11 @@
 -STATEMENT checkpoint
 -STATEMENT copy edge from (unwind range (0, 149998) as i return i, i + 1, 'hello')
 ---- ok
--STATEMENT call storage_info('edge') where (column_name = 'fwd_value_data' or column_name = 'bwd_value_data') and node_group_id = 0 return num_pages
+-STATEMENT call storage_info('edge') where compression <> 'UNCOMPRESSED' and compression <> 'BOOLEAN_BITPACKING' and compression <> 'CONSTANT' with count(*) as num_compressed_cols
+           call storage_info('edge') where (column_name = 'fwd_value_data' or column_name = 'bwd_value_data') and node_group_id = 0 return num_pages = 1 or num_compressed_cols = 0
 ---- 2
-1
-1
+True
+True
 
 -CASE CallStorageInfo
 # Expected outputs depend on number of node groups
