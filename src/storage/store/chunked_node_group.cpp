@@ -505,6 +505,8 @@ void ChunkedNodeGroup::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
     serializer.writeDebuggingInfo("chunks");
     serializer.serializeVectorOfPtrs(chunks);
+    serializer.writeDebuggingInfo("startRowIdx");
+    serializer.write(startRowIdx);
     serializer.writeDebuggingInfo("has_version_info");
     serializer.write<bool>(versionInfo != nullptr);
     if (versionInfo) {
@@ -518,10 +520,13 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(MemoryManager& m
     std::string key;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     bool hasVersions = false;
+    row_idx_t startRowIdx = 0;
     deSer.validateDebuggingInfo(key, "chunks");
     deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks,
         [&](Deserializer& deser) { return ColumnChunk::deserialize(memoryManager, deser); });
-    auto chunkedGroup = std::make_unique<ChunkedNodeGroup>(std::move(chunks), 0 /*startRowIdx*/);
+    deSer.validateDebuggingInfo(key, "startRowIdx");
+    deSer.deserializeValue<row_idx_t>(startRowIdx);
+    auto chunkedGroup = std::make_unique<ChunkedNodeGroup>(std::move(chunks), startRowIdx);
     deSer.validateDebuggingInfo(key, "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);
     if (hasVersions) {

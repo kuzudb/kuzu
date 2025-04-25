@@ -210,7 +210,7 @@ public:
         FileHandle* dataFH, ColumnStats* newColumnStats) override;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
-    void reclaimStorage(FileHandle& dataFH) override;
+    void reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) const override;
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 

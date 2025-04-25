@@ -95,7 +95,8 @@ public:
         common::row_idx_t capacity = common::StorageConfig::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
-          numRows{chunkedNodeGroup->getNumRows()}, nextRowToAppend{numRows}, capacity{capacity} {
+          numRows{chunkedNodeGroup->getStartRowIdx() + chunkedNodeGroup->getNumRows()},
+          nextRowToAppend{numRows}, capacity{capacity} {
         for (auto i = 0u; i < chunkedNodeGroup->getNumColumns(); i++) {
             dataTypes.push_back(chunkedNodeGroup->getColumnChunk(i).getDataType().copy());
         }
@@ -158,7 +159,8 @@ public:
     void applyFuncToChunkedGroups(version_record_handler_op_t func, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const;
     void rollbackInsert(common::row_idx_t startRow);
-    virtual void reclaimStorage(FileHandle& dataFH);
+    void reclaimStorage(FileHandle& dataFH);
+    virtual void reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) const;
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
@@ -228,6 +230,9 @@ private:
     virtual NodeGroupScanResult scanInternal(const common::UniqLock& lock,
         transaction::Transaction* transaction, TableScanState& state, common::offset_t startOffset,
         common::offset_t numRowsToScan) const;
+
+    common::row_idx_t getStartRowIdxInGroupNoLock() const;
+    common::row_idx_t getStartRowIdxInGroup(const common::UniqLock& lock) const;
 
 protected:
     common::node_group_idx_t nodeGroupIdx;
