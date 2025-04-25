@@ -1,5 +1,6 @@
 #include "processor/operator/simple/import_db.h"
 
+#include "common/exception/runtime.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;
@@ -8,6 +9,16 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace processor {
+
+static void validateQueryResult(main::QueryResult* queryResult) {
+    auto currentResult = queryResult;
+    while (currentResult) {
+        if (!currentResult->isSuccess()) {
+            throw RuntimeException("Import database failed: " + currentResult->getErrorMessage());
+        }
+        currentResult = currentResult->getNextQueryResult();
+    }
+}
 
 void ImportDB::executeInternal(ExecutionContext* context) {
     if (query.empty()) { // Export empty database.
@@ -20,8 +31,12 @@ void ImportDB::executeInternal(ExecutionContext* context) {
     if (context->clientContext->getTransactionContext()->hasActiveTransaction()) {
         context->clientContext->getTransactionContext()->commit();
     }
-    context->clientContext->queryNoLock(query);
-    context->clientContext->queryNoLock(indexQuery);
+    auto res = context->clientContext->queryNoLock(query);
+    validateQueryResult(res.get());
+    if (!indexQuery.empty()) {
+        res = context->clientContext->queryNoLock(indexQuery);
+        validateQueryResult(res.get());
+    }
 }
 
 std::string ImportDB::getOutputMsg() {
