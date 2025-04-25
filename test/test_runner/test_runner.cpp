@@ -40,7 +40,9 @@ void TestRunner::runTest(TestStatement* statement, Connection& conn,
     // for normal statement
     spdlog::info("DEBUG LOG: {}", statement->logMessage);
     spdlog::info("QUERY: {}", statement->query);
-    conn.setMaxNumThreadForExec(statement->numThreads);
+    if (statement->numThreads) {
+        conn.setMaxNumThreadForExec(*statement->numThreads);
+    }
     testStatement(statement, conn, databasePath);
 }
 
