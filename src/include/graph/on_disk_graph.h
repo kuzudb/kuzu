@@ -149,7 +149,7 @@ public:
         catalog::TableCatalogEntry* nbrNodeEntry, std::vector<std::string> relProperties) override;
     // This is used for few random lookups in the relationship table. Internally we skip caching the
     // CSR header during scan.
-    std::unique_ptr<NbrScanState> prepareRelLookup(catalog::TableCatalogEntry* tableEntry) const;
+    std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry) const;
 
     EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) override;
     EdgeIterator scanBwd(common::nodeID_t nodeID, NbrScanState& state) override;
