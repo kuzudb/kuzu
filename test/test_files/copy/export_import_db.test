@@ -270,3 +270,21 @@ Farooq|1
 -STATEMENT IMPORT Database "${KUZU_ROOT_DIRECTORY}/dataset/import_db_error"
 ---- error
 Runtime exception: Import database failed: Binder exception: Table org does not exist.
+
+-CASE ExportDBWithSpecialPropertyName
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT CREATE NODE TABLE `N Table` (ID INT64 PRIMARY KEY, `PROP 1` STRING);
+---- ok
+-STATEMENT CREATE REL TABLE `R Table` (FROM `N Table` TO `N Table`, `PROP 1` STRING);
+---- ok
+-STATEMENT CREATE (a:`N Table` {id:0, `prop 1`: 'A'})-[:`R Table` {`prop 1`: 'Edge'}]->(b: `N Table` {id:1, `prop 1`: 'B'})
+---- ok
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_property_name" (format="csv");
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_property_name"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_property_name";
+---- ok
+-STATEMENT MATCH (a:`N Table`)-[e:`R Table`]->(b:`N Table`) RETURN a.*, e.*, b.*;
+---- 1
+0|A|Edge|1|B

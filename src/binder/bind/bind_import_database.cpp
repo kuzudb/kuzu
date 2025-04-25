@@ -39,7 +39,7 @@ static std::string getColumnNamesToCopy(const CopyFrom& copyFrom) {
     std::string delimiter = "";
     for (auto& column : copyFrom.getCopyColumnInfo().columnNames) {
         columns += delimiter;
-        columns += column;
+        columns += "`" + column + "`";
         if (delimiter == "") {
             delimiter = ",";
         }
