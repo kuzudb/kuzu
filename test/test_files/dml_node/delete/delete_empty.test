@@ -95,6 +95,7 @@
 -STATEMENT create node table Post (id INT64, imageFile STRING, creationDate INT64, locationIP STRING, browserUsed STRING, language STRING, content STRING, length INT32, PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
+-PARALLELISM 1
 ---- ok
 -STATEMENT call fsm_info() return *
 ---- 0
@@ -107,8 +108,8 @@ True
 ---- 1
 True
 -STATEMENT match (p:Post) with count(*) as remaining
-           optional match (p:Post) where ID(p) = internal_id(0, 135700) with p.locationIP as locationIP, remaining
-           return remaining = 0 or locationIP is not null
+           optional match (p:Post) where p.ID = 1030792523231 with p.imageFile as imageFile, remaining
+           return remaining = 0 or imageFile = 'photo1030792523231.jpg'
 ---- 1
 True
 
