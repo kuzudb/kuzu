@@ -8,7 +8,7 @@
 #include "binder/query/updating_clause/bound_set_clause.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
@@ -191,8 +191,8 @@ static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel, table_i
     table_id_t dstTableID) {
     std::vector<TableCatalogEntry*> candidates;
     for (auto& entry : rel.getEntries()) {
-        KU_ASSERT(entry->getType() == CatalogEntryType::REL_TABLE_ENTRY);
-        auto& relEntry = entry->constCast<RelTableCatalogEntry>();
+        KU_ASSERT(entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
+        auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
         if (relEntry.getSrcTableID() == srcTableID && relEntry.getDstTableID() == dstTableID) {
             candidates.push_back(entry);
         }
@@ -233,7 +233,7 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
         // LCOV_EXCL_STOP
     }
     rel->setEntries(std::vector<TableCatalogEntry*>{entry});
-    auto insertInfo = BoundInsertInfo(TableType::REL, rel);
+    auto insertInfo = BoundInsertInfo(TableType::REL_GROUP, rel);
     // Because we might prune entries, some property exprs may belong to pruned entry
     for (auto& p : entry->getProperties()) {
         insertInfo.columnExprs.push_back(rel->getPropertyExpression(p.getName()));
@@ -293,7 +293,7 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(const ParsedExpression* column,
         }
         return info;
     }
-    return BoundSetPropertyInfo(TableType::REL, expr, boundColumn, boundColumnData);
+    return BoundSetPropertyInfo(TableType::REL_GROUP, expr, boundColumn, boundColumnData);
 }
 
 expression_pair Binder::bindSetItem(const ParsedExpression* column,
@@ -325,7 +325,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
             if (rel->getDirectionType() == RelDirectionType::BOTH) {
                 throw BinderException("Delete undirected rel is not supported.");
             }
-            auto deleteRel = BoundDeleteInfo(deleteType, TableType::REL, pattern);
+            auto deleteRel = BoundDeleteInfo(deleteType, TableType::REL_GROUP, pattern);
             boundDeleteClause->addInfo(std::move(deleteRel));
         } else {
             throw BinderException(stringFormat(

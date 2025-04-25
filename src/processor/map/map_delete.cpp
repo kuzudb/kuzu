@@ -28,7 +28,7 @@ static void checkDetachDeleteRelDirection(const RelTable* relTable, const NodeTa
 table_id_set_t getFwdRelTableIDs(table_id_t nodeTableID, Catalog* catalog,
     transaction::Transaction* transaction) {
     table_id_set_t result;
-    for (const auto& relEntry : catalog->getRelTableEntries(transaction)) {
+    for (const auto& relEntry : catalog->getRelGroupEntries(transaction)) {
         if (relEntry->getSrcTableID() == nodeTableID) {
             result.insert(relEntry->getTableID());
         }
@@ -39,7 +39,7 @@ table_id_set_t getFwdRelTableIDs(table_id_t nodeTableID, Catalog* catalog,
 table_id_set_t getBwdRelTableIDs(table_id_t nodeTableID, Catalog* catalog,
     transaction::Transaction* transaction) {
     table_id_set_t result;
-    for (const auto& relEntry : catalog->getRelTableEntries(transaction)) {
+    for (const auto& relEntry : catalog->getRelGroupEntries(transaction)) {
         if (relEntry->getDstTableID() == nodeTableID) {
             result.insert(relEntry->getTableID());
         }

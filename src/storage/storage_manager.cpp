@@ -171,7 +171,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     const auto nodeTableEntries =
         clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     const auto relTableEntries =
-        clientContext.getCatalog()->getRelTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+        clientContext.getCatalog()->getRelGroupEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     const auto numTables = nodeTableEntries.size() + relTableEntries.size();
     ser.writeDebuggingInfo("num_tables");
     ser.write<uint64_t>(numTables);
