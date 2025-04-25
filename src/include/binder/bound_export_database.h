@@ -24,8 +24,7 @@ public:
     BoundExportDatabase(std::string filePath, common::FileTypeInfo fileTypeInfo,
         std::vector<ExportedTableData> exportData,
         common::case_insensitive_map_t<common::Value> csvOption)
-        : BoundStatement{type_,
-              BoundStatementResult::createSingleStringColumnResult()},
+        : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
           exportData(std::move(exportData)),
           boundFileInfo(std::move(fileTypeInfo), std::vector{std::move(filePath)}) {
         boundFileInfo.options = std::move(csvOption);
