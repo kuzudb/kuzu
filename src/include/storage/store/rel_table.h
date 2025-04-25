@@ -20,6 +20,7 @@ struct RelTableScanState : TableScanState {
     common::sel_t currBoundNodeIdx;
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
+    bool randomLookup;
 
     // This is a reference of the original selVector of the input boundNodeIDVector.
     common::SelectionVector cachedBoundNodeSelVector;
@@ -28,11 +29,12 @@ struct RelTableScanState : TableScanState {
 
     RelTableScanState(MemoryManager& mm, common::ValueVector* nodeIDVector,
         std::vector<common::ValueVector*> outputVectors,
-        std::shared_ptr<common::DataChunkState> outChunkState)
+        std::shared_ptr<common::DataChunkState> outChunkState, bool randomLookup = false)
         : TableScanState{nodeIDVector, std::move(outputVectors), std::move(outChunkState)},
           direction{common::RelDataDirection::INVALID}, currBoundNodeIdx{0},
-          csrOffsetColumn{nullptr}, csrLengthColumn{nullptr}, localTableScanState{nullptr} {
-        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(mm);
+          csrOffsetColumn{nullptr}, csrLengthColumn{nullptr}, randomLookup{randomLookup},
+          localTableScanState{nullptr} {
+        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(mm, randomLookup);
     }
 
     // This is for local table scan state.
@@ -41,7 +43,8 @@ struct RelTableScanState : TableScanState {
         std::shared_ptr<common::DataChunkState> outChunkState)
         : TableScanState{nodeIDVector, std::move(outputVectors), std::move(outChunkState)},
           direction{common::RelDataDirection::INVALID}, currBoundNodeIdx{0},
-          csrOffsetColumn{nullptr}, csrLengthColumn{nullptr}, localTableScanState{nullptr} {
+          csrOffsetColumn{nullptr}, csrLengthColumn{nullptr}, randomLookup{false},
+          localTableScanState{nullptr} {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>();
     }
 
@@ -175,8 +178,7 @@ public:
     }
     common::column_id_t getNumColumns() const {
         KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
+        RUNTIME_CHECK(for (const auto& relData : directedRelData) {
             KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
         });
         return directedRelData[0]->getNumColumns();

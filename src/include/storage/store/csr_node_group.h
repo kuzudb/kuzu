@@ -135,11 +135,11 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     explicit CSRNodeGroupScanState(common::idx_t numChunks)
         : NodeGroupScanState{numChunks}, header{nullptr}, numTotalRows{0}, numCachedRows{0},
           nextCachedRowToScan{0}, source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {}
-    explicit CSRNodeGroupScanState(MemoryManager& mm)
+    explicit CSRNodeGroupScanState(MemoryManager& mm, bool randomLookup = false)
         : numTotalRows{0}, numCachedRows{0}, nextCachedRowToScan{0},
           source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {
         header = std::make_unique<ChunkedCSRHeader>(mm, false,
-            common::StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+            randomLookup ? 1 : common::StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     }
 
     bool tryScanCachedTuples(RelTableScanState& tableScanState);
