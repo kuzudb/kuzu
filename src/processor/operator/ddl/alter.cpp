@@ -208,7 +208,7 @@ void Alter::alterRelGroup(main::ClientContext* clientContext, RelGroupCatalogEnt
     auto transaction = clientContext->getTransaction();
     alterRelGroupChildren(clientContext, entry, alterInfo);
     checkAlterRelGroupConflicts(alterInfo, clientContext);
-    //catalog->alterRelGroupEntry(transaction, info);
+    // catalog->alterRelGroupEntry(transaction, info);
 }
 
 void Alter::alterRelGroupChildren(main::ClientContext* clientContext, RelGroupCatalogEntry* entry,

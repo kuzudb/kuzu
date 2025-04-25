@@ -58,7 +58,6 @@ RelTableInfo RelTableInfo::deserialize(common::Deserializer& deser) {
 //     return newEntry;
 // }
 
-
 void RelGroupCatalogEntry::serialize(Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
     serializer.writeDebuggingInfo("srcMultiplicity");

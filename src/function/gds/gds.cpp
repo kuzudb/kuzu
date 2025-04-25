@@ -125,15 +125,16 @@ GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const ParsedGraph
             validateRelSrcDstNodeAreProjected(*boundInfo.entry, relInfo.tableName,
                 projectedNodeTableIDSet, catalog, transaction);
             result.relInfos.push_back(std::move(boundInfo));
-//        } else if (catalog->containsRelGroup(transaction, relInfo.tableName)) {
-//            auto groupEntry = catalog->getRelGroupEntry(transaction, relInfo.tableName);
-//            for (auto tableID : groupEntry->getRelTableIDs()) {
-//                auto relEntry = catalog->getTableCatalogEntry(transaction, tableID);
-//                auto boundInfo = bindRelEntry(context, relEntry->getName(), relInfo.predicate);
-//                validateRelSrcDstNodeAreProjected(*boundInfo.entry, relInfo.tableName,
-//                    projectedNodeTableIDSet, catalog, transaction);
-//                result.relInfos.push_back(std::move(boundInfo));
-//            }
+            //        } else if (catalog->containsRelGroup(transaction, relInfo.tableName)) {
+            //            auto groupEntry = catalog->getRelGroupEntry(transaction,
+            //            relInfo.tableName); for (auto tableID : groupEntry->getRelTableIDs()) {
+            //                auto relEntry = catalog->getTableCatalogEntry(transaction, tableID);
+            //                auto boundInfo = bindRelEntry(context, relEntry->getName(),
+            //                relInfo.predicate);
+            //                validateRelSrcDstNodeAreProjected(*boundInfo.entry, relInfo.tableName,
+            //                    projectedNodeTableIDSet, catalog, transaction);
+            //                result.relInfos.push_back(std::move(boundInfo));
+            //            }
         } else {
             throw BinderException(stringFormat("{} is not a REL table.", relInfo.tableName));
         }
