@@ -130,7 +130,10 @@ std::string getIndexCypher(ClientContext* clientContext, const FileScanInfo& exp
     IndexToCypherInfo info{clientContext, exportFileInfo};
     for (auto entry :
         clientContext->getCatalog()->getIndexEntries(clientContext->getTransaction())) {
-        ss << entry->toCypher(info) << std::endl;
+        auto indexCypher = entry->toCypher(info);
+        if (!indexCypher.empty()) {
+            ss << indexCypher << std::endl;
+        }
     }
     return ss.str();
 }
