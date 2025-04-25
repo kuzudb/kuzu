@@ -8,7 +8,6 @@
 namespace kuzu {
 namespace common {
 
-// TODO(Guodong/Ziyi/Xiyang): Should we remove this and instead use `CatalogEntryType`?
 enum class TableType : uint8_t {
     UNKNOWN = 0,
     NODE = 1,

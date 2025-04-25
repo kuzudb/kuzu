@@ -113,7 +113,7 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
     }
     auto table =
         context->getStorageManager()->getTable(tableEntry->getTableID())->ptrCast<RelTable>();
-    for (auto dataDirection : tableEntry->ptrCast<RelTableCatalogEntry>()->getRelDataDirections()) {
+    for (auto dataDirection : tableEntry->ptrCast<RelGroupCatalogEntry>()->getRelDataDirections()) {
         auto columnIDs = getColumnIDs(predicateProps, *tableEntry, relPropertyColumnIDs);
         std::vector outVectors{dstNodeIDVector.get()};
         for (auto& propertyVector : propertyVectors) {
@@ -133,8 +133,8 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
 OnDiskGraph::OnDiskGraph(ClientContext* context, GraphEntry entry)
     : context{context}, graphEntry{std::move(entry)} {
     auto storage = context->getStorageManager();
-    auto catalog = context->getCatalog();
-    auto transaction = context->getTransaction();
+    // auto catalog = context->getCatalog();
+    // auto transaction = context->getTransaction();
     for (const auto& nodeInfo : graphEntry.nodeInfos) {
         auto id = nodeInfo.entry->getTableID();
         nodeIDToNodeTable.insert({id, storage->getTable(id)->ptrCast<NodeTable>()});
@@ -142,14 +142,15 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, GraphEntry entry)
     for (const auto& nodeInfo : graphEntry.nodeInfos) {
         auto id = nodeInfo.entry->getTableID();
         nodeIDToNbrTableInfos.insert({id, {}});
-        for (auto& relInfo : graphEntry.relInfos) {
-            auto relEntry = relInfo.entry->ptrCast<RelTableCatalogEntry>();
-            if (relEntry->getSrcTableID() != id) {
-                continue;
-            }
-            auto dstEntry = catalog->getTableCatalogEntry(transaction, relEntry->getDstTableID());
-            nodeIDToNbrTableInfos.at(id).emplace_back(dstEntry, relInfo.entry);
-        }
+        // for (auto& relInfo : graphEntry.relInfos) {
+        //     auto relGroupEntry = relInfo.entry->ptrCast<RelGroupCatalogEntry>();
+        //     if (!relGroupEntry->getSrcNodeTableIDSet().contains(id)) {
+        //         continue;
+        //     }
+        //     auto dstEntry = catalog->getTableCatalogEntry(transaction,
+        //     relEntry->getDstTableID()); nodeIDToNbrTableInfos.at(id).emplace_back(dstEntry,
+        //     relInfo.entry);
+        // }
     }
 }
 

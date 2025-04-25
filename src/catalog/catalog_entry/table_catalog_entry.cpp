@@ -4,7 +4,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 
 using namespace kuzu::binder;
@@ -55,10 +54,6 @@ void TableCatalogEntry::vacuumColumnIDs(column_id_t nextColumnID) {
     propertyCollection.vacuumColumnIDs(nextColumnID);
 }
 
-std::string TableCatalogEntry::propertiesToCypher() const {
-    return propertyCollection.toCypher();
-}
-
 bool TableCatalogEntry::containsProperty(const std::string& propertyName) const {
     return propertyCollection.contains(propertyName);
 }
@@ -96,20 +91,6 @@ void TableCatalogEntry::renameProperty(const std::string& propertyName,
     propertyCollection.rename(propertyName, newName);
 }
 
-std::string TableCatalogEntry::getLabel(const Catalog* catalog,
-    const transaction::Transaction* transaction) {
-    if (type == CatalogEntryType::NODE_TABLE_ENTRY) {
-        return name;
-    }
-    KU_ASSERT(type == CatalogEntryType::REL_TABLE_ENTRY);
-    for (auto& relGroup : catalog->getRelGroupEntries(transaction)) {
-        if (relGroup->isParent(getTableID())) {
-            return relGroup->getName();
-        }
-    }
-    return name;
-}
-
 void TableCatalogEntry::serialize(Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
     serializer.writeDebuggingInfo("comment");
@@ -131,8 +112,8 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& 
     case CatalogEntryType::NODE_TABLE_ENTRY:
         result = NodeTableCatalogEntry::deserialize(deserializer);
         break;
-    case CatalogEntryType::REL_TABLE_ENTRY:
-        result = RelTableCatalogEntry::deserialize(deserializer);
+    case CatalogEntryType::REL_GROUP_ENTRY:
+        result = RelGroupCatalogEntry::deserialize(deserializer);
         break;
     default:
         KU_UNREACHABLE;

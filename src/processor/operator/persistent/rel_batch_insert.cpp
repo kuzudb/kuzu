@@ -30,12 +30,10 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
     localState->chunkedGroup =
         std::make_unique<ChunkedCSRNodeGroup>(*context->clientContext->getMemoryManager(),
             relInfo->columnTypes, relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
-    const auto nbrTableID =
-        relInfo->tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(relInfo->direction);
     const auto relTableID = relInfo->tableEntry->getTableID();
     // TODO(Guodong): Get rid of the hard-coded nbr and rel column ID 0/1.
     localState->chunkedGroup->getColumnChunk(0).getData().cast<InternalIDChunkData>().setTableID(
-        nbrTableID);
+        relInfo->nbrTableID);
     localState->chunkedGroup->getColumnChunk(1).getData().cast<InternalIDChunkData>().setTableID(
         relTableID);
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
@@ -55,15 +53,16 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         const auto clientContext = context->clientContext;
         const auto catalog = clientContext->getCatalog();
         const auto transaction = clientContext->getTransaction();
-        const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
-        const auto& relTableEntry = tableEntry->constCast<RelTableCatalogEntry>();
+        const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, tableName)
+                                        ->constCast<RelGroupCatalogEntry>();
 
         sharedState->table = partitionerSharedState->relTable;
+        // TODO(Xiyang): rewrite me
         logical_type_vec_t newColumnTypes;
         newColumnTypes.push_back(LogicalType::INTERNAL_ID());
         info->insertColumnIDs.push_back(0);
-        for (auto& property : relTableEntry.getProperties()) {
-            info->insertColumnIDs.push_back(relTableEntry.getColumnID(property.getName()));
+        for (auto& property : relGroupEntry.getProperties()) {
+            info->insertColumnIDs.push_back(relGroupEntry.getColumnID(property.getName()));
             newColumnTypes.push_back(property.getType().copy());
         }
         for (auto&& warningDataColumnType : relBatchInsertInfo->columnTypes) {
@@ -253,8 +252,8 @@ void RelBatchInsert::setRowIdxFromCSROffsets(ColumnChunkData& rowIdxChunk,
 
 void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrHeader,
     offset_t startNodeOffset, const RelBatchInsertInfo& relInfo) {
-    auto& relTableEntry = relInfo.tableEntry->constCast<RelTableCatalogEntry>();
-    if (!relTableEntry.isSingleMultiplicity(relInfo.direction)) {
+    auto& relGroupEntry = relInfo.tableEntry->constCast<RelGroupCatalogEntry>();
+    if (!relGroupEntry.isSingleMultiplicity(relInfo.direction)) {
         return;
     }
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {

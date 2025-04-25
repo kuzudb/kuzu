@@ -25,11 +25,11 @@ static std::vector<LogicalType> getTypesForLocalRelTable(const catalog::TableCat
     return types;
 }
 
-LocalRelTable::LocalRelTable(const catalog::TableCatalogEntry* tableEntry, Table& table)
+LocalRelTable::LocalRelTable(const catalog::TableCatalogEntry* tableEntry, const Table& table)
     : LocalTable{table} {
     localNodeGroup = std::make_unique<NodeGroup>(0, false, getTypesForLocalRelTable(*tableEntry),
         INVALID_ROW_IDX);
-    const auto& relTable = table.cast<RelTable&>();
+    const auto& relTable = table.cast<RelTable>();
     for (auto relDirection : relTable.getStorageDirections()) {
         directedIndices.emplace_back(relDirection);
     }

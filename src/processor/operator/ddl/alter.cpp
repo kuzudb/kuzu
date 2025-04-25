@@ -3,7 +3,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/alter_type.h"
 #include "common/exception/binder.h"
 #include "processor/execution_context.h"
@@ -31,19 +30,7 @@ void Alter::executeInternal(ExecutionContext* context) {
     auto transaction = clientContext->getTransaction();
     if (catalog->containsTable(transaction, info.tableName)) {
         auto entry = catalog->getTableCatalogEntry(transaction, info.tableName);
-        if (entry->getType() == CatalogEntryType::REL_TABLE_ENTRY) {
-            auto parentGroup =
-                entry->constCast<RelTableCatalogEntry>().getParentRelGroup(catalog, transaction);
-            if (parentGroup != nullptr) {
-                throw RuntimeException(
-                    stringFormat("Cannot alter table {} because it is referenced by table {}.",
-                        info.tableName, parentGroup->getName()));
-            }
-        }
         alterTable(clientContext, entry, info);
-    } else if (catalog->containsRelGroup(transaction, info.tableName)) {
-        auto entry = catalog->getRelGroupEntry(transaction, info.tableName);
-        alterRelGroup(clientContext, entry, info);
     } else {
         throw BinderException("Table " + info.tableName + " does not exist.");
     }
@@ -102,7 +89,7 @@ static bool checkAddPropertyConflicts(TableCatalogEntry* tableEntry, const Bound
 
     // Eventually, we want to support non-constant default on rel tables, but it is non-trivial
     // due to FWD/BWD storage
-    if (tableEntry->getType() == CatalogEntryType::REL_TABLE_ENTRY &&
+    if (tableEntry->getType() == CatalogEntryType::REL_GROUP_ENTRY &&
         extraInfo->boundDefault->expressionType != ExpressionType::LITERAL) {
         throw RuntimeException(
             "Cannot set a non-constant default value when adding columns on REL tables.");
@@ -141,8 +128,7 @@ static bool checkRenamePropertyConflicts(TableCatalogEntry* tableEntry,
 static void checkNewTableNameNotExist(const std::string& newName, main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
-    if (catalog->containsRelGroup(transaction, newName) ||
-        catalog->containsTable(transaction, newName)) {
+    if (catalog->containsTable(transaction, newName)) {
         throw BinderException("Table " + newName + " already exists.");
     }
 }
@@ -186,52 +172,42 @@ void Alter::alterTable(main::ClientContext* clientContext, TableCatalogEntry* en
         auto* alteredEntry = catalog->getTableCatalogEntry(transaction, alterInfo.tableName);
         auto& addedProp = alteredEntry->getProperty(boundAddPropInfo.propertyDefinition.getName());
         storage::TableAddColumnState state{addedProp, *defaultValueEvaluator};
-        storageManager->getTable(alteredEntry->getTableID())->addColumn(transaction, state);
+        switch (alteredEntry->getTableType()) {
+        case TableType::NODE: {
+            storageManager->getTable(alteredEntry->getTableID())->addColumn(transaction, state);
+        } break;
+        case TableType::REL: {
+            for (auto& innerRelEntry :
+                alteredEntry->cast<RelGroupCatalogEntry>().getRelEntryInfos()) {
+                auto* relTable = storageManager->getTable(innerRelEntry.oid);
+                relTable->addColumn(transaction, state);
+            }
+        } break;
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
     } break;
     case AlterType::DROP_PROPERTY: {
         auto* alteredEntry = catalog->getTableCatalogEntry(transaction, alterInfo.tableName);
-        storageManager->getTable(alteredEntry->getTableID())->dropColumn();
+        switch (alteredEntry->getTableType()) {
+        case TableType::NODE: {
+            storageManager->getTable(alteredEntry->getTableID())->dropColumn();
+        } break;
+        case TableType::REL: {
+            for (auto& innerRelEntry :
+                alteredEntry->cast<RelGroupCatalogEntry>().getRelEntryInfos()) {
+                auto* relTable = storageManager->getTable(innerRelEntry.oid);
+                relTable->dropColumn();
+            }
+        } break;
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
     } break;
     default:
         break;
-    }
-}
-
-static void checkAlterRelGroupConflicts(const BoundAlterInfo& info, main::ClientContext* context) {
-    switch (info.alterType) {
-    case AlterType::RENAME:
-        checkRenameTableConflicts(info, context);
-    default:
-        break;
-    }
-}
-
-void Alter::alterRelGroup(main::ClientContext* clientContext, RelGroupCatalogEntry* entry,
-    const BoundAlterInfo& alterInfo) const {
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
-    alterRelGroupChildren(clientContext, entry, alterInfo);
-    checkAlterRelGroupConflicts(alterInfo, clientContext);
-    catalog->alterRelGroupEntry(transaction, info);
-}
-
-void Alter::alterRelGroupChildren(main::ClientContext* clientContext, RelGroupCatalogEntry* entry,
-    const binder::BoundAlterInfo& alterInfo) const {
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
-    for (auto tableID : entry->getRelTableIDs()) {
-        auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
-        auto tableAlterInfo = alterInfo.copy();
-        tableAlterInfo.tableName = tableEntry->getName();
-        if (tableAlterInfo.alterType == AlterType::RENAME) {
-            KU_ASSERT(tableAlterInfo.tableName.starts_with(entry->getName()));
-            // table name is in format {rel_group_name}{suffix}
-            // rename to {new_rel_group_name}{suffix}
-            auto& extraInfo = tableAlterInfo.extraInfo->cast<BoundExtraRenameTableInfo>();
-            auto tableNameSuffix = tableEntry->getName().substr(entry->getName().size());
-            extraInfo.newName.append(tableNameSuffix);
-        }
-        alterTable(clientContext, tableEntry, tableAlterInfo);
     }
 }
 

@@ -38,24 +38,26 @@ static expression_vector getResultColumns(const std::string& cypher, ClientConte
     return boundStatement->getStatementResult()->getColumns();
 }
 
-static void validateNodeProjected(table_id_t tableID, const table_id_set_t& projectedNodeIDSet,
-    const std::string& relName, Catalog* catalog, transaction::Transaction* transaction) {
-    if (projectedNodeIDSet.contains(tableID)) {
-        return;
+static void validateNodeProjected(const table_id_set_t& connectedNodeTableIDSet,
+    const table_id_set_t& projectedNodeIDSet, const std::string& relName, Catalog* catalog,
+    transaction::Transaction* transaction) {
+    for (auto id : connectedNodeTableIDSet) {
+        if (!projectedNodeIDSet.contains(id)) {
+            auto entryName = catalog->getTableCatalogEntry(transaction, id)->getName();
+            throw BinderException(
+                stringFormat("{} is connected to {} but not projected.", entryName, relName));
+        }
     }
-    auto entryName = catalog->getTableCatalogEntry(transaction, tableID)->getName();
-    throw BinderException(
-        stringFormat("{} is connected to {} but not projected.", entryName, relName));
 }
 
 static void validateRelSrcDstNodeAreProjected(const TableCatalogEntry& entry,
-    const std::string printableRelName, const table_id_set_t& projectedNodeIDSet, Catalog* catalog,
+    const table_id_set_t& projectedNodeIDSet, Catalog* catalog,
     transaction::Transaction* transaction) {
-    auto& relEntry = entry.constCast<RelTableCatalogEntry>();
-    validateNodeProjected(relEntry.getSrcTableID(), projectedNodeIDSet, printableRelName, catalog,
-        transaction);
-    validateNodeProjected(relEntry.getDstTableID(), projectedNodeIDSet, printableRelName, catalog,
-        transaction);
+    auto& relEntry = entry.constCast<RelGroupCatalogEntry>();
+    validateNodeProjected(relEntry.getSrcNodeTableIDSet(), projectedNodeIDSet, relEntry.getName(),
+        catalog, transaction);
+    validateNodeProjected(relEntry.getDstNodeTableIDSet(), projectedNodeIDSet, relEntry.getName(),
+        catalog, transaction);
 }
 
 GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const std::string& name) {
@@ -91,7 +93,7 @@ static BoundGraphEntryTableInfo bindRelEntry(ClientContext& context, const std::
     auto catalog = context.getCatalog();
     auto transaction = context.getTransaction();
     auto relEntry = catalog->getTableCatalogEntry(transaction, tableName);
-    if (relEntry->getType() != CatalogEntryType::REL_TABLE_ENTRY) {
+    if (relEntry->getType() != CatalogEntryType::REL_GROUP_ENTRY) {
         throw BinderException(
             stringFormat("{} has catalog entry type. REL entry was expected.", tableName));
     }
@@ -122,18 +124,9 @@ GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const ParsedGraph
     for (auto& relInfo : entry.relInfos) {
         if (catalog->containsTable(transaction, relInfo.tableName)) {
             auto boundInfo = bindRelEntry(context, relInfo.tableName, relInfo.predicate);
-            validateRelSrcDstNodeAreProjected(*boundInfo.entry, relInfo.tableName,
-                projectedNodeTableIDSet, catalog, transaction);
+            validateRelSrcDstNodeAreProjected(*boundInfo.entry, projectedNodeTableIDSet, catalog,
+                transaction);
             result.relInfos.push_back(std::move(boundInfo));
-        } else if (catalog->containsRelGroup(transaction, relInfo.tableName)) {
-            auto groupEntry = catalog->getRelGroupEntry(transaction, relInfo.tableName);
-            for (auto tableID : groupEntry->getRelTableIDs()) {
-                auto relEntry = catalog->getTableCatalogEntry(transaction, tableID);
-                auto boundInfo = bindRelEntry(context, relEntry->getName(), relInfo.predicate);
-                validateRelSrcDstNodeAreProjected(*boundInfo.entry, relInfo.tableName,
-                    projectedNodeTableIDSet, catalog, transaction);
-                result.relInfos.push_back(std::move(boundInfo));
-            }
         } else {
             throw BinderException(stringFormat("{} is not a REL table.", relInfo.tableName));
         }
@@ -142,7 +135,7 @@ GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const ParsedGraph
 }
 
 std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput& bindInput,
-    const std::vector<catalog::TableCatalogEntry*>& nodeEntries) {
+    const std::vector<TableCatalogEntry*>& nodeEntries) {
     std::string nodeColumnName = NODE_COLUMN_NAME;
     if (!bindInput.yieldVariables.empty()) {
         nodeColumnName = bindColumnName(bindInput.yieldVariables[0], nodeColumnName);

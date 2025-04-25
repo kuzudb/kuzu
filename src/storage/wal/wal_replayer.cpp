@@ -1,7 +1,6 @@
 #include "../../include/storage/wal/wal_replayer.h"
 
 #include "binder/binder.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
@@ -136,31 +135,12 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
     auto storageManager = clientContext.getStorageManager();
     auto& record = walRecord.constCast<CreateCatalogEntryRecord>();
     switch (record.ownedCatalogEntry->getType()) {
-    case CatalogEntryType::NODE_TABLE_ENTRY: {
-        auto& entry = record.ownedCatalogEntry->constCast<TableCatalogEntry>();
-        auto newEntry = catalog->createTableEntry(transaction,
-            entry.getBoundCreateTableInfo(transaction, record.isInternal));
-        storageManager->createTable(newEntry, &clientContext);
-    } break;
-    case CatalogEntryType::REL_TABLE_ENTRY: {
-        auto& entry = record.ownedCatalogEntry->constCast<TableCatalogEntry>();
-        auto newEntry = catalog->createTableEntry(transaction,
-            entry.getBoundCreateTableInfo(transaction, record.isInternal));
-        storageManager->createTable(newEntry, &clientContext);
-    } break;
+    case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY: {
-        auto& entry = record.ownedCatalogEntry->constCast<RelGroupCatalogEntry>();
-        std::vector<table_id_t> childrenTableIDs;
-        for (auto& ownedChildEntry : record.ownedChildrenEntries) {
-            auto info = ownedChildEntry->ptrCast<TableCatalogEntry>()->getBoundCreateTableInfo(
-                transaction, record.isInternal);
-            KU_ASSERT(info.hasParent == true && info.type == CatalogEntryType::REL_TABLE_ENTRY);
-            auto childEntry = catalog->createTableEntry(transaction, info);
-            childrenTableIDs.push_back(childEntry->ptrCast<TableCatalogEntry>()->getTableID());
-        }
-        auto newEntry =
-            catalog->createRelGroupEntry(transaction, entry.getName(), std::move(childrenTableIDs));
-        storageManager->createTable(newEntry, &clientContext);
+        auto& entry = record.ownedCatalogEntry->constCast<TableCatalogEntry>();
+        auto newEntry = catalog->createTableEntry(transaction,
+            entry.getBoundCreateTableInfo(transaction, record.isInternal));
+        storageManager->createTable(newEntry->ptrCast<TableCatalogEntry>());
     } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {
         auto& macroEntry = record.ownedCatalogEntry->constCast<ScalarMacroCatalogEntry>();
@@ -189,12 +169,9 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
     const auto entryID = dropEntryRecord.entryID;
     switch (dropEntryRecord.entryType) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
-    case CatalogEntryType::REL_TABLE_ENTRY: {
+    case CatalogEntryType::REL_GROUP_ENTRY: {
         KU_ASSERT(clientContext.getCatalog());
         catalog->dropTableEntry(transaction, entryID);
-    } break;
-    case CatalogEntryType::REL_GROUP_ENTRY: {
-        catalog->dropRelGroupEntry(transaction, entryID);
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
         catalog->dropSequence(transaction, entryID);

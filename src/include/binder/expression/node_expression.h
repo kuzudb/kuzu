@@ -12,7 +12,7 @@ public:
         : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
               std::move(entries)} {}
 
-    ~NodeExpression() override;
+    bool isMultiLabeled() const override { return entries.size() > 1; }
 
     void setInternalID(std::unique_ptr<Expression> expression) {
         internalID = std::move(expression);
@@ -22,7 +22,7 @@ public:
         return internalID->copy();
     }
 
-    // Get primary key property expression for a given table ID.
+    // Get the primary key property expression for a given table ID.
     std::shared_ptr<Expression> getPrimaryKey(common::table_id_t tableID) const;
 
 private:

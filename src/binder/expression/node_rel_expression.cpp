@@ -34,16 +34,6 @@ void NodeOrRelExpression::addEntries(const std::vector<TableCatalogEntry*>& entr
     }
 }
 
-TableCatalogEntry* NodeOrRelExpression::getSingleEntry() const {
-    // LCOV_EXCL_START
-    if (entries.empty()) {
-        throw RuntimeException(
-            "Trying to access table id in an empty node. This should never happen");
-    }
-    // LCOV_EXCL_STOP
-    return entries[0];
-}
-
 void NodeOrRelExpression::addPropertyExpression(const std::string& propertyName,
     std::unique_ptr<Expression> property) {
     KU_ASSERT(!propertyNameToIdx.contains(propertyName));

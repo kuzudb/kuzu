@@ -35,8 +35,9 @@ NodeInsertExecutor PlanMapper::getNodeInsertExecutor(const LogicalInsertInfo* bo
     auto columnsPos = populateReturnColumnsPos(*boundInfo, outSchema);
     auto info = NodeInsertInfo(nodeIDPos, columnsPos, boundInfo->conflictAction);
     auto storageManager = clientContext->getStorageManager();
-    auto table =
-        storageManager->getTable(node.getSingleEntry()->getTableID())->ptrCast<NodeTable>();
+    KU_ASSERT(node.getNumEntries() == 1);
+    ;
+    auto table = storageManager->getTable(node.getEntry(0)->getTableID())->ptrCast<NodeTable>();
     evaluator_vector_t evaluators;
     auto exprMapper = ExpressionMapper(&inSchema);
     for (auto& expr : boundInfo->columnDataExprs) {
@@ -56,7 +57,13 @@ RelInsertExecutor PlanMapper::getRelInsertExecutor(const LogicalInsertInfo* boun
     auto columnsPos = populateReturnColumnsPos(*boundInfo, outSchema);
     auto info = RelInsertInfo(srcNodeIDPos, dstNodeIDPos, std::move(columnsPos));
     auto storageManager = clientContext->getStorageManager();
-    auto table = storageManager->getTable(rel.getSingleEntry()->getTableID())->ptrCast<RelTable>();
+    KU_ASSERT(srcNode->getNumEntries() == 1 && dstNode->getNumEntries() == 1);
+    auto srcTableID = srcNode->getEntry(0)->getTableID();
+    auto dstTableID = dstNode->getEntry(0)->getTableID();
+    KU_ASSERT(rel.getNumEntries() == 1);
+    auto& relGroupEntry = rel.getEntry(0)->constCast<RelGroupCatalogEntry>();
+    auto relEntryInfo = relGroupEntry.getRelEntryInfo(srcTableID, dstTableID);
+    auto table = storageManager->getTable(relEntryInfo->oid)->ptrCast<RelTable>();
     evaluator_vector_t evaluators;
     auto exprMapper = ExpressionMapper(&outSchema);
     for (auto& expr : boundInfo->columnDataExprs) {

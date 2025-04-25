@@ -32,7 +32,8 @@ struct DirectedCSRIndex {
 
 class LocalRelTable final : public LocalTable {
 public:
-    LocalRelTable(const catalog::TableCatalogEntry* tableEntry, Table& table);
+    LocalRelTable(const catalog::TableCatalogEntry* tableEntry, const Table& table);
+    DELETE_COPY_AND_MOVE(LocalRelTable);
 
     bool insert(transaction::Transaction* transaction, TableInsertState& state) override;
     bool update(transaction::Transaction* transaction, TableUpdateState& state) override;
@@ -57,8 +58,7 @@ public:
     }
     bool isEmpty() const {
         KU_ASSERT(directedIndices.size() >= 1);
-        RUNTIME_CHECK(for (const auto& index
-                           : directedIndices) {
+        RUNTIME_CHECK(for (const auto& index : directedIndices) {
             KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
         });
         return directedIndices[0].isEmpty();

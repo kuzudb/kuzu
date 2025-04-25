@@ -1,7 +1,6 @@
 #include "processor/operator/partitioner.h"
 
 #include "binder/expression/expression_util.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/rel_batch_insert.h"
 #include "storage/storage_manager.h"
@@ -69,7 +68,7 @@ void PartitionerSharedState::merge(
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-         partitioningIdx++) {
+        partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(*localPartitioningStates[partitioningIdx]);
     }
 }
@@ -95,16 +94,19 @@ void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
     const auto clientContext = context->clientContext;
     // If initialization is required
     if (!sharedState->srcNodeTable) {
-        const auto storageManager = clientContext->getStorageManager();
-        const auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(
-            clientContext->getTransaction(), dataInfo.tableName);
-        const auto& relTableEntry = tableEntry->constCast<catalog::RelTableCatalogEntry>();
-        sharedState->srcNodeTable =
-            storageManager->getTable(relTableEntry.getSrcTableID())->ptrCast<NodeTable>();
-        sharedState->dstNodeTable =
-            storageManager->getTable(relTableEntry.getDstTableID())->ptrCast<NodeTable>();
-        sharedState->relTable =
-            storageManager->getTable(relTableEntry.getTableID())->ptrCast<RelTable>();
+        auto storageManager = clientContext->getStorageManager();
+        auto catalog = clientContext->getCatalog();
+        auto transaction = clientContext->getTransaction();
+        auto fromTableID =
+            catalog->getTableCatalogEntry(transaction, dataInfo.fromTableName)->getTableID();
+        auto toTableID =
+            catalog->getTableCatalogEntry(transaction, dataInfo.toTableName)->getTableID();
+        sharedState->srcNodeTable = storageManager->getTable(fromTableID)->ptrCast<NodeTable>();
+        sharedState->dstNodeTable = storageManager->getTable(toTableID)->ptrCast<NodeTable>();
+        auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, dataInfo.tableName)
+                                  ->constCast<catalog::RelGroupCatalogEntry>();
+        auto relEntryInfo = relGroupEntry.getRelEntryInfo(fromTableID, toTableID);
+        sharedState->relTable = storageManager->getTable(relEntryInfo->oid)->ptrCast<RelTable>();
     }
     sharedState->initialize(dataInfo.columnTypes, info.infos.size(), clientContext);
 }

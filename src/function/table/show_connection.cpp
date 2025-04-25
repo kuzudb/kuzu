@@ -2,7 +2,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
@@ -17,38 +16,26 @@ namespace kuzu {
 namespace function {
 
 struct ShowConnectionBindData final : TableFuncBindData {
-    std::vector<TableCatalogEntry*> entries;
+    std::vector<std::pair<NodeTableCatalogEntry*, NodeTableCatalogEntry*>> srcDstEntries;
 
-    ShowConnectionBindData(std::vector<TableCatalogEntry*> entries,
+    ShowConnectionBindData(
+        std::vector<std::pair<NodeTableCatalogEntry*, NodeTableCatalogEntry*>> srcDstEntries,
         binder::expression_vector columns, offset_t maxOffset)
-        : TableFuncBindData{std::move(columns), maxOffset}, entries{std::move(entries)} {}
+        : TableFuncBindData{std::move(columns), maxOffset},
+          srcDstEntries{std::move(srcDstEntries)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowConnectionBindData>(entries, columns, numRows);
+        return std::make_unique<ShowConnectionBindData>(srcDstEntries, columns, numRows);
     }
 };
 
 static void outputRelTableConnection(DataChunk& outputDataChunk, uint64_t outputPos,
-    const ClientContext& context, TableCatalogEntry* entry) {
-    const auto catalog = context.getCatalog();
-    KU_ASSERT(entry->getType() == CatalogEntryType::REL_TABLE_ENTRY);
-    const auto relTableEntry = ku_dynamic_cast<RelTableCatalogEntry*>(entry);
-
-    // Get src and dst name
-    const auto srcTableID = relTableEntry->getSrcTableID();
-    const auto dstTableID = relTableEntry->getDstTableID();
-    // Get src and dst primary key
-    const auto srcTableEntry = catalog->getTableCatalogEntry(context.getTransaction(), srcTableID);
-    const auto dstTableEntry = catalog->getTableCatalogEntry(context.getTransaction(), dstTableID);
-    const auto srcTablePrimaryKey =
-        srcTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
-    const auto dstTablePrimaryKey =
-        dstTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
+    const NodeTableCatalogEntry& srcEntry, const NodeTableCatalogEntry& dstEntry) {
     // Write result to dataChunk
-    outputDataChunk.getValueVectorMutable(0).setValue(outputPos, srcTableEntry->getName());
-    outputDataChunk.getValueVectorMutable(1).setValue(outputPos, dstTableEntry->getName());
-    outputDataChunk.getValueVectorMutable(2).setValue(outputPos, srcTablePrimaryKey);
-    outputDataChunk.getValueVectorMutable(3).setValue(outputPos, dstTablePrimaryKey);
+    outputDataChunk.getValueVectorMutable(0).setValue(outputPos, srcEntry.getName());
+    outputDataChunk.getValueVectorMutable(1).setValue(outputPos, dstEntry.getName());
+    outputDataChunk.getValueVectorMutable(2).setValue(outputPos, srcEntry.getPrimaryKeyName());
+    outputDataChunk.getValueVectorMutable(3).setValue(outputPos, dstEntry.getPrimaryKeyName());
 }
 
 static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
@@ -57,8 +44,8 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
     auto i = 0u;
     auto size = morsel.getMorselSize();
     for (; i < size; i++) {
-        outputRelTableConnection(output, i, *input.context->clientContext,
-            bindData->entries[i + morsel.startOffset]);
+        auto [srcEntry, dstEntry] = bindData->srcDstEntries[i + morsel.startOffset];
+        outputRelTableConnection(output, i, *srcEntry, *dstEntry);
     }
     return i;
 }
@@ -77,25 +64,26 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     columnTypes.emplace_back(LogicalType::STRING());
     const auto name = input->getLiteralVal<std::string>(0);
     const auto catalog = context->getCatalog();
-    auto transaction = context->getTransaction();
-    std::vector<TableCatalogEntry*> entries;
+    const auto transaction = context->getTransaction();
+    std::vector<std::pair<NodeTableCatalogEntry*, NodeTableCatalogEntry*>> srcDstEntries;
     if (catalog->containsTable(transaction, name)) {
         auto entry = catalog->getTableCatalogEntry(transaction, name);
-        if (entry->getType() != catalog::CatalogEntryType::REL_TABLE_ENTRY) {
+        if (entry->getType() != catalog::CatalogEntryType::REL_GROUP_ENTRY) {
             throw BinderException{"Show connection can only be called on a rel table!"};
         }
-        entries.push_back(entry);
-    } else if (catalog->containsRelGroup(transaction, name)) {
-        auto entry = catalog->getRelGroupEntry(transaction, name);
-        for (auto& id : entry->getRelTableIDs()) {
-            entries.push_back(catalog->getTableCatalogEntry(transaction, id));
+        for (auto& info : entry->ptrCast<RelGroupCatalogEntry>()->getRelEntryInfos()) {
+            auto srcEntry = catalog->getTableCatalogEntry(transaction, info.nodePair.srcTableID)
+                                ->ptrCast<NodeTableCatalogEntry>();
+            auto dstEntry = catalog->getTableCatalogEntry(transaction, info.nodePair.dstTableID)
+                                ->ptrCast<NodeTableCatalogEntry>();
+            srcDstEntries.emplace_back(srcEntry, dstEntry);
         }
     } else {
         throw BinderException{"Show connection can only be called on a rel table!"};
     }
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<ShowConnectionBindData>(entries, columns, entries.size());
+    return std::make_unique<ShowConnectionBindData>(srcDstEntries, columns, srcDstEntries.size());
 }
 
 function_set ShowConnectionFunction::getFunctionSet() {

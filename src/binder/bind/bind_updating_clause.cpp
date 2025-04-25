@@ -8,7 +8,7 @@
 #include "binder/query/updating_clause/bound_set_clause.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
@@ -171,7 +171,8 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
         throw BinderException(
             "Create node " + node->toString() + " with multiple node labels is not supported.");
     }
-    auto entry = node->getSingleEntry();
+    KU_ASSERT(node->getNumEntries() == 1);
+    auto entry = node->getEntry(0);
     KU_ASSERT(entry->getTableType() == TableType::NODE);
     auto insertInfo = BoundInsertInfo(TableType::NODE, node);
     for (auto& expr : node->getPropertyExprs()) {
@@ -191,9 +192,9 @@ static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel, table_i
     table_id_t dstTableID) {
     std::vector<TableCatalogEntry*> candidates;
     for (auto& entry : rel.getEntries()) {
-        KU_ASSERT(entry->getType() == CatalogEntryType::REL_TABLE_ENTRY);
-        auto& relEntry = entry->constCast<RelTableCatalogEntry>();
-        if (relEntry.getSrcTableID() == srcTableID && relEntry.getDstTableID() == dstTableID) {
+        KU_ASSERT(entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
+        auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
+        if (relEntry.hasRelEntryInfo(srcTableID, dstTableID)) {
             candidates.push_back(entry);
         }
     }
@@ -219,10 +220,11 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
     }
     TableCatalogEntry* entry = nullptr;
     if (!rel->isMultiLabeled()) {
-        entry = rel->getSingleEntry();
+        KU_ASSERT(rel->getNumEntries() == 1);
+        entry = rel->getEntry(0);
     } else {
-        auto srcTableID = rel->getSrcNode()->getSingleEntry()->getTableID();
-        auto dstTableID = rel->getDstNode()->getSingleEntry()->getTableID();
+        auto srcTableID = rel->getSrcNode()->getEntry(0)->getTableID();
+        auto dstTableID = rel->getDstNode()->getEntry(0)->getTableID();
         entry = tryPruneMultiLabeled(*rel, srcTableID, dstTableID);
         // LCOV_EXCL_START
         if (entry == nullptr) {

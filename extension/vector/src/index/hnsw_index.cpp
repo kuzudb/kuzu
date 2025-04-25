@@ -266,8 +266,8 @@ void InMemHNSWIndex::finalize(MemoryManager& mm, common::node_group_idx_t nodeGr
 
 OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context,
     catalog::NodeTableCatalogEntry* nodeTableEntry, common::column_id_t columnID,
-    catalog::RelTableCatalogEntry* upperRelTableEntry,
-    catalog::RelTableCatalogEntry* lowerRelTableEntry, HNSWIndexConfig config)
+    catalog::RelGroupCatalogEntry* upperRelTableEntry,
+    catalog::RelGroupCatalogEntry* lowerRelTableEntry, HNSWIndexConfig config)
     : HNSWIndex{std::move(config), getArrayTypeInfo(context->getStorageManager()
                                                         ->getTable(nodeTableEntry->getTableID())
                                                         ->cast<NodeTable>(),

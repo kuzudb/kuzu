@@ -104,31 +104,17 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
     const auto newCatalogEntry = catalogEntry.getNext();
     switch (newCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
-    case CatalogEntryType::REL_TABLE_ENTRY: {
+    case CatalogEntryType::REL_GROUP_ENTRY: {
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
             auto& entry = newCatalogEntry->constCast<TableCatalogEntry>();
             KU_ASSERT(catalogEntry.isDeleted());
-            if (entry.hasParent()) {
+            if (entry.hasParent()) { // TODO(Guodong): I don't think this is still needed
                 return;
             }
             wal->logCreateCatalogEntryRecord(newCatalogEntry, isInternal);
         } else {
             throw common::RuntimeException("This shouldn't happen. Alter table is not supported.");
         }
-    } break;
-    case CatalogEntryType::REL_GROUP_ENTRY: {
-        if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
-            KU_ASSERT(catalogEntry.isDeleted());
-            auto& entry = newCatalogEntry->constCast<RelGroupCatalogEntry>();
-            std::vector<CatalogEntry*> children;
-            for (auto tableID : entry.getRelTableIDs()) {
-                children.push_back(
-                    clientContext->getCatalog()->getTableCatalogEntry(this, tableID));
-            }
-            wal->logCreateCatalogEntryRecord(newCatalogEntry, children, isInternal);
-        }
-        // Otherwise must be ALTER. We don't do anything in this case since the only operation
-        // we need on rel groups is RENAME which only requires create/drop
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
         KU_ASSERT(
@@ -153,7 +139,6 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         switch (catalogEntry.getType()) {
         // Eventually we probably want to merge these
         case CatalogEntryType::NODE_TABLE_ENTRY:
-        case CatalogEntryType::REL_TABLE_ENTRY:
         case CatalogEntryType::REL_GROUP_ENTRY:
         case CatalogEntryType::SEQUENCE_ENTRY: {
             wal->logDropCatalogEntryRecord(catalogEntry.getOID(), catalogEntry.getType());

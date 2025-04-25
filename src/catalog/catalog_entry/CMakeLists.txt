@@ -5,7 +5,7 @@ add_library(kuzu_catalog_entry
         function_catalog_entry.cpp
         table_catalog_entry.cpp
         node_table_catalog_entry.cpp
-        rel_table_catalog_entry.cpp
+        node_table_id_pair.cpp
         rel_group_catalog_entry.cpp
         scalar_macro_catalog_entry.cpp
         type_catalog_entry.cpp

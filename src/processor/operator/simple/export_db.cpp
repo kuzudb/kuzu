@@ -6,7 +6,6 @@
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
@@ -95,17 +94,11 @@ std::string getSchemaCypher(ClientContext* clientContext) {
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
         ss << nodeTableEntry->toCypher(toCypherInfo) << std::endl;
     }
-    RelTableToCypherInfo relTableToCypherInfo{clientContext};
-    for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
-        if (entry->hasParentRelGroup(catalog, transaction)) {
-            continue;
-        }
+    RelGroupToCypherInfo relTableToCypherInfo{clientContext};
+    for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
         ss << entry->toCypher(relTableToCypherInfo) << std::endl;
     }
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
-    for (const auto& relGroupEntry : catalog->getRelGroupEntries(transaction)) {
-        ss << relGroupEntry->toCypher(relGroupToCypherInfo) << std::endl;
-    }
     for (const auto sequenceEntry : catalog->getSequenceEntries(transaction)) {
         ss << sequenceEntry->toCypher(relGroupToCypherInfo) << std::endl;
     }
@@ -123,7 +116,7 @@ std::string getCopyCypher(const Catalog* catalog, Transaction* transaction,
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
         writeCopyStatement(ss, nodeTableEntry, boundFileInfo);
     }
-    for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
+    for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
         writeCopyStatement(ss, entry, boundFileInfo);
     }
     return ss.str();
