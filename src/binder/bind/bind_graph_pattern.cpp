@@ -687,8 +687,9 @@ std::vector<TableCatalogEntry*> Binder::bindRelTableEntries(
         }
     } else {
         for (auto& name : tableNames) {
-            if (catalog->containsRelGroup(transaction, name)) {
-                auto groupEntry = catalog->getRelGroupEntry(transaction, name);
+            if (catalog->containsTable(transaction, name)) {
+                auto groupEntry = catalog->getTableCatalogEntry(transaction, name, useInternal)
+                                      ->constPtrCast<RelGroupCatalogEntry>();
                 for (auto& id : groupEntry->getRelTableIDs()) {
                     auto relEntry = catalog->getTableCatalogEntry(transaction, id);
                     entrySet.insert(relEntry);

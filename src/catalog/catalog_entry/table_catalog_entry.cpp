@@ -98,15 +98,6 @@ void TableCatalogEntry::renameProperty(const std::string& propertyName,
 
 std::string TableCatalogEntry::getLabel(const Catalog* catalog,
     const transaction::Transaction* transaction) {
-    if (type == CatalogEntryType::NODE_TABLE_ENTRY) {
-        return name;
-    }
-    KU_ASSERT(type == CatalogEntryType::REL_TABLE_ENTRY);
-    for (auto& relGroup : catalog->getRelGroupEntries(transaction)) {
-        if (relGroup->isParent(getTableID())) {
-            return relGroup->getName();
-        }
-    }
     return name;
 }
 

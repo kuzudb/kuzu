@@ -89,15 +89,9 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     }
     RelTableToCypherInfo relTableToCypherInfo{clientContext};
     for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
-        if (entry->hasParentRelGroup(catalog, transaction)) {
-            continue;
-        }
         ss << entry->toCypher(relTableToCypherInfo) << std::endl;
     }
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
-    for (const auto& relGroupEntry : catalog->getRelGroupEntries(transaction)) {
-        ss << relGroupEntry->toCypher(relGroupToCypherInfo) << std::endl;
-    }
     for (const auto sequenceEntry : catalog->getSequenceEntries(transaction)) {
         ss << sequenceEntry->toCypher(relGroupToCypherInfo) << std::endl;
     }

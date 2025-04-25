@@ -54,7 +54,6 @@ Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) : version
 
 void Catalog::initCatalogSets() {
     tables = std::make_unique<CatalogSet>();
-    relGroups = std::make_unique<CatalogSet>();
     sequences = std::make_unique<CatalogSet>();
     functions = std::make_unique<CatalogSet>();
     types = std::make_unique<CatalogSet>();
@@ -190,66 +189,28 @@ void Catalog::dropTableEntry(Transaction* transaction, const TableCatalogEntry* 
     }
 }
 
-void Catalog::alterRelGroupEntry(Transaction* transaction, const BoundAlterInfo& info) {
-    relGroups->alterRelGroupEntry(transaction, info);
-}
-
 void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& info) {
     tables->alterTableEntry(transaction, info);
-}
-
-bool Catalog::containsRelGroup(const Transaction* transaction, const std::string& name) const {
-    return relGroups->containsEntry(transaction, name);
-}
-
-RelGroupCatalogEntry* Catalog::getRelGroupEntry(const Transaction* transaction,
-    const std::string& name) const {
-    // LCOV_EXCL_START
-    if (!containsRelGroup(transaction, name)) {
-        throw RuntimeException(stringFormat("Cannot find rel group entry {}.", name));
-    }
-    // LCOV_EXCL_STOP
-    return relGroups->getEntry(transaction, name)->ptrCast<RelGroupCatalogEntry>();
-}
-
-std::vector<RelGroupCatalogEntry*> Catalog::getRelGroupEntries(
-    const Transaction* transaction) const {
-    std::vector<RelGroupCatalogEntry*> result;
-    for (auto& [_, entry] : relGroups->getEntries(transaction)) {
-        result.push_back(entry->ptrCast<RelGroupCatalogEntry>());
-    }
-    return result;
-}
-
-void Catalog::dropRelGroupEntry(Transaction* transaction, oid_t id) {
-    dropRelGroupEntry(transaction,
-        relGroups->getEntryOfOID(transaction, id)->ptrCast<RelGroupCatalogEntry>());
-}
-
-void Catalog::dropRelGroupEntry(Transaction* transaction, const RelGroupCatalogEntry* entry) {
-    for (auto& relTableID : entry->getRelTableIDs()) {
-        dropTableEntry(transaction, relTableID);
-    }
-    relGroups->dropEntry(transaction, entry->getName(), entry->getOID());
 }
 
 CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
     const BoundCreateTableInfo& info) {
     const auto extraInfo = info.extraInfo->ptrCast<BoundExtraCreateRelTableGroupInfo>();
-    std::vector<table_id_t> childrenTableIDs;
-    for (auto& childInfo : extraInfo->infos) {
-        KU_ASSERT(childInfo.hasParent);
-        auto childEntry = createRelTableEntry(transaction, childInfo);
-        childrenTableIDs.push_back(childEntry->ptrCast<TableCatalogEntry>()->getTableID());
+    std::vector<RelTableInfo> relTableInfos;
+    for (auto& nodePair : extraInfo->nodePairs) {
+        relTableInfos.emplace_back(nodePair, tables->getNextOID());
     }
-    return createRelGroupEntry(transaction, info.tableName, std::move(childrenTableIDs));
-}
-
-CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction, const std::string& entryName,
-    std::vector<table_id_t> childrenTableIDs) {
-    auto entry = std::make_unique<RelGroupCatalogEntry>(entryName, std::move(childrenTableIDs));
-    relGroups->createEntry(transaction, std::move(entry));
-    return relGroups->getEntry(transaction, entryName);
+    auto relGroupEntry =
+        std::make_unique<RelGroupCatalogEntry>(info.tableName, extraInfo->srcMultiplicity,
+            extraInfo->dstMultiplicity, extraInfo->storageDirection, std::move(relTableInfos));
+    for (auto& definition : extraInfo->propertyDefinitions) {
+        relGroupEntry->addProperty(definition);
+    }
+    relGroupEntry->setHasParent(info.hasParent);
+    createSerialSequence(transaction, relGroupEntry.get(), info.isInternal);
+    auto catalogSet = info.isInternal ? internalTables.get() : tables.get();
+    catalogSet->createEntry(transaction, std::move(relGroupEntry));
+    return catalogSet->getEntry(transaction, info.tableName);
 }
 
 bool Catalog::containsSequence(const Transaction* transaction, const std::string& name) const {
@@ -529,7 +490,6 @@ void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
     writeMagicBytes(serializer);
     serializer.serializeValue(StorageVersionInfo::getStorageVersion());
     tables->serialize(serializer);
-    relGroups->serialize(serializer);
     sequences->serialize(serializer);
     functions->serialize(serializer);
     types->serialize(serializer);
@@ -550,7 +510,6 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     deserializer.deserializeValue(savedStorageVersion);
     validateStorageVersion(savedStorageVersion);
     tables = CatalogSet::deserialize(deserializer);
-    relGroups = CatalogSet::deserialize(deserializer);
     sequences = CatalogSet::deserialize(deserializer);
     functions = CatalogSet::deserialize(deserializer);
     types = CatalogSet::deserialize(deserializer);
@@ -577,8 +536,8 @@ CatalogEntry* Catalog::createTableEntry(Transaction* transaction,
     case CatalogEntryType::NODE_TABLE_ENTRY: {
         return createNodeTableEntry(transaction, info);
     }
-    case CatalogEntryType::REL_TABLE_ENTRY: {
-        return createRelTableEntry(transaction, info);
+    case CatalogEntryType::REL_GROUP_ENTRY: {
+        return createRelGroupEntry(transaction, info);
     }
     default:
         KU_UNREACHABLE;
@@ -589,22 +548,6 @@ CatalogEntry* Catalog::createNodeTableEntry(Transaction* transaction,
     const BoundCreateTableInfo& info) {
     const auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateNodeTableInfo>();
     auto entry = std::make_unique<NodeTableCatalogEntry>(info.tableName, extraInfo->primaryKeyName);
-    for (auto& definition : extraInfo->propertyDefinitions) {
-        entry->addProperty(definition);
-    }
-    entry->setHasParent(info.hasParent);
-    createSerialSequence(transaction, entry.get(), info.isInternal);
-    auto catalogSet = info.isInternal ? internalTables.get() : tables.get();
-    catalogSet->createEntry(transaction, std::move(entry));
-    return catalogSet->getEntry(transaction, info.tableName);
-}
-
-CatalogEntry* Catalog::createRelTableEntry(Transaction* transaction,
-    const BoundCreateTableInfo& info) {
-    const auto extraInfo = info.extraInfo.get()->constPtrCast<BoundExtraCreateRelTableInfo>();
-    auto entry = std::make_unique<RelTableCatalogEntry>(info.tableName, extraInfo->srcMultiplicity,
-        extraInfo->dstMultiplicity, extraInfo->srcTableID, extraInfo->dstTableID,
-        extraInfo->storageDirection);
     for (auto& definition : extraInfo->propertyDefinitions) {
         entry->addProperty(definition);
     }

@@ -81,15 +81,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     std::vector<TableCatalogEntry*> entries;
     if (catalog->containsTable(transaction, name)) {
         auto entry = catalog->getTableCatalogEntry(transaction, name);
-        if (entry->getType() != catalog::CatalogEntryType::REL_TABLE_ENTRY) {
+        if (entry->getType() != catalog::CatalogEntryType::REL_GROUP_ENTRY) {
             throw BinderException{"Show connection can only be called on a rel table!"};
         }
         entries.push_back(entry);
-    } else if (catalog->containsRelGroup(transaction, name)) {
-        auto entry = catalog->getRelGroupEntry(transaction, name);
-        for (auto& id : entry->getRelTableIDs()) {
-            entries.push_back(catalog->getTableCatalogEntry(transaction, id));
-        }
     } else {
         throw BinderException{"Show connection can only be called on a rel table!"};
     }

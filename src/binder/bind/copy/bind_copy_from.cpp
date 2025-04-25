@@ -3,7 +3,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "main/client_context.h"
@@ -23,40 +22,38 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto tableName = copyStatement.getTableName();
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
-    if (catalog->containsRelGroup(transaction, tableName)) {
-        auto entry = catalog->getRelGroupEntry(transaction, tableName);
-        if (entry->getNumRelTables() == 1) {
-            auto tableEntry =
-                catalog->getTableCatalogEntry(transaction, entry->getRelTableIDs()[0]);
-            return bindCopyRelFrom(statement, tableEntry->ptrCast<RelTableCatalogEntry>());
-        } else {
-            auto options = bindParsingOptions(copyStatement.getParsingOptions());
-            if (!options.contains(CopyConstants::FROM_OPTION_NAME) ||
-                !options.contains(CopyConstants::TO_OPTION_NAME)) {
-                throw BinderException(stringFormat(
-                    "The table {} has multiple FROM and TO pairs defined in the schema. A specific "
-                    "pair of FROM and TO options is expected when copying data into the {} table.",
-                    tableName, tableName));
-            }
-            auto from = options.at(CopyConstants::FROM_OPTION_NAME).getValue<std::string>();
-            auto to = options.at(CopyConstants::TO_OPTION_NAME).getValue<std::string>();
-            auto relTableName = RelGroupCatalogEntry::getChildTableName(tableName, from, to);
-            if (catalog->containsTable(transaction, relTableName)) {
-                auto relEntry = catalog->getTableCatalogEntry(transaction, relTableName);
-                return bindCopyRelFrom(statement, relEntry->ptrCast<RelTableCatalogEntry>());
-            }
-        }
-        throw BinderException(stringFormat("REL GROUP {} does not exist.", tableName));
-    } else if (catalog->getTableCatalogEntry(transaction, tableName)) {
+    if (catalog->getTableCatalogEntry(transaction, tableName)) {
         auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
         switch (tableEntry->getType()) {
         case CatalogEntryType::NODE_TABLE_ENTRY: {
             auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
             return bindCopyNodeFrom(statement, nodeTableEntry);
         }
-        case CatalogEntryType::REL_TABLE_ENTRY: {
-            auto relTableEntry = tableEntry->ptrCast<RelTableCatalogEntry>();
-            return bindCopyRelFrom(statement, relTableEntry);
+        case CatalogEntryType::REL_GROUP_ENTRY: {
+            auto entry = tableEntry->constPtrCast<RelGroupCatalogEntry>();
+            if (entry->getNumRelTables() == 1) {
+                return bindCopyRelFrom(statement,
+                    catalog->getTableCatalogEntry(transaction, entry->getRelTableIDs()[0])
+                        ->ptrCast<RelTableCatalogEntry>());
+            } else {
+                auto options = bindParsingOptions(copyStatement.getParsingOptions());
+                if (!options.contains(CopyConstants::FROM_OPTION_NAME) ||
+                    !options.contains(CopyConstants::TO_OPTION_NAME)) {
+                    throw BinderException(stringFormat(
+                        "The table {} has multiple FROM and TO pairs defined in the schema. A "
+                        "specific pair of FROM and TO options is expected when copying data into "
+                        "the {} table.",
+                        tableName, tableName));
+                }
+                auto from = options.at(CopyConstants::FROM_OPTION_NAME).getValue<std::string>();
+                auto to = options.at(CopyConstants::TO_OPTION_NAME).getValue<std::string>();
+                auto relTableName = RelGroupCatalogEntry::getChildTableName(tableName, from, to);
+                if (catalog->containsTable(transaction, relTableName)) {
+                    auto relEntry = catalog->getTableCatalogEntry(transaction, relTableName);
+                    return bindCopyRelFrom(statement, relEntry->ptrCast<RelTableCatalogEntry>());
+                }
+                throw BinderException(stringFormat("REL GROUP {} does not exist.", tableName));
+            }
         }
         default: {
             KU_UNREACHABLE;

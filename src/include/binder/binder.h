@@ -120,6 +120,9 @@ public:
     std::vector<PropertyDefinition> bindPropertyDefinitions(
         const std::vector<parser::ParsedPropertyDefinition>& parsedDefinitions,
         const std::string& tableName);
+    std::vector<PropertyDefinition> bindRelPropertyDefinitions(const parser::CreateTableInfo& info);
+    std::vector<common::NodePair> bindNodePairs(
+        const std::vector<std::pair<std::string, std::string>>& srcDstTablePairs);
 
     std::unique_ptr<parser::ParsedExpression> resolvePropertyDefault(
         parser::ParsedExpression* parsedDefault, const common::LogicalType& type,

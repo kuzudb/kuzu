@@ -88,34 +88,6 @@ public:
     void dropTableEntry(transaction::Transaction* transaction, const TableCatalogEntry* entry);
     // Alter table entry.
     void alterTableEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& info);
-    // Alter a rel group entry
-    // alterTableEntry() still needs to be called separately for each member of the group
-    void alterRelGroupEntry(transaction::Transaction* transaction,
-        const binder::BoundAlterInfo& info);
-
-    // ----------------------------- Rel groups ----------------------------
-
-    // Check if rel group entry exists.
-    bool containsRelGroup(const transaction::Transaction* transaction,
-        const std::string& name) const;
-    // Get rel group entry with name.
-    RelGroupCatalogEntry* getRelGroupEntry(const transaction::Transaction* transaction,
-        const std::string& name) const;
-    // Get all rel group entries.
-    std::vector<RelGroupCatalogEntry*> getRelGroupEntries(
-        const transaction::Transaction* transaction) const;
-
-    // Create rel group entry and its children rel entries.
-    CatalogEntry* createRelGroupEntry(transaction::Transaction* transaction,
-        const binder::BoundCreateTableInfo& info);
-    // Create rel group entry
-    CatalogEntry* createRelGroupEntry(transaction::Transaction* transaction,
-        const std::string& entryName, std::vector<common::table_id_t> childrenTableIDs);
-    // Drop rel group entry.
-    void dropRelGroupEntry(transaction::Transaction* transaction, common::oid_t id);
-    // Drop rel group entry.
-    void dropRelGroupEntry(transaction::Transaction* transaction,
-        const RelGroupCatalogEntry* entry);
 
     // ----------------------------- Sequences ----------------------------
 
@@ -225,7 +197,7 @@ private:
 
     CatalogEntry* createNodeTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
-    CatalogEntry* createRelTableEntry(transaction::Transaction* transaction,
+    CatalogEntry* createRelGroupEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
 
     void createSerialSequence(transaction::Transaction* transaction, const TableCatalogEntry* entry,
@@ -236,7 +208,6 @@ protected:
     std::unique_ptr<CatalogSet> tables;
 
 private:
-    std::unique_ptr<CatalogSet> relGroups;
     std::unique_ptr<CatalogSet> sequences;
     std::unique_ptr<CatalogSet> functions;
     std::unique_ptr<CatalogSet> types;
