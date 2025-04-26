@@ -41,13 +41,13 @@ CSRRegion CSRRegion::upgradeLevel(const std::vector<CSRRegion>& leafRegions,
     const idx_t leftLeafRegionIdx = newRegion.getLeftLeafRegionIdx();
     const idx_t rightLeafRegionIdx = newRegion.getRightLeafRegionIdx();
     for (auto leafRegionIdx = leftLeafRegionIdx; leafRegionIdx <= rightLeafRegionIdx;
-         leafRegionIdx++) {
+        leafRegionIdx++) {
         KU_ASSERT(leafRegionIdx < leafRegions.size());
         newRegion.sizeChange += leafRegions[leafRegionIdx].sizeChange;
         newRegion.hasPersistentDeletions |= leafRegions[leafRegionIdx].hasPersistentDeletions;
         newRegion.hasInsertions |= leafRegions[leafRegionIdx].hasInsertions;
         for (auto columnID = 0u; columnID < leafRegions[leafRegionIdx].hasUpdates.size();
-             columnID++) {
+            columnID++) {
             newRegion.hasUpdates[columnID] =
                 static_cast<bool>(newRegion.hasUpdates[columnID]) ||
                 static_cast<bool>(leafRegions[leafRegionIdx].hasUpdates[columnID]);
@@ -93,13 +93,8 @@ offset_t ChunkedCSRHeader::getEndCSROffset(offset_t nodeOffset) const {
 }
 
 length_t ChunkedCSRHeader::getCSRLength(offset_t nodeOffset) const {
-    if (randomLookup) {
-        return length->getData().getValue<length_t>(0);
-    }
-    if (nodeOffset >= offset->getNumValues()) {
-        return 0;
-    }
-    return length->getData().getValue<length_t>(nodeOffset);
+    const auto offset = randomLookup ? 0 : nodeOffset;
+    return offset >= length->getNumValues() ? 0 : length->getData().getValue<length_t>(offset);
 }
 
 length_t ChunkedCSRHeader::getGapSize(offset_t nodeOffset) const {
