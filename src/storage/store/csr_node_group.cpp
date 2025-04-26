@@ -167,7 +167,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* tra
     RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     if (tableState.cachedBoundNodeSelVector.getSelSize() == 1) {
         // Note that we don't apply cache when there is only one bound node.
-        return scanCommittedPersistentWtihoutCache(transaction, tableState, nodeGroupScanState);
+        return scanCommittedPersistentWithoutCache(transaction, tableState, nodeGroupScanState);
     }
     return scanCommittedPersistentWithCache(transaction, tableState, nodeGroupScanState);
 }
@@ -214,7 +214,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWithCache(const Transac
     }
 }
 
-NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWtihoutCache(
+NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWithoutCache(
     const Transaction* transaction, RelTableScanState& tableState,
     CSRNodeGroupScanState& nodeGroupScanState) const {
     const auto currNodeOffset = tableState.nodeIDVector->readNodeOffset(

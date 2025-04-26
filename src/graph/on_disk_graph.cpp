@@ -124,8 +124,7 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
             outVectors.push_back(resultSet.getValueVector(pos).get());
         }
         auto scanState = std::make_unique<RelTableScanState>(*context->getMemoryManager(),
-            srcNodeIDVector.get(), outVectors, dstNodeIDVector->state);
-        scanState->randomLookup = randomLookup;
+            srcNodeIDVector.get(), outVectors, dstNodeIDVector->state, randomLookup);
         scanState->setToTable(context->getTransaction(), table, columnIDs, {}, dataDirection);
         directedIterators.emplace_back(context, table, std::move(scanState));
     }
@@ -190,7 +189,7 @@ std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* tab
     TableCatalogEntry* nbrNodeEntry, std::vector<std::string> relProperties) {
     auto& info = graphEntry.getRelInfo(tableEntry->getTableID());
     auto state = std::make_unique<OnDiskGraphNbrScanState>(context, tableEntry, info.predicate,
-        relProperties);
+        relProperties, true /*randomLookup*/);
     if (nodeOffsetMaskMap != nullptr &&
         nodeOffsetMaskMap->containsTableID(nbrNodeEntry->getTableID())) {
         state->nbrNodeMask = nodeOffsetMaskMap->getOffsetMask(nbrNodeEntry->getTableID());
@@ -198,7 +197,7 @@ std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* tab
     return state;
 }
 
-std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelLookup(TableCatalogEntry* tableEntry) const {
+std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* tableEntry) const {
     auto& info = graphEntry.getRelInfo(tableEntry->getTableID());
     std::vector<std::string> properties;
     return std::make_unique<OnDiskGraphNbrScanState>(context, tableEntry, info.predicate,

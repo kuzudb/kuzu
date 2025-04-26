@@ -314,7 +314,7 @@ common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction*
     auto minDist = metricFunc(queryVector, currNodeVector, embeddings->getDimension());
     KU_ASSERT(lastMinDist >= 0);
     KU_ASSERT(minDist >= 0);
-    auto scanState = upperGraph->prepareRelLookup(upperRelTableEntry);
+    auto scanState = upperGraph->prepareRelScan(upperRelTableEntry);
     while (minDist < lastMinDist) {
         lastMinDist = minDist;
         auto neighborItr =
@@ -338,11 +338,11 @@ common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction*
 void OnDiskHNSWIndex::initLowerLayerSearchState(transaction::Transaction* transaction,
     HNSWSearchState& searchState) const {
     searchState.visited.reset();
-    searchState.nbrScanState = lowerGraph->prepareRelLookup(lowerRelTableEntry);
+    searchState.nbrScanState = lowerGraph->prepareRelScan(lowerRelTableEntry);
     searchState.searchType = getFilteredSearchType(transaction, searchState);
     if (searchState.searchType == SearchType::BLIND_TWO_HOP ||
         searchState.searchType == SearchType::DIRECTED_TWO_HOP) {
-        searchState.secondHopNbrScanState = lowerGraph->prepareRelLookup(lowerRelTableEntry);
+        searchState.secondHopNbrScanState = lowerGraph->prepareRelScan(lowerRelTableEntry);
     }
 }
 

@@ -236,7 +236,7 @@ private:
     NodeGroupScanResult scanCommittedPersistentWithCache(
         const transaction::Transaction* transaction, RelTableScanState& tableState,
         CSRNodeGroupScanState& nodeGroupScanState) const;
-    NodeGroupScanResult scanCommittedPersistentWtihoutCache(
+    NodeGroupScanResult scanCommittedPersistentWithoutCache(
         const transaction::Transaction* transaction, RelTableScanState& tableState,
         CSRNodeGroupScanState& nodeGroupScanState) const;
 

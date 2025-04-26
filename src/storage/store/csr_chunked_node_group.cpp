@@ -93,13 +93,8 @@ offset_t ChunkedCSRHeader::getEndCSROffset(offset_t nodeOffset) const {
 }
 
 length_t ChunkedCSRHeader::getCSRLength(offset_t nodeOffset) const {
-    if (randomLookup) {
-        return length->getData().getValue<length_t>(0);
-    }
-    if (nodeOffset >= offset->getNumValues()) {
-        return 0;
-    }
-    return length->getData().getValue<length_t>(nodeOffset);
+    const auto offset = randomLookup ? 0 : nodeOffset;
+    return offset >= length->getNumValues() ? 0 : length->getData().getValue<length_t>(offset);
 }
 
 length_t ChunkedCSRHeader::getGapSize(offset_t nodeOffset) const {
