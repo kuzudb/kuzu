@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "common/assert.h"
 #include "common/exception/conversion.h"
 #include "common/string_format.h"
 #include "common/types/cast_helpers.h"
@@ -214,6 +215,7 @@ void Time::convert(dtime_t dtime, int32_t& hour, int32_t& min, int32_t& sec, int
     sec = int32_t(time / Interval::MICROS_PER_SEC);
     time -= int64_t(sec) * Interval::MICROS_PER_SEC;
     micros = int32_t(time);
+    KU_ASSERT(Time::isValid(hour, min, sec, micros));
 }
 
 } // namespace common
