@@ -22,9 +22,8 @@ StringChunkData::StringChunkData(MemoryManager& mm, LogicalType dataType, uint64
           true /*hasNullData*/},
       indexColumnChunk{ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT32(),
           enableCompression, capacity, residencyState, false /*hasNullData*/)},
-      dictionaryChunk{std::make_unique<DictionaryChunk>(mm,
-          residencyState == ResidencyState::IN_MEMORY ? 0 : capacity, enableCompression,
-          residencyState)},
+      dictionaryChunk{
+          std::make_unique<DictionaryChunk>(mm, capacity, enableCompression, residencyState)},
       needFinalize{false} {}
 
 StringChunkData::StringChunkData(MemoryManager& mm, bool enableCompression,

@@ -17,9 +17,10 @@ namespace storage {
 // there will be no space for in-place updates.
 // The data chunk doubles in size on use, but out of place updates will never need the offset
 // chunk to be greater than the node group size since they remove unused entries.
-// So the chunk is initialized with a size equal to 3/4 the node group size, making sure there
-// is always extra space for updates.
-static constexpr double OFFSET_CHUNK_CAPACITY_FACTOR = 0.75;
+// So the chunk is initialized with a size equal to 3 so that the capacity is never resized to
+// exactly the node group size (which is always a power of 2), making sure there is always extra
+// space for updates.
+static constexpr uint64_t INITIAL_OFFSET_CHUNK_CAPACITY = 3;
 
 DictionaryChunk::DictionaryChunk(MemoryManager& mm, uint64_t capacity, bool enableCompression,
     ResidencyState residencyState)
@@ -27,10 +28,10 @@ DictionaryChunk::DictionaryChunk(MemoryManager& mm, uint64_t capacity, bool enab
       indexTable(0, StringOps(this) /*hash*/, StringOps(this) /*equals*/) {
     // Bitpacking might save 1 bit per value with regular ascii compared to UTF-8
     stringDataChunk = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT8(),
-        false /*enableCompression*/, capacity, residencyState, false /*hasNullData*/);
-    offsetChunk =
-        ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT64(), enableCompression,
-            capacity * OFFSET_CHUNK_CAPACITY_FACTOR, residencyState, false /*hasNullData*/);
+        false /*enableCompression*/, 0, residencyState, false /*hasNullData*/);
+    offsetChunk = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT64(),
+        enableCompression, std::min(capacity, INITIAL_OFFSET_CHUNK_CAPACITY), residencyState,
+        false /*hasNullData*/);
 }
 
 void DictionaryChunk::resetToEmpty() {

@@ -166,7 +166,7 @@ bool DictionaryColumn::canOffsetCommitInPlace(const ChunkState& offsetState,
     const ChunkState& dataState, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) {
     auto totalStringOffsetsAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
     auto offsetCapacity =
-        offsetState.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataColumn->getDataType()) *
+        offsetState.metadata.compMeta.numValues(KUZU_PAGE_SIZE, offsetColumn->getDataType()) *
         offsetState.metadata.getNumPages();
     auto numStringsAfterUpdate = offsetState.metadata.numValues + numNewStrings;
     if (numStringsAfterUpdate > offsetCapacity) {
