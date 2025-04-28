@@ -77,6 +77,19 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 8|Farooq||0
 9|Greg||0
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||7
+-STATEMENT CALL weakly_connected_component('G1', maxIterations:=25) RETURN node.ID, node.fName, node.name, group_id;
+---- 11
+0|Alice||0
+1||ABFsUni|0
+2|Bob||0
+3|Carol||0
+4||CsWork|0
+5|Dan||0
+6||DEsWork|0
+7|Elizabeth||0
+8|Farooq||0
+9|Greg||0
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||7
 
 -STATEMENT CALL create_projected_graph('G2', {'person': {'filter': 'n.ID > 2'}, 'organisation': {'filter': 'n.ID > 2'}}, ['knows', 'studyAt'])
 ---- ok
