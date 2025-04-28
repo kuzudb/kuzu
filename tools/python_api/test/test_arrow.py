@@ -480,6 +480,16 @@ def test_to_arrow_map(conn_db_readonly: ConnDB) -> None:
     ]
 
 
+def test_to_arrow_array(conn_db_readonly: ConnDB) -> None:
+    conn = conn_db_readonly[0]
+    results = (
+        conn.execute("RETURN cast(null as int64[3])")
+        .get_as_arrow(8)[0]
+        .to_pylist()
+    )
+    assert results == [None]
+
+
 def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
 

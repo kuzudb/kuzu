@@ -549,13 +549,6 @@ void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::LIST>(ArrowVector* vect
 }
 
 template<>
-void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::ARRAY>(ArrowVector* vector,
-    std::int64_t pos) {
-    setBitToZero(vector->validity.data(), pos);
-    vector->numNulls++;
-}
-
-template<>
 void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::MAP>(ArrowVector* vector,
     std::int64_t pos) {
     return templateCopyNullValue<LogicalTypeID::LIST>(vector, pos);
@@ -575,6 +568,13 @@ void ArrowRowBatch::copyNullValueUnion(ArrowVector* vector, Value* value, std::i
     offsetsBuffer[pos] = vector->childData[0]->numValues;
     copyNullValue(vector->childData[0].get(), value->children[0].get(), pos);
     vector->numNulls++;
+}
+
+static void copyArrowArray(ArrowVector* vector, std::int64_t pos, uint64_t numElements) {
+    setBitToZero(vector->validity.data(), pos);
+    vector->numNulls++;
+    auto& child = vector->childData[0];
+    child->numValues += numElements;
 }
 
 void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos) {
@@ -647,7 +647,7 @@ void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_
         templateCopyNullValue<LogicalTypeID::LIST>(vector, pos);
     } break;
     case LogicalTypeID::ARRAY: {
-        templateCopyNullValue<LogicalTypeID::ARRAY>(vector, pos);
+        copyArrowArray(vector, pos, ArrayType::getNumElements(value->dataType));
     } break;
     case LogicalTypeID::MAP: {
         templateCopyNullValue<LogicalTypeID::MAP>(vector, pos);
