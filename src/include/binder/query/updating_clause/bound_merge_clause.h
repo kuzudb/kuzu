@@ -47,11 +47,11 @@ public:
     }
     bool hasInsertRelInfo() const {
         return hasInsertInfo(
-            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL_GROUP; });
     }
     std::vector<const BoundInsertInfo*> getInsertRelInfos() const {
         return getInsertInfos(
-            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL_GROUP; });
     }
 
     bool hasOnMatchSetNodeInfo() const {
@@ -66,12 +66,12 @@ public:
     }
     bool hasOnMatchSetRelInfo() const {
         return hasOnMatchSetInfo([](const BoundSetPropertyInfo& info) {
-            return info.tableType == common::TableType::REL;
+            return info.tableType == common::TableType::REL_GROUP;
         });
     }
     std::vector<BoundSetPropertyInfo> getOnMatchSetRelInfos() const {
         return getOnMatchSetInfos([](const BoundSetPropertyInfo& info) {
-            return info.tableType == common::TableType::REL;
+            return info.tableType == common::TableType::REL_GROUP;
         });
     }
 
@@ -87,12 +87,12 @@ public:
     }
     bool hasOnCreateSetRelInfo() const {
         return hasOnCreateSetInfo([](const BoundSetPropertyInfo& info) {
-            return info.tableType == common::TableType::REL;
+            return info.tableType == common::TableType::REL_GROUP;
         });
     }
     std::vector<BoundSetPropertyInfo> getOnCreateSetRelInfos() const {
         return getOnCreateSetInfos([](const BoundSetPropertyInfo& info) {
-            return info.tableType == common::TableType::REL;
+            return info.tableType == common::TableType::REL_GROUP;
         });
     }
 

@@ -4,7 +4,6 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "main/client_context.h"
 
@@ -92,17 +91,17 @@ std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
     relGroupEntry->relTableInfos = relTableInfos;
     return relGroupEntry;
 }
-
-static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
-    const transaction::Transaction* transaction) {
-    auto& entry =
-        catalog->getTableCatalogEntry(transaction, tableID)->constCast<RelTableCatalogEntry>();
-    auto srcTableName =
-        catalog->getTableCatalogEntry(transaction, entry.getSrcTableID())->getName();
-    auto dstTableName =
-        catalog->getTableCatalogEntry(transaction, entry.getDstTableID())->getName();
-    return stringFormat("FROM `{}` TO `{}`", srcTableName, dstTableName);
-}
+//
+//static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
+//    const transaction::Transaction* transaction) {
+//    auto& entry =
+//        catalog->getTableCatalogEntry(transaction, tableID)->constCast<RelTableCatalogEntry>();
+//    auto srcTableName =
+//        catalog->getTableCatalogEntry(transaction, entry.getSrcTableID())->getName();
+//    auto dstTableName =
+//        catalog->getTableCatalogEntry(transaction, entry.getDstTableID())->getName();
+//    return stringFormat("FROM `{}` TO `{}`", srcTableName, dstTableName);
+//}
 
 std::string RelGroupCatalogEntry::toCypher(const ToCypherInfo& info) const {
     //    auto relGroupInfo = info.constCast<RelGroupToCypherInfo>();
@@ -120,6 +119,23 @@ std::string RelGroupCatalogEntry::toCypher(const ToCypherInfo& info) const {
     //        relTableIDs[0])->ptrCast<RelTableCatalogEntry>();
     //    ss << ", " << childEntry->propertiesToCypher() << childEntry->getMultiplicityStr() <<
     //    ");"; return ss.str();
+}
+
+std::vector<common::RelDataDirection> RelGroupCatalogEntry::getRelDataDirections() const {
+    switch (storageDirection) {
+    case common::ExtendDirection::FWD: {
+        return {common::RelDataDirection::FWD};
+    }
+    case common::ExtendDirection::BWD: {
+        return {common::RelDataDirection::BWD};
+    }
+    case common::ExtendDirection::BOTH: {
+        return {common::RelDataDirection::FWD, common::RelDataDirection::BWD};
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
 }
 
 std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo>

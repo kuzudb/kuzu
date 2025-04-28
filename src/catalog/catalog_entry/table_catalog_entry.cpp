@@ -4,7 +4,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 
 using namespace kuzu::binder;
@@ -122,8 +121,8 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& 
     case CatalogEntryType::NODE_TABLE_ENTRY:
         result = NodeTableCatalogEntry::deserialize(deserializer);
         break;
-    case CatalogEntryType::REL_TABLE_ENTRY:
-        result = RelTableCatalogEntry::deserialize(deserializer);
+    case CatalogEntryType::REL_GROUP_ENTRY:
+        result = RelGroupCatalogEntry::deserialize(deserializer);
         break;
     default:
         KU_UNREACHABLE;

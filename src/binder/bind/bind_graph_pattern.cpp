@@ -6,7 +6,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/enums/rel_direction.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/utils.h"
@@ -215,7 +215,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
         throw BinderException("Bind relationship " + parsedName +
                               " to relationship with same name is not supported.");
     }
-    auto entries = bindRelTableEntries(relPattern.getTableNames());
+    auto entries = bindRelGroupEntries(relPattern.getTableNames());
     // bind src & dst node
     RelDirectionType directionType = RelDirectionType::UNKNOWN;
     std::shared_ptr<NodeExpression> srcNode;
@@ -347,9 +347,12 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto transaction = clientContext->getTransaction();
     table_catalog_entry_set_t entrySet;
     for (auto entry : entries) {
-        auto& relTableEntry = entry->constCast<RelTableCatalogEntry>();
-        entrySet.insert(catalog->getTableCatalogEntry(transaction, relTableEntry.getSrcTableID()));
-        entrySet.insert(catalog->getTableCatalogEntry(transaction, relTableEntry.getDstTableID()));
+        // TODO(Xiyang relgroup): fix this
+        auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
+        entrySet.insert(catalog->getTableCatalogEntry(transaction,
+            relGroupEntry.getRelTableInfos()[0].nodePair.srcTableID));
+        entrySet.insert(catalog->getTableCatalogEntry(transaction,
+            relGroupEntry.getRelTableInfos()[0].nodePair.dstTableID));
     }
     auto recursivePatternInfo = relPattern.getRecursiveInfo();
     auto prevScope = saveScope();
@@ -675,28 +678,21 @@ TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
     return catalog->getTableCatalogEntry(transaction, name, useInternal);
 }
 
-std::vector<TableCatalogEntry*> Binder::bindRelTableEntries(
+std::vector<TableCatalogEntry*> Binder::bindRelGroupEntries(
     const std::vector<std::string>& tableNames) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
     auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
     if (tableNames.empty()) {
-        for (auto& entry : catalog->getRelTableEntries(transaction, useInternal)) {
+        for (auto& entry : catalog->getRelGroupEntries(transaction, useInternal)) {
             entrySet.insert(entry);
         }
     } else {
         for (auto& name : tableNames) {
             if (catalog->containsTable(transaction, name)) {
-                auto groupEntry = catalog->getTableCatalogEntry(transaction, name, useInternal)
-                                      ->constPtrCast<RelGroupCatalogEntry>();
-                for (auto& id : groupEntry->getRelTableIDs()) {
-                    auto relEntry = catalog->getTableCatalogEntry(transaction, id);
-                    entrySet.insert(relEntry);
-                }
-            } else if (catalog->containsTable(transaction, name)) {
                 auto entry = catalog->getTableCatalogEntry(transaction, name, useInternal);
-                if (entry->getType() != CatalogEntryType::REL_TABLE_ENTRY) {
+                if (entry->getType() != CatalogEntryType::REL_GROUP_ENTRY) {
                     throw BinderException(stringFormat(
                         "Cannot bind {} as a relationship pattern label.", entry->getName()));
                 }

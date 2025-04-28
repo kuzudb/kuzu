@@ -136,7 +136,7 @@ static options_t getScanSourceOptions(const CopyFrom& copyFrom) {
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& statement,
-    RelTableCatalogEntry* relTableEntry) {
+    NodePair& nodePair, std::vector<binder::PropertyDefinition> properties) {
     auto& copyStatement = statement.constCast<CopyFrom>();
     if (copyStatement.byColumn()) {
         throw BinderException(
@@ -153,15 +153,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     auto columns = boundSource->getColumns();
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    auto srcTableID = relTableEntry->getSrcTableID();
-    auto dstTableID = relTableEntry->getDstTableID();
-
     auto srcOffset = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalType::INT64());
     auto dstOffset = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalType::INT64());
     expression_vector columnExprs{srcOffset, dstOffset, offset};
     std::vector<ColumnEvaluateType> evaluateTypes{ColumnEvaluateType::REFERENCE,
         ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE};
-    auto properties = relTableEntry->getProperties();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         auto& property = properties[i];
         auto [evaluateType, column] =
@@ -181,8 +177,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     } else {
         dstKey = columns[1];
     }
-    auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey, warningDataExprs);
-    auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey, warningDataExprs);
+    auto srcLookUpInfo = IndexLookupInfo(nodePair.srcTableID, srcOffset, srcKey, warningDataExprs);
+    auto dstLookUpInfo = IndexLookupInfo(nodePair.dstTableID, dstOffset, dstKey, warningDataExprs);
     auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
     auto internalIDColumnIndices = std::vector<idx_t>{0, 1, 2};
     auto extraCopyRelInfo =
@@ -209,8 +205,10 @@ static bool skipPropertyInSchema(const PropertyDefinition& property) {
     return false;
 }
 
-static void bindExpectedColumns(const TableCatalogEntry* tableEntry, const CopyFromColumnInfo& info,
-    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
+static void bindExpectedColumns(const std::string& tableName,
+    const PropertyDefinitionCollection& propertyDefinitionCollection,
+    const CopyFromColumnInfo& info, std::vector<std::string>& columnNames,
+    std::vector<LogicalType>& columnTypes) {
     if (info.inputColumnOrder) {
         std::unordered_set<std::string> inputColumnNamesSet;
         for (auto& columName : info.columnNames) {
@@ -222,11 +220,11 @@ static void bindExpectedColumns(const TableCatalogEntry* tableEntry, const CopyF
         }
         // Search column data type for each input column.
         for (auto& columnName : info.columnNames) {
-            if (!tableEntry->containsProperty(columnName)) {
-                throw BinderException(stringFormat("Table {} does not contain column {}.",
-                    tableEntry->getName(), columnName));
+            if (!propertyDefinitionCollection.contains(columnName)) {
+                throw BinderException(
+                    stringFormat("Table {} does not contain column {}.", tableName, columnName));
             }
-            auto& property = tableEntry->getProperty(columnName);
+            auto& property = propertyDefinitionCollection.getDefinitions();
             if (skipPropertyInFile(property)) {
                 continue;
             }

@@ -6,7 +6,6 @@
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/type_catalog_entry.h"
@@ -116,44 +115,37 @@ TableCatalogEntry* Catalog::getTableCatalogEntry(const Transaction* transaction,
     return result->ptrCast<TableCatalogEntry>();
 }
 
-std::vector<NodeTableCatalogEntry*> Catalog::getNodeTableEntries(const Transaction* transaction,
-    bool useInternal) const {
-    std::vector<NodeTableCatalogEntry*> result;
+template<TableCatalogEntryType T>
+std::vector<T*> Catalog::getTableEntries(const Transaction* transaction, bool useInternal,
+    CatalogEntryType entryType) const {
+    std::vector<T*> result;
     for (auto& [_, entry] : tables->getEntries(transaction)) {
-        if (entry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
+        if (entry->getType() != entryType) {
             continue;
         }
-        result.push_back(entry->ptrCast<NodeTableCatalogEntry>());
+        result.push_back(entry->ptrCast<T>());
     }
     if (useInternal) {
         for (auto& [_, entry] : internalTables->getEntries(transaction)) {
-            if (entry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
+            if (entry->getType() != entryType) {
                 continue;
             }
-            result.push_back(entry->ptrCast<NodeTableCatalogEntry>());
+            result.push_back(entry->ptrCast<T>());
         }
     }
     return result;
 }
 
-std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(const Transaction* transaction,
+std::vector<NodeTableCatalogEntry*> Catalog::getNodeTableEntries(const Transaction* transaction,
     bool useInternal) const {
-    std::vector<RelTableCatalogEntry*> result;
-    for (auto& [_, entry] : tables->getEntries(transaction)) {
-        if (entry->getType() != CatalogEntryType::REL_TABLE_ENTRY) {
-            continue;
-        }
-        result.push_back(entry->ptrCast<RelTableCatalogEntry>());
-    }
-    if (useInternal) {
-        for (auto& [_, entry] : internalTables->getEntries(transaction)) {
-            if (entry->getType() != CatalogEntryType::REL_TABLE_ENTRY) {
-                continue;
-            }
-            result.push_back(entry->ptrCast<RelTableCatalogEntry>());
-        }
-    }
-    return result;
+    return getTableEntries<NodeTableCatalogEntry>(transaction, useInternal,
+        CatalogEntryType::NODE_TABLE_ENTRY);
+}
+
+std::vector<RelGroupCatalogEntry*> Catalog::getRelGroupEntries(const Transaction* transaction,
+    bool useInternal) const {
+    return getTableEntries<RelGroupCatalogEntry>(transaction, useInternal,
+        CatalogEntryType::REL_GROUP_ENTRY);
 }
 
 std::vector<TableCatalogEntry*> Catalog::getTableEntries(const Transaction* transaction,
@@ -164,7 +156,7 @@ std::vector<TableCatalogEntry*> Catalog::getTableEntries(const Transaction* tran
     }
     if (useInternal) {
         for (auto& [_, entry] : internalTables->getEntries(transaction)) {
-            result.push_back(entry->ptrCast<RelTableCatalogEntry>());
+            result.push_back(entry->ptrCast<TableCatalogEntry>());
         }
     }
     return result;

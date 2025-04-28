@@ -23,11 +23,11 @@ public:
     }
     bool hasRelInfo() const {
         return hasInfo(
-            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL_GROUP; });
     }
     std::vector<const BoundInsertInfo*> getRelInfos() const {
         return getInfos(
-            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL_GROUP; });
     }
 
 private:

@@ -39,11 +39,14 @@ class Transaction;
 namespace catalog {
 class TableCatalogEntry;
 class NodeTableCatalogEntry;
-class RelTableCatalogEntry;
 class RelGroupCatalogEntry;
 class FunctionCatalogEntry;
 class SequenceCatalogEntry;
 class IndexCatalogEntry;
+
+template<typename T>
+concept TableCatalogEntryType =
+    std::is_same_v<T, NodeTableCatalogEntry> || std::is_same_v<T, RelGroupCatalogEntry>;
 
 class KUZU_API Catalog {
     friend class main::AttachedKuzuDatabase;
@@ -71,7 +74,7 @@ public:
     std::vector<NodeTableCatalogEntry*> getNodeTableEntries(
         const transaction::Transaction* transaction, bool useInternal = true) const;
     // Get all rel table entries.
-    std::vector<RelTableCatalogEntry*> getRelTableEntries(
+    std::vector<RelGroupCatalogEntry*> getRelGroupEntries(
         const transaction::Transaction* transaction, bool useInternal = true) const;
     // Get all table entries.
     std::vector<TableCatalogEntry*> getTableEntries(const transaction::Transaction* transaction,
@@ -203,6 +206,10 @@ private:
     void createSerialSequence(transaction::Transaction* transaction, const TableCatalogEntry* entry,
         bool isInternal);
     void dropSerialSequence(transaction::Transaction* transaction, const TableCatalogEntry* entry);
+
+    template<TableCatalogEntryType T>
+    std::vector<T*> getTableEntries(const transaction::Transaction* transaction, bool useInternal,
+        CatalogEntryType entryType) const;
 
 protected:
     std::unique_ptr<CatalogSet> tables;

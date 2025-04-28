@@ -46,7 +46,7 @@ struct BoundCreateTableInfo {
           extraInfo{std::move(extraInfo)}, isInternal{isInternal}, hasParent{hasParent} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCreateTableInfo);
 
-    std::string toString() const;
+    std::string toString(const main::ClientContext& context) const;
 
 private:
     BoundCreateTableInfo(const BoundCreateTableInfo& other)

@@ -77,7 +77,7 @@ void Drop::dropTable(const main::ClientContext* context) {
                     entry->getName(), indexEntry->getIndexName()));
             }
         }
-        for (auto& relEntry : catalog->getRelTableEntries(transaction)) {
+        for (auto& relEntry : catalog->getRelGroupEntries(transaction)) {
             if (relEntry->isParent(entry->getTableID())) {
                 throw BinderException(stringFormat("Cannot delete node table {} because it is "
                                                    "referenced by relationship table {}.",

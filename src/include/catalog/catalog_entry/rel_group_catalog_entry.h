@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/enums/extend_direction.h"
+#include "common/enums/rel_direction.h"
 #include "table_catalog_entry.h"
 
 namespace kuzu {
@@ -64,6 +66,19 @@ public:
 
     void setComment(std::string newComment) { comment = std::move(newComment); }
     std::string getComment() const { return comment; }
+
+    const std::vector<RelTableInfo>& getRelTableInfos() const { return relTableInfos; }
+
+    std::vector<common::RelDataDirection> getRelDataDirections() const;
+
+    //TODO(Ziyi relgroup): remove those two apis
+    common::table_id_t getSrcTableID() const {
+        return relTableInfos[0].nodePair.srcTableID;
+    }
+
+    common::table_id_t getDstTableID() const {
+        return relTableInfos[0].nodePair.dstTableID;
+    }
 
     std::unique_ptr<TableCatalogEntry> copy() const override {
         auto other = std::make_unique<RelGroupCatalogEntry>();
