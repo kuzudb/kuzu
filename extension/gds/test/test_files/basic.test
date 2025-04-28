@@ -10,3 +10,20 @@ Extension: gds has been installed from repo: http://localhost/extension/repo/.
 ---- ok
 -STATEMENT load gds
 ---- ok
+
+-CASE RunGDSWithoutLoad
+-STATEMENT CALL k_core_decomposition('PK') RETURN node.name, k_degree;
+---- error
+Catalog exception: function k_core_decomposition is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+-STATEMENT CALL page_rank('PK') RETURN node.fName, rank;
+---- error
+Catalog exception: function page_rank is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+-STATEMENT CALL strongly_connected_components_kosaraju('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+---- error
+Catalog exception: function strongly_connected_components_kosaraju is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+-STATEMENT CALL strongly_connected_components('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+---- error
+Catalog exception: function strongly_connected_components is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+-STATEMENT CALL weakly_connected_component('PK') RETURN node.fName, group_id;
+---- error
+Catalog exception: function weakly_connected_component is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.

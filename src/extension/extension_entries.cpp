@@ -19,14 +19,21 @@ static constexpr std::array duckdbExtensionFunctions = {"CLEAR_ATTACHED_DB_CACHE
 static constexpr std::array deltaExtensionFunctions = {"DELTA_SCAN"};
 static constexpr std::array icebergExtensionFunctions = {"ICEBERG_SCAN", "ICEBERG_METADATA",
     "ICEBERG_SNAPSHOTS"};
+static constexpr std::array vectorExtensionFunctions = {"QUERY_VECTOR_INDEX", "CREATE_VECTOR_INDEX",
+    "DROP_VECTOR_INDEX"};
+static constexpr std::array gdsExtensionFunctions = {"K_CORE_DECOMPOSITION", "PAGE_RANK",
+    "STRONGLY_CONNECTED_COMPONENTS_KOSARAJU", "STRONGLY_CONNECTED_COMPONENTS",
+    "WEAKLY_CONNECTED_COMPONENT"};
 
 static constexpr EntriesForExtension functionsForExtensionsRaw[] = {
-    {"FTS", ftsExtensionFunctions, ftsExtensionFunctions.size()},
     {"FTS", ftsExtensionFunctions, ftsExtensionFunctions.size()},
     {"DUCKDB", duckdbExtensionFunctions, duckdbExtensionFunctions.size()},
     {"DELTA", deltaExtensionFunctions, deltaExtensionFunctions.size()},
     {"ICEBERG", icebergExtensionFunctions, ftsExtensionFunctions.size()},
-    {"JSON", jsonExtensionFunctions, jsonExtensionFunctions.size()}};
+    {"JSON", jsonExtensionFunctions, jsonExtensionFunctions.size()},
+    {"VECTOR", vectorExtensionFunctions, vectorExtensionFunctions.size()},
+    {"GDS", gdsExtensionFunctions, gdsExtensionFunctions.size()},
+};
 static constexpr std::array functionsForExtensions = std::to_array(functionsForExtensionsRaw);
 
 static constexpr std::array jsonExtensionTypes = {"JSON"};
