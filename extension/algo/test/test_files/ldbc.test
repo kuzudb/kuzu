@@ -1,0 +1,55 @@
+-DATASET CSV ldbc-sf01
+-BUFFER_POOL_SIZE 1073741824
+
+--
+
+-CASE ReleasePostExample
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+---- ok
+-STATEMENT CALL project_graph(
+               'KnowsGraph',
+               ['person'],
+               ['knows']
+           );
+---- ok
+-STATEMENT CALL page_rank('KnowsGraph')
+           WITH node AS person, rank
+           ORDER BY rank DESC
+           LIMIT 10
+           OPTIONAL MATCH (person)<-[:post_HasCreator]-(post:Post)
+           RETURN person.id, COUNT(post);
+---- 10
+26388279067534|132
+30786325578932|69
+32985348834053|3
+32985348834375|17
+32985348834483|3
+32985348834575|0
+32985348834585|30
+32985348834682|10
+32985348834873|30
+32985348834937|4
+-STATEMENT CALL project_graph(
+            'FilteredKnowsGraph',
+            { 'person': 'n.birthday >= 19800101 AND n.birthday <= 19951231' },
+            ['knows']
+        );
+---- ok
+-STATEMENT CALL page_rank('FilteredKnowsGraph')
+            WITH node AS person, rank
+            ORDER BY rank DESC
+            LIMIT 10
+            OPTIONAL MATCH (person)<-[:post_HasCreator]-(post:Post)
+            RETURN person.id, COUNT(post);
+---- 10
+26388279067534|132
+30786325578932|69
+32985348834053|3
+32985348834375|17
+32985348834483|3
+32985348834575|0
+32985348834585|30
+32985348834682|10
+32985348834873|30
+32985348834937|4
