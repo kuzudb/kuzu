@@ -92,7 +92,7 @@ std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
     return relGroupEntry;
 }
 //
-//static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
+// static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
 //    const transaction::Transaction* transaction) {
 //    auto& entry =
 //        catalog->getTableCatalogEntry(transaction, tableID)->constCast<RelTableCatalogEntry>();

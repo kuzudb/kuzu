@@ -71,14 +71,10 @@ public:
 
     std::vector<common::RelDataDirection> getRelDataDirections() const;
 
-    //TODO(Ziyi relgroup): remove those two apis
-    common::table_id_t getSrcTableID() const {
-        return relTableInfos[0].nodePair.srcTableID;
-    }
+    // TODO(Ziyi relgroup): remove those two apis
+    common::table_id_t getSrcTableID() const { return relTableInfos[0].nodePair.srcTableID; }
 
-    common::table_id_t getDstTableID() const {
-        return relTableInfos[0].nodePair.dstTableID;
-    }
+    common::table_id_t getDstTableID() const { return relTableInfos[0].nodePair.dstTableID; }
 
     std::unique_ptr<TableCatalogEntry> copy() const override {
         auto other = std::make_unique<RelGroupCatalogEntry>();

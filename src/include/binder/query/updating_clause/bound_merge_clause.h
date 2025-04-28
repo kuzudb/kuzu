@@ -46,12 +46,14 @@ public:
             [](const BoundInsertInfo& info) { return info.tableType == common::TableType::NODE; });
     }
     bool hasInsertRelInfo() const {
-        return hasInsertInfo(
-            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL_GROUP; });
+        return hasInsertInfo([](const BoundInsertInfo& info) {
+            return info.tableType == common::TableType::REL_GROUP;
+        });
     }
     std::vector<const BoundInsertInfo*> getInsertRelInfos() const {
-        return getInsertInfos(
-            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL_GROUP; });
+        return getInsertInfos([](const BoundInsertInfo& info) {
+            return info.tableType == common::TableType::REL_GROUP;
+        });
     }
 
     bool hasOnMatchSetNodeInfo() const {
