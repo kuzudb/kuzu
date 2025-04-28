@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "common/exception/runtime.h"
+#include "function/config/connected_components_config.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/gds_function.h"
@@ -222,8 +223,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
-
-static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {

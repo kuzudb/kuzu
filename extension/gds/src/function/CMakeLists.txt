@@ -1,3 +1,5 @@
+add_subdirectory(config)
+
 add_library(kuzu_gds_function
         OBJECT
         component_ids.cpp

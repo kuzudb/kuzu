@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "function/component_ids.h"
+#include "function/config/connected_components_config.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds_function.h"
 #include "processor/execution_context.h"
@@ -55,8 +56,6 @@ private:
     ComponentIDsPair& componentIDsPair;
 };
 
-static constexpr uint8_t MAX_ITERATION = 100;
-
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
@@ -78,14 +77,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         clientContext->getMemoryManager(), sharedState, componentIDs);
     auto computeState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
+    auto config = input.bindData->constPtrCast<GDSBindData>()->getConfig()->constCast<CCConfig>();
     GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::BOTH,
-        MAX_ITERATION);
+        config.maxIterations);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
-
-static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
@@ -95,7 +93,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+        std::make_unique<CCOptionalParams>(input->optionalParamsLegacy));
 }
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {
