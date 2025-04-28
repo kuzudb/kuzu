@@ -2,8 +2,9 @@
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
+#include "function/config/max_iterations_config.h"
+#include "function/config/page_rank_config.h"
 #include "function/degrees.h"
-#include "function/gds/config/page_rank_config.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/gds_function.h"
@@ -19,14 +20,18 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace gds_extension {
 
-struct PageRankOptionalParams {
+struct PageRankOptionalParams final : public GDSOptionalParams {
     std::shared_ptr<Expression> dampingFactor;
     std::shared_ptr<Expression> maxIteration;
     std::shared_ptr<Expression> tolerance;
 
     explicit PageRankOptionalParams(const expression_vector& optionalParams);
 
-    PageRankConfig getConfig() const;
+    std::unique_ptr<GDSConfig> getConfig() const override;
+
+    std::unique_ptr<GDSOptionalParams> copy() const override {
+        return std::make_unique<PageRankOptionalParams>(*this);
+    }
 };
 
 PageRankOptionalParams::PageRankOptionalParams(const expression_vector& optionalParams) {
@@ -44,34 +49,29 @@ PageRankOptionalParams::PageRankOptionalParams(const expression_vector& optional
     }
 }
 
-PageRankConfig PageRankOptionalParams::getConfig() const {
-    PageRankConfig config;
+std::unique_ptr<GDSConfig> PageRankOptionalParams::getConfig() const {
+    auto config = std::make_unique<PageRankConfig>();
     if (dampingFactor != nullptr) {
-        config.dampingFactor = ExpressionUtil::evaluateLiteral<double>(*dampingFactor,
+        config->dampingFactor = ExpressionUtil::evaluateLiteral<double>(*dampingFactor,
             LogicalType::DOUBLE(), DampingFactor::validate);
     }
     if (maxIteration != nullptr) {
-        config.maxIterations = ExpressionUtil::evaluateLiteral<int64_t>(*maxIteration,
+        config->maxIterations = ExpressionUtil::evaluateLiteral<int64_t>(*maxIteration,
             LogicalType::INT64(), MaxIterations::validate);
     }
     if (tolerance != nullptr) {
-        config.tolerance =
+        config->tolerance =
             ExpressionUtil::evaluateLiteral<double>(*tolerance, LogicalType::DOUBLE());
     }
     return config;
 }
 
 struct PageRankBindData final : public GDSBindData {
-    PageRankOptionalParams optionalParams;
-
     PageRankBindData(expression_vector columns, graph::GraphEntry graphEntry,
-        std::shared_ptr<Expression> nodeOutput, PageRankOptionalParams optionalParams)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput)},
-          optionalParams{std::move(optionalParams)} {}
-    PageRankBindData(const PageRankBindData& other)
-        : GDSBindData{other}, optionalParams{other.optionalParams} {}
-
-    PageRankConfig getConfig() const { return optionalParams.getConfig(); }
+        std::shared_ptr<Expression> nodeOutput,
+        std::unique_ptr<PageRankOptionalParams> optionalParams)
+        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput),
+              std::move(optionalParams)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<PageRankBindData>(*this);
@@ -274,7 +274,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     PValues* pCurrent = &p1;
     PValues* pNext = &p2;
     auto pageRankBindData = input.bindData->constPtrCast<PageRankBindData>();
-    auto config = pageRankBindData->getConfig();
+    auto config = pageRankBindData->getConfig()->constCast<PageRankConfig>();
     auto currentIter = 1u;
     auto currentFrontier =
         DenseFrontier::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
@@ -328,7 +328,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable(RANK_COLUMN_NAME, LogicalType::DOUBLE()));
     return std::make_unique<PageRankBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
-        PageRankOptionalParams(input->optionalParamsLegacy));
+        std::make_unique<PageRankOptionalParams>(input->optionalParamsLegacy));
 }
 
 function_set PageRankFunction::getFunctionSet() {

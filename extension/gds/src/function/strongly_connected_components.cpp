@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "function/component_ids.h"
+#include "function/config/connected_components_config.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
@@ -185,8 +186,6 @@ private:
     ColorsPair& colorsPair;
 };
 
-static constexpr uint8_t MAX_ITERATION = 100;
-
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
@@ -194,6 +193,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto mm = clientContext->getMemoryManager();
     auto graph = sharedState->graph.get();
     auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
+    auto config = input.bindData->constPtrCast<GDSBindData>()->getConfig()->constCast<CCConfig>();
 
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
@@ -230,7 +230,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto bwdComputeState = GDSComputeState(frontierPair, std::move(bwdColoringEdgeCompute),
         std::move(bwdAuxiliaryState));
 
-    for (auto i = 0; i < MAX_ITERATION; i++) {
+    for (auto i = 0u; i < config.maxIterations; i++) {
         // Init fwd and bwd component IDs to node offsets.
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
             initFwdComponentIDsVertexCompute);
@@ -244,7 +244,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
             initFwdColoringVertexCompute);
         GDSUtils::runAlgorithmEdgeCompute(input.context, fwdComputeState, graph,
-            ExtendDirection::FWD, MAX_ITERATION);
+            ExtendDirection::FWD, config.maxIterations);
 
         // Bwd colors.
         frontierPair->resetValue(input.context, graph, FRONTIER_UNVISITED);
@@ -253,7 +253,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
             initBwdColoringVertexCompute);
         GDSUtils::runAlgorithmEdgeCompute(input.context, bwdComputeState, graph,
-            ExtendDirection::BWD, MAX_ITERATION);
+            ExtendDirection::BWD, config.maxIterations);
 
         // Find new SCC IDs and exit if all IDs have been found.
         std::atomic<bool> hasDifferentColor = false;
@@ -274,8 +274,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     return 0;
 }
 
-static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
-
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto graphName = input->getLiteralVal<std::string>(0);
@@ -284,7 +282,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+        std::make_unique<CCOptionalParams>(input->optionalParamsLegacy));
 }
 
 function_set SCCFunction::getFunctionSet() {
