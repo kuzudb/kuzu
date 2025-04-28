@@ -480,6 +480,17 @@ def test_to_arrow_map(conn_db_readonly: ConnDB) -> None:
     ]
 
 
+def test_to_arrow_array(conn_db_readwrite: ConnDB) -> None:
+    conn = conn_db_readwrite[0]
+    conn.execute("CREATE NODE TABLE school (id int64 primary key, prop1 int64[3])")
+    conn.execute("CREATE (p:school {id: 5})")
+    conn.execute("CREATE (p:school {id: 8, prop1: [2,3,1]})")
+    conn.execute("CREATE (p:school {id: 18, prop1: null})")
+    results = conn.execute("match (p:school) return p.*").get_as_arrow(8)
+    assert results[0].to_pylist() == [5,8,18]
+    assert results[1].to_pylist() == [None,[2,3,1],None]
+
+
 def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
 
