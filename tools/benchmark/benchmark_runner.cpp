@@ -65,6 +65,10 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
         "Running benchmark {} with {} thread", // NOLINT(clang-analyzer-optin.cplusplus.UninitializedObject):
                                                // spdlog has an unitialized object.
         benchmark->name, config->numThreads);
+    if (!benchmark->preRun.empty()) {
+        spdlog::info("Prerun. {}", benchmark->preRun);
+        benchmark->conn->query(benchmark->preRun);
+    }
     for (auto i = 0u; i < config->numWarmups; ++i) {
         spdlog::info("Warm up");
         benchmark->run();
@@ -79,6 +83,10 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
     spdlog::info("Time Taken (Average of Last {} runs) (ms): {}", config->numRuns,
         computeAverageOfLastRuns(&runTimes[0], config->numRuns,
             config->numRuns /* numRunsToAverage */));
+    if (!benchmark->postRun.empty()) {
+        spdlog::info("PostRun. {}", benchmark->postRun);
+        benchmark->conn->query(benchmark->postRun);
+    }
 }
 
 void BenchmarkRunner::profileQueryIfEnabled(Benchmark* benchmark) const {
