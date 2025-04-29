@@ -156,8 +156,6 @@ struct JSONScanLocalState : public TableFuncLocalState {
               &sharedState.sharedErrorHandler, false, context)),
           allocator{mm} {}
 
-    ~JSONScanLocalState() override;
-
     uint64_t readNext(const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
     bool readNextBuffer();
     bool readNextBufferInternal(uint64_t& bufferIdx, bool& fileDone);
@@ -174,8 +172,6 @@ struct JSONScanLocalState : public TableFuncLocalState {
 
     bool reconstructFirstObject();
 
-    void replaceDoc(idx_t idx, yyjson_doc* newDoc);
-
     void addValuesToWarningDataVectors(processor::WarningSourceData warningData,
         uint64_t recordNumber, const std::optional<std::vector<ValueVector*>>& warningDataVectors);
     uint64_t getFileOffset() const;
@@ -186,21 +182,6 @@ struct JSONScanLocalState : public TableFuncLocalState {
     void handleParseError(yyjson_read_err& err, bool completedParsingObject = true,
         const std::string& extra = "") const;
 };
-
-JSONScanLocalState::~JSONScanLocalState() {
-    for (uint64_t i = 0; i < DEFAULT_VECTOR_CAPACITY; ++i) {
-        if (nullptr != docs[i]) {
-            yyjson_doc_free(docs[i]);
-        }
-    }
-}
-
-void JSONScanLocalState::replaceDoc(idx_t idx, yyjson_doc* newDoc) {
-    if (docs[idx]) {
-        yyjson_doc_free(docs[idx]);
-    }
-    docs[idx] = newDoc;
-}
 
 uint64_t JSONScanLocalState::getFileOffset() const {
     return bufferStartByteOffsetInFile + bufferOffset;
@@ -421,10 +402,10 @@ std::optional<uint64_t> JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64
     }
 
     if (!doc) {
-        replaceDoc(numValuesToOutput, nullptr);
+        docs[numValuesToOutput] = nullptr;
         return 0;
     }
-    replaceDoc(numValuesToOutput, doc);
+    docs[numValuesToOutput] = doc;
     return 1;
 }
 
@@ -932,6 +913,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
             readJsonToValueVector(ele, *output.dataChunk.valueVectors[columnIdx], i);
         }
     }
+    localState->allocator.reset();
     output.dataChunk.state->getSelVectorUnsafe().setSelSize(count);
     return count;
 }

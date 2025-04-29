@@ -18,6 +18,7 @@ public:
         : overflowBuffer{&mm}, yyjsonAlc{allocate, reallocate, free, &overflowBuffer} {}
 
     yyjson_alc* getYYJsonAlc() { return &yyjsonAlc; }
+    void reset() { overflowBuffer.resetBuffer(); }
 
 private:
     static void* allocate(void* context, size_t size) {
