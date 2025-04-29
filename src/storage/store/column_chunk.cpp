@@ -15,18 +15,18 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-ColumnChunk::ColumnChunk(MemoryManager& memoryManager, const LogicalType& dataType,
-    uint64_t capacity, bool enableCompression, ResidencyState residencyState, bool initializeToZero)
+ColumnChunk::ColumnChunk(MemoryManager& memoryManager, LogicalType&& dataType, uint64_t capacity,
+    bool enableCompression, ResidencyState residencyState, bool initializeToZero)
     : enableCompression{enableCompression} {
-    data = ColumnChunkFactory::createColumnChunkData(memoryManager, dataType.copy(),
+    data = ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType),
         enableCompression, capacity, residencyState, true, initializeToZero);
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
 }
 
-ColumnChunk::ColumnChunk(MemoryManager& memoryManager, const LogicalType& dataType,
+ColumnChunk::ColumnChunk(MemoryManager& memoryManager, LogicalType&& dataType,
     bool enableCompression, ColumnChunkMetadata metadata)
     : enableCompression{enableCompression} {
-    data = ColumnChunkFactory::createColumnChunkData(memoryManager, dataType.copy(),
+    data = ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType),
         enableCompression, metadata, true, true);
 }
 
@@ -242,8 +242,8 @@ std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChun
     // TODO(Guodong): Actually for row idx in a column chunk, UINT32 should be enough.
     auto updatedRows = std::make_unique<ColumnChunk>(mm, LogicalType::UINT64(), numUpdatedRows,
         false, ResidencyState::IN_MEMORY);
-    auto updatedData = std::make_unique<ColumnChunk>(mm, getDataType(), numUpdatedRows, false,
-        ResidencyState::IN_MEMORY);
+    auto updatedData = std::make_unique<ColumnChunk>(mm, getDataType().copy(), numUpdatedRows,
+        false, ResidencyState::IN_MEMORY);
     const auto numUpdateVectors = updateInfo->getNumVectors();
     row_idx_t numAppendedRows = 0;
     for (auto vectorIdx = 0u; vectorIdx < numUpdateVectors; vectorIdx++) {

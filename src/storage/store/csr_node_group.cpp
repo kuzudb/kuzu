@@ -837,7 +837,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     for (auto i = 0u; i < numColumnsToCheckpoint; i++) {
         const auto columnID = csrState.columnIDs[i];
         KU_ASSERT(columnID < dataTypes.size());
-        dataChunksToFlush[i] = std::make_unique<ColumnChunk>(*state.mm, dataTypes[columnID],
+        dataChunksToFlush[i] = std::make_unique<ColumnChunk>(*state.mm, dataTypes[columnID].copy(),
             chunkCapacity, enableCompression, ResidencyState::IN_MEMORY);
     }
 
