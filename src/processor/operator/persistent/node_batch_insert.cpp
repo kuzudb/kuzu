@@ -231,9 +231,15 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     }
 
     // we want to flush all index errors before children call finalize
-    // as the children are resposible for populating the errors and sending it to the warning
-    // context
+    // as the children (if they are table function calls) are responsible for populating the errors
+    // and sending it to the warning context
     PhysicalOperator::finalize(context);
+
+    // if the child is a subquery it will not send the errors to the warning context
+    // sends any remaining warnings in this case
+    // if the child is a table function call it will have already sent the warnings so this line
+    // will do nothing
+    context->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(context->queryID);
 }
 
 void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {

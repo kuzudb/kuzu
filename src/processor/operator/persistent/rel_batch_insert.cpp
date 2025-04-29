@@ -256,6 +256,8 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
                     warningCount, context->queryID);
             FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
                 context->clientContext->getMemoryManager());
+            context->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(
+                context->queryID);
         }
     }
     sharedState->numRows.store(0);
