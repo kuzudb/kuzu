@@ -598,5 +598,5 @@ function_set LouvainFunction::getFunctionSet() {
     return result;
 }
 
-} // namespace function
+} // namespace gds_extension
 } // namespace kuzu
