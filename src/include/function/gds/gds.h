@@ -37,14 +37,18 @@ struct KUZU_API GDSBindData : public TableFuncBindData {
     std::unique_ptr<GDSOptionalParams> optionalParams;
 
     GDSBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> nodeOutput,std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
-        : TableFuncBindData{std::move(columns)}, graphEntry{graphEntry.copy()}, nodeOutput{std::move(nodeOutput)} , optionalParams{std::move(optionalParams)} {}
+        std::shared_ptr<binder::Expression> nodeOutput,
+        std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
+        : TableFuncBindData{std::move(columns)}, graphEntry{graphEntry.copy()},
+          nodeOutput{std::move(nodeOutput)}, optionalParams{std::move(optionalParams)} {}
 
     GDSBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
         std::vector<std::shared_ptr<binder::Expression>> nodeInputs,
-        std::shared_ptr<binder::Expression> nodeOutput,std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
+        std::shared_ptr<binder::Expression> nodeOutput,
+        std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
         : TableFuncBindData{std::move(columns)}, graphEntry{graphEntry.copy()},
-          nodeInputs{std::move(nodeInputs)}, nodeOutput{std::move(nodeOutput)}  , optionalParams{std::move(optionalParams)} {}
+          nodeInputs{std::move(nodeInputs)}, nodeOutput{std::move(nodeOutput)},
+          optionalParams{std::move(optionalParams)} {}
 
     GDSBindData(const GDSBindData& other)
         : TableFuncBindData{other}, graphEntry{other.graphEntry.copy()},
