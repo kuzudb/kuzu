@@ -21,6 +21,7 @@ static constexpr std::array icebergExtensionFunctions = {"ICEBERG_SCAN", "ICEBER
     "ICEBERG_SNAPSHOTS"};
 static constexpr std::array vectorExtensionFunctions = {"QUERY_VECTOR_INDEX", "CREATE_VECTOR_INDEX",
     "DROP_VECTOR_INDEX"};
+static constexpr std::array neo4jExtensionFunctions = {"NEO4J_MIGRATE"};
 static constexpr std::array gdsExtensionFunctions = {"K_CORE_DECOMPOSITION", "PAGE_RANK",
     "STRONGLY_CONNECTED_COMPONENTS_KOSARAJU", "STRONGLY_CONNECTED_COMPONENTS",
     "WEAKLY_CONNECTED_COMPONENTS"};
@@ -32,6 +33,7 @@ static constexpr EntriesForExtension functionsForExtensionsRaw[] = {
     {"ICEBERG", icebergExtensionFunctions, ftsExtensionFunctions.size()},
     {"JSON", jsonExtensionFunctions, jsonExtensionFunctions.size()},
     {"VECTOR", vectorExtensionFunctions, vectorExtensionFunctions.size()},
+    {"NEO4J", neo4jExtensionFunctions, neo4jExtensionFunctions.size()},
     {"GDS", gdsExtensionFunctions, gdsExtensionFunctions.size()},
 };
 static constexpr std::array functionsForExtensions = std::to_array(functionsForExtensionsRaw);

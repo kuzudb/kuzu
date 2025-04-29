@@ -292,7 +292,7 @@ Binder exception: a.fName has type PROPERTY but LITERAL,PARAMETER was expected.
 
 -LOG ShowOfficialExtensions
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() RETURN *
----- 9
+---- 11
 DELTA|Adds support for reading from delta tables
 DUCKDB|Adds support for reading from duckdb tables
 FTS|Adds support for full-text search indexes
@@ -302,11 +302,13 @@ JSON|Adds support for JSON operations
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
+NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
+GDS|Adds support for graph algorithms
 
 -CASE CallFuncWithYield
 -LOG CallWithYield
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description return name, description
----- 9
+---- 11
 DELTA|Adds support for reading from delta tables
 DUCKDB|Adds support for reading from duckdb tables
 FTS|Adds support for full-text search indexes
@@ -316,8 +318,10 @@ JSON|Adds support for JSON operations
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
+NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
+GDS|Adds support for graph algorithms
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name as extension_name, description as extension_description return extension_name, extension_description
----- 9
+---- 11
 DELTA|Adds support for reading from delta tables
 DUCKDB|Adds support for reading from duckdb tables
 FTS|Adds support for full-text search indexes
@@ -327,13 +331,15 @@ JSON|Adds support for JSON operations
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
+NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
+GDS|Adds support for graph algorithms
 -LOG ShowConnectionWithoutYieldError
 -STATEMENT CALL show_connection('workAt') CALL show_connection('workAt') RETURN *
 ---- error
 Binder exception: Variable source table name already exists.
 -LOG ShowExtensionWithYield
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name as extension_name, description as extension_description CALL SHOW_OFFICIAL_EXTENSIONS() WHERE extension_name = 'SQLITE' RETURN *
----- 9
+---- 11
 SQLITE|Adds support for reading from SQLITE tables|DELTA|Adds support for reading from delta tables
 SQLITE|Adds support for reading from SQLITE tables|DUCKDB|Adds support for reading from duckdb tables
 SQLITE|Adds support for reading from SQLITE tables|FTS|Adds support for full-text search indexes
@@ -343,10 +349,12 @@ SQLITE|Adds support for reading from SQLITE tables|JSON|Adds support for JSON op
 SQLITE|Adds support for reading from SQLITE tables|POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables|SQLITE|Adds support for reading from SQLITE tables
 SQLITE|Adds support for reading from SQLITE tables|UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
+SQLITE|Adds support for reading from SQLITE tables|NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
+SQLITE|Adds support for reading from SQLITE tables|GDS|Adds support for graph algorithms
 
 -LOG ShowExtensionPartialAlias
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description as extension_description RETURN *
----- 9
+---- 11
 DELTA|Adds support for reading from delta tables
 DUCKDB|Adds support for reading from duckdb tables
 FTS|Adds support for full-text search indexes
@@ -356,6 +364,8 @@ JSON|Adds support for JSON operations
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
+NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
+GDS|Adds support for graph algorithms
 
 -CASE CallFuncWithYieldError
 -STATEMENT CALL TABLE_INFO('person') yield `property id` as id RETURN *;
