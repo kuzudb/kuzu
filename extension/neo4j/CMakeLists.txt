@@ -7,4 +7,4 @@ include_directories(
 add_subdirectory(src/function)
 add_subdirectory(src/main)
 
-build_extension_lib(${BUILD_STATIC_EXTENSION} "neo4j_migration")
+build_extension_lib(${BUILD_STATIC_EXTENSION} "neo4j")

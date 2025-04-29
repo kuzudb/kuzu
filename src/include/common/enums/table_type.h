@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include "common/api.h"
 
 namespace kuzu {
 namespace common {
@@ -14,7 +15,7 @@ enum class TableType : uint8_t {
     FOREIGN = 5,
 };
 
-struct TableTypeUtils {
+struct KUZU_API TableTypeUtils {
     static std::string toString(TableType tableType);
 };
 

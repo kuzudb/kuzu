@@ -20,7 +20,9 @@ static constexpr std::pair<std::string_view, std::string_view> extensions[] = {
     {"JSON", "Adds support for JSON operations"},
     {"POSTGRES", "Adds support for reading from POSTGRES tables"},
     {"SQLITE", "Adds support for reading from SQLITE tables"},
-    {"UNITY_CATALOG", "Adds support for scanning delta tables registered in unity catalog"}};
+    {"UNITY_CATALOG", "Adds support for scanning delta tables registered in unity catalog"},
+    {"NEO4J", "Adds support for migrating nodes and rels from neo4j to kuzu"},
+    {"GDS", "Adds support for graph algorithms"}};
 static constexpr auto officialExtensions = std::to_array(extensions);
 
 static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& /*input*/,
