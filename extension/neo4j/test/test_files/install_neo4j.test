@@ -1,0 +1,21 @@
+-DATASET CSV empty
+
+--
+
+-CASE InstallOfficialExtension
+-STATEMENT INSTALL neo4j FROM 'http://localhost/extension/repo/'
+---- 1
+Extension: neo4j has been installed from repo: http://localhost/extension/repo/.
+-STATEMENT load extension neo4j
+---- ok
+
+-CASE LoadExtensionTwice
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
+---- ok
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
+---- ok
+
+-CASE MigrateWithoutLoading
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "kuzuneo4j", ["User", "City"], ["Follows", "LivesIn"]);
+---- error
+Catalog exception: function NEO4J_MIGRATE is not defined. This function exists in the NEO4J extension. You can install and load the extension by running 'INSTALL NEO4J; LOAD EXTENSION NEO4J;'.
