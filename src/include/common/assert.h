@@ -14,12 +14,14 @@ namespace common {
     // LCOV_EXCL_STOP
 }
 
-#if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
-#define RUNTIME_CHECK(code) code
-#define KU_ASSERT(condition)                                                                       \
+#define KU_ASSERT_UNCONDITIONAL(condition)                                                         \
     static_cast<bool>(condition) ?                                                                 \
         void(0) :                                                                                  \
         kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__)
+
+#if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
+#define RUNTIME_CHECK(code) code
+#define KU_ASSERT(condition) KU_ASSERT_UNCONDITIONAL(condition)
 #else
 #define KU_ASSERT(condition) void(0)
 #define RUNTIME_CHECK(code) void(0)

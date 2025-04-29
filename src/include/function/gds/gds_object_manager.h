@@ -39,52 +39,92 @@ private:
 template<typename T>
 class ObjectArray {
 public:
+    ObjectArray() : size{0} {}
     ObjectArray(const common::offset_t size, storage::MemoryManager* mm,
         bool initializeToZero = false)
-        : allocation{mm->allocateBuffer(initializeToZero, size * sizeof(T))} {
+        : size{size}, mm{mm} {
+        allocate(size, mm, initializeToZero);
+    }
+
+    void allocate(const common::offset_t size, storage::MemoryManager* mm, bool initializeToZero) {
+        allocation = mm->allocateBuffer(initializeToZero, size * sizeof(T));
         data = std::span<T>(reinterpret_cast<T*>(allocation->getData()), size);
+        this->size = size;
+    }
+
+    common::offset_t getSize() const { return size; }
+
+    void resizeAsNew(const common::offset_t newSize, storage::MemoryManager* mm) {
+        if (newSize > size) {
+            allocate(newSize, mm, false /* initializeToZero */);
+        }
     }
 
     void set(const common::offset_t pos, const T value) {
-        KU_ASSERT(pos < data.size());
+        KU_ASSERT_UNCONDITIONAL(pos < size);
         data[pos] = value;
     }
 
     T get(const common::offset_t pos) {
-        KU_ASSERT(pos < data.size());
+        KU_ASSERT_UNCONDITIONAL(pos < size);
+        return data[pos];
+    }
+
+    T& getRef(const common::offset_t pos) {
+        KU_ASSERT_UNCONDITIONAL(pos < size);
         return data[pos];
     }
 
 private:
     template<typename U>
     friend class AtomicObjectArray;
+    common::offset_t size;
     std::span<T> data;
     std::unique_ptr<storage::MemoryBuffer> allocation;
+    storage::MemoryManager* mm = nullptr;
 };
 
 // Pre-allocated array of atomic objects.
 template<typename T>
 class AtomicObjectArray {
 public:
+    AtomicObjectArray() = default;
     AtomicObjectArray(const common::offset_t size, storage::MemoryManager* mm,
         bool initializeToZero = false)
         : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {}
 
-    void setRelaxed(common::offset_t pos, const T& value) {
-        KU_ASSERT(pos < array.data.size());
-        array.data[pos].store(value, std::memory_order_relaxed);
+    common::offset_t getSize() const { return array.size; }
+
+    void resizeAsNew(const common::offset_t newSize, storage::MemoryManager* mm) {
+        array.resizeAsNew(newSize, mm);
     }
 
-    T getRelaxed(const common::offset_t pos) {
-        KU_ASSERT(pos < array.data.size());
-        return array.data[pos].load(std::memory_order_relaxed);
+    void set(common::offset_t pos, const T& value,
+        std::memory_order order = std::memory_order_seq_cst) {
+        KU_ASSERT_UNCONDITIONAL(pos < array.size);
+        array.data[pos].store(value, order);
     }
 
-    bool compare_exchange_strong_max(const common::offset_t src, const common::offset_t dest) {
-        auto srcValue = getRelaxed(src);
-        auto dstValue = getRelaxed(dest);
+    T get(const common::offset_t pos, std::memory_order order = std::memory_order_seq_cst) {
+        KU_ASSERT_UNCONDITIONAL(pos < array.size);
+        return array.data[pos].load(order);
+    }
+
+    void fetchAdd(common::offset_t pos, const T& value,
+        std::memory_order order = std::memory_order_seq_cst) {
+        KU_ASSERT_UNCONDITIONAL(pos < array.size);
+        array.data[pos].fetch_add(value, order);
+    }
+
+    bool compare_exchange_max(const common::offset_t src, const common::offset_t dest,
+        std::memory_order order = std::memory_order_seq_cst) {
+        auto srcValue = get(src, order);
+        auto dstValue = get(dest, order);
+        // From https://en.cppreference.com/w/cpp/std::atomic/std::atomic/compare_exchange:
+        // When a compare-and-exchange is in a loop, the weak version will yield better performance
+        // on some platforms.
         while (dstValue < srcValue) {
-            if (array.data[dest].compare_exchange_strong(dstValue, srcValue)) {
+            if (array.data[dest].compare_exchange_weak(dstValue, srcValue)) {
                 return true;
             }
         }

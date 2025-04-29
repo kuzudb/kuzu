@@ -1,6 +1,7 @@
 add_library(kuzu_graph
         OBJECT
         graph.cpp
+        graph_mem.cpp
         graph_entry.cpp
         on_disk_graph.cpp)
 

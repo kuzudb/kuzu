@@ -16,6 +16,7 @@ CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 NUM_THREADS ?= 1
 PREFIX ?= install
 TEST_JOBS ?= 10
+EXTENSION_LIST ?= httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector;neo4j_migration;gds
 EXTENSION_TEST_EXCLUDE_FILTER ?= ""
 
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
@@ -90,8 +91,6 @@ relwithdebinfo:
 
 debug:
 	$(call run-cmake-debug,)
-
-EXTENSION_LIST = httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector;neo4j_migration;gds
 
 allconfig:
 	$(call config-cmake-release, \
