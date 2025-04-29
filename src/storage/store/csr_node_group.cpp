@@ -101,7 +101,8 @@ void CSRNodeGroup::initScanForCommittedPersistent(const Transaction* transaction
     }
     KU_ASSERT(csrHeader.offset->getNumValues() == csrHeader.length->getNumValues());
     if (relScanState.randomLookup) {
-        auto nodeOffset = relScanState.nodeIDVector->readNodeOffset(0);
+        auto pos = relScanState.nodeIDVector->state->getSelVector()[0];
+        auto nodeOffset = relScanState.nodeIDVector->readNodeOffset(pos);
         auto offsetInGroup = nodeOffset % StorageConfig::NODE_GROUP_SIZE;
         auto offsetToScanFrom = offsetInGroup == 0 ? 0 : offsetInGroup - 1;
         csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
