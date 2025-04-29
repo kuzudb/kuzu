@@ -4,6 +4,7 @@ include_directories(
 
 add_executable(kuzu_benchmark
         benchmark.cpp
+        benchmark_parser.cpp
         benchmark_runner.cpp
         main.cpp)
 
