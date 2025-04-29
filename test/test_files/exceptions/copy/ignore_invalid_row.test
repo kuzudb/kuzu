@@ -161,6 +161,46 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 4|9|11|vgood
 6|1|1|vbad
 
+-CASE CopyRelNoIgnoreErrorsAfterCopyNodeFromSubquery
+-STATEMENT CREATE NODE TABLE tab (id int64, primary key(id))
+---- ok
+-STATEMENT CREATE REL TABLE edge (FROM tab TO tab)
+---- ok
+-STATEMENT COPY tab FROM (unwind [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2] as i return i) (IGNORE_ERRORS=true)
+---- ok
+-STATEMENT COPY edge FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv"(SKIP=6)
+---- ok
+-STATEMENT match (a:tab)-[:edge]->(b:tab) return a.id, b.id
+---- 3
+2|0
+6|0
+7|0
+-STATEMENT CALL SHOW_WARNINGS() RETURN message
+---- 3
+Found duplicated primary key value 0, which violates the uniqueness constraint of the primary key column.
+Found duplicated primary key value 1, which violates the uniqueness constraint of the primary key column.
+Found duplicated primary key value 2, which violates the uniqueness constraint of the primary key column.
+
+-CASE CopyRelNoIgnoreErrorsAfterCopyRelFromSubquery
+-STATEMENT CREATE NODE TABLE tab (id int64, primary key(id))
+---- ok
+-STATEMENT CREATE REL TABLE edge (FROM tab TO tab)
+---- ok
+-STATEMENT COPY tab FROM (unwind [0, 1, 2, 3, 4, 5, 6, 7] as i return i)
+---- ok
+-STATEMENT COPY edge FROM (return 10, 11) (ignore_errors=true)
+---- ok
+-STATEMENT COPY edge FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv"(SKIP=6)
+---- ok
+-STATEMENT match (a:tab)-[:edge]->(b:tab) return a.id, b.id
+---- 3
+2|0
+6|0
+7|0
+-STATEMENT CALL SHOW_WARNINGS() RETURN message
+---- 1
+Unable to find primary key value 10.
+
 -CASE ParallelSkipInvalidRelMissingPK
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson-valid.csv"(AUTO_DETECT=false)
 ---- ok
