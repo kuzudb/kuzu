@@ -24,7 +24,7 @@ struct KUZU_API InMemGraph {
     common::offset_t numNodes = 0;
     common::offset_t numEdges = 0;
 
-    explicit InMemGraph(common::offset_t numNodes);
+    InMemGraph(common::offset_t numNodes);
     DELETE_BOTH_COPY(InMemGraph);
 
     // Resets to an empty graph. Reuses allocations, if any.

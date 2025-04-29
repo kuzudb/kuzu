@@ -4,11 +4,11 @@ using namespace kuzu::common;
 
 namespace kuzu::graph {
 
-InMemGraph::InMemGraph(const offset_t numNodes) {
+InMemGraph::InMemGraph(offset_t numNodes) {
     reset(numNodes);
 }
 
-void InMemGraph::reset(const offset_t numNodes_) {
+void InMemGraph::reset(offset_t numNodes_) {
     numNodes = numNodes_;
     csrOffsets.reserve(numNodes);
     csrOffsets.clear();
@@ -20,7 +20,7 @@ void InMemGraph::initNextNode() {
     csrOffsets.push_back(csrEdges.size());
 }
 
-void InMemGraph::insertNbr(const offset_t to, const weight_t weight) {
+void InMemGraph::insertNbr(offset_t to, weight_t weight) {
     Neighbor neighbor{to, weight};
     csrEdges.push_back(neighbor);
     numEdges++;
