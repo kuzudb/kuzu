@@ -199,3 +199,9 @@ Binder exception: Number of columns mismatch. Expected .+
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_0_0.csv" RETURN MIN(Length);
 ---- 1
 2
+
+-LOG CompressedCSVExample
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/compressed-csv-example/user.csv.gz" RETURN *;
+---- 2
+Adam|30|2020-06-22
+Karissa|40|2019-05-12

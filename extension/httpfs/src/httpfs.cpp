@@ -108,7 +108,7 @@ void HTTPFileInfo::initMetadata() {
 }
 
 void HTTPFileInfo::initialize(main::ClientContext* context) {
-    if (httpConfig.cacheFile) {
+    if (httpConfig.cacheFile && !context->getVFSUnsafe()->isCompressedFile(path)) {
         auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
         cachedFileInfo =
             hfs->getCachedFileManager().getCachedFileInfo(this, context->getTransaction()->getID());
