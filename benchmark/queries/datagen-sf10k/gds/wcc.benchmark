@@ -1,6 +1,6 @@
 -NAME WCC
 -PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
--QUERY CALL weakly_connected_component('PK') WITH group_id, min(node.id) as wccId, count(*) as nodeCount, sum(node.id) as nodeIdSum RETURN wccId, nodeCount, nodeIdSum ORDER BY nodeCount DESC, wccId LIMIT 10;
+-QUERY CALL weakly_connected_components('PK') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 1655|1|1655
 1776|1|1776

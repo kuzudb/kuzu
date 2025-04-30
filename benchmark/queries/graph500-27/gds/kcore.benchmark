@@ -1,6 +1,6 @@
 -NAME KCore
 -PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
--QUERY CALL k_core_decomposition('PK') RETURN k_degree, count(*) as count ORDER BY count DESC LIMIT 10;
+-QUERY CALL k_core_decomposition('PK') RETURN k_degree, count(*) as count ORDER BY k_degree DESC LIMIT 10;
 ---- 10
 10|1292773
 1|16405762
