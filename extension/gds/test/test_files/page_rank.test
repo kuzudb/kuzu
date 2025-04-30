@@ -17,6 +17,18 @@ Elizabeth|0.018750
 Farooq|0.026719
 Greg|0.026719
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.018750
+
+-STATEMENT CALL page_rank('PK', normalizeInitial:=false) RETURN node.fName, rank;
+---- 8
+Alice|1.000000
+Bob|1.000000
+Carol|1.000000
+Dan|1.000000
+Elizabeth|0.150000
+Farooq|0.213750
+Greg|0.213750
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.150000
+
 -STATEMENT CALL create_projected_graph('PK2', ['person'], {'knows': {'filter': 'r.date > date("1906-01-01")'}})
 ---- ok
 -STATEMENT CALL page_rank('PK2') RETURN node.fName, rank;

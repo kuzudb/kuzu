@@ -22,7 +22,7 @@
 Binder exception: N2 is connected to R but not projected.
 -STATEMENT CALL create_projected_graph('G', ['N1', 'N2'], ['R'])
 ---- ok
--STATEMENT CALL weakly_connected_component('G') RETURN label(node), node.id, group_id;
+-STATEMENT CALL weakly_connected_components('G') RETURN label(node), node.id, group_id;
 ---- 10
 N1|1|0
 N1|2|0

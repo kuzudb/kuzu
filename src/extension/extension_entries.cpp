@@ -23,7 +23,7 @@ static constexpr std::array vectorExtensionFunctions = {"QUERY_VECTOR_INDEX", "C
     "DROP_VECTOR_INDEX"};
 static constexpr std::array gdsExtensionFunctions = {"K_CORE_DECOMPOSITION", "PAGE_RANK",
     "STRONGLY_CONNECTED_COMPONENTS_KOSARAJU", "STRONGLY_CONNECTED_COMPONENTS",
-    "WEAKLY_CONNECTED_COMPONENT"};
+    "WEAKLY_CONNECTED_COMPONENTS"};
 
 static constexpr EntriesForExtension functionsForExtensionsRaw[] = {
     {"FTS", ftsExtensionFunctions, ftsExtensionFunctions.size()},
