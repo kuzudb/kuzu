@@ -54,4 +54,14 @@ IO exception: Unsupported GZIP compression method.
 -STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/unsupported_flags.csv.gz" return *
 ---- error
 IO exception: Unsupported GZIP archive.
+-STATEMENT copy (return 5) to '/tmp/test.csv.gz'
+---- error
+IO exception: Writing to compressed files is not supported yet.
+-STATEMENT copy (return 5) to '/tmp/test.parquet.gz'
+---- error
+IO exception: Writing to compressed files is not supported yet.
 
+-CASE ReadFromParquetError
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/user.parquet.gz" return *
+---- error
+IO exception: Kuzu currently only support reading from compressed csv files.

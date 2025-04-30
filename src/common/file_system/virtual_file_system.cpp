@@ -1,8 +1,10 @@
 #include "common/file_system/virtual_file_system.h"
 
 #include "common/assert.h"
+#include "common/exception/io.h"
 #include "common/file_system/gzip_file_system.h"
 #include "common/file_system/local_file_system.h"
+#include "common/string_utils.h"
 #include "main/client_context.h"
 
 namespace kuzu {
@@ -37,6 +39,12 @@ std::unique_ptr<FileInfo> VirtualFileSystem::openFile(const std::string& path, F
     auto fileHandle = findFileSystem(path)->openFile(path, flags, context);
     if (compressionType == FileCompressionType::UNCOMPRESSED) {
         return fileHandle;
+    }
+    if (flags.flags & FileFlags::WRITE) {
+        throw common::IOException{"Writing to compressed files is not supported yet."};
+    }
+    if (common::StringUtils::getLower(getFileExtension(path)) != ".csv") {
+        throw common::IOException{"Kuzu currently only support reading from compressed csv files."};
     }
     return compressedFileSystem.at(compressionType)->openCompressedFile(std::move(fileHandle));
 }
