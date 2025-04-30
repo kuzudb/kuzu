@@ -10,7 +10,6 @@ add_library(kuzu_function_algorithm
         gds_state.cpp
         gds_task.cpp
         gds_utils.cpp
-        gds_utils_mem.cpp
         output_writer.cpp
         rec_joins.cpp
         ssp_destinations.cpp

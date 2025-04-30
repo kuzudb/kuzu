@@ -1,13 +1,13 @@
 #include <cmath>
 
+#include "../include/main/gds_utils_mem.h"
 #include "binder/binder.h"
 #include "common/exception/runtime.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds/gds_utils_mem.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/gds_function.h"
-#include "graph/graph_mem.h"
+#include "main/graph_mem.h"
 #include "processor/execution_context.h"
 
 using namespace std;

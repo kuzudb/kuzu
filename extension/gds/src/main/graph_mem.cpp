@@ -1,4 +1,4 @@
-#include "graph/graph_mem.h"
+#include "main/graph_mem.h"
 
 namespace kuzu::graph {
 

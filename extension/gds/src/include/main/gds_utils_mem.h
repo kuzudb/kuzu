@@ -1,11 +1,11 @@
 #pragma once
 
-#include "gds_task.h"
+#include "function/gds/gds_task.h"
 
 namespace kuzu {
 namespace function {
 
-class InMemVertexCompute {
+class KUZU_API InMemVertexCompute {
 public:
     virtual ~InMemVertexCompute() = default;
 
@@ -14,7 +14,7 @@ public:
     virtual std::unique_ptr<InMemVertexCompute> copy() = 0;
 };
 
-class InMemVertexComputeTask : public common::Task {
+class KUZU_API InMemVertexComputeTask : public common::Task {
 public:
     InMemVertexComputeTask(uint64_t maxNumThreads, InMemVertexCompute& vc,
         std::shared_ptr<VertexComputeTaskSharedState> sharedState)
@@ -29,7 +29,7 @@ private:
     std::shared_ptr<VertexComputeTaskSharedState> sharedState;
 };
 
-class InMemGDSUtils {
+class KUZU_API InMemGDSUtils {
 public:
     static void runVertexCompute(InMemVertexCompute& vc, common::offset_t maxOffset,
         processor::ExecutionContext* context);
