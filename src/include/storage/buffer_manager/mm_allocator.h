@@ -6,7 +6,7 @@ namespace kuzu {
 namespace storage {
 
 template<class T>
-class KUZU_API MmAllocator {
+class MmAllocator {
 public:
     using value_type = T;
 
@@ -16,7 +16,7 @@ public:
     MmAllocator& operator=(const MmAllocator& other) = default;
     DELETE_BOTH_MOVE(MmAllocator);
 
-    [[nodiscard]] T* allocate(std::size_t size) {
+    [[nodiscard]] T* allocate(const std::size_t size) {
         KU_ASSERT_UNCONDITIONAL(mm != nullptr);
         KU_ASSERT_UNCONDITIONAL(size > 0);
         KU_ASSERT_UNCONDITIONAL(size <= std::numeric_limits<std::size_t>::max() / sizeof(T));
@@ -30,12 +30,12 @@ public:
         return p;
     }
 
-    void deallocate(T* p, std::size_t size) noexcept {
+    void deallocate(T* p, const std::size_t size) noexcept {
         KU_ASSERT_UNCONDITIONAL(mm != nullptr);
         KU_ASSERT_UNCONDITIONAL(p != nullptr);
         KU_ASSERT_UNCONDITIONAL(size > 0);
 
-        auto buffer = std::span(reinterpret_cast<uint8_t*>(p), size * sizeof(T));
+        const auto buffer = std::span(reinterpret_cast<uint8_t*>(p), size * sizeof(T));
         if (buffer.data() != nullptr) {
             mm->freeBlock(common::INVALID_PAGE_IDX, buffer);
         }
