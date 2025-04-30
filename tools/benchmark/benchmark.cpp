@@ -12,10 +12,8 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace benchmark {
 
-Benchmark::Benchmark(const std::string& benchmarkPath, Database* database, BenchmarkConfig& config)
+Benchmark::Benchmark(const std::string& benchmarkPath, BenchmarkConfig& config)
     : config{config}, compareResult{true}, expectedNumTuples{0} {
-    conn = std::make_unique<Connection>(database);
-    conn->setMaxNumThreadForExec(config.numThreads);
     loadBenchmark(benchmarkPath);
 }
 
@@ -31,13 +29,24 @@ void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
     expectedOutput = queryConfig->expectedTuples;
     compareResult = queryConfig->compareResult;
     expectedNumTuples = queryConfig->expectedNumTuples;
+    if (queryConfig->numWarmups.has_value()) {
+        config.numWarmups = queryConfig->numWarmups.value();
+    }
+    if (queryConfig->numRuns.has_value()) {
+        config.numRuns = queryConfig->numRuns.value();
+    }
+    if (queryConfig->enableProfile.has_value()) {
+        config.enableProfile = queryConfig->enableProfile.value();
+    }
 }
 
-std::unique_ptr<QueryResult> Benchmark::run() const {
+std::unique_ptr<QueryResult> Benchmark::run(Connection* conn) const {
+    conn->setMaxNumThreadForExec(config.numThreads);
     return conn->query(query);
 }
 
-std::unique_ptr<QueryResult> Benchmark::runWithProfile() const {
+std::unique_ptr<QueryResult> Benchmark::runWithProfile(Connection* conn) const {
+    conn->setMaxNumThreadForExec(config.numThreads);
     return conn->query("PROFILE " + query);
 }
 

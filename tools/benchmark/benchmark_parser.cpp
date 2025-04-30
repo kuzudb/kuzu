@@ -22,7 +22,7 @@ std::vector<std::unique_ptr<ParsedBenchmark>> BenchmarkParser::parseBenchmarkFil
     if (access(path.c_str(), 0) != 0) {
         throw common::Exception("Test file not exists! [" + path + "].");
     }
-    struct stat status {};
+    struct stat status{};
     stat(path.c_str(), &status);
     if (status.st_mode & S_IFDIR) {
         throw common::Exception("Test file is a directory. [" + path + "].");
@@ -54,6 +54,15 @@ std::vector<std::unique_ptr<ParsedBenchmark>> BenchmarkParser::parseBenchmarkFil
         } else if (line.starts_with("-SKIP_COMPARE_RESULT")) {
             KU_ASSERT(currentConfig);
             currentConfig->compareResult = false;
+        } else if (line.starts_with("-NUM_WARMUP")) {
+            KU_ASSERT(currentConfig);
+            currentConfig->numWarmups = stoi(line.substr(12, line.length()));
+        } else if (line.starts_with("-NUM_RUNS")) {
+            KU_ASSERT(currentConfig);
+            currentConfig->numRuns = stoi(line.substr(10, line.length()));
+        } else if (line.starts_with("-DISABLE_PROFILE")) {
+            KU_ASSERT(currentConfig);
+            currentConfig->enableProfile = false;
         } else if (line.starts_with("----")) {
             uint64_t numTuples = stoi(line.substr(5, line.length()));
             KU_ASSERT(currentConfig);

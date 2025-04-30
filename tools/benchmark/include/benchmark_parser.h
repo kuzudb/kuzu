@@ -19,6 +19,9 @@ struct ParsedBenchmark {
     std::vector<std::string> expectedTuples;
     bool checkOutputOrder = false;
     bool compareResult = true;
+    std::optional<bool> enableProfile;
+    std::optional<uint64_t> numWarmups;
+    std::optional<uint64_t> numRuns;
 };
 
 class BenchmarkParser {

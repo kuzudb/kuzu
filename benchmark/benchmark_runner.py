@@ -38,7 +38,7 @@ bm_size = int((max_memory / 1024 ** 2) * .9)
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
 # dataset registration
-datasets = {'ldbc-sf10', 'ldbc-sf100', 'click', 'graph500-27', 'soc-livejournal', 'datagen-sf10k'}
+datasets = {'ldbc-sf10', 'ldbc-sf100', 'click', 'graph500-27', 'soc-livejournal', 'datagen-sf10k', 'in-mem-ldbc-sf100'}
 datasets_benchmark_severs_url_key = {
     'ldbc-sf10': 'BENCHMARK_SERVER_URL',
     'ldbc-sf100': 'BENCHMARK_SERVER_URL',
@@ -46,6 +46,7 @@ datasets_benchmark_severs_url_key = {
     'graph500-27': 'GRAPH500_BENCHMARK_SERVER_URL',
     'soc-livejournal': 'SOC_LIVEJOURNAL_BENCHMARK_SERVER_URL',
     'datagen-sf10k': 'BENCHMARK_SERVER_URL',
+    'in-mem-ldbc-sf100': 'BENCHMARK_SERVER_URL',
 }
 
 csv_base_dir = os.getenv('CSV_DIR')
@@ -75,6 +76,7 @@ datasets_path = {
     'graph500-27-ku': os.path.join(csv_base_dir, 'graph500-27', 'csv'),
     'soc-livejournal-ku': os.path.join(csv_base_dir, 'soc-livejournal', 'csv'),
     'datagen-sf10k-ku': os.path.join(csv_base_dir, 'datagen-sf10k', 'csv'),
+    'in-mem-ldbc-sf100-ku': os.path.join(csv_base_dir, 'ldbc-100', 'csv'),
 }
 
 serialized_graphs_path = {
@@ -84,6 +86,7 @@ serialized_graphs_path = {
     'graph500-27-ku': os.path.join(serialized_base_dir, 'graph500-27-serialized'),
     'soc-livejournal-ku': os.path.join(serialized_base_dir, 'soc-livejournal-serialized'),
     'datagen-sf10k-ku': os.path.join(serialized_base_dir, 'datagen-sf10k-serialized'),
+    'in-mem-ldbc-sf100-ku': ':memory:',
 }
 
 benchmark_copy_log_dir = os.path.join("/tmp", 'benchmark_copy_logs')
@@ -244,7 +247,8 @@ def run_kuzu(serialized_graph_path):
         is_current_group_error = False
         benchmark_cmd = [
             kuzu_benchmark_tool,
-            '--dataset=' + serialized_graph_path,
+            '--dataset=' + dataset_path,
+            '--serialized=' + serialized_graph_path,
             '--benchmark=' + benchmark_files + '/' + group,
             '--warmup=' + str(num_warmup),
             '--run=' + str(num_run),
