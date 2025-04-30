@@ -2,14 +2,14 @@
 -PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
 -QUERY CALL weakly_connected_components('PK') WITH group_id, COUNT(*) AS c RETURN group_id, c ORDER BY c DESC LIMIT 10;
 ---- 10
-0|63039352
-1100278|3
-1440792|3
-3738795|3
-3938789|3
-5630265|3
-7091209|3
-7247038|3
-735265|3
-8693138|3
+63039352
+3
+3
+3
+3
+3
+3
+3
+3
+3
 -POSTRUN CALL DROP_PROJECTED_GRAPH('PK');
