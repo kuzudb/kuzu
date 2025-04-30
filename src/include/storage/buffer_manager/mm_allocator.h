@@ -17,8 +17,9 @@ public:
     DELETE_BOTH_MOVE(MmAllocator);
 
     [[nodiscard]] T* allocate(std::size_t size) {
-        if (size > std::numeric_limits<std::size_t>::max() / sizeof(T))
+        if (size > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
             throw std::bad_array_new_length();
+        }
 
         auto buffer = mm->mallocBuffer(false, size * sizeof(T));
         auto p = reinterpret_cast<T*>(buffer.data());
@@ -32,7 +33,9 @@ public:
     }
 
     void deallocate(T* p, std::size_t size) noexcept {
-        if (!p || size == 0) return;
+        if (!p || size == 0) {
+            return;
+        }
 
         auto buffer = std::span(reinterpret_cast<uint8_t*>(p), size * sizeof(T));
         if (buffer.data() != nullptr) {
