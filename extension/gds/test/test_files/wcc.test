@@ -7,7 +7,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
 ---- ok
--STATEMENT CALL weakly_connected_component('PK') RETURN node.fName, group_id;
+-STATEMENT CALL weakly_connected_components('PK') RETURN node.fName, group_id;
 ---- 8
 Alice|0
 Bob|0
@@ -19,7 +19,7 @@ Greg|4
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 -STATEMENT CALL create_projected_graph('PK2', ['person'], {'knows': {'filter': 'r.date > date("1999-01-01")'}})
 ---- ok
--STATEMENT CALL weakly_connected_component('PK2') RETURN node.fName, group_id;
+-STATEMENT CALL weakly_connected_components('PK2') RETURN node.fName, group_id;
 ---- 8
 Alice|0
 Bob|0
@@ -32,7 +32,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
 -STATEMENT CALL create_projected_graph('PK3', {'person': {'filter': 'n.ID > 2'}}, ['knows'])
 ---- ok
--STATEMENT CALL weakly_connected_component('PK3') RETURN node.fName, group_id;
+-STATEMENT CALL weakly_connected_components('PK3') RETURN node.fName, group_id;
 ---- 6
 Carol|2
 Dan|2
@@ -43,7 +43,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
 -STATEMENT CALL create_projected_graph('PK4', {'person': {'filter': 'n.ID <> 7'}}, ['knows'])
 ---- ok
--STATEMENT CALL weakly_connected_component('PK4') RETURN node.fName, group_id;
+-STATEMENT CALL weakly_connected_components('PK4') RETURN node.fName, group_id;
 ---- 7
 Alice|0
 Bob|0
@@ -55,7 +55,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
 -STATEMENT CALL create_projected_graph('PK5', {'person': {'filter': 'n.ID > 5'}}, {'knows': {'filter': 'r.date > date("1999-01-01")'}})
 ---- ok
--STATEMENT CALL weakly_connected_component('PK5') RETURN node.fName, group_id;
+-STATEMENT CALL weakly_connected_components('PK5') RETURN node.fName, group_id;
 ---- 4
 Elizabeth|4
 Farooq|5
@@ -64,7 +64,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
 -STATEMENT CALL create_projected_graph('G1', ['person', 'organisation'], ['knows', 'studyAt', 'workAt'])
 ---- ok
--STATEMENT CALL weakly_connected_component('G1') RETURN node.ID, node.fName, node.name, group_id;
+-STATEMENT CALL weakly_connected_components('G1') RETURN node.ID, node.fName, node.name, group_id;
 ---- 11
 0|Alice||0
 1||ABFsUni|0
@@ -77,7 +77,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 8|Farooq||0
 9|Greg||0
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||7
--STATEMENT CALL weakly_connected_component('G1', maxIterations:=25) RETURN node.ID, node.fName, node.name, group_id;
+-STATEMENT CALL weakly_connected_components('G1', maxIterations:=25) RETURN node.ID, node.fName, node.name, group_id;
 ---- 11
 0|Alice||0
 1||ABFsUni|0
@@ -91,9 +91,20 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 9|Greg||0
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||7
 
+-STATEMENT CALL weakly_connected_components('PK', maxIterations:=0) RETURN node.fName, group_id;
+---- 8
+Alice|0
+Bob|1
+Carol|2
+Dan|3
+Elizabeth|4
+Farooq|5
+Greg|6
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+
 -STATEMENT CALL create_projected_graph('G2', {'person': {'filter': 'n.ID > 2'}, 'organisation': {'filter': 'n.ID > 2'}}, ['knows', 'studyAt'])
 ---- ok
--STATEMENT CALL weakly_connected_component('G2') RETURN node.ID, node.fName, node.name, group_id;
+-STATEMENT CALL weakly_connected_components('G2') RETURN node.ID, node.fName, node.name, group_id;
 ---- 8
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||7
 3|Carol||2

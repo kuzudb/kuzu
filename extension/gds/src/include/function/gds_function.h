@@ -18,7 +18,7 @@ struct SCCKosarajuFunction {
 };
 
 struct WeaklyConnectedComponentsFunction {
-    static constexpr const char* name = "WEAKLY_CONNECTED_COMPONENT";
+    static constexpr const char* name = "WEAKLY_CONNECTED_COMPONENTS";
 
     static function::function_set getFunctionSet();
 };

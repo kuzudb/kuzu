@@ -24,6 +24,7 @@ struct PageRankOptionalParams final : public GDSOptionalParams {
     std::shared_ptr<Expression> dampingFactor;
     std::shared_ptr<Expression> maxIteration;
     std::shared_ptr<Expression> tolerance;
+    std::shared_ptr<Expression> normalize;
 
     explicit PageRankOptionalParams(const expression_vector& optionalParams);
 
@@ -43,6 +44,8 @@ PageRankOptionalParams::PageRankOptionalParams(const expression_vector& optional
             maxIteration = optionalParam;
         } else if (paramName == Tolerance::NAME) {
             tolerance = optionalParam;
+        } else if (paramName == NormalizeInitial::NAME) {
+            normalize = optionalParam;
         } else {
             throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
         }
@@ -62,6 +65,9 @@ std::unique_ptr<GDSConfig> PageRankOptionalParams::getConfig() const {
     if (tolerance != nullptr) {
         config->tolerance =
             ExpressionUtil::evaluateLiteral<double>(*tolerance, LogicalType::DOUBLE());
+    }
+    if (normalize != nullptr) {
+        config->normalize = ExpressionUtil::evaluateLiteral<bool>(*normalize, LogicalType::BOOL());
     }
     return config;
 }
@@ -269,12 +275,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto graph = sharedState->graph.get();
     auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
     auto numNodes = graph->getNumNodes(transaction);
-    auto p1 = PValues(maxOffsetMap, clientContext->getMemoryManager(), (double)1 / numNodes);
+    auto pageRankBindData = input.bindData->constPtrCast<PageRankBindData>();
+    auto config = pageRankBindData->getConfig()->constCast<PageRankConfig>();
+    auto initialValue = config.normalize ? (double)1 / numNodes : (double)1;
+    auto p1 = PValues(maxOffsetMap, clientContext->getMemoryManager(), initialValue);
     auto p2 = PValues(maxOffsetMap, clientContext->getMemoryManager(), 0);
     PValues* pCurrent = &p1;
     PValues* pNext = &p2;
-    auto pageRankBindData = input.bindData->constPtrCast<PageRankBindData>();
-    auto config = pageRankBindData->getConfig()->constCast<PageRankConfig>();
     auto currentIter = 1u;
     auto currentFrontier =
         DenseFrontier::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
@@ -286,7 +293,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto frontierPair =
         std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
-    auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
+    auto pNextUpdateConstant = (1 - config.dampingFactor) * initialValue;
     while (currentIter < config.maxIterations) {
         computeState.frontierPair->resetCurrentIter();
         computeState.frontierPair->setActiveNodesForNextIter();

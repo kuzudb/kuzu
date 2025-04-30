@@ -15,14 +15,12 @@ struct DampingFactor {
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::DOUBLE;
     static constexpr double DEFAULT_VALUE = 0.85;
 
-    static void validate(double dampingFactor);
-};
-
-void DampingFactor::validate(double dampingFactor) {
-    if (dampingFactor < 0 || dampingFactor >= 1) {
-        throw common::BinderException{"Damping factor must be in the [0, 1)."};
+    static void validate(double dampingFactor) {
+        if (dampingFactor < 0 || dampingFactor >= 1) {
+            throw common::BinderException{"Damping factor must be in the [0, 1)."};
+        }
     }
-}
+};
 
 struct Tolerance {
     // Minimum change in scores between iterations. If all scores change less than the tolerance
@@ -32,10 +30,18 @@ struct Tolerance {
     static constexpr double DEFAULT_VALUE = 0.0000001;
 };
 
+struct NormalizeInitial {
+    // If true we initialize rank to 1/num_nodes. Otherwise, initialize to 1.
+    static constexpr const char* NAME = "normalizeinitial";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
+    static constexpr bool DEFAULT_VALUE = true;
+};
+
 struct PageRankConfig final : public GDSConfig {
     double dampingFactor = DampingFactor::DEFAULT_VALUE;
     uint64_t maxIterations = 20;
     double tolerance = Tolerance::DEFAULT_VALUE;
+    bool normalize = NormalizeInitial::DEFAULT_VALUE;
 
     PageRankConfig() = default;
 };

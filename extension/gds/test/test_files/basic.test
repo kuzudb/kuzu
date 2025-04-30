@@ -24,6 +24,6 @@ Catalog exception: function strongly_connected_components_kosaraju is not define
 -STATEMENT CALL strongly_connected_components('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- error
 Catalog exception: function strongly_connected_components is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
--STATEMENT CALL weakly_connected_component('PK') RETURN node.fName, group_id;
+-STATEMENT CALL weakly_connected_components('PK') RETURN node.fName, group_id;
 ---- error
-Catalog exception: function weakly_connected_component is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+Catalog exception: function weakly_connected_components is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
