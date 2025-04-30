@@ -14,9 +14,9 @@ public:
     virtual std::unique_ptr<InMemVertexCompute> copy() = 0;
 };
 
-class InMemVertexComputeTask : public common::Task {
+class InMemVertexComputeTask final : public common::Task {
 public:
-    InMemVertexComputeTask(uint64_t maxNumThreads, InMemVertexCompute& vc,
+    InMemVertexComputeTask(const uint64_t maxNumThreads, InMemVertexCompute& vc,
         std::shared_ptr<VertexComputeTaskSharedState> sharedState)
         : Task{maxNumThreads}, vc{vc}, sharedState{std::move(sharedState)} {};
 

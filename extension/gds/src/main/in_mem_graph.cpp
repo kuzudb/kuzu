@@ -2,13 +2,13 @@
 
 namespace kuzu::graph {
 
-InMemGraph::InMemGraph(common::offset_t numNodes, storage::MemoryManager* mm)
+InMemGraph::InMemGraph(const common::offset_t numNodes, storage::MemoryManager* mm)
     : csrOffsets(mm), csrEdges(mm) {
     reinit(numNodes);
 }
 
-void InMemGraph::reinit(common::offset_t numNodes_) {
-    numNodes = numNodes_;
+void InMemGraph::reinit(const common::offset_t numNodes) {
+    this->numNodes = numNodes;
     csrOffsets.reserve(numNodes);
     csrOffsets.clear();
     csrEdges.clear();
@@ -19,7 +19,7 @@ void InMemGraph::initNextNode() {
     csrOffsets.push_back(csrEdges.size());
 }
 
-void InMemGraph::insertNbr(common::offset_t to, weight_t weight) {
+void InMemGraph::insertNbr(const common::offset_t to, const weight_t weight) {
     csrEdges.emplace_back(to, weight);
     numEdges++;
 }

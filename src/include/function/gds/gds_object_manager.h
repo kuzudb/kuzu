@@ -140,16 +140,21 @@ private:
 template<typename T>
 class ku_vector_t {
 public:
-    explicit ku_vector_t(storage::MemoryManager* mm) : allocator(mm), vec(allocator) {}
-
+    explicit ku_vector_t(storage::MemoryManager* mm) : vec(storage::MmAllocator<T>(mm)) {}
     ku_vector_t(storage::MemoryManager* mm, std::size_t size)
-        : allocator(mm), vec(size, allocator) {}
+        : vec(size, storage::MmAllocator<T>(mm)) {}
 
     void reserve(std::size_t size) { vec.reserve(size); }
 
-    void push_back(const T& value) { vec.push_back(value); }
+    void resize(std::size_t size) { vec.resize(size); }
 
+    void push_back(const T& value) { vec.push_back(value); }
     void push_back(T&& value) { vec.push_back(std::move(value)); }
+
+    template<typename... Args>
+    void emplace_back(Args&&... args) {
+        vec.emplace_back(std::forward<Args>(args)...);
+    }
 
     void pop_back() { vec.pop_back(); }
 
@@ -157,21 +162,13 @@ public:
 
     std::size_t size() const { return vec.size(); }
 
-    template<typename... Args>
-    void emplace_back(Args&&... args) {
-        vec.emplace_back(std::forward<Args>(args)...);
-    }
-
     T& operator[](std::size_t index) { return vec[index]; }
-
     const T& operator[](std::size_t index) const { return vec[index]; }
 
     T& at(std::size_t index) { return vec.at(index); }
-
     const T& at(std::size_t index) const { return vec.at(index); }
 
 private:
-    storage::MmAllocator<T> allocator;
     std::vector<T, storage::MmAllocator<T>> vec;
 };
 

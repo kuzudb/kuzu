@@ -14,7 +14,8 @@ struct Neighbor {
     common::offset_t neighbor;
     weight_t weight;
 
-    Neighbor(common::offset_t neighbor, weight_t weight) : neighbor{neighbor}, weight{weight} {}
+    Neighbor(const common::offset_t neighbor, const weight_t weight)
+        : neighbor{neighbor}, weight{weight} {}
 };
 
 // CSR-like in-memory representation of an undirected weighted graph. Insert nodes in sequence
@@ -27,18 +28,18 @@ struct InMemGraph {
     common::offset_t numNodes = 0;
     common::offset_t numEdges = 0;
 
-    InMemGraph(common::offset_t numNodes, storage::MemoryManager* mm);
+    InMemGraph(const common::offset_t numNodes, storage::MemoryManager* mm);
     DELETE_BOTH_COPY(InMemGraph);
     ~InMemGraph() = default;
 
-    // Reinitializes to an empty graph. Reuses allocations if `numNodes` <= `this->numNodes`.
-    void reinit(common::offset_t numNodes);
+    // Re-initializes to an empty graph. Reuses allocations if `numNodes` <= `this->numNodes`.
+    void reinit(const common::offset_t numNodes);
 
     // Initializes the next node in the sequence to prepare for edges insertions for the node.
     void initNextNode();
 
     // Inserts a neighbor of the last initialized node.
-    void insertNbr(common::offset_t to, weight_t weight = DEFAULT_WEIGHT);
+    void insertNbr(const common::offset_t to, const weight_t weight = DEFAULT_WEIGHT);
 };
 
 } // namespace graph

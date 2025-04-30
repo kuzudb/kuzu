@@ -6,12 +6,11 @@
 using namespace kuzu::processor;
 using namespace kuzu::graph;
 
-namespace kuzu {
-namespace function {
+namespace kuzu::function {
 
 void InMemVertexComputeTask::run() {
     FrontierMorsel morsel;
-    auto localVc = vc.copy();
+    const auto localVc = vc.copy();
     while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
         localVc->vertexCompute(morsel.getBeginOffset(), morsel.getEndOffset());
     }
@@ -21,11 +20,10 @@ void InMemGDSUtils::runVertexCompute(InMemVertexCompute& vc, common::offset_t ma
     ExecutionContext* context) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
-    auto task = std::make_shared<InMemVertexComputeTask>(maxThreads, vc, sharedState);
+    const auto task = std::make_shared<InMemVertexComputeTask>(maxThreads, vc, sharedState);
     sharedState->morselDispatcher.init(maxOffset);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
 
-} // namespace function
-} // namespace kuzu
+} // namespace kuzu::function
