@@ -163,7 +163,7 @@ public:
     static void addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr);
     static void addString(ValueVector* vector, uint32_t vectorPos, const char* srcStr,
         uint64_t length);
-    static void addString(ValueVector* vector, uint32_t vectorPos, const std::string& srcStr);
+    static void addString(ValueVector* vector, uint32_t vectorPos, std::string_view srcStr);
     // Add empty string with space reserved for the provided size
     // Returned value can be modified to set the string contents
     static ku_string_t& reserveString(ValueVector* vector, uint32_t vectorPos, uint64_t length);

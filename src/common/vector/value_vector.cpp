@@ -481,7 +481,7 @@ void StringVector::addString(ValueVector* vector, uint32_t vectorPos, const char
     }
 }
 
-void StringVector::addString(ValueVector* vector, uint32_t vectorPos, const std::string& srcStr) {
+void StringVector::addString(ValueVector* vector, uint32_t vectorPos, std::string_view srcStr) {
     addString(vector, vectorPos, srcStr.data(), srcStr.length());
 }
 
