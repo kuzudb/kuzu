@@ -115,8 +115,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto boundInput = BoundQueryHNSWIndexInput{nodeTableEntry, graphEntry.copy(), indexEntry,
         std::move(inputQueryExpression), static_cast<uint64_t>(k)};
     auto config = QueryHNSWConfig{input->optionalParams};
-    return std::make_unique<QueryHNSWIndexBindData>(context, std::move(columns), boundInput, config,
-        outputNode);
+    auto bindData = std::make_unique<QueryHNSWIndexBindData>(context, std::move(columns),
+    boundInput, config, outputNode);
+    context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
+    return std::move(bindData);
 }
 
 template<VectorElementType T>
