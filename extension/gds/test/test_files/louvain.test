@@ -34,7 +34,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
--STATEMENT CALL LOUVAIN('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+-STATEMENT CALL LOUVAIN('Graph') WITH louvain_id, min(node.id) as louvainId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN louvainId, nodeCount, nodeIds ORDER BY louvainId;
 ---- 3
 0|3|[0,1,2]
 3|4|[3,4,8,9]
@@ -57,7 +57,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
--STATEMENT CALL LOUVAIN('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+-STATEMENT CALL LOUVAIN('Graph') WITH louvain_id, min(node.id) as louvainId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN louvainId, nodeCount, nodeIds ORDER BY louvainId;
 ---- 6
 0|1|[0]
 1|1|[1]
@@ -87,7 +87,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
--STATEMENT CALL LOUVAIN('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+-STATEMENT CALL LOUVAIN('Graph') WITH louvain_id, min(node.id) as louvainId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN louvainId, nodeCount, nodeIds ORDER BY louvainId;
 ---- 2
 0|3|[0,1,2]
 3|3|[3,4,5]
@@ -123,7 +123,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
--STATEMENT CALL LOUVAIN('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+-STATEMENT CALL LOUVAIN('Graph') WITH louvain_id, min(node.id) as louvainId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN louvainId, nodeCount, nodeIds ORDER BY louvainId;
 ---- 1
 0|6|[0,1,2,3,4,5]
 
@@ -150,7 +150,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
--STATEMENT CALL LOUVAIN('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+-STATEMENT CALL LOUVAIN('Graph') WITH louvain_id, min(node.id) as louvainId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN louvainId, nodeCount, nodeIds ORDER BY louvainId;
 ---- 2
 0|3|[0,1,2]
 3|3|[3,4,5]
@@ -186,7 +186,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
--STATEMENT CALL LOUVAIN('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+-STATEMENT CALL LOUVAIN('Graph') WITH louvain_id, min(node.id) as louvainId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN louvainId, nodeCount, nodeIds ORDER BY louvainId;
 ---- 2
 0|4|[0,1,2,3]
 4|4|[4,5,6,7]

@@ -20,21 +20,21 @@ struct Neighbor {
 // Undirected edges should be explicitly inserted twice.
 // Note: modifying the in-memory graph is NOT thread-safe.
 struct KUZU_API InMemGraph {
-    function::KuzuVec<common::offset_t> csrOffsets;
-    function::KuzuVec<Neighbor> csrEdges;
+    function::ku_vector_t<common::offset_t> csrOffsets;
+    function::ku_vector_t<Neighbor> csrEdges;
     common::offset_t numNodes = 0;
     common::offset_t numEdges = 0;
 
     InMemGraph(common::offset_t numNodes, storage::MemoryManager* mm);
     DELETE_BOTH_COPY(InMemGraph);
 
-    // Resets to an empty graph. Reuses allocations, if any.
-    void reset(common::offset_t numNodes);
+    // Reinitializes to an empty graph. Reuses allocations if `numNodes` <= `this->numNodes`.
+    void reinit(common::offset_t numNodes);
 
-    // Initialize the next node in sequence. Should be called before inserting edges for the node.
+    // Initializes the next node in the sequence to prepare for edges insertions for the node.
     void initNextNode();
 
-    // Insert a neighbor of the last initialized node.
+    // Inserts a neighbor of the last initialized node.
     void insertNbr(common::offset_t to, weight_t weight = DEFAULT_WEIGHT);
 };
 

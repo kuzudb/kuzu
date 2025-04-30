@@ -15,6 +15,7 @@ void GdsExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addTableFunc<WeaklyConnectedComponentsFunction>(db);
     extension::ExtensionUtils::addTableFunc<PageRankFunction>(db);
     extension::ExtensionUtils::addTableFunc<KCoreDecompositionFunction>(db);
+    extension::ExtensionUtils::addTableFunc<LouvainFunction>(db);
 }
 
 } // namespace gds_extension

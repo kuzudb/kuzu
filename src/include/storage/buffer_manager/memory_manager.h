@@ -22,7 +22,7 @@ class FileHandle;
 class BufferManager;
 class ChunkedNodeGroup;
 template<class T>
-class KuzuAllocator;
+class MmAllocator;
 
 class MemoryBuffer {
     friend class Spiller;
@@ -74,7 +74,7 @@ private:
 class KUZU_API MemoryManager {
     friend class MemoryBuffer;
     template<class T>
-    friend class KuzuAllocator;
+    friend class MmAllocator;
 
 public:
     MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs);
@@ -98,51 +98,6 @@ private:
     std::stack<common::page_idx_t> freePages;
     std::mutex allocatorLock;
 };
-
-template<class T>
-class KUZU_API KuzuAllocator {
-public:
-    typedef T value_type;
-
-    explicit KuzuAllocator(MemoryManager* mm) : mm{mm} {}
-    KuzuAllocator(const KuzuAllocator& other) { mm = other.mm; }
-    KuzuAllocator& operator=(const KuzuAllocator& other) {
-        if (this != &other) {
-            mm = other.mm;
-        }
-        return *this;
-    }
-    DELETE_BOTH_MOVE(KuzuAllocator);
-
-    [[nodiscard]] T* allocate(std::size_t size) {
-        if (size > std::numeric_limits<std::size_t>::max() / sizeof(T))
-            throw std::bad_array_new_length();
-
-        auto buffer = mm->mallocBuffer(false, size * sizeof(T));
-        auto p = reinterpret_cast<T*>(buffer.data());
-        return p;
-    }
-
-    void deallocate(T* p, std::size_t size) noexcept {
-        auto buffer = std::span<uint8_t>(reinterpret_cast<uint8_t*>(p), size * sizeof(T));
-        if (buffer.data() != nullptr) {
-            mm->freeBlock(common::INVALID_PAGE_IDX, buffer);
-        }
-    }
-
-private:
-    MemoryManager* mm;
-};
-
-template<class T, class U>
-bool operator==(const KuzuAllocator<T>& a, const KuzuAllocator<U>& b) {
-    return a.mm == b.mm;
-}
-
-template<class T, class U>
-bool operator!=(const KuzuAllocator<T>& a, const KuzuAllocator<U>& b) {
-    return a != b;
-}
 
 } // namespace storage
 } // namespace kuzu

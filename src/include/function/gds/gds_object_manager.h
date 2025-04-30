@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/buffer_manager/mm_allocator.h"
 
 namespace kuzu {
 namespace function {
@@ -55,7 +56,7 @@ public:
 
     common::offset_t getSize() const { return size; }
 
-    void resizeAsNew(const common::offset_t newSize, storage::MemoryManager* mm) {
+    void reallocate(const common::offset_t newSize, storage::MemoryManager* mm) {
         if (newSize > size) {
             allocate(newSize, mm, false /* initializeToZero */);
         }
@@ -66,12 +67,12 @@ public:
         data[pos] = value;
     }
 
-    T get(const common::offset_t pos) {
+    const T& get(const common::offset_t pos) const {
         KU_ASSERT_UNCONDITIONAL(pos < size);
         return data[pos];
     }
 
-    T& getRef(const common::offset_t pos) {
+    T& getUnsafe(const common::offset_t pos) {
         KU_ASSERT_UNCONDITIONAL(pos < size);
         return data[pos];
     }
@@ -96,8 +97,8 @@ public:
 
     common::offset_t getSize() const { return array.size; }
 
-    void resizeAsNew(const common::offset_t newSize, storage::MemoryManager* mm) {
-        array.resizeAsNew(newSize, mm);
+    void reallocate(const common::offset_t newSize, storage::MemoryManager* mm) {
+        array.reallocate(newSize, mm);
     }
 
     void set(common::offset_t pos, const T& value,
@@ -117,7 +118,7 @@ public:
         array.data[pos].fetch_add(value, order);
     }
 
-    bool compare_exchange_max(const common::offset_t src, const common::offset_t dest,
+    bool compareExchangeMax(const common::offset_t src, const common::offset_t dest,
         std::memory_order order = std::memory_order_seq_cst) {
         auto srcValue = get(src, order);
         auto dstValue = get(dest, order);
@@ -137,13 +138,42 @@ private:
 };
 
 template<typename T>
-class KuzuVec {
-    storage::KuzuAllocator<T> allocator;
+class ku_vector_t {
 public:
-    std::vector<T, storage::KuzuAllocator<T>> vec;
+    explicit ku_vector_t(storage::MemoryManager* mm)
+        : allocator{storage::MmAllocator<T>(mm)}, vec(allocator) {}
 
-    explicit KuzuVec(storage::MemoryManager* mm)
-        : allocator{storage::KuzuAllocator<T>(mm)}, vec(allocator) {}
+    ku_vector_t(storage::MemoryManager* mm, std::size_t size)
+        : allocator{storage::MmAllocator<T>(mm)}, vec(size, allocator) {}
+
+    void reserve(std::size_t size) { vec.reserve(size); }
+
+    void push_back(const T& value) { vec.push_back(value); }
+
+    void push_back(T&& value) { vec.push_back(std::move(value)); }
+
+    void pop_back() { vec.pop_back(); }
+
+    void clear() { vec.clear(); }
+
+    std::size_t size() const { return vec.size(); }
+
+    template<typename... Args>
+    void emplace_back(Args&&... args) {
+        vec.emplace_back(std::forward<Args>(args)...);
+    }
+
+    T& operator[](std::size_t index) { return vec[index]; }
+
+    const T& operator[](std::size_t index) const { return vec[index]; }
+
+    T& at(std::size_t index) { return vec.at(index); }
+
+    const T& at(std::size_t index) const { return vec.at(index); }
+
+private:
+    storage::MmAllocator<T> allocator;
+    std::vector<T, storage::MmAllocator<T>> vec;
 };
 
 // ObjectArraysMap represents a pre-allocated amount of object per tableID.

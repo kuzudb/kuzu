@@ -1,13 +1,13 @@
 #include <cmath>
 
-#include "../include/main/gds_utils_mem.h"
 #include "binder/binder.h"
 #include "common/exception/runtime.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/gds_function.h"
-#include "main/graph_mem.h"
+#include "main/in_mem_gds_utils.h"
+#include "main/in_mem_graph.h"
 #include "processor/execution_context.h"
 
 using namespace std;
@@ -36,7 +36,7 @@ namespace gds_extension {
 constexpr uint32_t MAX_PHASES = 100;
 constexpr uint32_t MAX_ITERATIONS = 100;
 constexpr double THRESHOLD = 1e-6;
-static constexpr offset_t UNASSIGNED_COMM = numeric_limits<offset_t>::max();
+constexpr offset_t UNASSIGNED_COMM = numeric_limits<offset_t>::max();
 
 struct CommInfo {
     std::atomic<offset_t> size;   // The number of nodes in the community.
@@ -58,43 +58,52 @@ struct CommInfo {
 
 struct PhaseState {
     InMemGraph graph;
-    AtomicObjectArray<weight_t> nodeWeightedDegrees;
-    ObjectArray<CommInfo> currCommInfos;
-    ObjectArray<CommInfo> nextCommInfos;
-    AtomicObjectArray<offset_t> previousComm;
+    // Latest community assignments that improve the modularity.
+    AtomicObjectArray<offset_t> acceptedComm;
+    // New community assignments that have not yet been tested for modularity.
     AtomicObjectArray<offset_t> currComm;
+    // In-progress changes to community assignments.
     AtomicObjectArray<offset_t> nextComm;
-    AtomicObjectArray<weight_t> intraCommWeights;
-    weight_t totalWeight = 0;        // Stores 2 * sum of edge weights.
-    double modularityConstant = 0.0; // 1/2m.
+    // Pre-computed size and weighted degree for current community assignments.
+    ObjectArray<CommInfo> currCommInfos;
+    // Pre-computed size and weighted degree for in-progress changes to community assignments.
+    ObjectArray<CommInfo> nextCommInfos;
+    // For each node, stores the sum of weights for all its edges.
+    AtomicObjectArray<weight_t> nodeWeightedDegrees;
+    // For each node, stores the sum of weights of only the edges to nodes in its own community.
+    AtomicObjectArray<weight_t> selfCommWeights;
+    // Stores 2 * sum of edge weights.
+    weight_t totalWeight = 0;
+    // 1/2m.
+    double modularityConstant = 0.0;
 
     PhaseState(const offset_t numNodes, MemoryManager* mm, ExecutionContext* context)
         : graph{InMemGraph(numNodes, mm)} {
-        reset(numNodes, mm, context);
+        reinit(numNodes, mm, context);
     }
     DELETE_BOTH_COPY(PhaseState);
 
-    void reset(offset_t numNodes, MemoryManager* mm, ExecutionContext* context);
+    void reinit(offset_t numNodes, MemoryManager* mm, ExecutionContext* context);
 
     void startNewIter(MemoryManager* mm, ExecutionContext* context);
 
-    // Initialize the next node in sequence. Should be called before inserting edges for the node.
+    // Initializes the next node in the sequence before inserting edges for the node.
     void initNextNode(const offset_t nodeId) {
         graph.initNextNode();
         // Each community starts with one node.
-        currCommInfos.getRef(nodeId).size.store(1, memory_order_relaxed);
-        currCommInfos.getRef(nodeId).degree.store(0, memory_order_relaxed);
+        currCommInfos.getUnsafe(nodeId).size.store(1, memory_order_relaxed);
+        currCommInfos.getUnsafe(nodeId).degree.store(0, memory_order_relaxed);
         // Each node starts in its own community.
-        previousComm.set(nodeId, nodeId, memory_order_relaxed);
+        acceptedComm.set(nodeId, nodeId, memory_order_relaxed);
         currComm.set(nodeId, nodeId, memory_order_relaxed);
     }
 
-    // Insert a neighbor of the last initialized node. Edges should be inserted in both directions.
+    // Inserts a neighbor of the last initialized node.
     void insertNbr(const offset_t from, const offset_t to, const weight_t weight = DEFAULT_WEIGHT) {
         graph.insertNbr(to, weight);
         nodeWeightedDegrees.fetchAdd(from, weight, memory_order_relaxed);
         // The weightedDegree of each community is the weightedDegree of its single node.
-        currCommInfos.getRef(from).degree.fetch_add(weight, memory_order_relaxed);
+        currCommInfos.getUnsafe(from).degree.fetch_add(weight, memory_order_relaxed);
         totalWeight += weight;
     }
 
@@ -109,7 +118,7 @@ public:
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             state.nodeWeightedDegrees.set(nodeId, 0, memory_order_relaxed);
             state.currCommInfos.set(nodeId, CommInfo());
-            state.previousComm.set(nodeId, UNASSIGNED_COMM, memory_order_relaxed);
+            state.acceptedComm.set(nodeId, UNASSIGNED_COMM, memory_order_relaxed);
             state.currComm.set(nodeId, UNASSIGNED_COMM, memory_order_relaxed);
             state.nextComm.set(nodeId, UNASSIGNED_COMM, memory_order_relaxed);
         }
@@ -129,7 +138,7 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            state.intraCommWeights.set(nodeId, 0, memory_order_relaxed);
+            state.selfCommWeights.set(nodeId, 0, memory_order_relaxed);
             state.nextCommInfos.set(nodeId, CommInfo());
         }
     }
@@ -142,23 +151,23 @@ private:
     PhaseState& state;
 };
 
-void PhaseState::reset(const offset_t numNodes, MemoryManager* mm, ExecutionContext* context) {
-    // Reuses allocations because `numNodes` monotonically decreases over phases.
+void PhaseState::reinit(const offset_t numNodes, MemoryManager* mm, ExecutionContext* context) {
+    // All objects reuse allocations because `numNodes` monotonically decreases over phases.
     totalWeight = 0;
-    graph.reset(numNodes);
-    nodeWeightedDegrees.resizeAsNew(numNodes, mm);
-    currCommInfos.resizeAsNew(numNodes, mm);
-    previousComm.resizeAsNew(numNodes, mm);
-    currComm.resizeAsNew(numNodes, mm);
-    nextComm.resizeAsNew(numNodes, mm);
+    graph.reinit(numNodes);
+    nodeWeightedDegrees.reallocate(numNodes, mm);
+    currCommInfos.reallocate(numNodes, mm);
+    acceptedComm.reallocate(numNodes, mm);
+    currComm.reallocate(numNodes, mm);
+    nextComm.reallocate(numNodes, mm);
 
     ResetPhaseStateVC resetPhaseStateVC(*this);
     InMemGDSUtils::runVertexCompute(resetPhaseStateVC, numNodes, context);
 }
 
 void PhaseState::startNewIter(MemoryManager* mm, ExecutionContext* context) {
-    intraCommWeights.resizeAsNew(graph.numNodes, mm);
-    nextCommInfos.resizeAsNew(graph.numNodes, mm);
+    selfCommWeights.reallocate(graph.numNodes, mm);
+    nextCommInfos.reallocate(graph.numNodes, mm);
 
     StartNewIterVC startNewIterVC(*this);
     InMemGDSUtils::runVertexCompute(startNewIterVC, graph.numNodes, context);
@@ -181,7 +190,7 @@ public:
         if (phaseId == 0) {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
                 finalResults.communities[nodeId] =
-                    state.previousComm.get(nodeId, memory_order_relaxed);
+                    state.acceptedComm.get(nodeId, memory_order_relaxed);
             }
         } else {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
@@ -190,7 +199,7 @@ public:
                     continue;
                 }
                 // Every previous community becomes a node in the current phase.
-                auto newCommunity = state.previousComm.get(prevCommunity, memory_order_relaxed);
+                auto newCommunity = state.acceptedComm.get(prevCommunity, memory_order_relaxed);
                 finalResults.communities[nodeId] = newCommunity;
             }
         }
@@ -211,22 +220,27 @@ public:
     explicit RunIterationVC(PhaseState& state) : state{state} {}
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
+        // For every `nodeId`, separately stores the edge weights to its own community (at index 0)
+        // and each of its neighboring communities.
+        vector<weight_t> intraCommWeights;
+        // Stores the mapping from communities to an index in `intraCommWeights`.
+        unordered_map<offset_t, offset_t> commToWeightsIndex;
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            auto startCSROffset = state.graph.csrOffsets.vec[nodeId];
-            auto endCSROffset = state.graph.csrOffsets.vec[nodeId + 1];
-            // Self loop weight remains the same when moving between communities. Store this
+            auto startCSROffset = state.graph.csrOffsets[nodeId];
+            auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
+            // Self-loop weight remains the same when moving between communities. Store this
             // separately for use in the modularity "diff" calculation.
             weight_t selfLoopWeight = 0;
-            vector<weight_t> intraCommWeights;
-            unordered_map<offset_t, offset_t> commToWeightsIndex;
             offset_t targetCommId = UNASSIGNED_COMM;
             if (startCSROffset != endCSROffset) {
+                commToWeightsIndex.clear();
+                intraCommWeights.clear();
                 selfLoopWeight = computeIntraCommWeights(nodeId, startCSROffset, endCSROffset,
                     intraCommWeights, commToWeightsIndex);
                 targetCommId = findPotentialNewComm(nodeId, selfLoopWeight, intraCommWeights,
                     commToWeightsIndex);
-                // Store the current intra-community weight for use in modularity calculation.
-                state.intraCommWeights.set(nodeId, intraCommWeights[0], memory_order_relaxed);
+                // Store the current community weight for use in modularity calculation.
+                state.selfCommWeights.set(nodeId, intraCommWeights[0], memory_order_relaxed);
             }
             state.nextComm.set(nodeId, targetCommId, memory_order_relaxed);
 
@@ -234,14 +248,12 @@ public:
             if (targetCommId != currCommId && targetCommId != UNASSIGNED_COMM) {
                 auto nodeDegree = state.nodeWeightedDegrees.get(nodeId, memory_order_relaxed);
                 // Add node contribution to the new community.
-                state.nextCommInfos.getRef(targetCommId).degree.fetch_add(nodeDegree);
-                state.nextCommInfos.getRef(targetCommId).size.fetch_add(1);
-                // Remove node contribution from the old community.
-                state.nextCommInfos.getRef(currCommId).degree.fetch_sub(nodeDegree);
-                state.nextCommInfos.getRef(currCommId).size.fetch_sub(1);
+                state.nextCommInfos.getUnsafe(targetCommId).degree.fetch_add(nodeDegree);
+                state.nextCommInfos.getUnsafe(targetCommId).size.fetch_add(1);
+                // Remove node contribution from the current community.
+                state.nextCommInfos.getUnsafe(currCommId).degree.fetch_sub(nodeDegree);
+                state.nextCommInfos.getUnsafe(currCommId).size.fetch_sub(1);
             }
-            commToWeightsIndex.clear();
-            intraCommWeights.clear();
         }
     }
 
@@ -255,7 +267,7 @@ public:
         intraCommWeights.push_back(0);
         offset_t nextIndex = 1;
         for (auto offset = startCSROffset; offset < endCSROffset; offset++) {
-            auto nbrEntry = state.graph.csrEdges.vec[offset];
+            auto nbrEntry = state.graph.csrEdges[offset];
             if (nbrEntry.neighbor == nodeId) {
                 selfLoopWeight += nbrEntry.weight;
             }
@@ -272,7 +284,7 @@ public:
         return selfLoopWeight;
     }
 
-    // Find `nodeId`'s community that maximises the graph modularity gain.
+    // Find `nodeId`'s community that maximizes the graph modularity gain.
     offset_t findPotentialNewComm(offset_t nodeId, weight_t selfLoopWeight,
         vector<weight_t>& intraCommWeights,
         unordered_map<offset_t, offset_t> commToWeightsIndex) const {
@@ -284,13 +296,13 @@ public:
         auto prevIntraCommWeights = static_cast<double>(intraCommWeights[0] - selfLoopWeight);
         auto prevWeightedDegrees =
             static_cast<double>(
-                state.currCommInfos.getRef(currComm).degree.load(memory_order_relaxed)) -
+                state.currCommInfos.getUnsafe(currComm).degree.load(memory_order_relaxed)) -
             degree;
         for (auto [nbrCommId, weightIndex] : commToWeightsIndex) {
             if (currComm != nbrCommId) {
                 auto newIntraCommWeights = static_cast<double>(intraCommWeights[weightIndex]);
                 auto newWeightedDegrees = static_cast<double>(
-                    state.currCommInfos.getRef(nbrCommId).degree.load(memory_order_relaxed));
+                    state.currCommInfos.getUnsafe(nbrCommId).degree.load(memory_order_relaxed));
                 // The change in gain is computed as the change in the two components:
                 //   sumIntraWeights/2m - sumWeightedDegrees^2/(2m)^2
                 // If moving node n from c to a new community d:
@@ -313,14 +325,14 @@ public:
                 auto modGain = changeIntraWeights - changeSumWeightedDegrees;
                 if (modGain > newCommModGain || ((newCommModGain - modGain) < THRESHOLD &&
                                                     modGain != 0 && (nbrCommId < newComm))) {
-                    // Move if gain is higher, or gain is the same but nbrComm has a lower ID.
+                    // Move if gain is higher, or gain is the same, but nbrComm has a lower ID.
                     newCommModGain = modGain;
                     newComm = nbrCommId;
                 }
             }
         }
-        if (state.currCommInfos.getRef(newComm).size.load(memory_order_relaxed) == 1 &&
-            state.currCommInfos.getRef(currComm).size.load(memory_order_relaxed) == 1 &&
+        if (state.currCommInfos.getUnsafe(newComm).size.load(memory_order_relaxed) == 1 &&
+            state.currCommInfos.getUnsafe(currComm).size.load(memory_order_relaxed) == 1 &&
             newComm > currComm) { // Swap protection
             newComm = currComm;
         }
@@ -337,22 +349,16 @@ private:
 
 class ComputeModularityVC : public InMemVertexCompute {
 public:
-    static std::atomic<weight_t> sumIntraWeights;
-    static std::atomic<weight_t> sumWeightedDegrees;
-
-    explicit ComputeModularityVC(PhaseState& state) : state{state} {}
-
-    static void reset() {
-        sumIntraWeights.store(0);
-        sumWeightedDegrees.store(0);
-    }
+    ComputeModularityVC(PhaseState& state, std::atomic<weight_t>& sumIntraWeights,
+        std::atomic<weight_t>& sumWeightedDegrees)
+        : state{state}, sumIntraWeights{sumIntraWeights}, sumWeightedDegrees{sumWeightedDegrees} {}
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         weight_t sumIntraLocal = 0;
         weight_t sumTotalLocal = 0;
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            sumIntraLocal += state.intraCommWeights.get(nodeId, memory_order_relaxed);
-            auto degree = state.currCommInfos.getRef(nodeId).degree.load(memory_order_relaxed);
+            sumIntraLocal += state.selfCommWeights.get(nodeId, memory_order_relaxed);
+            auto degree = state.currCommInfos.getUnsafe(nodeId).degree.load(memory_order_relaxed);
             sumTotalLocal += degree * degree;
         }
         sumIntraWeights.fetch_add(sumIntraLocal);
@@ -360,14 +366,14 @@ public:
     }
 
     std::unique_ptr<InMemVertexCompute> copy() override {
-        return std::make_unique<ComputeModularityVC>(state);
+        return std::make_unique<ComputeModularityVC>(state, sumIntraWeights, sumWeightedDegrees);
     }
 
 private:
     PhaseState& state;
+    std::atomic<weight_t>& sumIntraWeights;
+    std::atomic<weight_t>& sumWeightedDegrees;
 };
-std::atomic<weight_t> ComputeModularityVC::sumIntraWeights{0};
-std::atomic<weight_t> ComputeModularityVC::sumWeightedDegrees{0};
 
 class UpdateCommInfosVC : public InMemVertexCompute {
 public:
@@ -375,10 +381,11 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            offset_t size = state.nextCommInfos.getRef(nodeId).size.load(memory_order_relaxed);
-            weight_t degree = state.nextCommInfos.getRef(nodeId).degree.load(memory_order_relaxed);
-            state.currCommInfos.getRef(nodeId).size.fetch_add(size, memory_order_relaxed);
-            state.currCommInfos.getRef(nodeId).degree.fetch_add(degree, memory_order_relaxed);
+            offset_t size = state.nextCommInfos.getUnsafe(nodeId).size.load(memory_order_relaxed);
+            weight_t degree =
+                state.nextCommInfos.getUnsafe(nodeId).degree.load(memory_order_relaxed);
+            state.currCommInfos.getUnsafe(nodeId).size.fetch_add(size, memory_order_relaxed);
+            state.currCommInfos.getUnsafe(nodeId).degree.fetch_add(degree, memory_order_relaxed);
         }
     }
 
@@ -452,7 +459,7 @@ offset_t renumberCommunities(PhaseState& state) {
     unordered_map<offset_t, offset_t> map;
     offset_t nextCommId = 0;
     for (auto nodeId = 0LU; nodeId < state.graph.numNodes; ++nodeId) {
-        auto commId = state.previousComm.get(nodeId, memory_order_relaxed);
+        auto commId = state.acceptedComm.get(nodeId, memory_order_relaxed);
         if (commId == UNASSIGNED_COMM) {
             // Skip creating communities for isolated nodes.
             continue;
@@ -461,33 +468,32 @@ offset_t renumberCommunities(PhaseState& state) {
             map.insert(make_pair(commId, nextCommId));
             nextCommId++;
         }
-        state.previousComm.set(nodeId, map.at(commId), memory_order_relaxed);
+        state.acceptedComm.set(nodeId, map.at(commId), memory_order_relaxed);
     }
     return nextCommId;
 }
 
 void aggregateCommunities(offset_t newCommCount, PhaseState& state, MemoryManager* mm,
     ExecutionContext* context) {
-    vector<unordered_map<offset_t, weight_t>> commWeights;
-    commWeights.resize(newCommCount);
+    ku_vector_t<unordered_map<offset_t, weight_t>> commWeights(mm, newCommCount);
     for (auto nodeId = 0u; nodeId < state.graph.numNodes; nodeId++) {
-        auto beginCSROffset = state.graph.csrOffsets.vec[nodeId];
-        auto endCSROffset = state.graph.csrOffsets.vec[nodeId + 1];
-        auto commId = state.previousComm.get(nodeId, memory_order_relaxed);
+        auto beginCSROffset = state.graph.csrOffsets[nodeId];
+        auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
+        auto commId = state.acceptedComm.get(nodeId, memory_order_relaxed);
         for (auto offset = beginCSROffset; offset < endCSROffset; ++offset) {
-            auto nbr = state.graph.csrEdges.vec[offset];
-            auto nbrCommId = state.previousComm.get(nbr.neighbor, memory_order_relaxed);
+            auto nbr = state.graph.csrEdges[offset];
+            auto nbrCommId = state.acceptedComm.get(nbr.neighbor, memory_order_relaxed);
             if (commId >= nbrCommId) {
                 // New forward edge.
                 commWeights[commId][nbrCommId] += nbr.weight;
                 if (commId != nbrCommId) {
-                    // New backward edge, skipping self loops.
+                    // New backward edge, skipping self-loops.
                     commWeights[nbrCommId][commId] += nbr.weight;
                 }
             }
         }
     }
-    state.reset(newCommCount, mm, context);
+    state.reinit(newCommCount, mm, context);
     for (auto nodeId = 0u; nodeId < newCommCount; nodeId++) {
         state.initNextNode(nodeId);
         for (auto [nbrId, weight] : commWeights[nodeId]) {
@@ -510,39 +516,49 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
     FinalResults finalResults(origNumNodes);
     PhaseState state(origNumNodes, mm, input.context);
+
+    // Create the initial in-memory graph.
     initInMemoryGraph(tableID, origNumNodes, graph, state);
 
+    // Each phases attempts to decrease the number of communities by merging nodes into supernodes.
     for (auto phase = 0u; phase < MAX_PHASES; ++phase) {
         double oldMod = -1;
 
+        // Each iteration attempts to increase the modularity by moving nodes to new communities.
         for (auto iter = 0u; iter < MAX_ITERATIONS; ++iter) {
             // Reset state.
             state.startNewIter(mm, input.context);
 
-            // Move each node to a potentially new neighbor community that increases the modularity.
+            // For each node, try to find a neighbor community such that moving the node to that
+            // community increases the graph modularity. Note that the new community assignments are
+            // sensitive to the order in which the nodes are processed.
             RunIterationVC runIteration(state);
             InMemGDSUtils::runVertexCompute(runIteration, state.graph.numNodes, input.context);
 
-            // Compute the modularity using the _current_ node communities, i.e., *before* the
+            // Compute the modularity for the _current_ node communities, i.e., *before* the
             // node movements above. This keeps the logic for computing `sumIntraWeights` simpler.
-            ComputeModularityVC::reset();
-            ComputeModularityVC newModularityVC(state);
+            std::atomic<weight_t> sumIntraWeights{0};
+            std::atomic<weight_t> sumWeightedDegrees{0};
+            ComputeModularityVC newModularityVC(state, sumIntraWeights, sumWeightedDegrees);
             InMemGDSUtils::runVertexCompute(newModularityVC, state.graph.numNodes, input.context);
             double currMod =
-                ComputeModularityVC::sumIntraWeights.load() * state.modularityConstant -
-                (ComputeModularityVC::sumWeightedDegrees.load() * state.modularityConstant *
-                    state.modularityConstant);
+                sumIntraWeights.load() * state.modularityConstant -
+                (sumWeightedDegrees.load() * state.modularityConstant * state.modularityConstant);
 
             if (currMod - oldMod < THRESHOLD) {
+                // The community assignments in `currComm` don't increase the modularity. The
+                // assignments in `acceptedComm` are the final assignments for this phase.
                 break;
             }
-            oldMod = currMod;
 
+            oldMod = currMod;
             // nextCommInfo -> currCommInfo.
             UpdateCommInfosVC updateCommInfosVC(state);
             InMemGDSUtils::runVertexCompute(updateCommInfosVC, state.graph.numNodes, input.context);
 
-            std::swap(state.previousComm, state.currComm);
+            // Save `currComm` to `acceptedComm`.
+            std::swap(state.acceptedComm, state.currComm);
+            // `nextComm` will be tested for modularity change in the next iteration.
             std::swap(state.currComm, state.nextComm);
         }
         auto oldCommCount = state.graph.numNodes;
@@ -553,8 +569,13 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         InMemGDSUtils::runVertexCompute(setFinalComms, origNumNodes, input.context);
 
         if (oldCommCount == newCommCount) {
+            // No node merged into a neighbor community. The assignments saved above are final.
             break;
         }
+
+        // Construct a new in-memory graph such that all nodes assigned to the same community are
+        // merged into a supernode, and the weights of edges within and across communities are
+        // summed up appropriately.
         aggregateCommunities(newCommCount, state, mm, input.context);
     }
 
@@ -565,7 +586,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     return 0;
 }
 
-static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
+static constexpr char LOUVAIN_ID_COLUMN_NAME[] = "louvain_id";
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
@@ -580,7 +601,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     expression_vector columns;
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     columns.push_back(nodeOutput->constPtrCast<NodeExpression>()->getInternalID());
-    columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
+    columns.push_back(input->binder->createVariable(LOUVAIN_ID_COLUMN_NAME, LogicalType::INT64()));
     return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
 }
 
