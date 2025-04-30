@@ -132,10 +132,10 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
         if (!isNull) {
             auto haystackStr = param1.getValue<ku_string_t>(param1Pos).getAsString();
             auto needleStr = param2.getValue<ku_string_t>(param2Pos).getAsString();
-            auto haystackDoc =
-                JsonWrapper{JSONCommon::readDocument(haystackStr, JSONCommon::READ_FLAG)};
-            auto needleDoc =
-                JsonWrapper{JSONCommon::readDocument(needleStr, JSONCommon::READ_FLAG)};
+            auto haystackDoc = JsonWrapper{JSONCommon::readDocument(haystackStr,
+                JSONCommon::READ_FLAG, nullptr /* yyjsonAlc */)};
+            auto needleDoc = JsonWrapper{JSONCommon::readDocument(needleStr, JSONCommon::READ_FLAG,
+                nullptr /* yyjsonAlc */)};
             result.setValue<bool>(resultPos,
                 jsonContains(haystackDoc.ptr->root, needleDoc.ptr->root));
         }
