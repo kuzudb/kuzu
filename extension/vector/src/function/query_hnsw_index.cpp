@@ -118,7 +118,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto bindData = std::make_unique<QueryHNSWIndexBindData>(context, std::move(columns),
         boundInput, config, outputNode);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
-    return std::move(bindData);
+    return bindData;
 }
 
 template<VectorElementType T>
