@@ -1,8 +1,10 @@
 #pragma once
 
 #include <atomic>
+#include <vector>
 
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/buffer_manager/mm_allocator.h"
 
 namespace kuzu {
 namespace function {
@@ -39,52 +41,92 @@ private:
 template<typename T>
 class ObjectArray {
 public:
+    ObjectArray() : size{0} {}
     ObjectArray(const common::offset_t size, storage::MemoryManager* mm,
         bool initializeToZero = false)
-        : allocation{mm->allocateBuffer(initializeToZero, size * sizeof(T))} {
+        : size{size}, mm{mm} {
+        allocate(size, mm, initializeToZero);
+    }
+
+    void allocate(const common::offset_t size, storage::MemoryManager* mm, bool initializeToZero) {
+        allocation = mm->allocateBuffer(initializeToZero, size * sizeof(T));
         data = std::span<T>(reinterpret_cast<T*>(allocation->getData()), size);
+        this->size = size;
+    }
+
+    common::offset_t getSize() const { return size; }
+
+    void reallocate(const common::offset_t newSize, storage::MemoryManager* mm) {
+        if (newSize > size) {
+            allocate(newSize, mm, false /* initializeToZero */);
+        }
     }
 
     void set(const common::offset_t pos, const T value) {
-        KU_ASSERT(pos < data.size());
+        KU_ASSERT_UNCONDITIONAL(pos < size);
         data[pos] = value;
     }
 
-    T get(const common::offset_t pos) {
-        KU_ASSERT(pos < data.size());
+    const T& get(const common::offset_t pos) const {
+        KU_ASSERT_UNCONDITIONAL(pos < size);
+        return data[pos];
+    }
+
+    T& getUnsafe(const common::offset_t pos) {
+        KU_ASSERT_UNCONDITIONAL(pos < size);
         return data[pos];
     }
 
 private:
     template<typename U>
     friend class AtomicObjectArray;
+    common::offset_t size;
     std::span<T> data;
     std::unique_ptr<storage::MemoryBuffer> allocation;
+    storage::MemoryManager* mm = nullptr;
 };
 
 // Pre-allocated array of atomic objects.
 template<typename T>
 class AtomicObjectArray {
 public:
+    AtomicObjectArray() = default;
     AtomicObjectArray(const common::offset_t size, storage::MemoryManager* mm,
         bool initializeToZero = false)
         : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {}
 
-    void setRelaxed(common::offset_t pos, const T& value) {
-        KU_ASSERT(pos < array.data.size());
-        array.data[pos].store(value, std::memory_order_relaxed);
+    common::offset_t getSize() const { return array.size; }
+
+    void reallocate(const common::offset_t newSize, storage::MemoryManager* mm) {
+        array.reallocate(newSize, mm);
     }
 
-    T getRelaxed(const common::offset_t pos) {
-        KU_ASSERT(pos < array.data.size());
-        return array.data[pos].load(std::memory_order_relaxed);
+    void set(common::offset_t pos, const T& value,
+        std::memory_order order = std::memory_order_seq_cst) {
+        KU_ASSERT_UNCONDITIONAL(pos < array.size);
+        array.data[pos].store(value, order);
     }
 
-    bool compare_exchange_strong_max(const common::offset_t src, const common::offset_t dest) {
-        auto srcValue = getRelaxed(src);
-        auto dstValue = getRelaxed(dest);
+    T get(const common::offset_t pos, std::memory_order order = std::memory_order_seq_cst) {
+        KU_ASSERT_UNCONDITIONAL(pos < array.size);
+        return array.data[pos].load(order);
+    }
+
+    void fetchAdd(common::offset_t pos, const T& value,
+        std::memory_order order = std::memory_order_seq_cst) {
+        KU_ASSERT_UNCONDITIONAL(pos < array.size);
+        array.data[pos].fetch_add(value, order);
+    }
+
+    bool compareExchangeMax(const common::offset_t src, const common::offset_t dest,
+        std::memory_order order = std::memory_order_seq_cst) {
+        auto srcValue = get(src, order);
+        auto dstValue = get(dest, order);
+        // From https://en.cppreference.com/w/cpp/std::atomic/std::atomic/compare_exchange:
+        // When a compare-and-exchange is in a loop, the weak version will yield better performance
+        // on some platforms.
         while (dstValue < srcValue) {
-            if (array.data[dest].compare_exchange_strong(dstValue, srcValue)) {
+            if (array.data[dest].compare_exchange_weak(dstValue, srcValue)) {
                 return true;
             }
         }
@@ -93,6 +135,41 @@ public:
 
 private:
     ObjectArray<std::atomic<T>> array;
+};
+
+template<typename T>
+class ku_vector_t {
+public:
+    explicit ku_vector_t(storage::MemoryManager* mm) : vec(storage::MmAllocator<T>(mm)) {}
+    ku_vector_t(storage::MemoryManager* mm, std::size_t size)
+        : vec(size, storage::MmAllocator<T>(mm)) {}
+
+    void reserve(std::size_t size) { vec.reserve(size); }
+
+    void resize(std::size_t size) { vec.resize(size); }
+
+    void push_back(const T& value) { vec.push_back(value); }
+    void push_back(T&& value) { vec.push_back(std::move(value)); }
+
+    template<typename... Args>
+    void emplace_back(Args&&... args) {
+        vec.emplace_back(std::forward<Args>(args)...);
+    }
+
+    void pop_back() { vec.pop_back(); }
+
+    void clear() { vec.clear(); }
+
+    std::size_t size() const { return vec.size(); }
+
+    T& operator[](std::size_t index) { return vec[index]; }
+    const T& operator[](std::size_t index) const { return vec[index]; }
+
+    T& at(std::size_t index) { return vec.at(index); }
+    const T& at(std::size_t index) const { return vec.at(index); }
+
+private:
+    std::vector<T, storage::MmAllocator<T>> vec;
 };
 
 // ObjectArraysMap represents a pre-allocated amount of object per tableID.

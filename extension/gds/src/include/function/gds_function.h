@@ -35,5 +35,11 @@ struct KCoreDecompositionFunction {
     static function::function_set getFunctionSet();
 };
 
+struct LouvainFunction {
+    static constexpr const char* name = "LOUVAIN";
+
+    static function::function_set getFunctionSet();
+};
+
 } // namespace gds_extension
 } // namespace kuzu

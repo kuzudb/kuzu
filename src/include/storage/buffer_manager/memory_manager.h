@@ -21,6 +21,8 @@ class MemoryManager;
 class FileHandle;
 class BufferManager;
 class ChunkedNodeGroup;
+template<class T>
+class MmAllocator;
 
 class MemoryBuffer {
     friend class Spiller;
@@ -71,6 +73,8 @@ private:
  */
 class KUZU_API MemoryManager {
     friend class MemoryBuffer;
+    template<class T>
+    friend class MmAllocator;
 
 public:
     MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs);
