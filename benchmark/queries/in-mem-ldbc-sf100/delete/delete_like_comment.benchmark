@@ -1,0 +1,6 @@
+-NAME DeleteLikeComment
+-NUM_WARMUPS 0
+-NUM_RUNS 1
+-DISABLE_PROFILE
+-QUERY MATCH (p:Person)-[e:likeComment]->(c:Comment) WHERE c.length>=3 DELETE e;
+---- 0

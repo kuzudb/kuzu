@@ -12,10 +12,10 @@ namespace benchmark {
 class Benchmark {
 
 public:
-    Benchmark(const std::string& benchmarkPath, main::Database* database, BenchmarkConfig& config);
+    Benchmark(const std::string& benchmarkPath, BenchmarkConfig& config);
 
-    std::unique_ptr<main::QueryResult> run() const;
-    std::unique_ptr<main::QueryResult> runWithProfile() const;
+    std::unique_ptr<main::QueryResult> run(main::Connection* conn) const;
+    std::unique_ptr<main::QueryResult> runWithProfile(main::Connection* conn) const;
     void log(uint32_t runNum, main::QueryResult& queryResult) const;
 
 private:
@@ -26,7 +26,6 @@ private:
 
 public:
     BenchmarkConfig& config;
-    std::unique_ptr<main::Connection> conn;
     std::string name;
     std::string preRun;
     std::string query;

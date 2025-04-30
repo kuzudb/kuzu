@@ -1,0 +1,6 @@
+-NAME DeletePartialComment
+-NUM_WARMUPS 0
+-NUM_RUNS 1
+-DISABLE_PROFILE
+-QUERY MATCH (c:Comment) WHERE c.length>=3 DETACH DELETE c;
+---- 0

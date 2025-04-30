@@ -15,6 +15,7 @@ static std::string getArgumentValue(const std::string& arg) {
 
 int main(int argc, char** argv) {
     std::string datasetPath;
+    std::string serializedPath;
     std::string benchmarkPath;
     auto config = std::make_unique<BenchmarkConfig>();
     // parse arguments
@@ -22,6 +23,8 @@ int main(int argc, char** argv) {
         std::string arg = argv[i];
         if (arg.starts_with("--dataset")) {
             datasetPath = getArgumentValue(arg);
+        } else if (arg.starts_with("--serialized")) {
+            serializedPath = getArgumentValue(arg);
         } else if (arg.starts_with("--benchmark")) {
             benchmarkPath = getArgumentValue(arg);
         } else if (arg.starts_with("--warmup")) {
@@ -41,15 +44,19 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
-    if (datasetPath.empty()) {
-        printf("Missing --dataset input.");
+    if (serializedPath == ":memory:" && datasetPath.empty()) {
+        printf("Missing --dataset input for in memory database.");
+        return 1;
+    }
+    if (serializedPath.empty()) {
+        printf("Missing --serialized input.");
         return 1;
     }
     if (benchmarkPath.empty()) {
         printf("Missing --benchmark input");
         return 1;
     }
-    auto runner = BenchmarkRunner(datasetPath, std::move(config));
+    auto runner = BenchmarkRunner(datasetPath, serializedPath, std::move(config));
     try {
         runner.registerBenchmarks(benchmarkPath);
     } catch (std::exception& e) {

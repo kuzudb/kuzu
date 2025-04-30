@@ -1,0 +1,6 @@
+-NAME DeleteAllComment
+-NUM_WARMUPS 0
+-NUM_RUNS 1
+-DISABLE_PROFILE
+-QUERY MATCH (c:Comment) DETACH DELETE c;
+---- 0
