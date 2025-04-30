@@ -8,7 +8,7 @@ struct CAPIHelper {
     static inline LogicalType* createLogicalType(LogicalTypeID typeID,
         std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
         return new LogicalType(typeID, std::move(extraTypeInfo));
-    }      
+    }
 };
 } // namespace kuzu::common
 
