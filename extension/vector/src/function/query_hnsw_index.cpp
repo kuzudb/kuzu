@@ -116,7 +116,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         std::move(inputQueryExpression), static_cast<uint64_t>(k)};
     auto config = QueryHNSWConfig{input->optionalParams};
     auto bindData = std::make_unique<QueryHNSWIndexBindData>(context, std::move(columns),
-    boundInput, config, outputNode);
+        boundInput, config, outputNode);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return std::move(bindData);
 }
