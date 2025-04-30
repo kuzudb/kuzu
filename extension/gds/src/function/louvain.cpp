@@ -69,7 +69,7 @@ struct PhaseState {
     double modularityConstant = 0.0; // 1/2m.
 
     PhaseState(const offset_t numNodes, MemoryManager* mm, ExecutionContext* context)
-        : graph{InMemGraph(numNodes)} {
+        : graph{InMemGraph(numNodes, mm)} {
         reset(numNodes, mm, context);
     }
     DELETE_BOTH_COPY(PhaseState);
@@ -212,8 +212,8 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            auto startCSROffset = state.graph.csrOffsets[nodeId];
-            auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
+            auto startCSROffset = state.graph.csrOffsets.vec[nodeId];
+            auto endCSROffset = state.graph.csrOffsets.vec[nodeId + 1];
             // Self loop weight remains the same when moving between communities. Store this
             // separately for use in the modularity "diff" calculation.
             weight_t selfLoopWeight = 0;
@@ -255,7 +255,7 @@ public:
         intraCommWeights.push_back(0);
         offset_t nextIndex = 1;
         for (auto offset = startCSROffset; offset < endCSROffset; offset++) {
-            auto nbrEntry = state.graph.csrEdges[offset];
+            auto nbrEntry = state.graph.csrEdges.vec[offset];
             if (nbrEntry.neighbor == nodeId) {
                 selfLoopWeight += nbrEntry.weight;
             }
@@ -471,11 +471,11 @@ void aggregateCommunities(offset_t newCommCount, PhaseState& state, MemoryManage
     vector<unordered_map<offset_t, weight_t>> commWeights;
     commWeights.resize(newCommCount);
     for (auto nodeId = 0u; nodeId < state.graph.numNodes; nodeId++) {
-        auto beginCSROffset = state.graph.csrOffsets[nodeId];
-        auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
+        auto beginCSROffset = state.graph.csrOffsets.vec[nodeId];
+        auto endCSROffset = state.graph.csrOffsets.vec[nodeId + 1];
         auto commId = state.previousComm.get(nodeId, memory_order_relaxed);
         for (auto offset = beginCSROffset; offset < endCSROffset; ++offset) {
-            auto nbr = state.graph.csrEdges[offset];
+            auto nbr = state.graph.csrEdges.vec[offset];
             auto nbrCommId = state.previousComm.get(nbr.neighbor, memory_order_relaxed);
             if (commId >= nbrCommId) {
                 // New forward edge.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <vector>
 
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -133,6 +134,16 @@ public:
 
 private:
     ObjectArray<std::atomic<T>> array;
+};
+
+template<typename T>
+class KuzuVec {
+    storage::KuzuAllocator<T> allocator;
+public:
+    std::vector<T, storage::KuzuAllocator<T>> vec;
+
+    explicit KuzuVec(storage::MemoryManager* mm)
+        : allocator{storage::KuzuAllocator<T>(mm)}, vec(allocator) {}
 };
 
 // ObjectArraysMap represents a pre-allocated amount of object per tableID.

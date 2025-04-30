@@ -2,6 +2,7 @@
 
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
+#include "function/gds/gds_object_manager.h"
 
 namespace kuzu {
 namespace graph {
@@ -9,7 +10,7 @@ namespace graph {
 using weight_t = common::offset_t;
 constexpr weight_t DEFAULT_WEIGHT = 1;
 
-struct KUZU_API Neighbor {
+struct Neighbor {
     common::offset_t neighbor;
     weight_t weight;
 };
@@ -19,12 +20,12 @@ struct KUZU_API Neighbor {
 // Undirected edges should be explicitly inserted twice.
 // Note: modifying the in-memory graph is NOT thread-safe.
 struct KUZU_API InMemGraph {
-    std::vector<common::offset_t> csrOffsets;
-    std::vector<Neighbor> csrEdges;
+    function::KuzuVec<common::offset_t> csrOffsets;
+    function::KuzuVec<Neighbor> csrEdges;
     common::offset_t numNodes = 0;
     common::offset_t numEdges = 0;
 
-    InMemGraph(common::offset_t numNodes);
+    InMemGraph(common::offset_t numNodes, storage::MemoryManager* mm);
     DELETE_BOTH_COPY(InMemGraph);
 
     // Resets to an empty graph. Reuses allocations, if any.

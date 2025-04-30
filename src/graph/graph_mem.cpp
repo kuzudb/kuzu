@@ -1,28 +1,27 @@
 #include "graph/graph_mem.h"
 
-using namespace kuzu::common;
-
 namespace kuzu::graph {
 
-InMemGraph::InMemGraph(offset_t numNodes) {
+InMemGraph::InMemGraph(common::offset_t numNodes, storage::MemoryManager* mm)
+    : csrOffsets(mm), csrEdges(mm) {
     reset(numNodes);
 }
 
-void InMemGraph::reset(offset_t numNodes_) {
+void InMemGraph::reset(common::offset_t numNodes_) {
     numNodes = numNodes_;
-    csrOffsets.reserve(numNodes);
-    csrOffsets.clear();
-    csrEdges.clear();
+    csrOffsets.vec.reserve(numNodes);
+    csrOffsets.vec.clear();
+    csrEdges.vec.clear();
     numEdges = 0;
 }
 
 void InMemGraph::initNextNode() {
-    csrOffsets.push_back(csrEdges.size());
+    csrOffsets.vec.push_back(csrEdges.vec.size());
 }
 
-void InMemGraph::insertNbr(offset_t to, weight_t weight) {
+void InMemGraph::insertNbr(common::offset_t to, weight_t weight) {
     Neighbor neighbor{to, weight};
-    csrEdges.push_back(neighbor);
+    csrEdges.vec.push_back(neighbor);
     numEdges++;
 }
 
