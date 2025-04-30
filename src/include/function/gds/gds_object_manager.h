@@ -140,11 +140,10 @@ private:
 template<typename T>
 class ku_vector_t {
 public:
-    explicit ku_vector_t(storage::MemoryManager* mm)
-        : allocator{storage::MmAllocator<T>(mm)}, vec(allocator) {}
+    explicit ku_vector_t(storage::MemoryManager* mm) : allocator(mm), vec(allocator) {}
 
     ku_vector_t(storage::MemoryManager* mm, std::size_t size)
-        : allocator{storage::MmAllocator<T>(mm)}, vec(size, allocator) {}
+        : allocator(mm), vec(size, allocator) {}
 
     void reserve(std::size_t size) { vec.reserve(size); }
 

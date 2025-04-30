@@ -13,13 +13,15 @@ constexpr weight_t DEFAULT_WEIGHT = 1;
 struct Neighbor {
     common::offset_t neighbor;
     weight_t weight;
+
+    Neighbor(common::offset_t neighbor, weight_t weight) : neighbor{neighbor}, weight{weight} {}
 };
 
 // CSR-like in-memory representation of an undirected weighted graph. Insert nodes in sequence
 // by first calling `initNextNode()` and then insert all its neighbors using `insertNbr()`.
 // Undirected edges should be explicitly inserted twice.
 // Note: modifying the in-memory graph is NOT thread-safe.
-struct KUZU_API InMemGraph {
+struct InMemGraph {
     function::ku_vector_t<common::offset_t> csrOffsets;
     function::ku_vector_t<Neighbor> csrEdges;
     common::offset_t numNodes = 0;
@@ -27,6 +29,7 @@ struct KUZU_API InMemGraph {
 
     InMemGraph(common::offset_t numNodes, storage::MemoryManager* mm);
     DELETE_BOTH_COPY(InMemGraph);
+    ~InMemGraph() = default;
 
     // Reinitializes to an empty graph. Reuses allocations if `numNodes` <= `this->numNodes`.
     void reinit(common::offset_t numNodes);

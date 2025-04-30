@@ -113,6 +113,7 @@ struct PhaseState {
 class ResetPhaseStateVC : public InMemVertexCompute {
 public:
     explicit ResetPhaseStateVC(PhaseState& state) : state{state} {}
+    ~ResetPhaseStateVC() override = default;
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
@@ -135,6 +136,7 @@ private:
 class StartNewIterVC : public InMemVertexCompute {
 public:
     explicit StartNewIterVC(PhaseState& state) : state{state} {}
+    ~StartNewIterVC() override = default;
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
@@ -185,6 +187,7 @@ class SaveCommAssignmentsVC : public InMemVertexCompute {
 public:
     explicit SaveCommAssignmentsVC(offset_t phaseId, FinalResults& finalResults, PhaseState& state)
         : phaseId{phaseId}, finalResults{finalResults}, state{state} {}
+    ~SaveCommAssignmentsVC() override = default;
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         if (phaseId == 0) {
@@ -218,6 +221,7 @@ private:
 class RunIterationVC : public InMemVertexCompute {
 public:
     explicit RunIterationVC(PhaseState& state) : state{state} {}
+    ~RunIterationVC() override = default;
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         // For every `nodeId`, separately stores the edge weights to its own community (at index 0)
@@ -352,6 +356,7 @@ public:
     ComputeModularityVC(PhaseState& state, std::atomic<weight_t>& sumIntraWeights,
         std::atomic<weight_t>& sumWeightedDegrees)
         : state{state}, sumIntraWeights{sumIntraWeights}, sumWeightedDegrees{sumWeightedDegrees} {}
+    ~ComputeModularityVC() override = default;
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         weight_t sumIntraLocal = 0;
@@ -378,6 +383,7 @@ private:
 class UpdateCommInfosVC : public InMemVertexCompute {
 public:
     explicit UpdateCommInfosVC(PhaseState& state) : state{state} {}
+    ~UpdateCommInfosVC() override = default;
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
