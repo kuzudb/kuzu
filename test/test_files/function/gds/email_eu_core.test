@@ -1,0 +1,98 @@
+-DATASET CSV snap/email-Eu-core
+
+--
+
+-CASE email_eu_core
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', ['nodes'], ['edges'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+986
+1
+1
+1
+1
+1
+1
+1
+1
+1
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+803
+1
+1
+1
+1
+1
+1
+1
+1
+1
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+803
+1
+1
+1
+1
+1
+1
+1
+1
+1
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#---- 10
+#10|645|224
+#2|922|129
+#13|972|128
+#14|328|121
+#52|804|98
+#7|765|90
+#0|947|66
+#15|854|32
+#605|829|2
+#712|882|2
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+1
+160
+130
+62
+86
+107
+365
+121
+5
+129
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 10
+56|98
+1|71
+2|48
+45|43
+36|38
+48|35
+3|33
+4|32
+7|28
+49|26
+
