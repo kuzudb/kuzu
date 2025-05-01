@@ -197,6 +197,10 @@ std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli
     std::string properties = "";
     std::string propertiesToCopy = "";
     for (const auto& item : data) {
+        if (item["row"][0].is_null()) {
+            // Skip null properties.
+            continue;
+        }
         auto property = item["row"][0].get<std::string>();
         properties += property;
         auto types = item["row"][1];
@@ -205,7 +209,7 @@ std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli
             kuType = LogicalTypeUtils::combineTypes(
                 convertFromNeo4jTypeStr(types[i].get<std::string>()), kuType);
         }
-        propertiesToCopy += property + ",";
+        propertiesToCopy += ", " + property;
         properties += (" " + kuType.toString() + ",");
     }
     return {common::stringFormat("CREATE NODE TABLE `{}` (`_id_` int64, {} PRIMARY KEY(_id_));",
@@ -213,9 +217,8 @@ std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli
         common::stringFormat(
             "COPY `{}` FROM (LOAD WITH HEADERS(_id STRING, _labels STRING, {} _start STRING, "
             "_end STRING, _type STRING) FROM '/tmp/{}.csv'(sample_size "
-            "= 0, header=true) RETURN _id, {});",
-            nodeName, properties, nodeName,
-            propertiesToCopy.substr(0, propertiesToCopy.length() - 1))};
+            "= 0, header=true) RETURN _id{});",
+            nodeName, properties, nodeName, propertiesToCopy)};
 }
 
 std::vector<std::string> getRelProperties(httplib::Client& cli, std::string srcLabel,
@@ -265,6 +268,9 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
         if (item["row"].empty()) {
             throw common::RuntimeException{"Error occurred while parsing neo4j result."};
         }
+        if (item["row"][0].empty() || item["row"][1].empty()) {
+            continue;
+        }
         srcLabel = item["row"][0][0].get<std::string>();
         dstLabel = item["row"][1][0].get<std::string>();
         if (std::find(nodeLabelsToImport.begin(), nodeLabelsToImport.end(), srcLabel) ==
@@ -302,6 +308,9 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
                                  "RETURN `_start`, `_end`{} {}) (from = \"{}\", to = \"{}\");",
                 relName, propertiesToCopy, loadFromHeaders, srcLabel, relName, dstLabel,
                 propertySeparator, propertiesToCopy, srcLabel, dstLabel);
+    }
+    if (nodePairsString.empty()) {
+        return "";
     }
     return common::stringFormat("CREATE REL TABLE `{}` ({} {});", relName,
                nodePairsString.substr(0, nodePairsString.size() - 1),

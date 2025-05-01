@@ -69,3 +69,20 @@
 ---- ok
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 0
+
+-CASE MigrateFromBothEmptyNodes
+# Created by query in neo4j: create (a)-[:emptyrel]->(b)
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
+---- ok
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "kuzuneo4j", [], ["emptyrel"]);
+---- ok
+
+-CASE MigrateFromOneEmptyNodes
+# Created by query in neo4j: create (a:person)-[:emptyrel1]->(b)
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
+---- ok
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "kuzuneo4j", ["person"], ["emptyrel1"]);
+---- ok
+-STATEMENT MATCH (a:person) RETURN label(a)
+---- 1
+person
