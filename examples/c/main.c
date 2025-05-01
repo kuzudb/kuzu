@@ -7,8 +7,8 @@
 int main() {
     kuzu_database db;
     kuzu_connection conn;
-    kuzu_database_init("" /* fill db path */, kuzu_default_system_config(), &db);
-    kuzu_connection_init(&db, &conn);
+    kuzu_database_init("" /* fill db path */, kuzu_default_system_config(), &db, NULL);
+    kuzu_connection_init(&db, &conn, NULL);
 
     // Create schema.
     kuzu_query_result result;

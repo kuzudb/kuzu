@@ -52,3 +52,21 @@ char* convertToOwnedCString(const std::string& str) {
     c_str[src_len] = '\0';
     return c_str;
 }
+
+void convertToOwnedErrorMessage(const char* error_message, char** out_error_message) {
+    if (error_message == nullptr) {
+        *out_error_message = nullptr;
+        return;
+    }
+    auto errorMessageSize = strlen(error_message);
+    if (errorMessageSize == 0) {
+        *out_error_message = nullptr;
+        return;
+    }
+    *out_error_message = (char*)malloc((errorMessageSize + 1) * sizeof(char));
+    if (*out_error_message == nullptr) {
+        return;
+    }
+    memcpy(*out_error_message, error_message, errorMessageSize);
+    (*out_error_message)[errorMessageSize] = '\0';
+}

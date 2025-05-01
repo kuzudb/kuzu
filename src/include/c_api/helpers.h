@@ -12,3 +12,5 @@ int32_t convertTimeToTm(time_t time, struct tm* out_tm);
 #endif
 
 char* convertToOwnedCString(const std::string& str);
+
+void convertToOwnedErrorMessage(const char* error_message, char** out_error_message);

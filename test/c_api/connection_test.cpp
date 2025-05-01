@@ -17,7 +17,7 @@ TEST_F(CApiConnectionTest, CreationAndDestroy) {
     kuzu_connection connection;
     kuzu_state state;
     auto _database = getDatabase();
-    state = kuzu_connection_init(_database, &connection);
+    state = kuzu_connection_init(_database, &connection, nullptr);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_NE(connection._connection, nullptr);
     auto connectionCpp = static_cast<Connection*>(connection._connection);
@@ -28,7 +28,7 @@ TEST_F(CApiConnectionTest, CreationAndDestroy) {
 TEST_F(CApiConnectionTest, CreationAndDestroyWithNullDatabase) {
     kuzu_connection connection;
     kuzu_state state;
-    state = kuzu_connection_init(nullptr, &connection);
+    state = kuzu_connection_init(nullptr, &connection, nullptr);
     ASSERT_EQ(state, KuzuError);
 }
 
@@ -69,7 +69,7 @@ TEST_F(CApiConnectionTest, SetGetMaxNumThreadForExec) {
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_EQ(maxNumThreadForExec, 8);
     kuzu_connection badConnection;
-    ASSERT_EQ(kuzu_connection_init(nullptr, &badConnection), KuzuError);
+    ASSERT_EQ(kuzu_connection_init(nullptr, &badConnection, nullptr), KuzuError);
     state = kuzu_connection_set_max_num_thread_for_exec(&badConnection, 4);
     ASSERT_EQ(state, KuzuError);
     state = kuzu_connection_get_max_num_thread_for_exec(&badConnection, &maxNumThreadForExec);
@@ -153,7 +153,7 @@ TEST_F(CApiConnectionTest, QueryTimeout) {
     ASSERT_EQ(resultCpp->getErrorMessage(), "Interrupted.");
     kuzu_query_result_destroy(&result);
     kuzu_connection badConnection;
-    ASSERT_EQ(kuzu_connection_init(nullptr, &badConnection), KuzuError);
+    ASSERT_EQ(kuzu_connection_init(nullptr, &badConnection, nullptr), KuzuError);
     ASSERT_EQ(kuzu_connection_set_query_timeout(&badConnection, 1), KuzuError);
 }
 

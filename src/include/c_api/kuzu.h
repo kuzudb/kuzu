@@ -331,10 +331,13 @@ typedef enum { KuzuSuccess = 0, KuzuError = 1 } kuzu_state;
  * @param database_path The path to the database.
  * @param system_config The runtime configuration for creating or opening the database.
  * @param[out] out_database The output parameter that will hold the database instance.
+ * @param[out] error_message The output parameter that will hold the error message 
+ * if the operation fails. It is optional. If NULL is passed, the error message will 
+ * not be returned. If the operation fails, the caller is responsible for freeing the error message.
  * @return The state indicating the success or failure of the operation.
  */
 KUZU_C_API kuzu_state kuzu_database_init(const char* database_path,
-    kuzu_system_config system_config, kuzu_database* out_database);
+    kuzu_system_config system_config, kuzu_database* out_database, char** error_message);
 /**
  * @brief Destroys the kuzu database instance and frees the allocated memory.
  * @param database The database instance to destroy.
@@ -349,10 +352,13 @@ KUZU_C_API kuzu_system_config kuzu_default_system_config();
  * calling kuzu_connection_destroy() to release the allocated memory.
  * @param database The database instance to connect to.
  * @param[out] out_connection The output parameter that will hold the connection instance.
+ * @param[out] error_message The output parameter that will hold the error message
+ * if the operation fails. It is optional. If NULL is passed, the error message will
+ * not be returned. If the operation fails, the caller is responsible for freeing the error message.
  * @return The state indicating the success or failure of the operation.
  */
 KUZU_C_API kuzu_state kuzu_connection_init(kuzu_database* database,
-    kuzu_connection* out_connection);
+    kuzu_connection* out_connection, char** error_message);
 /**
  * @brief Destroys the connection instance and frees the allocated memory.
  * @param connection The connection instance to destroy.

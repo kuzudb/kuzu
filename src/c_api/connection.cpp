@@ -1,4 +1,5 @@
 #include "c_api/kuzu.h"
+#include "c_api/helpers.h"
 #include "common/exception/exception.h"
 #include "main/kuzu.h"
 
@@ -11,7 +12,7 @@ class Value;
 using namespace kuzu::common;
 using namespace kuzu::main;
 
-kuzu_state kuzu_connection_init(kuzu_database* database, kuzu_connection* out_connection) {
+kuzu_state kuzu_connection_init(kuzu_database* database, kuzu_connection* out_connection, char** error_message) {
     if (database == nullptr || database->_database == nullptr) {
         out_connection->_connection = nullptr;
         return KuzuError;
@@ -20,6 +21,7 @@ kuzu_state kuzu_connection_init(kuzu_database* database, kuzu_connection* out_co
         out_connection->_connection = new Connection(static_cast<Database*>(database->_database));
     } catch (Exception& e) {
         out_connection->_connection = nullptr;
+        convertToOwnedErrorMessage(e.what(), error_message);
         return KuzuError;
     }
     return KuzuSuccess;
