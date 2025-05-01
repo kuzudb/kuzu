@@ -11,7 +11,7 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 3963
 1
@@ -105,7 +105,7 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 762
 203
@@ -161,7 +161,6 @@
 #692|155|1
 
 -LOG PageRank
-# most of the nodes have the same page rank so we just check for the highest
 -STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
 -CHECK_ORDER
 ---- 10
@@ -201,7 +200,7 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 2944
 52
@@ -257,7 +256,7 @@
 #2569|751|1
 
 -LOG PageRank
--STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-STATEMENT CALL page_rank('G', normalizeInitial:=false) WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
 -CHECK_ORDER
 ---- 10
 1684
@@ -285,4 +284,3 @@
 116|67
 40|66
 680|66
-

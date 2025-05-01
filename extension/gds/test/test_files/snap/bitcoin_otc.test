@@ -11,7 +11,7 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 4
 5875
 2
@@ -99,7 +99,7 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 1
 959
 
@@ -184,7 +184,7 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 4310
 11
@@ -268,4 +268,3 @@
 8|153
 7|103
 10|87
-

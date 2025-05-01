@@ -11,7 +11,7 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 7067
 3
@@ -54,7 +54,7 @@
 
 #-LOG LOUVAIN
 #-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
-#---- 10 
+#---- 10
 #44|3954|1879
 #30|3042|1700
 #53|4414|1557
@@ -105,7 +105,7 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 5965
 5
@@ -148,7 +148,7 @@
 
 #-LOG LOUVAIN
 #-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
-#---- 10 
+#---- 10
 #1004|3360|2612
 #1000|3156|1180
 #1018|3749|967
@@ -199,7 +199,7 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 910
 1
@@ -242,7 +242,7 @@
 
 #-LOG LOUVAIN
 #-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
-#---- 10 
+#---- 10
 #3|469|274
 #13|542|201
 #4|629|159

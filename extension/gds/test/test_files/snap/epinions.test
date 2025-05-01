@@ -11,11 +11,11 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c;
 ---- 2
 75877
 2
--STATEMENT CALL weakly_connected_component('G') WITH group_id, node WHERE group_id > 0 RETURN node.ID;
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, node WHERE group_id > 0 RETURN node.ID;
 ---- 2
 71749
 74845
@@ -101,8 +101,8 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
----- 10 
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
 69466
 35
 30
@@ -195,8 +195,8 @@
 ---- ok
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component('G') WITH group_id, COUNT(*) AS c RETURN c;
----- 1 
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c;
+---- 1
 1000
 
 -LOG SCC
@@ -229,14 +229,14 @@
 
 #-LOG LOUVAIN
 #-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
-#----4 
+#----4
 #4|634|393
 #0|84|257
 #3|944|219
 #1|731|131
 
 -LOG PageRank
--STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-STATEMENT CALL page_rank('G', normalizeInitial:=false) WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
 -CHECK_ORDER
 ---- 10
 1
