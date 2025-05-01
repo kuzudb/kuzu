@@ -10,10 +10,10 @@
 #include "function/table/table_function.h"
 #include "httplib.h"
 #include "json.hpp"
-#include "main/neo4j_migration_extension.h"
+#include "main/neo4j_extension.h"
 
 namespace kuzu {
-namespace neo4j_migration_extension {
+namespace neo4j_extension {
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -288,20 +288,20 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
         std::string loadFromHeaders = "";
         for (auto i = 0u; i < relProperties.size(); i++) {
             propertiesToCopy += relProperties[i];
-            loadFromHeaders +=
-                common::stringFormat("{} {}", relProperties[i], propertyTypes.at(relProperties[i]));
+            loadFromHeaders += common::stringFormat(", {} {}", relProperties[i],
+                propertyTypes.at(relProperties[i]));
             if (i != relProperties.size() - 1) {
                 propertiesToCopy += ",";
-                loadFromHeaders += ",";
             }
         }
+        auto propertySeparator = propertiesToCopy.empty() ? "" : ", ";
         copyQuery +=
             common::stringFormat("COPY `{}`({}) FROM (LOAD WITH HEADERS(_id STRING, _labels "
-                                 "STRING, _start INT64, _end INT64, _type STRING, {}) FROM "
+                                 "STRING, _start INT64, _end INT64, _type STRING{}) FROM "
                                  "'/tmp/{}_{}_{}.csv'(sample_size=0, header=true) "
-                                 "RETURN `_start`, `_end`, {}) (from = \"{}\", to = \"{}\");",
+                                 "RETURN `_start`, `_end`{} {}) (from = \"{}\", to = \"{}\");",
                 relName, propertiesToCopy, loadFromHeaders, srcLabel, relName, dstLabel,
-                propertiesToCopy, srcLabel, dstLabel);
+                propertySeparator, propertiesToCopy, srcLabel, dstLabel);
     }
     return common::stringFormat("CREATE REL TABLE `{}` ({} {});", relName,
                nodePairsString.substr(0, nodePairsString.size() - 1),
@@ -357,5 +357,5 @@ function_set Neo4jMigrateFunction::getFunctionSet() {
     return functionSet;
 }
 
-} // namespace neo4j_migration_extension
+} // namespace neo4j_extension
 } // namespace kuzu

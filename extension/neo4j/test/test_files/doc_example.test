@@ -1,0 +1,19 @@
+-DATASET CSV empty
+
+--
+
+-CASE MigrateFromNeo4jDocSample
+-SKIP
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
+---- ok
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "kuzuneo4j", ["User", "City"], ["Follows", "LivesIn"]);
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 4
+0|User|NODE|local(kuzu)|
+1|City|NODE|local(kuzu)|
+2|Follows|REL|local(kuzu)|
+3|LivesIn|REL|local(kuzu)|
+-STATEMENT match (u:User)-[f:Follows]->(u1:User) return max(f.since);
+---- 1
+2022
