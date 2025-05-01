@@ -230,7 +230,8 @@ val valueGetAsEmscriptenValue(const Value& value) {
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();
         auto days = dateVal.days;
-        auto milliseconds = days * Interval::MICROS_PER_DAY / Interval::MICROS_PER_MSEC;
+        auto millisecondsPerDay = Interval::MICROS_PER_DAY / Interval::MICROS_PER_MSEC;
+        int64_t milliseconds = days * millisecondsPerDay;
         return JsDate.new_(JsNumber.new_(milliseconds));
     }
     case LogicalTypeID::TIMESTAMP_TZ: {

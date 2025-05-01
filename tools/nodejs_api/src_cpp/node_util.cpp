@@ -68,7 +68,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();
         auto days = dateVal.days;
-        auto milliseconds = days * Interval::MICROS_PER_DAY / Interval::MICROS_PER_MSEC;
+        auto millisecondsPerDay = Interval::MICROS_PER_DAY / Interval::MICROS_PER_MSEC;
+        int64_t milliseconds = days * millisecondsPerDay;
         return Napi::Date::New(env, milliseconds);
     }
     case LogicalTypeID::TIMESTAMP_TZ: {
