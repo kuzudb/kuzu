@@ -230,6 +230,32 @@ describe("DATE", function () {
       Number(new Date("1900-01-01"))
     );
   });
+
+  it("should convert DATE type for very old date", async function () {
+    const queryResult = await conn.query(
+      "RETURN MAKE_DATE(1000,11,22);"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+
+    const value = Object.values(result[0])[0];
+    const isoString = value.toISOString();
+    assert.equal(isoString, "1000-11-22T00:00:00.000Z");
+  });
+
+  it("should convert DATE type for very future date", async function () {
+    const queryResult = await conn.query(
+      "RETURN MAKE_DATE(3000,11,22);"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+
+    const value = Object.values(result[0])[0];
+    const isoString = value.toISOString();
+    assert.equal(isoString, "3000-11-22T00:00:00.000Z");
+  });
 });
 
 describe("TIMESTAMP", function () {

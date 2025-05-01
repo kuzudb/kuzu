@@ -237,6 +237,34 @@ describe("DATE", function () {
     );
     await queryResult.close();
   });
+
+  it("should convert DATE type for very old date", async function () {
+    const queryResult = await conn.query(
+      "RETURN MAKE_DATE(1000,11,22);"
+    );
+    const result = await queryResult.getAllObjects();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    const value = Object.values(result[0])[0];
+    assert.equal(typeof value, "object");
+    const isoString = value.toISOString();
+    assert.equal(isoString, "1000-11-22T00:00:00.000Z");
+    await queryResult.close();
+  });
+
+  it("should convert DATE type for very future date", async function () {
+    const queryResult = await conn.query(
+      "RETURN MAKE_DATE(9999,11,22);"
+    );
+    const result = await queryResult.getAllObjects();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    const value = Object.values(result[0])[0];
+    assert.equal(typeof value, "object");
+    const isoString = value.toISOString();
+    assert.equal(isoString, "9999-11-22T00:00:00.000Z");
+    await queryResult.close();
+  });
 });
 
 describe("TIMESTAMP", function () {
