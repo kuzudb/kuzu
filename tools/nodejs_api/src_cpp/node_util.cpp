@@ -67,10 +67,9 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     }
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();
-        // Javascript Date type contains both date and time information. This returns the Date at
-        // 00:00:00 in UTC timezone.
-        auto milliseconds = Date::getEpochNanoSeconds(dateVal) / Interval::NANOS_PER_MICRO /
-                            Interval::MICROS_PER_MSEC;
+        auto days = dateVal.days;
+        auto millisecondsPerDay = Interval::MICROS_PER_DAY / Interval::MICROS_PER_MSEC;
+        int64_t milliseconds = days * millisecondsPerDay;
         return Napi::Date::New(env, milliseconds);
     }
     case LogicalTypeID::TIMESTAMP_TZ: {

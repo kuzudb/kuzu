@@ -229,8 +229,9 @@ val valueGetAsEmscriptenValue(const Value& value) {
     }
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();
-        auto milliseconds = Date::getEpochNanoSeconds(dateVal) / Interval::NANOS_PER_MICRO /
-                            Interval::MICROS_PER_MSEC;
+        auto days = dateVal.days;
+        auto millisecondsPerDay = Interval::MICROS_PER_DAY / Interval::MICROS_PER_MSEC;
+        int64_t milliseconds = days * millisecondsPerDay;
         return JsDate.new_(JsNumber.new_(milliseconds));
     }
     case LogicalTypeID::TIMESTAMP_TZ: {

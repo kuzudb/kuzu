@@ -11,7 +11,7 @@ const ES_BUILD_CONFIG = {
   entryPoints: ['./build/sync/index.js', './build/index.js', 'build/kuzu_wasm_worker.js'],
   bundle: true,
   format: 'esm',
-  external: ['fs', 'path', 'ws', 'crypto', "worker_threads", "os"],
+  external: ['fs', 'path', 'ws', 'crypto', "worker_threads", "os", "util"],
   outdir: 'package',
   logLevel: 'info',
   define: {
