@@ -25,7 +25,7 @@ std::unique_ptr<RelBatchInsertExecutionState> CopyRelBatchInsert::initExecutionS
     const auto startNodeOffset = storage::StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     for (auto& chunkedGroup : executionState->partitioningBuffer->getChunkedGroups()) {
         setOffsetToWithinNodeGroup(
-            chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID).getData(),
+            chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID),
             startNodeOffset);
     }
     return executionState;
@@ -42,7 +42,7 @@ void CopyRelBatchInsert::populateCSRLengthsInternal(const storage::ChunkedCSRHea
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(boundNodeOffsetColumn);
         for (auto i = 0u; i < offsetChunk.getNumValues(); i++) {
-            const auto nodeOffset = offsetChunk.getData().getValue<common::offset_t>(i);
+            const auto nodeOffset = offsetChunk.getValue<common::offset_t>(i);
             KU_ASSERT(nodeOffset < numNodes);
             lengthData[nodeOffset]++;
         }
@@ -75,7 +75,7 @@ void CopyRelBatchInsert::finalizeStartCSROffsets(RelBatchInsertExecutionState& e
     for (auto& chunkedGroup : copyRelExecutionState.partitioningBuffer->getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID);
         // We reuse bound node offset column to store row idx for each rel in the node group.
-        setRowIdxFromCSROffsets(offsetChunk.getData(), csrHeader.offset->getData());
+        setRowIdxFromCSROffsets(offsetChunk, csrHeader.offset->getData());
     }
 }
 
