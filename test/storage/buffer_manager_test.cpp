@@ -60,11 +60,9 @@ TEST_F(EmptyBufferManagerTest, TestSpillToDiskMemoryUsage) {
     ASSERT_EQ(initialUsedMemory, bm->getUsedMemory());
 
     {
-        std::vector<std::unique_ptr<ColumnChunk>> chunks;
-        chunks.push_back(std::make_unique<storage::ColumnChunk>(false,
-            std::make_unique<ColumnChunkData>(*mm, LogicalType(LogicalTypeID::INT64), 1024, false,
-                ResidencyState::IN_MEMORY, false)));
-        auto chunkedNodeGroup = storage::ChunkedNodeGroup(std::move(chunks), 0);
+        std::vector<LogicalType> types;
+        types.push_back(LogicalType::INT64());
+        auto chunkedNodeGroup = storage::InMemChunkedNodeGroup(*mm, types, false, 1024, 0);
         chunkedNodeGroup.setUnused(*mm);
         auto memoryWithChunks = bm->getUsedMemory();
         uint64_t memorySpilled = 0;

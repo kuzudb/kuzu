@@ -9,7 +9,7 @@ namespace common {
 class VirtualFileSystem;
 };
 namespace storage {
-class ChunkedNodeGroup;
+class InMemChunkedNodeGroup;
 
 class BufferManager;
 class ColumnChunkData;
@@ -18,8 +18,8 @@ class ColumnChunkData;
 class Spiller {
 public:
     Spiller(std::string tmpFilePath, BufferManager& bufferManager, common::VirtualFileSystem* vfs);
-    void addUnusedChunk(ChunkedNodeGroup* nodeGroup);
-    void clearUnusedChunk(ChunkedNodeGroup* nodeGroup);
+    void addUnusedChunk(InMemChunkedNodeGroup* nodeGroup);
+    void clearUnusedChunk(InMemChunkedNodeGroup* nodeGroup);
     uint64_t spillToDisk(ColumnChunkData& chunk) const;
     void loadFromDisk(ColumnChunkData& chunk) const;
     // reclaims memory from the next full partitioner group in the set
@@ -37,7 +37,7 @@ private:
     std::string tmpFilePath;
     BufferManager& bufferManager;
     common::VirtualFileSystem* vfs;
-    std::unordered_set<ChunkedNodeGroup*> fullPartitionerGroups;
+    std::unordered_set<InMemChunkedNodeGroup*> fullPartitionerGroups;
     FileHandle* dataFH;
     std::mutex partitionerGroupsMtx;
     mutable std::mutex fileCreationMutex;

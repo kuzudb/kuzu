@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "storage/enums/residency_state.h"
 #include "storage/store/chunked_node_group.h"
 
 namespace kuzu {
@@ -61,7 +62,9 @@ struct ChunkedCSRHeader {
     ChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression, uint64_t capacity,
         ResidencyState residencyState);
     ChunkedCSRHeader(std::unique_ptr<ColumnChunk> offset, std::unique_ptr<ColumnChunk> length)
-        : offset{std::move(offset)}, length{std::move(length)} {}
+        : offset{std::move(offset)}, length{std::move(length)} {
+        KU_ASSERT(this->offset && this->length);
+    }
 
     common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
     common::offset_t getEndCSROffset(common::offset_t nodeOffset) const;
@@ -88,8 +91,12 @@ private:
     static common::length_t computeGapFromLength(common::length_t length);
 };
 
+class InMemChunkedCSRNodeGroup;
+
 struct CSRNodeGroupCheckpointState;
 class ChunkedCSRNodeGroup final : public ChunkedNodeGroup {
+    friend class InMemChunkedCSRNodeGroup;
+
 public:
     ChunkedCSRNodeGroup(MemoryManager& mm, const std::vector<common::LogicalType>& columnTypes,
         bool enableCompression, uint64_t capacity, common::offset_t startOffset,
@@ -98,6 +105,8 @@ public:
               residencyState, NodeGroupDataFormat::CSR},
           csrHeader{mm, enableCompression, common::StorageConfig::NODE_GROUP_SIZE, residencyState} {
     }
+    ChunkedCSRNodeGroup(InMemChunkedCSRNodeGroup& base,
+        const std::vector<common::column_id_t>& selectedColumns);
     ChunkedCSRNodeGroup(ChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns)
         : ChunkedNodeGroup{base, selectedColumns}, csrHeader{std::move(base.csrHeader)} {}
@@ -118,12 +127,6 @@ public:
     static std::unique_ptr<ChunkedCSRNodeGroup> deserialize(MemoryManager& memoryManager,
         common::Deserializer& deSer);
 
-    void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
-        const std::vector<std::unique_ptr<ColumnChunk>>& data, ColumnChunk& offsetChunk) override {
-        chunks[chunkIdx]->getData().write(&data[vectorIdx]->getData(), &offsetChunk.getData(),
-            common::RelMultiplicity::MANY);
-    }
-
     void scanCSRHeader(MemoryManager& memoryManager, CSRNodeGroupCheckpointState& csrState) const;
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
@@ -132,12 +135,35 @@ public:
     void flush(FileHandle& dataFH) override;
     void reclaimStorage(FileHandle& dataFH) override;
 
+private:
+    ChunkedCSRHeader csrHeader;
+};
+
+class InMemChunkedCSRNodeGroup final : public InMemChunkedNodeGroup {
+    friend class ChunkedCSRNodeGroup;
+
+public:
+    InMemChunkedCSRNodeGroup(MemoryManager& mm, const std::vector<common::LogicalType>& columnTypes,
+        bool enableCompression, uint64_t capacity, common::offset_t startOffset)
+        : InMemChunkedNodeGroup{mm, columnTypes, enableCompression, capacity, startOffset},
+          csrHeader{mm, enableCompression, common::StorageConfig::NODE_GROUP_SIZE,
+              ResidencyState::IN_MEMORY} {}
+
+    ChunkedCSRHeader& getCSRHeader() { return csrHeader; }
+    const ChunkedCSRHeader& getCSRHeader() const { return csrHeader; }
+
     // this does not override ChunkedNodeGroup::merge() since clang-tidy analyzer
     // seems to struggle with detecting the std::move of the header unless this is inlined
     void mergeChunkedCSRGroup(ChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& columnsToMergeInto) {
-        ChunkedNodeGroup::merge(base, columnsToMergeInto);
+        InMemChunkedNodeGroup::merge(base, columnsToMergeInto);
         csrHeader = std::move(base.csrHeader);
+    }
+
+    void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
+        const std::vector<std::unique_ptr<ColumnChunkData>>& data,
+        ColumnChunkData& offsetChunk) override {
+        chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, common::RelMultiplicity::MANY);
     }
 
 private:

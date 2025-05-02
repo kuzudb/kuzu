@@ -76,7 +76,7 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
 
     // The sharedNodeGroup is to accumulate left data within local node groups in NodeBatchInsert
     // ops.
-    std::unique_ptr<storage::ChunkedNodeGroup> sharedNodeGroup;
+    std::unique_ptr<storage::InMemChunkedNodeGroup> sharedNodeGroup;
 
     NodeBatchInsertSharedState(storage::Table* table, common::column_id_t pkColumnID,
         common::LogicalType pkType, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal,
@@ -131,16 +131,16 @@ public:
     // The node group will be reset so that the only values remaining are the ones which were
     // not written
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
-        std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
+        std::unique_ptr<storage::InMemChunkedNodeGroup>& nodeGroup,
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;
 
 private:
     void evaluateExpressions(uint64_t numTuples) const;
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
-        std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
+        std::unique_ptr<storage::InMemChunkedNodeGroup> localNodeGroup,
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;
     void clearToIndex(storage::MemoryManager* mm,
-        std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
+        std::unique_ptr<storage::InMemChunkedNodeGroup>& nodeGroup,
         common::offset_t startIndexInGroup) const;
 
     void copyToNodeGroup(transaction::Transaction* transaction, storage::MemoryManager* mm) const;
@@ -148,7 +148,7 @@ private:
     NodeBatchInsertErrorHandler createErrorHandler(ExecutionContext* context) const;
 
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
-        std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
+        std::unique_ptr<storage::InMemChunkedNodeGroup>& nodeGroup,
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm,
         NodeBatchInsertErrorHandler& errorHandler) const;
 };
