@@ -186,7 +186,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
 ---- ok
--STATEMENT CALL LOUVAIN('Graph') WITH louvain_id, min(node.id) as louvainId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN louvainId, nodeCount, nodeIds ORDER BY louvainId;
+-STATEMENT CALL LOUVAIN('Graph', maxphases:=50, maxiterations:=100) WITH louvain_id, min(node.id) as louvainId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN louvainId, nodeCount, nodeIds ORDER BY louvainId;
 ---- 2
 0|4|[0,1,2,3]
 4|4|[4,5,6,7]

@@ -8,8 +8,8 @@
 namespace kuzu {
 namespace function {
 
+// The maximum number of iterations to run.
 struct MaxIterations {
-    // The maximum number of iterations of Page Rank to run.
     static constexpr const char* NAME = "maxiterations";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::INT64;
 

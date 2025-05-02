@@ -1,7 +1,11 @@
 #include <cmath>
 
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
+#include "common/string_utils.h"
+#include "function/config/louvain_config.h"
+#include "function/config/max_iterations_config.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
@@ -33,10 +37,59 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace gds_extension {
 
-constexpr uint32_t MAX_PHASES = 100;
-constexpr uint32_t MAX_ITERATIONS = 100;
 constexpr double THRESHOLD = 1e-6;
 constexpr offset_t UNASSIGNED_COMM = numeric_limits<offset_t>::max();
+
+struct LouvainOptionalParams final : public GDSOptionalParams {
+    std::shared_ptr<Expression> maxPhases;
+    std::shared_ptr<Expression> maxIteration;
+
+    explicit LouvainOptionalParams(const expression_vector& optionalParams);
+
+    std::unique_ptr<GDSConfig> getConfig() const override;
+
+    std::unique_ptr<GDSOptionalParams> copy() const override {
+        return std::make_unique<LouvainOptionalParams>(*this);
+    }
+};
+
+LouvainOptionalParams::LouvainOptionalParams(const expression_vector& optionalParams) {
+    for (auto& optionalParam : optionalParams) {
+        auto paramName = StringUtils::getLower(optionalParam->getAlias());
+        if (paramName == MaxPhases::NAME) {
+            maxPhases = optionalParam;
+        } else if (paramName == MaxIterations::NAME) {
+            maxIteration = optionalParam;
+        } else {
+            throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
+        }
+    }
+}
+
+std::unique_ptr<GDSConfig> LouvainOptionalParams::getConfig() const {
+    auto config = std::make_unique<LouvainConfig>();
+    if (maxPhases != nullptr) {
+        config->maxPhases = ExpressionUtil::evaluateLiteral<int64_t>(*maxPhases,
+            LogicalType::INT64(), MaxPhases::validate);
+    }
+    if (maxIteration != nullptr) {
+        config->maxIterations = ExpressionUtil::evaluateLiteral<int64_t>(*maxIteration,
+            LogicalType::INT64(), MaxIterations::validate);
+    }
+    return config;
+}
+
+struct LouvainBindData final : public GDSBindData {
+    LouvainBindData(expression_vector columns, graph::GraphEntry graphEntry,
+        std::shared_ptr<Expression> nodeOutput,
+        std::unique_ptr<LouvainOptionalParams> optionalParams)
+        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput),
+              std::move(optionalParams)} {}
+
+    std::unique_ptr<TableFuncBindData> copy() const override {
+        return std::make_unique<LouvainBindData>(*this);
+    }
+};
 
 struct CommInfo {
     std::atomic<offset_t> size;   // The number of nodes in the community.
@@ -524,6 +577,9 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     const auto tableID = graph->getNodeTableIDs()[0];
     const auto origNumNodes = graph->getMaxOffset(clientContext->getTransaction(), tableID);
 
+    auto louvainBindData = input.bindData->constPtrCast<LouvainBindData>();
+    auto config = louvainBindData->getConfig()->constCast<LouvainConfig>();
+
     FinalResults finalResults(origNumNodes);
     PhaseState state(origNumNodes, mm, input.context);
 
@@ -531,11 +587,11 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     initInMemoryGraph(tableID, origNumNodes, graph, state);
 
     // Each phases attempts to decrease the number of communities by merging nodes into supernodes.
-    for (auto phase = 0u; phase < MAX_PHASES; ++phase) {
+    for (auto phase = 0u; phase < config.maxPhases; ++phase) {
         double oldMod = -1;
 
         // Each iteration attempts to increase the modularity by moving nodes to new communities.
-        for (auto iter = 0u; iter < MAX_ITERATIONS; ++iter) {
+        for (auto iter = 0u; iter < config.maxIterations; ++iter) {
             // Reset state.
             state.startNewIter(mm, input.context);
 
@@ -612,7 +668,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     columns.push_back(nodeOutput->constPtrCast<NodeExpression>()->getInternalID());
     columns.push_back(input->binder->createVariable(LOUVAIN_ID_COLUMN_NAME, LogicalType::INT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
+    return std::make_unique<LouvainBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+        std::make_unique<LouvainOptionalParams>(input->optionalParamsLegacy));
 }
 
 function_set LouvainFunction::getFunctionSet() {
