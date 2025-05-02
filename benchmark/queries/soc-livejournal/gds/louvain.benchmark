@@ -1,0 +1,15 @@
+-NAME Louvain
+-PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
+-QUERY CALL louvain('PK') WITH louvain_id, min(node.id) as lvId, count(*) as c RETURN lvID, c ORDER BY c DESC LIMIT 10;
+---- 10
+0|937000
+37|556760
+87|507375
+225|206781
+199|199471
+317|187543
+50|139826
+233|130122
+78|99646
+190|92000
+-POSTRUN CALL DROP_PROJECTED_GRAPH('PK');
