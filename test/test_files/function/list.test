@@ -2335,3 +2335,21 @@ True
 
 -STATEMENT RETURN list_has_all(null, null)
 ---- 1
+
+-STATEMENT RETURN LIST_CAT(['7', '3'], [])
+---- 1
+[7,3]
+-STATEMENT RETURN LIST_CAT([], ['3', '10'])
+---- 1
+[3,10]
+-STATEMENT RETURN LIST_CAT([], [])
+---- 1
+[]
+-STATEMENT RETURN LIST_CAT(['7', '3'], null)
+---- 1
+
+-STATEMENT RETURN LIST_CAT(null, ['3', '10'])
+---- 1
+
+-STATEMENT RETURN LIST_CAT(null, null)
+---- 1

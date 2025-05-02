@@ -12,14 +12,16 @@ namespace function {
 void ListToString::operation(list_entry_t& input, ku_string_t& delim, ku_string_t& result,
     ValueVector& inputVector, ValueVector& /*delimVector*/, ValueVector& resultVector) {
     std::string resultStr = "";
-    auto dataVector = ListVector::getDataVector(&inputVector);
-    for (auto i = 0u; i < input.size - 1; i++) {
+    if (input.size != 0) {
+        auto dataVector = ListVector::getDataVector(&inputVector);
+        for (auto i = 0u; i < input.size - 1; i++) {
+            resultStr += TypeUtils::entryToString(dataVector->dataType,
+                ListVector::getListValuesWithOffset(&inputVector, input, i), dataVector);
+            resultStr += delim.getAsString();
+        }
         resultStr += TypeUtils::entryToString(dataVector->dataType,
-            ListVector::getListValuesWithOffset(&inputVector, input, i), dataVector);
-        resultStr += delim.getAsString();
+            ListVector::getListValuesWithOffset(&inputVector, input, input.size - 1), dataVector);
     }
-    resultStr += TypeUtils::entryToString(dataVector->dataType,
-        ListVector::getListValuesWithOffset(&inputVector, input, input.size - 1), dataVector);
     StringVector::addString(&resultVector, result, resultStr);
 }
 
