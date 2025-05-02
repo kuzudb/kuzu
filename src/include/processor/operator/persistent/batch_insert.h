@@ -77,7 +77,7 @@ struct KUZU_API BatchInsertSharedState {
 };
 
 struct BatchInsertLocalState {
-    std::unique_ptr<storage::ChunkedNodeGroup> chunkedGroup;
+    std::unique_ptr<storage::InMemChunkedNodeGroup> chunkedGroup;
     storage::PageAllocator* optimisticAllocator = nullptr;
 
     virtual ~BatchInsertLocalState() = default;

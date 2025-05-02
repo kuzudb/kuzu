@@ -323,5 +323,10 @@ std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(MemoryMana
     return chunkedGroup;
 }
 
+ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(MemoryManager &mm, InMemChunkedCSRNodeGroup& base,
+    const std::vector<common::column_id_t>& selectedColumns)
+    : ChunkedNodeGroup{mm, base, selectedColumns, NodeGroupDataFormat::CSR},
+      csrHeader{std::move(base.csrHeader)} {}
+
 } // namespace storage
 } // namespace kuzu

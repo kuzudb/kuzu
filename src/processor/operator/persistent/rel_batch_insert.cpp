@@ -1,6 +1,7 @@
 #include "processor/operator/persistent/rel_batch_insert.h"
 
 #include "catalog/catalog.h"
+#include "common/cast.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
@@ -11,7 +12,9 @@
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/table/chunked_node_group.h"
 #include "storage/table/column_chunk_data.h"
+#include "storage/table/csr_chunked_node_group.h"
 #include "storage/table/rel_table.h"
 
 using namespace kuzu::catalog;
@@ -31,8 +34,8 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     localState = std::make_unique<RelBatchInsertLocalState>();
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     localState->chunkedGroup =
-        std::make_unique<ChunkedCSRNodeGroup>(*MemoryManager::Get(*context->clientContext),
-            relInfo->columnTypes, relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
+        std::make_unique<InMemChunkedCSRNodeGroup>(*MemoryManager::Get(*context->clientContext),
+            relInfo->columnTypes, relInfo->compressionEnabled, 0, 0);
     localState->optimisticAllocator =
         context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
     const auto clientContext = context->clientContext;
@@ -44,10 +47,8 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     auto nbrTableID = RelDirectionUtils::getNbrTableID(relInfo->direction, relInfo->fromTableID,
         relInfo->toTableID);
     // TODO(Guodong): Get rid of the hard-coded nbr and rel column ID 0/1.
-    localState->chunkedGroup->getColumnChunk(0).getData().cast<InternalIDChunkData>().setTableID(
-        nbrTableID);
-    localState->chunkedGroup->getColumnChunk(1).getData().cast<InternalIDChunkData>().setTableID(
-        tableID);
+    localState->chunkedGroup->getColumnChunk(0).cast<InternalIDChunkData>().setTableID(nbrTableID);
+    localState->chunkedGroup->getColumnChunk(1).cast<InternalIDChunkData>().setTableID(tableID);
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     relLocalState->dummyAllNullDataChunk = std::make_unique<DataChunk>(relInfo->columnTypes.size());
     for (auto i = 0u; i < relInfo->columnTypes.size(); i++) {
@@ -165,7 +166,8 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     const auto leaveGaps = nodeGroup.isEmpty();
     populateCSRHeader(relGroupEntry, *executionState, startNodeOffset, relInfo, localState,
         numNodes, leaveGaps);
-    const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
+    const auto& csrHeader =
+        ku_dynamic_cast<InMemChunkedCSRNodeGroup&>(*localState.chunkedGroup).getCSRHeader();
     impl->writeToTable(*executionState, csrHeader, localState, *sharedState, relInfo);
     // Reset num of rows in the chunked group to fill gaps at the end of the node group.
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
@@ -178,22 +180,23 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
         for (auto i = 0u; i < relInfo.columnTypes.size(); i++) {
             dummyVectors.push_back(&localState.dummyAllNullDataChunk->getValueVectorMutable(i));
         }
-        const auto numGapsFilled = localState.chunkedGroup->append(&transaction::DUMMY_TRANSACTION,
-            dummyVectors, 0, numGapsToFill);
+        const auto numGapsFilled = localState.chunkedGroup->append(dummyVectors, 0, numGapsToFill);
         KU_ASSERT(numGapsFilled == numGapsToFill);
         numGapsAtEnd -= numGapsFilled;
     }
     KU_ASSERT(localState.chunkedGroup->getNumRows() == maxSize);
-    localState.chunkedGroup->finalize();
 
     auto* relTable = sharedState->table->ptrCast<RelTable>();
 
-    ChunkedCSRNodeGroup sliceToWriteToDisk{localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(),
+    ChunkedCSRNodeGroup sliceToWriteToDisk{mm,
+        ku_dynamic_cast<InMemChunkedCSRNodeGroup&>(*localState.chunkedGroup),
         relInfo.outputDataColumns};
+    // TODO(bmwinger): Shouldn't this be called only immediately before flushing?
+    sliceToWriteToDisk.finalize();
     appendNewChunkedGroup(mm, transaction, relInfo.insertColumnIDs, sliceToWriteToDisk, *relTable,
         nodeGroup, relInfo.direction, *localState.optimisticAllocator);
-    localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().mergeChunkedCSRGroup(sliceToWriteToDisk,
-        relInfo.outputDataColumns);
+    ku_dynamic_cast<InMemChunkedCSRNodeGroup&>(*localState.chunkedGroup)
+        .mergeChunkedCSRGroup(sliceToWriteToDisk, relInfo.outputDataColumns);
 
     localState.chunkedGroup->resetToEmpty();
 }
@@ -207,7 +210,7 @@ void RelBatchInsert::populateCSRHeader(const RelGroupCatalogEntry& relGroupEntry
     RelBatchInsertExecutionState& executionState, offset_t startNodeOffset,
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
     offset_t numNodes, bool leaveGaps) {
-    auto& csrNodeGroup = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>();
+    auto& csrNodeGroup = ku_dynamic_cast<InMemChunkedCSRNodeGroup&>(*localState.chunkedGroup);
     auto& csrHeader = csrNodeGroup.getCSRHeader();
     csrHeader.setNumValues(numNodes);
     // Populate lengths for each node and check multiplicity constraint.
