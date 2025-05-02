@@ -5,6 +5,7 @@
 #include "planner/operator/logical_distinct.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_limit.h"
+#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -21,11 +22,11 @@ void LimitPushDownOptimizer::visitOperator(planner::LogicalOperator* op) {
     switch (op->getOperatorType()) {
     case LogicalOperatorType::LIMIT: {
         auto& limit = op->constCast<LogicalLimit>();
-        if (limit.hasSkipNum() && limit.canEvaluateSkipNum()) {
-            skipNumber = limit.evaluateSkipNum();
+        if (limit.hasSkipNum() && ExpressionUtil::canEvaluateAsLiteral(*limit.getSkipNum())) {
+            skipNumber = ExpressionUtil::evaluateAsSkipLimit(*limit.getSkipNum());
         }
-        if (limit.hasLimitNum() && limit.canEvaluateLimitNum()) {
-            limitNumber = limit.evaluateLimitNum();
+        if (limit.hasLimitNum() && ExpressionUtil::canEvaluateAsLiteral(*limit.getLimitNum())) {
+            limitNumber = ExpressionUtil::evaluateAsSkipLimit(*limit.getLimitNum());
         }
         visitOperator(limit.getChild(0).get());
         return;

@@ -9,6 +9,7 @@
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/logical_limit.h"
 #include "planner/operator/logical_plan.h"
+#include "binder/expression/expression_util.h"
 
 namespace kuzu::optimizer {
 void CardinalityUpdater::rewrite(planner::LogicalPlan* plan) {
@@ -123,8 +124,8 @@ void CardinalityUpdater::visitFilter(planner::LogicalOperator* op) {
 
 void CardinalityUpdater::visitLimit(planner::LogicalOperator* op) {
     auto& limit = op->cast<planner::LogicalLimit&>();
-    if (limit.canEvaluateLimitNum()) {
-        limit.setCardinality(limit.evaluateLimitNum());
+    if (limit.hasLimitNum() && binder::ExpressionUtil::canEvaluateAsLiteral(*limit.getLimitNum())) {
+        limit.setCardinality(binder::ExpressionUtil::evaluateAsSkipLimit(*limit.getLimitNum()));
     }
 }
 

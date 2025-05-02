@@ -20,27 +20,30 @@ public:
 
     std::string getExpressionsForPrinting() const override;
 
-    inline binder::expression_vector getExpressionsToOrderBy() const {
+    binder::expression_vector getExpressionsToOrderBy() const {
         return expressionsToOrderBy;
     }
-    inline std::vector<bool> getIsAscOrders() const { return isAscOrders; }
+    std::vector<bool> getIsAscOrders() const { return isAscOrders; }
 
-    inline bool isTopK() const { return hasLimitNum(); }
-    inline void setSkipNum(uint64_t num) { skipNum = num; }
-    inline uint64_t getSkipNum() const { return skipNum; }
-    inline void setLimitNum(uint64_t num) { limitNum = num; }
-    inline bool hasLimitNum() const { return limitNum != UINT64_MAX; }
-    inline uint64_t getLimitNum() const { return limitNum; }
+    bool isTopK() const { return hasLimitNum(); }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
+    void setSkipNum(std::shared_ptr<binder::Expression> num) { skipNum = std::move(num); }
+    bool hasSkipNum() const { return skipNum != nullptr; }
+    std::shared_ptr<binder::Expression> getSkipNum() const { return skipNum; }
+
+    void setLimitNum(std::shared_ptr<binder::Expression> num) { limitNum = std::move(num); }
+    bool hasLimitNum() const { return limitNum != nullptr; }
+    std::shared_ptr<binder::Expression> getLimitNum() const { return limitNum; }
+
+    std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy());
     }
 
 private:
     binder::expression_vector expressionsToOrderBy;
     std::vector<bool> isAscOrders;
-    uint64_t skipNum = UINT64_MAX;
-    uint64_t limitNum = UINT64_MAX;
+    std::shared_ptr<binder::Expression> skipNum = nullptr;
+    std::shared_ptr<binder::Expression> limitNum = nullptr;
 };
 
 } // namespace planner

@@ -4,6 +4,8 @@
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/factorization/sink_util.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
 
@@ -43,10 +45,12 @@ void LogicalOrderBy::computeFlatSchema() {
 }
 
 std::string LogicalOrderBy::getExpressionsForPrinting() const {
-    auto result = binder::ExpressionUtil::toString(expressionsToOrderBy) + " ";
-    if (hasLimitNum()) {
-        result += "SKIP " + std::to_string(skipNum) + " ";
-        result += "LIMIT " + std::to_string(limitNum);
+    auto result = ExpressionUtil::toString(expressionsToOrderBy) + " ";
+    if (hasSkipNum() && ExpressionUtil::canEvaluateAsLiteral(*skipNum)) {
+        result += "SKIP " + std::to_string(ExpressionUtil::evaluateAsSkipLimit(*skipNum));
+    }
+    if (hasLimitNum() && ExpressionUtil::canEvaluateAsLiteral(*limitNum)) {
+        result += "LIMIT " + std::to_string(ExpressionUtil::evaluateAsSkipLimit(*limitNum));
     }
     return result;
 }

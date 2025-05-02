@@ -1,10 +1,14 @@
+#include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "planner/operator/logical_limit.h"
 #include "processor/operator/limit.h"
 #include "processor/operator/skip.h"
 #include "processor/plan_mapper.h"
+#include "binder/expression/expression_util.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::planner;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
@@ -16,22 +20,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLimit(const LogicalOperator* lo
     auto groupsPotToLimit = logicalLimit.getGroupsPosToLimit();
     std::unique_ptr<PhysicalOperator> lastOperator = std::move(prevOperator);
     if (logicalLimit.hasSkipNum()) {
-        if (!logicalLimit.canEvaluateSkipNum()) {
-            throw common::RuntimeException{
-                "The number of rows to skip is a parameter. Please give a valid skip number."};
+        auto skipExpr = logicalLimit.getSkipNum();
+        if (!ExpressionUtil::canEvaluateAsLiteral(*skipExpr)) {
+            throw RuntimeException{
+                ExceptionMessage::invalidSkipLimitParam(skipExpr->toString(), "skip")};
         }
-        auto skipNum = logicalLimit.evaluateSkipNum();
+        auto skipNum = ExpressionUtil::evaluateAsSkipLimit(*skipExpr);
         auto printInfo = std::make_unique<SkipPrintInfo>(skipNum);
         lastOperator = make_unique<Skip>(skipNum, std::make_shared<std::atomic_uint64_t>(0),
             dataChunkToSelectPos, groupsPotToLimit, std::move(lastOperator), getOperatorID(),
             printInfo->copy());
     }
     if (logicalLimit.hasLimitNum()) {
-        if (!logicalLimit.canEvaluateLimitNum()) {
-            throw common::RuntimeException{
-                "The number of rows to limit is a parameter. Please give a valid limit number."};
+        auto limitExpr = logicalLimit.getLimitNum();
+        if (!ExpressionUtil::canEvaluateAsLiteral(*limitExpr)) {
+            throw RuntimeException{ExceptionMessage::invalidSkipLimitParam(limitExpr->toString(), "limit")};
         }
-        auto limitNum = logicalLimit.evaluateLimitNum();
+        auto limitNum = ExpressionUtil::evaluateAsSkipLimit(*limitExpr);
         auto printInfo = std::make_unique<LimitPrintInfo>(limitNum);
         lastOperator = make_unique<Limit>(limitNum, std::make_shared<std::atomic_uint64_t>(0),
             dataChunkToSelectPos, groupsPotToLimit, std::move(lastOperator), getOperatorID(),
