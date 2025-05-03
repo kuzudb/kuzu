@@ -51,8 +51,6 @@ public:
     ArrowArray append(main::QueryResult& queryResult, std::int64_t chunkSize);
 
 private:
-    static std::unique_ptr<ArrowVector> createVector(const LogicalType& type,
-        std::int64_t capacity);
     static void appendValue(ArrowVector* vector, const LogicalType& type, Value* value);
 
     static ArrowArray* convertVectorToArray(ArrowVector& vector, const LogicalType& type);

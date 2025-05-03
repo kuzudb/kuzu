@@ -803,7 +803,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::UNION>(ArrowVector
     vector.array->offset = 0;
     vector.array->dictionary = nullptr;
     vector.array->buffers = vector.buffers.data();
-    vector.array->null_count = vector.numNulls;
+    vector.array->null_count = 0;
     vector.array->length = vector.numValues;
     vector.array->n_buffers = 2;
     vector.array->buffers[0] = vector.data.data();
