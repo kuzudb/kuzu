@@ -596,7 +596,7 @@ struct KUZU_API MapType {
 struct KUZU_API UnionType {
     static constexpr union_field_idx_t TAG_FIELD_IDX = 0;
 
-    static constexpr auto TAG_FIELD_TYPE = LogicalTypeID::INT16;
+    static constexpr auto TAG_FIELD_TYPE = LogicalTypeID::UINT16;
 
     static constexpr char TAG_FIELD_NAME[] = "tag";
 

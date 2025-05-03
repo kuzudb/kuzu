@@ -247,8 +247,8 @@ static void scanArrowArrayStruct(const ArrowSchema* schema, const ArrowArray* ar
 static void scanArrowArrayDenseUnion(const ArrowSchema* schema, const ArrowArray* array,
     ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
     uint64_t count) {
-    auto types = ((const int8_t*)array->buffers[0]) + srcOffset;
-    auto dstTypes = UnionVector::getTagVector(&outputVector)->getData();
+    auto types = ((const uint8_t*)array->buffers[0]) + srcOffset;
+    auto dstTypes = (uint16_t*)UnionVector::getTagVector(&outputVector)->getData();
     auto offsets = ((const int32_t*)array->buffers[1]) + srcOffset;
     mask->copyToValueVector(&outputVector, dstOffset, count);
     std::vector<int32_t> firstIncident(array->n_children, INT32_MAX);
@@ -273,8 +273,8 @@ static void scanArrowArrayDenseUnion(const ArrowSchema* schema, const ArrowArray
 static void scanArrowArraySparseUnion(const ArrowSchema* schema, const ArrowArray* array,
     ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
     uint64_t count) {
-    auto types = ((const int8_t*)array->buffers[0]) + srcOffset;
-    auto dstTypes = UnionVector::getTagVector(&outputVector)->getData();
+    auto types = ((const uint8_t*)array->buffers[0]) + srcOffset;
+    auto dstTypes = (uint16_t*)UnionVector::getTagVector(&outputVector)->getData();
     mask->copyToValueVector(&outputVector, dstOffset, count);
     for (uint64_t i = 0; i < count; i++) {
         if (!mask->isNull(i)) {
