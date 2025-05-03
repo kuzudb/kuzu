@@ -48,7 +48,7 @@ using block_idx_t = uint64_t;
 constexpr block_idx_t INVALID_BLOCK_IDX = UINT64_MAX;
 using struct_field_idx_t = uint16_t;
 using union_field_idx_t = struct_field_idx_t;
-constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT8_MAX;
+constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT16_MAX;
 using row_idx_t = uint64_t;
 constexpr row_idx_t INVALID_ROW_IDX = UINT64_MAX;
 constexpr uint32_t UNDEFINED_CAST_COST = UINT32_MAX;
@@ -596,7 +596,7 @@ struct KUZU_API MapType {
 struct KUZU_API UnionType {
     static constexpr union_field_idx_t TAG_FIELD_IDX = 0;
 
-    static constexpr auto TAG_FIELD_TYPE = LogicalTypeID::INT8;
+    static constexpr auto TAG_FIELD_TYPE = LogicalTypeID::INT16;
 
     static constexpr char TAG_FIELD_NAME[] = "tag";
 
