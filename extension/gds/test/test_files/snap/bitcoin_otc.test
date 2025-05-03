@@ -1,5 +1,5 @@
 -DATASET CSV snap/bitcoin-otc
-
+-BUFFER_POOL_SIZE 268435456
 --
 
 -CASE bitcoin_otc
@@ -89,6 +89,55 @@
 7|166
 10|140
 9|126
+
+-CASE WSP
+# original dataset has negative edges, adjust so that all weights are positive
+-STATEMENT MATCH ()-[e:edges]->() SET e.rating = e.rating + 11
+---- ok
+-LOG single_target_1
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 610 and b.ID = 4559
+        RETURN cost(e)
+---- 1
+18.000000
+
+-LOG single_target_2
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 3215 and b.ID = 787
+        RETURN list_transform(nodes(p), x -> x.id), cost(e)
+---- 1
+[3215,1840,3744,1383,44,39,787]|29.000000
+
+-LOG single_target_3
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 4589 and b.ID = 1020
+        RETURN cost(e)
+---- 1
+50.000000
+
+-LOG single_target_4
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 2252 and b.ID = 1308
+        RETURN list_transform(nodes(p), x -> x.id), cost(e)
+---- 1
+[2252,3744,1810,1675,309,1308]|10.000000
+
+-LOG all_targets
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 236
+        RETURN b.ID, cost(e)
+        ORDER BY cost(e) DESC, b.ID DESC LIMIT 10
+---- 10
+1284|79.000000
+1545|78.000000
+5416|77.000000
+1261|72.000000
+1188|72.000000
+883|72.000000
+5004|71.000000
+1355|69.000000
+1326|69.000000
+1075|69.000000
 
 -CASE low_selectivity
 
