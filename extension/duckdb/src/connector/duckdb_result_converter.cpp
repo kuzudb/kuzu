@@ -94,7 +94,6 @@ void convertDuckDBVectorToVector<struct_entry_t>(duckdb::Vector& duckDBVector, V
         auto duckDBData = (uint8_t*)duckdbChildrenVectors[0]->GetData();
         auto validityMasks = duckdb::FlatVector::Validity(duckDBVector);
         for (auto i = 0u; i < numValuesToCopy; i++) {
-            auto iu = (uint16_t)duckDBData[i];
             UnionVector::getTagVector(&result)->setValue(i, (uint16_t)duckDBData[i]);
             result.setNull(i, !validityMasks.RowIsValid(i));
         }
