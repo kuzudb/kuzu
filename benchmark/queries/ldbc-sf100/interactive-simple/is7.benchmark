@@ -1,0 +1,18 @@
+-NAME IS7
+-QUERY MATCH (m:Comment:Post {id: 8796093025725})<-[:replyOf]-(c:Comment)-[:messageHasCreator]->(p:Person)
+           OPTIONAL MATCH (m)-[:messageHasCreator]->(a:Person)-[r:KNOWS]-(p)
+           RETURN c.id AS commentId,
+               c.content AS commentContent,
+               c.creationDate AS commentCreationDate,
+               p.id AS replyAuthorId,
+               p.firstName AS replyAuthorFirstName,
+               p.lastName AS replyAuthorLastName,
+               CASE r
+                   WHEN null THEN false
+                   ELSE true
+               END AS replyAuthorKnowsOriginalMessageAuthor
+           ORDER BY commentCreationDate DESC, replyAuthorId
+---- 3
+8796093025729|duh|2010-06-04 22:25:41.228|132893|Jan|Bouchet|False
+8796093025730|cool|2010-06-04 21:20:27.574|300018|Colin|Jones|False
+8796093025726|About Friedrich Nietzsche, ife. In 1889 he suffered a collapse and a complete los|2010-06-04 09:31:59.865|300018|Colin|Jones|False

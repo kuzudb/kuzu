@@ -1,0 +1,27 @@
+-NAME q35
+-QUERY MATCH (:Person {ID: 933})-[:knows]->(friend:Person)<-[:messageHasCreator]-(message:Post:Comment)
+        WHERE message.creationDate < timestamp('2020-02-14 20:30:21.451')
+        RETURN friend.ID AS personId, friend.firstName AS personFirstName, friend.lastName AS personLastName,
+        message.ID AS postOrCommentId, coalesce(message.content,message.imageFile) AS postOrCommentContent,
+        message.creationDate AS postOrCommentCreationDate ORDER BY postOrCommentCreationDate DESC, postOrCommentId ASC LIMIT 20
+---- 20
+13194139688689|Aditya|Kapoor|70368812980109|no|2012-09-13 09:13:59.93
+32985349170600|A.|Chopra|70369089231097|ok|2012-09-13 08:36:05.587
+26388279508515|Javier|Alonso|70369025695104|no|2012-09-13 08:29:43.825
+26388279508515|Javier|Alonso|70369027418215|About Franz Liszt, tsche Schule (New German School). He leftAbout Henry Wadswort|2012-09-13 08:16:56.771
+4398046620972|Carlo|Reyes|70368826635587|I see|2012-09-13 08:10:59.31
+32985349170600|A.|Chopra|70369148190106|fine|2012-09-13 08:06:56.142
+13194139544328|Balbhadra|Koirala|70369129018649|About Edge of Thorns, avatage records as Steve decided to use electronic drums. Althoug|2012-09-13 08:01:53.19
+26388279401787|Loanne Le|Loan|70369159832276|maybe|2012-09-13 07:34:21.674
+10995116704903|Batong|Ha|70368794403655|About Adolf Hitler,  anti-Semitism, anti-communism, anti-pAbout Ferdinand Marcos, oritarian corruption, despotis|2012-09-13 07:22:59.639
+4398046620972|Carlo|Reyes|70369105278163|yes|2012-09-13 07:10:34.768
+13194139544328|Balbhadra|Koirala|70369042957082|About Paul Martin,  November 14, 2003, Martin sAbout Tony Blair, r since Lord Liverpool in 18About Humphrey Bog|2012-09-13 06:59:51.24
+26388279304447|Artur|Graps|70369111105004|duh|2012-09-13 06:54:42.736
+4398046620972|Carlo|Reyes|70368955080459|About George Clooney, 2005), Leatherheads (2008), and The Ides of MaAbout Rwanda, s south of the Equator, Rwanda is bordered by About Li|2012-09-13 06:40:54.254
+4398046620972|Carlo|Reyes|70368955080450|About Kate Bush, ing the course of her career, she has alsAbout Rwanda,  are an integral part of Rwandan culture,About Ba|2012-09-13 06:39:30.545
+4398046620972|Carlo|Reyes|70369105278774|great|2012-09-13 06:36:08.462
+4398046620972|Carlo|Reyes|70369105278301|About Robert Bourassa, Canada. He servedAbout Otto von Bismarck, ance who kept t|2012-09-13 06:14:34.585
+13194139688689|Aditya|Kapoor|70369082702385|ok|2012-09-13 06:10:56.786
+26388279401787|Loanne Le|Loan|70369155466667|no way!|2012-09-13 06:06:19.449
+4398046620972|Carlo|Reyes|70369105278171|duh|2012-09-13 05:59:31.412
+13194139688689|Aditya|Kapoor|70368855625877|About Bigger than the Devil, is a play of words on The Beatles member John Lennon proclaiming the Beatles were bigger (mo|2012-09-13 05:58:50.55

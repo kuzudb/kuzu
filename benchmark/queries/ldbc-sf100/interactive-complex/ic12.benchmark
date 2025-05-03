@@ -1,0 +1,33 @@
+-NAME IC12
+-QUERY MATCH (tag:Tag)-[:hasType|isSubclassOf*0..]->(baseTagClass:TagClass)
+       WHERE tag.name = 'Monarch' OR baseTagClass.name = 'Monarch'
+       WITH collect(tag.id) as tags
+       MATCH (:Person {id: 933})-[:KNOWS]-(friend:Person)<-[:messageHasCreator]-(comment:Comment)-[:replyOf]->(:Post)-[:messageHasTag]->(tag:Tag)
+       WHERE tag.id in tags
+       RETURN
+           friend.id AS personId,
+           friend.firstName AS personFirstName,
+           friend.lastName AS personLastName,
+           collect(DISTINCT tag.name) AS tagNames,
+           count(DISTINCT comment) AS replyCount
+       ORDER BY
+           replyCount DESC,
+           personId ASC
+       LIMIT 20
+---- 16
+4398046620972|Carlo|Reyes|[Dalai_Lama,Aurelian,Genghis_Khan,Ashoka,Mahmud_of_Ghazni,Alexander_the_Great,Trajan,Julius_Caesar,Justinian_I,Shapur_II,Augustus,Nero,Tiberius,Marcus_Aurelius,David,Hadrian,Solomon,Saladin,Diocletian,Claudius,Muhammad_Ali_of_Egypt,Constantine_the_Great,Timur]|445
+13194139688689|Aditya|Kapoor|[Dalai_Lama,Genghis_Khan,Mahmud_of_Ghazni,Alexander_the_Great,Trajan,Julius_Caesar,Justinian_I,Augustus,Nero,Tiberius,Marcus_Aurelius,David,Hadrian,Solomon,Saladin,Diocletian,Claudius,Constantine_the_Great,Timur]|204
+13194139544328|Balbhadra|Koirala|[Dalai_Lama,Aurelian,Genghis_Khan,Ashoka,Mahmud_of_Ghazni,Alexander_the_Great,Trajan,Julius_Caesar,Justinian_I,Augustus,Nero,Tiberius,Marcus_Aurelius,Caligula,David,Hadrian,Solomon,Saladin,Diocletian,Claudius,Muhammad_Ali_of_Egypt,Constantine_the_Great,Timur]|163
+24189256048206|Ryszard|Zalewski|[Dalai_Lama,Genghis_Khan,Ashoka,Mahmud_of_Ghazni,Alexander_the_Great,Trajan,Julius_Caesar,Augustus,Nero,Marcus_Aurelius,David,Hadrian,Solomon,Saladin,Diocletian,Claudius,Constantine_the_Great,Timur]|73
+26388279508515|Javier|Alonso|[Dalai_Lama,Aurelian,Genghis_Khan,Ashoka,Mahmud_of_Ghazni,Alexander_the_Great,Trajan,Julius_Caesar,Justinian_I,Augustus,Nero,Tiberius,Marcus_Aurelius,David,Hadrian,Solomon,Saladin,Diocletian,Claudius,Constantine_the_Great,Timur]|71
+4398046602614|August|Trubetsky|[Dalai_Lama,Genghis_Khan,Ashoka,Justinian_I,Shapur_II,Augustus,Nero,Marcus_Aurelius,Hadrian,Saladin,Diocletian,Claudius,Constantine_the_Great,Timur]|65
+10995116374509|Aleksander|Padar|[Dalai_Lama,Aurelian,Genghis_Khan,Ashoka,Alexander_the_Great,Trajan,Julius_Caesar,Shapur_II,Augustus,Nero,Marcus_Aurelius,David,Hadrian,Solomon,Diocletian,Claudius,Timur]|65
+10995116704903|Batong|Ha|[Genghis_Khan,Alexander_the_Great,Trajan,Julius_Caesar,Justinian_I,Augustus,Nero,Tiberius,David,Hadrian,Solomon,Saladin,Diocletian,Claudius,Constantine_the_Great]|57
+4398046828662|Jaak|Musatov|[Ashoka,Julius_Caesar,Shapur_II,Augustus,Nero,Tiberius,Marcus_Aurelius,David,Hadrian,Diocletian,Constantine_the_Great]|41
+13194139835968|R.|Chatterjee|[Genghis_Khan,Mahmud_of_Ghazni,Alexander_the_Great,Julius_Caesar,Augustus,Marcus_Aurelius,Solomon,Constantine_the_Great]|23
+26388279401787|Loanne Le|Loan|[Dalai_Lama,Genghis_Khan,Alexander_the_Great,Trajan,Julius_Caesar,Nero,Tiberius,Hadrian,Solomon,Diocletian,Claudius,Constantine_the_Great,Timur]|22
+2199023674456|Aleksei|Graps|[Genghis_Khan,Ashoka,Alexander_the_Great,Nero,David,Saladin,Diocletian,Timur]|17
+15393163117874|Georg|Laur|[Dalai_Lama,Genghis_Khan,Alexander_the_Great,Justinian_I,Augustus,Marcus_Aurelius,Hadrian,Saladin,Claudius,Timur]|14
+32985349170600|A.|Chopra|[Mahmud_of_Ghazni,Justinian_I,Saladin,Diocletian]|12
+19791209432686|Evald|Padar|[Genghis_Khan,Alexander_the_Great,Shapur_II,Tiberius,Marcus_Aurelius,David,Hadrian,Solomon,Constantine_the_Great]|10
+26388279304447|Artur|Graps|[Solomon,Diocletian,Timur]|4

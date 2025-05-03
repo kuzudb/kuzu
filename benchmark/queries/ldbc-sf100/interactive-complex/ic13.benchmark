@@ -1,0 +1,12 @@
+-NAME IC13
+-QUERY MATCH
+           (person1:Person {id: 933}),
+           (person2:Person {id: 35184372587806}),
+           path = (person1)-[:KNOWS* SHORTEST]-(person2)
+       RETURN
+           CASE path IS NULL
+               WHEN true THEN -1
+               ELSE length(path)
+           END AS shortestPathLength
+--- 1
+4

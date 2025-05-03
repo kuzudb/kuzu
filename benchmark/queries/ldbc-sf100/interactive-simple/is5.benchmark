@@ -1,0 +1,4 @@
+-NAME q34
+-QUERY MATCH (c:Comment:Post {ID: 8796093025725})-[:messageHasCreator]->(p:Person) RETURN p.ID AS personId, p.firstName AS firstName, p.lastName AS lastName;
+---- 1
+300018|Colin|Jones

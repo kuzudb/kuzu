@@ -19,7 +19,7 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
     if (access(path.c_str(), 0) != 0) {
         throw Exception("Test file not exists! [" + path + "].");
     }
-    struct stat status {};
+    struct stat status{};
     stat(path.c_str(), &status);
     if (status.st_mode & S_IFDIR) {
         throw Exception("Test file is a directory. [" + path + "].");
@@ -27,21 +27,26 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
     std::ifstream ifs(path);
     std::string line;
     TestQueryConfig* currentConfig = nullptr;
+    bool isParsingQuery = false;
     while (getline(ifs, line)) {
         if (line.starts_with("-NAME")) {
             auto config = std::make_unique<TestQueryConfig>();
             currentConfig = config.get();
             result.push_back(std::move(config));
             currentConfig->name = line.substr(6, line.length());
+            isParsingQuery = false;
         } else if (line.starts_with("-QUERY")) {
             KU_ASSERT(currentConfig);
             currentConfig->query = line.substr(7, line.length());
+            isParsingQuery = true;
         } else if (line.starts_with("-PARALLELISM")) {
             KU_ASSERT(currentConfig);
             currentConfig->numThreads = stoi(line.substr(13, line.length()));
+            isParsingQuery = false;
         } else if (line.starts_with("-SKIP_COMPARE_RESULT")) {
             KU_ASSERT(currentConfig);
             currentConfig->compareResult = false;
+            isParsingQuery = false;
         } else if (line.starts_with("----")) {
             uint64_t numTuples = stoi(line.substr(5, line.length()));
             KU_ASSERT(currentConfig);
@@ -56,6 +61,9 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
                         currentConfig->expectedTuples.end());
                 }
             }
+            isParsingQuery = false;
+        } else if (isParsingQuery) {
+            currentConfig->query += line;
         }
     }
     return result;

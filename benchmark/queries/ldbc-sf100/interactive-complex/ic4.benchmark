@@ -1,0 +1,29 @@
+-NAME IC4
+-QUERY MATCH (person:Person {id: 933})-[:KNOWS]-(friend:Person),
+             (friend)<-[:messageHasCreator]-(post:Post)-[:messageHasTag]->(tag)
+       WITH DISTINCT tag, post
+       WITH tag,
+            CASE
+              WHEN '2000-12-30' <= post.creationDate AND post.creationDate < '2020-01-01' THEN 1
+              ELSE 0
+            END AS valid,
+            CASE
+              WHEN post.creationDate < '2000-12-30' THEN 1
+              ELSE 0
+            END AS inValid
+       WITH tag, sum(valid) AS postCount, sum(inValid) AS inValidPostCount
+       WHERE postCount>0 AND inValidPostCount=0
+       RETURN tag.name AS tagName, postCount
+       ORDER BY postCount DESC, tagName ASC
+       LIMIT 10
+---- 10
+Garry_Kasparov|505
+Adolf_Hitler|460
+Slavoj_Žižek|443
+Sammy_Sosa|404
+Maria_Theresa|364
+Che_Guevara|344
+Manuel_Noriega|290
+Jan_Hus|289
+Sanath_Jayasuriya|271
+Paul_Martin|194

@@ -1,0 +1,25 @@
+-NAME IC5
+-QUERY MATCH (person:Person { id: 933})-[:KNOWS*1..2]-(friend)
+       WHERE
+           NOT person.id=friend.id
+       WITH DISTINCT friend
+       MATCH (friend)<-[membership:hasMember]-(forum)
+       WHERE
+           membership.joinDate > '2010-01-01'
+       WITH
+           forum,
+           collect(friend) AS friends
+       OPTIONAL MATCH (friend)<-[:messageHasCreator]-(post)<-[:containerOf]-(forum)
+       WHERE
+           friend IN friends
+       WITH
+           forum,
+           count(post) AS postCount
+       RETURN
+           forum.title AS forumName,
+           postCount
+       ORDER BY
+           postCount DESC,
+           forum.id ASC
+       LIMIT 20
+---- 1

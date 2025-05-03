@@ -1,0 +1,20 @@
+-NAME IC9
+-QUERY MATCH (root:Person {id: 933})-[:KNOWS*1..2]-(friend:Person)
+       WHERE NOT friend = root
+       WITH collect(distinct friend) as friends
+       UNWIND friends as friend
+           MATCH (friend)<-[:messageHasCreator]-(message:Comment:Post)
+           WHERE message.creationDate < '2022-12-30'
+       RETURN
+           friend.id AS personId,
+           friend.firstName AS personFirstName,
+           friend.lastName AS personLastName,
+           message.id AS commentOrPostId,
+           coalesce(message.content,message.imageFile) AS commentOrPostContent,
+           message.creationDate AS commentOrPostCreationDate
+       ORDER BY
+           commentOrPostCreationDate DESC,
+           message.id ASC
+       LIMIT 20
+---- 2
+

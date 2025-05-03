@@ -1,0 +1,25 @@
+# Error: Assertion failed in file "/Users/guodongjin/Developer/kuzu/src/common/types/types.cpp" on line 1805: KU_UNREACHABLE
+-NAME IC6
+-QUERY MATCH (knownTag:Tag { name: 'Augustine_of_Hippo'})
+       WITH knownTag.id as knownTagId
+       MATCH (person:Person { id: 933})-[:KNOWS*1..2]-(friend)
+       WHERE NOT person=friend
+       WITH
+           knownTagId,
+           collect(distinct friend) as friends
+       UNWIND friends as f
+           MATCH (f)<-[:messageHasCreator]-(post:Post),
+                 (post)-[:messageHasTag]->(t:Tag{id: knownTagId}),
+                 (post)-[:messageHasTag]->(tag:Tag)
+           WHERE NOT t = tag
+           WITH
+               tag.name as tagName,
+               count(post) as postCount
+       RETURN
+           tagName,
+           postCount
+       ORDER BY
+           postCount DESC,
+           tagName ASC
+       LIMIT 10
+---- 1

@@ -1,0 +1,10 @@
+-NAME IS6
+-QUERY MATCH (m:Comment:Post {id: 8796093025725})-[:replyOf*0..]->(p:Post)<-[:containerOf]-(f:Forum)-[:hasModerator]->(mod:Person)
+       RETURN
+           f.id AS forumId,
+           f.title AS forumTitle,
+           mod.id AS moderatorId,
+           mod.firstName AS moderatorFirstName,
+           mod.lastName AS moderatorLastName
+---- 1
+75|Wall of Albin Monteno|8853|Albin|Monteno

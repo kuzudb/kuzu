@@ -1,0 +1,20 @@
+# Error: Binder exception: In WITH clause, ORDER BY must be followed by SKIP or LIMIT.
+-NAME IC7
+-QUERY MATCH (person:Person {id: 933})<-[:messageHasCreator]-(message:Comment:Post)<-[like:likeMessage]-(liker:Person)
+           WITH liker, message, like.creationDate AS likeTime, person
+           ORDER BY likeTime DESC, message.id ASC
+           WITH liker, head(collect({msg: message, likeTime: likeTime})) AS latestLike, person
+       RETURN
+           liker.id AS personId,
+           liker.firstName AS personFirstName,
+           liker.lastName AS personLastName,
+           latestLike.likeTime AS likeCreationDate,
+           latestLike.msg.id AS commentOrPostId,
+           coalesce(latestLike.msg.content, latestLike.msg.imageFile) AS commentOrPostContent,
+           toInteger(floor(toFloat(latestLike.likeTime - latestLike.msg.creationDate)/1000.0)/60.0) AS minutesLatency,
+           not((liker)-[:KNOWS]-(person)) AS isNew
+       ORDER BY
+           likeCreationDate DESC,
+           toInteger(personId) ASC
+       LIMIT 20
+---- 1

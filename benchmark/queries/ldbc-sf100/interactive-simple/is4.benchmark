@@ -1,0 +1,7 @@
+-NAME IS4
+-QUERY MATCH (m:Comment:Post {id: 8796093025725})
+       RETURN
+           m.creationDate as messageCreationDate,
+           coalesce(m.content, m.imageFile) as messageContent
+---- 1
+2010-06-04 06:14:09.803|About Lewis Carroll, tudies, increasing accessibility of research materials, an

@@ -1,0 +1,30 @@
+-NAME IS2
+-QUERY MATCH (:Person {id: 933})<-[:messageHasCreator]-(message)
+       WITH
+        message,
+        message.id AS messageId,
+        message.creationDate AS messageCreationDate
+       ORDER BY messageCreationDate DESC, messageId ASC
+       LIMIT 10
+       MATCH (message)-[:replyOf*0..]->(post:Post),
+             (post)-[:messageHasCreator]->(person)
+       RETURN
+        messageId,
+        coalesce(message.imageFile,message.content) AS messageContent,
+        messageCreationDate,
+        post.id AS postId,
+        person.id AS personId,
+        person.firstName AS personFirstName,
+        person.lastName AS personLastName
+       ORDER BY messageCreationDate DESC, messageId ASC
+---- 10
+65970697666805|photo65970697666805.jpg|2012-08-06 13:00:52.483|65970697666805|933|Mahinda|Perera
+65970697666806|photo65970697666806.jpg|2012-08-06 13:00:53.483|65970697666806|933|Mahinda|Perera
+65970697666807|photo65970697666807.jpg|2012-08-06 13:00:54.483|65970697666807|933|Mahinda|Perera
+65970697666808|photo65970697666808.jpg|2012-08-06 13:00:55.483|65970697666808|933|Mahinda|Perera
+65970697666809|photo65970697666809.jpg|2012-08-06 13:00:56.483|65970697666809|933|Mahinda|Perera
+65970697666810|photo65970697666810.jpg|2012-08-06 13:00:57.483|65970697666810|933|Mahinda|Perera
+65970747892430|maybe|2012-08-26 03:01:25.73|65970747892425|10995116704903|Batong|Ha
+65970747893293|thanks|2012-08-17 00:13:49.326|65970747893285|10995116704903|Batong|Ha
+65970747893294|cool|2012-08-17 01:56:07.347|65970747893285|10995116704903|Batong|Ha
+70368878994183|thx|2012-09-12 21:06:05.232|70368878994180|26388279103601|Amit|Singh
