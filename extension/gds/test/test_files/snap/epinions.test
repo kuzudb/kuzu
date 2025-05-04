@@ -1,0 +1,265 @@
+-DATASET CSV snap/epinions
+
+--
+
+-CASE Epinions
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', ['N'], ['R'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c;
+---- 2
+75877
+2
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, node WHERE group_id > 0 RETURN node.ID;
+---- 2
+71749
+74845
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+32223
+15
+9
+9
+8
+8
+8
+8
+8
+8
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+32223
+15
+9
+9
+8
+8
+8
+8
+8
+8
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#---- 10
+#6|44198|26010
+#0|18729|8883
+#8|68291|8543
+#298|34087|2463
+#129|9941|1647
+#304|128|1480
+#1289|69|1359
+#142|63761|1185
+#248|29674|1119
+#476|69560|852
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+18
+737
+118
+1719
+136
+790
+143
+40
+1619
+725
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 10
+1|31940
+2|14348
+3|6088
+4|4262
+5|2518
+6|2145
+7|1417
+8|1253
+9|903
+10|787
+
+-CASE high_selectivity
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', {'N': { 'filter': 'n.id >= 1000' }}, ['R'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+69466
+35
+30
+16
+10
+9
+9
+9
+9
+8
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+29114
+15
+10
+9
+9
+8
+8
+8
+8
+8
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+29114
+15
+10
+9
+9
+8
+8
+8
+8
+8
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#---- 10
+#1000|19841|15401
+#1030|11670|11726
+#1004|20940|6084
+#1114|39356|2481
+#1231|43413|2449
+#1089|17995|1790
+#1569|66349|1324
+#1442|5669|1235
+#1858|59327|896
+#1115|23161|797
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+1719
+1619
+1401
+1179
+4415
+1164
+1621
+1191
+4969
+1247
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 10
+1|30520
+2|14087
+3|5812
+0|4112
+4|4086
+5|2370
+6|1947
+7|1277
+8|1178
+9|793
+
+-CASE low_selectivity
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', {'N': { 'filter': 'n.id < 1000' }}, ['R'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c;
+---- 1
+1000
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+859
+2
+2
+1
+1
+1
+1
+1
+1
+1
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+859
+2
+2
+1
+1
+1
+1
+1
+1
+1
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#----4
+#4|634|393
+#0|84|257
+#3|944|219
+#1|731|131
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G', normalizeInitial:=false) WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+---- 10
+1
+0
+18
+6
+401
+550
+27
+34
+31
+737
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC, k_degree DESC LIMIT 10;
+-CHECK_ORDER
+---- 10
+83|201
+1|54
+2|29
+60|22
+4|21
+5|18
+3|17
+69|16
+67|16
+12|16

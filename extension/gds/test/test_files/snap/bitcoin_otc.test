@@ -1,0 +1,319 @@
+-DATASET CSV snap/bitcoin-otc
+-BUFFER_POOL_SIZE 268435456
+--
+
+-CASE bitcoin_otc
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', ['nodes'], ['edges'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 4
+5875
+2
+2
+2
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+4709
+6
+3
+3
+3
+2
+2
+2
+2
+2
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+4709
+6
+3
+3
+3
+2
+2
+2
+2
+2
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#---- 10
+#1|3|1059
+#33|3160|947
+#4|2467|865
+#25|1026|576
+#35|694|426
+#180|1425|377
+#500|2631|231
+#115|2358|191
+#536|3555|143
+#1767|1248|95
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+35
+2642
+1810
+2028
+7
+905
+1953
+1
+4172
+4197
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 10
+2|1662
+1|830
+4|705
+3|405
+6|374
+5|281
+8|203
+7|166
+10|140
+9|126
+
+-CASE WSP
+# original dataset has negative edges, adjust so that all weights are positive
+-STATEMENT MATCH ()-[e:edges]->() SET e.rating = e.rating + 11
+---- ok
+-LOG single_target_1
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 610 and b.ID = 4559
+        RETURN cost(e)
+---- 1
+18.000000
+
+-LOG single_target_2
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 3215 and b.ID = 787
+        RETURN list_transform(nodes(p), x -> x.id), cost(e)
+---- 1
+[3215,1840,3744,1383,44,39,787]|29.000000
+
+-LOG single_target_3
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 4589 and b.ID = 1020
+        RETURN cost(e)
+---- 1
+50.000000
+
+-LOG single_target_4
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 2252 and b.ID = 1308
+        RETURN list_transform(nodes(p), x -> x.id), cost(e)
+---- 1
+[2252,3744,1810,1675,309,1308]|10.000000
+
+-LOG all_targets
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(rating) ]->(b)
+        WHERE a.ID = 236
+        RETURN b.ID, cost(e)
+        ORDER BY cost(e) DESC, b.ID DESC LIMIT 10
+---- 10
+1284|79.000000
+1545|78.000000
+5416|77.000000
+1261|72.000000
+1188|72.000000
+883|72.000000
+5004|71.000000
+1355|69.000000
+1326|69.000000
+1075|69.000000
+
+-CASE low_selectivity
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', {'nodes': { 'filter': 'n.id < 1000' }}, ['edges'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 1
+959
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+888
+3
+1
+1
+1
+1
+1
+1
+1
+1
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+888
+3
+1
+1
+1
+1
+1
+1
+1
+1
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#---- 10
+#2|829|160
+#25|790|137
+#150|406|107
+#1|280|98
+#13|595|85
+#7|878|82
+#198|199|71
+#152|11|62
+#28|370|54
+#120|833|42
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+7
+1
+202
+832
+60
+35
+13
+64
+198
+41
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 10
+2|251
+4|140
+6|84
+5|54
+8|53
+3|52
+1|48
+12|40
+10|39
+16|37
+
+-CASE high_selectivity
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', {'nodes': { 'filter': 'n.id >= 1000' }}, ['edges'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+4310
+11
+6
+5
+3
+3
+3
+2
+2
+2
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+3381
+11
+6
+5
+4
+3
+3
+3
+3
+3
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+3381
+11
+6
+5
+4
+3
+3
+3
+3
+3
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#---- 10
+#1011|2157|810
+#1052|4847|806
+#1018|79|698
+#1651|4810|370
+#1004|3545|238
+#1001|3476|208
+#1755|3944|157
+#1213|2885|153
+#1767|776|117
+#1673|1811|66
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+2642
+1810
+2028
+1953
+4172
+4197
+1018
+2125
+2296
+3735
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 10
+2|1377
+1|644
+0|547
+4|531
+6|290
+3|278
+5|222
+8|153
+7|103
+10|87

@@ -1,0 +1,255 @@
+-DATASET CSV snap/gnutella
+
+--
+
+-CASE gnutella
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', ['nodes'], ['edges'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 1
+10876
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+4317
+1
+1
+1
+1
+1
+1
+1
+1
+1
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+4317
+1
+1
+1
+1
+1
+1
+1
+1
+1
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#---- 10
+#10|6277|2568
+#0|7717|1131
+#4|8352|1050
+#23|6478|977
+#33|6634|951
+#25|5865|670
+#7|5076|667
+#17|836|553
+#5|6780|497
+#14|837|453
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+1056
+1054
+1536
+171
+453
+407
+263
+4664
+1959
+261
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 7
+6|4492
+1|2497
+2|1480
+3|810
+4|656
+5|576
+7|365
+
+-CASE gnutella_high_selectivity
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', {'nodes': { 'filter': 'n.id >= 1000' }}, ['edges'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+9568
+10
+2
+2
+2
+2
+2
+1
+1
+1
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+3608
+1
+1
+1
+1
+1
+1
+1
+1
+1
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+3608
+1
+1
+1
+1
+1
+1
+1
+1
+1
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#---- 10
+#1005|1519|1576
+#1004|3625|1193
+#1006|4333|1129
+#1001|3486|1078
+#1003|718|733
+#1016|9809|677
+#1000|6444|551
+#1010|6543|446
+#1101|4682|389
+#1033|720|343
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+1054
+1056
+2297
+1536
+1055
+3076
+1959
+5397
+1198
+4664
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 6
+5|4365
+1|2383
+2|1364
+3|766
+4|710
+0|288
+
+-CASE gnutella_low_selectivity
+
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+---- ok
+
+-STATEMENT CALL create_projected_graph('G', {'nodes': { 'filter': 'n.id < 1000' }}, ['edges'])
+---- ok
+
+-LOG WCC
+-STATEMENT CALL weakly_connected_components('G') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 1
+1000
+
+-LOG SCC
+-STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+219
+3
+1
+1
+1
+1
+1
+1
+1
+1
+
+-LOG SCC-KO
+-STATEMENT CALL strongly_connected_components_kosaraju('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+---- 10
+219
+3
+1
+1
+1
+1
+1
+1
+1
+1
+
+#-LOG LOUVAIN
+#-STATEMENT CALL louvain('G') with node.ID AS id, group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+#---- 10
+#10|996|142
+#4|905|127
+#19|661|104
+#14|948|103
+#6|746|97
+#21|899|94
+#38|696|91
+#3|778|91
+#87|937|59
+#0|508|48
+
+-LOG PageRank
+-STATEMENT CALL page_rank('G') WITH node.ID AS id, rank ORDER BY rank DESC LIMIT 10 RETURN id;
+-CHECK_ORDER
+---- 10
+481
+970
+311
+669
+289
+903
+50
+161
+617
+390
+
+-LOG KCore
+-STATEMENT CALL k_core_decomposition('G') RETURN  k_degree, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-CHECK_ORDER
+---- 5
+3|398
+1|298
+2|279
+4|15
+5|10
