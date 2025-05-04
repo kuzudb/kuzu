@@ -1,0 +1,17 @@
+-NAME BI12
+-QUERY MATCH (person:Person)
+       OPTIONAL MATCH (person)<-[:messageHasCreator]-(message:Post:Comment)-[:replyOf*0..]->(post:Post)
+       WHERE message.content IS NOT NULL
+         AND message.length < 20
+         AND message.creationDate > '2010-07-22'
+         AND post.language IN $languages
+       WITH
+         person,
+         count(message) AS messageCount
+       RETURN
+         messageCount,
+         count(person) AS personCount
+       ORDER BY
+         personCount DESC,
+         messageCount DESC
+---- 1

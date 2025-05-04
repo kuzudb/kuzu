@@ -1,0 +1,46 @@
+-NAME BI1
+-QUERY MATCH (message:Comment:Post)
+       WHERE message.creationDate < '2011-12-01'
+       WITH count(message) AS totalMessageCountInt // this should be a subquery once Cypher supports it
+       WITH cast(totalMessageCountInt, 'float') AS totalMessageCount
+       MATCH (message:Comment:Post)
+       WHERE message.creationDate < '2011-12-01'
+         AND message.content IS NOT NULL
+       WITH
+         totalMessageCount,
+         message,
+         datepart('year', message.creationDate) AS year
+       WITH
+         totalMessageCount,
+         year,
+         label(message)='comment' AS isComment,
+         CASE
+           WHEN message.length <  40 THEN 0
+           WHEN message.length <  80 THEN 1
+           WHEN message.length < 160 THEN 2
+           ELSE                           3
+         END AS lengthCategory,
+         count(message) AS messageCount,
+         sum(message.length) / cast(count(message), 'float') AS averageMessageLength,
+         sum(message.length) AS sumMessageLength
+       RETURN
+         year,
+         isComment,
+         lengthCategory,
+         messageCount,
+         averageMessageLength,
+         sumMessageLength,
+         messageCount / totalMessageCount AS percentageOfMessages
+       ORDER BY
+         year DESC,
+         isComment ASC,
+         lengthCategory ASC
+---- 8
+2011|False|0|57742992|4.187382|241791983|0.365406
+2011|False|1|8468953|76.500305|647877500|0.053593
+2011|False|2|26873392|96.241951|2586347747|0.170059
+2011|False|3|2196785|187.036530|410879051|0.013902
+2010|False|0|27018925|4.187828|113150593|0.170980
+2010|False|1|3964231|76.500511|303265697|0.025086
+2010|False|2|12630672|96.296333|1216287413|0.079929
+2010|False|3|1035307|187.083099|193688448|0.006552

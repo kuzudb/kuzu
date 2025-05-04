@@ -1,0 +1,17 @@
+-NAME BI17
+-QUERY MATCH
+         (tag:Tag {name: 'Slavoj_Žižek'}),
+         (person1:Person)<-[:messageHasCreator]-(message1:Comment:Post)-[:replyOf*0..]->(post1:Post)<-[:containerOf]-(forum1:Forum),
+         (message1)-[:messageHasTag]->(tag),
+         (forum1)<-[:hasMember]->(person2:Person)<-[:messageHasCreator]-(comment:Comment)-[:messageHasTag]->(tag),
+         (forum1)<-[:hasMember]->(person3:Person)<-[:messageHasCreator]-(message2:Comment:Post),
+         (comment)-[:replyOf]->(message2)-[:replyOf*0..]->(post2:Post)<-[:containerOf]-(forum2:Forum)
+       MATCH (comment)-[:messageHasTag]->(tag)
+       MATCH (message2)-[:messageHasTag]->(tag)
+       WHERE forum1 <> forum2
+         AND message2.creationDate > message1.creationDate + interval('4 hours')
+         AND NOT (forum2)-[:hasMember]->(person1)
+       RETURN person1.id, count(DISTINCT message2) AS messageCount
+       ORDER BY messageCount DESC, person1.id ASC
+       LIMIT 10
+---- 1

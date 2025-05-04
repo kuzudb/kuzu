@@ -1,0 +1,37 @@
+-NAME BI3
+-QUERY MATCH
+         (:Place{name: 'Burma'})<-[:isPartOf]-(city:Place)<-[:personIsLocatedIn]-
+         (person:Person)<-[:hasModerator]-(forum:Forum)-[:containerOf]->
+         (post:Post)<-[:replyOf*0..]-(message:comment:post)-[:messageHasTag]->(:Tag)-[:hasType]->(:TagClass {name: 'MusicalArtist'})
+       WHERE city.type='city'
+       RETURN
+         forum.id,
+         forum.title,
+         forum.creationDate,
+         person.id,
+         count(DISTINCT message) AS messageCount
+       ORDER BY
+         messageCount DESC,
+         forum.id ASC
+       LIMIT 20
+---- 20
+8796129778376|Wall of Donald Price|2010-06-22 22:31:02.342|4398046911139|3101
+35184374220360|Wall of Fali Sam Law-Yone|2011-05-10 17:30:56.519|17592186402881|2385
+35184377368289|Wall of Eric Michie|2011-05-13 18:33:40.428|17592186475815|2129
+46226741|Wall of Ashin Wilby|2010-01-01 15:20:36.624|320294|2121
+8796105618205|Wall of Ernest B Michie|2010-05-13 23:37:46.45|4398046871496|1432
+8796110907107|Wall of Chris Law-Yone|2010-06-14 14:57:57.173|4398046590701|1365
+43980489314884|Wall of Palghat Munro|2011-09-11 20:37:12.72|21990232659469|1324
+30786351821667|Wall of Fali Sam Price|2011-04-01 04:37:17.542|15393163247109|1214
+27263056|Wall of Chris Michie|2010-01-18 01:35:33.723|309652|1197
+39582445898943|Wall of Ernest B Merton|2011-08-01 13:32:00.367|19791209620550|1182
+8796100423681|Wall of S. N. Mettacara|2010-05-07 23:21:28.14|4398046766802|1157
+4398092740699|Wall of John Nariman|2010-04-07 00:45:22.739|2199023308344|1070
+13194141695830|Wall of Wendy Law-Yone|2010-07-05 01:56:35.284|6597070019813|1059
+30786359160375|Wall of Ernest B Hall|2011-03-18 17:12:29.797|15393162945409|1052
+26388326268291|Wall of John Goenka|2011-02-01 08:52:46.449|13194139823379|960
+48378562028715|Wall of Ashin Goenka|2011-12-06 03:15:58.489|24189255841901|855
+5243219|Wall of James Karat|2010-02-02 10:37:11.381|151978|834
+48378554645769|Wall of Palghat Sofaer|2011-12-17 10:46:03.012|24189256237856|832
+13194181478804|Wall of James Munro|2010-08-28 09:00:16.71|6597069853227|822
+8796098326069|Wall of James Goenka|2010-06-09 16:22:29.333|4398046594617|804

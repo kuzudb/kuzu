@@ -1,0 +1,48 @@
+-NAME BI13
+-QUERY MATCH (country:Place {name: 'France'})<-[:isPartOf]-(:Place)<-[:personIsLocatedIn]-(zombie:Person)
+       WHERE zombie.creationDate < '2013-01-01'
+       WITH country, zombie
+       OPTIONAL MATCH (zombie)<-[:messageHasCreator]-(message:Comment:Post)
+       WHERE message.creationDate < '2013-01-01'
+       WITH
+         country,
+         zombie,
+         count(message) AS messageCount
+       WITH
+         country,
+         zombie,
+         12 * (2013  - datepart('year', zombie.creationDate))
+            + (1 - datepart('month', zombie.creationDate))
+            + 1 AS months,
+         messageCount
+       WHERE messageCount / months < 1
+       WITH
+         country,
+         collect(zombie) AS zombies
+       UNWIND zombies AS zombie
+       OPTIONAL MATCH
+         (zombie)<-[:messageHasCreator]-(message:Comment:Post)<-[:likeMessage]-(likerZombie:Person)
+       WHERE likerZombie IN zombies
+       WITH
+         zombie,
+         count(likerZombie) AS zombieLikeCount
+       OPTIONAL MATCH
+         (zombie)<-[:messageHasCreator]-(message:Comment:Post)<-[:likeMessage]-(likerPerson:Person)
+       WHERE likerPerson.creationDate < '2013-01-01'
+       WITH
+         zombie,
+         zombieLikeCount,
+         count(likerPerson) AS totalLikeCount
+       RETURN
+         zombie.id,
+         zombieLikeCount,
+         totalLikeCount,
+         CASE totalLikeCount
+           WHEN 0 THEN 0.0
+           ELSE zombieLikeCount / cast(totalLikeCount, 'float')
+         END AS zombieScore
+       ORDER BY
+         zombieScore DESC,
+         zombie.id ASC
+       LIMIT 100
+---- 1

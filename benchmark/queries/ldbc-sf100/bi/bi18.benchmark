@@ -1,0 +1,7 @@
+-NAME BI18
+-QUERY MATCH (tag:Tag {name: 'Frank_Sinatra'})<-[:hasInterest]-(person1:Person)-[:KNOWS]-(mutualFriend:Person)-[:KNOWS]-(person2:Person)-[:hasInterest]->(tag)
+       WHERE person1.id <> person2.id
+         AND NOT (person1)-[:KNOWS]-(person2)
+       RETURN person1.id AS person1Id, person2.id AS person2Id, count(DISTINCT mutualFriend) AS mutualFriendCount
+       ORDER BY mutualFriendCount DESC, person1Id ASC, person2Id ASC
+       LIMIT 20

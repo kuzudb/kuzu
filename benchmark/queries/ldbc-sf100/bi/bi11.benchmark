@@ -1,0 +1,19 @@
+-NAME BI11
+-QUERY MATCH (a:Person)-[:personIsLocatedIn]->(:Place)-[:isPartOf]->(country:Place {name: 'India'}),
+             (a)-[k1:KNOWS]-(b:Person)
+       WHERE a.id < b.id
+         AND '2012-09-29' <= k1.creationDate AND k1.creationDate <= '2013-01-01'
+       WITH DISTINCT country, a, b
+       MATCH (b)-[:personIsLocatedIn]->(:Place)-[:isPartOf]->(country)
+       WITH DISTINCT country, a, b
+       MATCH (b)-[k2:KNOWS]-(c:Person),
+             (c)-[:personIsLocatedIn]->(:Place)-[:isPartOf]->(country)
+       WHERE b.id < c.id
+         AND '2012-09-29' <= k2.creationDate AND k2.creationDate <= '2013-01-01'
+       WITH DISTINCT a, b, c
+       MATCH (c)-[k3:KNOWS]-(a)
+       WHERE '2012-09-29' <= k3.creationDate AND k3.creationDate <= '2013-01-01'
+       WITH DISTINCT a, b, c
+       RETURN count(*) AS count
+---- 1
+0

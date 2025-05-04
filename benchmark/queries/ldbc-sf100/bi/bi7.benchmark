@@ -1,0 +1,113 @@
+-NAME BI7
+-QUERY MATCH
+         (tag:Tag {name: 'Enrique_Iglesias'})<-[:messageHasTag]-(message:comment:post),
+         (message)<-[:replyOf]-(comment:Comment)-[:messageHasTag]->(relatedTag:Tag)
+       WHERE NOT (comment)-[:messageHasTag]->(tag)
+       RETURN
+         relatedTag.name,
+         count(DISTINCT comment) AS count
+       ORDER BY
+         count DESC,
+         relatedTag.name ASC
+       LIMIT 100
+---- 100
+Muammar_Gaddafi|1164
+Adolf_Hitler|980
+Augustine_of_Hippo|891
+Wolfgang_Amadeus_Mozart|833
+Elizabeth_II|799
+Scotland|794
+Philippines|786
+Brazil|773
+Sweden|770
+Finland|766
+Thailand|766
+Ukraine|765
+Hungary|763
+Turkey|759
+India|756
+Poland|756
+Italy|754
+Hong_Kong|753
+Lebanon|752
+Switzerland|752
+Egypt|750
+Netherlands|750
+Belgium|748
+Colombia|748
+Portugal|748
+Israel|747
+Mexico|746
+New_Zealand|744
+Chile|741
+Russia|741
+Australia|739
+Germany|737
+Japan|737
+Romania|733
+France|731
+Soviet_Union|731
+Cuba|727
+Singapore|726
+United_Kingdom|724
+Malaysia|723
+Bulgaria|722
+Canada|722
+Czechoslovakia|722
+Denmark|720
+South_Korea|720
+Afghanistan|717
+Croatia|717
+England|717
+Northern_Ireland|717
+Peru|717
+Morocco|716
+Norway|714
+South_Africa|712
+United_Nations|712
+Arnold_Schwarzenegger|711
+Barack_Obama|711
+Vietnam|710
+Pope_John_Paul_II|708
+Serbia|708
+China|707
+Iraq|706
+Haiti|705
+Uruguay|705
+Henry_VIII_of_England|704
+William_Shakespeare|704
+Estonia|703
+Ronald_Reagan|702
+Austria|701
+Republic_of_Ireland|701
+Taiwan|701
+Spain|700
+United_States|700
+Indonesia|699
+Pakistan|697
+Venezuela|697
+Latvia|696
+George_W._Bush|694
+Algeria|693
+Argentina|690
+Jamaica|689
+Mohandas_Karamchand_Gandhi|689
+John_F._Kennedy|686
+Czech_Republic|685
+Dominican_Republic|685
+George_H._W._Bush|685
+North_Korea|685
+Nelson_Mandela|684
+Puerto_Rico|683
+Slovakia|683
+Albert_Einstein|682
+Kenya|682
+Wales|682
+Iran|677
+Richard_Nixon|677
+Sri_Lanka|676
+Greece|674
+Nigeria|674
+Cyprus|673
+Luxembourg|670
+Ethiopia|669

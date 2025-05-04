@@ -1,0 +1,14 @@
+# OOM
+-NAME BI6
+-QUERY MATCH (tag:Tag {name: 'Arnold_Schwarzenegger'})<-[:messageHasTag]-(message1:comment:post)-[:messageHasCreator]->(person1:Person)
+       OPTIONAL MATCH (message1)<-[:likeMessage]-(person2:Person)
+       OPTIONAL MATCH (person2)<-[:messageHasCreator]-(message2:comment:post)<-[like:likeMessage]-(person3:Person)
+       RETURN
+         person1.id,
+         // Using 'DISTINCT like' here ensures that each person2's popularity score is only added once for each person1
+         count(DISTINCT like) AS authorityScore
+       ORDER BY
+         authorityScore DESC,
+         person1.id ASC
+       LIMIT 100
+---- 1

@@ -1,0 +1,33 @@
+# Error: Parser exception: Invalid input <100 * size([(tag)<-[interest:hasInterest]-(person) | interest]) + size([(tag)<-[:messageHasTag]-(message:comment:post)-[:messageHasCreator]->(person)
+-NAME BI8
+-QUERY MATCH (tag:Tag {name: 'Che_Guevara'})
+       OPTIONAL MATCH (tag)<-[interest:hasInterest]-(person:Person)
+       WITH tag, collect(person) AS interestedPersons
+       OPTIONAL MATCH (tag)<-[:messageHasTag]-(message:comment:post)-[:messageHasCreator]->(person:Person)
+                WHERE '2011-07-20' < message.creationDate
+                  AND message.creationDate < '2011-07-25'
+       WITH tag, interestedPersons, interestedPersons + collect(person) AS persons
+       UNWIND persons AS person
+       WITH DISTINCT tag, person
+       WITH
+         tag,
+         person,
+         100 * size([(tag)<-[interest:hasInterest]-(person) | interest]) + size([(tag)<-[:messageHasTag]-(message:comment:post)-[:messageHasCreator]->(person)
+         WHERE '2011-07-20'< message.creationDate AND message.creationDate < '2011-07-25' | message])
+         AS score
+       OPTIONAL MATCH (person)-[:KNOWS]-(friend)
+       WITH
+         person,
+         score,
+         100 * size([(tag)<-[interest:hasInterest]-(friend) | interest]) + size([(tag)<-[:messageHasTag]-(message:comment:post)-[:messageHasCreator]->(friend)
+         WHERE '2011-07-20' < message.creationDate AND message.creationDate < '2011-07-25' | message])
+         AS friendScore
+       RETURN
+         person.id,
+         score,
+         sum(friendScore) AS friendsScore
+       ORDER BY
+         score + friendsScore DESC,
+         person.id ASC
+       LIMIT 100
+---- 1

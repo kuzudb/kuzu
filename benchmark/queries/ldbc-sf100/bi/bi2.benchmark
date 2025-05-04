@@ -1,0 +1,124 @@
+-NAME BI2
+-QUERY MATCH (tag:Tag)-[:hasType]->(:TagClass {name: 'MusicalArtist'})
+       OPTIONAL MATCH (message1:Comment:Post)-[:messageHasTag]->(tag)
+         WHERE '2012-06-01' <= message1.creationDate
+           AND message1.creationDate < cast('2012-06-01', 'date') + INTERVAL('100 DAYS')
+       WITH tag, count(message1) AS countWindow1
+       // window 2
+       OPTIONAL MATCH (message2:Comment:Post)-[:messageHasTag]->(tag)
+         WHERE $date + duration({days: 100}) <= message2.creationDate
+           AND message2.creationDate < cast('2012-06-01', 'date') + INTERVAL('200 DAYS')
+       WITH
+         tag,
+         countWindow1,
+         count(message2) AS countWindow2
+       RETURN
+         tag.name,
+         countWindow1,
+         countWindow2,
+         abs(countWindow1 - countWindow2) AS diff
+       ORDER BY
+         diff DESC,
+         tag.name ASC
+       LIMIT 100
+---- 100
+Robert_Fripp|0|683474|683474
+Freddie_Mercury|42729|713558|670829
+Joe_Strummer|1119|625020|623901
+Enrique_Iglesias|12669|557850|545181
+Yoko_Ono|24517|348444|323927
+Rubén_Blades|7535|276377|268842
+Yuvan_Shankar_Raja|70|263647|263577
+Celine_Dion|50007|304894|254887
+Neil_Young|44081|281670|237589
+Paula_Abdul|1|217098|217097
+Elvis_Presley|33208|247098|213890
+Bob_Dylan|32746|244227|211481
+Michael_Jackson|31228|238009|206781
+Shakira|38762|243796|205034
+John_Lennon|30261|234051|203790
+Frank_Sinatra|30566|229785|199219
+Elton_John|30126|227767|197641
+Paul_McCartney|28521|218671|190150
+Bryan_Adams|32273|213531|181258
+Leonard_Cohen|29137|207761|178624
+Joni_Mitchell|31347|207155|175808
+David_Bowie|26372|200718|174346
+George_Harrison|24061|195781|171720
+Bing_Crosby|24776|194987|170211
+Johnny_Cash|24338|193577|169239
+Duke_Ellington|23473|192486|169013
+Jimi_Hendrix|22947|185764|162817
+Louis_Armstrong|23512|186187|162675
+Bruce_Springsteen|23660|185684|162024
+Alanis_Morissette|27918|188809|160891
+Barbra_Streisand|23681|183604|159923
+Eric_Clapton|22951|181751|158800
+Britney_Spears|22685|179770|157085
+Ringo_Starr|22221|178763|156542
+Mick_Jagger|22385|178692|156307
+Eminem|23040|178398|155358
+Carlos_Santana|24110|174270|150160
+Frank_Zappa|21352|171450|150098
+Dean_Martin|21033|170816|149783
+Bono|20879|170185|149306
+Ray_Charles|21974|170229|148255
+Irving_Berlin|21739|169219|147480
+Beyoncé_Knowles|21991|169299|147308
+Cher|21479|168419|146940
+Billie_Holiday|20249|166616|146367
+Miles_Davis|20797|166636|145839
+Bob_Marley|20116|165553|145437
+Tupac_Shakur|20136|165406|145270
+Alice_Cooper|20074|165228|145154
+Gloria_Estefan|19807|164824|145017
+Antonín_Dvořák|21932|166739|144807
+Stevie_Wonder|21635|165523|143888
+Dolly_Parton|20755|163276|142521
+Ella_Fitzgerald|20458|162753|142295
+Avril_Lavigne|24948|166938|141990
+Justin_Timberlake|20379|161636|141257
+James_Brown|20116|160175|140059
+Rory_Gallagher|276|140099|139823
+Joan_Baez|19398|158922|139524
+Richard_Rodgers|20048|159526|139478
+Janis_Joplin|18897|158112|139215
+Shania_Twain|23290|162440|139150
+Ozzy_Osbourne|19164|158002|138838
+Buddy_Holly|18943|156808|137865
+Charlie_Parker|18515|154456|135941
+Lady_Gaga|19558|154259|134701
+Kris_Kristofferson|18588|153085|134497
+Paul_Simon|19141|153582|134441
+Diana_Ross|19072|152661|133589
+Van_Morrison|18851|152146|133295
+Kanye_West|20081|152964|132883
+Nelly_Furtado|22406|155255|132849
+Tina_Turner|18886|150991|132105
+Keith_Richards|18012|149496|131484
+Roy_Orbison|18698|149897|131199
+Phil_Collins|18562|149186|130624
+Peter_Gabriel|18100|148702|130602
+Jerry_Lee_Lewis|18024|148464|130440
+Bette_Midler|18766|148910|130144
+The_Notorious_B.I.G.|17574|147624|130050
+Benny_Goodman|17892|147862|129970
+Cliff_Richard|19195|149100|129905
+Rod_Stewart|18691|148391|129700
+Elvis_Costello|19034|148555|129521
+John_Williams|17592|147013|129421
+Stephen_Sondheim|18448|147712|129264
+John_Coltrane|17239|146306|129067
+Mariah_Carey|18704|146838|128134
+Kylie_Minogue|18229|146310|128081
+Tony_Bennett|18220|146066|127846
+Snoop_Dogg|17937|145344|127407
+Amy_Winehouse|16314|143545|127231
+Robbie_Williams|18264|145156|126892
+Hank_Williams|17107|143958|126851
+Christina_Aguilera|18308|145048|126740
+Willie_Nelson|18406|144905|126499
+Aretha_Franklin|18297|144566|126269
+Nat_King_Cole|18099|144340|126241
+George_Michael|17581|143419|125838
+Aaron_Copland|17553|143351|125798
