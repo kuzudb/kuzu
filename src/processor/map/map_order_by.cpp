@@ -1,3 +1,6 @@
+#include "binder/expression/expression_util.h"
+#include "common/exception/message.h"
+#include "common/exception/runtime.h"
 #include "planner/operator/logical_order_by.h"
 #include "processor/operator/order_by/order_by.h"
 #include "processor/operator/order_by/order_by_merge.h"
@@ -5,9 +8,6 @@
 #include "processor/operator/order_by/top_k.h"
 #include "processor/operator/order_by/top_k_scanner.h"
 #include "processor/plan_mapper.h"
-#include "binder/expression/expression_util.h"
-#include "common/exception/runtime.h"
-#include "common/exception/message.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -64,7 +64,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* 
     if (logicalOrderBy.hasLimitNum()) {
         auto limitExpr = logicalOrderBy.getLimitNum();
         if (!ExpressionUtil::canEvaluateAsLiteral(*limitExpr)) {
-            throw RuntimeException{ExceptionMessage::invalidSkipLimitParam(limitExpr->toString(), "limit")};
+            throw RuntimeException{
+                ExceptionMessage::invalidSkipLimitParam(limitExpr->toString(), "limit")};
         }
         auto limitNum = ExpressionUtil::evaluateAsSkipLimit(*limitExpr);
         uint64_t skipNum = 0;
@@ -77,26 +78,24 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* 
             skipNum = ExpressionUtil::evaluateAsSkipLimit(*skipExpr);
         }
         auto topKSharedState = std::make_shared<TopKSharedState>();
-        auto printInfo = std::make_unique<TopKPrintInfo>(keyExpressions, payloadExpressions,
-            skipNum, limitNum);
+        auto printInfo =
+            std::make_unique<TopKPrintInfo>(keyExpressions, payloadExpressions, skipNum, limitNum);
         auto topK = make_unique<TopK>(std::make_unique<ResultSetDescriptor>(inSchema),
-            std::move(orderByDataInfo), topKSharedState, skipNum,
-            limitNum, std::move(prevOperator), getOperatorID(),
-            printInfo->copy());
+            std::move(orderByDataInfo), topKSharedState, skipNum, limitNum, std::move(prevOperator),
+            getOperatorID(), printInfo->copy());
         return make_unique<TopKScan>(outPos, topKSharedState, std::move(topK), getOperatorID(),
             printInfo->copy());
     }
     auto orderBySharedState = std::make_shared<SortSharedState>();
     auto printInfo = std::make_unique<OrderByPrintInfo>(keyExpressions, payloadExpressions);
     auto orderBy = make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(inSchema),
-        std::move(orderByDataInfo), orderBySharedState, std::move(prevOperator),
-        getOperatorID(), printInfo->copy());
+        std::move(orderByDataInfo), orderBySharedState, std::move(prevOperator), getOperatorID(),
+        printInfo->copy());
     auto dispatcher = std::make_shared<KeyBlockMergeTaskDispatcher>();
     auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
         std::move(orderBy), getOperatorID(), printInfo->copy());
     return make_unique<OrderByScan>(outPos, orderBySharedState, std::move(orderByMerge),
         getOperatorID(), printInfo->copy());
-
 }
 
 } // namespace processor

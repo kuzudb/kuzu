@@ -1,11 +1,11 @@
 #include "optimizer/limit_push_down_optimizer.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_distinct.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_limit.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

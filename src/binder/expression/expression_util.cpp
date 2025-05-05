@@ -7,8 +7,8 @@
 #include "binder/expression/parameter_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
-#include "common/types/value/nested.h"
 #include "common/type_utils.h"
+#include "common/types/value/nested.h"
 
 using namespace kuzu::common;
 

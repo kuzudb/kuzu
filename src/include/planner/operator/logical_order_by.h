@@ -20,9 +20,7 @@ public:
 
     std::string getExpressionsForPrinting() const override;
 
-    binder::expression_vector getExpressionsToOrderBy() const {
-        return expressionsToOrderBy;
-    }
+    binder::expression_vector getExpressionsToOrderBy() const { return expressionsToOrderBy; }
     std::vector<bool> getIsAscOrders() const { return isAscOrders; }
 
     bool isTopK() const { return hasLimitNum(); }

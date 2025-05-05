@@ -1,5 +1,6 @@
 #include "optimizer/cardinality_updater.h"
 
+#include "binder/expression/expression_util.h"
 #include "planner/join_order/cardinality_estimator.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/logical_aggregate.h"
@@ -9,7 +10,6 @@
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/logical_limit.h"
 #include "planner/operator/logical_plan.h"
-#include "binder/expression/expression_util.h"
 
 namespace kuzu::optimizer {
 void CardinalityUpdater::rewrite(planner::LogicalPlan* plan) {

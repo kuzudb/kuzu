@@ -1,10 +1,10 @@
+#include "binder/expression/expression_util.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "planner/operator/logical_limit.h"
 #include "processor/operator/limit.h"
 #include "processor/operator/skip.h"
 #include "processor/plan_mapper.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;
@@ -34,7 +34,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLimit(const LogicalOperator* lo
     if (logicalLimit.hasLimitNum()) {
         auto limitExpr = logicalLimit.getLimitNum();
         if (!ExpressionUtil::canEvaluateAsLiteral(*limitExpr)) {
-            throw RuntimeException{ExceptionMessage::invalidSkipLimitParam(limitExpr->toString(), "limit")};
+            throw RuntimeException{
+                ExceptionMessage::invalidSkipLimitParam(limitExpr->toString(), "limit")};
         }
         auto limitNum = ExpressionUtil::evaluateAsSkipLimit(*limitExpr);
         auto printInfo = std::make_unique<LimitPrintInfo>(limitNum);

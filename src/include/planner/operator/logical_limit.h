@@ -11,8 +11,8 @@ class LogicalLimit final : public LogicalOperator {
 public:
     LogicalLimit(std::shared_ptr<binder::Expression> skipNum,
         std::shared_ptr<binder::Expression> limitNum, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type_, std::move(child)},
-          skipNum{std::move(skipNum)}, limitNum{std::move(limitNum)} {}
+        : LogicalOperator{type_, std::move(child)}, skipNum{std::move(skipNum)},
+          limitNum{std::move(limitNum)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
