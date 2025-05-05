@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include "progress_bar_display.h"
+#include "common/api.h"
 
 namespace kuzu {
 namespace common {
@@ -30,7 +31,7 @@ public:
 
     void toggleProgressBarPrinting(bool enable);
 
-    void updateProgress(uint64_t queryID, double curPipelineProgress);
+    KUZU_API void updateProgress(uint64_t queryID, double curPipelineProgress);
 
     void setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDipslay);
 

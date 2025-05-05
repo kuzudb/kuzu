@@ -9,6 +9,7 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "processor/execution_context.h"
+#include "common/task_system/progress_bar.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -315,6 +316,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         if (diff.load() < config.tolerance) { // Converged.
             break;
         }
+        auto progress = static_cast<double>(currentIter) / numNodes;
+        clientContext->getProgressBar()->updateProgress(input.context->queryID, progress);
         currentIter++;
     }
     auto outputVC = std::make_unique<PageRankResultVertexCompute>(clientContext->getMemoryManager(),

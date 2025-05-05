@@ -6,6 +6,7 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "processor/execution_context.h"
+#include "common/task_system/progress_bar.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -230,6 +231,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto bwdComputeState = GDSComputeState(frontierPair, std::move(bwdColoringEdgeCompute),
         std::move(bwdAuxiliaryState));
 
+    auto progressBar = clientContext->getProgressBar();
     for (auto i = 0u; i < config.maxIterations; i++) {
         // Init fwd and bwd component IDs to node offsets.
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
@@ -245,6 +247,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             initFwdColoringVertexCompute);
         GDSUtils::runAlgorithmEdgeCompute(input.context, fwdComputeState, graph,
             ExtendDirection::FWD, config.maxIterations);
+        double progress = static_cast<double>(i) / config.maxIterations;
+        progressBar->updateProgress(input.context->queryID, progress * 0.5);
 
         // Bwd colors.
         frontierPair->resetValue(input.context, graph, FRONTIER_UNVISITED);
@@ -254,6 +258,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             initBwdColoringVertexCompute);
         GDSUtils::runAlgorithmEdgeCompute(input.context, bwdComputeState, graph,
             ExtendDirection::BWD, config.maxIterations);
+        progressBar->updateProgress(input.context->queryID, progress);
 
         // Find new SCC IDs and exit if all IDs have been found.
         std::atomic<bool> hasDifferentColor = false;
