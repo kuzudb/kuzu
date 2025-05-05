@@ -30,6 +30,9 @@ struct ListAppend {
 
 static void validateArgumentType(const binder::expression_vector& arguments) {
 
+    if (arguments[0]->getChildren().empty())
+        return;
+
     if (arguments[1]->getChildren().empty())
         return;
 
