@@ -1,0 +1,117 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE WCC
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+---- ok
+-STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
+---- ok
+-STATEMENT CALL weakly_connected_components('PK') RETURN node.fName, group_id;
+---- 8
+Alice|0
+Bob|0
+Carol|0
+Dan|0
+Elizabeth|4
+Farooq|4
+Greg|4
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+-STATEMENT CALL create_projected_graph('PK2', ['person'], {'knows': {'filter': 'r.date > date("1999-01-01")'}})
+---- ok
+-STATEMENT CALL weakly_connected_components('PK2') RETURN node.fName, group_id;
+---- 8
+Alice|0
+Bob|0
+Carol|0
+Dan|0
+Elizabeth|4
+Farooq|5
+Greg|6
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+
+-STATEMENT CALL create_projected_graph('PK3', {'person': {'filter': 'n.ID > 2'}}, ['knows'])
+---- ok
+-STATEMENT CALL weakly_connected_components('PK3') RETURN node.fName, group_id;
+---- 6
+Carol|2
+Dan|2
+Elizabeth|4
+Farooq|4
+Greg|4
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+
+-STATEMENT CALL create_projected_graph('PK4', {'person': {'filter': 'n.ID <> 7'}}, ['knows'])
+---- ok
+-STATEMENT CALL weakly_connected_components('PK4') RETURN node.fName, group_id;
+---- 7
+Alice|0
+Bob|0
+Carol|0
+Dan|0
+Farooq|5
+Greg|6
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+
+-STATEMENT CALL create_projected_graph('PK5', {'person': {'filter': 'n.ID > 5'}}, {'knows': {'filter': 'r.date > date("1999-01-01")'}})
+---- ok
+-STATEMENT CALL weakly_connected_components('PK5') RETURN node.fName, group_id;
+---- 4
+Elizabeth|4
+Farooq|5
+Greg|6
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+
+-STATEMENT CALL create_projected_graph('G1', ['person', 'organisation'], ['knows', 'studyAt', 'workAt'])
+---- ok
+-STATEMENT CALL weakly_connected_components('G1') RETURN node.ID, node.fName, node.name, group_id;
+---- 11
+0|Alice||0
+1||ABFsUni|0
+2|Bob||0
+3|Carol||0
+4||CsWork|0
+5|Dan||0
+6||DEsWork|0
+7|Elizabeth||0
+8|Farooq||0
+9|Greg||0
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||7
+-STATEMENT CALL weakly_connected_components('G1', maxIterations:=25) RETURN node.ID, node.fName, node.name, group_id;
+---- 11
+0|Alice||0
+1||ABFsUni|0
+2|Bob||0
+3|Carol||0
+4||CsWork|0
+5|Dan||0
+6||DEsWork|0
+7|Elizabeth||0
+8|Farooq||0
+9|Greg||0
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||7
+
+-STATEMENT CALL weakly_connected_components('PK', maxIterations:=0) RETURN node.fName, group_id;
+---- 8
+Alice|0
+Bob|1
+Carol|2
+Dan|3
+Elizabeth|4
+Farooq|5
+Greg|6
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+
+-STATEMENT CALL create_projected_graph('G2', {'person': {'filter': 'n.ID > 2'}, 'organisation': {'filter': 'n.ID > 2'}}, ['knows', 'studyAt'])
+---- ok
+-STATEMENT CALL weakly_connected_components('G2') RETURN node.ID, node.fName, node.name, group_id;
+---- 8
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||7
+3|Carol||2
+4||CsWork|9
+5|Dan||2
+6||DEsWork|10
+7|Elizabeth||4
+8|Farooq||4
+9|Greg||4
+

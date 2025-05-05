@@ -303,7 +303,7 @@ POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
 NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-GDS|Adds support for graph algorithms
+ALGO|Adds support for graph algorithms
 
 -CASE CallFuncWithYield
 -LOG CallWithYield
@@ -319,7 +319,7 @@ POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
 NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-GDS|Adds support for graph algorithms
+ALGO|Adds support for graph algorithms
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name as extension_name, description as extension_description return extension_name, extension_description
 ---- 11
 DELTA|Adds support for reading from delta tables
@@ -332,7 +332,7 @@ POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
 NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-GDS|Adds support for graph algorithms
+ALGO|Adds support for graph algorithms
 -LOG ShowConnectionWithoutYieldError
 -STATEMENT CALL show_connection('workAt') CALL show_connection('workAt') RETURN *
 ---- error
@@ -350,7 +350,7 @@ SQLITE|Adds support for reading from SQLITE tables|POSTGRES|Adds support for rea
 SQLITE|Adds support for reading from SQLITE tables|SQLITE|Adds support for reading from SQLITE tables
 SQLITE|Adds support for reading from SQLITE tables|UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
 SQLITE|Adds support for reading from SQLITE tables|NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-SQLITE|Adds support for reading from SQLITE tables|GDS|Adds support for graph algorithms
+SQLITE|Adds support for reading from SQLITE tables|ALGO|Adds support for graph algorithms
 
 -LOG ShowExtensionPartialAlias
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description as extension_description RETURN *
@@ -365,7 +365,7 @@ POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
 NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-GDS|Adds support for graph algorithms
+ALGO|Adds support for graph algorithms
 
 -CASE CallFuncWithYieldError
 -STATEMENT CALL TABLE_INFO('person') yield `property id` as id RETURN *;

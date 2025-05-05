@@ -1,0 +1,81 @@
+-DATASET CSV EMPTY
+
+--
+
+-CASE KCoreDecomposition 
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE User(name STRING PRIMARY KEY, id INT64);
+---- ok
+-STATEMENT CREATE REL TABLE FRIEND(FROM User to User, id INT64);
+---- ok
+-STATEMENT CREATE (alice:User {name: 'Alice', id:1}),
+            (bridget:User {name: 'Bridget', id:2}),
+            (charles:User {name: 'Charles', id:3}),
+            (doug:User {name: 'Doug', id:4}),
+            (eli:User {name: 'Eli', id:5}),
+            (filip:User {name: 'Filip', id:6}),
+            (greg:User {name: 'Greg', id:7}),
+            (harry:User {name: 'Harry', id:8}),
+            (ian:User {name: 'Ian', id:9}),
+            (james:User {name: 'James', id:10}),
+            (alice)-[:FRIEND {id:1}]->(bridget),
+            (bridget)-[:FRIEND {id:2}]->(charles),
+            (charles)-[:FRIEND {id:3}]->(doug),
+            (charles)-[:FRIEND {id:4}]->(harry),
+            (doug)-[:FRIEND {id:5}]->(eli),
+            (doug)-[:FRIEND {id:6}]->(filip),
+            (doug)-[:FRIEND {id:7}]->(greg),
+            (eli)-[:FRIEND {id:8}]->(filip),
+            (eli)-[:FRIEND {id:9}]->(greg),
+            (filip)-[:FRIEND {id:10}]->(greg),
+            (greg)-[:FRIEND {id:11}]->(harry),
+            (ian)-[:FRIEND {id:12}]->(james);
+---- ok
+-STATEMENT CALL create_projected_graph('PK', ['User'], ['FRIEND']);
+---- ok
+-STATEMENT CALL k_core_decomposition('PK') RETURN node.name, k_degree;
+---- 10
+Alice|1
+Bridget|1
+Charles|2
+Doug|3
+Eli|3
+Filip|3
+Greg|3
+Harry|2
+Ian|1
+James|1
+-STATEMENT CALL create_projected_graph('PK2', ['User'], {'friend': {'filter': 'r.id < 10'}});
+---- ok
+-STATEMENT CALL k_core_decomposition('PK2') RETURN node.name, k_degree;
+---- 10
+Alice|1
+Bridget|1
+Charles|1
+Doug|2
+Eli|2
+Filip|2
+Greg|2
+Harry|1
+Ian|0
+James|0
+-STATEMENT CALL create_projected_graph('PK3', {'User': {'filter': 'n.id > 3'}}, {'friend': {'filter': 'r.id <= 11'}});
+---- ok
+-STATEMENT CALL k_core_decomposition('PK3') RETURN node.name, k_degree;
+---- 7
+Doug|3
+Eli|3
+Filip|3
+Greg|3
+Harry|1
+Ian|0
+James|0
+-STATEMENT CALL create_projected_graph('PK4', {'User': {'filter': 'n.id > 3 AND n.id < 7'}}, {'friend': {'filter': 'r.id >= 0'}});
+---- ok
+-STATEMENT CALL k_core_decomposition('PK4') RETURN node.name, k_degree;
+---- 3
+Doug|2
+Eli|2
+Filip|2
