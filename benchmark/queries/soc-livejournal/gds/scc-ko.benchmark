@@ -1,5 +1,5 @@
 -NAME SCC-KO
--PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
+-PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'; CALL PROJECT_GRAPH('PK', ['person'], ['knows']);
 -QUERY CALL strongly_connected_components_kosaraju('PK') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 3828682

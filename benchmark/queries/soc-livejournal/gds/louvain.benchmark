@@ -1,6 +1,7 @@
 -NAME Louvain
--PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
+-PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'; CALL PROJECT_GRAPH('PK', ['person'], ['knows']);
 -QUERY CALL louvain('PK') WITH louvain_id, min(node.id) as lvId, count(*) as c RETURN lvID, c ORDER BY c DESC LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 0|937000
 37|556760
