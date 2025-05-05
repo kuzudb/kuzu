@@ -1,5 +1,5 @@
 -NAME SCC
--PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
+-PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
 -QUERY CALL strongly_connected_components('PK') WITH group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 47580944

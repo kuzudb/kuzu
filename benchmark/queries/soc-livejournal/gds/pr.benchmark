@@ -1,5 +1,5 @@
 -NAME PageRank
--PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
+-PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'; CALL CREATE_PROJECTED_GRAPH('PK', ['person'], ['knows']);
 -QUERY CALL page_rank('PK') RETURN node.id, rank ORDER BY rank DESC LIMIT 10;
 ---- 10
 8737|0.000138
