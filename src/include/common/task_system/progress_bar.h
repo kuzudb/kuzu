@@ -3,8 +3,8 @@
 #include <memory>
 #include <mutex>
 
-#include "progress_bar_display.h"
 #include "common/api.h"
+#include "progress_bar_display.h"
 
 namespace kuzu {
 namespace common {

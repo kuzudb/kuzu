@@ -1,12 +1,12 @@
 #include "binder/binder.h"
+#include "common/exception/interrupt.h"
 #include "common/exception/runtime.h"
-#include "function/algo_function.h"
 #include "common/task_system/progress_bar.h"
+#include "function/algo_function.h"
 #include "function/config/connected_components_config.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "processor/execution_context.h"
-#include "common/exception/interrupt.h"
 
 using namespace std;
 using namespace kuzu::binder;

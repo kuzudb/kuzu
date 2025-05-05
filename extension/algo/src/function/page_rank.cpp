@@ -2,6 +2,7 @@
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
+#include "common/task_system/progress_bar.h"
 #include "function/algo_function.h"
 #include "function/config/max_iterations_config.h"
 #include "function/config/page_rank_config.h"
@@ -9,7 +10,6 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "processor/execution_context.h"
-#include "common/task_system/progress_bar.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
