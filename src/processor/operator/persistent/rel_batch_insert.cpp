@@ -202,7 +202,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
 }
 
 void RelBatchInsertImpl::finalizeStartCSROffsets(RelBatchInsertExecutionState&,
-    storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo&) {
+    storage::InMemChunkedCSRHeader& csrHeader, const RelBatchInsertInfo&) {
     csrHeader.populateEndCSROffsetFromStartAndLength();
 }
 
@@ -226,13 +226,13 @@ void RelBatchInsert::populateCSRHeader(const RelGroupCatalogEntry& relGroupEntry
 }
 
 void RelBatchInsert::checkRelMultiplicityConstraint(const RelGroupCatalogEntry& relGroupEntry,
-    const ChunkedCSRHeader& csrHeader, offset_t startNodeOffset,
+    const InMemChunkedCSRHeader& csrHeader, offset_t startNodeOffset,
     const RelBatchInsertInfo& relInfo) {
     if (!relGroupEntry.isSingleMultiplicity(relInfo.direction)) {
         return;
     }
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
-        if (csrHeader.length->getData().getValue<length_t>(i) > 1) {
+        if (csrHeader.length->getValue<length_t>(i) > 1) {
             throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
                 relInfo.tableName, std::to_string(i + startNodeOffset),
                 RelDirectionUtils::relDirectionToString(relInfo.direction)));
