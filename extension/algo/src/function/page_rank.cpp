@@ -2,6 +2,7 @@
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
+#include "common/task_system/progress_bar.h"
 #include "function/algo_function.h"
 #include "function/config/max_iterations_config.h"
 #include "function/config/page_rank_config.h"
@@ -315,6 +316,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         if (diff.load() < config.tolerance) { // Converged.
             break;
         }
+        auto progress = static_cast<double>(currentIter) / numNodes;
+        clientContext->getProgressBar()->updateProgress(input.context->queryID, progress);
         currentIter++;
     }
     auto outputVC = std::make_unique<PageRankResultVertexCompute>(clientContext->getMemoryManager(),

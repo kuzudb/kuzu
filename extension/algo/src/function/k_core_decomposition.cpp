@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "common/task_system/progress_bar.h"
 #include "function/algo_function.h"
 #include "function/degrees.h"
 #include "function/gds/gds_utils.h"
@@ -163,7 +164,7 @@ private:
     std::atomic<offset_t>& numActiveNodes;
 };
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto mm = clientContext->getMemoryManager();
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
@@ -209,6 +210,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
                 computeState.frontierPair->getCurrentIter() + 1 /* maxIters */);
             // Repeat until all remaining nodes has degree greater than current core.
         }
+        auto progress = static_cast<double>(numNodesComputed) / numNodes;
+        clientContext->getProgressBar()->updateProgress(input.context->queryID, progress);
         coreValue++;
     }
     // Write output

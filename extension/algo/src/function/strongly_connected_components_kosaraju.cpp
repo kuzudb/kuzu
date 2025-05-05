@@ -1,5 +1,7 @@
 #include "binder/binder.h"
+#include "common/exception/interrupt.h"
 #include "common/exception/runtime.h"
+#include "common/task_system/progress_bar.h"
 #include "function/algo_function.h"
 #include "function/config/connected_components_config.h"
 #include "function/gds/gds_utils.h"
@@ -92,9 +94,13 @@ public:
         scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, {});
     }
 
-    void compute(const offset_t maxOffset, NodeOffsetMaskMap* map) {
+    void compute(const offset_t maxOffset, NodeOffsetMaskMap* map, ExecutionContext* context) {
+        auto progressBar = context->clientContext->getProgressBar();
         std::vector<offset_t> toProcess;
         for (auto i = 0u; i < maxOffset; ++i) {
+            if (context->clientContext->interrupted()) {
+                throw InterruptException();
+            }
             if (map && !map->valid(i)) { // Skip nodes not in mask
                 continue;
             }
@@ -104,13 +110,22 @@ public:
             KU_ASSERT(toProcess.empty());
             toProcess.push_back(i);
             forwardDFS(toProcess);
+            // Update fwd progress
+            double fwdProgress = static_cast<double>(i) / maxOffset;
+            progressBar->updateProgress(context->queryID, fwdProgress * 0.5);
         }
         while (visitedOrder.size() > 0) {
+            if (context->clientContext->interrupted()) {
+                throw InterruptException();
+            }
             auto offset = visitedOrder.pop();
             if (!visitedState.componentIDSet(offset)) {
                 KU_ASSERT(toProcess.empty());
                 toProcess.push_back(offset);
                 backwardsDFS(offset, toProcess);
+                // Update bwd progress
+                auto bwdProgress = 1.0 - (double)visitedOrder.size() / maxOffset;
+                progressBar->updateProgress(context->queryID, 0.5 + bwdProgress * 0.5);
             }
         }
     }
@@ -216,7 +231,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto visitedState = KosarajuVisitedState(tableID, maxOffset, mm);
     auto visitedOrder = KosarajuVisitedOrder(tableID, maxOffset, mm);
     auto kosaraju = Kosaraju(graph, visitedState, visitedOrder);
-    kosaraju.compute(maxOffset, nodeMask);
+    kosaraju.compute(maxOffset, nodeMask, input.context);
 
     auto vertexCompute = std::make_unique<KosarajuVertexCompute>(mm, sharedState, visitedState);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);

@@ -2,11 +2,11 @@
 
 #include "binder/expression/property_expression.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
+#include "common/exception/interrupt.h"
 #include "common/task_system/task_scheduler.h"
 #include "function/gds/gds_task.h"
 #include "graph/graph.h"
 #include "graph/graph_entry.h"
-#include <re2.h>
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -62,6 +62,9 @@ static void runOneIteration(ExecutionContext* context, Graph* graph,
     for (auto info : graph->getGraphEntry()->nodeInfos) {
         auto fromEntry = info.entry;
         for (const auto& nbrInfo : graph->getForwardNbrTableInfos(fromEntry->getTableID())) {
+            if (context->clientContext->interrupted()) {
+                throw InterruptException{};
+            }
             auto toEntry = nbrInfo.nodeEntry;
             auto relEntry = nbrInfo.relEntry;
             switch (extendDirection) {

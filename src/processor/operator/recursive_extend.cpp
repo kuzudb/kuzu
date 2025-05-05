@@ -2,7 +2,6 @@
 
 #include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
-#include "common/exception/interrupt.h"
 #include "common/task_system/progress_bar.h"
 #include "function/gds/compute.h"
 #include "function/gds/gds_function_collection.h"
@@ -115,9 +114,6 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
         }
         auto calcFunc = [tableID, propertyNames, graph, context, this](offset_t offset) {
             auto clientContext = context->clientContext;
-            if (clientContext->interrupted()) {
-                throw InterruptException{};
-            }
             auto computeState = function->getComputeState(context, bindData, sharedState.get());
             auto sourceNodeID = nodeID_t{offset, tableID};
             computeState->initSource(sourceNodeID);
