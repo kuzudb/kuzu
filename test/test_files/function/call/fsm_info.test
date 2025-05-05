@@ -142,3 +142,7 @@ True
 -STATEMENT call fsm_info() return count(*)
 ---- 1
 1
+
+-STATEMENT call fsm_info() return start_page_idx
+---- 1
+0
