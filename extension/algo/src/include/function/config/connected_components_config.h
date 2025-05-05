@@ -26,5 +26,5 @@ struct CCOptionalParams final : public function::GDSOptionalParams {
     }
 };
 
-} // namespace gds_extension
+} // namespace algo_extension
 } // namespace kuzu
