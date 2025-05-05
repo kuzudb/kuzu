@@ -178,7 +178,7 @@ void RelBatchInsert::populateCSRHeaderAndRowIdx(InMemChunkedNodeGroupCollection&
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID);
         // We reuse bound node offset column to store row idx for each rel in the node group.
-        setRowIdxFromCSROffsets(offsetChunk, csrHeader.offset->getData());
+        setRowIdxFromCSROffsets(offsetChunk, *csrHeader.offset);
     }
     csrHeader.finalizeCSRRegionEndOffsets(rightCSROffsetOfRegions);
     // Resize csr data column chunks.
@@ -187,11 +187,11 @@ void RelBatchInsert::populateCSRHeaderAndRowIdx(InMemChunkedNodeGroupCollection&
     KU_ASSERT(csrHeader.sanityCheck());
 }
 
-void RelBatchInsert::populateCSRLengths(const ChunkedCSRHeader& csrHeader, offset_t numNodes,
+void RelBatchInsert::populateCSRLengths(const InMemChunkedCSRHeader& csrHeader, offset_t numNodes,
     InMemChunkedNodeGroupCollection& partition, column_id_t boundNodeOffsetColumn) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
-    const auto lengthData = reinterpret_cast<length_t*>(csrHeader.length->getData().getData());
+    const auto lengthData = reinterpret_cast<length_t*>(csrHeader.length->getData());
     std::fill(lengthData, lengthData + numNodes, 0);
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(boundNodeOffsetColumn);
@@ -223,14 +223,14 @@ void RelBatchInsert::setRowIdxFromCSROffsets(ColumnChunkData& rowIdxChunk,
     }
 }
 
-void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrHeader,
+void RelBatchInsert::checkRelMultiplicityConstraint(const InMemChunkedCSRHeader& csrHeader,
     offset_t startNodeOffset, const RelBatchInsertInfo& relInfo) {
     auto& relTableEntry = relInfo.tableEntry->constCast<RelTableCatalogEntry>();
     if (!relTableEntry.isSingleMultiplicity(relInfo.direction)) {
         return;
     }
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
-        if (csrHeader.length->getData().getValue<length_t>(i) > 1) {
+        if (csrHeader.length->getValue<length_t>(i) > 1) {
             throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
                 relInfo.tableEntry->getName(), std::to_string(i + startNodeOffset),
                 RelDirectionUtils::relDirectionToString(relInfo.direction)));
