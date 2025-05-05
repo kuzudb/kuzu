@@ -34,7 +34,7 @@ Book|title_vec_index|HNSW|[title_embedding]|True|CALL CREATE_VECTOR_INDEX('Book'
 ---- 2
 The Quantum World
 Learning Machines
--STATEMENT CALL CREATE_PROJECTED_GRAPH(
+-STATEMENT CALL PROJECT_GRAPH(
                'filtered_book',
                {'Book': {'filter': 'n.published_year > 2010'}},
                []

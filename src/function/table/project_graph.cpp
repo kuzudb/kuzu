@@ -17,25 +17,24 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-struct CreateProjectedGraphBindData final : TableFuncBindData {
+struct ProjectGraphBindData final : TableFuncBindData {
     std::string graphName;
     std::vector<GraphEntryTableInfo> nodeInfos;
     std::vector<GraphEntryTableInfo> relInfos;
 
-    explicit CreateProjectedGraphBindData(std::string graphName)
-        : graphName{std::move(graphName)} {}
-    CreateProjectedGraphBindData(std::string graphName, std::vector<GraphEntryTableInfo> nodeInfos,
+    explicit ProjectGraphBindData(std::string graphName) : graphName{std::move(graphName)} {}
+    ProjectGraphBindData(std::string graphName, std::vector<GraphEntryTableInfo> nodeInfos,
         std::vector<GraphEntryTableInfo> relInfos)
         : TableFuncBindData{0}, graphName{std::move(graphName)}, nodeInfos{std::move(nodeInfos)},
           relInfos{std::move(relInfos)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<CreateProjectedGraphBindData>(graphName, nodeInfos, relInfos);
+        return std::make_unique<ProjectGraphBindData>(graphName, nodeInfos, relInfos);
     }
 };
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
-    const auto bindData = ku_dynamic_cast<CreateProjectedGraphBindData*>(input.bindData);
+    const auto bindData = ku_dynamic_cast<ProjectGraphBindData*>(input.bindData);
     auto& graphEntrySet = input.context->clientContext->getGraphEntrySetUnsafe();
     if (graphEntrySet.hasGraph(bindData->graphName)) {
         throw RuntimeException(
@@ -66,7 +65,8 @@ static std::string getPredicateStr(Value& val) {
         throw BinderException(stringFormat("{} has data type {}. STRUCT was expected.",
             val.toString(), type.toString()));
     }
-    for (auto i = 0u; i < StructType::getNumFields(type); i++) {
+    auto numFields = StructType::getNumFields(type);
+    for (auto i = 0u; i < numFields; i++) {
         auto fieldName = StructType::getField(type, i).getName();
         if (StringUtils::getUpper(fieldName) == "FILTER") {
             const auto childVal = NestedVal::getChildVal(&val, i);
@@ -105,7 +105,7 @@ static std::vector<GraphEntryTableInfo> extractGraphEntryTableInfos(const Value&
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext*,
     const TableFuncBindInput* input) {
     auto graphName = input->getLiteralVal<std::string>(0);
-    auto bindData = std::make_unique<CreateProjectedGraphBindData>(graphName);
+    auto bindData = std::make_unique<ProjectGraphBindData>(graphName);
     auto argNode = input->getValue(1);
     bindData->nodeInfos = extractGraphEntryTableInfos(argNode);
     auto argRel = input->getValue(2);
@@ -113,7 +113,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext*,
     return bindData;
 }
 
-function_set CreateProjectedGraphFunction::getFunctionSet() {
+function_set ProjectGraphFunction::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name,
         std::vector{LogicalTypeID::STRING, LogicalTypeID::ANY, LogicalTypeID::ANY});

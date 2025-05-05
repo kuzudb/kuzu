@@ -17,10 +17,10 @@
         MATCH (a:N1), (b:N1) WHERE a.id=id AND b.id=id+1
         CREATE (a)-[]->(b)
 ---- ok
--STATEMENT CALL create_projected_graph('G', ['N1'], ['R'])
+-STATEMENT CALL PROJECT_GRAPH('G', ['N1'], ['R'])
 ---- error
 Binder exception: N2 is connected to R but not projected.
--STATEMENT CALL create_projected_graph('G', ['N1', 'N2'], ['R'])
+-STATEMENT CALL PROJECT_GRAPH('G', ['N1', 'N2'], ['R'])
 ---- ok
 -STATEMENT CALL weakly_connected_components('G') RETURN label(node), node.id, group_id;
 ---- 10

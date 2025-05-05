@@ -233,7 +233,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Standalone Table functions
         STANDALONE_TABLE_FUNCTION(LocalCacheArrayColumnFunction),
         STANDALONE_TABLE_FUNCTION(ClearWarningsFunction),
-        STANDALONE_TABLE_FUNCTION(CreateProjectedGraphFunction),
+        STANDALONE_TABLE_FUNCTION(ProjectGraphFunction),
         STANDALONE_TABLE_FUNCTION(DropProjectedGraphFunction),
 
         // Scan functions

@@ -7,7 +7,7 @@
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'
 ---- ok
 
--STATEMENT CALL create_projected_graph('G', ['N'], ['R'])
+-STATEMENT CALL PROJECT_GRAPH('G', ['N'], ['R'])
 ---- ok
 
 -LOG WCC
@@ -97,7 +97,7 @@
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'
 ---- ok
 
--STATEMENT CALL create_projected_graph('G', {'N': { 'filter': 'n.id >= 1000' }}, ['R'])
+-STATEMENT CALL PROJECT_GRAPH('G', {'N': { 'filter': 'n.id >= 1000' }}, ['R'])
 ---- ok
 
 -LOG WCC
@@ -191,7 +191,7 @@
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'
 ---- ok
 
--STATEMENT CALL create_projected_graph('G', {'N': { 'filter': 'n.id < 1000' }}, ['R'])
+-STATEMENT CALL PROJECT_GRAPH('G', {'N': { 'filter': 'n.id < 1000' }}, ['R'])
 ---- ok
 
 -LOG WCC

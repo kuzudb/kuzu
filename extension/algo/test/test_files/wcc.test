@@ -5,7 +5,7 @@
 -CASE WCC
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
 ---- ok
--STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
+-STATEMENT CALL PROJECT_GRAPH('PK', ['person'], ['knows'])
 ---- ok
 -STATEMENT CALL weakly_connected_components('PK') RETURN node.fName, group_id;
 ---- 8
@@ -17,7 +17,7 @@ Elizabeth|4
 Farooq|4
 Greg|4
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
--STATEMENT CALL create_projected_graph('PK2', ['person'], {'knows': {'filter': 'r.date > date("1999-01-01")'}})
+-STATEMENT CALL PROJECT_GRAPH('PK2', ['person'], {'knows': {'filter': 'r.date > date("1999-01-01")'}})
 ---- ok
 -STATEMENT CALL weakly_connected_components('PK2') RETURN node.fName, group_id;
 ---- 8
@@ -30,7 +30,7 @@ Farooq|5
 Greg|6
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
--STATEMENT CALL create_projected_graph('PK3', {'person': {'filter': 'n.ID > 2'}}, ['knows'])
+-STATEMENT CALL PROJECT_GRAPH('PK3', {'person': {'filter': 'n.ID > 2'}}, ['knows'])
 ---- ok
 -STATEMENT CALL weakly_connected_components('PK3') RETURN node.fName, group_id;
 ---- 6
@@ -41,7 +41,7 @@ Farooq|4
 Greg|4
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
--STATEMENT CALL create_projected_graph('PK4', {'person': {'filter': 'n.ID <> 7'}}, ['knows'])
+-STATEMENT CALL PROJECT_GRAPH('PK4', {'person': {'filter': 'n.ID <> 7'}}, ['knows'])
 ---- ok
 -STATEMENT CALL weakly_connected_components('PK4') RETURN node.fName, group_id;
 ---- 7
@@ -53,7 +53,7 @@ Farooq|5
 Greg|6
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
--STATEMENT CALL create_projected_graph('PK5', {'person': {'filter': 'n.ID > 5'}}, {'knows': {'filter': 'r.date > date("1999-01-01")'}})
+-STATEMENT CALL PROJECT_GRAPH('PK5', {'person': {'filter': 'n.ID > 5'}}, {'knows': {'filter': 'r.date > date("1999-01-01")'}})
 ---- ok
 -STATEMENT CALL weakly_connected_components('PK5') RETURN node.fName, group_id;
 ---- 4
@@ -62,7 +62,7 @@ Farooq|5
 Greg|6
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
--STATEMENT CALL create_projected_graph('G1', ['person', 'organisation'], ['knows', 'studyAt', 'workAt'])
+-STATEMENT CALL PROJECT_GRAPH('G1', ['person', 'organisation'], ['knows', 'studyAt', 'workAt'])
 ---- ok
 -STATEMENT CALL weakly_connected_components('G1') RETURN node.ID, node.fName, node.name, group_id;
 ---- 11
@@ -102,7 +102,7 @@ Farooq|5
 Greg|6
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
--STATEMENT CALL create_projected_graph('G2', {'person': {'filter': 'n.ID > 2'}, 'organisation': {'filter': 'n.ID > 2'}}, ['knows', 'studyAt'])
+-STATEMENT CALL PROJECT_GRAPH('G2', {'person': {'filter': 'n.ID > 2'}, 'organisation': {'filter': 'n.ID > 2'}}, ['knows', 'studyAt'])
 ---- ok
 -STATEMENT CALL weakly_connected_components('G2') RETURN node.ID, node.fName, node.name, group_id;
 ---- 8
