@@ -61,5 +61,10 @@ std::string ExceptionMessage::listFunctionIncompatibleChildrenType(const std::st
                        " and " + rightType + ".");
 }
 
+std::string ExceptionMessage::invalidSkipLimitParam(const std::string& exprName,
+    const std::string& skipOrLimit) {
+    return stringFormat("Cannot evaluate {} as a valid {} number.", exprName, skipOrLimit);
+}
+
 } // namespace common
 } // namespace kuzu

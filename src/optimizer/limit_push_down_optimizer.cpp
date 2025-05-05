@@ -1,5 +1,6 @@
 #include "optimizer/limit_push_down_optimizer.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_distinct.h"
@@ -21,11 +22,11 @@ void LimitPushDownOptimizer::visitOperator(planner::LogicalOperator* op) {
     switch (op->getOperatorType()) {
     case LogicalOperatorType::LIMIT: {
         auto& limit = op->constCast<LogicalLimit>();
-        if (limit.hasSkipNum() && limit.canEvaluateSkipNum()) {
-            skipNumber = limit.evaluateSkipNum();
+        if (limit.hasSkipNum() && ExpressionUtil::canEvaluateAsLiteral(*limit.getSkipNum())) {
+            skipNumber = ExpressionUtil::evaluateAsSkipLimit(*limit.getSkipNum());
         }
-        if (limit.hasLimitNum() && limit.canEvaluateLimitNum()) {
-            limitNumber = limit.evaluateLimitNum();
+        if (limit.hasLimitNum() && ExpressionUtil::canEvaluateAsLiteral(*limit.getLimitNum())) {
+            limitNumber = ExpressionUtil::evaluateAsSkipLimit(*limit.getLimitNum());
         }
         visitOperator(limit.getChild(0).get());
         return;

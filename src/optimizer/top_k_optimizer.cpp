@@ -4,6 +4,7 @@
 #include "planner/operator/logical_order_by.h"
 
 using namespace kuzu::planner;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace optimizer {
@@ -30,13 +31,12 @@ std::shared_ptr<LogicalOperator> TopKOptimizer::visitOperator(
 // and rewrite as TOP_K
 std::shared_ptr<LogicalOperator> TopKOptimizer::visitLimitReplace(
     std::shared_ptr<LogicalOperator> op) {
-    auto limit = (LogicalLimit*)op.get();
+    auto limit = op->ptrCast<LogicalLimit>();
     if (!limit->hasLimitNum()) {
         return op; // only skip no limit. No need to rewrite
     }
     auto multiplicityReducer = limit->getChild(0);
     KU_ASSERT(multiplicityReducer->getOperatorType() == LogicalOperatorType::MULTIPLICITY_REDUCER);
-
     auto projectionOrOrderBy = multiplicityReducer->getChild(0);
     std::shared_ptr<LogicalOrderBy> orderBy;
     if (projectionOrOrderBy->getOperatorType() == LogicalOperatorType::PROJECTION) {
@@ -49,10 +49,12 @@ std::shared_ptr<LogicalOperator> TopKOptimizer::visitLimitReplace(
     } else {
         return op;
     }
-    if (limit->canEvaluateLimitNum() || limit->canEvaluateSkipNum()) {
-        orderBy->setLimitNum(limit->evaluateLimitNum());
-        auto skipNum = limit->hasSkipNum() ? limit->evaluateSkipNum() : 0;
-        orderBy->setSkipNum(skipNum);
+    KU_ASSERT(orderBy != nullptr);
+    if (limit->hasLimitNum()) {
+        orderBy->setLimitNum(limit->getLimitNum());
+    }
+    if (limit->hasSkipNum()) {
+        orderBy->setSkipNum(limit->getSkipNum());
     }
     return projectionOrOrderBy;
 }

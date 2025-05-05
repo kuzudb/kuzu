@@ -25,6 +25,9 @@ struct ExceptionMessage {
     static std::string variableNotInScope(const std::string& varName);
     static std::string listFunctionIncompatibleChildrenType(const std::string& functionName,
         const std::string& leftType, const std::string& rightType);
+    // Skip limit exception
+    static std::string invalidSkipLimitParam(const std::string& exprName,
+        const std::string& skipOrLimit);
 };
 
 } // namespace common

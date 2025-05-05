@@ -7,6 +7,7 @@
 #include "binder/expression/parameter_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "common/type_utils.h"
 #include "common/types/value/nested.h"
 
 using namespace kuzu::common;
@@ -427,9 +428,14 @@ bool ExpressionUtil::canCastStatically(const Expression& expr, const LogicalType
 }
 
 bool ExpressionUtil::canEvaluateAsLiteral(const Expression& expr) {
-    return (expr.expressionType == ExpressionType::LITERAL ||
-            (expr.expressionType == ExpressionType::PARAMETER &&
-                expr.getDataType().getLogicalTypeID() != LogicalTypeID::ANY));
+    switch (expr.expressionType) {
+    case ExpressionType::LITERAL:
+        return true;
+    case ExpressionType::PARAMETER:
+        return expr.getDataType().getLogicalTypeID() != LogicalTypeID::ANY;
+    default:
+        return false;
+    }
 }
 
 Value ExpressionUtil::evaluateAsLiteralValue(const Expression& expr) {
@@ -448,24 +454,40 @@ Value ExpressionUtil::evaluateAsLiteralValue(const Expression& expr) {
     return value;
 }
 
+uint64_t ExpressionUtil::evaluateAsSkipLimit(const Expression& expr) {
+    auto value = evaluateAsLiteralValue(expr);
+    auto errorMsg = "The number of rows to skip/limit must be a non-negative integer.";
+    uint64_t number = INVALID_LIMIT;
+    TypeUtils::visit(
+        value.getDataType(),
+        [&]<IntegerTypes T>(T) {
+            if (value.getValue<T>() < 0) {
+                throw RuntimeException{errorMsg};
+            }
+            number = (uint64_t)value.getValue<T>();
+        },
+        [&](auto) { throw RuntimeException{errorMsg}; });
+    return number;
+}
+
 template<typename T>
-T ExpressionUtil::evaluateLiteral(const Expression& expression, const common::LogicalType& type,
+T ExpressionUtil::evaluateLiteral(const Expression& expression, const LogicalType& type,
     validate_param_func<T> validateParamFunc) {
     if (!canEvaluateAsLiteral(expression)) {
         std::string errMsg;
         switch (expression.expressionType) {
-        case common::ExpressionType::PARAMETER: {
+        case ExpressionType::PARAMETER: {
             errMsg = "The query is a parameter expression. Please assign it a value.";
         } break;
         default: {
             errMsg = "The query must be a parameter/literal expression.";
         } break;
         }
-        throw common::RuntimeException{errMsg};
+        throw RuntimeException{errMsg};
     }
     auto value = evaluateAsLiteralValue(expression);
     if (value.getDataType() != type) {
-        throw RuntimeException{common::stringFormat("Parameter: {} must be a {} literal.",
+        throw RuntimeException{stringFormat("Parameter: {} must be a {} literal.",
             expression.getAlias(), type.toString())};
     }
     T val = value.getValue<T>();
@@ -476,17 +498,17 @@ T ExpressionUtil::evaluateLiteral(const Expression& expression, const common::Lo
 }
 
 template KUZU_API std::string ExpressionUtil::evaluateLiteral<std::string>(
-    const Expression& expression, const common::LogicalType& type,
+    const Expression& expression, const LogicalType& type,
     validate_param_func<std::string> validateParamFunc);
 
 template KUZU_API double ExpressionUtil::evaluateLiteral<double>(const Expression& expression,
-    const common::LogicalType& type, validate_param_func<double> validateParamFunc);
+    const LogicalType& type, validate_param_func<double> validateParamFunc);
 
 template KUZU_API int64_t ExpressionUtil::evaluateLiteral<int64_t>(const Expression& expression,
-    const common::LogicalType& type, validate_param_func<int64_t> validateParamFunc);
+    const LogicalType& type, validate_param_func<int64_t> validateParamFunc);
 
 template KUZU_API bool ExpressionUtil::evaluateLiteral<bool>(const Expression& expression,
-    const common::LogicalType& type, validate_param_func<bool> validateParamFunc);
+    const LogicalType& type, validate_param_func<bool> validateParamFunc);
 
 } // namespace binder
 } // namespace kuzu
