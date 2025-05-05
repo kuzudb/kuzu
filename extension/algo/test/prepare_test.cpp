@@ -11,7 +11,7 @@ TEST_F(ApiTest, GDSPrepare) {
                                     "extension/algo/build/libalgo.kuzu_extension")))
                     ->isSuccess());
     ASSERT_TRUE(
-        conn->query("CALL create_projected_graph('PK', ['person'], ['knows'])")->isSuccess());
+        conn->query("CALL PROJECT_GRAPH('PK', ['person'], ['knows'])")->isSuccess());
     auto preparedStatement = conn->prepare("CALL page_rank('PK', dampingFactor := $dp, "
                                            "tolerance := $tl) RETURN node.fName, rank;");
     std::unordered_map<std::string, std::unique_ptr<Value>> params;

@@ -227,7 +227,7 @@
 0|1|[0,1]|[2:0]|[0:0]|[0:1]
 0|2|[0,1,2]|[2:0,2:1]|[0:0,0:1]|[0:1,0:2]
 
--STATEMENT CALL create_projected_graph('PK1', ['person1'], ['knows11'])
+-STATEMENT CALL PROJECT_GRAPH('PK1', ['person1'], ['knows11'])
 ---- ok
 -LOG VarLenJoinsUBLessThanLBError
 -STATEMENT MATCH (a:person1)-[e:knows11 * 2..1]->(b:person1) RETURN *;
@@ -277,7 +277,7 @@ Binder exception: Lower bound of shortest/all_shortest path must be 1.
 1|4|2|[2]|[2,5]
 1|4|2|[2]|[2,6]
 
--STATEMENT CALL create_projected_graph('PK2', ['person1', 'person2'], ['knows12', 'knows21'])
+-STATEMENT CALL PROJECT_GRAPH('PK2', ['person1', 'person2'], ['knows12', 'knows21'])
 ---- ok
 -LOG VarLenJoinsMultilabel1
 -STATEMENT MATCH (a:person1)-[e:knows12|:knows21 * 1..30]->(b:person2:person1) WHERE a.ID=0
@@ -290,7 +290,7 @@ Binder exception: Lower bound of shortest/all_shortest path must be 1.
 0|4|3|[1,2]|[1,2,6]
 0|4|4|[1,2,3]|[1,2,3,4]
 
--STATEMENT CALL create_projected_graph('PK3', ['person1', 'person2'], ['knows11', 'knows12', 'knows21', 'knows22'])
+-STATEMENT CALL PROJECT_GRAPH('PK3', ['person1', 'person2'], ['knows11', 'knows12', 'knows21', 'knows22'])
 ---- ok
 -LOG VarLenJoinsMultilabel2
 -STATEMENT MATCH (a:person1)-[e * 1..30]->(b:person2:person1) WHERE a.ID=0

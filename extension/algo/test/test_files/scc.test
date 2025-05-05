@@ -30,7 +30,7 @@
             (u7)-[:Edge {id:19}]->(u4),
             (u6)-[:Edge {id:20}]->(u5);
 ---- ok
--STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge'])
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 7
@@ -50,7 +50,7 @@
 6|1|[6]
 7|1|[7]
 8|1|[8]
--STATEMENT CALL create_projected_graph('Graph2', {'Node': {'filter': 'n.ID > 0'}}, ['Edge'])
+-STATEMENT CALL PROJECT_GRAPH('Graph2', {'Node': {'filter': 'n.ID > 0'}}, ['Edge'])
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph2') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 8
@@ -83,7 +83,7 @@
 -STATEMENT MATCH (a:Node {id:2}), (b:N {id:10})
            CREATE (a)-[:R2]->(b), (a)<-[:R1]-(b)
 ---- ok
--STATEMENT CALL create_projected_graph('Graph3', ['Node', 'N'], ['Edge', 'R1', 'R2'])
+-STATEMENT CALL PROJECT_GRAPH('Graph3', ['Node', 'N'], ['Edge', 'R1', 'R2'])
 ---- ok
 -STATEMENT CALL strongly_connected_components('Graph3') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 7
@@ -102,7 +102,7 @@
 -STATEMENT MATCH (a:Node {id:6}), (b:N {id:11})
            CREATE (a)-[:R2]->(b), (a)<-[:R1]-(b)
 ---- ok
--STATEMENT CALL create_projected_graph('Graph4', ['Node', 'N'], ['Edge', 'R1', 'R2'])
+-STATEMENT CALL PROJECT_GRAPH('Graph4', ['Node', 'N'], ['Edge', 'R1', 'R2'])
 ---- ok
 -STATEMENT CALL strongly_connected_components('Graph4') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 6
@@ -134,7 +134,7 @@
             (u6)-[:Edge]->(u4),
             (u6)-[:Edge]->(u5);
 ---- ok
--STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge'])
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 5
@@ -183,7 +183,7 @@
             (u7)-[:Edge {id:23}]->(u8),
             (u8)-[:Edge {id:24}]->(u5);
 ---- ok
--STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge'])
 ---- ok
 -STATEMENT CALL strongly_connected_components('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 3
@@ -196,7 +196,7 @@
 2|1|[2]
 5|3|[5,7,8]
 
--STATEMENT CALL create_projected_graph('Graph2', ['Node'], {'Edge': {'filter': 'r.ID <> 17 '}})
+-STATEMENT CALL PROJECT_GRAPH('Graph2', ['Node'], {'Edge': {'filter': 'r.ID <> 17 '}})
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph2') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 4
@@ -211,7 +211,7 @@
 2|1|[2]
 5|3|[5,7,8]
 
--STATEMENT CALL create_projected_graph('Graph3', {'Node': {'filter': 'n.ID <> 4'}}, {'Edge': {'filter': 'r.ID <> 23 '}})
+-STATEMENT CALL PROJECT_GRAPH('Graph3', {'Node': {'filter': 'n.ID <> 4'}}, {'Edge': {'filter': 'r.ID <> 23 '}})
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph3') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 8
@@ -245,12 +245,12 @@
 -STATEMENT MATCH (a4:Node {id:4}), (a5:Node {id:5}), (b:N {id:10})
            CREATE (a5)-[:R2]->(b), (a4)<-[:R1]-(b)
 ---- ok
--STATEMENT CALL create_projected_graph('Graph4', ['Node', 'N'], ['Edge', 'R1', 'R2'])
+-STATEMENT CALL PROJECT_GRAPH('Graph4', ['Node', 'N'], ['Edge', 'R1', 'R2'])
 ---- ok
 -STATEMENT CALL strongly_connected_components('Graph4') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 1
 0|10|[0,1,2,3,4,5,6,7,8,10]
--STATEMENT CALL create_projected_graph('Graph5', {'Node': {'filter': ''}, 'N': {'filter': 'n.ID < 4'}}, ['Edge', 'R1', 'R2'])
+-STATEMENT CALL PROJECT_GRAPH('Graph5', {'Node': {'filter': ''}, 'N': {'filter': 'n.ID < 4'}}, ['Edge', 'R1', 'R2'])
 ---- ok
 -STATEMENT CALL strongly_connected_components('Graph5') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 3
@@ -294,7 +294,7 @@
             (u8)-[:Edge]->(u9),
             (u9)-[:Edge]->(u8);
 ---- ok
--STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge']);
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 5
@@ -352,7 +352,7 @@
             (u7)-[:Edge]->(u9),
             (u8)-[:Edge]->(u9);
 ---- ok
--STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge']);
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 11
@@ -394,7 +394,7 @@
 ---- ok
 -STATEMENT CREATE REL TABLE LivesIn(FROM Person to City);
 ---- ok
--STATEMENT CALL create_projected_graph('SCC1', ['Person', 'City'], ['Knows', 'LivesIn']);
+-STATEMENT CALL PROJECT_GRAPH('SCC1', ['Person', 'City'], ['Knows', 'LivesIn']);
 ---- ok
 -STATEMENT CALL strongly_connected_components('SCC1', maxIterations:=0.5) RETURN node.id, group_id;
 ---- error
@@ -402,7 +402,7 @@ Runtime exception: Parameter: maxIterations must be a INT64 literal.
 -STATEMENT CALL strongly_connected_components_kosaraju('SCC1') RETURN node.id, group_id;
 ---- error
 Runtime exception: Kosaraju's SCC only supports operations on one node table.
--STATEMENT CALL create_projected_graph('SCC2', ['Person'], ['Knows', 'LivesWith']);
+-STATEMENT CALL PROJECT_GRAPH('SCC2', ['Person'], ['Knows', 'LivesWith']);
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('SCC2') RETURN node.id, group_id;
 ---- error

@@ -5,7 +5,7 @@
 -CASE SpecialProjectedGraph
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
 ---- ok
--STATEMENT CALL create_projected_graph('empty', [], []);
+-STATEMENT CALL PROJECT_GRAPH('empty', [], []);
 ---- ok
 -STATEMENT CALL weakly_connected_components('empty') RETURN *;
 ---- 0
@@ -13,7 +13,7 @@
 ---- 0
 -STATEMENT CALL page_rank('empty') RETURN *;
 ---- 0
--STATEMENT CALL create_projected_graph('n', ['person'], []);
+-STATEMENT CALL PROJECT_GRAPH('n', ['person'], []);
 ---- ok
 -STATEMENT CALL weakly_connected_components('n') RETURN node.ID, group_id;
 ---- 8
@@ -45,31 +45,31 @@
 8|0.018750
 9|0.018750
 10|0.018750
--STATEMENT CALL create_projected_graph('err', ['person'], ['studyAt']);
+-STATEMENT CALL PROJECT_GRAPH('err', ['person'], ['studyAt']);
 ---- error
 Binder exception: organisation is connected to studyAt but not projected.
--STATEMENT CALL create_projected_graph('err', true, 'studyAt');
+-STATEMENT CALL PROJECT_GRAPH('err', true, 'studyAt');
 ---- error
 Binder exception: Input argument True has data type BOOL. STRUCT or LIST was expected.
--STATEMENT CALL create_projected_graph('err', ['person'], 'studyAt');
+-STATEMENT CALL PROJECT_GRAPH('err', ['person'], 'studyAt');
 ---- error
 Binder exception: Input argument studyAt has data type STRING. STRUCT or LIST was expected.
--STATEMENT CALL create_projected_graph('err', ['person'], {'knows': ['filter']});
+-STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': ['filter']});
 ---- error
 Binder exception: [filter] has data type STRING[]. STRUCT was expected.
--STATEMENT CALL create_projected_graph('err', ['person'], {'knows': {'dummy': 'r.date > date("1999-01-01")'}});
+-STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': {'dummy': 'r.date > date("1999-01-01")'}});
 ---- error
 Binder exception: Unrecognized configuration dummy. Supported configuration is 'filter'.
--STATEMENT CALL create_projected_graph('err', ['person'], {'knows': {'filter': 'r.dummy > date("1999-01-01")'}});
+-STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': {'filter': 'r.dummy > date("1999-01-01")'}});
 ---- error
 Binder exception: Cannot find property dummy for r.
--STATEMENT CALL create_projected_graph('err', ['person'], {'knows': {'filter': 'r.comments > date("1999-01-01")'}});
+-STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': {'filter': 'r.comments > date("1999-01-01")'}});
 ---- error
 Binder exception: Type Mismatch: Cannot compare types STRING[] and DATE
--STATEMENT CALL create_projected_graph('err', [{'person':{'filter': 'n.ID>0'}}, {'organisation':{'filter': 'n.ID>0'}}], []);
+-STATEMENT CALL PROJECT_GRAPH('err', [{'person':{'filter': 'n.ID>0'}}, {'organisation':{'filter': 'n.ID>0'}}], []);
 ---- error
 Binder exception: {organisation: {filter: n.ID>0}} has data type STRUCT(organisation STRUCT(filter STRING)) but STRING was expected.
--STATEMENT CALL create_projected_graph('G', ['person'], ['knows']);
+-STATEMENT CALL PROJECT_GRAPH('G', ['person'], ['knows']);
 ---- ok
 -STATEMENT DROP TABLE knows;
 ---- ok

@@ -6,7 +6,7 @@ add_library(kuzu_table_function
         cache_column.cpp
         catalog_version.cpp
         clear_warnings.cpp
-        create_project_graph.cpp
+        project_graph.cpp
         current_setting.cpp
         db_version.cpp
         drop_project_graph.cpp

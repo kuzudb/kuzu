@@ -11,8 +11,8 @@ struct ClearWarningsFunction final {
     static function_set getFunctionSet();
 };
 
-struct CreateProjectedGraphFunction final {
-    static constexpr const char* name = "CREATE_PROJECTED_GRAPH";
+struct ProjectGraphFunction final {
+    static constexpr const char* name = "PROJECT_GRAPH";
 
     static function_set getFunctionSet();
 };
