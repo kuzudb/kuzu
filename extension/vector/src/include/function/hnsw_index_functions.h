@@ -65,16 +65,18 @@ struct BoundQueryHNSWIndexInput {
     graph::GraphEntry graphEntry;
     catalog::IndexCatalogEntry* indexEntry;
     std::shared_ptr<binder::Expression> queryExpression;
-    uint64_t k;
+    std::shared_ptr<binder::Expression> kExpression;
 
     BoundQueryHNSWIndexInput(catalog::NodeTableCatalogEntry* nodeTableEntry,
         graph::GraphEntry graphEntry, catalog::IndexCatalogEntry* indexEntry,
-        std::shared_ptr<binder::Expression> queryExpression, uint64_t k)
+        std::shared_ptr<binder::Expression> queryExpression,
+        std::shared_ptr<binder::Expression> kExpression)
         : nodeTableEntry{nodeTableEntry}, graphEntry{std::move(graphEntry)}, indexEntry{indexEntry},
-          queryExpression{std::move(queryExpression)}, k{k} {}
+          queryExpression{std::move(queryExpression)}, kExpression{std::move(kExpression)} {}
     BoundQueryHNSWIndexInput(const BoundQueryHNSWIndexInput& rhs)
         : nodeTableEntry{rhs.nodeTableEntry}, graphEntry{rhs.graphEntry.copy()},
-          indexEntry{rhs.indexEntry}, queryExpression{rhs.queryExpression}, k{rhs.k} {}
+          indexEntry{rhs.indexEntry}, queryExpression{rhs.queryExpression},
+          kExpression{rhs.kExpression} {}
 };
 
 struct QueryHNSWIndexBindData final : function::TableFuncBindData {

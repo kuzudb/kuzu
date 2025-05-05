@@ -71,8 +71,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto tableOrGraphName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
     auto inputQueryExpression = input->params[2];
-    const auto k = input->getLiteralVal<int64_t>(3);
-    validateK(k);
+    auto kExpression = input->params[3];
 
     catalog::NodeTableCatalogEntry* nodeTableEntry = nullptr;
     graph::GraphEntry graphEntry;
@@ -113,7 +112,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columns.push_back(outputNode->getInternalID());
     columns.push_back(input->binder->createVariable(returnColumnNames[1], LogicalType::DOUBLE()));
     auto boundInput = BoundQueryHNSWIndexInput{nodeTableEntry, graphEntry.copy(), indexEntry,
-        std::move(inputQueryExpression), static_cast<uint64_t>(k)};
+        std::move(inputQueryExpression), std::move(kExpression)};
     auto config = QueryHNSWConfig{input->optionalParams};
     auto bindData = std::make_unique<QueryHNSWIndexBindData>(context, std::move(columns),
         boundInput, config, outputNode);
@@ -132,20 +131,23 @@ static std::vector<T> convertQueryVector(const Value& value) {
     return queryVector;
 }
 
+static Value evaluateParamExpr(std::shared_ptr<Expression> paramExpression,
+    main::ClientContext* context, LogicalType expectedType) {
+    std::shared_ptr<Expression> kExpr = paramExpression;
+    if (paramExpression->expressionType == ExpressionType::PARAMETER) {
+        kExpr = std::make_shared<LiteralExpression>(ExpressionUtil::evaluateAsLiteralValue(*kExpr),
+            kExpr->getUniqueName());
+    }
+    Binder binder{context};
+    kExpr = binder.getExpressionBinder()->implicitCastIfNecessary(kExpr, expectedType);
+    return evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(kExpr, context);
+}
+
 template<typename T>
 static std::vector<T> getQueryVector(main::ClientContext* context,
     std::shared_ptr<Expression> queryExpression, const LogicalType& indexType, uint64_t dimension) {
-    std::shared_ptr<Expression> literalExpression = queryExpression;
-    if (queryExpression->expressionType == ExpressionType::PARAMETER) {
-        literalExpression = std::make_shared<LiteralExpression>(
-            ExpressionUtil::evaluateAsLiteralValue(*queryExpression),
-            queryExpression->getUniqueName());
-    }
-    Binder binder{context};
-    const auto expr = binder.getExpressionBinder()->implicitCastIfNecessary(literalExpression,
+    auto value = evaluateParamExpr(queryExpression, context,
         LogicalType::ARRAY(indexType.copy(), dimension));
-    const auto value =
-        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expr, context);
     KU_ASSERT(NestedVal::getChildVal(&value, 0)->getDataType() == indexType);
     return convertQueryVector<T>(value);
 }
@@ -226,9 +228,13 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(
     const auto hnswBindData = input.bindData.constPtrCast<QueryHNSWIndexBindData>();
     const auto hnswSharedState = input.sharedState.ptrCast<QueryHNSWIndexSharedState>();
     auto context = input.clientContext;
+    auto val =
+        evaluateParamExpr(hnswBindData->boundInput.kExpression, context, LogicalType::INT64());
+    auto k = ExpressionUtil::getExpressionVal<int64_t>(*hnswBindData->boundInput.kExpression, val,
+        LogicalType::INT64(), validateK);
     HNSWSearchState searchState{context->getTransaction(), context->getMemoryManager(),
         *hnswSharedState->nodeTable, hnswBindData->indexColumnID, hnswSharedState->numNodes,
-        hnswBindData->boundInput.k, hnswBindData->config};
+        static_cast<uint64_t>(k), hnswBindData->config};
     const auto tableID = hnswBindData->boundInput.nodeTableEntry->getTableID();
     auto& semiMasks = hnswSharedState->semiMasks;
     if (semiMasks.containsTableID(tableID)) {
