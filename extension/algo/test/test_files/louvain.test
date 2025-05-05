@@ -3,7 +3,7 @@
 --
 
 -CASE Basic
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
 ---- ok
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
@@ -41,7 +41,7 @@
 5|3|[5,6,7]
 
 -CASE OnlyNodes
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
 ---- ok
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
@@ -67,7 +67,7 @@
 5|1|[5]
 
 -CASE SimplePath
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
 ---- ok
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
@@ -93,7 +93,7 @@
 3|3|[3,4,5]
 
 -CASE Single6Clique
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
 ---- ok
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
@@ -128,7 +128,7 @@
 0|6|[0,1,2,3,4,5]
 
 -CASE Two3Clique
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
 ---- ok
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
@@ -156,7 +156,7 @@
 3|3|[3,4,5]
 
 -CASE Two4Clique
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
 ---- ok
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok

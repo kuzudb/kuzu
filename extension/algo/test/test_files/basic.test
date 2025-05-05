@@ -3,27 +3,27 @@
 --
 
 -CASE InstallOfficialExtension
--STATEMENT INSTALL gds FROM 'http://localhost/extension/repo/'
+-STATEMENT INSTALL algo FROM 'http://localhost/extension/repo/'
 ---- 1
-Extension: gds has been installed from repo: http://localhost/extension/repo/.
--STATEMENT load gds
+Extension: algo has been installed from repo: http://localhost/extension/repo/.
+-STATEMENT load algo
 ---- ok
--STATEMENT load gds
+-STATEMENT load algo
 ---- ok
 
--CASE RunGDSWithoutLoad
+-CASE RunALGOWithoutLoad
 -STATEMENT CALL k_core_decomposition('PK') RETURN node.name, k_degree;
 ---- error
-Catalog exception: function k_core_decomposition is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+Catalog exception: function k_core_decomposition is not defined. This function exists in the ALGO extension. You can install and load the extension by running 'INSTALL ALGO; LOAD EXTENSION ALGO;'.
 -STATEMENT CALL page_rank('PK') RETURN node.fName, rank;
 ---- error
-Catalog exception: function page_rank is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+Catalog exception: function page_rank is not defined. This function exists in the ALGO extension. You can install and load the extension by running 'INSTALL ALGO; LOAD EXTENSION ALGO;'.
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- error
-Catalog exception: function strongly_connected_components_kosaraju is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+Catalog exception: function strongly_connected_components_kosaraju is not defined. This function exists in the ALGO extension. You can install and load the extension by running 'INSTALL ALGO; LOAD EXTENSION ALGO;'.
 -STATEMENT CALL strongly_connected_components('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- error
-Catalog exception: function strongly_connected_components is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+Catalog exception: function strongly_connected_components is not defined. This function exists in the ALGO extension. You can install and load the extension by running 'INSTALL ALGO; LOAD EXTENSION ALGO;'.
 -STATEMENT CALL weakly_connected_components('PK') RETURN node.fName, group_id;
 ---- error
-Catalog exception: function weakly_connected_components is not defined. This function exists in the GDS extension. You can install and load the extension by running 'INSTALL GDS; LOAD EXTENSION GDS;'.
+Catalog exception: function weakly_connected_components is not defined. This function exists in the ALGO extension. You can install and load the extension by running 'INSTALL ALGO; LOAD EXTENSION ALGO;'.

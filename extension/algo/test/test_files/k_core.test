@@ -4,7 +4,7 @@
 
 -CASE KCoreDecomposition 
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
 ---- ok
 -STATEMENT CREATE NODE TABLE User(name STRING PRIMARY KEY, id INT64);
 ---- ok

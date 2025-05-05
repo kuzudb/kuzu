@@ -8,7 +8,7 @@ namespace testing {
 TEST_F(ApiTest, GDSPrepare) {
     ASSERT_TRUE(conn->query(common::stringFormat("LOAD EXTENSION '{}'",
                                 TestHelper::appendKuzuRootPath(
-                                    "extension/gds/build/libgds.kuzu_extension")))
+                                    "extension/algo/build/libalgo.kuzu_extension")))
                     ->isSuccess());
     ASSERT_TRUE(
         conn->query("CALL create_projected_graph('PK', ['person'], ['knows'])")->isSuccess());

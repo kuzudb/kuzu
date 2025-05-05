@@ -4,7 +4,7 @@
 
 -CASE Epinions
 
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'
 ---- ok
 
 -STATEMENT CALL create_projected_graph('G', ['N'], ['R'])
@@ -94,7 +94,7 @@
 
 -CASE high_selectivity
 
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'
 ---- ok
 
 -STATEMENT CALL create_projected_graph('G', {'N': { 'filter': 'n.id >= 1000' }}, ['R'])
@@ -188,7 +188,7 @@
 
 -CASE low_selectivity
 
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/gds/build/libgds.kuzu_extension'
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'
 ---- ok
 
 -STATEMENT CALL create_projected_graph('G', {'N': { 'filter': 'n.id < 1000' }}, ['R'])
