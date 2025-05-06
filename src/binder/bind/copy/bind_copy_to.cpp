@@ -6,7 +6,6 @@
 #include "function/built_in_function_utils.h"
 #include "main/client_context.h"
 #include "parser/copy.h"
-#include "parser/query/regular_query.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
