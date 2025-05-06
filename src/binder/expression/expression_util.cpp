@@ -471,7 +471,21 @@ uint64_t ExpressionUtil::evaluateAsSkipLimit(const Expression& expr) {
 }
 
 template<typename T>
-T ExpressionUtil::evaluateLiteral(const Expression& expression, const LogicalType& type,
+T ExpressionUtil::getExpressionVal(const Expression& expr, const Value& value,
+    const LogicalType& targetType, validate_param_func<T> validateParamFunc) {
+    if (value.getDataType() != targetType) {
+        throw RuntimeException{common::stringFormat("Parameter: {} must be a {} literal.",
+            expr.getAlias(), targetType.toString())};
+    }
+    T val = value.getValue<T>();
+    if (validateParamFunc != nullptr) {
+        validateParamFunc(val);
+    }
+    return val;
+}
+
+template<typename T>
+T ExpressionUtil::evaluateLiteral(const Expression& expression, const common::LogicalType& type,
     validate_param_func<T> validateParamFunc) {
     if (!canEvaluateAsLiteral(expression)) {
         std::string errMsg;
@@ -486,16 +500,24 @@ T ExpressionUtil::evaluateLiteral(const Expression& expression, const LogicalTyp
         throw RuntimeException{errMsg};
     }
     auto value = evaluateAsLiteralValue(expression);
-    if (value.getDataType() != type) {
-        throw RuntimeException{stringFormat("Parameter: {} must be a {} literal.",
-            expression.getAlias(), type.toString())};
-    }
-    T val = value.getValue<T>();
-    if (validateParamFunc != nullptr) {
-        validateParamFunc(val);
-    }
-    return val;
+    return getExpressionVal(expression, value, type, validateParamFunc);
 }
+
+template KUZU_API std::string ExpressionUtil::getExpressionVal(const Expression& expr,
+    const common::Value& value, const common::LogicalType& targetType,
+    validate_param_func<std::string> validateParamFunc);
+
+template KUZU_API double ExpressionUtil::getExpressionVal(const Expression& expr,
+    const common::Value& value, const common::LogicalType& targetType,
+    validate_param_func<double> validateParamFunc);
+
+template KUZU_API int64_t ExpressionUtil::getExpressionVal(const Expression& expr,
+    const common::Value& value, const common::LogicalType& targetType,
+    validate_param_func<int64_t> validateParamFunc);
+
+template KUZU_API bool ExpressionUtil::getExpressionVal(const Expression& expr,
+    const common::Value& value, const common::LogicalType& targetType,
+    validate_param_func<bool> validateParamFunc);
 
 template KUZU_API std::string ExpressionUtil::evaluateLiteral<std::string>(
     const Expression& expression, const LogicalType& type,

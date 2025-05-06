@@ -8,6 +8,7 @@ add_subdirectory(src/catalog)
 add_subdirectory(src/function)
 add_subdirectory(src/index)
 add_subdirectory(src/main)
+add_subdirectory(test)
 
 build_extension_lib(${BUILD_STATIC_EXTENSION} "vector")
 

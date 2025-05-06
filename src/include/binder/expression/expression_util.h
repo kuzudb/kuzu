@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/types/types.h"
 #include "common/types/value/value.h"
 #include "expression.h"
 
@@ -66,6 +67,10 @@ struct KUZU_API ExpressionUtil {
 
     template<typename T>
     using validate_param_func = void(T);
+
+    template<typename T>
+    static T getExpressionVal(const Expression& expr, const common::Value& value,
+        const common::LogicalType& targetType, validate_param_func<T> validateParamFunc = nullptr);
 
     template<typename T>
     static T evaluateLiteral(const Expression& expression, const common::LogicalType& type,
