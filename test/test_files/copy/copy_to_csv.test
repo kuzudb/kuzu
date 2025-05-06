@@ -152,3 +152,11 @@ INT64|INT64|INT64[]|INT64[]
 -STATEMENT LOAD FROM "${DATABASE_PATH}/copy_to_with_filter.csv" RETURN *;
 ---- 1
 2|Bob|2|[12,8]
+
+-CASE CopyToInvalidCase
+-STATEMENT COPY (RETURN 5) to "${DATABASE_PATH}/copy_to_with_filter.CS"
+---- error
+Runtime exception: Exporting query result to the 'CS' file is currently not supported.
+-STATEMENT COPY (RETURN 5) to "${DATABASE_PATH}/copy_to_with_filter.json"
+---- error
+Runtime exception: Exporting query result to the 'json' file is currently not supported."
