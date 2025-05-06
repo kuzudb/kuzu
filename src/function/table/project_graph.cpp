@@ -71,7 +71,9 @@ static std::vector<GraphEntryTableInfo> extractGraphEntryTableInfos(const Value&
         }
     } break;
     default:
-        throw BinderException(stringFormat("Argument {} has data type {}. LIST or STRUCT was expected.", value.toString(), value.getDataType().toString()));
+        throw BinderException(
+            stringFormat("Argument {} has data type {}. LIST or STRUCT was expected.",
+                value.toString(), value.getDataType().toString()));
     }
     return infos;
 }
