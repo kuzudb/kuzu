@@ -17,7 +17,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto boundFilePath = copyToStatement.getFilePath();
     auto fileTypeInfo = bindFileTypeInfo({boundFilePath});
     std::vector<std::string> columnNames;
-    auto parsedQuery = copyToStatement.getStatement()->constPtrCast<RegularQuery>();
+    auto parsedQuery = copyToStatement.getStatement();
     auto query = bindQuery(*parsedQuery);
     auto columns = query->getStatementResult()->getColumns();
     auto fileTypeStr = fileTypeInfo.fileTypeStr;
