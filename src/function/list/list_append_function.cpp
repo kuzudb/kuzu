@@ -1,3 +1,4 @@
+#include <iostream>
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
@@ -38,11 +39,37 @@ static void resolveEmptyList(const ScalarBindFuncInput& input, std::vector<Logic
     if (isEmpty)
     {
         auto elementType = input.arguments[1]->getDataType().copy();
+        if (elementType.getLogicalTypeID() == LogicalTypeID::ANY)
+            elementType = LogicalType(LogicalTypeID::INT64);
 
         types[0] = LogicalType::LIST(elementType.copy()).copy();
         types[1] = elementType.copy();
     }
+
 }
+
+
+static void resolveNulls(std::vector<LogicalType>& types)
+{
+    auto isArg0AnyType = types[0].getLogicalTypeID() == LogicalTypeID::ANY;
+    auto isArg1AnyType = types[1].getLogicalTypeID() == LogicalTypeID::ANY;
+    
+
+    LogicalType targetType;
+    if (isArg0AnyType && isArg1AnyType) {
+        targetType = LogicalType::INT64();
+    } else if (isArg0AnyType) {
+        targetType = types[0].copy();
+    } else if (isArg1AnyType) {
+        targetType = ListType::getChildType(types[1]).copy();
+    } else {
+        return;
+    }
+    types[0] = LogicalType::LIST(targetType.copy());
+    types[1] = targetType.copy();
+}
+
+
 
 //TODO: Check if this can be deleted
 static void validateArgumentType(const binder::expression_vector& arguments) {
@@ -65,6 +92,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     types.push_back(input.arguments[1]->getDataType().copy());
 
     resolveEmptyList(input, types);
+    resolveNulls(types);
 
 
     if (ListType::getChildType(types[0]) != types[1])
@@ -80,7 +108,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
             scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
                 list_entry_t, ListAppend>;
         });
-    return FunctionBindData::getSimpleBindData(input.arguments, types[0]);
+    return std::make_unique<FunctionBindData>(std::move(types), types[0].copy());
 }
 
 function_set ListAppendFunction::getFunctionSet() {
