@@ -572,15 +572,20 @@ Binder exception: Cannot find property since for k.
 ---- ok
 -STATEMENT COPY movies FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vMovies.csv";
 ---- ok
--STATEMENT call fsm_info() return *
----- 0
 -STATEMENT drop table movies
 ---- ok
 -STATEMENT checkpoint
 ---- ok
--STATEMENT call fsm_info() return sum(num_pages) > 0
+
+-STATEMENT create node table movies (name STRING, length INT32, note STRING, description STRUCT(rating DOUBLE, stars INT8, views INT64, release TIMESTAMP, release_ns TIMESTAMP_NS, release_ms TIMESTAMP_MS, release_sec TIMESTAMP_SEC, release_tz TIMESTAMP_TZ, film DATE, u8 UINT8, u16 UINT16, u32 UINT32, u64 UINT64, hugedata INT128), content BYTEA, audience MAP(STRING, INT64), grade union(credit boolean, grade1 double, grade2 int64), PRIMARY KEY (name));
+---- ok
+-STATEMENT COPY movies FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vMovies.csv";
+---- ok
+-STATEMENT call fsm_info() return *
+---- 0
+-STATEMENT CALL storage_info('movies') where start_page_idx = 0 return count(*)
 ---- 1
-True
+1
 
 -CASE DropNodeTableRollbackRecovery
 -SKIP_IN_MEM
@@ -625,8 +630,6 @@ True
 ---- ok
 -STATEMENT COPY knows FROM ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"];
 ---- ok
--STATEMENT call fsm_info() return *
----- 0
 -STATEMENT drop table knows
 ---- ok
 -STATEMENT checkpoint
@@ -634,9 +637,17 @@ True
 -STATEMENT match (a)-[k:knows]->(b) return a.id, b.id
 ---- error
 Binder exception: Table knows does not exist.
--STATEMENT call fsm_info() return sum(num_pages) > 0
+
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-STATEMENT COPY knows FROM ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"];
+---- ok
+-STATEMENT call fsm_info() return *
+---- 0
+-STATEMENT CALL storage_info('person') where start_page_idx < 4294967295 with max(start_page_idx + num_pages) as expected_start_page_idx
+        CALL storage_info('knows') where start_page_idx = expected_start_page_idx return count(*)
 ---- 1
-True
+1
 
 -CASE DropRelTableRollbackRecovery
 -SKIP_IN_MEM

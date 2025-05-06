@@ -125,16 +125,14 @@ True
 ---- 0
 -STATEMENT match (p:Post) delete p
 ---- ok
--STATEMENT call fsm_info() return sum(num_pages) > 0
----- 1
-True
-# copy again, most of the free pages should be reused
+# copy again, page allocation should start from 0 as the dropped pages are reclaimed + truncated
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 ---- ok
-# if most free pages were used the start page idx of free entries should be much larger than their size
--STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages, min(start_page_idx > 3 * num_pages) as check return num_free_pages is null or check
+-STATEMENT call fsm_info() return *
+---- 0
+-STATEMENT CALL storage_info('Post') where start_page_idx = 0 return count(*)
 ---- 1
-True
+1
 -RELOADDB
 # try some queries
 -STATEMENT match(p:Post) return count(*)

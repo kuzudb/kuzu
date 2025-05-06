@@ -53,6 +53,12 @@ def compare_page_range_lists(used_list, free_list):
     assert combine_adjacent_page_ranges(used_list) == free_list
 
 
+def prevent_data_file_truncation(conn):
+    conn.execute("CREATE NODE TABLE IF NOT EXISTS TMP(ID INT64, PRIMARY KEY(ID))")
+    conn.execute("CREATE (:TMP{id: 1})")
+    conn.execute("CREATE (:TMP{id: 2})")
+
+
 @pytest.fixture
 def fsm_node_table_setup(tmp_path: Path):
     db = kuzu.Database(tmp_path)
@@ -100,6 +106,7 @@ def test_fsm_reclaim_list_column(fsm_node_table_setup) -> None:
     _, conn = fsm_node_table_setup
     used_pages = get_used_page_ranges(conn, "person", "workedHours")
     conn.execute("alter table person drop workedHours")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
@@ -109,6 +116,7 @@ def test_fsm_reclaim_string_column(fsm_node_table_setup) -> None:
     _, conn = fsm_node_table_setup
     used_pages = get_used_page_ranges(conn, "person", "fName")
     conn.execute("alter table person drop fName")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
@@ -118,6 +126,7 @@ def test_fsm_reclaim_list_of_lists(fsm_node_table_setup) -> None:
     _, conn = fsm_node_table_setup
     used_pages = get_used_page_ranges(conn, "person", "courseScoresPerTerm")
     conn.execute("alter table person drop courseScoresPerTerm")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
@@ -127,33 +136,41 @@ def test_fsm_reclaim_node_table(fsm_node_table_setup) -> None:
     _, conn = fsm_node_table_setup
     used_pages = get_used_page_ranges(conn, "person")
     conn.execute("drop table person")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
+
 
 def test_fsm_reclaim_node_table_delete(fsm_node_table_setup) -> None:
     _, conn = fsm_node_table_setup
     used_pages = get_used_page_ranges(conn, "person")
     conn.execute("match (p:person) delete p")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
+
 
 def test_fsm_reclaim_rel_table(fsm_rel_table_setup) -> None:
     _, conn = fsm_rel_table_setup
     used_pages = get_used_page_ranges(conn, "knows")
     conn.execute("drop table knows")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
+
 
 def test_fsm_reclaim_rel_table_delete(fsm_node_table_setup) -> None:
     _, conn = fsm_node_table_setup
     used_pages = get_used_page_ranges(conn, "person")
     conn.execute("match (p:person) delete p")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
+
 
 def test_fsm_reclaim_struct(fsm_rel_table_setup) -> None:
     _, conn = fsm_rel_table_setup
@@ -161,6 +178,7 @@ def test_fsm_reclaim_struct(fsm_rel_table_setup) -> None:
         conn, "knows", "bwd_summary"
     )
     conn.execute("alter table knows drop summary")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
@@ -172,6 +190,7 @@ def test_fsm_reclaim_rel_group(fsm_rel_group_setup) -> None:
         conn, "likes_personB_personA"
     )
     conn.execute("drop table likes")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
@@ -186,6 +205,7 @@ def test_fsm_reclaim_rel_group_column(fsm_rel_group_setup) -> None:
         + get_used_page_ranges(conn, "likes_personB_personA", "bwd_date")
     )
     conn.execute("alter table likes drop date")
+    prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
     free_pages = get_free_page_ranges(conn)
     compare_page_range_lists(used_pages, free_pages)
