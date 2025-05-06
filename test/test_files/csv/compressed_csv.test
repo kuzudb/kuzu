@@ -64,4 +64,11 @@ IO exception: Writing to compressed files is not supported yet.
 -CASE ReadFromParquetError
 -STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/invalid-compressed-gz/user.parquet.gz" return *
 ---- error
-IO exception: Kuzu currently only support reading from compressed csv files.
+IO exception: Kuzu currently only supports reading from compressed csv files.
+
+-CASE ReadFromGZIPExtension
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/city.csv.gzip" return *
+---- 3
+Guelph|75000
+Kitchener|200000
+Waterloo|150000

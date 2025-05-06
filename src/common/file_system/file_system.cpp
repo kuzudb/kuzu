@@ -64,7 +64,8 @@ void FileSystem::reset(kuzu::common::FileInfo& fileInfo) {
 }
 
 bool FileSystem::isGZIPCompressed(const std::filesystem::path& path) {
-    return StringUtils::getLower(path.extension().string()) == ".gz";
+    auto extensionLowerCase = StringUtils::getLower(path.extension().string());
+    return extensionLowerCase == ".gz" || extensionLowerCase == ".gzip";
 }
 
 } // namespace common
