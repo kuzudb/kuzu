@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "benchmark_parser.h"
 #include "spdlog/spdlog.h"
 #include "test_helper.h"
 
@@ -19,10 +20,13 @@ Benchmark::Benchmark(const std::string& benchmarkPath, Database* database, Bench
 }
 
 void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
-    const auto queryConfigs = testing::TestHelper::parseTestFile(benchmarkPath);
-    KU_ASSERT(queryConfigs.size() == 1);
-    const auto queryConfig = queryConfigs[0].get();
+    BenchmarkParser parser;
+    const auto parsedBenchmarks = parser.parseBenchmarkFile(benchmarkPath);
+    KU_ASSERT(parsedBenchmarks.size() == 1);
+    const auto queryConfig = parsedBenchmarks[0].get();
+    preRun = queryConfig->preRun;
     query = queryConfig->query;
+    postRun = queryConfig->postRun;
     name = queryConfig->name;
     expectedOutput = queryConfig->expectedTuples;
     compareResult = queryConfig->compareResult;

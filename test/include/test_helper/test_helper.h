@@ -12,7 +12,9 @@ namespace testing {
 
 struct TestQueryConfig {
     std::string name;
+    std::string preRun;
     std::string query;
+    std::string postRun;
     uint64_t numThreads = 4;
     uint64_t expectedNumTuples = 0;
     std::vector<std::string> expectedTuples;
@@ -40,9 +42,6 @@ public:
     static void setE2ETestFilesDirectory(const std::string& directory) {
         E2E_TEST_FILES_DIRECTORY = directory;
     }
-
-    static std::vector<std::unique_ptr<TestQueryConfig>> parseTestFile(const std::string& path,
-        bool checkOutputOrder = false);
 
     static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
         bool checkOutputOrder = false);
@@ -128,9 +127,6 @@ public:
 #endif
         return pathStr;
     }
-
-private:
-    static void initializeConnection(TestQueryConfig* config, main::Connection& conn);
 };
 
 } // namespace testing

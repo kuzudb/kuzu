@@ -3,12 +3,13 @@ import datetime
 import logging
 import multiprocessing
 import os
-import psutil
 import re
-import requests
 import shutil
 import subprocess
 import sys
+
+import psutil
+import requests
 
 from serializer import _get_kuzu_version
 
@@ -37,11 +38,14 @@ bm_size = int((max_memory / 1024 ** 2) * .9)
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
 # dataset registration
-datasets = {'ldbc-sf10', 'ldbc-sf100', 'click'}
+datasets = {'ldbc-sf10', 'ldbc-sf100', 'click', 'graph500-27', 'soc-livejournal', 'datagen-sf10k'}
 datasets_benchmark_severs_url_key = {
     'ldbc-sf10': 'BENCHMARK_SERVER_URL',
     'ldbc-sf100': 'BENCHMARK_SERVER_URL',
-    'click': 'CLICK_BENCHMARK_SERVER_URL'
+    'click': 'CLICK_BENCHMARK_SERVER_URL',
+    'graph500-27': 'GRAPH500_BENCHMARK_SERVER_URL',
+    'soc-livejournal': 'SOC_LIVEJOURNAL_BENCHMARK_SERVER_URL',
+    'datagen-sf10k': 'DATAGEN_SF10K_BENCHMARK_SERVER_URL',
 }
 
 csv_base_dir = os.getenv('CSV_DIR')
@@ -67,13 +71,19 @@ if jwt_token is None and not is_dry_run:
 datasets_path = {
     'ldbc-sf10-ku': os.path.join(csv_base_dir, 'ldbc-10', 'csv'),
     'ldbc-sf100-ku': os.path.join(csv_base_dir, 'ldbc-100', 'csv'),
-    'click-ku': os.path.join(csv_base_dir, 'click', 'hits')
+    'click-ku': os.path.join(csv_base_dir, 'click', 'hits'),
+    'graph500-27-ku': os.path.join(csv_base_dir, 'graph500-27', 'csv'),
+    'soc-livejournal-ku': os.path.join(csv_base_dir, 'soc-livejournal', 'csv'),
+    'datagen-sf10k-ku': os.path.join(csv_base_dir, 'datagen-sf10k', 'csv'),
 }
 
 serialized_graphs_path = {
     'ldbc-sf10-ku': os.path.join(serialized_base_dir, 'ldbc-sf10-serialized'),
     'ldbc-sf100-ku': os.path.join(serialized_base_dir, 'ldbc-sf100-serialized'),
-    'click-ku': os.path.join(serialized_base_dir, 'click-serialized')
+    'click-ku': os.path.join(serialized_base_dir, 'click-serialized'),
+    'graph500-27-ku': os.path.join(serialized_base_dir, 'graph500-27-serialized'),
+    'soc-livejournal-ku': os.path.join(serialized_base_dir, 'soc-livejournal-serialized'),
+    'datagen-sf10k-ku': os.path.join(serialized_base_dir, 'datagen-sf10k-serialized'),
 }
 
 benchmark_copy_log_dir = os.path.join("/tmp", 'benchmark_copy_logs')

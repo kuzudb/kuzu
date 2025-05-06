@@ -1,0 +1,46 @@
+name: ClickBench
+on:
+  schedule:
+    - cron: "0 5 * * *"
+
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  click_benchmark:
+    name: soc-livejournal benchmark
+    env:
+      NUM_THREADS: 128
+      GEN: Ninja
+    runs-on: kuzu-self-hosted-benchmarking-xl
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: make benchmark
+
+      - name: Benchmark
+        continue-on-error: true
+        run: |
+          set +e
+          python3 benchmark/benchmark_runner.py --dataset soc-livejournal --thread 100
+          echo $? > benchmark/exit_code
+
+      - name: Upload benchmark logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-logs
+          path: /tmp/benchmark_logs
+
+      - name: Upload comparison results
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparison-results
+          path: benchmark/compare_result.md
+
+      - name: Fail if benchmark failed
+        run: |
+          if [ $(cat benchmark/exit_code) -ne 0 ]; then
+            echo "Benchmark failed"
+            exit 1
+          fi

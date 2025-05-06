@@ -1,0 +1,15 @@
+-NAME KCore
+-PRERUN LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'; CALL PROJECT_GRAPH('PK', ['person'], ['knows']);
+-QUERY CALL k_core_decomposition('PK') RETURN k_degree, count(*) as count ORDER BY k_degree DESC LIMIT 10;
+---- 10
+512|262
+510|8
+499|376
+498|1
+495|6
+494|9
+492|12
+490|16
+488|8
+486|1
+-POSTRUN CALL DROP_PROJECTED_GRAPH('PK');
