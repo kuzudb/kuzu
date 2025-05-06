@@ -28,13 +28,25 @@ struct ListPrepend {
     }
 };
 
-static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    if (input.arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
-        input.arguments[1]->dataType != ListType::getChildType(input.arguments[0]->dataType)) {
+static void validateArgumentType(const binder::expression_vector& arguments) {
+
+    if (arguments[0]->getChildren().empty())
+        return;
+
+    if (arguments[1]->getChildren().empty())
+        return;
+
+    if (arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
+        arguments[1]->dataType != ListType::getChildType(arguments[0]->dataType)) {
         throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
-            ListPrependFunction::name, input.arguments[0]->getDataType().toString(),
-            input.arguments[1]->getDataType().toString()));
+            ListPrependFunction::name, arguments[0]->getDataType().toString(),
+            arguments[1]->getDataType().toString()));
     }
+}
+
+
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
+    validateArgumentType(input.arguments);
     const auto& resultType = input.arguments[0]->getDataType();
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),
