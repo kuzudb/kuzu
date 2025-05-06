@@ -47,7 +47,7 @@ Greg|3
 Harry|2
 Ian|1
 James|1
--STATEMENT CALL PROJECT_GRAPH('PK2', ['User'], {'friend': {'filter': 'r.id < 10'}});
+-STATEMENT CALL PROJECT_GRAPH('PK2', ['User'], {'friend': 'r.id < 10'});
 ---- ok
 -STATEMENT CALL k_core_decomposition('PK2') RETURN node.name, k_degree;
 ---- 10
@@ -61,7 +61,7 @@ Greg|2
 Harry|1
 Ian|0
 James|0
--STATEMENT CALL PROJECT_GRAPH('PK3', {'User': {'filter': 'n.id > 3'}}, {'friend': {'filter': 'r.id <= 11'}});
+-STATEMENT CALL PROJECT_GRAPH('PK3', {'User': 'n.id > 3'}, {'friend': 'r.id <= 11'});
 ---- ok
 -STATEMENT CALL k_core_decomposition('PK3') RETURN node.name, k_degree;
 ---- 7
@@ -72,7 +72,7 @@ Greg|3
 Harry|1
 Ian|0
 James|0
--STATEMENT CALL PROJECT_GRAPH('PK4', {'User': {'filter': 'n.id > 3 AND n.id < 7'}}, {'friend': {'filter': 'r.id >= 0'}});
+-STATEMENT CALL PROJECT_GRAPH('PK4', {'User': 'n.id > 3 AND n.id < 7'}, {'friend': 'r.id >= 0'});
 ---- ok
 -STATEMENT CALL k_core_decomposition('PK4') RETURN node.name, k_degree;
 ---- 3

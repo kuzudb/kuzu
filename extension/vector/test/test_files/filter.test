@@ -14,7 +14,7 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': {'filter': 'n.id < 100'}}, []);
+-STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': 'n.id < 100'}, []);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
@@ -52,7 +52,7 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': {'filter': 'n.id < 50'}}, []);
+-STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': 'n.id < 50'}, []);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
@@ -78,7 +78,7 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': {'filter': 'n.id < 600'}}, []);
+-STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': 'n.id < 600'}, []);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
@@ -104,7 +104,7 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': {'filter': 'n.id < 100'}}, []);
+-STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': 'n.id < 100'}, []);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
@@ -130,7 +130,7 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': {'filter': 'n.id < 50'}}, []);
+-STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': 'n.id < 50'}, []);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
@@ -156,7 +156,7 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': {'filter': 'n.id < 600'}}, []);
+-STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': 'n.id < 600'}, []);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
@@ -182,7 +182,7 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': {'filter': 'n.id < 100'}}, []);
+-STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': 'n.id < 100'}, []);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
@@ -208,7 +208,7 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': {'filter': 'n.id < 50'}}, []);
+-STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': 'n.id < 50'}, []);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
@@ -234,7 +234,7 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': {'filter': 'n.id < 600'}}, []);
+-STATEMENT CALL PROJECT_GRAPH('emb-graph', {'embeddings': 'n.id < 600'}, []);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER

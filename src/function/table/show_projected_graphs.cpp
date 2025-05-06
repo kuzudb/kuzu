@@ -50,11 +50,11 @@ static std::string getNodeOrRelInfo(const std::vector<graph::GraphEntryTableInfo
     if (tableInfo.empty()) {
         return "";
     }
-    std::string info = "{";
+    std::string info = "[";
     for (auto i = 0u; i < tableInfo.size(); i++) {
         info += tableInfo[i].toString();
         if (i == tableInfo.size() - 1) {
-            info += "}";
+            info += "]";
         } else {
             info += ",";
         }

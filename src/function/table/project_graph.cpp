@@ -1,6 +1,5 @@
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
-#include "common/string_utils.h"
 #include "common/types/value/nested.h"
 #include "function/gds/gds.h"
 #include "function/table/bind_data.h"
@@ -49,54 +48,31 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     return 0;
 }
 
-static std::vector<std::string> getAsStringVector(const Value& value) {
-    std::vector<std::string> result;
-    for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
-        auto childVal = NestedVal::getChildVal(&value, i);
-        childVal->validateType(LogicalTypeID::STRING);
-        result.push_back(childVal->getValue<std::string>());
-    }
-    return result;
-}
-
-static std::string getPredicateStr(Value& val) {
-    auto& type = val.getDataType();
-    if (type.getLogicalTypeID() != LogicalTypeID::STRUCT) {
-        throw BinderException(stringFormat("{} has data type {}. STRUCT was expected.",
-            val.toString(), type.toString()));
-    }
-    auto numFields = StructType::getNumFields(type);
-    for (auto i = 0u; i < numFields; i++) {
-        auto fieldName = StructType::getField(type, i).getName();
-        if (StringUtils::getUpper(fieldName) == "FILTER") {
-            const auto childVal = NestedVal::getChildVal(&val, i);
-            childVal->validateType(LogicalTypeID::STRING);
-            return childVal->getValue<std::string>();
-        }
-        throw BinderException(stringFormat(
-            "Unrecognized configuration {}. Supported configuration is 'filter'.", fieldName));
-    }
-    return {};
+static std::string getStringVal(const Value& value) {
+    value.validateType(LogicalTypeID::STRING);
+    return value.getValue<std::string>();
 }
 
 static std::vector<GraphEntryTableInfo> extractGraphEntryTableInfos(const Value& value) {
     std::vector<GraphEntryTableInfo> infos;
     switch (value.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::LIST: {
-        for (auto name : getAsStringVector(value)) {
-            infos.emplace_back(name, "" /* empty predicate */);
+        for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
+            auto tableName = getStringVal(*NestedVal::getChildVal(&value, i));
+            infos.emplace_back(tableName, "" /* empty predicate */);
         }
     } break;
     case LogicalTypeID::STRUCT: {
         for (auto i = 0u; i < StructType::getNumFields(value.getDataType()); ++i) {
             auto& field = StructType::getField(value.getDataType(), i);
-            infos.emplace_back(field.getName(),
-                getPredicateStr(*NestedVal::getChildVal(&value, i)));
+            auto tableName = field.getName();
+            auto predicate = getStringVal(*NestedVal::getChildVal(&value, i));
+            infos.emplace_back(tableName, predicate);
         }
     } break;
     default:
         throw BinderException(
-            stringFormat("Input argument {} has data type {}. STRUCT or LIST was expected.",
+            stringFormat("Argument {} has data type {}. LIST or STRUCT was expected.",
                 value.toString(), value.getDataType().toString()));
     }
     return infos;

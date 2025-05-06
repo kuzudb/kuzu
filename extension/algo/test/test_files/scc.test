@@ -50,7 +50,7 @@
 6|1|[6]
 7|1|[7]
 8|1|[8]
--STATEMENT CALL PROJECT_GRAPH('Graph2', {'Node': {'filter': 'n.ID > 0'}}, ['Edge'])
+-STATEMENT CALL PROJECT_GRAPH('Graph2', {'Node': 'n.ID > 0'}, ['Edge'])
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph2') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 8
@@ -196,7 +196,7 @@
 2|1|[2]
 5|3|[5,7,8]
 
--STATEMENT CALL PROJECT_GRAPH('Graph2', ['Node'], {'Edge': {'filter': 'r.ID <> 17 '}})
+-STATEMENT CALL PROJECT_GRAPH('Graph2', ['Node'], {'Edge': 'r.ID <> 17'})
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph2') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 4
@@ -211,7 +211,7 @@
 2|1|[2]
 5|3|[5,7,8]
 
--STATEMENT CALL PROJECT_GRAPH('Graph3', {'Node': {'filter': 'n.ID <> 4'}}, {'Edge': {'filter': 'r.ID <> 23 '}})
+-STATEMENT CALL PROJECT_GRAPH('Graph3', {'Node': 'n.ID <> 4'}, {'Edge': 'r.ID <> 23 '})
 ---- ok
 -STATEMENT CALL strongly_connected_components_kosaraju('Graph3') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 8
@@ -250,7 +250,7 @@
 -STATEMENT CALL strongly_connected_components('Graph4') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 1
 0|10|[0,1,2,3,4,5,6,7,8,10]
--STATEMENT CALL PROJECT_GRAPH('Graph5', {'Node': {'filter': ''}, 'N': {'filter': 'n.ID < 4'}}, ['Edge', 'R1', 'R2'])
+-STATEMENT CALL PROJECT_GRAPH('Graph5', {'Node': '', 'N':'n.ID < 4'}, ['Edge', 'R1', 'R2'])
 ---- ok
 -STATEMENT CALL strongly_connected_components('Graph5') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
 ---- 3
