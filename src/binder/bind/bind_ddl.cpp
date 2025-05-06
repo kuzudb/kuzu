@@ -29,6 +29,9 @@
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 
+#include "parser/query/regular_query.h"
+#include <iostream>
+
 using namespace kuzu::common;
 using namespace kuzu::parser;
 using namespace kuzu::catalog;
@@ -280,30 +283,25 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
 std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& statement) {
     auto createTable = statement.constPtrCast<CreateTable>();
 
-    auto boundInnerQuery = bindQuery(*createTable->getSource()->statement.get());
-    auto innerQueryResult = boundInnerQuery->getStatementResult();
+    auto innerQueryResult = bindQuery(*(createTable->getInnerQuery()->constPtrCast<RegularQuery>()))->getStatementResult();
     auto columnNames = innerQueryResult->getColumnNames();
     auto columnTypes = innerQueryResult->getColumnTypes();
     std::vector<PropertyDefinition> propertyDefinitions;
     propertyDefinitions.reserve(columnNames.size());
+
+    std::cout << columnNames.size() << ", " << columnTypes.size() << ", " << innerQueryResult->getColumns().size() << std::endl;
+
     for (size_t i = 0; i < columnNames.size(); ++i) {
-        propertyDefinitions.emplace_back(
-            ColumnDefinition(std::string(columnNames[i]), columnTypes[i].copy()));
+        propertyDefinitions.emplace_back(ColumnDefinition(std::string(columnNames[i]), columnTypes[i].copy()));
     }
 
-    auto parsingOptions = options_t{}; // temp
-    // first column is primary key column temporarily for now
-    auto pkName = columnNames[0];
     auto createInfo = createTable->getInfo();
-    auto boundCopyFromInfo = bindCopyNodeFromInfo(createInfo->tableName,
-        propertyDefinitions, createTable->getSource(), std::move(parsingOptions),
-        columnNames, columnTypes);
-    auto boundExtraInfo =
-        std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
-    auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
-        createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
-        clientContext->useInternalCatalogEntry());
-    return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo), std::move(boundCopyFromInfo));
+    // first column is primary key column temporarily for now
+    auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(columnNames[0], std::move(propertyDefinitions));
+    auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, createInfo->tableName,
+        createInfo->onConflict, std::move(boundExtraInfo), clientContext->useInternalCatalogEntry());
+    
+    return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) const {

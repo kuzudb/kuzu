@@ -14,6 +14,9 @@
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 
+#include <iostream>
+#include "parser/ddl/create_table.h"
+
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -27,11 +30,11 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     std::unique_ptr<BoundStatement> boundStatement;
     switch (statement.getStatementType()) {
     case StatementType::CREATE_TABLE: {
-        if (statement.constPtrCast<CreateTable>()->getSource()) {
+        if (statement.constPtrCast<CreateTable>()->hasInnerQuery()) {
             boundStatement = bindCreateTableAs(statement);
         } else {
             boundStatement = bindCreateTable(statement);
-        }
+        } // (statement.constPtrCast<CreateTableAs>() ? bindCreateTableAs(statement) : bindCreateTable(statement));
     } break;
     case StatementType::CREATE_TYPE: {
         boundStatement = bindCreateType(statement);

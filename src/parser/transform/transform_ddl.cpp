@@ -78,6 +78,14 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     }
 }
 
+std::unique_ptr<Statement> Transformer::transformCreateNodeTableAs(
+    CypherParser::KU_CreateNodeTableAsContext& ctx) {
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto createTableInfo = CreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, tableName,
+        ConflictAction::ON_CONFLICT_THROW); // todo: parse conflict action (?)
+    return std::make_unique<CreateTable>(std::move(createTableInfo), transformQuery(*ctx.oC_Query()));
+}
+
 static bool requireRelGroup(const std::vector<std::pair<std::string, std::string>>& fromToPairs) {
     return fromToPairs.size() > 1;
 }
