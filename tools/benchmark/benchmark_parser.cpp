@@ -22,7 +22,7 @@ std::vector<std::unique_ptr<ParsedBenchmark>> BenchmarkParser::parseBenchmarkFil
     if (access(path.c_str(), 0) != 0) {
         throw common::Exception("Test file not exists! [" + path + "].");
     }
-    struct stat status{};
+    struct stat status {};
     stat(path.c_str(), &status);
     if (status.st_mode & S_IFDIR) {
         throw common::Exception("Test file is a directory. [" + path + "].");
