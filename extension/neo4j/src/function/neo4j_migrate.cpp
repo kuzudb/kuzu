@@ -1,5 +1,6 @@
 #include "function/neo4j_migrate.h"
 
+#include "binder/ddl/property_definition.h"
 #include "binder/expression/literal_expression.h"
 #include "common/enums/table_type.h"
 #include "common/exception/runtime.h"
@@ -165,6 +166,8 @@ void exportNeo4jRelToCSV(std::string relName, std::pair<std::string, std::string
 LogicalType convertFromNeo4jTypeStr(const std::string& neo4jTypeStr) {
     if (neo4jTypeStr == "Long") {
         return LogicalType{LogicalTypeID::INT64};
+    } else if (neo4jTypeStr == "Integer") {
+        return LogicalType{LogicalTypeID::INT32};
     } else if (neo4jTypeStr == "String") {
         return LogicalType{LogicalTypeID::STRING};
     } else if (neo4jTypeStr == "Date") {
@@ -175,6 +178,8 @@ LogicalType convertFromNeo4jTypeStr(const std::string& neo4jTypeStr) {
         return LogicalType{LogicalTypeID::BOOL};
     } else if (neo4jTypeStr == "Double") {
         return LogicalType{LogicalTypeID::DOUBLE};
+    } else if (neo4jTypeStr == "Float") {
+        return LogicalType{LogicalTypeID::FLOAT};
     } else if (neo4jTypeStr == "LongArray") {
         return LogicalType::LIST(LogicalType::INT64());
     } else if (neo4jTypeStr == "DoubleArray") {
@@ -187,6 +192,15 @@ LogicalType convertFromNeo4jTypeStr(const std::string& neo4jTypeStr) {
     }
 }
 
+static LogicalType inferKuzuType(nlohmann::json types) {
+    auto kuType = convertFromNeo4jTypeStr(types[0].get<std::string>());
+    for (auto i = 1u; i < types.size(); i++) {
+        kuType = LogicalTypeUtils::combineTypes(
+            convertFromNeo4jTypeStr(types[i].get<std::string>()), kuType);
+    }
+    return kuType;
+}
+
 std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli,
     const std::string& nodeName) {
     auto neo4jQuery = common::stringFormat(
@@ -194,31 +208,36 @@ std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli
         "nodeType = ':`{}`' return propertyName,propertyTypes",
         nodeName);
     auto data = executeNeo4jQuery(cli, neo4jQuery);
-    std::string properties = "";
-    std::string propertiesToCopy = "";
+    std::vector<binder::ColumnDefinition> propertyDefinitions;
     for (const auto& item : data) {
         if (item["row"][0].is_null()) {
             // Skip null properties.
             continue;
         }
         auto property = item["row"][0].get<std::string>();
-        properties += property;
-        auto types = item["row"][1];
-        auto kuType = convertFromNeo4jTypeStr(types[0].get<std::string>());
-        for (auto i = 1u; i < types.size(); i++) {
-            kuType = LogicalTypeUtils::combineTypes(
-                convertFromNeo4jTypeStr(types[i].get<std::string>()), kuType);
-        }
-        propertiesToCopy += ", " + property;
-        properties += (" " + kuType.toString() + ",");
+        auto kuType = inferKuzuType(item["row"][1]);
+        propertyDefinitions.emplace_back(property, kuType.copy());
+    }
+    // According to neo4j doc: https://neo4j.com/docs/apoc/current/export/csv/:
+    // Labels exported are ordered alphabetically. So we have to reorder the properties in the DDL.
+    std::sort(propertyDefinitions.begin(), propertyDefinitions.end(),
+        [](const binder::ColumnDefinition& left, const binder::ColumnDefinition& right) {
+            return left.name < right.name;
+        });
+    std::string ddlProperties = "";
+    std::string propertiesToCopy = "";
+    for (auto& propertyDefinition : propertyDefinitions) {
+        ddlProperties += propertyDefinition.name;
+        ddlProperties += (" " + propertyDefinition.type.toString() + ",");
+        propertiesToCopy += ", " + propertyDefinition.name;
     }
     return {common::stringFormat("CREATE NODE TABLE `{}` (`_id_` int64, {} PRIMARY KEY(_id_));",
-                nodeName, properties),
+                nodeName, ddlProperties),
         common::stringFormat(
             "COPY `{}` FROM (LOAD WITH HEADERS(_id STRING, _labels STRING, {} _start STRING, "
             "_end STRING, _type STRING) FROM '/tmp/{}.csv'(sample_size "
             "= 0, header=true) RETURN _id{});",
-            nodeName, properties, nodeName, propertiesToCopy)};
+            nodeName, ddlProperties, nodeName, propertiesToCopy)};
 }
 
 std::vector<std::string> getRelProperties(httplib::Client& cli, std::string srcLabel,
@@ -231,6 +250,8 @@ std::vector<std::string> getRelProperties(httplib::Client& cli, std::string srcL
     for (auto& row : data[0]["row"]) {
         relProperties.push_back(row.get<std::string>());
     }
+    std::sort(relProperties.begin(), relProperties.end(),
+        [](std::string& left, std::string& right) { return left < right; });
     return relProperties;
 }
 
@@ -242,19 +263,23 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
         "propertyName,propertyTypes",
         relName);
     auto data = executeNeo4jQuery(cli, neo4jQuery);
-    std::string properties = ",";
+
     std::unordered_map<std::string, std::string> propertyTypes;
+    std::vector<binder::ColumnDefinition> propertyDefinitions;
     for (const auto& item : data) {
         auto property = item["row"][0].get<std::string>();
-        properties += property;
-        auto types = item["row"][1];
-        auto kuType = convertFromNeo4jTypeStr(types[0].get<std::string>());
-        for (auto i = 1u; i < types.size(); i++) {
-            kuType = LogicalTypeUtils::combineTypes(
-                convertFromNeo4jTypeStr(types[i].get<std::string>()), kuType);
-        }
-        properties += (" " + kuType.toString() + ",");
+        auto kuType = inferKuzuType(item["row"][1]);
         propertyTypes.emplace(property, kuType.toString());
+        propertyDefinitions.emplace_back(property, kuType.copy());
+    }
+    std::sort(propertyDefinitions.begin(), propertyDefinitions.end(),
+        [](const binder::ColumnDefinition& left, const binder::ColumnDefinition& right) {
+            return left.name < right.name;
+        });
+    std::string ddlProperties = ",";
+    for (auto& propertyDefinition : propertyDefinitions) {
+        ddlProperties += propertyDefinition.name;
+        ddlProperties += (" " + propertyDefinition.type.toString() + ",");
     }
 
     neo4jQuery =
@@ -300,21 +325,20 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
                 propertiesToCopy += ",";
             }
         }
-        auto propertySeparator = propertiesToCopy.empty() ? "" : ", ";
         copyQuery +=
             common::stringFormat("COPY `{}`({}) FROM (LOAD WITH HEADERS(_id STRING, _labels "
                                  "STRING, _start INT64, _end INT64, _type STRING{}) FROM "
                                  "'/tmp/{}_{}_{}.csv'(sample_size=0, header=true) "
                                  "RETURN `_start`, `_end`{} {}) (from = \"{}\", to = \"{}\");",
                 relName, propertiesToCopy, loadFromHeaders, srcLabel, relName, dstLabel,
-                propertySeparator, propertiesToCopy, srcLabel, dstLabel);
+                propertiesToCopy.empty() ? "" : ", ", propertiesToCopy, srcLabel, dstLabel);
     }
     if (nodePairsString.empty()) {
         return "";
     }
     return common::stringFormat("CREATE REL TABLE `{}` ({} {});", relName,
                nodePairsString.substr(0, nodePairsString.size() - 1),
-               properties.substr(0, properties.length() - 1)) +
+               ddlProperties.substr(0, ddlProperties.length() - 1)) +
            copyQuery;
 }
 
