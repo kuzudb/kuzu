@@ -44,7 +44,8 @@ std::unique_ptr<FileInfo> VirtualFileSystem::openFile(const std::string& path, F
         throw common::IOException{"Writing to compressed files is not supported yet."};
     }
     if (common::StringUtils::getLower(getFileExtension(path)) != ".csv") {
-        throw common::IOException{"Kuzu currently only support reading from compressed csv files."};
+        throw common::IOException{
+            "Kuzu currently only supports reading from compressed csv files."};
     }
     return compressedFileSystem.at(compressionType)->openCompressedFile(std::move(fileHandle));
 }
