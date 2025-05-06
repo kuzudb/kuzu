@@ -16,7 +16,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -136,7 +136,7 @@ void FreeSpaceManager::finalizeCheckpoint(FileHandle* fileHandle) {
         }
     }
 
-    mergePageRanges(std::move(uncheckpointedFreePageRanges));
+    mergePageRanges(std::move(uncheckpointedFreePageRanges), fileHandle);
     uncheckpointedFreePageRanges.clear();
 }
 
@@ -145,8 +145,8 @@ void FreeSpaceManager::resetFreeLists() {
     numEntries = 0;
 }
 
-void FreeSpaceManager::mergePageRanges(free_list_t newInitialEntries) {
-    std::vector<PageRange> allEntries = std::move(newInitialEntries);
+void FreeSpaceManager::mergePageRanges(free_list_t newInitialEntries, FileHandle* fileHandle) {
+    free_list_t allEntries = std::move(newInitialEntries);
     for (const auto& freeList : freeLists) {
         allEntries.insert(allEntries.end(), freeList.begin(), freeList.end());
     }
@@ -169,7 +169,15 @@ void FreeSpaceManager::mergePageRanges(free_list_t newInitialEntries) {
             prevEntry = entry;
         }
     }
-    addFreePages(prevEntry);
+    handleLastPageRange(prevEntry, fileHandle);
+}
+
+void FreeSpaceManager::handleLastPageRange(PageRange pageRange, FileHandle* fileHandle) {
+    if (pageRange.startPageIdx + pageRange.numPages == fileHandle->getNumPages()) {
+        fileHandle->removePageIdxAndTruncateIfNecessary(pageRange.startPageIdx);
+    } else {
+        addFreePages(pageRange);
+    }
 }
 
 common::row_idx_t FreeSpaceManager::getNumEntries() const {
