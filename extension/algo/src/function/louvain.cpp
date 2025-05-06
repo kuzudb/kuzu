@@ -6,6 +6,7 @@
 #include "common/in_mem_gds_utils.h"
 #include "common/in_mem_graph.h"
 #include "common/string_utils.h"
+#include "common/task_system/progress_bar.h"
 #include "function/algo_function.h"
 #include "function/config/louvain_config.h"
 #include "function/config/max_iterations_config.h"
@@ -579,6 +580,9 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto louvainBindData = input.bindData->constPtrCast<LouvainBindData>();
     auto config = louvainBindData->getConfig()->constCast<LouvainConfig>();
 
+    auto progressBar = clientContext->getProgressBar();
+    const auto steps = config.maxPhases * config.maxIterations;
+
     FinalResults finalResults(origNumNodes);
     PhaseState state(origNumNodes, mm, input.context);
 
@@ -591,6 +595,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
         // Each iteration attempts to increase the modularity by moving nodes to new communities.
         for (auto iter = 0u; iter < config.maxIterations; ++iter) {
+            double progress = static_cast<double>((phase + 1) * (iter + 1)) / steps;
+
             // Reset state.
             state.startNewIter(mm, input.context);
 
@@ -599,6 +605,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             // sensitive to the order in which the nodes are processed.
             RunIterationVC runIteration(state);
             InMemGDSUtils::runVertexCompute(runIteration, state.graph.numNodes, input.context);
+
+            progressBar->updateProgress(input.context->queryID, progress * 0.5);
 
             // Compute the modularity for the _current_ node communities, i.e., *before* the
             // node movements above. This keeps the logic for computing `sumIntraWeights` simpler.
@@ -625,6 +633,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             std::swap(state.acceptedComm, state.currComm);
             // `nextComm` will be tested for modularity change in the next iteration.
             std::swap(state.currComm, state.nextComm);
+
+            progressBar->updateProgress(input.context->queryID, progress);
         }
         const auto oldCommCount = state.graph.numNodes;
         const auto newCommCount = renumberCommunities(state);

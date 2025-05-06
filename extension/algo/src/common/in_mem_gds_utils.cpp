@@ -1,5 +1,6 @@
 #include "common/in_mem_gds_utils.h"
 
+#include "common/exception/interrupt.h"
 #include "common/task_system/task_scheduler.h"
 #include "function/gds/gds_task.h"
 
@@ -20,6 +21,9 @@ void InMemVertexComputeTask::run() {
 
 void InMemGDSUtils::runVertexCompute(InMemVertexCompute& vc, common::offset_t maxOffset,
     ExecutionContext* context) {
+    if (context->clientContext->interrupted()) {
+        throw common::InterruptException();
+    }
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     const auto task = std::make_shared<InMemVertexComputeTask>(maxThreads, vc, sharedState);
