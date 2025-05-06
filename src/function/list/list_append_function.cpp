@@ -44,7 +44,7 @@ static void resolveEmptyList(const ScalarBindFuncInput& input, std::vector<Logic
     }
 }
 
-
+//TODO: Check if this can be deleted
 static void validateArgumentType(const binder::expression_vector& arguments) {
 
     if (arguments[0]->getChildren().empty())
@@ -75,7 +75,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
 
 
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
-    TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),
+    TypeUtils::visit(types[1].getPhysicalType(),
         [&scalarFunction]<typename T>(T) {
             scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
                 list_entry_t, ListAppend>;
