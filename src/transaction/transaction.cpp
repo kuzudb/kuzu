@@ -68,6 +68,8 @@ bool Transaction::shouldForceCheckpoint() const {
 void Transaction::commit(storage::WAL* wal) {
     localStorage->commit();
     undoBuffer->commit(commitTS);
+    // Optimistic writes can be part of COPY transactions so they need to be managed
+    clientContext->getStorageManager()->getDataFH()->getPageManager()->commit();
     if (isWriteTransaction() && shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logAndFlushCommit();
@@ -81,6 +83,7 @@ void Transaction::commit(storage::WAL* wal) {
 void Transaction::rollback(storage::WAL* wal) {
     localStorage->rollback();
     undoBuffer->rollback(this);
+    clientContext->getStorageManager()->getDataFH()->getPageManager()->rollback();
     if (isWriteTransaction() && shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logRollback();

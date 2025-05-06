@@ -12,12 +12,40 @@ PageRange PageManager::allocatePageRange(common::page_idx_t numPages) {
         common::UniqLock lck{mtx};
         auto allocatedFreeChunk = freeSpaceManager->popFreePages(numPages);
         if (allocatedFreeChunk.has_value()) {
+            pushUncommittedAllocatedPages(*allocatedFreeChunk);
             return {*allocatedFreeChunk};
         }
     }
     auto startPageIdx = fileHandle->addNewPages(numPages);
     KU_ASSERT(fileHandle->getNumPages() >= startPageIdx + numPages);
-    return PageRange(startPageIdx, numPages);
+    auto ret = PageRange(startPageIdx, numPages);
+    pushUncommittedAllocatedPages(ret);
+    return ret;
+}
+
+void PageManager::commit() {
+    uncommittedAllocatedPages.clear();
+}
+
+/**
+ * To rollback we need to do two things:
+ * 1. Free any pages that have been allocated since the last commit/checkpoint
+ * 2. Any pages marked as freed but not checkpointed (e.g. from checkpointing dropped tables) are
+ * no longer freed
+ */
+void PageManager::rollback() {
+    if constexpr (ENABLE_FSM) {
+        common::UniqLock lck(mtx);
+
+        // pages from rolled back allocations are immediately reusable
+        // we don't truncate the file, instead letting that happen during checkpoint
+        for (const auto& pageRange : uncommittedAllocatedPages) {
+            freeSpaceManager->addFreePages(pageRange);
+        }
+    }
+    uncommittedAllocatedPages.clear();
+
+    freeSpaceManager->rollback();
 }
 
 void PageManager::freePageRange(PageRange entry) {
@@ -38,6 +66,14 @@ void PageManager::deserialize(common::Deserializer& deSer) {
 }
 
 void PageManager::finalizeCheckpoint() {
+    uncommittedAllocatedPages.clear();
     freeSpaceManager->finalizeCheckpoint(fileHandle);
 }
+
+void PageManager::pushUncommittedAllocatedPages(PageRange pages) {
+    if (pages.numPages > 0) {
+        uncommittedAllocatedPages.push_back(pages);
+    }
+}
+
 } // namespace kuzu::storage

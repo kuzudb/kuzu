@@ -26,8 +26,11 @@ public:
 
     void serialize(common::Serializer& serializer);
     void deserialize(common::Deserializer& deSer);
+
+    void rollback();
+    void commit();
+
     void finalizeCheckpoint();
-    void rollbackCheckpoint() { freeSpaceManager->rollbackCheckpoint(); }
 
     common::row_idx_t getNumFreeEntries() const { return freeSpaceManager->getNumEntries(); }
     std::vector<PageRange> getFreeEntries(common::row_idx_t startOffset,
@@ -36,7 +39,10 @@ public:
     }
 
 private:
+    void pushUncommittedAllocatedPages(PageRange pages);
+
     std::unique_ptr<FreeSpaceManager> freeSpaceManager;
+    std::vector<PageRange> uncommittedAllocatedPages;
     std::mutex mtx;
     FileHandle* fileHandle;
 };
