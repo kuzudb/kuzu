@@ -150,6 +150,7 @@ public:
   class KU_FilePathsContext;
   class KU_IfNotExistsContext;
   class KU_CreateNodeTableContext;
+  class KU_CreateNodeTableAsContext;
   class KU_CreateRelTableContext;
   class KU_FromToConnectionsContext;
   class KU_FromToConnectionContext;
@@ -334,6 +335,7 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_QueryContext *oC_Query();
     KU_CreateNodeTableContext *kU_CreateNodeTable();
+    KU_CreateNodeTableAsContext *kU_CreateNodeTableAs();
     KU_CreateRelTableContext *kU_CreateRelTable();
     KU_CreateSequenceContext *kU_CreateSequence();
     KU_CreateTypeContext *kU_CreateType();
@@ -678,6 +680,24 @@ public:
   };
 
   KU_CreateNodeTableContext* kU_CreateNodeTable();
+
+  class  KU_CreateNodeTableAsContext : public antlr4::ParserRuleContext {
+  public:
+    KU_CreateNodeTableAsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *CREATE();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *NODE();
+    antlr4::tree::TerminalNode *TABLE();
+    OC_SchemaNameContext *oC_SchemaName();
+    antlr4::tree::TerminalNode *AS();
+    OC_QueryContext *oC_Query();
+
+   
+  };
+
+  KU_CreateNodeTableAsContext* kU_CreateNodeTableAs();
 
   class  KU_CreateRelTableContext : public antlr4::ParserRuleContext {
   public:

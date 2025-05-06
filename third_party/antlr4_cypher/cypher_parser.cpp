@@ -1521,6 +1521,10 @@ CypherParser::KU_CreateNodeTableContext* CypherParser::OC_StatementContext::kU_C
   return getRuleContext<CypherParser::KU_CreateNodeTableContext>(0);
 }
 
+CypherParser::KU_CreateNodeTableAsContext* CypherParser::OC_StatementContext::kU_CreateNodeTableAs() {
+  return getRuleContext<CypherParser::KU_CreateNodeTableAsContext>(0);
+}
+
 CypherParser::KU_CreateRelTableContext* CypherParser::OC_StatementContext::kU_CreateRelTable() {
   return getRuleContext<CypherParser::KU_CreateRelTableContext>(0);
 }
@@ -1847,6 +1851,8 @@ CypherParser::KU_CopyFromContext* CypherParser::kU_CopyFrom() {
     }
     setState(402);
     match(CypherParser::SP);
+    setState(402);
+    match(CypherParser::FROM);
     setState(403);
     match(CypherParser::FROM);
     setState(404);
@@ -2230,11 +2236,13 @@ CypherParser::KU_CopyFromByColumnContext* CypherParser::kU_CopyFromByColumn() {
     setState(471);
     match(CypherParser::COPY);
     setState(472);
-    match(CypherParser::SP);
+    oC_SchemaName();
     setState(473);
     oC_SchemaName();
     setState(474);
     match(CypherParser::SP);
+    setState(474);
+    match(CypherParser::FROM);
     setState(475);
     match(CypherParser::FROM);
     setState(476);
@@ -2283,6 +2291,8 @@ CypherParser::KU_CopyFromByColumnContext* CypherParser::kU_CopyFromByColumn() {
     match(CypherParser::T__2);
     setState(496);
     match(CypherParser::SP);
+    setState(496);
+    match(CypherParser::BY);
     setState(497);
     match(CypherParser::BY);
     setState(498);
@@ -2382,6 +2392,8 @@ CypherParser::KU_CopyTOContext* CypherParser::kU_CopyTO() {
     match(CypherParser::T__2);
     setState(512);
     match(CypherParser::SP);
+    setState(512);
+    match(CypherParser::TO);
     setState(513);
     match(CypherParser::TO);
     setState(514);
@@ -2494,6 +2506,8 @@ CypherParser::KU_ExportDatabaseContext* CypherParser::kU_ExportDatabase() {
     match(CypherParser::EXPORT);
     setState(532);
     match(CypherParser::SP);
+    setState(532);
+    match(CypherParser::DATABASE);
     setState(533);
     match(CypherParser::DATABASE);
     setState(534);
@@ -2601,6 +2615,8 @@ CypherParser::KU_ImportDatabaseContext* CypherParser::kU_ImportDatabase() {
     match(CypherParser::IMPORT);
     setState(552);
     match(CypherParser::SP);
+    setState(552);
+    match(CypherParser::DATABASE);
     setState(553);
     match(CypherParser::DATABASE);
     setState(554);
@@ -2693,6 +2709,8 @@ CypherParser::KU_AttachDatabaseContext* CypherParser::kU_AttachDatabase() {
     case 1: {
       setState(560);
       match(CypherParser::SP);
+      setState(560);
+      match(CypherParser::AS);
       setState(561);
       match(CypherParser::AS);
       setState(562);
@@ -3253,19 +3271,21 @@ CypherParser::KU_CommentOnContext* CypherParser::kU_CommentOn() {
     setState(649);
     match(CypherParser::COMMENT);
     setState(650);
-    match(CypherParser::SP);
+    match(CypherParser::ON);
     setState(651);
     match(CypherParser::ON);
     setState(652);
-    match(CypherParser::SP);
+    match(CypherParser::TABLE);
     setState(653);
     match(CypherParser::TABLE);
     setState(654);
-    match(CypherParser::SP);
+    oC_SchemaName();
     setState(655);
     oC_SchemaName();
     setState(656);
     match(CypherParser::SP);
+    setState(656);
+    match(CypherParser::IS);
     setState(657);
     match(CypherParser::IS);
     setState(658);
@@ -3354,6 +3374,8 @@ CypherParser::KU_CreateMacroContext* CypherParser::kU_CreateMacro() {
     match(CypherParser::CREATE);
     setState(662);
     match(CypherParser::SP);
+    setState(662);
+    match(CypherParser::MACRO);
     setState(663);
     match(CypherParser::MACRO);
     setState(664);
@@ -3399,7 +3421,7 @@ CypherParser::KU_CreateMacroContext* CypherParser::kU_CreateMacro() {
     setState(677);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 59, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 58, _ctx)) {
     case 1: {
       setState(676);
       match(CypherParser::SP);
@@ -3410,6 +3432,19 @@ CypherParser::KU_CreateMacroContext* CypherParser::kU_CreateMacro() {
       break;
     }
     setState(680);
+    _errHandler->sync(this);
+
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 59, _ctx)) {
+    case 1: {
+      setState(675);
+      match(CypherParser::SP);
+      break;
+    }
+
+    default:
+      break;
+    }
+    setState(679);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -3462,6 +3497,8 @@ CypherParser::KU_CreateMacroContext* CypherParser::kU_CreateMacro() {
     match(CypherParser::T__2);
     setState(699);
     match(CypherParser::SP);
+    setState(699);
+    match(CypherParser::AS);
     setState(700);
     match(CypherParser::AS);
     setState(701);
@@ -3848,6 +3885,8 @@ CypherParser::KU_IfNotExistsContext* CypherParser::kU_IfNotExists() {
     match(CypherParser::IF);
     setState(765);
     match(CypherParser::SP);
+    setState(765);
+    match(CypherParser::NOT);
     setState(766);
     match(CypherParser::NOT);
     setState(767);
@@ -3930,7 +3969,7 @@ CypherParser::KU_CreateNodeTableContext* CypherParser::kU_CreateNodeTable() {
     setState(770);
     match(CypherParser::CREATE);
     setState(771);
-    match(CypherParser::SP);
+    match(CypherParser::NODE);
     setState(772);
     match(CypherParser::NODE);
     setState(773);
@@ -4094,7 +4133,7 @@ size_t CypherParser::KU_CreateRelTableContext::getRuleIndex() const {
 
 CypherParser::KU_CreateRelTableContext* CypherParser::kU_CreateRelTable() {
   KU_CreateRelTableContext *_localctx = _tracker.createInstance<KU_CreateRelTableContext>(_ctx, getState());
-  enterRule(_localctx, 46, CypherParser::RuleKU_CreateRelTable);
+  enterRule(_localctx, 48, CypherParser::RuleKU_CreateRelTable);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -4323,7 +4362,7 @@ size_t CypherParser::KU_FromToConnectionsContext::getRuleIndex() const {
 
 CypherParser::KU_FromToConnectionsContext* CypherParser::kU_FromToConnections() {
   KU_FromToConnectionsContext *_localctx = _tracker.createInstance<KU_FromToConnectionsContext>(_ctx, getState());
-  enterRule(_localctx, 48, CypherParser::RuleKU_FromToConnections);
+  enterRule(_localctx, 50, CypherParser::RuleKU_FromToConnections);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -4417,7 +4456,7 @@ size_t CypherParser::KU_FromToConnectionContext::getRuleIndex() const {
 
 CypherParser::KU_FromToConnectionContext* CypherParser::kU_FromToConnection() {
   KU_FromToConnectionContext *_localctx = _tracker.createInstance<KU_FromToConnectionContext>(_ctx, getState());
-  enterRule(_localctx, 50, CypherParser::RuleKU_FromToConnection);
+  enterRule(_localctx, 52, CypherParser::RuleKU_FromToConnection);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4499,7 +4538,7 @@ size_t CypherParser::KU_CreateSequenceContext::getRuleIndex() const {
 
 CypherParser::KU_CreateSequenceContext* CypherParser::kU_CreateSequence() {
   KU_CreateSequenceContext *_localctx = _tracker.createInstance<KU_CreateSequenceContext>(_ctx, getState());
-  enterRule(_localctx, 52, CypherParser::RuleKU_CreateSequence);
+  enterRule(_localctx, 54, CypherParser::RuleKU_CreateSequence);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4603,7 +4642,7 @@ size_t CypherParser::KU_CreateTypeContext::getRuleIndex() const {
 
 CypherParser::KU_CreateTypeContext* CypherParser::kU_CreateType() {
   KU_CreateTypeContext *_localctx = _tracker.createInstance<KU_CreateTypeContext>(_ctx, getState());
-  enterRule(_localctx, 54, CypherParser::RuleKU_CreateType);
+  enterRule(_localctx, 56, CypherParser::RuleKU_CreateType);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4690,7 +4729,7 @@ size_t CypherParser::KU_SequenceOptionsContext::getRuleIndex() const {
 
 CypherParser::KU_SequenceOptionsContext* CypherParser::kU_SequenceOptions() {
   KU_SequenceOptionsContext *_localctx = _tracker.createInstance<KU_SequenceOptionsContext>(_ctx, getState());
-  enterRule(_localctx, 56, CypherParser::RuleKU_SequenceOptions);
+  enterRule(_localctx, 58, CypherParser::RuleKU_SequenceOptions);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4790,7 +4829,7 @@ size_t CypherParser::KU_IncrementByContext::getRuleIndex() const {
 
 CypherParser::KU_IncrementByContext* CypherParser::kU_IncrementBy() {
   KU_IncrementByContext *_localctx = _tracker.createInstance<KU_IncrementByContext>(_ctx, getState());
-  enterRule(_localctx, 58, CypherParser::RuleKU_IncrementBy);
+  enterRule(_localctx, 60, CypherParser::RuleKU_IncrementBy);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -4871,7 +4910,7 @@ size_t CypherParser::KU_MinValueContext::getRuleIndex() const {
 
 CypherParser::KU_MinValueContext* CypherParser::kU_MinValue() {
   KU_MinValueContext *_localctx = _tracker.createInstance<KU_MinValueContext>(_ctx, getState());
-  enterRule(_localctx, 60, CypherParser::RuleKU_MinValue);
+  enterRule(_localctx, 62, CypherParser::RuleKU_MinValue);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -4963,7 +5002,7 @@ size_t CypherParser::KU_MaxValueContext::getRuleIndex() const {
 
 CypherParser::KU_MaxValueContext* CypherParser::kU_MaxValue() {
   KU_MaxValueContext *_localctx = _tracker.createInstance<KU_MaxValueContext>(_ctx, getState());
-  enterRule(_localctx, 62, CypherParser::RuleKU_MaxValue);
+  enterRule(_localctx, 64, CypherParser::RuleKU_MaxValue);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5059,7 +5098,7 @@ size_t CypherParser::KU_StartWithContext::getRuleIndex() const {
 
 CypherParser::KU_StartWithContext* CypherParser::kU_StartWith() {
   KU_StartWithContext *_localctx = _tracker.createInstance<KU_StartWithContext>(_ctx, getState());
-  enterRule(_localctx, 64, CypherParser::RuleKU_StartWith);
+  enterRule(_localctx, 66, CypherParser::RuleKU_StartWith);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5132,7 +5171,7 @@ size_t CypherParser::KU_CycleContext::getRuleIndex() const {
 
 CypherParser::KU_CycleContext* CypherParser::kU_Cycle() {
   KU_CycleContext *_localctx = _tracker.createInstance<KU_CycleContext>(_ctx, getState());
-  enterRule(_localctx, 66, CypherParser::RuleKU_Cycle);
+  enterRule(_localctx, 68, CypherParser::RuleKU_Cycle);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5193,7 +5232,7 @@ size_t CypherParser::KU_IfExistsContext::getRuleIndex() const {
 
 CypherParser::KU_IfExistsContext* CypherParser::kU_IfExists() {
   KU_IfExistsContext *_localctx = _tracker.createInstance<KU_IfExistsContext>(_ctx, getState());
-  enterRule(_localctx, 68, CypherParser::RuleKU_IfExists);
+  enterRule(_localctx, 70, CypherParser::RuleKU_IfExists);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5263,7 +5302,7 @@ size_t CypherParser::KU_DropContext::getRuleIndex() const {
 
 CypherParser::KU_DropContext* CypherParser::kU_Drop() {
   KU_DropContext *_localctx = _tracker.createInstance<KU_DropContext>(_ctx, getState());
-  enterRule(_localctx, 70, CypherParser::RuleKU_Drop);
+  enterRule(_localctx, 72, CypherParser::RuleKU_Drop);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5358,7 +5397,7 @@ size_t CypherParser::KU_AlterTableContext::getRuleIndex() const {
 
 CypherParser::KU_AlterTableContext* CypherParser::kU_AlterTable() {
   KU_AlterTableContext *_localctx = _tracker.createInstance<KU_AlterTableContext>(_ctx, getState());
-  enterRule(_localctx, 72, CypherParser::RuleKU_AlterTable);
+  enterRule(_localctx, 74, CypherParser::RuleKU_AlterTable);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5424,7 +5463,7 @@ size_t CypherParser::KU_AlterOptionsContext::getRuleIndex() const {
 
 CypherParser::KU_AlterOptionsContext* CypherParser::kU_AlterOptions() {
   KU_AlterOptionsContext *_localctx = _tracker.createInstance<KU_AlterOptionsContext>(_ctx, getState());
-  enterRule(_localctx, 74, CypherParser::RuleKU_AlterOptions);
+  enterRule(_localctx, 76, CypherParser::RuleKU_AlterOptions);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5521,7 +5560,7 @@ size_t CypherParser::KU_AddPropertyContext::getRuleIndex() const {
 
 CypherParser::KU_AddPropertyContext* CypherParser::kU_AddProperty() {
   KU_AddPropertyContext *_localctx = _tracker.createInstance<KU_AddPropertyContext>(_ctx, getState());
-  enterRule(_localctx, 76, CypherParser::RuleKU_AddProperty);
+  enterRule(_localctx, 78, CypherParser::RuleKU_AddProperty);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5609,7 +5648,7 @@ size_t CypherParser::KU_DefaultContext::getRuleIndex() const {
 
 CypherParser::KU_DefaultContext* CypherParser::kU_Default() {
   KU_DefaultContext *_localctx = _tracker.createInstance<KU_DefaultContext>(_ctx, getState());
-  enterRule(_localctx, 78, CypherParser::RuleKU_Default);
+  enterRule(_localctx, 80, CypherParser::RuleKU_Default);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5671,7 +5710,7 @@ size_t CypherParser::KU_DropPropertyContext::getRuleIndex() const {
 
 CypherParser::KU_DropPropertyContext* CypherParser::kU_DropProperty() {
   KU_DropPropertyContext *_localctx = _tracker.createInstance<KU_DropPropertyContext>(_ctx, getState());
-  enterRule(_localctx, 80, CypherParser::RuleKU_DropProperty);
+  enterRule(_localctx, 82, CypherParser::RuleKU_DropProperty);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5748,7 +5787,7 @@ size_t CypherParser::KU_RenameTableContext::getRuleIndex() const {
 
 CypherParser::KU_RenameTableContext* CypherParser::kU_RenameTable() {
   KU_RenameTableContext *_localctx = _tracker.createInstance<KU_RenameTableContext>(_ctx, getState());
-  enterRule(_localctx, 82, CypherParser::RuleKU_RenameTable);
+  enterRule(_localctx, 84, CypherParser::RuleKU_RenameTable);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5818,7 +5857,7 @@ size_t CypherParser::KU_RenamePropertyContext::getRuleIndex() const {
 
 CypherParser::KU_RenamePropertyContext* CypherParser::kU_RenameProperty() {
   KU_RenamePropertyContext *_localctx = _tracker.createInstance<KU_RenamePropertyContext>(_ctx, getState());
-  enterRule(_localctx, 84, CypherParser::RuleKU_RenameProperty);
+  enterRule(_localctx, 86, CypherParser::RuleKU_RenameProperty);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5884,7 +5923,7 @@ size_t CypherParser::KU_ColumnDefinitionsContext::getRuleIndex() const {
 
 CypherParser::KU_ColumnDefinitionsContext* CypherParser::kU_ColumnDefinitions() {
   KU_ColumnDefinitionsContext *_localctx = _tracker.createInstance<KU_ColumnDefinitionsContext>(_ctx, getState());
-  enterRule(_localctx, 86, CypherParser::RuleKU_ColumnDefinitions);
+  enterRule(_localctx, 88, CypherParser::RuleKU_ColumnDefinitions);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5966,7 +6005,7 @@ size_t CypherParser::KU_ColumnDefinitionContext::getRuleIndex() const {
 
 CypherParser::KU_ColumnDefinitionContext* CypherParser::kU_ColumnDefinition() {
   KU_ColumnDefinitionContext *_localctx = _tracker.createInstance<KU_ColumnDefinitionContext>(_ctx, getState());
-  enterRule(_localctx, 88, CypherParser::RuleKU_ColumnDefinition);
+  enterRule(_localctx, 90, CypherParser::RuleKU_ColumnDefinition);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6024,7 +6063,7 @@ size_t CypherParser::KU_PropertyDefinitionsContext::getRuleIndex() const {
 
 CypherParser::KU_PropertyDefinitionsContext* CypherParser::kU_PropertyDefinitions() {
   KU_PropertyDefinitionsContext *_localctx = _tracker.createInstance<KU_PropertyDefinitionsContext>(_ctx, getState());
-  enterRule(_localctx, 90, CypherParser::RuleKU_PropertyDefinitions);
+  enterRule(_localctx, 92, CypherParser::RuleKU_PropertyDefinitions);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -6118,7 +6157,7 @@ size_t CypherParser::KU_PropertyDefinitionContext::getRuleIndex() const {
 
 CypherParser::KU_PropertyDefinitionContext* CypherParser::kU_PropertyDefinition() {
   KU_PropertyDefinitionContext *_localctx = _tracker.createInstance<KU_PropertyDefinitionContext>(_ctx, getState());
-  enterRule(_localctx, 92, CypherParser::RuleKU_PropertyDefinition);
+  enterRule(_localctx, 94, CypherParser::RuleKU_PropertyDefinition);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6210,7 +6249,7 @@ size_t CypherParser::KU_CreateNodeConstraintContext::getRuleIndex() const {
 
 CypherParser::KU_CreateNodeConstraintContext* CypherParser::kU_CreateNodeConstraint() {
   KU_CreateNodeConstraintContext *_localctx = _tracker.createInstance<KU_CreateNodeConstraintContext>(_ctx, getState());
-  enterRule(_localctx, 94, CypherParser::RuleKU_CreateNodeConstraint);
+  enterRule(_localctx, 96, CypherParser::RuleKU_CreateNodeConstraint);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -6336,8 +6375,8 @@ CypherParser::KU_DataTypeContext* CypherParser::kU_DataType(int precedence) {
   CypherParser::KU_DataTypeContext *_localctx = _tracker.createInstance<KU_DataTypeContext>(_ctx, parentState);
   CypherParser::KU_DataTypeContext *previousContext = _localctx;
   (void)previousContext; // Silence compiler, in case the context is not used by generated code.
-  size_t startState = 96;
-  enterRecursionRule(_localctx, 96, CypherParser::RuleKU_DataType, precedence);
+  size_t startState = 98;
+  enterRecursionRule(_localctx, 98, CypherParser::RuleKU_DataType, precedence);
 
     size_t _la = 0;
 
@@ -6599,7 +6638,7 @@ size_t CypherParser::KU_ListIdentifiersContext::getRuleIndex() const {
 
 CypherParser::KU_ListIdentifiersContext* CypherParser::kU_ListIdentifiers() {
   KU_ListIdentifiersContext *_localctx = _tracker.createInstance<KU_ListIdentifiersContext>(_ctx, getState());
-  enterRule(_localctx, 98, CypherParser::RuleKU_ListIdentifiers);
+  enterRule(_localctx, 100, CypherParser::RuleKU_ListIdentifiers);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6654,7 +6693,7 @@ size_t CypherParser::KU_ListIdentifierContext::getRuleIndex() const {
 
 CypherParser::KU_ListIdentifierContext* CypherParser::kU_ListIdentifier() {
   KU_ListIdentifierContext *_localctx = _tracker.createInstance<KU_ListIdentifierContext>(_ctx, getState());
-  enterRule(_localctx, 100, CypherParser::RuleKU_ListIdentifier);
+  enterRule(_localctx, 102, CypherParser::RuleKU_ListIdentifier);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -6711,7 +6750,7 @@ size_t CypherParser::OC_AnyCypherOptionContext::getRuleIndex() const {
 
 CypherParser::OC_AnyCypherOptionContext* CypherParser::oC_AnyCypherOption() {
   OC_AnyCypherOptionContext *_localctx = _tracker.createInstance<OC_AnyCypherOptionContext>(_ctx, getState());
-  enterRule(_localctx, 102, CypherParser::RuleOC_AnyCypherOption);
+  enterRule(_localctx, 104, CypherParser::RuleOC_AnyCypherOption);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6778,7 +6817,7 @@ size_t CypherParser::OC_ExplainContext::getRuleIndex() const {
 
 CypherParser::OC_ExplainContext* CypherParser::oC_Explain() {
   OC_ExplainContext *_localctx = _tracker.createInstance<OC_ExplainContext>(_ctx, getState());
-  enterRule(_localctx, 104, CypherParser::RuleOC_Explain);
+  enterRule(_localctx, 106, CypherParser::RuleOC_Explain);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6835,7 +6874,7 @@ size_t CypherParser::OC_ProfileContext::getRuleIndex() const {
 
 CypherParser::OC_ProfileContext* CypherParser::oC_Profile() {
   OC_ProfileContext *_localctx = _tracker.createInstance<OC_ProfileContext>(_ctx, getState());
-  enterRule(_localctx, 106, CypherParser::RuleOC_Profile);
+  enterRule(_localctx, 108, CypherParser::RuleOC_Profile);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6909,7 +6948,7 @@ size_t CypherParser::KU_TransactionContext::getRuleIndex() const {
 
 CypherParser::KU_TransactionContext* CypherParser::kU_Transaction() {
   KU_TransactionContext *_localctx = _tracker.createInstance<KU_TransactionContext>(_ctx, getState());
-  enterRule(_localctx, 108, CypherParser::RuleKU_Transaction);
+  enterRule(_localctx, 110, CypherParser::RuleKU_Transaction);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -7017,7 +7056,7 @@ size_t CypherParser::KU_ExtensionContext::getRuleIndex() const {
 
 CypherParser::KU_ExtensionContext* CypherParser::kU_Extension() {
   KU_ExtensionContext *_localctx = _tracker.createInstance<KU_ExtensionContext>(_ctx, getState());
-  enterRule(_localctx, 110, CypherParser::RuleKU_Extension);
+  enterRule(_localctx, 112, CypherParser::RuleKU_Extension);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -7111,7 +7150,7 @@ size_t CypherParser::KU_LoadExtensionContext::getRuleIndex() const {
 
 CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
   KU_LoadExtensionContext *_localctx = _tracker.createInstance<KU_LoadExtensionContext>(_ctx, getState());
-  enterRule(_localctx, 112, CypherParser::RuleKU_LoadExtension);
+  enterRule(_localctx, 114, CypherParser::RuleKU_LoadExtension);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -8446,7 +8485,7 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1415);
+        setState(1425);
         match(CypherParser::SP);
       }
       setState(1418);
@@ -11430,6 +11469,7 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
       if (_la == CypherParser::SP) {
         setState(1822);
         match(CypherParser::SP);
+        break;
       }
       setState(1825);
       oC_RightArrowHead();
@@ -11779,6 +11819,24 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
           match(CypherParser::SP);
         }
         setState(1907);
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1895);
+          match(CypherParser::SP);
+        }
+        setState(1898);
+        oC_Expression();
+        setState(1900);
+        _errHandler->sync(this);
+
+        _la = _input->LA(1);
+        if (_la == CypherParser::SP) {
+          setState(1899);
+          match(CypherParser::SP);
+        }
+        setState(1906);
         _errHandler->sync(this);
         _la = _input->LA(1);
       }
@@ -15782,6 +15840,24 @@ CypherParser::KU_StructLiteralContext* CypherParser::kU_StructLiteral() {
       }
       setState(2496);
       _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2484);
+        match(CypherParser::SP);
+      }
+      setState(2487);
+      kU_StructField();
+      setState(2489);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2488);
+        match(CypherParser::SP);
+      }
+      setState(2495);
+      _errHandler->sync(this);
       _la = _input->LA(1);
     }
     setState(2497);
@@ -16244,6 +16320,24 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
       _errHandler->sync(this);
 
       _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2564);
+        match(CypherParser::SP);
+      }
+      setState(2567);
+      match(CypherParser::T__1);
+      setState(2569);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2568);
+        match(CypherParser::SP);
+      }
+      setState(2575);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
       if (_la == CypherParser::DISTINCT) {
         setState(2572);
         match(CypherParser::DISTINCT);
@@ -16299,6 +16393,24 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
             match(CypherParser::SP);
           }
           setState(2594);
+          _errHandler->sync(this);
+
+          _la = _input->LA(1);
+          if (_la == CypherParser::SP) {
+            setState(2582);
+            match(CypherParser::SP);
+          }
+          setState(2585);
+          kU_FunctionParameter();
+          setState(2587);
+          _errHandler->sync(this);
+
+          _la = _input->LA(1);
+          if (_la == CypherParser::SP) {
+            setState(2586);
+            match(CypherParser::SP);
+          }
+          setState(2593);
           _errHandler->sync(this);
           _la = _input->LA(1);
         }
@@ -16728,6 +16840,24 @@ CypherParser::KU_LambdaVarsContext* CypherParser::kU_LambdaVars() {
             match(CypherParser::SP);
           }
           setState(2652);
+          _errHandler->sync(this);
+
+          _la = _input->LA(1);
+          if (_la == CypherParser::SP) {
+            setState(2640);
+            match(CypherParser::SP);
+          }
+          setState(2643);
+          oC_SymbolicName();
+          setState(2645);
+          _errHandler->sync(this);
+
+          _la = _input->LA(1);
+          if (_la == CypherParser::SP) {
+            setState(2644);
+            match(CypherParser::SP);
+          }
+          setState(2651);
           _errHandler->sync(this);
           _la = _input->LA(1);
         }
