@@ -27,8 +27,8 @@
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
-
 #include "parser/query/regular_query.h"
+
 #include <iostream>
 
 using namespace kuzu::common;
@@ -282,13 +282,12 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
 std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& statement) {
     auto createTable = statement.constPtrCast<CreateTable>();
 
-    auto innerQueryResult = bindQuery(*(createTable->getInnerQuery()->constPtrCast<RegularQuery>()))->getStatementResult();
+    auto boundInnerQuery = bindQuery(*createTable->getInnerQuery());
+    auto innerQueryResult = boundInnerQuery->getStatementResult();
     auto columnNames = innerQueryResult->getColumnNames();
     auto columnTypes = innerQueryResult->getColumnTypes();
     std::vector<PropertyDefinition> propertyDefinitions;
     propertyDefinitions.reserve(columnNames.size());
-
-    std::cout << columnNames.size() << ", " << columnTypes.size() << ", " << innerQueryResult->getColumns().size() << std::endl;
 
     for (size_t i = 0; i < columnNames.size(); ++i) {
         propertyDefinitions.emplace_back(ColumnDefinition(std::string(columnNames[i]), columnTypes[i].copy()));
