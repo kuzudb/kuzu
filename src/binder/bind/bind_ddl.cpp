@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "binder/binder.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
@@ -29,7 +27,6 @@
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
-#include "parser/query/regular_query.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
