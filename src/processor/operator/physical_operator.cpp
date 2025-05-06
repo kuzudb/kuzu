@@ -122,6 +122,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "UNWIND";
     case PhysicalOperatorType::USE_DATABASE:
         return "USE_DATABASE";
+    case PhysicalOperatorType::UNINSTALL_EXTENSION:
+        return "UNINSTALL_EXTENSION";
     default:
         throw RuntimeException("Unknown physical operator type.");
     }

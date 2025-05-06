@@ -205,13 +205,17 @@ kU_Transaction
 
 kU_Extension
     : kU_LoadExtension
-        | kU_InstallExtension;
+        | kU_InstallExtension
+        | kU_UninstallExtension;
 
 kU_LoadExtension
     : LOAD SP (EXTENSION SP)? ( StringLiteral | oC_Variable ) ;
 
 kU_InstallExtension
     : INSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
+
+kU_UninstallExtension
+    : UNINSTALL SP oC_Variable;
 
 oC_Query
     : oC_RegularQuery ;

@@ -210,6 +210,8 @@ UNION : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
 
 UNWIND : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ;
 
+UNINSTALL : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
+
 USE : ( 'U' | 'u' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
 
 WHEN : ( 'W' | 'w' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ;
@@ -436,13 +438,17 @@ kU_Transaction
 
 kU_Extension
     : kU_LoadExtension
-        | kU_InstallExtension;
+        | kU_InstallExtension
+        | kU_UninstallExtension;
 
 kU_LoadExtension
     : LOAD SP (EXTENSION SP)? ( StringLiteral | oC_Variable ) ;
 
 kU_InstallExtension
     : INSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
+
+kU_UninstallExtension
+    : UNINSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
 
 oC_Query
     : oC_RegularQuery ;

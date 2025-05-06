@@ -9,22 +9,13 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::extension;
 
-std::string InstallExtensionPrintInfo::toString() const {
-    return "Install " + extensionName;
-}
-
 void InstallExtension::executeInternal(ExecutionContext* context) {
-    installExtension(context->clientContext);
-}
+    extension::ExtensionInstaller installer{info, *context};
+    installer.install();}
 
 std::string InstallExtension::getOutputMsg() {
     return common::stringFormat("Extension: {} has been installed from repo: {}.", info.name,
         info.repo);
-}
-
-void InstallExtension::installExtension(main::ClientContext* context) {
-    extension::ExtensionInstaller installer{info, *context};
-    installer.install();
 }
 
 } // namespace processor
