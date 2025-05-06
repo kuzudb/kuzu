@@ -55,19 +55,19 @@ public:
     RuleKU_DetachDatabase = 13, RuleKU_UseDatabase = 14, RuleKU_StandaloneCall = 15, 
     RuleKU_CommentOn = 16, RuleKU_CreateMacro = 17, RuleKU_PositionalArgs = 18, 
     RuleKU_DefaultArg = 19, RuleKU_FilePaths = 20, RuleKU_IfNotExists = 21, 
-    RuleKU_CreateNodeTable = 22, RuleKU_CreateRelTable = 23, RuleKU_FromToConnections = 24, 
-    RuleKU_FromToConnection = 25, RuleKU_CreateSequence = 26, RuleKU_CreateType = 27, 
-    RuleKU_SequenceOptions = 28, RuleKU_IncrementBy = 29, RuleKU_MinValue = 30, 
-    RuleKU_MaxValue = 31, RuleKU_StartWith = 32, RuleKU_Cycle = 33, RuleKU_IfExists = 34, 
-    RuleKU_Drop = 35, RuleKU_AlterTable = 36, RuleKU_AlterOptions = 37, 
-    RuleKU_AddProperty = 38, RuleKU_Default = 39, RuleKU_DropProperty = 40, 
-    RuleKU_RenameTable = 41, RuleKU_RenameProperty = 42, RuleKU_ColumnDefinitions = 43, 
-    RuleKU_ColumnDefinition = 44, RuleKU_PropertyDefinitions = 45, RuleKU_PropertyDefinition = 46, 
-    RuleKU_CreateNodeConstraint = 47, RuleKU_DataType = 48, RuleKU_ListIdentifiers = 49, 
-    RuleKU_ListIdentifier = 50, RuleOC_AnyCypherOption = 51, RuleOC_Explain = 52, 
-    RuleOC_Profile = 53, RuleKU_Transaction = 54, RuleKU_Extension = 55, 
-    RuleKU_LoadExtension = 56, RuleKU_InstallExtension = 57, RuleKU_UninstallExtension = 58, 
-    RuleOC_Query = 59, RuleOC_RegularQuery = 60, RuleOC_Union = 61, RuleOC_SingleQuery = 62, 
+    RuleKU_CreateNodeTable = 22, RuleKU_CreateNodeTableAs = 23, RuleKU_CreateRelTable = 24, 
+    RuleKU_FromToConnections = 25, RuleKU_FromToConnection = 26, RuleKU_CreateSequence = 27, 
+    RuleKU_CreateType = 28, RuleKU_SequenceOptions = 29, RuleKU_IncrementBy = 30, 
+    RuleKU_MinValue = 31, RuleKU_MaxValue = 32, RuleKU_StartWith = 33, RuleKU_Cycle = 34, 
+    RuleKU_IfExists = 35, RuleKU_Drop = 36, RuleKU_AlterTable = 37, RuleKU_AlterOptions = 38, 
+    RuleKU_AddProperty = 39, RuleKU_Default = 40, RuleKU_DropProperty = 41, 
+    RuleKU_RenameTable = 42, RuleKU_RenameProperty = 43, RuleKU_ColumnDefinitions = 44, 
+    RuleKU_ColumnDefinition = 45, RuleKU_PropertyDefinitions = 46, RuleKU_PropertyDefinition = 47, 
+    RuleKU_CreateNodeConstraint = 48, RuleKU_DataType = 49, RuleKU_ListIdentifiers = 50, 
+    RuleKU_ListIdentifier = 51, RuleOC_AnyCypherOption = 52, RuleOC_Explain = 53, 
+    RuleOC_Profile = 54, RuleKU_Transaction = 55, RuleKU_Extension = 56, 
+    RuleKU_LoadExtension = 57, RuleKU_InstallExtension = 58, RuleOC_Query = 59, 
+    RuleOC_RegularQuery = 60, RuleOC_Union = 61, RuleOC_SingleQuery = 62, 
     RuleOC_SinglePartQuery = 63, RuleOC_MultiPartQuery = 64, RuleKU_QueryPart = 65, 
     RuleOC_UpdatingClause = 66, RuleOC_ReadingClause = 67, RuleKU_LoadFrom = 68, 
     RuleOC_YieldItem = 69, RuleOC_YieldItems = 70, RuleKU_InQueryCall = 71, 
@@ -148,6 +148,7 @@ public:
   class KU_FilePathsContext;
   class KU_IfNotExistsContext;
   class KU_CreateNodeTableContext;
+  class KU_CreateNodeTableAsContext;
   class KU_CreateRelTableContext;
   class KU_FromToConnectionsContext;
   class KU_FromToConnectionContext;
@@ -331,6 +332,7 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_QueryContext *oC_Query();
     KU_CreateNodeTableContext *kU_CreateNodeTable();
+    KU_CreateNodeTableAsContext *kU_CreateNodeTableAs();
     KU_CreateRelTableContext *kU_CreateRelTable();
     KU_CreateSequenceContext *kU_CreateSequence();
     KU_CreateTypeContext *kU_CreateType();
@@ -675,6 +677,24 @@ public:
   };
 
   KU_CreateNodeTableContext* kU_CreateNodeTable();
+
+  class  KU_CreateNodeTableAsContext : public antlr4::ParserRuleContext {
+  public:
+    KU_CreateNodeTableAsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *CREATE();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *NODE();
+    antlr4::tree::TerminalNode *TABLE();
+    OC_SchemaNameContext *oC_SchemaName();
+    antlr4::tree::TerminalNode *AS();
+    OC_QueryContext *oC_Query();
+
+   
+  };
+
+  KU_CreateNodeTableAsContext* kU_CreateNodeTableAs();
 
   class  KU_CreateRelTableContext : public antlr4::ParserRuleContext {
   public:
