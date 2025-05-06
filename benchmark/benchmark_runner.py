@@ -45,7 +45,7 @@ datasets_benchmark_severs_url_key = {
     'click': 'CLICK_BENCHMARK_SERVER_URL',
     'graph500-27': 'GRAPH500_BENCHMARK_SERVER_URL',
     'soc-livejournal': 'SOC_LIVEJOURNAL_BENCHMARK_SERVER_URL',
-    'datagen-sf10k': 'BENCHMARK_SERVER_URL',
+    'datagen-sf10k': 'DATAGEN_SF10K_BENCHMARK_SERVER_URL',
 }
 
 csv_base_dir = os.getenv('CSV_DIR')
