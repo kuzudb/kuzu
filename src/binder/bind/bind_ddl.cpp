@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "binder/binder.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
@@ -28,8 +30,6 @@
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/query/regular_query.h"
-
-#include <iostream>
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -290,15 +290,18 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
     propertyDefinitions.reserve(columnNames.size());
 
     for (size_t i = 0; i < columnNames.size(); ++i) {
-        propertyDefinitions.emplace_back(ColumnDefinition(std::string(columnNames[i]), columnTypes[i].copy()));
+        propertyDefinitions.emplace_back(
+            ColumnDefinition(std::string(columnNames[i]), columnTypes[i].copy()));
     }
 
     auto createInfo = createTable->getInfo();
     // first column is primary key column temporarily for now
-    auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(columnNames[0], std::move(propertyDefinitions));
-    auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, createInfo->tableName,
-        createInfo->onConflict, std::move(boundExtraInfo), clientContext->useInternalCatalogEntry());
-    
+    auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(columnNames[0],
+        std::move(propertyDefinitions));
+    auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
+        createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
+        clientContext->useInternalCatalogEntry());
+
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
 
