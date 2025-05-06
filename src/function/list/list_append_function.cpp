@@ -1,4 +1,3 @@
-#include <iostream>
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
