@@ -36,7 +36,7 @@ The Quantum World
 Learning Machines
 -STATEMENT CALL PROJECT_GRAPH(
                'filtered_book',
-               {'Book': {'filter': 'n.published_year > 2010'}},
+               {'Book': 'n.published_year > 2010'},
                []
            );
 ---- ok

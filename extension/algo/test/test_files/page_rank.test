@@ -29,7 +29,7 @@ Farooq|0.213750
 Greg|0.213750
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.150000
 
--STATEMENT CALL PROJECT_GRAPH('PK2', ['person'], {'knows': {'filter': 'r.date > date("1906-01-01")'}})
+-STATEMENT CALL PROJECT_GRAPH('PK2', ['person'], {'knows': 'r.date > date("1906-01-01")'})
 ---- ok
 -STATEMENT CALL page_rank('PK2') RETURN node.fName, rank;
 ---- 8
@@ -41,7 +41,7 @@ Elizabeth|0.018750
 Farooq|0.018750
 Greg|0.018750
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.018750
--STATEMENT CALL PROJECT_GRAPH('PK3', {'person': {'filter': 'n.ID > 3'}}, {'knows': {'filter': 'r.date > date("1906-01-01")'}})
+-STATEMENT CALL PROJECT_GRAPH('PK3', {'person': 'n.ID > 3'}, {'knows': 'r.date > date("1906-01-01")'})
 ---- ok
 -STATEMENT CALL page_rank('PK3') RETURN node.fName, rank;
 ---- 5
@@ -90,7 +90,7 @@ Binder exception: Max iteration must be a positive integer.
 ---- error
 Binder exception: Unknown optional parameter: maxIteratioN
 -STATEMENT CALL PROJECT_GRAPH('G1'
-        , {'person': {'filter': 'n.ID < 10'}, 'organisation': {'filter': ''}}
+        , {'person': 'n.ID < 10', 'organisation': ''}
         , ['knows', 'studyAt'])
 ---- ok
 -STATEMENT CALL page_rank('G1') RETURN node.fName, node.name, rank;

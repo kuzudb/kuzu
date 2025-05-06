@@ -50,25 +50,22 @@
 Binder exception: organisation is connected to studyAt but not projected.
 -STATEMENT CALL PROJECT_GRAPH('err', true, 'studyAt');
 ---- error
-Binder exception: Input argument True has data type BOOL. STRUCT or LIST was expected.
+Binder exception: Argument True has data type BOOL. LIST or STRUCT was expected.
 -STATEMENT CALL PROJECT_GRAPH('err', ['person'], 'studyAt');
 ---- error
-Binder exception: Input argument studyAt has data type STRING. STRUCT or LIST was expected.
+Binder exception: Argument studyAt has data type STRING. LIST or STRUCT was expected.
 -STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': ['filter']});
 ---- error
-Binder exception: [filter] has data type STRING[]. STRUCT was expected.
--STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': {'dummy': 'r.date > date("1999-01-01")'}});
+Binder exception: [filter] has data type STRING[] but STRING was expected.
+-STATEMENT CALL PROJECT_GRAPH('err', ['person'], [{'knows': {'dummy': 'r.date > date("1999-01-01")'}}]);
 ---- error
-Binder exception: Unrecognized configuration dummy. Supported configuration is 'filter'.
--STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': {'filter': 'r.dummy > date("1999-01-01")'}});
+Binder exception: {knows: {dummy: r.date > date("1999-01-01")}} has data type STRUCT(knows STRUCT(dummy STRING)) but STRING was expected.
+-STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': 'r.dummy > date("1999-01-01")'});
 ---- error
 Binder exception: Cannot find property dummy for r.
--STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': {'filter': 'r.comments > date("1999-01-01")'}});
+-STATEMENT CALL PROJECT_GRAPH('err', ['person'], {'knows': 'r.comments > date("1999-01-01")'});
 ---- error
 Binder exception: Type Mismatch: Cannot compare types STRING[] and DATE
--STATEMENT CALL PROJECT_GRAPH('err', [{'person':{'filter': 'n.ID>0'}}, {'organisation':{'filter': 'n.ID>0'}}], []);
----- error
-Binder exception: {organisation: {filter: n.ID>0}} has data type STRUCT(organisation STRUCT(filter STRING)) but STRING was expected.
 -STATEMENT CALL PROJECT_GRAPH('G', ['person'], ['knows']);
 ---- ok
 -STATEMENT DROP TABLE knows;
