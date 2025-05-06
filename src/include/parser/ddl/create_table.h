@@ -15,13 +15,11 @@ public:
         : Statement{common::StatementType::CREATE_TABLE}, info{std::move(info)}, innerQuery{std::move(innerQuery)} {}
 
     inline const CreateTableInfo* getInfo() const { return &info; }
-    
-    bool hasInnerQuery() const { return innerQuery.has_value(); }
-    const Statement* getInnerQuery() const { return innerQuery.value().get(); }
+    const Statement* getInnerQuery() const { return innerQuery.get(); }
 
 private:
     CreateTableInfo info;
-    std::optional<std::unique_ptr<Statement>> innerQuery;
+    std::unique_ptr<Statement> innerQuery;
 };
 
 } // namespace parser
