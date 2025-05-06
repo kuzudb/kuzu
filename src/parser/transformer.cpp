@@ -35,6 +35,8 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformQuery(*ctx.oC_Query());
     } else if (ctx.kU_CreateNodeTable()) {
         return transformCreateNodeTable(*ctx.kU_CreateNodeTable());
+    } else if (ctx.kU_CreateNodeTableAs()) {
+        return transformCreateNodeTableAs(*ctx.kU_CreateNodeTableAs());
     } else if (ctx.kU_CreateRelTable()) {
         return transformCreateRelTable(*ctx.kU_CreateRelTable());
     } else if (ctx.kU_CreateSequence()) {
