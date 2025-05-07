@@ -8,8 +8,8 @@ namespace kuzu::storage {
 static constexpr bool ENABLE_FSM = true;
 
 PageRange PageManager::allocatePageRange(common::page_idx_t numPages, bool reclaimOnRollback) {
+    common::UniqLock lck{mtx};
     if constexpr (ENABLE_FSM) {
-        common::UniqLock lck{mtx};
         auto allocatedFreeChunk = freeSpaceManager->popFreePages(numPages);
         if (allocatedFreeChunk.has_value()) {
             pushUncommittedAllocatedPages(*allocatedFreeChunk, reclaimOnRollback);
@@ -24,6 +24,7 @@ PageRange PageManager::allocatePageRange(common::page_idx_t numPages, bool recla
 }
 
 void PageManager::commit() {
+    common::UniqLock lck{mtx};
     uncommittedAllocatedPages.clear();
 }
 
@@ -34,8 +35,8 @@ void PageManager::commit() {
  * no longer freed
  */
 void PageManager::rollback() {
+    common::UniqLock lck(mtx);
     if constexpr (ENABLE_FSM) {
-        common::UniqLock lck(mtx);
 
         // pages from rolled back allocations are immediately reusable
         // we don't truncate the file, instead letting that happen during checkpoint
