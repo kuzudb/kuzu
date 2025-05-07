@@ -62,7 +62,7 @@ struct KCoreDecompositionFunction {
 struct KCoreDecompositionAliasFunction {
     using alias = KCoreDecompositionFunction;
 
-    static constexpr const char* name = "kcore";
+    static constexpr const char* name = "KCORE";
 };
 
 struct LouvainFunction {
