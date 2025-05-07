@@ -24,8 +24,7 @@ static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan&
 }
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
-    // tableInfo variant is TableCatalogEntry* since it's a rel batch insert
-    auto tableEntry = std::get<catalog::TableCatalogEntry*>(copyFromInfo.tableInfo);
+    auto tableEntry = copyFromInfo.tableEntry;
     const auto* tableCatalogEntry = tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
     LogicalPartitionerInfo info(tableEntry, copyFromInfo.offset);
     for (auto direction : tableCatalogEntry->getRelDataDirections()) {
