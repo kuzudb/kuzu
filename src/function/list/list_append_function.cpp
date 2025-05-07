@@ -42,7 +42,6 @@ static void validateArgumentType(const binder::expression_vector& arguments) {
             ExceptionMessage::listFunctionIncompatibleChildrenType(ListAppendFunction::name,
                 arguments[0]->getDataType().toString(), arguments[1]->getDataType().toString()));
     }
-
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
