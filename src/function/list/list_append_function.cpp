@@ -36,11 +36,13 @@ static void validateArgumentType(const binder::expression_vector& arguments) {
     if (binder::ExpressionUtil::isEmptyList(*arguments[0]))
         return;
 
-    if (ListType::getChildType(arguments[0]->dataType) != arguments[1]->getDataType()) {
+    if (arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
+        arguments[1]->getDataType() != ListType::getChildType(arguments[0]->dataType)) {
         throw BinderException(
             ExceptionMessage::listFunctionIncompatibleChildrenType(ListAppendFunction::name,
                 arguments[0]->getDataType().toString(), arguments[1]->getDataType().toString()));
     }
+
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
