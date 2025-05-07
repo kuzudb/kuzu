@@ -1,3 +1,5 @@
+#pragma once
+
 #include "binder/expression/expression_util.h"
 #include "function/function.h"
 
