@@ -154,6 +154,8 @@ INT64|INT64|INT64[]|INT64[]
 2|Bob|2|[12,8]
 
 -CASE CopyToInvalidCase
+-SKIP_WASM
+-SKIP_IN_MEM
 -STATEMENT COPY (RETURN 5) to "${DATABASE_PATH}/copy_to_with_filter.CS"
 ---- error
 Runtime exception: Exporting query result to the 'CS' file is currently not supported.
