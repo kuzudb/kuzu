@@ -36,3 +36,10 @@ Binder exception: The extension sqlitescanner is neither an official extension, 
 -STATEMENT LOAD EXTENSION '/tmp/iceberg';
 ---- error
 Binder exception: The extension /tmp/iceberg is neither an official extension, nor does the extension path: '/tmp/iceberg' exists.
+
+-CASE LoadNotInstalledExtension
+-SKIP
+-STATEMENT LOAD fts;
+---- error
+Binder exception: Extension: fts is an official extension and has not been installed.
+You can install it by: install fts.
