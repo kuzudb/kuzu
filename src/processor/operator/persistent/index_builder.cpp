@@ -184,8 +184,8 @@ void IndexBuilder::finalize(ExecutionContext* /*context*/,
 bool IndexBuilder::checkNonNullConstraint(const ColumnChunkData& chunk,
     const std::vector<storage::ColumnChunkData*>& warningData, offset_t nodeOffset,
     offset_t chunkOffset, NodeBatchInsertErrorHandler& errorHandler) {
-    const auto& nullChunk = chunk.getNullData();
-    if (nullChunk.isNull(chunkOffset)) {
+    const auto* nullChunk = chunk.getNullData();
+    if (nullChunk->isNull(chunkOffset)) {
         TypeUtils::visit(
             chunk.getDataType().getPhysicalType(),
             [&](struct_entry_t) {

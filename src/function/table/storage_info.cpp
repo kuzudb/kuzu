@@ -108,7 +108,7 @@ static void resetOutputIfNecessary(const StorageInfoLocalState* localState,
 }
 
 static void appendStorageInfoForChunkData(StorageInfoLocalState* localState, DataChunk& outputChunk,
-    StorageInfoOutputData& outputData, ColumnChunkData& chunkData, bool ignoreNull = false) {
+    StorageInfoOutputData& outputData, const ColumnChunkData& chunkData, bool ignoreNull = false) {
     resetOutputIfNecessary(localState, outputChunk);
     auto vectorPos = outputChunk.state->getSelVector().getSelSize();
     auto residency = chunkData.getResidencyState();
@@ -180,7 +180,7 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState, Dat
         auto numChildren = structChunk.getNumChildren();
         for (auto i = 0u; i < numChildren; i++) {
             appendStorageInfoForChunkData(localState, outputChunk, outputData,
-                *structChunk.getChild(i));
+                structChunk.getChild(i));
         }
     } break;
     case PhysicalTypeID::STRING: {
@@ -213,19 +213,23 @@ static void appendStorageInfoForChunkedGroup(StorageInfoLocalState* localState,
     DataChunk& outputChunk, StorageInfoOutputData& outputData, ChunkedNodeGroup* chunkedGroup) {
     auto numColumns = chunkedGroup->getNumColumns();
     outputData.columnIdx = 0;
+    // TODO(bmwinger): probably should make this aware of how segments work
     for (auto i = 0u; i < numColumns; i++) {
         resetOutputIfNecessary(localState, outputChunk);
-        appendStorageInfoForChunkData(localState, outputChunk, outputData,
-            chunkedGroup->getColumnChunk(i).getData());
+        for (auto* segment : chunkedGroup->getColumnChunk(i).getSegments()) {
+            appendStorageInfoForChunkData(localState, outputChunk, outputData, *segment);
+        }
     }
     if (chunkedGroup->getFormat() == NodeGroupDataFormat::CSR) {
         auto& chunkedCSRGroup = chunkedGroup->cast<ChunkedCSRNodeGroup>();
         resetOutputIfNecessary(localState, outputChunk);
-        appendStorageInfoForChunkData(localState, outputChunk, outputData,
-            chunkedCSRGroup.getCSRHeader().offset->getData(), true);
+        for (auto* segment : chunkedCSRGroup.getCSRHeader().offset->getSegments()) {
+            appendStorageInfoForChunkData(localState, outputChunk, outputData, *segment, true);
+        }
         resetOutputIfNecessary(localState, outputChunk);
-        appendStorageInfoForChunkData(localState, outputChunk, outputData,
-            chunkedCSRGroup.getCSRHeader().length->getData(), true);
+        for (auto* segment : chunkedCSRGroup.getCSRHeader().length->getSegments()) {
+            appendStorageInfoForChunkData(localState, outputChunk, outputData, *segment, true);
+        }
     }
 }
 

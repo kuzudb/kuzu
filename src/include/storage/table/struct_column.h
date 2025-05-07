@@ -26,7 +26,8 @@ public:
         return childColumns[childIdx].get();
     }
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t offsetInChunk,
-        ColumnChunkData* data, common::offset_t dataOffset, common::length_t numValues) override;
+        const ColumnChunkData& data, common::offset_t dataOffset,
+        common::length_t numValues) override;
 
     void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
 
