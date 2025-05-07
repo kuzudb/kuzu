@@ -37,6 +37,13 @@ void PageManager::commit() {
 void PageManager::rollback() {
     common::UniqLock lck(mtx);
     if constexpr (ENABLE_FSM) {
+        // evict pages before they're added to the free list
+        for (const auto& entry : uncommittedAllocatedPages) {
+            for (uint64_t i = 0; i < entry.numPages; ++i) {
+                const auto pageIdx = entry.startPageIdx + i;
+                fileHandle->removePageFromFrameIfNecessary(pageIdx);
+            }
+        }
 
         // pages from rolled back allocations are immediately reusable
         // we don't truncate the file, instead letting that happen during checkpoint
