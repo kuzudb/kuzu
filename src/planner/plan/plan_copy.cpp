@@ -7,8 +7,6 @@
 #include "planner/operator/scan/logical_index_look_up.h"
 #include "planner/planner.h"
 
-#include <iostream>
-
 using namespace kuzu::binder;
 using namespace kuzu::storage;
 using namespace kuzu::catalog;
