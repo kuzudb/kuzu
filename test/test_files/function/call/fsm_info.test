@@ -150,7 +150,7 @@ True
 -CASE NodeCopyRollback
 -STATEMENT create node table Comment (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));
 ---- ok
--STATEMENT copy Comment from ["dataset/ldbc-sf01/Comment.csv", "dataset/ldbc-sf01/Comment.csv"](header=true, delim="|")
+-STATEMENT copy Comment from ["${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv", "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv"](header=true, delim="|")
 ---- error(regex)
 Copy exception: Found duplicated primary key value \d+, which violates the uniqueness constraint of the primary key column.
 
@@ -160,7 +160,7 @@ Copy exception: Found duplicated primary key value \d+, which violates the uniqu
 True
 
 # Freed pages should be reused after another copy (we check that by seeing if page 0 is reused)
--STATEMENT copy Comment from "dataset/ldbc-sf01/Comment.csv"(header=true, delim="|")
+-STATEMENT copy Comment from "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv"(header=true, delim="|")
 ---- ok
 -STATEMENT call storage_info("Comment") where start_page_idx = 0 return count(*)
 ---- 1
