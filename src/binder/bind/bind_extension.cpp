@@ -20,11 +20,18 @@ static void bindInstallExtension(const ExtensionAuxInfo& auxInfo) {
     }
 }
 
-static void bindLoadExtension(const ExtensionAuxInfo& auxInfo) {
+static void bindLoadExtension(main::ClientContext* context, const ExtensionAuxInfo& auxInfo) {
+    auto localFileSystem = common::LocalFileSystem("");
     if (ExtensionUtils::isOfficialExtension(auxInfo.path)) {
+        if (!localFileSystem.fileOrPathExists(
+                ExtensionUtils::getLocalPathForExtensionLib(context, auxInfo.path))) {
+            throw common::BinderException(
+                common::stringFormat("Extension: {} is an official extension and has not been "
+                                     "installed.\nYou can install it by: install {}.",
+                    auxInfo.path, auxInfo.path));
+        }
         return;
     }
-    auto localFileSystem = common::LocalFileSystem("");
     if (!localFileSystem.fileOrPathExists(auxInfo.path, nullptr /* clientContext */)) {
         throw common::BinderException(
             common::stringFormat("The extension {} is neither an official extension, nor does "
@@ -41,7 +48,7 @@ std::unique_ptr<BoundStatement> Binder::bindExtension(const Statement& statement
         bindInstallExtension(*auxInfo);
         break;
     case ExtensionAction::LOAD:
-        bindLoadExtension(*auxInfo);
+        bindLoadExtension(clientContext, *auxInfo);
         break;
     default:
         KU_UNREACHABLE;

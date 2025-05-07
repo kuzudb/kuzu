@@ -189,7 +189,7 @@ public:
     static std::unique_ptr<BoundStatement> bindTransaction(const parser::Statement& statement);
 
     /*** bind extension ***/
-    static std::unique_ptr<BoundStatement> bindExtension(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindExtension(const parser::Statement& statement);
 
     /*** bind explain ***/
     std::unique_ptr<BoundStatement> bindExplain(const parser::Statement& statement);
