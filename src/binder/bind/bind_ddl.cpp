@@ -339,7 +339,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
 
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    auto boundCopyFromInfo = BoundCopyFromInfo(nullptr, std::move(boundSource), std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr);
+    auto boundCopyFromInfo = BoundCopyFromInfo(nullptr, std::move(boundSource), std::move(offset),
+        std::move(columns), std::move(evaluateTypes), nullptr);
 
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
