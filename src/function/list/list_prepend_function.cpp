@@ -2,9 +2,9 @@
 #include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
+#include "function/list/functions/list_resolution_function.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
-#include "function/list/functions/list_resolution_function.h"
 
 using namespace kuzu::common;
 
