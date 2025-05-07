@@ -3,15 +3,19 @@
 --
 
 -CASE ListAppendNullAndEmptyChecks
+-LOG Prepend string into empty list
 -STATEMENT RETURN LIST_APPEND([], '5')
 ---- 1
 ['5']
+-LOG Prepend num into empty list
 -STATEMENT RETURN LIST_APPEND([], 7)
 ---- 1
 [7]
+-LOG Prepend null into empty list
 -STATEMENT RETURN LIST_APPEND([], null)
 ---- 1
 
+-LOG Prepend null into null
 -STATEMENT RETURN LIST_APPEND(null, null)
 ---- 1
 

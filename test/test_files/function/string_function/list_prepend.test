@@ -2,16 +2,20 @@
 
 --
 
--CASE NullAndEmptyChecks
+-CASE ListPrependNullAndEmptyChecks
+-LOG Prepend string into empty list
 -STATEMENT RETURN LIST_PREPEND([], '5')
 ---- 1
 ['5']
+-LOG Prepend num into empty list
 -STATEMENT RETURN LIST_PREPEND([], 7)
 ---- 1
 [7]
+-LOG Prepend null into empty list
 -STATEMENT RETURN LIST_PREPEND([], null)
 ---- 1
 
+-LOG Prepend null into null
 -STATEMENT RETURN LIST_PREPEND(null, null)
 ---- 1
 
