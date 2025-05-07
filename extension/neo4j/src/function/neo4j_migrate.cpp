@@ -11,7 +11,6 @@
 #include "function/table/table_function.h"
 #include "httplib.h"
 #include "json.hpp"
-#include "main/neo4j_extension.h"
 
 namespace kuzu {
 namespace neo4j_extension {
@@ -109,11 +108,13 @@ static std::vector<std::string> getNodeOrRels(httplib::Client& cli, common::Tabl
         // Importing multi-label nodes is not supported right now.
         if (tableType == common::TableType::NODE) {
             auto res = executeNeo4jQuery(cli,
-                common::stringFormat("match (n:{}) where size(labels(n)) > 1 return labels(n)",
+                stringFormat("match (n:{}) where size(labels(n)) > 1 return labels(n) limit 1",
                     label));
             if (!res.empty()) {
+                auto row = res[0]["row"];
                 throw common::RuntimeException{common::stringFormat(
-                    "Importing nodes with multi-labels is not supported right now.")};
+                    "Importing nodes with multi-labels is not supported right now. Found: {}",
+                    to_string(row))};
             }
         }
         labels.push_back(std::move(label));
@@ -168,8 +169,6 @@ LogicalType convertFromNeo4jTypeStr(const std::string& neo4jTypeStr) {
         return LogicalType{LogicalTypeID::INT64};
     } else if (neo4jTypeStr == "Integer") {
         return LogicalType{LogicalTypeID::INT32};
-    } else if (neo4jTypeStr == "String") {
-        return LogicalType{LogicalTypeID::STRING};
     } else if (neo4jTypeStr == "Date") {
         return LogicalType{LogicalTypeID::DATE};
     } else if (neo4jTypeStr == "DateTime") {
@@ -187,8 +186,7 @@ LogicalType convertFromNeo4jTypeStr(const std::string& neo4jTypeStr) {
     } else if (neo4jTypeStr == "StringArray") {
         return LogicalType::LIST(LogicalType::STRING());
     } else {
-        throw common::RuntimeException{
-            "Neo4j type: " + neo4jTypeStr + " is not supported right now."};
+        return LogicalType{LogicalTypeID::STRING};
     }
 }
 
@@ -247,8 +245,12 @@ std::vector<std::string> getRelProperties(httplib::Client& cli, std::string srcL
             srcLabel, relLabel, dstLabel);
     auto data = executeNeo4jQuery(cli, neo4jQuery);
     std::vector<std::string> relProperties;
-    for (auto& row : data[0]["row"]) {
-        relProperties.push_back(row.get<std::string>());
+    for (auto& row : data) {
+        if (row["row"][0].is_null()) {
+            // Skip null properties.
+            continue;
+        }
+        relProperties.push_back(row["row"][0].get<std::string>());
     }
     std::sort(relProperties.begin(), relProperties.end(),
         [](std::string& left, std::string& right) { return left < right; });
