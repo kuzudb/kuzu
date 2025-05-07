@@ -127,7 +127,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
     auto url = input->getLiteralVal<std::string>(0);
     auto userName = input->getLiteralVal<std::string>(1);
     auto password = input->getLiteralVal<std::string>(2);
-    auto cli = std::make_shared<httplib::Client>(url, 7474);
+    auto cli = std::make_shared<httplib::Client>(url);
     cli->set_basic_auth(userName, password);
     cli->set_connection_timeout(std::chrono::seconds(1000));
     cli->set_read_timeout(std::chrono::seconds(1000));
