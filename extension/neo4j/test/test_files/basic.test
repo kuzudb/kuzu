@@ -17,7 +17,9 @@
 
 -CASE MigrateFromNeo4jBaseCase
 
--STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["student", "teacher"], ["knows"]);
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
+---- ok
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["student", "teacher"], ["knows"]);
 ---- ok
 -STATEMENT match (p:student) return p.*;
 ---- 5
@@ -43,7 +45,7 @@
 5|0||teach
 6|0||teach
 -INSERT_STATEMENT_BLOCK CLEAN_DB
--STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["student"], []);
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["student"], []);
 ---- ok
 -STATEMENT match (s:student) return s.*;
 ---- 5
@@ -54,7 +56,7 @@
 4|1|False|20|1980-10-26|4.700000|Elizabeth|[96,59,65,88]|1.463000|7|True|48 hours 24 minutes 11 seconds|1976-12-23 11:21:42|a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15|["Ein"]|[2]
 
 -INSERT_STATEMENT_BLOCK CLEAN_DB
--STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["teacher"], []);
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["teacher"], []);
 ---- ok
 -STATEMENT match (s:teacher) return s.*;
 ---- 2
@@ -65,7 +67,9 @@
 
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 0
--STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", [], []);
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
+---- ok
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", [], []);
 ---- ok
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 0
@@ -74,20 +78,20 @@
 # Created by query in neo4j: create (a)-[:emptyrel]->(b)
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
--STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "kuzuneo4j", [], ["emptyrel"]);
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "kuzuneo4j", [], ["emptyrel"]);
 ---- ok
 
 -CASE MigrateFromOneEmptyNodes
 # Created by query in neo4j: create (a:person)-[:emptyrel1]->(b)
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
--STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "kuzuneo4j", ["person"], ["emptyrel1"]);
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "kuzuneo4j", ["person"], ["emptyrel1"]);
 ---- ok
 -STATEMENT MATCH (a:person) RETURN label(a)
 ---- 1
 person
 
--CASE MigrateFromNodeWithTypes
+-CASE MigrateWithTypesCustomPort
 # Created by query in neo4j: CREATE (:types_test {
 #                               boolean: true,
 #                               date: date('2023-10-23'),
@@ -104,8 +108,8 @@ person
 #                               })
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
--STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "kuzuneo4j", ["types_test"], []);
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7475", "neo4j", "kuzuneo4j", ["types_test"], []);
 ---- ok
 -STATEMENT MATCH (a:types_test) RETURN a.*
 ---- 1
-1|True|2023-10-23|P1Y2M3DT4H5M6S|3.141500|42|["A","B","C"]|2023-10-23T14:30:45|14:30:45|{"crs":"cartesian","x":12.34,"y":56.78,"z":null}|Sample text|2023-10-23 13:30:45|14:30:45+01:00
+0|True|2023-10-23|P1Y2M3DT4H5M6S|3.141500|42|["A","B","C"]|2023-10-23T14:30:45|14:30:45|{"crs":"cartesian","x":12.34,"y":56.78,"z":null}|Sample text|2023-10-23 13:30:45|14:30:45+01:00
