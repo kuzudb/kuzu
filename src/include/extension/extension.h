@@ -119,6 +119,12 @@ struct KUZU_API ExtensionUtils {
     }
 
     template<typename T>
+    static void addTableFuncAlias(main::Database& database) {
+        addFunc<typename T::alias>(database, T::name,
+            catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY);
+    }
+
+    template<typename T>
     static void addStandaloneTableFunc(main::Database& database) {
         addFunc<T>(database, T::name, catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY,
             false /* isInternal */);
