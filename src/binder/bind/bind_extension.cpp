@@ -46,7 +46,7 @@ static void bindUninstallExtension(const ExtensionAuxInfo& auxInfo) {
         throw common::BinderException(
             common::stringFormat("The extension {} is not an official extension.\nOnly official "
                                  "extensions can be uninstalled.",
-                auxInfo.path, auxInfo.path));
+                auxInfo.path));
     }
 }
 

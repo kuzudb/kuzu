@@ -53,3 +53,7 @@ Runtime exception: Can not uninstall extension: fts since it has not been instal
 -STATEMENT UNINSTALL vector;
 ---- 1
 Extension: vector has been uninstalled
+-STATEMENT UNINSTALL XXX;
+---- error
+Binder exception: The extension XXX is not an official extension.
+Only official extensions can be uninstalled.
