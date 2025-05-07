@@ -80,7 +80,7 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTableAs(
     auto createTableInfo = CreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, tableName,
         ConflictAction::ON_CONFLICT_THROW); // todo: parse conflict action (?)
     return std::make_unique<CreateTable>(std::move(createTableInfo),
-        transformQuery(*ctx.oC_Query()));
+        std::make_unique<QueryScanSource>(transformQuery(*ctx.oC_Query())));
 }
 
 static bool requireRelGroup(const std::vector<std::pair<std::string, std::string>>& fromToPairs) {
