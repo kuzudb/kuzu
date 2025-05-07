@@ -5,6 +5,7 @@
 #include "common/string_format.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
+#include "processor/operator/table_function_call.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/store/chunked_node_group.h"
@@ -37,10 +38,15 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(), tableName);
+    auto storageManager = clientContext->getStorageManager();
+    auto transaction = clientContext->getTransaction();
+
+    auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(transaction, tableName);
     auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
-    auto nodeTable = clientContext->getStorageManager()->getTable(nodeTableEntry->getTableID());
+    auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
+
     auto fTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+
     const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
 
@@ -50,7 +56,14 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     nodeSharedState->pkType = pkDefinition.getType().copy();
     nodeSharedState->initPKIndex(context);
 
+    if (children[0]->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
+        const auto call = children[0]->ptrCast<TableFunctionCall>();
+        nodeSharedState->tableFuncSharedState = call->getSharedState().get();
+    }
+
     info->tableEntry = nodeTableEntry;
+
+    // Map copy node.
     for (auto& property : nodeTableEntry->getProperties()) {
         info->insertColumnIDs.push_back(nodeTableEntry->getColumnID(property.getName()));
     }

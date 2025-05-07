@@ -7,6 +7,8 @@
 #include "planner/operator/scan/logical_index_look_up.h"
 #include "planner/planner.h"
 
+#include <iostream>
+
 using namespace kuzu::binder;
 using namespace kuzu::storage;
 using namespace kuzu::catalog;
@@ -24,7 +26,8 @@ static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan&
 }
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
-    auto tableEntry = copyFromInfo.tableEntry;
+    // tableInfo variant is TableCatalogEntry* since it's a rel batch insert
+    auto tableEntry = std::get<catalog::TableCatalogEntry*>(copyFromInfo.tableInfo);
     const auto* tableCatalogEntry = tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
     LogicalPartitionerInfo info(tableEntry, copyFromInfo.offset);
     for (auto direction : tableCatalogEntry->getRelDataDirections()) {

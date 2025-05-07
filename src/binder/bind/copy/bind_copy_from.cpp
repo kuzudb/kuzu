@@ -106,23 +106,8 @@ BoundCopyFromInfo Binder::bindCopyNodeFromInfo(std::string tableName,
     columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    return BoundCopyFromInfo(tableName, std::move(boundSource),
-        std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);  
-}
-
-std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
-    NodeTableCatalogEntry* nodeTableEntry) {
-    auto& copyStatement = ku_dynamic_cast<const CopyFrom&>(statement);
-
-    // Bind expected columns based on catalog information.
-    std::vector<std::string> expectedColumnNames;
-    std::vector<LogicalType> expectedColumnTypes;
-    bindExpectedNodeColumns(nodeTableEntry, copyStatement.getCopyColumnInfo(), expectedColumnNames,
-        expectedColumnTypes);
-
-    auto boundCopyFromInfo = bindCopyNodeFromInfo(nodeTableEntry->getName(),
-        nodeTableEntry->getProperties(), copyStatement.getSource(),
-        copyStatement.getParsingOptions(), expectedColumnNames, expectedColumnTypes);
+    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry->getName(), common::TableType::NODE, std::move(boundSource),
+        std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -191,7 +176,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     auto internalIDColumnIndices = std::vector<idx_t>{0, 1, 2};
     auto extraCopyRelInfo =
         std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
-    auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset,
+    auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, common::TableType::REL, boundSource->copy(), offset,
         std::move(columnExprs), std::move(evaluateTypes), std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }

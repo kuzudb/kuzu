@@ -296,11 +296,32 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
     }
 
     auto createInfo = createTable->getInfo();
-    // first column is primary key column temporarily for now
-    auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(columnNames[0], std::move(propertyDefinitions));
-    auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, createInfo->tableName,
-        createInfo->onConflict, std::move(boundExtraInfo), clientContext->useInternalCatalogEntry());
-    
+    auto boundExtraInfo =
+        std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
+    auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
+        createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
+        clientContext->useInternalCatalogEntry());
+
+    auto parsingOptions = options_t{}; // temp
+    auto boundSource =
+        bindQueryScanSource(*createTable->getSource(), parsingOptions, columnNames, columnTypes);
+    auto warningDataExprs = boundSource->getWarningColumns();
+
+    expression_vector columns;
+    std::vector<ColumnEvaluateType> evaluateTypes;
+    for (auto& property : propertyDefinitions) {
+        auto [evaluateType, column] =
+            matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
+        columns.push_back(column);
+        evaluateTypes.push_back(evaluateType);
+    }
+    columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
+
+    auto offset =
+        createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
+    auto boundCopyFromInfo = BoundCopyFromInfo(createInfo->tableName, TableType::NODE, std::move(boundSource), std::move(offset),
+        std::move(columns), std::move(evaluateTypes), nullptr);
+
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
 
