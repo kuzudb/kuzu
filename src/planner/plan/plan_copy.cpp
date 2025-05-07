@@ -7,6 +7,8 @@
 #include "planner/operator/scan/logical_index_look_up.h"
 #include "planner/planner.h"
 
+#include <iostream>
+
 using namespace kuzu::binder;
 using namespace kuzu::storage;
 using namespace kuzu::catalog;
@@ -24,9 +26,10 @@ static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan&
 }
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
-    const auto* tableCatalogEntry =
-        copyFromInfo.tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
-    LogicalPartitionerInfo info(copyFromInfo.tableEntry, copyFromInfo.offset);
+    // tableInfo variant is TableCatalogEntry* since it's a rel batch insert
+    auto tableEntry = std::get<catalog::TableCatalogEntry*>(copyFromInfo.tableInfo);
+    const auto* tableCatalogEntry = tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
+    LogicalPartitionerInfo info(tableEntry, copyFromInfo.offset);
     for (auto direction : tableCatalogEntry->getRelDataDirections()) {
         info.partitioningInfos.push_back(
             LogicalPartitioningInfo(RelDirectionUtils::relDirectionToKeyIdx(direction)));
@@ -49,8 +52,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
     auto& copyFrom = statement.constCast<BoundCopyFrom>();
     auto outExprs = statement.getStatementResult()->getColumns();
     auto copyFromInfo = copyFrom.getInfo();
-    auto tableType = copyFromInfo->tableEntry->getTableType();
-    switch (tableType) {
+    switch (copyFromInfo->tableType) {
     case TableType::NODE: {
         return planCopyNodeFrom(copyFromInfo, outExprs);
     }

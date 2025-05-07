@@ -120,7 +120,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
+    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry->getName(), common::TableType::NODE, std::move(boundSource),
         std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
@@ -190,7 +190,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     auto internalIDColumnIndices = std::vector<idx_t>{0, 1, 2};
     auto extraCopyRelInfo =
         std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
-    auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset,
+    auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, common::TableType::REL, boundSource->copy(), offset,
         std::move(columnExprs), std::move(evaluateTypes), std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }

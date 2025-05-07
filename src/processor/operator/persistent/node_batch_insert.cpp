@@ -1,13 +1,16 @@
 #include "processor/operator/persistent/node_batch_insert.h"
 
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/cast.h"
 #include "common/string_format.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
+#include "processor/operator/table_function_call.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -34,8 +37,36 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
 }
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
-    const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
+    auto clientContext = context->clientContext;
+    auto storageManager = clientContext->getStorageManager();
+    auto transaction = clientContext->getTransaction();
+
+    auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(transaction, tableName);
+    auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
+    auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
+
+    auto fTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+
+    const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
+    auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
+
+    auto nodeSharedState = sharedState->ptrCast<NodeBatchInsertSharedState>();
+    nodeSharedState->table = nodeTable;
+    nodeSharedState->pkColumnID = pkColumnID;
+    nodeSharedState->pkType = pkDefinition.getType().copy();
     nodeSharedState->initPKIndex(context);
+
+    if (children[0]->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
+        const auto call = children[0]->ptrCast<TableFunctionCall>();
+        nodeSharedState->tableFuncSharedState = call->getSharedState().get();
+    }
+
+    info->tableEntry = nodeTableEntry;
+
+    // Map copy node.
+    for (auto& property : nodeTableEntry->getProperties()) {
+        info->insertColumnIDs.push_back(nodeTableEntry->getColumnID(property.getName()));
+    }
 }
 
 void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
