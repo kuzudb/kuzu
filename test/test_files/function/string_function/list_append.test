@@ -6,7 +6,7 @@
 -LOG Prepend string into empty list
 -STATEMENT RETURN LIST_APPEND([], '5')
 ---- 1
-['5']
+[5]
 -LOG Prepend num into empty list
 -STATEMENT RETURN LIST_APPEND([], 7)
 ---- 1
