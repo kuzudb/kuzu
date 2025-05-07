@@ -7,19 +7,19 @@
 namespace kuzu::storage {
 static constexpr bool ENABLE_FSM = true;
 
-PageRange PageManager::allocatePageRange(common::page_idx_t numPages) {
+PageRange PageManager::allocatePageRange(common::page_idx_t numPages, bool reclaimOnRollback) {
     if constexpr (ENABLE_FSM) {
         common::UniqLock lck{mtx};
         auto allocatedFreeChunk = freeSpaceManager->popFreePages(numPages);
         if (allocatedFreeChunk.has_value()) {
-            pushUncommittedAllocatedPages(*allocatedFreeChunk);
+            pushUncommittedAllocatedPages(*allocatedFreeChunk, reclaimOnRollback);
             return {*allocatedFreeChunk};
         }
     }
     auto startPageIdx = fileHandle->addNewPages(numPages);
     KU_ASSERT(fileHandle->getNumPages() >= startPageIdx + numPages);
     auto ret = PageRange(startPageIdx, numPages);
-    pushUncommittedAllocatedPages(ret);
+    pushUncommittedAllocatedPages(ret, reclaimOnRollback);
     return ret;
 }
 
@@ -70,8 +70,8 @@ void PageManager::finalizeCheckpoint() {
     freeSpaceManager->finalizeCheckpoint(fileHandle);
 }
 
-void PageManager::pushUncommittedAllocatedPages(PageRange pages) {
-    if (pages.numPages > 0) {
+void PageManager::pushUncommittedAllocatedPages(PageRange pages, bool reclaimOnRollback) {
+    if (reclaimOnRollback && pages.numPages > 0) {
         uncommittedAllocatedPages.push_back(pages);
     }
 }

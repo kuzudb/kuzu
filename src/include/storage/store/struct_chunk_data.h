@@ -49,7 +49,7 @@ public:
         childChunks[childIdx] = std::move(childChunk);
     }
 
-    void flush(FileHandle& dataFH) override;
+    void flush(FileHandle& dataFH, bool reclaimOnRollback = true) override;
     void reclaimStorage(FileHandle& dataFH) override;
 
 protected:

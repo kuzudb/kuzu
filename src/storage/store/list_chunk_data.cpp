@@ -432,11 +432,11 @@ void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData)
         ColumnChunkData::deserialize(chunkData.getMemoryManager(), deSer);
 }
 
-void ListChunkData::flush(FileHandle& dataFH) {
-    ColumnChunkData::flush(dataFH);
-    sizeColumnChunk->flush(dataFH);
-    dataColumnChunk->flush(dataFH);
-    offsetColumnChunk->flush(dataFH);
+void ListChunkData::flush(FileHandle& dataFH, bool reclaimOnRollback) {
+    ColumnChunkData::flush(dataFH, reclaimOnRollback);
+    sizeColumnChunk->flush(dataFH, reclaimOnRollback);
+    dataColumnChunk->flush(dataFH, reclaimOnRollback);
+    offsetColumnChunk->flush(dataFH, reclaimOnRollback);
 }
 
 void ListChunkData::reclaimStorage(FileHandle& dataFH) {

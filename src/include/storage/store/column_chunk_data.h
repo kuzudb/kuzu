@@ -156,7 +156,7 @@ public:
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
-    virtual void flush(FileHandle& dataFH);
+    virtual void flush(FileHandle& dataFH, bool reclaimOnRollback = true);
 
     ColumnChunkMetadata flushBuffer(FileHandle* dataFH, const PageRange& entry,
         const ColumnChunkMetadata& metadata) const;

@@ -108,7 +108,7 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
-    void flush(FileHandle& dataFH) override;
+    void flush(FileHandle& dataFH, bool reclaimOnRollback = true) override;
     void reclaimStorage(FileHandle& dataFH) override;
 
 protected:

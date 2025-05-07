@@ -60,7 +60,7 @@ public:
 
     void finalize() override;
 
-    void flush(FileHandle& dataFH) override;
+    void flush(FileHandle& dataFH, bool reclaimOnRollback = true) override;
     void reclaimStorage(FileHandle& dataFH) override;
 
     uint64_t getNumValues() const override { return nullData->getNumValues(); }

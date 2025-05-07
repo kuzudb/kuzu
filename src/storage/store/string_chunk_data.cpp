@@ -250,10 +250,10 @@ void StringChunkData::finalize() {
     dictionaryChunk = std::move(newDictionaryChunk);
 }
 
-void StringChunkData::flush(FileHandle& dataFH) {
-    ColumnChunkData::flush(dataFH);
-    indexColumnChunk->flush(dataFH);
-    dictionaryChunk->flush(dataFH);
+void StringChunkData::flush(FileHandle& dataFH, bool reclaimOnRollback) {
+    ColumnChunkData::flush(dataFH, reclaimOnRollback);
+    indexColumnChunk->flush(dataFH, reclaimOnRollback);
+    dictionaryChunk->flush(dataFH, reclaimOnRollback);
 }
 
 void StringChunkData::reclaimStorage(FileHandle& dataFH) {

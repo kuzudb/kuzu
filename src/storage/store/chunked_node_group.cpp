@@ -377,7 +377,7 @@ void ChunkedNodeGroup::addColumn(const Transaction* transaction,
         newColumnStats);
     if (residencyState == ResidencyState::ON_DISK) {
         KU_ASSERT(dataFH);
-        chunkData.flush(*dataFH);
+        chunkData.flush(*dataFH, false);
     }
 }
 

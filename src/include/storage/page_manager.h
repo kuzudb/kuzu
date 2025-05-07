@@ -21,7 +21,9 @@ public:
     explicit PageManager(FileHandle* fileHandle)
         : freeSpaceManager(std::make_unique<FreeSpaceManager>()), fileHandle(fileHandle) {}
 
-    PageRange allocatePageRange(common::page_idx_t numPages);
+    // If reclaimOnRollback is false the allocated pages should be freed elsewhere
+    // e.g. during the checkpoint after the rollback
+    PageRange allocatePageRange(common::page_idx_t numPages, bool reclaimOnRollback = true);
     void freePageRange(PageRange block);
 
     void serialize(common::Serializer& serializer);
@@ -39,7 +41,7 @@ public:
     }
 
 private:
-    void pushUncommittedAllocatedPages(PageRange pages);
+    void pushUncommittedAllocatedPages(PageRange pages, bool reclaimOnRollback);
 
     std::unique_ptr<FreeSpaceManager> freeSpaceManager;
     std::vector<PageRange> uncommittedAllocatedPages;
