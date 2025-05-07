@@ -32,7 +32,7 @@ struct ListPrepend {
 
 static void validateArgumentType(const binder::expression_vector& arguments) {
 
-    if (arguments[0]->getChildren().empty())
+    if (binder::ExpressionUtil::isEmptyList(*arguments[0]))
         return;
 
     if (arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&

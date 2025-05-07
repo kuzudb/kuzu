@@ -33,7 +33,7 @@ struct ListAppend {
 
 static void validateArgumentType(const binder::expression_vector& arguments) {
 
-    if (arguments[0]->getChildren().empty())
+    if (binder::ExpressionUtil::isEmptyList(*arguments[0]))
         return;
 
     if (ListType::getChildType(arguments[0]->dataType) != arguments[1]->getDataType()) {
