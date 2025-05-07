@@ -43,3 +43,13 @@ Binder exception: The extension /tmp/iceberg is neither an official extension, n
 ---- error
 Binder exception: Extension: fts is an official extension and has not been installed.
 You can install it by: install fts.
+
+-CASE UninstallExtensionError
+-STATEMENT UNINSTALL fts;
+---- error
+Runtime exception: Can not uninstall extension: fts since it has not been installed.
+-STATEMENT INSTALL vector;
+---- ok
+-STATEMENT UNINSTALL vector;
+---- 1
+Extension: vector has been uninstalled

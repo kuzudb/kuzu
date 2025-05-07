@@ -1211,11 +1211,8 @@ public:
     KU_UninstallExtensionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *UNINSTALL();
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *SP();
     OC_VariableContext *oC_Variable();
-    antlr4::tree::TerminalNode *FROM();
-    antlr4::tree::TerminalNode *StringLiteral();
 
    
   };

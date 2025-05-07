@@ -448,7 +448,7 @@ kU_InstallExtension
     : INSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
 
 kU_UninstallExtension
-    : UNINSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
+    : UNINSTALL SP oC_Variable;
 
 oC_Query
     : oC_RegularQuery ;

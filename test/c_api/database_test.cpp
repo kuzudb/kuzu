@@ -3,11 +3,13 @@
 #include "c_api/kuzu.h"
 #include "common/exception/io.h"
 #include "common/file_system/virtual_file_system.h"
+#include "extension/extension.h"
 #include "graph_test/api_graph_test.h"
 #include "gtest/gtest.h"
 
 using namespace kuzu::main;
 using namespace kuzu::testing;
+using namespace kuzu::extension;
 
 class CApiDatabaseTest : public APIEmptyDBTest {
 public:

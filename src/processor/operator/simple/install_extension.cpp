@@ -10,8 +10,9 @@ using namespace kuzu::common;
 using namespace kuzu::extension;
 
 void InstallExtension::executeInternal(ExecutionContext* context) {
-    extension::ExtensionInstaller installer{info, *context};
-    installer.install();}
+    extension::ExtensionInstaller installer{info, *context->clientContext};
+    installer.install();
+}
 
 std::string InstallExtension::getOutputMsg() {
     return common::stringFormat("Extension: {} has been installed from repo: {}.", info.name,
