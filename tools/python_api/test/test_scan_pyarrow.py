@@ -19,6 +19,69 @@ def test_pyarrow_basic(conn_db_readonly: ConnDB) -> None:
     assert result.get_next() == [3, "c", None]
 
 
+def test_pyarrow_copy_from_parameterized_df(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
+
+    def get_tab_func():
+        return pa.Table.from_arrays(
+            [
+                pa.array([1, 2, 3], type=pa.int32()),
+                pa.array(["a", "b", "c"], type=pa.string()),
+                pa.array([True, False, None], type=pa.bool_()),
+            ],
+            names=["id", "A", "B"],
+        )
+
+    conn.execute("CREATE NODE TABLE pyarrowtab(id INT32, A STRING, B BOOL, PRIMARY KEY(id))")
+    conn.execute("COPY pyarrowtab FROM $tab", {"tab": get_tab_func()})
+    result = conn.execute("MATCH (t:pyarrowtab) RETURN t.id AS id, t.A AS A, t.B AS B ORDER BY t.id")
+    assert result.get_next() == [1, "a", True]
+    assert result.get_next() == [2, "b", False]
+    assert result.get_next() == [3, "c", None]
+
+    rels = pa.Table.from_arrays(
+        [pa.array([1, 2, 3], type=pa.int32()), pa.array([2, 3, 1], type=pa.int32())], names=["from", "to"]
+    )
+    conn.execute("CREATE REL TABLE pyarrowrel(FROM pyarrowtab TO pyarrowtab)")
+    prep = conn.prepare("COPY pyarrowrel FROM $tab", {"tab": rels})
+    conn.execute(prep)
+    result = conn.execute("MATCH (a:pyarrowtab)-[:pyarrowrel]->(b:pyarrowtab) RETURN a.id, b.id ORDER BY a.id")
+    assert result.get_next() == [1, 2]
+    assert result.get_next() == [2, 3]
+    assert result.get_next() == [3, 1]
+
+
+def test_pyarrow_different_dataframes_passed_to_prepare_and_execute(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+    tab = pa.Table.from_arrays(
+        [
+            pa.array([1, 2, 3], type=pa.int32()),
+        ],
+        names=["id"],
+    )
+    tab1 = pa.Table.from_arrays(
+        [
+            pa.array([4, 5, 6], type=pa.int32()),
+        ],
+        names=["id"],
+    )
+    conn.execute("CREATE NODE TABLE ids(id INT64, PRIMARY KEY(id))")
+    error_message = "When preparing the current statement the dataframe passed into parameter 'tab' was different from the one provided during prepare. Dataframes parameters are only used during prepare; please make sure that they are either not passed into execute or they match the one passed during prepare."
+    prep = conn.prepare("COPY ids FROM $tab", {"tab": tab})
+    with pytest.raises(RuntimeError, match=error_message):
+        conn.execute(prep, {"tab": tab1})
+
+
+def test_pyarrow_copy_from_invalid_source(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
+    conn.execute("CREATE NODE TABLE pyarrowtab(id INT32, A STRING, B BOOL, PRIMARY KEY(id))")
+    with pytest.raises(
+        RuntimeError,
+        match=r"Binder exception: Trying to scan from unsupported data type INT8\[\]. The only parameter types that can be scanned from are pandas/polars dataframes and pyarrow tables.",
+    ):
+        conn.execute("COPY pyarrowtab FROM $tab", {"tab": [1, 2, 3]})
+
+
 def test_pyarrow_copy_from(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite
     tab = pa.Table.from_arrays(
@@ -101,6 +164,7 @@ def test_pyarrow_scan_invalid_option(conn_db_readwrite: ConnDB) -> None:
     error_message = "INVALID_OPTION Option not recognized by pyArrow scanner."
     with pytest.raises(RuntimeError, match=error_message):
         conn.execute("COPY ids FROM tab(INVALID_OPTION=1)")
+
 
 def test_copy_from_pyarrow_multi_pairs(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite

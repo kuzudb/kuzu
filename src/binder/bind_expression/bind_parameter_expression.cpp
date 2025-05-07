@@ -12,6 +12,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
     const ParsedExpression& parsedExpression) {
     auto& parsedParameterExpression = parsedExpression.constCast<ParsedParameterExpression>();
     auto parameterName = parsedParameterExpression.getParameterName();
+    parsedParameters.insert(parameterName);
     if (parameterMap.contains(parameterName)) {
         return make_shared<ParameterExpression>(parameterName, *parameterMap.at(parameterName));
     } else {

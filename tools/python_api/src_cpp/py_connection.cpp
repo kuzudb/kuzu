@@ -29,7 +29,8 @@ void PyConnection::initialize(py::handle& m) {
         .def("query", &PyConnection::query, py::arg("statement"))
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
             py::arg("num_threads"))
-        .def("prepare", &PyConnection::prepare, py::arg("query"))
+        .def("prepare", &PyConnection::prepare, py::arg("query"),
+            py::arg("parameters") = py::dict())
         .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"))
         .def("interrupt", &PyConnection::interrupt)
         .def("get_num_nodes", &PyConnection::getNumNodes, py::arg("node_name"))
@@ -44,12 +45,36 @@ void PyConnection::initialize(py::handle& m) {
     PyDateTime_IMPORT;
 }
 
-static std::unique_ptr<function::ScanReplacementData> tryReplacePolars(py::dict& dict,
-    py::str& objectName) {
-    if (!dict.contains(objectName)) {
-        return nullptr;
+static std::vector<function::scan_replace_handle_t> lookupPythonObject(
+    const std::string& objectName) {
+    std::vector<function::scan_replace_handle_t> ret;
+
+    py::gil_scoped_acquire acquire;
+    auto pyTableName = py::str(objectName);
+    // Here we do an exhaustive search on the frame lineage.
+    auto currentFrame = importCache->inspect.currentframe()();
+    while (hasattr(currentFrame, "f_locals")) {
+        auto localDict = py::cast<py::dict>(currentFrame.attr("f_locals"));
+        auto hasLocalDict = !py::none().is(localDict);
+        if (hasLocalDict) {
+            if (localDict.contains(pyTableName)) {
+                ret.push_back(reinterpret_cast<function::scan_replace_handle_t>(
+                    localDict[pyTableName].ptr()));
+            }
+        }
+        auto globalDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_globals"));
+        if (globalDict) {
+            if (globalDict.contains(pyTableName)) {
+                ret.push_back(reinterpret_cast<function::scan_replace_handle_t>(
+                    globalDict[pyTableName].ptr()));
+            }
+        }
+        currentFrame = currentFrame.attr("f_back");
     }
-    auto entry = dict[objectName];
+    return ret;
+}
+
+static std::unique_ptr<function::ScanReplacementData> tryReplacePolars(py::handle& entry) {
     if (PyConnection::isPolarsDataframe(entry)) {
         auto scanReplacementData = std::make_unique<function::ScanReplacementData>();
         scanReplacementData->func = PyArrowTableScanFunction::getFunction();
@@ -62,12 +87,7 @@ static std::unique_ptr<function::ScanReplacementData> tryReplacePolars(py::dict&
     }
 }
 
-static std::unique_ptr<function::ScanReplacementData> tryReplacePyArrow(py::dict& dict,
-    py::str& objectName) {
-    if (!dict.contains(objectName)) {
-        return nullptr;
-    }
-    auto entry = dict[objectName];
+static std::unique_ptr<function::ScanReplacementData> tryReplacePyArrow(py::handle& entry) {
     if (PyConnection::isPyArrowTable(entry)) {
         auto scanReplacementData = std::make_unique<function::ScanReplacementData>();
         scanReplacementData->func = PyArrowTableScanFunction::getFunction();
@@ -81,51 +101,24 @@ static std::unique_ptr<function::ScanReplacementData> tryReplacePyArrow(py::dict
 }
 
 static std::unique_ptr<function::ScanReplacementData> replacePythonObject(
-    const std::string& objectName) {
+    std::span<function::scan_replace_handle_t> candidateHandles) {
     py::gil_scoped_acquire acquire;
-    auto pyTableName = py::str(objectName);
-    // Here we do an exhaustive search on the frame lineage.
-    auto currentFrame = importCache->inspect.currentframe()();
-    bool nameMatchFound = false;
-    while (hasattr(currentFrame, "f_locals")) {
-        auto localDict = py::cast<py::dict>(currentFrame.attr("f_locals"));
-        auto hasLocalDict = !py::none().is(localDict);
-        if (hasLocalDict) {
-            if (localDict.contains(pyTableName)) {
-                nameMatchFound = true;
-            }
-            auto result = tryReplacePD(localDict, pyTableName);
-            if (!result) {
-                result = tryReplacePolars(localDict, pyTableName);
-            }
-            if (!result) {
-                result = tryReplacePyArrow(localDict, pyTableName);
-            }
-            if (result) {
-                return result;
-            }
+    for (auto* handle : candidateHandles) {
+        auto entry = py::handle(reinterpret_cast<PyObject*>(handle));
+        auto result = tryReplacePD(entry);
+        if (!result) {
+            result = tryReplacePolars(entry);
         }
-        auto globalDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_globals"));
-        if (globalDict) {
-            if (globalDict.contains(pyTableName)) {
-                nameMatchFound = true;
-            }
-            auto result = tryReplacePD(globalDict, pyTableName);
-            if (!result) {
-                result = tryReplacePolars(globalDict, pyTableName);
-            }
-            if (!result) {
-                result = tryReplacePyArrow(globalDict, pyTableName);
-            }
-            if (result) {
-                return result;
-            }
+        if (!result) {
+            result = tryReplacePyArrow(entry);
         }
-        currentFrame = currentFrame.attr("f_back");
+        if (result) {
+            return result;
+        }
     }
-    if (nameMatchFound) {
-        throw BinderException(
-            stringFormat("Variable {} found but no matches were scannable", objectName));
+    if (!candidateHandles.empty()) {
+        throw BinderException("Attempted to scan from unsupported python object. Can only scan "
+                              "from pandas/polars dataframes and pyarrow tables.");
     }
     return nullptr;
 }
@@ -133,7 +126,8 @@ static std::unique_ptr<function::ScanReplacementData> replacePythonObject(
 PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(pyDatabase->database.get());
     conn = std::make_unique<Connection>(pyDatabase->database.get());
-    conn->getClientContext()->addScanReplace(function::ScanReplacement(replacePythonObject));
+    conn->getClientContext()->addScanReplace(
+        function::ScanReplacement(lookupPythonObject, replacePythonObject));
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
     }
@@ -175,8 +169,9 @@ void PyConnection::setMaxNumThreadForExec(uint64_t numThreads) {
     conn->setMaxNumThreadForExec(numThreads);
 }
 
-PyPreparedStatement PyConnection::prepare(const std::string& query) {
-    auto preparedStatement = conn->prepare(query);
+PyPreparedStatement PyConnection::prepare(const std::string& query, const py::dict& parameters) {
+    auto params = transformPythonParameters(parameters, conn.get());
+    auto preparedStatement = conn->prepareWithParams(query, std::move(params));
     PyPreparedStatement pyPreparedStatement;
     pyPreparedStatement.preparedStatement = std::move(preparedStatement);
     return pyPreparedStatement;
@@ -261,21 +256,21 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
     conn->setMaxNumThreadForExec(numThreadsForExec);
 }
 
-bool PyConnection::isPandasDataframe(const py::object& object) {
+bool PyConnection::isPandasDataframe(const py::handle& object) {
     if (!doesPyModuleExist("pandas")) {
         return false;
     }
     return py::isinstance(object, importCache->pandas.DataFrame());
 }
 
-bool PyConnection::isPolarsDataframe(const py::object& object) {
+bool PyConnection::isPolarsDataframe(const py::handle& object) {
     if (!doesPyModuleExist("polars")) {
         return false;
     }
     return py::isinstance(object, importCache->polars.DataFrame());
 }
 
-bool PyConnection::isPyArrowTable(const py::object& object) {
+bool PyConnection::isPyArrowTable(const py::handle& object) {
     if (!doesPyModuleExist("pyarrow")) {
         return false;
     }
@@ -389,6 +384,9 @@ static LogicalType pyLogicalType(const py::handle& val) {
             childType = std::move(result);
         }
         return LogicalType::LIST(std::move(childType));
+    } else if (PyConnection::isPyArrowTable(val) || PyConnection::isPandasDataframe(val) ||
+               PyConnection::isPolarsDataframe(val)) {
+        return LogicalType::POINTER();
     } else {
         // LCOV_EXCL_START
         throw common::RuntimeException(
@@ -677,6 +675,9 @@ Value PyConnection::transformPythonValueFromParameterAs(const py::handle& val,
                 transformPythonValueFromParameterAs(field.second, fieldType)));
         }
         return Value(type.copy(), std::move(children));
+    }
+    case LogicalTypeID::POINTER: {
+        return Value::createValue(reinterpret_cast<uint8_t*>(val.ptr()));
     }
     default:
         return transformPythonValueAs(val, type);

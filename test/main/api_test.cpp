@@ -270,3 +270,15 @@ TEST_F(ApiTest, QueryWithHeadingNewline) {
     createDBAndConn();
     ASSERT_TRUE(conn->query("\n PROFILE RETURN 5; \n")->isSuccess());
 }
+
+TEST_F(ApiTest, LoadFromInvalidParam) {
+    createDBAndConn();
+    std::unordered_map<std::string, std::unique_ptr<Value>> params;
+    params["val"] = std::make_unique<Value>(Value::createValue(3));
+    auto prep = conn->prepareWithParams("LOAD FROM $val RETURN *", std::move(params));
+    ASSERT_FALSE(prep->isSuccess());
+    ASSERT_STREQ(
+        "Binder exception: Trying to scan from unsupported data type INT32. The only parameter "
+        "types that can be scanned from are pandas/polars dataframes and pyarrow tables.",
+        prep->getErrorMessage().c_str());
+}

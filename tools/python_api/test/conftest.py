@@ -169,7 +169,7 @@ def create_conn_db(path: Path, *, read_only: bool) -> ConnDB:
     return conn, db
 
 
-@pytest.fixture()
+@pytest.fixture
 def conn_db_readonly(tmp_path: Path) -> ConnDB:
     """Return a cached read-only connection and database."""
     global _READONLY_CONN_DB_
@@ -178,13 +178,13 @@ def conn_db_readonly(tmp_path: Path) -> ConnDB:
     return _READONLY_CONN_DB_
 
 
-@pytest.fixture()
+@pytest.fixture
 def conn_db_readwrite(tmp_path: Path) -> ConnDB:
     """Return a new writable connection and database."""
     return create_conn_db(init_db(tmp_path), read_only=False)
 
 
-@pytest.fixture()
+@pytest.fixture
 def async_connection_readonly(tmp_path: Path) -> kuzu.AsyncConnection:
     """Return a cached read-only async connection."""
     global _READONLY_ASYNC_CONNECTION_
@@ -195,6 +195,14 @@ def async_connection_readonly(tmp_path: Path) -> kuzu.AsyncConnection:
     return _READONLY_ASYNC_CONNECTION_
 
 
-@pytest.fixture()
+@pytest.fixture
+def async_connection_readwrite(tmp_path: Path) -> kuzu.AsyncConnection:
+    """Return a writeable async connection."""
+    conn, db = create_conn_db(init_db(tmp_path), read_only=False)
+    conn.close()
+    return kuzu.AsyncConnection(db)
+
+
+@pytest.fixture
 def build_dir() -> Path:
     return python_build_dir

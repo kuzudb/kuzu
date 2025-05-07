@@ -29,6 +29,14 @@ struct BaseScanSource {
     }
 };
 
+struct ParameterScanSource : public BaseScanSource {
+    std::unique_ptr<ParsedExpression> paramExpression;
+
+    explicit ParameterScanSource(std::unique_ptr<ParsedExpression> paramExpression)
+        : BaseScanSource{common::ScanSourceType::PARAM},
+          paramExpression{std::move(paramExpression)} {}
+};
+
 struct FileScanSource : public BaseScanSource {
     std::vector<std::string> filePaths;
 

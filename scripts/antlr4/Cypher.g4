@@ -273,6 +273,7 @@ kU_ColumnNames
 kU_ScanSource
     : kU_FilePaths
         | '(' SP? oC_Query SP? ')'
+        | oC_Parameter
         | oC_Variable
         | oC_Variable '.' SP? oC_SchemaName
         | oC_FunctionInvocation ;

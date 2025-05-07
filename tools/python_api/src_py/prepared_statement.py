@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .connection import Connection
@@ -12,7 +12,7 @@ class PreparedStatement:
     same query for repeated execution.
     """
 
-    def __init__(self, connection: Connection, query: str):
+    def __init__(self, connection: Connection, query: str, parameters: dict[str, Any] | None = None):
         """
         Parameters
         ----------
@@ -20,8 +20,12 @@ class PreparedStatement:
             Connection to a database.
         query : str
             Query to prepare.
+        parameters : dict[str, Any]
+            Parameters for the query.
         """
-        self._prepared_statement = connection._connection.prepare(query)
+        if parameters is None:
+            parameters = {}
+        self._prepared_statement = connection._connection.prepare(query, parameters)
         self._connection = connection
 
     def is_success(self) -> bool:

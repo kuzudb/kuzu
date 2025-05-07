@@ -129,7 +129,7 @@ class Connection:
         if len(parameters) == 0 and isinstance(query, str):
             _query_result = self._connection.query(query)
         else:
-            prepared_statement = self.prepare(query) if isinstance(query, str) else query
+            prepared_statement = self.prepare(query, parameters) if isinstance(query, str) else query
             _query_result = self._connection.execute(prepared_statement._prepared_statement, parameters)
         if not _query_result.isSuccess():
             raise RuntimeError(_query_result.getErrorMessage())
@@ -144,7 +144,11 @@ class Connection:
             all_query_results.append(QueryResult(self, _query_result))
         return all_query_results
 
-    def prepare(self, query: str) -> PreparedStatement:
+    def prepare(
+        self,
+        query: str,
+        parameters: dict[str, Any] | None = None,
+    ) -> PreparedStatement:
         """
         Create a prepared statement for a query.
 
@@ -153,13 +157,16 @@ class Connection:
         query : str
             Query to prepare.
 
+        parameters : dict[str, Any]
+            Parameters for the query.
+
         Returns
         -------
         PreparedStatement
             Prepared statement.
 
         """
-        return PreparedStatement(self, query)
+        return PreparedStatement(self, query, parameters)
 
     def _get_node_property_names(self, table_name: str) -> dict[str, Any]:
         LIST_START_SYMBOL = "["
