@@ -11,10 +11,15 @@ using namespace extension;
 void AlgoExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     extension::ExtensionUtils::addTableFunc<SCCFunction>(db);
+    extension::ExtensionUtils::addTableFuncAlias<SCCAliasFunction>(db);
     extension::ExtensionUtils::addTableFunc<SCCKosarajuFunction>(db);
+    extension::ExtensionUtils::addTableFuncAlias<SCCKosarajuAliasFunction>(db);
     extension::ExtensionUtils::addTableFunc<WeaklyConnectedComponentsFunction>(db);
+    extension::ExtensionUtils::addTableFuncAlias<WeaklyConnectedComponentsAliasFunction>(db);
     extension::ExtensionUtils::addTableFunc<PageRankFunction>(db);
+    extension::ExtensionUtils::addTableFuncAlias<PageRankAliasFunction>(db);
     extension::ExtensionUtils::addTableFunc<KCoreDecompositionFunction>(db);
+    extension::ExtensionUtils::addTableFuncAlias<KCoreDecompositionAliasFunction>(db);
     extension::ExtensionUtils::addTableFunc<LouvainFunction>(db);
 }
 

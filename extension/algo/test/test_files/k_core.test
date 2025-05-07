@@ -49,7 +49,7 @@ Ian|1
 James|1
 -STATEMENT CALL PROJECT_GRAPH('PK2', ['User'], {'friend': 'r.id < 10'});
 ---- ok
--STATEMENT CALL k_core_decomposition('PK2') RETURN node.name, k_degree;
+-STATEMENT CALL kcore('PK2') RETURN node.name, k_degree;
 ---- 10
 Alice|1
 Bridget|1
@@ -74,7 +74,7 @@ Ian|0
 James|0
 -STATEMENT CALL PROJECT_GRAPH('PK4', {'User': 'n.id > 3 AND n.id < 7'}, {'friend': 'r.id >= 0'});
 ---- ok
--STATEMENT CALL k_core_decomposition('PK4') RETURN node.name, k_degree;
+-STATEMENT CALL kcore('PK4') RETURN node.name, k_degree;
 ---- 3
 Doug|2
 Eli|2

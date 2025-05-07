@@ -7,7 +7,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('PK', ['person'], ['knows'])
 ---- ok
--STATEMENT CALL page_rank('PK') RETURN node.fName, rank;
+-STATEMENT CALL pr('PK') RETURN node.fName, rank;
 ---- 8
 Alice|0.125000
 Bob|0.125000
@@ -70,7 +70,7 @@ Elizabeth|0.087500
 Farooq|0.100625
 Greg|0.100625
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.087500
--STATEMENT CALL page_rank('PK', dampingFactor := 0.1, maxIterations := 15, tolerance := 0.00024) RETURN node.fName, rank;
+-STATEMENT CALL pr('PK', dampingFactor := 0.1, maxIterations := 15, tolerance := 0.00024) RETURN node.fName, rank;
 ---- 8
 Alice|0.125000
 Bob|0.125000

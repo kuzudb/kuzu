@@ -19,7 +19,7 @@ Greg|4
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 -STATEMENT CALL PROJECT_GRAPH('PK2', ['person'], {'knows': 'r.date > date("1999-01-01")'})
 ---- ok
--STATEMENT CALL weakly_connected_components('PK2') RETURN node.fName, group_id;
+-STATEMENT CALL wcc('PK2') RETURN node.fName, group_id;
 ---- 8
 Alice|0
 Bob|0
@@ -43,7 +43,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 
 -STATEMENT CALL PROJECT_GRAPH('PK4', {'person': 'n.ID <> 7'}, ['knows'])
 ---- ok
--STATEMENT CALL weakly_connected_components('PK4') RETURN node.fName, group_id;
+-STATEMENT CALL wcc('PK4') RETURN node.fName, group_id;
 ---- 7
 Alice|0
 Bob|0
@@ -77,7 +77,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 8|Farooq||0
 9|Greg||0
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||7
--STATEMENT CALL weakly_connected_components('G1', maxIterations:=25) RETURN node.ID, node.fName, node.name, group_id;
+-STATEMENT CALL wcc('G1', maxIterations:=25) RETURN node.ID, node.fName, node.name, group_id;
 ---- 11
 0|Alice||0
 1||ABFsUni|0
