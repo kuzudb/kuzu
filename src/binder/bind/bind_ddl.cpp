@@ -1,11 +1,11 @@
 #include "binder/binder.h"
+#include "binder/bound_scan_source.h"
 #include "binder/copy/bound_copy_from.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop.h"
-#include "binder/bound_scan_source.h"
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
@@ -299,29 +299,34 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
     auto pkName = columnNames[0];
 
     auto createInfo = createTable->getInfo();
-    auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
+    auto boundExtraInfo =
+        std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
     auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
         createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
         clientContext->useInternalCatalogEntry());
-    
+
     auto parsingOptions = options_t{}; // temp
-    auto boundSource = bindQueryScanSource(*createTable->getSource(), parsingOptions, columnNames, columnTypes);
+    auto boundSource =
+        bindQueryScanSource(*createTable->getSource(), parsingOptions, columnNames, columnTypes);
     auto warningDataExprs = boundSource->getWarningColumns();
 
     expression_vector columns;
     std::vector<ColumnEvaluateType> evaluateTypes;
     for (auto& property : propertyDefinitions) {
-        auto [evaluateType, column] = matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
+        auto [evaluateType, column] =
+            matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
         columns.push_back(column);
         evaluateTypes.push_back(evaluateType);
     }
     columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
 
-    auto offset = createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    auto boundCopyFromInfo = BoundCopyFromInfo(nullptr, std::move(boundSource),
-        std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
-    
-    auto boundCopyFromInfo = BoundCopyFromInfo(nullptr, std::move(boundSource), std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr);
+    auto offset =
+        createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
+    auto boundCopyFromInfo = BoundCopyFromInfo(nullptr, std::move(boundSource), std::move(offset),
+        std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
+
+    auto boundCopyFromInfo = BoundCopyFromInfo(nullptr, std::move(boundSource), std::move(offset),
+        std::move(columns), std::move(evaluateTypes), nullptr);
 
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
