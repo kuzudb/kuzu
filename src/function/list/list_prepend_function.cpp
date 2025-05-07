@@ -1,10 +1,10 @@
+#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::common;
 
@@ -30,11 +30,9 @@ struct ListPrepend {
     }
 };
 
-static void resolveEmptyList(const ScalarBindFuncInput& input, std::vector<LogicalType>& types)
-{
+static void resolveEmptyList(const ScalarBindFuncInput& input, std::vector<LogicalType>& types) {
     auto isEmpty = binder::ExpressionUtil::isEmptyList(*input.arguments[0]);
-    if (isEmpty)
-    {
+    if (isEmpty) {
         auto elementType = input.arguments[1]->getDataType().copy();
         if (elementType.getLogicalTypeID() == LogicalTypeID::ANY)
             elementType = LogicalType(LogicalTypeID::INT64);
@@ -44,12 +42,9 @@ static void resolveEmptyList(const ScalarBindFuncInput& input, std::vector<Logic
     }
 }
 
-
-static void resolveNulls(std::vector<LogicalType>& types)
-{
+static void resolveNulls(std::vector<LogicalType>& types) {
     auto isArg0AnyType = types[0].getLogicalTypeID() == LogicalTypeID::ANY;
     auto isArg1AnyType = types[1].getLogicalTypeID() == LogicalTypeID::ANY;
-    
 
     LogicalType targetType;
     if (isArg0AnyType && isArg1AnyType) {
@@ -65,21 +60,18 @@ static void resolveNulls(std::vector<LogicalType>& types)
     types[1] = targetType.copy();
 }
 
-
-
 static void validateArgumentType(const binder::expression_vector& arguments) {
 
     if (arguments[0]->getChildren().empty())
         return;
-    
+
     if (arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
         arguments[1]->dataType != ListType::getChildType(arguments[0]->dataType)) {
-        throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
-            ListPrependFunction::name, arguments[0]->getDataType().toString(),
-            arguments[1]->getDataType().toString()));
+        throw BinderException(
+            ExceptionMessage::listFunctionIncompatibleChildrenType(ListPrependFunction::name,
+                arguments[0]->getDataType().toString(), arguments[1]->getDataType().toString()));
     }
 }
-
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     validateArgumentType(input.arguments);
@@ -93,19 +85,14 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
 
     if (types[0].getLogicalTypeID() != LogicalTypeID::ANY &&
         types[1] != ListType::getChildType(types[0]))
-            throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType
-            (
-                ListPrependFunction::name,
-                types[0].toString(),
-                types[1].toString()
-            ));
+        throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
+            ListPrependFunction::name, types[0].toString(), types[1].toString()));
 
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
-    TypeUtils::visit(types[1].getPhysicalType(),
-        [&scalarFunction]<typename T>(T) {
-            scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
-                list_entry_t, ListPrepend>;
-        });
+    TypeUtils::visit(types[1].getPhysicalType(), [&scalarFunction]<typename T>(T) {
+        scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
+            list_entry_t, ListPrepend>;
+    });
 
     return std::make_unique<FunctionBindData>(std::move(types), types[0].copy());
 }
