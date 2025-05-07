@@ -129,8 +129,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
     auto password = input->getLiteralVal<std::string>(2);
     auto cli = std::make_shared<httplib::Client>(url, 7474);
     cli->set_basic_auth(userName, password);
-    cli->set_connection_timeout(std::chrono::seconds(30));
-    cli->set_read_timeout(std::chrono::seconds(30));
+    cli->set_connection_timeout(std::chrono::seconds(1000));
+    cli->set_read_timeout(std::chrono::seconds(1000));
     validateConnectionString(*cli);
     auto nodes = getNodeOrRels(*cli, TableType::NODE, input->getParam(3));
     auto rels = getNodeOrRels(*cli, TableType::REL, input->getParam(4));
@@ -246,6 +246,10 @@ std::vector<std::string> getRelProperties(httplib::Client& cli, std::string srcL
     auto data = executeNeo4jQuery(cli, neo4jQuery);
     std::vector<std::string> relProperties;
     for (auto& row : data) {
+        if (row["row"][0].is_null()) {
+            // Skip null properties.
+            continue;
+        }
         relProperties.push_back(row["row"][0].get<std::string>());
     }
     std::sort(relProperties.begin(), relProperties.end(),

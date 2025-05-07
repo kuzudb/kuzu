@@ -86,3 +86,26 @@
 -STATEMENT MATCH (a:person) RETURN label(a)
 ---- 1
 person
+
+-CASE MigrateFromNodeWithTypes
+# Created by query in neo4j: CREATE (:types_test {
+#                               boolean: true,
+#                               date: date('2023-10-23'),
+#                               duration: duration('P1Y2M3DT4H5M6S'),
+#                               float: 3.1415,
+#                               integer: 42,
+#                               list: ["A", "B", "C"],
+#                               local_datetime: localdatetime('2023-10-23T14:30:45'),
+#                               local_time: localtime('14:30:45'),
+#                               point: point({x: 12.34, y: 56.78}),
+#                               string: 'Sample text',
+#                               zoned_datetime: datetime('2023-10-23T14:30:45+01:00'),
+#                               zoned_time: time('14:30:45+01:00')
+#                               })
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
+---- ok
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "kuzuneo4j", ["types_test"], []);
+---- ok
+-STATEMENT MATCH (a:types_test) RETURN a.*
+---- 1
+1|True|2023-10-23|P1Y2M3DT4H5M6S|3.141500|42|["A","B","C"]|2023-10-23T14:30:45|14:30:45|{"crs":"cartesian","x":12.34,"y":56.78,"z":null}|Sample text|2023-10-23 13:30:45|14:30:45+01:00
