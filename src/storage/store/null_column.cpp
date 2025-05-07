@@ -55,13 +55,13 @@ void NullColumn::scan(const Transaction* transaction, const ChunkState& state,
 }
 
 void NullColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t offsetInChunk,
-    ColumnChunkData* data, offset_t dataOffset, length_t numValues) {
+    const ColumnChunkData& data, offset_t dataOffset, length_t numValues) {
     if (numValues == 0) {
         return;
     }
-    writeValues(state, offsetInChunk, data->getData(), nullptr /*nullChunkData*/, dataOffset,
+    writeValues(state, offsetInChunk, data.getData(), nullptr /*nullChunkData*/, dataOffset,
         numValues);
-    const auto& nullChunk = data->cast<NullChunkData>();
+    const auto& nullChunk = data.cast<NullChunkData>();
     bool min = nullChunk.isNull(dataOffset);
     bool max = min;
     for (auto i = 0u; i < numValues; i++) {

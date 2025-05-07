@@ -494,7 +494,7 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     for (const auto row : rowIndices) {
         auto [chunkedGroupIdx, rowInChunkedGroup] =
             StorageUtils::getQuotientRemainder(row, StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
-        std::vector<ColumnChunk*> chunks;
+        std::vector<const ColumnChunk*> chunks;
         const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(chunkedGroupIdx);
         for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
             if (i == skippedColumn) {

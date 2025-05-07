@@ -23,11 +23,11 @@ struct ChunkCheckpointState {
 
 class ColumnChunk;
 struct ColumnCheckpointState {
-    ColumnChunk& persistentData;
+    ColumnChunkData& persistentData;
     std::vector<ChunkCheckpointState> chunkCheckpointStates;
     common::row_idx_t endRowIdxToWrite;
 
-    ColumnCheckpointState(ColumnChunk& persistentData,
+    ColumnCheckpointState(ColumnChunkData& persistentData,
         std::vector<ChunkCheckpointState> chunkCheckpointStates)
         : persistentData{persistentData}, chunkCheckpointStates{std::move(chunkCheckpointStates)},
           endRowIdxToWrite{0} {
@@ -251,7 +251,7 @@ public:
         return segments;
     }
 
-    void write(const Column& column, ChunkState& state, common::offset_t dstOffset,
+    void write(Column& column, ChunkState& state, common::offset_t dstOffset,
         const ColumnChunkData& dataToWrite, common::offset_t srcOffset, common::length_t numValues);
 
     void syncNumValues() {
@@ -259,6 +259,8 @@ public:
             segment->syncNumValues();
         }
     }
+
+    ColumnChunkData& getDataForCheckpoint() { return *data.front(); }
 
 private:
     void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,

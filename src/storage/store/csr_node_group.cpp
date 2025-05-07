@@ -4,6 +4,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
+#include "storage/store/csr_chunked_node_group.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
 
@@ -328,7 +329,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(const Transaction* tr
 void CSRNodeGroup::appendChunkedCSRGroup(const Transaction* transaction,
     const std::vector<column_id_t>& columnIDs, InMemChunkedCSRNodeGroup& chunkedGroup) {
     const auto& csrHeader = chunkedGroup.getCSRHeader();
-    std::vector<ColumnChunkData*> chunkedGroupForProperties(chunkedGroup.getNumColumns());
+    std::vector<const ColumnChunkData*> chunkedGroupForProperties(chunkedGroup.getNumColumns());
     for (auto i = 0u; i < chunkedGroup.getNumColumns(); i++) {
         chunkedGroupForProperties[i] = &chunkedGroup.getColumnChunk(i);
     }
@@ -345,8 +346,8 @@ void CSRNodeGroup::appendChunkedCSRGroup(const Transaction* transaction,
 }
 
 void CSRNodeGroup::append(const Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    offset_t boundOffsetInGroup, const std::vector<ColumnChunk*>& chunks,
-    row_idx_t startRowInChunks, row_idx_t numRows) {
+    offset_t boundOffsetInGroup, std::span<const ColumnChunk*> chunks, row_idx_t startRowInChunks,
+    row_idx_t numRows) {
     const auto startRow =
         NodeGroup::append(transaction, columnIDs, chunks, startRowInChunks, numRows);
     if (!csrIndex) {
@@ -593,7 +594,8 @@ void CSRNodeGroup::checkpointColumn(const UniqLock& lock, column_id_t columnID,
         }
         chunkCheckpointStates.push_back(std::move(regionCheckpointState));
     }
-    ColumnCheckpointState checkpointState(persistentChunkGroup->getColumnChunk(columnID),
+    ColumnCheckpointState checkpointState(
+        persistentChunkGroup->getColumnChunk(columnID).getDataForCheckpoint(),
         std::move(chunkCheckpointStates));
     csrState.columns[columnID]->checkpointColumnChunk(checkpointState);
 }
@@ -614,7 +616,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     KU_ASSERT(leftCSROffset == csrState.newHeader->getStartCSROffset(region.leftNodeOffset));
     const auto numRowsInRegion =
         csrState.newHeader->getEndCSROffset(region.rightNodeOffset) - leftCSROffset;
-    const auto newChunk = ColumnChunkFactory::createColumnChunkData(*csrState.mm,
+    auto newChunk = ColumnChunkFactory::createColumnChunkData(*csrState.mm,
         dataTypes[columnID].copy(), false, numRowsInRegion, ResidencyState::IN_MEMORY);
     const auto dummyChunkForNulls = ColumnChunkFactory::createColumnChunkData(*csrState.mm,
         dataTypes[columnID].copy(), false, DEFAULT_VECTOR_CAPACITY, ResidencyState::IN_MEMORY);
@@ -682,15 +684,17 @@ void CSRNodeGroup::checkpointCSRHeaderColumns(const CSRNodeGroupCheckpointState&
     KU_ASSERT(numNodes == csrState.newHeader->length->getNumValues());
     csrOffsetChunkCheckpointStates.push_back(
         ChunkCheckpointState{std::move(csrState.newHeader->offset), 0, numNodes});
-    ColumnCheckpointState csrOffsetCheckpointState(
-        persistentChunkGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader().offset,
+    ColumnCheckpointState csrOffsetCheckpointState(persistentChunkGroup->cast<ChunkedCSRNodeGroup>()
+                                                       .getCSRHeader()
+                                                       .offset->getDataForCheckpoint(),
         std::move(csrOffsetChunkCheckpointStates));
     csrState.csrOffsetColumn->checkpointColumnChunk(csrOffsetCheckpointState);
     std::vector<ChunkCheckpointState> csrLengthChunkCheckpointStates;
     csrLengthChunkCheckpointStates.push_back(
         ChunkCheckpointState{std::move(csrState.newHeader->length), 0, numNodes});
-    ColumnCheckpointState csrLengthCheckpointState(
-        persistentChunkGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader().length,
+    ColumnCheckpointState csrLengthCheckpointState(persistentChunkGroup->cast<ChunkedCSRNodeGroup>()
+                                                       .getCSRHeader()
+                                                       .length->getDataForCheckpoint(),
         std::move(csrLengthChunkCheckpointStates));
     csrState.csrLengthColumn->checkpointColumnChunk(csrLengthCheckpointState);
 }
@@ -801,8 +805,8 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     }
     // Construct in-mem csr header chunks.
     auto& csrState = state.cast<CSRNodeGroupCheckpointState>();
-    csrState.newHeader = std::make_unique<ChunkedCSRHeader>(*state.mm, false /*enableCompression*/,
-        StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+    csrState.newHeader = std::make_unique<InMemChunkedCSRHeader>(*state.mm,
+        false /*enableCompression*/, StorageConfig::NODE_GROUP_SIZE);
     const auto numNodes = csrIndex->getMaxOffsetWithRels() + 1;
     csrState.newHeader->setNumValues(numNodes);
     populateCSRLengthInMemOnly(lock, numNodes, csrState);
@@ -865,7 +869,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
             if (numRowsToAppend > 0) {
                 [[maybe_unused]] auto res = lookup(lock, &DUMMY_CHECKPOINT_TRANSACTION, *scanState);
                 for (auto idx = 0u; idx < numColumnsToCheckpoint; idx++) {
-                    dataChunksToFlush[idx]->getData().append(scanChunk.valueVectors[idx].get(),
+                    dataChunksToFlush[idx]->append(scanChunk.valueVectors[idx].get(),
                         scanChunk.state->getSelVector());
                 }
             }
@@ -880,8 +884,8 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
             KU_ASSERT(dummyChunk.state->getSelVector().isUnfiltered());
             dummyChunk.state->getSelVectorUnsafe().setSelSize(numGapsToAppend);
             for (auto columnID = 0u; columnID < numColumnsToCheckpoint; columnID++) {
-                dataChunksToFlush[columnID]->getData().append(
-                    dummyChunk.valueVectors[columnID].get(), dummyChunk.state->getSelVector());
+                dataChunksToFlush[columnID]->append(dummyChunk.valueVectors[columnID].get(),
+                    dummyChunk.state->getSelVector());
             }
             gapSize -= numGapsToAppend;
         }
@@ -889,11 +893,12 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
 
     // Flush data chunks to disk.
     for (const auto& chunk : dataChunksToFlush) {
-        chunk->getData().flush(csrState.dataFH);
+        chunk->flush(csrState.dataFH);
     }
-    csrState.newHeader->offset->getData().flush(csrState.dataFH);
-    csrState.newHeader->length->getData().flush(csrState.dataFH);
-    persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(*csrState.newHeader),
+    csrState.newHeader->offset->flush(csrState.dataFH);
+    csrState.newHeader->length->flush(csrState.dataFH);
+    persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(
+        ChunkedCSRHeader(false /*enableCompression*/, std::move(*csrState.newHeader)),
         std::move(dataChunksToFlush), 0);
     // TODO(Guodong): Use `finalizeCheckpoint`.
     chunkedGroups.clear(lock);
@@ -923,7 +928,7 @@ void CSRNodeGroup::populateCSRLengthInMemOnly(const UniqLock& lock, offset_t num
             }
         }
         KU_ASSERT(lengthAfterDelete <= length);
-        csrState.newHeader->length->getData().setValue<length_t>(lengthAfterDelete, offset);
+        csrState.newHeader->length->setValue<length_t>(lengthAfterDelete, offset);
     }
 }
 
@@ -976,7 +981,7 @@ static double getHighDensity(uint64_t level) {
                    CSRNodeGroup::DEFAULT_PACKED_CSR_INFO.calibratorTreeHeight - level);
 }
 
-bool CSRNodeGroup::isWithinDensityBound(const ChunkedCSRHeader& header,
+bool CSRNodeGroup::isWithinDensityBound(const InMemChunkedCSRHeader& header,
     const std::vector<CSRRegion>& leafRegions, const CSRRegion& region) {
     int64_t oldSize = 0;
     for (auto offset = region.leftNodeOffset; offset <= region.rightNodeOffset; offset++) {

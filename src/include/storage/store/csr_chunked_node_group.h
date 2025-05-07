@@ -4,6 +4,7 @@
 
 #include "storage/enums/residency_state.h"
 #include "storage/store/chunked_node_group.h"
+#include "storage/store/column_chunk.h"
 
 namespace kuzu {
 namespace storage {
@@ -54,41 +55,6 @@ struct CSRRegion {
         const CSRRegion& region);
 };
 
-struct ChunkedCSRHeader {
-    std::unique_ptr<ColumnChunk> offset;
-    std::unique_ptr<ColumnChunk> length;
-    bool randomLookup = false;
-
-    ChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression, uint64_t capacity,
-        ResidencyState residencyState);
-    ChunkedCSRHeader(std::unique_ptr<ColumnChunk> offset, std::unique_ptr<ColumnChunk> length)
-        : offset{std::move(offset)}, length{std::move(length)} {
-        KU_ASSERT(this->offset && this->length);
-    }
-
-    common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
-    common::offset_t getEndCSROffset(common::offset_t nodeOffset) const;
-    common::length_t getCSRLength(common::offset_t nodeOffset) const;
-    common::length_t getGapSize(common::length_t length) const;
-
-    bool sanityCheck() const;
-    void setNumValues(const common::offset_t numValues) const {
-        offset->setNumValues(numValues);
-        length->setNumValues(numValues);
-    }
-
-    // Return a vector of CSR offsets for the end of each CSR region.
-    common::offset_vec_t populateStartCSROffsetsFromLength(bool leaveGaps) const;
-    void populateEndCSROffsetFromStartAndLength() const;
-    void finalizeCSRRegionEndOffsets(const common::offset_vec_t& rightCSROffsetOfRegions) const;
-    void populateRegionCSROffsets(const CSRRegion& region, const ChunkedCSRHeader& oldHeader) const;
-    void populateEndCSROffsets(const common::offset_vec_t& gaps) const;
-    common::idx_t getNumRegions() const;
-
-private:
-    static common::length_t computeGapFromLength(common::length_t length);
-};
-
 struct InMemChunkedCSRHeader {
     std::unique_ptr<ColumnChunkData> offset;
     std::unique_ptr<ColumnChunkData> length;
@@ -120,6 +86,45 @@ struct InMemChunkedCSRHeader {
     void finalizeCSRRegionEndOffsets(const common::offset_vec_t& rightCSROffsetOfRegions) const;
     void populateRegionCSROffsets(const CSRRegion& region,
         const InMemChunkedCSRHeader& oldHeader) const;
+    void populateEndCSROffsets(const common::offset_vec_t& gaps) const;
+    common::idx_t getNumRegions() const;
+
+private:
+    static common::length_t computeGapFromLength(common::length_t length);
+};
+
+struct ChunkedCSRHeader {
+    std::unique_ptr<ColumnChunk> offset;
+    std::unique_ptr<ColumnChunk> length;
+    bool randomLookup = false;
+
+    ChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression, uint64_t capacity,
+        ResidencyState residencyState);
+    ChunkedCSRHeader(bool enableCompression, InMemChunkedCSRHeader&& other)
+        : offset{std::make_unique<ColumnChunk>(enableCompression, std::move(other.offset))},
+          length{std::make_unique<ColumnChunk>(enableCompression, std::move(other.length))},
+          randomLookup{other.randomLookup} {}
+    ChunkedCSRHeader(std::unique_ptr<ColumnChunk> offset, std::unique_ptr<ColumnChunk> length)
+        : offset{std::move(offset)}, length{std::move(length)} {
+        KU_ASSERT(this->offset && this->length);
+    }
+
+    common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
+    common::offset_t getEndCSROffset(common::offset_t nodeOffset) const;
+    common::length_t getCSRLength(common::offset_t nodeOffset) const;
+    common::length_t getGapSize(common::length_t length) const;
+
+    bool sanityCheck() const;
+    void setNumValues(const common::offset_t numValues) const {
+        offset->setNumValues(numValues);
+        length->setNumValues(numValues);
+    }
+
+    // Return a vector of CSR offsets for the end of each CSR region.
+    common::offset_vec_t populateStartCSROffsetsFromLength(bool leaveGaps) const;
+    void populateEndCSROffsetFromStartAndLength() const;
+    void finalizeCSRRegionEndOffsets(const common::offset_vec_t& rightCSROffsetOfRegions) const;
+    void populateRegionCSROffsets(const CSRRegion& region, const ChunkedCSRHeader& oldHeader) const;
     void populateEndCSROffsets(const common::offset_vec_t& gaps) const;
     common::idx_t getNumRegions() const;
 
@@ -207,6 +212,9 @@ public:
         ColumnChunkData& offsetChunk) override {
         chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, common::RelMultiplicity::MANY);
     }
+
+    std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
+        transaction::Transaction* transaction, FileHandle& dataFH) const override;
 
 private:
     InMemChunkedCSRHeader csrHeader;

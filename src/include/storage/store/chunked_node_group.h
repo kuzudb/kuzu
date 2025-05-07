@@ -9,6 +9,7 @@
 #include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/version_info.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace common {
@@ -62,6 +63,11 @@ public:
         return *chunks[columnID];
     }
 
+    const ColumnChunkData& getColumnChunk(const common::column_id_t columnID) const {
+        KU_ASSERT(columnID < chunks.size());
+        return *chunks[columnID];
+    }
+
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
         common::row_idx_t startRowInVectors, uint64_t numValuesToAppend);
 
@@ -107,6 +113,8 @@ protected:
 
 // Collection of ColumnChunks for each column in a particular Node Group
 class KUZU_API ChunkedNodeGroup {
+    friend class InMemChunkedNodeGroup;
+
 public:
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
         common::row_idx_t startRowIdx, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);

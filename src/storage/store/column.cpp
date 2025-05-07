@@ -379,7 +379,10 @@ void Column::checkpointColumnChunkInPlace(ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         KU_ASSERT(chunkCheckpointState.numRows > 0);
-        checkpointState.persistentData.write(state, chunkCheckpointState.startRow,
+        // TODO(bmwinger): persistentData should be turned into a ColumnChunk eventually
+        // checkpointState.persistentData.write(state, chunkCheckpointState.startRow,
+        //    *chunkCheckpointState.chunkData, 0 /*srcOffset*/, chunkCheckpointState.numRows);
+        Column::write(checkpointState.persistentData, state, chunkCheckpointState.startRow,
             *chunkCheckpointState.chunkData, 0 /*srcOffset*/, chunkCheckpointState.numRows);
     }
     // FIXME(bmwinger): Why?
@@ -444,6 +447,9 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
 }
 
 void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+    // TODO(bmwinger): This can probably be ignored for now, but we need to checkpoint in such a way
+    // that we can choose between in-place updates to the existing segments, and creating new
+    // segments/splitting segments
     ChunkState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     if (canCheckpointInPlace(chunkState, checkpointState)) {

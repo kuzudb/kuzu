@@ -53,7 +53,7 @@ template<std::floating_point T>
 void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ChunkState& state) {
     finalize(state);
 
-    column->write(*chunkData, *chunkState, 0, chunkData.get(), 0, exceptionCapacity);
+    column->write(*chunkData, *chunkState, 0, *chunkData, 0, exceptionCapacity);
 }
 
 template<std::floating_point T>

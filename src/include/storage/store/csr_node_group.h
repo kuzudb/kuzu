@@ -197,7 +197,7 @@ public:
         const std::vector<common::column_id_t>& columnIDs, InMemChunkedCSRNodeGroup& chunkedGroup);
     void append(const transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs, common::offset_t boundOffsetInGroup,
-        const std::vector<ColumnChunk*>& chunks, common::row_idx_t startRowInChunks,
+        std::span<const ColumnChunk*> chunks, common::row_idx_t startRowInChunks,
         common::row_idx_t numRows);
 
     void update(const transaction::Transaction* transaction, CSRNodeGroupScanSource source,
@@ -272,7 +272,7 @@ private:
         const std::vector<CSRRegion>& leafRegions);
     static std::vector<CSRRegion> mergeRegionsToCheckpoint(
         const CSRNodeGroupCheckpointState& csrState, const std::vector<CSRRegion>& leafRegions);
-    static bool isWithinDensityBound(const ChunkedCSRHeader& header,
+    static bool isWithinDensityBound(const InMemChunkedCSRHeader& header,
         const std::vector<CSRRegion>& leafRegions, const CSRRegion& region);
 
     void checkpointColumn(const common::UniqLock& lock, common::column_id_t columnID,

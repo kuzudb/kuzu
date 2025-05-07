@@ -1,6 +1,7 @@
 #include "storage/store/column_chunk.h"
 
 #include <algorithm>
+#include <memory>
 #include <stdexcept>
 
 #include "common/serializer/deserializer.h"
@@ -103,7 +104,10 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
 
 template<ResidencyState SCAN_RESIDENCY_STATE>
 void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chunkState,
-    ColumnChunk& output, row_idx_t startRow, row_idx_t numRows) const {
+    ColumnChunkData& output, row_idx_t startRow, row_idx_t numRows) const {
+    if (numRows == 0) {
+        return;
+    }
     if (numRows == INVALID_ROW_IDX) {
         numRows = getNumValues();
     }
@@ -122,12 +126,16 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
                 startRow -= segment->get()->getNumValues();
                 segment++;
             }
-            while (startRow < numRows) {
+            uint64_t numRowsScanned = 0;
+            while (numRowsScanned < numRows) {
                 auto numRowsInSegment =
                     std::min(numRows, segment->get()->getNumValues()) - startRow;
                 output.append(segment->get(), startRow, numRowsInSegment);
-                scanCommittedUpdates(transaction, output, numValuesBeforeScan, startRow, numRows);
-                startRow += numRowsInSegment;
+                scanCommittedUpdates(transaction, output, numValuesBeforeScan, startRow,
+                    numRowsInSegment);
+                numRowsScanned += numRowsInSegment;
+                startRow = 0;
+                segment++;
             }
         }
     } break;
@@ -274,8 +282,13 @@ std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(MemoryManager& memoryManag
     bool enableCompression = false;
     deSer.validateDebuggingInfo(key, "enable_compression");
     deSer.deserializeValue<bool>(enableCompression);
-    auto data = ColumnChunkData::deserialize(memoryManager, deSer);
-    return std::make_unique<ColumnChunk>(enableCompression, std::move(data));
+    uint64_t numSegments = 0;
+    deSer.deserializeValue(numSegments);
+    std::vector<std::unique_ptr<ColumnChunkData>> segments;
+    for (uint64_t i = 0; i < numSegments; i++) {
+        segments.push_back(ColumnChunkData::deserialize(memoryManager, deSer));
+    }
+    return std::make_unique<ColumnChunk>(enableCompression, std::move(segments));
 }
 
 row_idx_t ColumnChunk::getNumUpdatedRows(const Transaction* transaction) const {
@@ -345,7 +358,7 @@ void ColumnChunk::append(const ColumnChunkData* other, common::offset_t startPos
 std::unique_ptr<ColumnChunk> ColumnChunk::flushAsNewColumnChunk(FileHandle& dataFH) const {
     std::vector<std::unique_ptr<ColumnChunkData>> segments;
     for (auto& segment : data) {
-        auto chunk = Column::flushChunkData(*segment, dataFH);
+        segments.push_back(Column::flushChunkData(*segment, dataFH));
     }
     return std::make_unique<ColumnChunk>(isCompressionEnabled(), std::move(segments));
 }
@@ -361,7 +374,7 @@ void ColumnChunk::write(Column& column, ChunkState& state, offset_t dstOffset,
     while (numValues > 0) {
         auto numValuesToWriteInSegment =
             std::min(numValues, segment->get()->getNumValues()) - offsetInSegment;
-        column.write(*segment->get(), state, offsetInSegment, &dataToWrite, srcOffset,
+        column.write(*segment->get(), state, offsetInSegment, dataToWrite, srcOffset,
             numValuesToWriteInSegment);
         offsetInSegment = 0;
         numValues -= numValuesToWriteInSegment;

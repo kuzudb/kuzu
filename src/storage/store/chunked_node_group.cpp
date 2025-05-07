@@ -307,9 +307,9 @@ void ChunkedNodeGroup::scanCommitted(Transaction* transaction, TableScanState& s
 }
 
 template void ChunkedNodeGroup::scanCommitted<ResidencyState::ON_DISK>(Transaction* transaction,
-    TableScanState& scanState, ChunkedNodeGroup& output) const;
+    TableScanState& scanState, InMemChunkedNodeGroup& output) const;
 template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transaction* transaction,
-    TableScanState& scanState, ChunkedNodeGroup& output) const;
+    TableScanState& scanState, InMemChunkedNodeGroup& output) const;
 
 bool ChunkedNodeGroup::hasDeletions(const Transaction* transaction) const {
     return versionInfo && versionInfo->hasDeletions(transaction);
@@ -425,6 +425,21 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         flushedChunks[i] = getColumnChunk(i).flushAsNewColumnChunk(dataFH);
+    }
+    auto flushedChunkedGroup =
+        std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
+    flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
+    KU_ASSERT(flushedChunkedGroup->getNumRows() == numRows);
+    flushedChunkedGroup->versionInfo->append(transaction->getID(), 0, numRows);
+    return flushedChunkedGroup;
+}
+
+std::unique_ptr<ChunkedNodeGroup> InMemChunkedNodeGroup::flushAsNewChunkedNodeGroup(
+    Transaction* transaction, FileHandle& dataFH) const {
+    std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
+    for (auto i = 0u; i < getNumColumns(); i++) {
+        flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
+            Column::flushChunkData(getColumnChunk(i), dataFH));
     }
     auto flushedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
