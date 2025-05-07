@@ -56,11 +56,6 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     nodeSharedState->pkType = pkDefinition.getType().copy();
     nodeSharedState->initPKIndex(context);
 
-    if (children[0]->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
-        const auto call = children[0]->ptrCast<TableFunctionCall>();
-        nodeSharedState->tableFuncSharedState = call->getSharedState().get();
-    }
-
     info->tableEntry = nodeTableEntry;
 
     for (auto& property : nodeTableEntry->getProperties()) {
