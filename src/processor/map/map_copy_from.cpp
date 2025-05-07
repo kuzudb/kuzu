@@ -82,10 +82,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     auto prevOperator = mapOperator(copyFrom.getChild(0).get());
     auto fTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
 
-    // First three arguments are placeholders, check NodeBatchInsert::initGlobalStateInternal
-    auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nullptr, 0, LogicalType::ANY(), 
-        fTable, &storageManager->getWAL(),
-        clientContext->getMemoryManager());
+    auto sharedState = std::make_shared<NodeBatchInsertSharedState>(fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
+    if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
+        const auto call = prevOperator->ptrCast<TableFunctionCall>();
+        sharedState->tableFuncSharedState = call->getSharedState().get();
+    }
 
     std::vector<LogicalType> columnTypes;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators;
@@ -96,8 +97,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     }
     const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
     KU_ASSERT(columnTypes.size() >= numWarningDataColumns);
-    auto info = std::make_unique<NodeBatchInsertInfo>(nullptr, // placeholder
-        storageManager->compressionEnabled(), std::vector<column_id_t>(), std::move(columnTypes),
+    auto info = std::make_unique<NodeBatchInsertInfo>(storageManager->compressionEnabled(), std::move(columnTypes),
         std::move(columnEvaluators), copyFromInfo->columnEvaluateTypes, numWarningDataColumns);
 
     auto tableName = copyFromInfo->tableName;
