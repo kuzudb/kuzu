@@ -165,7 +165,7 @@ public:
 
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(MemoryManager& mm,
         transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
-        ChunkedNodeGroup& chunkedGroup);
+        InMemChunkedNodeGroup& chunkedGroup);
 
     void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;

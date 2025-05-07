@@ -32,10 +32,16 @@ class FileHandle;
 enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
 
 class InMemChunkedNodeGroup {
+    friend class ChunkedNodeGroup;
+
 public:
     virtual ~InMemChunkedNodeGroup() = default;
     InMemChunkedNodeGroup(MemoryManager& mm, const std::vector<common::LogicalType>& columnTypes,
         bool enableCompression, uint64_t capacity, common::row_idx_t startRowIdx);
+    // Moves the specified columns out of base
+    InMemChunkedNodeGroup(InMemChunkedNodeGroup& base,
+        const std::vector<common::column_id_t>& selectedColumns,
+        NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
 
     // Also marks the chunks as in-use
     // I.e. if you want to be able to spill to disk again you must call setUnused first
@@ -49,6 +55,7 @@ public:
     common::row_idx_t getStartRowIdx() const { return startRowIdx; }
     common::row_idx_t getNumRows() const { return numRows; }
     common::row_idx_t getCapacity() const { return capacity; }
+    void setNumRows(common::offset_t numRows_);
 
     ColumnChunkData& getColumnChunk(const common::column_id_t columnID) {
         KU_ASSERT(columnID < chunks.size());
@@ -68,7 +75,8 @@ public:
     void resetToAllNull() const;
 
     // Moves the specified columns out of base
-    void merge(ChunkedNodeGroup& base, const std::vector<common::column_id_t>& columnsToMergeInto);
+    void merge(InMemChunkedNodeGroup& base,
+        const std::vector<common::column_id_t>& columnsToMergeInto);
 
     void write(const InMemChunkedNodeGroup& data, common::column_id_t offsetColumnID);
     virtual void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
@@ -80,6 +88,10 @@ public:
         KU_ASSERT(columnID < chunks.size());
         return std::move(chunks[columnID]);
     }
+    void finalize() const;
+
+    virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
+        transaction::Transaction* transaction, FileHandle& dataFH) const;
 
 protected:
     NodeGroupDataFormat format;
@@ -93,6 +105,7 @@ protected:
     bool dataInUse;
 };
 
+// Collection of ColumnChunks for each column in a particular Node Group
 class KUZU_API ChunkedNodeGroup {
 public:
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
@@ -146,7 +159,13 @@ public:
         const std::vector<common::column_id_t>& columnIDs, const ChunkedNodeGroup& other,
         common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
     common::offset_t append(const transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs, const std::vector<ColumnChunk*>& other,
+        const std::vector<common::column_id_t>& columnIDs, const InMemChunkedNodeGroup& other,
+        common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
+    common::offset_t append(const transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, std::span<const ColumnChunk*> other,
+        common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
+    common::offset_t append(const transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, std::span<const ColumnChunkData*> other,
         common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
 
     void scan(const transaction::Transaction* transaction, const TableScanState& scanState,
@@ -155,14 +174,14 @@ public:
 
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(transaction::Transaction* transaction, TableScanState& scanState,
-        ChunkedNodeGroup& output) const;
+        InMemChunkedNodeGroup& output) const;
 
     bool hasUpdates() const;
     bool hasDeletions(const transaction::Transaction* transaction) const;
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction,
         common::column_id_t columnID);
 
-    std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> scanUpdates(
+    std::pair<std::unique_ptr<ColumnChunkData>, std::unique_ptr<ColumnChunkData>> scanUpdates(
         const transaction::Transaction* transaction, common::column_id_t columnID);
 
     bool lookup(const transaction::Transaction* transaction, const TableScanState& state,

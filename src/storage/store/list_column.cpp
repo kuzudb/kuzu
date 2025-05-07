@@ -365,7 +365,6 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 
         // Checkpoint offset data.
         std::vector<ChunkCheckpointState> offsetChunkCheckpointStates;
-        std::vector<std::unique_ptr<ColumnChunk>> offsetChunks;
 
         KU_ASSERT(std::is_sorted(checkpointState.chunkCheckpointStates.begin(),
             checkpointState.chunkCheckpointStates.end(),
@@ -373,15 +372,15 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
         for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
             KU_ASSERT(
                 chunkCheckpointState.chunkData->getNumValues() == chunkCheckpointState.numRows);
-            offsetChunks.push_back(std::make_unique<ColumnChunk>(*mm, LogicalType::UINT64(),
-                chunkCheckpointState.numRows, false, ResidencyState::IN_MEMORY));
-            const auto& offsetsToWrite = offsetChunks.back();
+            std::unique_ptr<ColumnChunkData> offsetsToWrite =
+                ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::UINT64(), false,
+                    chunkCheckpointState.numRows, ResidencyState::IN_MEMORY);
             const auto& listChunk = chunkCheckpointState.chunkData->cast<ListChunkData>();
             for (auto i = 0u; i < chunkCheckpointState.numRows; i++) {
-                offsetsToWrite->getData().setValue<offset_t>(
+                offsetsToWrite->setValue<offset_t>(
                     persistentListDataSize + listChunk.getListEndOffset(i), i);
             }
-            offsetChunkCheckpointStates.push_back(ChunkCheckpointState{offsetsToWrite->moveData(),
+            offsetChunkCheckpointStates.push_back(ChunkCheckpointState{std::move(offsetsToWrite),
                 chunkCheckpointState.startRow, chunkCheckpointState.numRows});
         }
 

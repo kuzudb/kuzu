@@ -288,7 +288,7 @@ void ColumnChunkData::append(ValueVector* vector, const SelectionView& selView) 
     updateStats(vector, selView);
 }
 
-void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void ColumnChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->dataType.getPhysicalType() == dataType.getPhysicalType());
     if (nullData) {
@@ -434,7 +434,7 @@ void ColumnChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     updateInMemoryStats(inMemoryStats, *vector, offsetInVector, numValuesToWrite);
 }
 
-void ColumnChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void ColumnChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->dataType.getPhysicalType() == dataType.getPhysicalType());
     if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
@@ -633,7 +633,7 @@ void BoolChunkData::append(ValueVector* vector, const SelectionView& selView) {
     updateStats(vector, selView);
 }
 
-void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void BoolChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     NullMask::copyNullMask(other->getData<uint64_t>(), startPosInOtherChunk, getData<uint64_t>(),
         numValues, numValuesToAppend);
@@ -697,7 +697,7 @@ void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     }
 }
 
-void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void BoolChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     if (nullData) {
         nullData->write(srcChunk->getNullData(), srcOffsetInChunk, dstOffsetInChunk,
@@ -737,7 +737,7 @@ void NullChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
 }
 
-void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void NullChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     if (numValuesToCopy == 0) {
         return;
@@ -750,7 +750,7 @@ void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     }
 }
 
-void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherChunk,
+void NullChunkData::append(const ColumnChunkData* other, offset_t startOffsetInOtherChunk,
     uint32_t numValuesToAppend) {
     write(other, startOffsetInOtherChunk, numValues, numValuesToAppend);
 }
@@ -882,7 +882,7 @@ void InternalIDChunkData::write(const ValueVector* vector, offset_t offsetInVect
     }
 }
 
-void InternalIDChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void InternalIDChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     ColumnChunkData::append(other, startPosInOtherChunk, numValuesToAppend);
     commonTableID = other->cast<InternalIDChunkData>().commonTableID;

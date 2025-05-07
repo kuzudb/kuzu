@@ -67,7 +67,7 @@ public:
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;
-    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     void resizeDataColumnChunk(uint64_t numValues) const { dataColumnChunk->resize(numValues); }
@@ -115,7 +115,7 @@ protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
 
 private:
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void appendNullList();

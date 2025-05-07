@@ -81,16 +81,16 @@ void StructColumn::lookupInternal(const Transaction* transaction, const ChunkSta
 }
 
 void StructColumn::write(ColumnChunkData& persistentChunk, ChunkState& state,
-    offset_t offsetInChunk, ColumnChunkData* data, offset_t dataOffset, length_t numValues) {
-    KU_ASSERT(data->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
+    offset_t offsetInChunk, const ColumnChunkData& data, offset_t dataOffset, length_t numValues) {
+    KU_ASSERT(data.getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->write(*persistentChunk.getNullData(), *state.nullState, offsetInChunk,
-        data->getNullData(), dataOffset, numValues);
-    auto& structData = data->cast<StructChunkData>();
+        data.getNullData(), dataOffset, numValues);
+    auto& structData = data.cast<StructChunkData>();
     auto& persistentStructChunk = persistentChunk.cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
-        const auto childData = structData.getChild(i);
+        const auto& childData = structData.getChild(i);
         childColumns[i]->write(*persistentStructChunk.getChild(i), state.childrenStates[i],
-            offsetInChunk, childData, dataOffset, numValues);
+            offsetInChunk, *childData, dataOffset, numValues);
     }
 }
 

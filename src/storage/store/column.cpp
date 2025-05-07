@@ -169,7 +169,7 @@ std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChu
         chunkData.getDataType().copy(), chunkData.isCompressionEnabled(), chunkMeta,
         chunkData.hasNullData(), true);
     if (chunkData.hasNullData()) {
-        auto nullChunkMeta = flushData(chunkData.getNullData(), dataFH);
+        auto nullChunkMeta = flushData(*chunkData.getNullData(), dataFH);
         auto nullData = std::make_unique<NullChunkData>(chunkData.getMemoryManager(),
             chunkData.isCompressionEnabled(), nullChunkMeta);
         flushedChunk->setNullData(std::move(nullData));
@@ -320,18 +320,22 @@ void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
     }
 }
 
+// TODO(bmwinger): maybe this should be moved into ColumnChunkData; the only thing it seems to be
+// using from Column is the ColumnReaderWriter And since ColumnChunk needs to call it for multiple
+// segments, it might make more sense for it to be there instead of passing the Column in
+// ColumnChunk::write
 void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
-    ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
-    std::optional<NullMask> nullMask = data->getNullMask();
+    const ColumnChunkData& data, offset_t srcOffset, length_t numValues) {
+    std::optional<NullMask> nullMask = data.getNullMask();
     NullMask* nullMaskPtr = nullptr;
     if (nullMask) {
         nullMaskPtr = &*nullMask;
     }
-    writeValues(state, dstOffset, data->getData(), nullMaskPtr, srcOffset, numValues);
+    writeValues(state, dstOffset, data.getData(), nullMaskPtr, srcOffset, numValues);
 
     if (dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_DOUBLE &&
         dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_FLOAT) {
-        auto [minWritten, maxWritten] = getMinMaxStorageValue(data->getData(), srcOffset, numValues,
+        auto [minWritten, maxWritten] = getMinMaxStorageValue(data.getData(), srcOffset, numValues,
             dataType.getPhysicalType(), nullMaskPtr);
         updateStatistics(persistentChunk.getMetadata(), dstOffset + numValues - 1, minWritten,
             maxWritten);
@@ -375,9 +379,10 @@ void Column::checkpointColumnChunkInPlace(ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         KU_ASSERT(chunkCheckpointState.numRows > 0);
-        write(checkpointState.persistentData, state, chunkCheckpointState.startRow,
-            chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/, chunkCheckpointState.numRows);
+        checkpointState.persistentData.write(state, chunkCheckpointState.startRow,
+            *chunkCheckpointState.chunkData, 0 /*srcOffset*/, chunkCheckpointState.numRows);
     }
+    // FIXME(bmwinger): Why?
     checkpointState.persistentData.resetNumValuesFromMetadata();
     if (nullColumn) {
         checkpointNullData(checkpointState);

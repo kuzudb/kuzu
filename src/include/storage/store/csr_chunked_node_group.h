@@ -72,7 +72,6 @@ struct ChunkedCSRHeader {
     common::length_t getGapSize(common::length_t length) const;
 
     bool sanityCheck() const;
-    void copyFrom(const ChunkedCSRHeader& other) const;
     void setNumValues(const common::offset_t numValues) const {
         offset->setNumValues(numValues);
         length->setNumValues(numValues);
@@ -95,8 +94,7 @@ struct InMemChunkedCSRHeader {
     std::unique_ptr<ColumnChunkData> length;
     bool randomLookup = false;
 
-    InMemChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression, uint64_t capacity,
-        ResidencyState residencyState);
+    InMemChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression, uint64_t capacity);
     InMemChunkedCSRHeader(std::unique_ptr<ColumnChunkData> offset,
         std::unique_ptr<ColumnChunkData> length)
         : offset{std::move(offset)}, length{std::move(length)} {
@@ -109,7 +107,7 @@ struct InMemChunkedCSRHeader {
     common::length_t getGapSize(common::length_t length) const;
 
     bool sanityCheck() const;
-    void copyFrom(const ChunkedCSRHeader& other) const;
+    void copyFrom(const InMemChunkedCSRHeader& other) const;
     void fillDefaultValues(common::offset_t newNumValues) const;
     void setNumValues(const common::offset_t numValues) const {
         offset->setNumValues(numValues);
@@ -120,7 +118,8 @@ struct InMemChunkedCSRHeader {
     common::offset_vec_t populateStartCSROffsetsFromLength(bool leaveGaps) const;
     void populateEndCSROffsetFromStartAndLength() const;
     void finalizeCSRRegionEndOffsets(const common::offset_vec_t& rightCSROffsetOfRegions) const;
-    void populateRegionCSROffsets(const CSRRegion& region, const ChunkedCSRHeader& oldHeader) const;
+    void populateRegionCSROffsets(const CSRRegion& region,
+        const InMemChunkedCSRHeader& oldHeader) const;
     void populateEndCSROffsets(const common::offset_vec_t& gaps) const;
     common::idx_t getNumRegions() const;
 
@@ -183,19 +182,24 @@ public:
     InMemChunkedCSRNodeGroup(MemoryManager& mm, const std::vector<common::LogicalType>& columnTypes,
         bool enableCompression, uint64_t capacity, common::offset_t startOffset)
         : InMemChunkedNodeGroup{mm, columnTypes, enableCompression, capacity, startOffset},
-          csrHeader{mm, enableCompression, common::StorageConfig::NODE_GROUP_SIZE,
-              ResidencyState::IN_MEMORY} {}
+          csrHeader{mm, enableCompression, common::StorageConfig::NODE_GROUP_SIZE} {}
+
+    InMemChunkedCSRNodeGroup(InMemChunkedCSRNodeGroup& base,
+        const std::vector<common::column_id_t>& selectedColumns,
+        NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
+        : InMemChunkedNodeGroup{base, selectedColumns, format},
+          csrHeader{std::move(base.csrHeader)} {}
 
     InMemChunkedCSRHeader& getCSRHeader() { return csrHeader; }
     const InMemChunkedCSRHeader& getCSRHeader() const { return csrHeader; }
 
     // this does not override ChunkedNodeGroup::merge() since clang-tidy analyzer
     // seems to struggle with detecting the std::move of the header unless this is inlined
-    void mergeChunkedCSRGroup(ChunkedCSRNodeGroup& base,
+    void mergeChunkedCSRGroup(InMemChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& columnsToMergeInto) {
         InMemChunkedNodeGroup::merge(base, columnsToMergeInto);
-        csrHeader = InMemChunkedCSRHeader(base.csrHeader.offset->moveData(),
-            base.csrHeader.length->moveData());
+        csrHeader = InMemChunkedCSRHeader(std::move(base.csrHeader.offset),
+            std::move(base.csrHeader.length));
     }
 
     void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,

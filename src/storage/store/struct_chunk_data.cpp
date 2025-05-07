@@ -94,7 +94,7 @@ void StructChunkData::reclaimStorage(FileHandle& dataFH) {
     }
 }
 
-void StructChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void StructChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     const auto& otherStructChunk = other->cast<StructChunkData>();
@@ -211,7 +211,7 @@ void StructChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
     }
 }
 
-void StructChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void StructChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     const auto& srcStructChunk = srcChunk->cast<StructChunkData>();

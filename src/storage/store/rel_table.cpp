@@ -1,13 +1,17 @@
 #include "storage/store/rel_table.h"
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/cast.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
+#include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
+#include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table_data.h"
 #include "transaction/transaction.h"
 
@@ -466,16 +470,15 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
     for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
         const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(i);
         KU_ASSERT(chunkedGroup);
-        auto& internalIDData = chunkedGroup->getColumnChunk(LOCAL_REL_ID_COLUMN_ID)
-                                   .getData()
-                                   .cast<InternalIDChunkData>();
-        RUNTIME_CHECK(totalNumRows += internalIDData.getNumValues());
-        for (auto rowIdx = 0u; rowIdx < internalIDData.getNumValues(); rowIdx++) {
-            const auto localRelOffset = internalIDData[rowIdx];
+        auto& internalIDChunk = chunkedGroup->getColumnChunk(LOCAL_REL_ID_COLUMN_ID);
+        RUNTIME_CHECK(totalNumRows += internalIDChunk.getNumValues());
+        for (auto rowIdx = 0u; rowIdx < internalIDChunk.getNumValues(); rowIdx++) {
+            const auto localRelOffset = internalIDChunk.getValue<offset_t>(rowIdx);
             const auto committedRelOffset = getCommittedOffset(localRelOffset, maxCommittedOffset);
-            internalIDData[rowIdx] = committedRelOffset;
-            internalIDData.setTableID(tableID);
+            internalIDChunk.setValue<offset_t>(committedRelOffset, rowIdx);
         }
+        // TODO(bmwinger): not sure how to handle this. Maybe we need an InternalIDChunk subclass of
+        // ColumnChunk internalIDChunk.setTableID(tableID);
     }
     KU_ASSERT(totalNumRows == localNodeGroup.getNumRows());
 }

@@ -98,7 +98,7 @@ void ListChunkData::setOffsetChunkValue(offset_t val, offset_t pos) {
     numValues = offsetColumnChunk->getNumValues();
 }
 
-void ListChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void ListChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     checkOffsetSortedAsc = true;
     auto& otherListChunk = other->cast<ListChunkData>();
@@ -292,7 +292,7 @@ void ListChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     KU_ASSERT(sanityCheck());
 }
 
-void ListChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void ListChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::LIST ||
               srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::ARRAY);

@@ -114,7 +114,7 @@ struct RelTableScanState;
 struct CSRNodeGroupScanState final : NodeGroupScanState {
     // Cached offsets and lengths for a sequence of CSR lists within the current vector of
     // boundNodes.
-    std::unique_ptr<ChunkedCSRHeader> header;
+    std::unique_ptr<InMemChunkedCSRHeader> header;
 
     std::optional<std::bitset<common::DEFAULT_VECTOR_CAPACITY>> cachedScannedVectorsSelBitset;
     // The total number of rows (i.e., rels) in the current node group.
@@ -138,8 +138,8 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     explicit CSRNodeGroupScanState(MemoryManager& mm, bool randomLookup = false)
         : numTotalRows{0}, numCachedRows{0}, nextCachedRowToScan{0},
           source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {
-        header = std::make_unique<ChunkedCSRHeader>(mm, false,
-            randomLookup ? 1 : common::StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        header = std::make_unique<InMemChunkedCSRHeader>(mm, false,
+            randomLookup ? 1 : common::StorageConfig::NODE_GROUP_SIZE);
     }
 
     bool tryScanCachedTuples(RelTableScanState& tableScanState);
@@ -149,8 +149,8 @@ struct CSRNodeGroupCheckpointState final : NodeGroupCheckpointState {
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
 
-    std::unique_ptr<ChunkedCSRHeader> oldHeader;
-    std::unique_ptr<ChunkedCSRHeader> newHeader;
+    std::unique_ptr<InMemChunkedCSRHeader> oldHeader;
+    std::unique_ptr<InMemChunkedCSRHeader> newHeader;
 
     CSRNodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns, FileHandle& dataFH, MemoryManager* mm, Column* csrOffsetCol,
@@ -194,7 +194,7 @@ public:
         TableScanState& state) const override;
 
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs, ChunkedCSRNodeGroup& chunkedGroup);
+        const std::vector<common::column_id_t>& columnIDs, InMemChunkedCSRNodeGroup& chunkedGroup);
     void append(const transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs, common::offset_t boundOffsetInGroup,
         const std::vector<ColumnChunk*>& chunks, common::row_idx_t startRowInChunks,

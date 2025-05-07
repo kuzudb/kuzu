@@ -1,12 +1,15 @@
 #include "storage/store/column_chunk.h"
 
 #include <algorithm>
+#include <stdexcept>
 
 #include "common/serializer/deserializer.h"
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
+#include "storage/file_handle.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column.h"
+#include "storage/store/column_chunk_data.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -18,23 +21,28 @@ namespace storage {
 ColumnChunk::ColumnChunk(MemoryManager& memoryManager, LogicalType&& dataType, uint64_t capacity,
     bool enableCompression, ResidencyState residencyState, bool initializeToZero)
     : enableCompression{enableCompression} {
-    data = ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType),
-        enableCompression, capacity, residencyState, true, initializeToZero);
+    data.push_back(ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType),
+        enableCompression, capacity, residencyState, true, initializeToZero));
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
 }
 
 ColumnChunk::ColumnChunk(MemoryManager& memoryManager, LogicalType&& dataType,
     bool enableCompression, ColumnChunkMetadata metadata)
     : enableCompression{enableCompression} {
-    data = ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType),
-        enableCompression, metadata, true, true);
+    data.push_back(ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType),
+        enableCompression, metadata, true, true));
 }
 
 ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
-    : enableCompression{enableCompression}, data{std::move(data)} {}
+    : enableCompression{enableCompression}, data{} {
+    this->data.push_back(std::move(data));
+}
+ColumnChunk::ColumnChunk(bool enableCompression,
+    std::vector<std::unique_ptr<ColumnChunkData>> segments)
+    : enableCompression{enableCompression}, data{std::move(segments)} {}
 
 void ColumnChunk::initializeScanState(ChunkState& state, const Column* column) const {
-    data->initializeScanState(state, column);
+    data.front()->initializeScanState(state, column);
 }
 
 void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, ValueVector& output,
@@ -42,7 +50,19 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
     // Check if there is deletions or insertions. If so, update selVector based on transaction.
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
-        data->scan(output, offsetInChunk, length);
+        // TODO(bmwinger): write optimized function to find the start chunk
+        auto segment = data.begin();
+        auto offsetInSegment = offsetInChunk;
+        while (segment->get()->getNumValues() < offsetInSegment) {
+            offsetInSegment -= segment->get()->getNumValues();
+            segment++;
+        }
+        uint64_t lengthScanned = 0;
+        while (lengthScanned < length) {
+            auto lengthInSegment = std::min(length, segment->get()->getNumValues());
+            segment->get()->scan(output, offsetInChunk, lengthInSegment);
+            lengthScanned += lengthInSegment;
+        }
     } break;
     case ResidencyState::ON_DISK: {
         state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &output);
@@ -91,17 +111,24 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
     switch (const auto residencyState = getResidencyState()) {
     case ResidencyState::ON_DISK: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
-            chunkState.column->scan(transaction, chunkState, &output.getData(), startRow,
-                startRow + numRows);
-            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan, startRow,
-                numRows);
+            chunkState.column->scan(transaction, chunkState, &output, startRow, startRow + numRows);
+            scanCommittedUpdates(transaction, output, numValuesBeforeScan, startRow, numRows);
         }
     } break;
     case ResidencyState::IN_MEMORY: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
-            output.getData().append(data.get(), startRow, numRows);
-            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan, startRow,
-                numRows);
+            auto segment = data.begin();
+            while (segment->get()->getNumValues() < startRow) {
+                startRow -= segment->get()->getNumValues();
+                segment++;
+            }
+            while (startRow < numRows) {
+                auto numRowsInSegment =
+                    std::min(numRows, segment->get()->getNumValues()) - startRow;
+                output.append(segment->get(), startRow, numRowsInSegment);
+                scanCommittedUpdates(transaction, output, numValuesBeforeScan, startRow, numRows);
+                startRow += numRowsInSegment;
+            }
         }
     } break;
     default: {
@@ -111,9 +138,9 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
 }
 
 template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(const Transaction* transaction,
-    ChunkState& chunkState, ColumnChunk& output, row_idx_t startRow, row_idx_t numRows) const;
+    ChunkState& chunkState, ColumnChunkData& output, row_idx_t startRow, row_idx_t numRows) const;
 template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(const Transaction* transaction,
-    ChunkState& chunkState, ColumnChunk& output, row_idx_t startRow, row_idx_t numRows) const;
+    ChunkState& chunkState, ColumnChunkData& output, row_idx_t startRow, row_idx_t numRows) const;
 
 bool ColumnChunk::hasUpdates(const Transaction* transaction, row_idx_t startRow,
     length_t numRows) const {
@@ -163,7 +190,12 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
     offset_t rowInChunk, ValueVector& output, sel_t posInOutputVector) const {
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
-        data->lookup(rowInChunk, output, posInOutputVector);
+        auto segment = data.begin();
+        while (rowInChunk > segment->get()->getNumValues()) {
+            rowInChunk -= segment->get()->getNumValues();
+            segment++;
+        }
+        segment->get()->lookup(rowInChunk, output, posInOutputVector);
     } break;
     case ResidencyState::ON_DISK: {
         state.column->lookupValue(transaction, state, rowInChunk, &output, posInOutputVector);
@@ -185,24 +217,36 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
 
 void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const ValueVector& values) {
+    auto segment = data.begin();
+    while (offsetInChunk > segment->get()->getNumValues()) {
+        offsetInChunk -= segment->get()->getNumValues();
+        segment++;
+    }
     if (transaction->getID() == Transaction::DUMMY_TRANSACTION_ID) {
-        data->write(&values, values.state->getSelVector().getSelectedPositions()[0], offsetInChunk);
+        segment->get()->write(&values, values.state->getSelVector().getSelectedPositions()[0],
+            offsetInChunk);
         return;
     }
-    data->updateStats(&values, values.state->getSelVector());
+    segment->get()->updateStats(&values, values.state->getSelVector());
     if (!updateInfo) {
         updateInfo = std::make_unique<UpdateInfo>();
     }
     const auto vectorIdx = offsetInChunk / DEFAULT_VECTOR_CAPACITY;
     const auto rowIdxInVector = offsetInChunk % DEFAULT_VECTOR_CAPACITY;
-    const auto vectorUpdateInfo = updateInfo->update(data->getMemoryManager(), transaction,
-        vectorIdx, rowIdxInVector, values);
+    const auto vectorUpdateInfo = updateInfo->update(segment->get()->getMemoryManager(),
+        transaction, vectorIdx, rowIdxInVector, values);
     transaction->pushVectorUpdateInfo(*updateInfo, vectorIdx, *vectorUpdateInfo);
 }
 
 MergedColumnChunkStats ColumnChunk::getMergedColumnChunkStats(
     const transaction::Transaction* transaction) const {
-    auto baseStats = data->getMergedColumnChunkStats();
+    // TODO(bmwinger): foldl to remove need for default constructor??
+    auto baseStats = MergedColumnChunkStats{ColumnChunkStats{}, true, true};
+    for (auto& segment : data) {
+        // TODO: Replace with a function that modifies the existing stats in-place?
+        auto segmentStats = segment->getMergedColumnChunkStats();
+        baseStats.merge(segmentStats, segment->getDataType().getPhysicalType());
+    }
     if (updateInfo) {
         for (idx_t i = 0; i < updateInfo->getNumVectors(); ++i) {
             const auto* vectorInfo = updateInfo->getVectorInfo(transaction, i);
@@ -218,7 +262,10 @@ MergedColumnChunkStats ColumnChunk::getMergedColumnChunkStats(
 void ColumnChunk::serialize(Serializer& serializer) const {
     serializer.writeDebuggingInfo("enable_compression");
     serializer.write<bool>(enableCompression);
-    data->serialize(serializer);
+    serializer.write<uint64_t>(data.size());
+    for (auto& segment : data) {
+        segment->serialize(serializer);
+    }
 }
 
 std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(MemoryManager& memoryManager,
@@ -235,15 +282,15 @@ row_idx_t ColumnChunk::getNumUpdatedRows(const Transaction* transaction) const {
     return updateInfo ? updateInfo->getNumUpdatedRows(transaction) : 0;
 }
 
-std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChunk::scanUpdates(
-    const Transaction* transaction) const {
+std::pair<std::unique_ptr<ColumnChunkData>, std::unique_ptr<ColumnChunkData>>
+ColumnChunk::scanUpdates(const Transaction* transaction) const {
     auto numUpdatedRows = getNumUpdatedRows(transaction);
     auto& mm = *transaction->getClientContext()->getMemoryManager();
     // TODO(Guodong): Actually for row idx in a column chunk, UINT32 should be enough.
-    auto updatedRows = std::make_unique<ColumnChunk>(mm, LogicalType::UINT64(), numUpdatedRows,
-        false, ResidencyState::IN_MEMORY);
-    auto updatedData = std::make_unique<ColumnChunk>(mm, getDataType().copy(), numUpdatedRows,
-        false, ResidencyState::IN_MEMORY);
+    auto updatedRows = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT64(), false,
+        numUpdatedRows, ResidencyState::IN_MEMORY);
+    auto updatedData = ColumnChunkFactory::createColumnChunkData(mm, getDataType().copy(), false,
+        numUpdatedRows, ResidencyState::IN_MEMORY);
     const auto numUpdateVectors = updateInfo->getNumVectors();
     row_idx_t numAppendedRows = 0;
     for (auto vectorIdx = 0u; vectorIdx < numUpdateVectors; vectorIdx++) {
@@ -253,17 +300,73 @@ std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChun
         }
         const row_idx_t startRowIdx = vectorIdx * DEFAULT_VECTOR_CAPACITY;
         for (auto rowIdx = 0u; rowIdx < vectorInfo->numRowsUpdated; rowIdx++) {
-            updatedRows->getData().setValue<row_idx_t>(
-                vectorInfo->rowsInVector[rowIdx] + startRowIdx, numAppendedRows++);
+            updatedRows->setValue<row_idx_t>(vectorInfo->rowsInVector[rowIdx] + startRowIdx,
+                numAppendedRows++);
         }
-        updatedData->getData().append(vectorInfo->data.get(), 0, vectorInfo->numRowsUpdated);
-        KU_ASSERT(updatedData->getData().getNumValues() == updatedRows->getData().getNumValues());
+        updatedData->append(vectorInfo->data.get(), 0, vectorInfo->numRowsUpdated);
+        KU_ASSERT(updatedData->getNumValues() == updatedRows->getNumValues());
     }
     return {std::move(updatedRows), std::move(updatedData)};
 }
 
 void ColumnChunk::reclaimStorage(FileHandle& dataFH) {
-    data->reclaimStorage(dataFH);
+    for (const auto& segment : data) {
+        segment->reclaimStorage(dataFH);
+    }
+}
+
+void ColumnChunk::append(common::ValueVector* vector, const common::SelectionView& selView) {
+    data.back()->append(vector, selView);
+}
+
+void ColumnChunk::append(const ColumnChunk* other, common::offset_t startPosInOtherChunk,
+    uint32_t numValuesToAppend) {
+    for (auto& otherSegment : other->data) {
+        if (numValuesToAppend == 0) {
+            return;
+        }
+        if (otherSegment->getNumValues() < startPosInOtherChunk) {
+            startPosInOtherChunk -= otherSegment->getNumValues();
+        } else {
+            auto numValuesToAppendInSegment =
+                std::min(otherSegment->getNumValues(), uint64_t{numValuesToAppend});
+            append(otherSegment.get(), startPosInOtherChunk, numValuesToAppendInSegment);
+            numValuesToAppend -= numValuesToAppendInSegment;
+            startPosInOtherChunk = 0;
+        }
+    }
+}
+
+void ColumnChunk::append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    uint32_t numValuesToAppend) {
+    data.back()->append(other, startPosInOtherChunk, numValuesToAppend);
+}
+
+std::unique_ptr<ColumnChunk> ColumnChunk::flushAsNewColumnChunk(FileHandle& dataFH) const {
+    std::vector<std::unique_ptr<ColumnChunkData>> segments;
+    for (auto& segment : data) {
+        auto chunk = Column::flushChunkData(*segment, dataFH);
+    }
+    return std::make_unique<ColumnChunk>(isCompressionEnabled(), std::move(segments));
+}
+
+void ColumnChunk::write(Column& column, ChunkState& state, offset_t dstOffset,
+    const ColumnChunkData& dataToWrite, offset_t srcOffset, common::length_t numValues) {
+    auto segment = data.begin();
+    auto offsetInSegment = dstOffset;
+    while (segment->get()->getNumValues() < offsetInSegment) {
+        offsetInSegment -= segment->get()->getNumValues();
+        segment++;
+    }
+    while (numValues > 0) {
+        auto numValuesToWriteInSegment =
+            std::min(numValues, segment->get()->getNumValues()) - offsetInSegment;
+        column.write(*segment->get(), state, offsetInSegment, &dataToWrite, srcOffset,
+            numValuesToWriteInSegment);
+        offsetInSegment = 0;
+        numValues -= numValuesToWriteInSegment;
+        srcOffset += numValuesToWriteInSegment;
+    }
 }
 
 } // namespace storage

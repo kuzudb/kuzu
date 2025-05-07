@@ -23,6 +23,7 @@ class NullColumn;
 class StructColumn;
 class RelTableData;
 struct ColumnCheckpointState;
+class ColumnChunk;
 class BufferManager;
 class Column {
     friend class StringColumn;
@@ -76,7 +77,7 @@ public:
 
     // Batch write to a set of sequential pages.
     virtual void write(ColumnChunkData& persistentChunk, ChunkState& state,
-        common::offset_t dstOffset, ColumnChunkData* data, common::offset_t srcOffset,
+        common::offset_t dstOffset, const ColumnChunkData& data, common::offset_t srcOffset,
         common::length_t numValues);
 
     // Append values to the end of the node group, resizing it if necessary

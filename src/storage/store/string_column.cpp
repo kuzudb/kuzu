@@ -96,10 +96,10 @@ void StringColumn::lookupInternal(const Transaction* transaction, const ChunkSta
 }
 
 void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
-    ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
+    const ColumnChunkData& data, offset_t srcOffset, length_t numValues) {
     auto& stringPersistentChunk = persistentChunk.cast<StringChunkData>();
-    numValues = std::min(numValues, data->getNumValues() - srcOffset);
-    auto& strChunkToWriteFrom = data->cast<StringChunkData>();
+    numValues = std::min(numValues, data.getNumValues() - srcOffset);
+    auto& strChunkToWriteFrom = data.cast<StringChunkData>();
     std::vector<string_index_t> indices;
     indices.resize(numValues);
     for (auto i = 0u; i < numValues; i++) {
@@ -112,7 +112,7 @@ void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, of
             state, strVal);
     }
     NullMask nullMask(numValues);
-    nullMask.copyFromNullBits(data->getNullData()->getNullMask().getData(), srcOffset,
+    nullMask.copyFromNullBits(data.getNullData()->getNullMask().getData(), srcOffset,
         0 /*dstOffset*/, numValues);
     // Write index to main column
     indexColumn->writeValues(getChildState(state, ChildStateIndex::INDEX), dstOffset,

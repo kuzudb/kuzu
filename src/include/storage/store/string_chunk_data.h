@@ -20,11 +20,10 @@ public:
     StringChunkData(MemoryManager& mm, common::LogicalType dataType, uint64_t capacity,
         bool enableCompression, ResidencyState residencyState);
     StringChunkData(MemoryManager& mm, bool enableCompression, const ColumnChunkMetadata& metadata);
-
     void resetToEmpty() override;
 
     void append(common::ValueVector* vector, const common::SelectionView& selView) override;
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
     ColumnChunkData* getIndexColumnChunk();
     const ColumnChunkData* getIndexColumnChunk() const;
@@ -39,7 +38,7 @@ public:
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;
-    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     template<typename T>
@@ -79,8 +78,8 @@ public:
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
 private:
-    void appendStringColumnChunk(StringChunkData* other, common::offset_t startPosInOtherChunk,
-        uint32_t numValuesToAppend);
+    void appendStringColumnChunk(const StringChunkData* other,
+        common::offset_t startPosInOtherChunk, uint32_t numValuesToAppend);
 
     void setValueFromString(std::string_view value, uint64_t pos);
 
