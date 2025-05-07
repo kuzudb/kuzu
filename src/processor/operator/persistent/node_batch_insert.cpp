@@ -63,7 +63,6 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
 
     info->tableEntry = nodeTableEntry;
 
-    // Map copy node.
     for (auto& property : nodeTableEntry->getProperties()) {
         info->insertColumnIDs.push_back(nodeTableEntry->getColumnID(property.getName()));
     }
