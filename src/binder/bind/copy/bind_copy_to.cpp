@@ -1,6 +1,8 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_to.h"
 #include "catalog/catalog.h"
+#include "common/exception/catalog.h"
+#include "common/exception/runtime.h"
 #include "function/built_in_function_utils.h"
 #include "main/client_context.h"
 #include "parser/copy.h"
@@ -22,8 +24,14 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto columns = query->getStatementResult()->getColumns();
     auto fileTypeStr = fileTypeInfo.fileTypeStr;
     auto name = stringFormat("COPY_{}", fileTypeStr);
-    auto entry =
-        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
+    catalog::CatalogEntry* entry = nullptr;
+    try {
+        entry =
+            clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
+    } catch (common::CatalogException& exception) {
+        throw common::RuntimeException{common::stringFormat(
+            "Exporting query result to the '{}' file is currently not supported.", fileTypeStr)};
+    }
     auto exportFunc = function::BuiltInFunctionsUtils::matchFunction(name,
         entry->ptrCast<catalog::FunctionCatalogEntry>())
                           ->constPtrCast<function::ExportFunction>();

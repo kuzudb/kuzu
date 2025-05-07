@@ -23,12 +23,13 @@ static void bindInstallExtension(const ExtensionAuxInfo& auxInfo) {
 static void bindLoadExtension(main::ClientContext* context, const ExtensionAuxInfo& auxInfo) {
     auto localFileSystem = common::LocalFileSystem("");
     if (ExtensionUtils::isOfficialExtension(auxInfo.path)) {
+        auto extensionName = common::StringUtils::getLower(auxInfo.path);
         if (!localFileSystem.fileOrPathExists(
-                ExtensionUtils::getLocalPathForExtensionLib(context, auxInfo.path))) {
+                ExtensionUtils::getLocalPathForExtensionLib(context, extensionName))) {
             throw common::BinderException(
                 common::stringFormat("Extension: {} is an official extension and has not been "
                                      "installed.\nYou can install it by: install {}.",
-                    auxInfo.path, auxInfo.path));
+                    extensionName, extensionName));
         }
         return;
     }
