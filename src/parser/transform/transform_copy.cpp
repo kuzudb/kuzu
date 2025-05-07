@@ -81,6 +81,9 @@ std::unique_ptr<BaseScanSource> Transformer::transformScanSource(
     } else if (ctx.oC_FunctionInvocation()) {
         auto functionExpression = transformFunctionInvocation(*ctx.oC_FunctionInvocation());
         return std::make_unique<TableFuncScanSource>(std::move(functionExpression));
+    } else if (ctx.oC_Parameter()) {
+        auto paramExpression = transformParameterExpression(*ctx.oC_Parameter());
+        return std::make_unique<ParameterScanSource>(std::move(paramExpression));
     }
     KU_UNREACHABLE;
 }

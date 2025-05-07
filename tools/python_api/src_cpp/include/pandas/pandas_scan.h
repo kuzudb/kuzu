@@ -55,6 +55,6 @@ private:
     }
 };
 
-std::unique_ptr<function::ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objectName);
+std::unique_ptr<function::ScanReplacementData> tryReplacePD(py::handle& entry);
 
 } // namespace kuzu

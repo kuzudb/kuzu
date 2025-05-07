@@ -19,6 +19,37 @@ def test_pyarrow_basic(conn_db_readonly: ConnDB) -> None:
     assert result.get_next() == [3, "c", None]
 
 
+def test_pyarrow_copy_from_parameterized_df(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
+
+    def get_tab_func():
+        return pa.Table.from_arrays(
+            [
+                pa.array([1, 2, 3], type=pa.int32()),
+                pa.array(["a", "b", "c"], type=pa.string()),
+                pa.array([True, False, None], type=pa.bool_()),
+            ],
+            names=["id", "A", "B"],
+        )
+
+    conn.execute("CREATE NODE TABLE pyarrowtab(id INT32, A STRING, B BOOL, PRIMARY KEY(id))")
+    conn.execute("COPY pyarrowtab FROM $tab", {"tab": get_tab_func()})
+    result = conn.execute("MATCH (t:pyarrowtab) RETURN t.id AS id, t.A AS A, t.B AS B ORDER BY t.id")
+    assert result.get_next() == [1, "a", True]
+    assert result.get_next() == [2, "b", False]
+    assert result.get_next() == [3, "c", None]
+
+    rels = pa.Table.from_arrays(
+        [pa.array([1, 2, 3], type=pa.int32()), pa.array([2, 3, 1], type=pa.int32())], names=["from", "to"]
+    )
+    conn.execute("CREATE REL TABLE pyarrowrel(FROM pyarrowtab TO pyarrowtab)")
+    conn.execute("COPY pyarrowrel FROM $tab", {"tab": rels})
+    result = conn.execute("MATCH (a:pyarrowtab)-[:pyarrowrel]->(b:pyarrowtab) RETURN a.id, b.id ORDER BY a.id")
+    assert result.get_next() == [1, 2]
+    assert result.get_next() == [2, 3]
+    assert result.get_next() == [3, 1]
+
+
 def test_pyarrow_copy_from(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite
     tab = pa.Table.from_arrays(
@@ -101,6 +132,7 @@ def test_pyarrow_scan_invalid_option(conn_db_readwrite: ConnDB) -> None:
     error_message = "INVALID_OPTION Option not recognized by pyArrow scanner."
     with pytest.raises(RuntimeError, match=error_message):
         conn.execute("COPY ids FROM tab(INVALID_OPTION=1)")
+
 
 def test_copy_from_pyarrow_multi_pairs(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite

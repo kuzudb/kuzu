@@ -146,10 +146,23 @@ void ClientContext::addScanReplace(function::ScanReplacement scanReplacement) {
     scanReplacements.push_back(std::move(scanReplacement));
 }
 
-std::unique_ptr<function::ScanReplacementData> ClientContext::tryReplace(
+std::unique_ptr<function::ScanReplacementData> ClientContext::tryReplaceByName(
     const std::string& objectName) const {
     for (auto& scanReplacement : scanReplacements) {
-        auto replaceData = scanReplacement.replaceFunc(objectName);
+        auto replaceHandles = scanReplacement.lookupFunc(objectName);
+        if (replaceHandles.empty()) {
+            continue; // Fail to replace.
+        }
+        return scanReplacement.replaceFunc(replaceHandles);
+    }
+    return {};
+}
+
+std::unique_ptr<function::ScanReplacementData> ClientContext::tryReplaceByHandle(
+    function::scan_replace_handle_t handle) const {
+    auto handleSpan = std::span{&handle, 1};
+    for (auto& scanReplacement : scanReplacements) {
+        auto replaceData = scanReplacement.replaceFunc(handleSpan);
         if (replaceData == nullptr) {
             continue; // Fail to replace.
         }
@@ -293,7 +306,8 @@ void ClientContext::cleanUp() {
     getVFSUnsafe()->cleanUP(this);
 }
 
-std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query) {
+std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_view query,
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParams) {
     std::unique_lock lck{mtx};
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
@@ -305,7 +319,8 @@ std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query
         return preparedStatementWithError(
             "Connection Exception: We do not support prepare multiple statements.");
     }
-    auto result = prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/);
+    auto result =
+        prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/, inputParams);
     useInternalCatalogEntry_ = false;
     return result;
 }
