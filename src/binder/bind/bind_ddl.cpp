@@ -1,15 +1,19 @@
 #include "binder/binder.h"
+#include "binder/copy/bound_copy_from.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop.h"
+#include "binder/bound_scan_source.h"
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "common/enums/column_evaluate_type.h"
 #include "common/enums/extend_direction_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
@@ -279,7 +283,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
 std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& statement) {
     auto createTable = statement.constPtrCast<CreateTable>();
 
-    auto boundInnerQuery = bindQuery(*createTable->getInnerQuery());
+    auto boundInnerQuery = bindQuery(*createTable->getSource()->statement.get());
     auto innerQueryResult = boundInnerQuery->getStatementResult();
     auto columnNames = innerQueryResult->getColumnNames();
     auto columnTypes = innerQueryResult->getColumnTypes();
@@ -291,15 +295,52 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
             ColumnDefinition(std::string(columnNames[i]), columnTypes[i].copy()));
     }
 
-    auto createInfo = createTable->getInfo();
     // first column is primary key column temporarily for now
-    auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(columnNames[0],
-        std::move(propertyDefinitions));
+    auto pkName = columnNames[0];
+
+    auto createInfo = createTable->getInfo();
+    auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
     auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
         createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
         clientContext->useInternalCatalogEntry());
+    
+    auto parsingOptions = options_t{}; // temp
+    auto boundSource = bindQueryScanSource(*createTable->getSource(), parsingOptions, columnNames, columnTypes);
+    auto warningDataExprs = boundSource->getWarningColumns();
+
+    expression_vector columns;
+    std::vector<ColumnEvaluateType> evaluateTypes;
+    for (auto& property : propertyDefinitions) {
+        auto [evaluateType, column] = matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
+        columns.push_back(column);
+        evaluateTypes.push_back(evaluateType);
+    }
+    columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
+
+    auto offset = createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
+    auto boundCopyFromInfo = BoundCopyFromInfo(nullptr, std::move(boundSource),
+        std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
+    
+    auto boundCopyFromInfo = BoundCopyFromInfo(nullptr, std::move(boundSource), std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr);
 
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
+}
+
+// temp (duplicated code)
+static std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExpression(
+    const expression_vector& columns, const PropertyDefinition& property,
+    ExpressionBinder& expressionBinder) {
+    for (auto& column : columns) {
+        if (property.getName() == column->toString()) {
+            if (column->dataType == property.getType()) {
+                return {ColumnEvaluateType::REFERENCE, column};
+            } else {
+                return {ColumnEvaluateType::CAST,
+                    expressionBinder.forceCast(column, property.getType())};
+            }
+        }
+    }
+    return {ColumnEvaluateType::DEFAULT, expressionBinder.bindExpression(*property.defaultExpr)};
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) const {
