@@ -209,7 +209,7 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
         // original chunked group
         // The slice must be restored even if an exception is thrown to prevent other threads from
         // reading invalid data
-        ChunkedNodeGroup sliceToWriteToDisk{*mm, *nodeGroup, info->outputDataColumns};
+        InMemChunkedNodeGroup sliceToWriteToDisk{*nodeGroup, info->outputDataColumns};
         FinallyWrapper sliceRestorer{
             [&]() { nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns); }};
         std::tie(nodeOffset, numRowsWritten) = nodeTable->appendToLastNodeGroup(*mm, transaction,

@@ -124,7 +124,7 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
 }
 
 static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* transaction,
-    const std::vector<column_id_t>& columnIDs, ChunkedCSRNodeGroup& chunkedGroup,
+    const std::vector<column_id_t>& columnIDs, InMemChunkedCSRNodeGroup& chunkedGroup,
     RelTable& relTable, CSRNodeGroup& nodeGroup, RelDataDirection direction,
     PageAllocator& pageAllocator) {
     const bool isNewNodeGroup = nodeGroup.isEmpty();
@@ -188,7 +188,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
 
     auto* relTable = sharedState->table->ptrCast<RelTable>();
 
-    ChunkedCSRNodeGroup sliceToWriteToDisk{mm,
+    InMemChunkedCSRNodeGroup sliceToWriteToDisk{
         ku_dynamic_cast<InMemChunkedCSRNodeGroup&>(*localState.chunkedGroup),
         relInfo.outputDataColumns};
     // TODO(bmwinger): Shouldn't this be called only immediately before flushing?

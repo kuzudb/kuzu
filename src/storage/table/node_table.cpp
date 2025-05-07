@@ -560,7 +560,7 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
 
 std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(MemoryManager& mm,
     Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
+    InMemChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
     hasChanges = true;
     return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(mm, transaction, columnIDs,
         chunkedGroup, pageAllocator);

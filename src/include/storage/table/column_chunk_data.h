@@ -128,7 +128,7 @@ public:
     void setNullData(std::unique_ptr<NullChunkData> nullData_) { nullData = std::move(nullData_); }
     bool hasNullData() const { return nullData != nullptr; }
     NullChunkData* getNullData() { return nullData.get(); }
-    const NullChunkData& getNullData() const { return *nullData; }
+    const NullChunkData* getNullData() const { return nullData.get(); }
     std::optional<common::NullMask> getNullMask() const;
     std::unique_ptr<NullChunkData> moveNullData() { return std::move(nullData); }
 
@@ -157,7 +157,7 @@ public:
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
     virtual void append(common::ValueVector* vector, const common::SelectionView& selView);
-    virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    virtual void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
     virtual void flush(PageAllocator& pageAllocator);
@@ -189,7 +189,7 @@ public:
         common::offset_t offsetInChunk);
     virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
         common::RelMultiplicity multiplicity);
-    virtual void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    virtual void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
     virtual void setToInMemory();
@@ -315,7 +315,7 @@ public:
               true} {}
 
     void append(common::ValueVector* vector, const common::SelectionView& sel) final;
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
@@ -327,7 +327,7 @@ public:
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) final;
-    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 };
 
@@ -388,12 +388,12 @@ public:
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const override;
 
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     void serialize(common::Serializer& serializer) const override;
@@ -434,7 +434,7 @@ public:
     void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
 
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void setTableID(common::table_id_t tableID) { commonTableID = tableID; }
