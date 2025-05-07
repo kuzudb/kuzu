@@ -1,8 +1,8 @@
--DATASET empty
+-DATASET CSV EMPTY
 
 --
 
--CASE NullAndEmptyChecks
+-CASE ListAppendNullAndEmptyChecks
 -STATEMENT RETURN LIST_APPEND([], '5')
 ---- 1
 ['5']
