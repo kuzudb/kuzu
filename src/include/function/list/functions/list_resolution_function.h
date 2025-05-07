@@ -1,10 +1,11 @@
-#include "function/function.h"
 #include "binder/expression/expression_util.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace function {
 
-static inline void resolveEmptyList(const ScalarBindFuncInput& input, std::vector<common::LogicalType>& types) {
+static inline void resolveEmptyList(const ScalarBindFuncInput& input,
+    std::vector<common::LogicalType>& types) {
     auto isEmpty = binder::ExpressionUtil::isEmptyList(*input.arguments[0]);
     if (isEmpty) {
         auto elementType = input.arguments[1]->getDataType().copy();
