@@ -159,4 +159,4 @@ INT64|INT64|INT64[]|INT64[]
 Runtime exception: Exporting query result to the 'CS' file is currently not supported.
 -STATEMENT COPY (RETURN 5) to "${DATABASE_PATH}/copy_to_with_filter.json"
 ---- error
-Runtime exception: Exporting query result to the 'json' file is currently not supported."
+Runtime exception: Exporting query result to the 'json' file is currently not supported.

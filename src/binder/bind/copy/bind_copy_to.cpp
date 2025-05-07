@@ -24,7 +24,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto columns = query->getStatementResult()->getColumns();
     auto fileTypeStr = fileTypeInfo.fileTypeStr;
     auto name = stringFormat("COPY_{}", fileTypeStr);
-    catalog::CatalogEntry* entry;
+    catalog::CatalogEntry* entry = nullptr;
     try {
         entry =
             clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
