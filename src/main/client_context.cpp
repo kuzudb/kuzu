@@ -321,6 +321,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
     }
     auto result =
         prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/, inputParams);
+    validatePrepareParams(result.get(), inputParams);
     useInternalCatalogEntry_ = false;
     return result;
 }
@@ -412,6 +413,16 @@ std::unique_ptr<PreparedStatement> ClientContext::preparedStatementWithError(
     preparedStatement->success = false;
     preparedStatement->errMsg = errMsg;
     return preparedStatement;
+}
+
+void ClientContext::validatePrepareParams(const PreparedStatement* preparedStatement,
+    const std::unordered_map<std::string, std::shared_ptr<Value>>& inputParams) {
+    auto& parameterMap = preparedStatement->parameterMap;
+    for (auto& [name, value] : inputParams) {
+        if (!parameterMap.contains(name)) {
+            throw Exception("Parameter " + name + " not found.");
+        }
+    }
 }
 
 void ClientContext::bindParametersNoLock(const PreparedStatement* preparedStatement,
