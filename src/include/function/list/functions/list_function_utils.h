@@ -8,10 +8,9 @@ namespace function {
 struct ListFunctionUtils {
 public:
     static void resolveEmptyList(const ScalarBindFuncInput& input,
-        std::vector<common::LogicalType>& types); 
+        std::vector<common::LogicalType>& types);
 
-    static void resolveNulls(std::vector<common::LogicalType>& types); 
-
+    static void resolveNulls(std::vector<common::LogicalType>& types);
 };
 
 } // namespace function

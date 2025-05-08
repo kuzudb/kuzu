@@ -1,4 +1,5 @@
 #include "function/list/functions/list_function_utils.h"
+
 #include "binder/expression/expression_util.h"
 
 using namespace kuzu::common;
@@ -6,8 +7,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-void ListFunctionUtils::resolveEmptyList(const ScalarBindFuncInput &input,
-                                    std::vector<common::LogicalType> &types) {
+void ListFunctionUtils::resolveEmptyList(const ScalarBindFuncInput& input,
+    std::vector<common::LogicalType>& types) {
 
     auto isEmpty = binder::ExpressionUtil::isEmptyList(*input.arguments[0]);
     if (isEmpty) {
@@ -20,11 +21,9 @@ void ListFunctionUtils::resolveEmptyList(const ScalarBindFuncInput &input,
     }
 }
 
-void ListFunctionUtils::resolveNulls(std::vector<common::LogicalType> &types) {
-    auto isArg0AnyType =
-        types[0].getLogicalTypeID() == common::LogicalTypeID::ANY;
-    auto isArg1AnyType =
-        types[1].getLogicalTypeID() == common::LogicalTypeID::ANY;
+void ListFunctionUtils::resolveNulls(std::vector<common::LogicalType>& types) {
+    auto isArg0AnyType = types[0].getLogicalTypeID() == common::LogicalTypeID::ANY;
+    auto isArg1AnyType = types[1].getLogicalTypeID() == common::LogicalTypeID::ANY;
 
     common::LogicalType targetType;
     if (isArg0AnyType && isArg1AnyType) {
