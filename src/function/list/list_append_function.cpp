@@ -3,7 +3,7 @@
 #include "common/type_utils.h"
 #include "common/types/types.h"
 #include "function/function.h"
-#include "function/list/functions/list_resolution_function.h"
+#include "function/list/functions/list_function_utils.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
 
@@ -31,28 +31,14 @@ struct ListAppend {
     }
 };
 
-static void validateArgumentType(const binder::expression_vector& arguments) {
-
-    if (binder::ExpressionUtil::isEmptyList(*arguments[0]))
-        return;
-
-    if (arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
-        arguments[1]->getDataType() != ListType::getChildType(arguments[0]->dataType)) {
-        throw BinderException(
-            ExceptionMessage::listFunctionIncompatibleChildrenType(ListAppendFunction::name,
-                arguments[0]->getDataType().toString(), arguments[1]->getDataType().toString()));
-    }
-}
-
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    validateArgumentType(input.arguments);
 
     std::vector<LogicalType> types;
     types.push_back(input.arguments[0]->getDataType().copy());
     types.push_back(input.arguments[1]->getDataType().copy());
 
-    resolveEmptyList(input, types);
-    resolveNulls(types);
+    ListFunctionUtils::resolveEmptyList(input, types);
+    ListFunctionUtils::resolveNulls(types);
 
     if (ListType::getChildType(types[0]) != types[1])
         throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
