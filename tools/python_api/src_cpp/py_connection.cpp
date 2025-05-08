@@ -384,7 +384,8 @@ static LogicalType pyLogicalType(const py::handle& val) {
             childType = std::move(result);
         }
         return LogicalType::LIST(std::move(childType));
-    } else if (PyConnection::isPyArrowTable(val)) {
+    } else if (PyConnection::isPyArrowTable(val) || PyConnection::isPandasDataframe(val) ||
+               PyConnection::isPolarsDataframe(val)) {
         return LogicalType::POINTER();
     } else {
         // LCOV_EXCL_START

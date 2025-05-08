@@ -38,6 +38,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         auto& scanInfo = boundScanSource->constCast<BoundTableScanSource>().info;
         boundLoadFrom = std::make_unique<BoundLoadFrom>(scanInfo.copy());
     } break;
+    case ScanSourceType::PARAM: {
+        auto boundScanSource = bindParameterScanSource(*source, loadFrom.getParsingOptions(),
+            columnNames, columnTypes);
+        auto& scanInfo = boundScanSource->constCast<BoundTableScanSource>().info;
+        boundLoadFrom = std::make_unique<BoundLoadFrom>(scanInfo.copy());
+    } break;
     default:
         throw BinderException(stringFormat("LOAD FROM subquery is not supported."));
     }

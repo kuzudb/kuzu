@@ -88,6 +88,17 @@ def pyarrow_test_helper(establish_connection, n, k):
         print("-" * 25)
         pytest.fail("tables are not equal")
 
+    result = conn.execute(
+        "LOAD FROM $df RETURN boolcol, int32col, int64col, uint64col, floatcol ORDER BY int32col, int64col, uint64col, floatcol",
+        {"df": df},
+    ).get_as_arrow(n)
+    if not tables_equal(patable, result):
+        print(patable)
+        print("-" * 25)
+        print(result)
+        print("-" * 25)
+        pytest.fail("tables are not equal")
+
 
 def test_pyarrow_primitive(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
