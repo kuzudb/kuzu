@@ -35,6 +35,7 @@ public:
 
 private:
     extension::InstallExtensionInfo info;
+    std::string outputMessage;
 };
 
 } // namespace processor

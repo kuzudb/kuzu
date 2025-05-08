@@ -14,6 +14,10 @@ namespace extension {
 struct InstallExtensionInfo {
     std::string name;
     std::string repo;
+    bool forceInstall;
+
+    InstallExtensionInfo(std::string name, std::string repo, bool forceInstall)
+        : name{std::move(name)}, repo{std::move(repo)}, forceInstall{forceInstall} {}
 };
 
 class KUZU_API ExtensionInstaller {
@@ -23,13 +27,13 @@ public:
 
     virtual ~ExtensionInstaller() = default;
 
-    virtual void install();
+    virtual bool install();
 
 protected:
     void tryDownloadExtensionFile(const ExtensionRepoInfo& info, const std::string& localFilePath);
 
 private:
-    void installExtension();
+    bool installExtension();
     void installDependencies();
 
 protected:

@@ -98,8 +98,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(const LogicalOperator
     auto path = auxInfo.path;
     switch (auxInfo.action) {
     case ExtensionAction::INSTALL: {
-        extension::InstallExtensionInfo info{path,
-            auxInfo.contCast<InstallExtensionAuxInfo>().extensionRepo};
+        auto installExtensionAuxInfo = auxInfo.contCast<InstallExtensionAuxInfo>();
+        extension::InstallExtensionInfo info{path, installExtensionAuxInfo.extensionRepo,
+            installExtensionAuxInfo.forceInstall};
         printInfo = std::make_unique<InstallExtensionPrintInfo>(path);
         return std::make_unique<InstallExtension>(std::move(info), outputPos, getOperatorID(),
             std::move(printInfo));

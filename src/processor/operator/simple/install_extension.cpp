@@ -11,12 +11,18 @@ using namespace kuzu::extension;
 
 void InstallExtension::executeInternal(ExecutionContext* context) {
     extension::ExtensionInstaller installer{info, *context->clientContext};
-    installer.install();
+    bool installResult = installer.install();
+    outputMessage =
+        installResult ?
+            common::stringFormat("Extension: {} has been installed from repo: {}.", info.name,
+                info.repo) :
+            common::stringFormat("Skip installing extension {} since it has already been "
+                                 "installed.\nIf you want to update it, you can run: UPDATE {}.",
+                info.name, info.name);
 }
 
 std::string InstallExtension::getOutputMsg() {
-    return common::stringFormat("Extension: {} has been installed from repo: {}.", info.name,
-        info.repo);
+    return outputMessage;
 }
 
 } // namespace processor

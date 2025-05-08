@@ -68,3 +68,15 @@ Extension: vector has been uninstalled
 ---- error
 Binder exception: The extension XXX is not an official extension.
 Only official extensions can be uninstalled.
+
+-CASE ForceInstallExtension
+-STATEMENT INSTALL VECTOR;
+---- ok
+-STATEMENT INSTALL VECTOR;
+---- ok
+-STATEMENT FORCE INSTALL VECTOR;
+---- 1
+Extension: vector has been installed from repo: http://extension.kuzudb.com/.
+-STATEMENT UPDATE VECTOR;
+---- 1
+Extension: vector has been installed from repo: http://extension.kuzudb.com/.

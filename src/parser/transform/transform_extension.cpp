@@ -14,8 +14,16 @@ std::unique_ptr<Statement> Transformer::transformExtension(CypherParser::KU_Exte
             ctx.kU_InstallExtension()->StringLiteral() ?
                 transformStringLiteral(*ctx.kU_InstallExtension()->StringLiteral()) :
                 ExtensionUtils::OFFICIAL_EXTENSION_REPO;
+
         auto installExtensionAuxInfo = std::make_unique<InstallExtensionAuxInfo>(
-            std::move(extensionRepo), transformVariable(*ctx.kU_InstallExtension()->oC_Variable()));
+            std::move(extensionRepo), transformVariable(*ctx.kU_InstallExtension()->oC_Variable()),
+            ctx.kU_InstallExtension()->FORCE());
+        return std::make_unique<ExtensionStatement>(std::move(installExtensionAuxInfo));
+    } else if (ctx.kU_UpdateExtension()) {
+        // Update extension is a syntax sugar for force install extension.
+        auto installExtensionAuxInfo = std::make_unique<InstallExtensionAuxInfo>(
+            ExtensionUtils::OFFICIAL_EXTENSION_REPO,
+            transformVariable(*ctx.kU_UpdateExtension()->oC_Variable()), true /* forceInstall */);
         return std::make_unique<ExtensionStatement>(std::move(installExtensionAuxInfo));
     } else if (ctx.kU_UninstallExtension()) {
         auto path = transformVariable(*ctx.kU_UninstallExtension()->oC_Variable());

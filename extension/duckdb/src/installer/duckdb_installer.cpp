@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace duckdb_extension {
 
-void DuckDBInstaller::install() {
+bool DuckDBInstaller::install() {
     auto loaderFileRepoInfo =
         extension::ExtensionUtils::getExtensionLoaderRepoInfo(info.name, info.repo);
     auto localLoaderFilePath =
@@ -23,6 +23,7 @@ void DuckDBInstaller::install() {
             tryDownloadExtensionFile(dependencyLibRepoInfo, localDependencyLibPath);
         }
     }
+    return true;
 }
 
 } // namespace duckdb_extension
