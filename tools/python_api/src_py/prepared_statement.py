@@ -23,6 +23,8 @@ class PreparedStatement:
         parameters : dict[str, Any]
             Parameters for the query.
         """
+        if parameters is None:
+            parameters = {}
         self._prepared_statement = connection._connection.prepare(query, parameters)
         self._connection = connection
 

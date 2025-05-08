@@ -86,7 +86,7 @@ def test_polars_error(conn_db_readonly: ConnDB) -> None:
     df = []
     with pytest.raises(
         RuntimeError,
-        match="Binder exception: Variable df found but no matches were scannable",
+        match=r"Binder exception: Attempted to scan from unsupported python object. Can only scan from pandas/polars dataframes and pyarrow tables.",
     ):
         conn.execute("LOAD FROM df RETURN *;")
 
