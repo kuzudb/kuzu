@@ -338,6 +338,26 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
     BMExceptionRecoveryTest(cfg);
 }
 
+TEST_F(CopyTest, GracefulBMExceptionHandlingManyThreads) {
+    systemConfig->maxNumThreads = 32;
+    resetDB(TestHelper::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+
+    static constexpr uint repeatCount = 10;
+    for (uint i = 0; i < repeatCount; ++i) {
+        conn->query("create node table Comment (id int64, creationDate INT64, locationIP STRING, "
+                    "browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id))");
+        auto result = conn->query(
+            common::stringFormat("COPY Comment FROM ['{}/dataset/ldbc-sf01/Comment.csv', "
+                                 "'{}/dataset/ldbc-sf01/Comment.csv'] (delim='|', header=true, "
+                                 "parallel=false)",
+                KUZU_ROOT_DIRECTORY, KUZU_ROOT_DIRECTORY));
+        ASSERT_EQ(result->getErrorMessage(),
+            "Buffer manager exception: Unable to allocate memory! The buffer pool is full and no "
+            "memory could be freed!");
+        conn->query("drop table Comment");
+    }
+}
+
 TEST_F(CopyTest, OutOfMemoryRecovery) {
     if (inMemMode ||
         common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
