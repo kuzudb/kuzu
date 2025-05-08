@@ -418,6 +418,9 @@ void ClientContext::bindParametersNoLock(const PreparedStatement* preparedStatem
     const std::unordered_map<std::string, std::unique_ptr<Value>>& inputParams) {
     auto& parameterMap = preparedStatement->parameterMap;
     for (auto& [name, value] : inputParams) {
+        if (!parameterMap.contains(name)) {
+            throw Exception("Parameter " + name + " not found.");
+        }
         preparedStatement->validateExecuteParam(name, value.get());
         auto expectParam = parameterMap.at(name);
         // The much more natural `parameterMap.at(name) = std::move(v)` fails.
