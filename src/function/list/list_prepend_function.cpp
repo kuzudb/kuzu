@@ -1,5 +1,3 @@
-#include "common/exception/binder.h"
-#include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
 #include "function/list/functions/list_function_utils.h"
@@ -36,13 +34,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     types.push_back(input.arguments[0]->getDataType().copy());
     types.push_back(input.arguments[1]->getDataType().copy());
 
-    ListFunctionUtils::resolveEmptyList(input, types);
-    ListFunctionUtils::resolveNulls(types);
-
-    if (types[0].getLogicalTypeID() != LogicalTypeID::ANY &&
-        types[1] != ListType::getChildType(types[0]))
-        throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
-            ListPrependFunction::name, types[0].toString(), types[1].toString()));
+    ListFunctionUtils::checkTypes(input, types, ListPrependFunction::name);
 
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     TypeUtils::visit(types[1].getPhysicalType(), [&scalarFunction]<typename T>(T) {

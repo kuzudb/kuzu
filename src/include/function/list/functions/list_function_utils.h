@@ -11,6 +11,9 @@ public:
         std::vector<common::LogicalType>& types);
 
     static void resolveNulls(std::vector<common::LogicalType>& types);
+    static void checkTypes(const ScalarBindFuncInput& input,
+        std::vector<common::LogicalType>& types, const char* name);
+
 };
 
 } // namespace function
