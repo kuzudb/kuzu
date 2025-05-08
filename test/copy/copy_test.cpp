@@ -342,8 +342,8 @@ TEST_F(CopyTest, GracefulBMExceptionHandlingManyThreads) {
     systemConfig->maxNumThreads = 32;
     resetDB(TestHelper::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
 
-    static constexpr uint repeatCount = 10;
-    for (uint i = 0; i < repeatCount; ++i) {
+    static constexpr uint32_t repeatCount = 10;
+    for (uint32_t i = 0; i < repeatCount; ++i) {
         conn->query("create node table Comment (id int64, creationDate INT64, locationIP STRING, "
                     "browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id))");
         auto result = conn->query(
