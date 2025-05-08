@@ -470,9 +470,6 @@ void ColumnChunkData::setToInMemory() {
 }
 
 void ColumnChunkData::resize(uint64_t newCapacity) {
-    if (newCapacity > capacity) {
-        capacity = newCapacity;
-    }
     const auto numBytesAfterResize = getBufferSize(newCapacity);
     if (numBytesAfterResize > getBufferSize()) {
         auto resizedBuffer = buffer->getMemoryManager()->allocateBuffer(false, numBytesAfterResize);
@@ -485,12 +482,12 @@ void ColumnChunkData::resize(uint64_t newCapacity) {
     if (nullData) {
         nullData->resize(newCapacity);
     }
-}
-
-void ColumnChunkData::resizeWithoutPreserve(uint64_t newCapacity) {
     if (newCapacity > capacity) {
         capacity = newCapacity;
     }
+}
+
+void ColumnChunkData::resizeWithoutPreserve(uint64_t newCapacity) {
     const auto numBytesAfterResize = getBufferSize(newCapacity);
     if (numBytesAfterResize > getBufferSize()) {
         auto resizedBuffer = buffer->getMemoryManager()->allocateBuffer(false, numBytesAfterResize);
@@ -498,6 +495,9 @@ void ColumnChunkData::resizeWithoutPreserve(uint64_t newCapacity) {
     }
     if (nullData) {
         nullData->resize(newCapacity);
+    }
+    if (newCapacity > capacity) {
+        capacity = newCapacity;
     }
 }
 
