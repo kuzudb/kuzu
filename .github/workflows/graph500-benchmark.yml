@@ -1,4 +1,4 @@
-name: ClickBench
+name: Graph500-27
 on:
   schedule:
     - cron: "0 5 * * *"
@@ -7,11 +7,12 @@ on:
   workflow_call:
 
 jobs:
-  click_benchmark:
-    name: soc-livejournal benchmark
+  benchmark:
+    name: graph500-27 benchmark
     env:
       NUM_THREADS: 128
       GEN: Ninja
+      EXTENSION_LIST: "algo"
     runs-on: kuzu-self-hosted-benchmarking-xl
     steps:
       - uses: actions/checkout@v4
