@@ -301,6 +301,8 @@ public:
 
     void validateNoIndexOnProperty(const std::string& tableName,
         const std::string& propertyName) const;
+
+    void validateAllInputParametersParsed() const;
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 
