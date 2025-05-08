@@ -190,7 +190,9 @@ wasmtest:
 
 # Other misc build targets
 benchmark:
-	$(call run-cmake-release, -DBUILD_BENCHMARK=TRUE)
+	$(call run-cmake-release, \
+    	-DBUILD_EXTENSIONS="$(EXTENSION_LIST)" \
+    	-DBUILD_BENCHMARK=TRUE)
 
 example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
@@ -266,17 +268,18 @@ install:
 
 # Cleaning
 clean-extension:
-	cmake -E rm -rf extension/httpfs/build
+	cmake -E rm -rf extension/algo/build
+	cmake -E rm -rf extension/delta/build
 	cmake -E rm -rf extension/duckdb/build
+	cmake -E rm -rf extension/fts/build
+	cmake -E rm -rf extension/httpfs/build
+	cmake -E rm -rf extension/iceberg/build
+	cmake -E rm -rf extension/json/build
+	cmake -E rm -rf extension/neo4j/build
 	cmake -E rm -rf extension/postgres/build
 	cmake -E rm -rf extension/sqlite/build
-	cmake -E rm -rf extension/fts/build
-	cmake -E rm -rf extension/delta/build
-	cmake -E rm -rf extension/iceberg/build
 	cmake -E rm -rf extension/unity_catalog/build
 	cmake -E rm -rf extension/vector/build
-	cmake -E rm -rf extension/neo4j/build
-	cmake -E rm -rf extension/gds/build
 
 clean-python-api:
 	cmake -E rm -rf tools/python_api/build
