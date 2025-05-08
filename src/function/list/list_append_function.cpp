@@ -40,7 +40,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     ListFunctionUtils::resolveEmptyList(input, types);
     ListFunctionUtils::resolveNulls(types);
 
-    if (ListType::getChildType(types[0]) != types[1])
+    if (types[0].getLogicalTypeID() != LogicalTypeID::ANY &&
+        types[1] != ListType::getChildType(types[0]))
         throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
             ListAppendFunction::name, input.arguments[0]->getDataType().toString(),
             input.arguments[1]->getDataType().toString()));
