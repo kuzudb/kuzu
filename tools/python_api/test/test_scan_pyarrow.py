@@ -50,6 +50,16 @@ def test_pyarrow_copy_from_parameterized_df(conn_db_readwrite: ConnDB) -> None:
     assert result.get_next() == [3, 1]
 
 
+def test_pyarrow_copy_from_invalid_source(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
+    conn.execute("CREATE NODE TABLE pyarrowtab(id INT32, A STRING, B BOOL, PRIMARY KEY(id))")
+    with pytest.raises(
+        RuntimeError,
+        match=r"Binder exception: Trying to scan from unsupported data type INT8\[\]. The only parameter types that can be scanned from are pandas/polars dataframes and pyarrow tables.",
+    ):
+        conn.execute("COPY pyarrowtab FROM $tab", {"tab": [1, 2, 3]})
+
+
 def test_pyarrow_copy_from(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite
     tab = pa.Table.from_arrays(
