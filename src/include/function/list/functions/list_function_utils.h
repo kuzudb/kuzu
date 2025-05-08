@@ -7,10 +7,11 @@ namespace function {
 
 struct ListFunctionUtils {
 public:
-    static inline void resolveEmptyList(const ScalarBindFuncInput& input,
+    static void resolveEmptyList(const ScalarBindFuncInput& input,
         std::vector<common::LogicalType>& types); 
 
-    static inline void resolveNulls(std::vector<common::LogicalType>& types); 
+    static void resolveNulls(std::vector<common::LogicalType>& types); 
+
 };
 
 } // namespace function
