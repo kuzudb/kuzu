@@ -421,6 +421,7 @@ void ClientContext::bindParametersNoLock(const PreparedStatement* preparedStatem
         if (!parameterMap.contains(name)) {
             throw Exception("Parameter " + name + " not found.");
         }
+        preparedStatement->validateExecuteParam(name, value.get());
         auto expectParam = parameterMap.at(name);
         // The much more natural `parameterMap.at(name) = std::move(v)` fails.
         // The reason is that other parts of the code rely on the existing Value object to be
