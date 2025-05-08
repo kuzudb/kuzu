@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "function/table/bind_input.h"
 #include "function/table/table_function.h"
 
