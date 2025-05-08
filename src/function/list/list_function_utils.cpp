@@ -9,8 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-void ListFunctionUtils::resolveEmptyList(
-    const ScalarBindFuncInput &input, std::vector<common::LogicalType> &types) {
+void ListFunctionUtils::resolveEmptyList(const ScalarBindFuncInput& input,
+    std::vector<common::LogicalType>& types) {
 
     auto isEmpty = binder::ExpressionUtil::isEmptyList(*input.arguments[0]);
     if (isEmpty) {
@@ -23,11 +23,9 @@ void ListFunctionUtils::resolveEmptyList(
     }
 }
 
-void ListFunctionUtils::resolveNulls(std::vector<common::LogicalType> &types) {
-    auto isArg0AnyType =
-        types[0].getLogicalTypeID() == common::LogicalTypeID::ANY;
-    auto isArg1AnyType =
-        types[1].getLogicalTypeID() == common::LogicalTypeID::ANY;
+void ListFunctionUtils::resolveNulls(std::vector<common::LogicalType>& types) {
+    auto isArg0AnyType = types[0].getLogicalTypeID() == common::LogicalTypeID::ANY;
+    auto isArg1AnyType = types[1].getLogicalTypeID() == common::LogicalTypeID::ANY;
 
     common::LogicalType targetType;
     if (isArg0AnyType && isArg1AnyType) {
@@ -43,17 +41,15 @@ void ListFunctionUtils::resolveNulls(std::vector<common::LogicalType> &types) {
     types[1] = targetType.copy();
 }
 
-void ListFunctionUtils::checkTypes(const ScalarBindFuncInput &input,
-                                   std::vector<common::LogicalType> &types,
-                                   const char *name) {
+void ListFunctionUtils::checkTypes(const ScalarBindFuncInput& input,
+    std::vector<common::LogicalType>& types, const char* name) {
     resolveEmptyList(input, types);
     resolveNulls(types);
 
     if (types[0].getLogicalTypeID() != LogicalTypeID::ANY &&
         types[1] != ListType::getChildType(types[0]))
-        throw BinderException(
-            ExceptionMessage::listFunctionIncompatibleChildrenType(
-                name, types[0].toString(), types[1].toString()));
+        throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(name,
+            types[0].toString(), types[1].toString()));
 }
 
 } // namespace function
