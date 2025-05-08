@@ -70,7 +70,7 @@ void transformListValue(common::ValueVector* outputVector, uint64_t pos, py::han
 static std::vector<std::string> transformStructKeys(py::handle keys, idx_t size) {
     std::vector<std::string> res;
     res.reserve(size);
-    for (idx_t i = 0; i < size; i++) {
+    for (auto i = 0u; i < size; i++) {
         res.emplace_back(py::str(keys.attr("__getitem__")(i)));
     }
     return res;
@@ -82,18 +82,18 @@ void transformDictionaryToStruct(common::ValueVector* outputVector, uint64_t pos
     auto structKeys = transformStructKeys(dict.keys, dict.len);
     if (StructType::getNumFields(outputVector->dataType) != dict.len) {
         throw common::ConversionException(
-            common::stringFormat("Failed to convert python dictionary: %s to target type %s",
+            common::stringFormat("Failed to convert python dictionary: {} to target type {}",
                 dict.toString(), outputVector->dataType.toString()));
     }
 
-    common::case_insensitive_map_t<idx_t> key_mapping;
+    common::case_insensitive_map_t<idx_t> keyMap;
     for (idx_t i = 0; i < structKeys.size(); i++) {
-        key_mapping[structKeys[i]] = i;
+        keyMap[structKeys[i]] = i;
     }
 
     for (auto i = 0u; i < StructType::getNumFields(outputVector->dataType); i++) {
         auto& field = StructType::getField(outputVector->dataType, i);
-        auto idx = key_mapping[field.getName()];
+        auto idx = keyMap[field.getName()];
         transformPythonValue(StructVector::getFieldVector(outputVector, i).get(), pos,
             dict.values.attr("__getitem__")(idx));
     }
