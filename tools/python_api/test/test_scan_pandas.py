@@ -587,6 +587,7 @@ def test_scan_pandas_with_exists(tmp_path: Path) -> None:
     assert tp[0] == 3
     assert tp[1] == 1
 
+
 def test_scan_empty_list(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
@@ -599,3 +600,63 @@ def test_scan_empty_list(tmp_path: Path) -> None:
     tp = res.get_next()
     assert tp[0] == "1"
     assert tp[1] == []
+
+
+def test_scan_py_dict_struct_format(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({
+        "id": [1, 3, 4],
+        "dt": [{'key1': 5, 'key3': 4}, {'key1': 10, 'key3': 25}, None]
+    })
+    res = conn.execute("LOAD FROM df RETURN *")
+    tp = res.get_next()
+    assert tp[0] == 1
+    assert tp[1] == {'key1': 5, 'key3': 4}
+    tp = res.get_next()
+    assert tp[0] == 3
+    assert tp[1] == {'key1': 10, 'key3': 25}
+    tp = res.get_next()
+    assert tp[0] == 4
+    assert tp[1] is None
+
+
+def test_scan_py_dict_map_format(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({
+        "id": [1, 3, 4],
+        "dt": [{'key': ['Alice', 'Bob'], 'value': [32, 41]}, {'key': ['Carol'], 'value': [2]},
+               {'key': ['zoo', 'ela', 'dan'], 'value': [44, 52, 88]}]
+    })
+    res = conn.execute("LOAD FROM df RETURN *")
+    tp = res.get_next()
+    assert tp[0] == 1
+    assert tp[1] == {'Alice': 32, 'Bob': 41}
+    tp = res.get_next()
+    assert tp[0] == 3
+    assert tp[1] == {'Carol': 2}
+    tp = res.get_next()
+    assert tp[0] == 4
+    assert tp[1] == {'zoo': 44, 'ela': 52, 'dan': 88}
+
+    # If key and value size don't match, kuzu sniffs it as struct.
+    df = pd.DataFrame({
+        "id": [4],
+        "dt": [{'key': ['Alice', 'Bob'], 'value': []}]
+    })
+    res = conn.execute("LOAD FROM df RETURN *")
+    tup = res.get_next()
+    assert tup[0] == 4
+    assert tup[1] == {'key': ['Alice', 'Bob'], 'value': []}
+
+
+def test_scan_py_dict_empty(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({
+        "id": [],
+        "dt": []
+    })
+    res = conn.execute("LOAD FROM df RETURN *")
+    assert not res.has_next()
