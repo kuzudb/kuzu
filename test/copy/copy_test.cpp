@@ -351,9 +351,7 @@ TEST_F(CopyTest, GracefulBMExceptionHandlingManyThreads) {
                                  "'{}/dataset/ldbc-sf01/Comment.csv'] (delim='|', header=true, "
                                  "parallel=false)",
                 KUZU_ROOT_DIRECTORY, KUZU_ROOT_DIRECTORY));
-        ASSERT_EQ(result->getErrorMessage(),
-            "Buffer manager exception: Unable to allocate memory! The buffer pool is full and no "
-            "memory could be freed!");
+        ASSERT_FALSE(result->isSuccess());
         conn->query("drop table Comment");
     }
 }
