@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include "common/types/types.h"
@@ -182,7 +183,7 @@ public:
             auto startOffsetInSegment =
                 std::max(std::min(segment->getNumValues(), startOffset), uint64_t{0});
             for (size_t i = startOffsetInSegment;
-                 i < segment->getNumValues() && startPos + i < endOffset; i++) {
+                i < segment->getNumValues() && startPos + i < endOffset; i++) {
                 func(segmentData[i], startPos + i);
             }
             startPos += segment->getNumValues();
@@ -266,6 +267,25 @@ private:
     void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,
         common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned,
         common::row_idx_t numRows) const;
+
+    template<typename Func>
+    void rangeSegments(common::offset_t offsetInChunk, common::length_t length, Func func) const {
+        // TODO(bmwinger): try binary search (might only make a difference for a very large number
+        // of segments)
+        auto segment = data.begin();
+        auto offsetInSegment = offsetInChunk;
+        while (segment->get()->getNumValues() < offsetInSegment) {
+            offsetInSegment -= segment->get()->getNumValues();
+            segment++;
+        }
+        uint64_t lengthScanned = 0;
+        while (lengthScanned < length) {
+            auto lengthInSegment = std::min(length, segment->get()->getNumValues());
+            func(*segment->get(), offsetInSegment, lengthInSegment);
+            lengthScanned += lengthInSegment;
+            segment++;
+        }
+    }
 
 private:
     // TODO(Guodong): This field should be removed. Ideally it shouldn't be cached anywhere in

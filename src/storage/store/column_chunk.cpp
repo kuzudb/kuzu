@@ -51,19 +51,10 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
     // Check if there is deletions or insertions. If so, update selVector based on transaction.
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
-        // TODO(bmwinger): write optimized function to find the start chunk
-        auto segment = data.begin();
-        auto offsetInSegment = offsetInChunk;
-        while (segment->get()->getNumValues() < offsetInSegment) {
-            offsetInSegment -= segment->get()->getNumValues();
-            segment++;
-        }
-        uint64_t lengthScanned = 0;
-        while (lengthScanned < length) {
-            auto lengthInSegment = std::min(length, segment->get()->getNumValues());
-            segment->get()->scan(output, offsetInChunk, lengthInSegment);
-            lengthScanned += lengthInSegment;
-        }
+        rangeSegments(offsetInChunk, length,
+            [&](auto& segment, auto offsetInSegment, auto lengthInSegment) {
+                segment.scan(output, offsetInSegment, lengthInSegment);
+            });
     } break;
     case ResidencyState::ON_DISK: {
         state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &output);
@@ -121,22 +112,12 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
     } break;
     case ResidencyState::IN_MEMORY: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
-            auto segment = data.begin();
-            while (segment->get()->getNumValues() < startRow) {
-                startRow -= segment->get()->getNumValues();
-                segment++;
-            }
-            uint64_t numRowsScanned = 0;
-            while (numRowsScanned < numRows) {
-                auto numRowsInSegment =
-                    std::min(numRows, segment->get()->getNumValues()) - startRow;
-                output.append(segment->get(), startRow, numRowsInSegment);
-                scanCommittedUpdates(transaction, output, numValuesBeforeScan, startRow,
-                    numRowsInSegment);
-                numRowsScanned += numRowsInSegment;
-                startRow = 0;
-                segment++;
-            }
+            rangeSegments(startRow, numRows,
+                [&](auto& segment, auto offsetInSegment, auto lengthInSegment) {
+                    output.append(&segment, startRow, lengthInSegment);
+                    scanCommittedUpdates(transaction, output, numValuesBeforeScan, offsetInSegment,
+                        lengthInSegment);
+                });
         }
     } break;
     default: {
@@ -198,12 +179,9 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
     offset_t rowInChunk, ValueVector& output, sel_t posInOutputVector) const {
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
-        auto segment = data.begin();
-        while (rowInChunk > segment->get()->getNumValues()) {
-            rowInChunk -= segment->get()->getNumValues();
-            segment++;
-        }
-        segment->get()->lookup(rowInChunk, output, posInOutputVector);
+        rangeSegments(rowInChunk, 1, [&](auto& segment, auto offsetInSegment, auto) {
+            segment.lookup(offsetInSegment, output, posInOutputVector);
+        });
     } break;
     case ResidencyState::ON_DISK: {
         state.column->lookupValue(transaction, state, rowInChunk, &output, posInOutputVector);
@@ -225,24 +203,32 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
 
 void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const ValueVector& values) {
+    if (transaction->getID() == Transaction::DUMMY_TRANSACTION_ID) {
+        rangeSegments(offsetInChunk, 1, [&](auto& segment, auto offsetInSegment, auto) {
+            segment.write(&values, values.state->getSelVector().getSelectedPositions()[0],
+                offsetInSegment);
+        });
+        return;
+    }
+
+    // TODO(bmwinger): this doesn't really work. The metadata should be left as-is until the update
+    // is checkpointed. If it's necessary for zone-mapping we should store either separate
+    // ColumnChunkStatistics, or statistics just for the updated values
+    /*
     auto segment = data.begin();
     while (offsetInChunk > segment->get()->getNumValues()) {
         offsetInChunk -= segment->get()->getNumValues();
         segment++;
     }
-    if (transaction->getID() == Transaction::DUMMY_TRANSACTION_ID) {
-        segment->get()->write(&values, values.state->getSelVector().getSelectedPositions()[0],
-            offsetInChunk);
-        return;
-    }
     segment->get()->updateStats(&values, values.state->getSelVector());
+    */
     if (!updateInfo) {
         updateInfo = std::make_unique<UpdateInfo>();
     }
     const auto vectorIdx = offsetInChunk / DEFAULT_VECTOR_CAPACITY;
     const auto rowIdxInVector = offsetInChunk % DEFAULT_VECTOR_CAPACITY;
-    const auto vectorUpdateInfo = updateInfo->update(segment->get()->getMemoryManager(),
-        transaction, vectorIdx, rowIdxInVector, values);
+    const auto vectorUpdateInfo = updateInfo->update(data.front()->getMemoryManager(), transaction,
+        vectorIdx, rowIdxInVector, values);
     transaction->pushVectorUpdateInfo(*updateInfo, vectorIdx, *vectorUpdateInfo);
 }
 
