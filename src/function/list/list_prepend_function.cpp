@@ -1,6 +1,8 @@
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/type_utils.h"
+#include "common/types/types.h"
+#include "function/list/functions/list_function_utils.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
 
@@ -29,20 +31,28 @@ struct ListPrepend {
 };
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    if (input.arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
-        input.arguments[1]->dataType != ListType::getChildType(input.arguments[0]->dataType)) {
+
+    std::vector<LogicalType> types;
+    types.push_back(input.arguments[0]->getDataType().copy());
+    types.push_back(input.arguments[1]->getDataType().copy());
+
+    using resolver = ListTypeResolver<ListOp::Prepend>;
+    ListFunctionUtils::resolveTypes(input, types, resolver::anyEmpty, resolver::anyEmpty,
+        resolver::anyEmpty, resolver::finalResolver, resolver::bothNull, resolver::leftNull,
+        resolver::rightNull, resolver::finalResolver);
+
+    if (types[0].getLogicalTypeID() != LogicalTypeID::ANY &&
+        types[1] != ListType::getChildType(types[0]))
         throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
-            ListPrependFunction::name, input.arguments[0]->getDataType().toString(),
-            input.arguments[1]->getDataType().toString()));
-    }
-    const auto& resultType = input.arguments[0]->getDataType();
+            ListAppendFunction::name, types[0].toString(), types[1].toString()));
+
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
-    TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),
-        [&scalarFunction]<typename T>(T) {
-            scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
-                list_entry_t, ListPrepend>;
-        });
-    return FunctionBindData::getSimpleBindData(input.arguments, resultType.copy());
+    TypeUtils::visit(types[1].getPhysicalType(), [&scalarFunction]<typename T>(T) {
+        scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
+            list_entry_t, ListPrepend>;
+    });
+
+    return std::make_unique<FunctionBindData>(std::move(types), types[0].copy());
 }
 
 function_set ListPrependFunction::getFunctionSet() {
