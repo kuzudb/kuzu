@@ -8,6 +8,7 @@
 #include "common/string_utils.h"
 #include "function/built_in_function_utils.h"
 #include "function/table/table_function.h"
+#include "parser/ddl/create_table.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
@@ -26,7 +27,11 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     std::unique_ptr<BoundStatement> boundStatement;
     switch (statement.getStatementType()) {
     case StatementType::CREATE_TABLE: {
-        boundStatement = bindCreateTable(statement);
+        if (statement.constPtrCast<CreateTable>()->getSource()) {
+            boundStatement = bindCreateTableAs(statement);
+        } else {
+            boundStatement = bindCreateTable(statement);
+        }
     } break;
     case StatementType::CREATE_TYPE: {
         boundStatement = bindCreateType(statement);
