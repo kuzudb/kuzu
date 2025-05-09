@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
+#include "py_objects.h"
 #include "pybind_include.h"
 
 namespace kuzu {
@@ -21,6 +22,8 @@ public:
 
 private:
     common::LogicalType innerAnalyze(py::object column, bool& canConvert);
+    common::LogicalType dictToMap(const PyDictionary& dict, bool& canConvert);
+    common::LogicalType dictToStruct(const PyDictionary& dict, bool& canConvert);
 
 private:
     PythonGILWrapper gil;
