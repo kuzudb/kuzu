@@ -173,7 +173,7 @@ class AsyncConnection:
         finally:
             self.__decrement_connection_counter(conn_index)
 
-    async def prepare(self, query: str) -> PreparedStatement:
+    async def prepare(self, query: str, parameters: dict[str, Any] | None = None) -> PreparedStatement:
         """
         Create a prepared statement for a query asynchronously.
 
@@ -181,6 +181,8 @@ class AsyncConnection:
         ----------
         query : str
             Query to prepare.
+        parameters : dict[str, Any]
+            Parameters for the query.
 
         Returns
         -------
@@ -192,7 +194,7 @@ class AsyncConnection:
         conn, conn_index = self.__get_connection_with_least_queries()
 
         try:
-            preparedStatement = await loop.run_in_executor(self.executor, conn.prepare, query)
+            preparedStatement = await loop.run_in_executor(self.executor, conn.prepare, query, parameters)
             return preparedStatement
         finally:
             self.__decrement_connection_counter(conn_index)

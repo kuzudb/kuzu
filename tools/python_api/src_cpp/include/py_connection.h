@@ -30,7 +30,7 @@ public:
 
     void setMaxNumThreadForExec(uint64_t numThreads);
 
-    PyPreparedStatement prepare(const std::string& query);
+    PyPreparedStatement prepare(const std::string& query, const py::dict& parameters);
 
     uint64_t getNumNodes(const std::string& nodeName);
 
@@ -40,9 +40,9 @@ public:
         const std::string& srcTableName, const std::string& relName,
         const std::string& dstTableName, size_t queryBatchSize);
 
-    static bool isPandasDataframe(const py::object& object);
-    static bool isPolarsDataframe(const py::object& object);
-    static bool isPyArrowTable(const py::object& object);
+    static bool isPandasDataframe(const py::handle& object);
+    static bool isPolarsDataframe(const py::handle& object);
+    static bool isPyArrowTable(const py::handle& object);
 
     void createScalarFunction(const std::string& name, const py::function& udf,
         const py::list& params, const std::string& retval, bool defaultNull, bool catchExceptions);

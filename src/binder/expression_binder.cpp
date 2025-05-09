@@ -39,6 +39,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
             if (!parameterMap.contains(name)) {
                 auto value = std::make_shared<Value>(Value::createNullValue());
                 parameterMap.insert({name, value});
+                parsedParameters.insert(name);
                 allParamExist = false;
             }
         }

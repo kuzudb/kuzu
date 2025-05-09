@@ -141,11 +141,7 @@ static bool isPyArrowBacked(const py::handle& df) {
     return false;
 }
 
-std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objectName) {
-    if (!dict.contains(objectName)) {
-        return nullptr;
-    }
-    auto entry = dict[objectName];
+std::unique_ptr<ScanReplacementData> tryReplacePD(py::handle& entry) {
     if (PyConnection::isPandasDataframe(entry)) {
         auto scanReplacementData = std::make_unique<ScanReplacementData>();
         if (isPyArrowBacked(entry)) {

@@ -31,7 +31,18 @@ uint64_t Connection::getMaxNumThreadForExec() {
 }
 
 std::unique_ptr<PreparedStatement> Connection::prepare(std::string_view query) {
-    return clientContext->prepare(query);
+    return clientContext->prepareWithParams(query);
+}
+
+std::unique_ptr<PreparedStatement> Connection::prepareWithParams(std::string_view query,
+    std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams) {
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParamsTmp;
+    std::transform(inputParams.begin(), inputParams.end(),
+        std::inserter(inputParamsTmp, inputParamsTmp.end()), [](auto& param) {
+            return std::make_pair(std::move(param.first),
+                std::shared_ptr<common::Value>(std::move(param.second)));
+        });
+    return clientContext->prepareWithParams(query, std::move(inputParamsTmp));
 }
 
 std::unique_ptr<QueryResult> Connection::query(std::string_view queryStatement) {

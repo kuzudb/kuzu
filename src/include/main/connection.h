@@ -54,6 +54,17 @@ public:
      * @return the prepared statement.
      */
     KUZU_API std::unique_ptr<PreparedStatement> prepare(std::string_view query);
+
+    /**
+     * @brief Prepares the given query and returns the prepared statement.
+     * @param query The query to prepare.
+     * @param inputParams The parameter pack where each arg is a std::pair with the first element
+     * being parameter name and second element being parameter value.
+     * @return the prepared statement.
+     */
+    KUZU_API std::unique_ptr<PreparedStatement> prepareWithParams(std::string_view query,
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
+
     /**
      * @brief Executes the given prepared statement with args and returns the result.
      * @param preparedStatement The prepared statement to execute.

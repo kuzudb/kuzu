@@ -157,6 +157,10 @@ public:
         const parser::BaseScanSource& scanSource, const parser::options_t& options,
         const std::vector<std::string>& columnNames,
         const std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundBaseScanSource> bindParameterScanSource(
+        const parser::BaseScanSource& scanSource, const parser::options_t& options,
+        const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
     std::unique_ptr<BoundBaseScanSource> bindTableFuncScanSource(
         const parser::BaseScanSource& scanSource, const parser::options_t& options,
         const std::vector<std::string>& columnNames,
@@ -297,6 +301,8 @@ public:
 
     void validateNoIndexOnProperty(const std::string& tableName,
         const std::string& propertyName) const;
+
+    void validateAllInputParametersParsed() const;
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 
