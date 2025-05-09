@@ -3562,8 +3562,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
                 l.len = 1;
             }
             return (int)l.len;
-        case 10:
-        case ENTER: /* enter */ {
+        case ENTER:
             if (mlmode && l.len > 0) {
                 // check if this forms a complete Cypher statement or not or if enter is pressed in
                 // the middle of a line
@@ -3576,6 +3575,8 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
                     break;
                 }
             }
+            [[fallthrough]];
+        case 10: /* ctrl+j */ {
             history_len--;
             free(history[history_len]);
             l.continuePromptActive = false;
