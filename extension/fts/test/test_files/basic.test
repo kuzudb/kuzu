@@ -308,8 +308,7 @@ title3
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL fts FROM 'http://localhost/extension/repo/'
----- 1
-Extension: fts has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT load fts
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');

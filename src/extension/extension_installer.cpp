@@ -37,12 +37,15 @@ void ExtensionInstaller::tryDownloadExtensionFile(const ExtensionRepoInfo& repoI
     fileInfo->syncFile();
 }
 
-void ExtensionInstaller::install() {
-    installExtension();
-    installDependencies();
+bool ExtensionInstaller::install() {
+    auto install = installExtension();
+    if (install) {
+        installDependencies();
+    }
+    return install;
 }
 
-void ExtensionInstaller::installExtension() {
+bool ExtensionInstaller::installExtension() {
     auto vfs = context.getVFSUnsafe();
     auto localExtensionDir = context.getExtensionDir();
     if (!vfs->fileOrPathExists(localExtensionDir, &context)) {
@@ -53,14 +56,20 @@ void ExtensionInstaller::installExtension() {
     if (!vfs->fileOrPathExists(localDirForExtension)) {
         vfs->createDir(localDirForExtension);
     }
+    auto localLibFilePath =
+        extension::ExtensionUtils::getLocalPathForExtensionLib(&context, info.name);
+    if (vfs->fileOrPathExists(localLibFilePath) && !info.forceInstall) {
+        // The extension has been installed, skip downloading from the repo.
+        return false;
+    }
     auto localDirForSharedLib = extension::ExtensionUtils::getLocalPathForSharedLib(&context);
     if (!vfs->fileOrPathExists(localDirForSharedLib)) {
         vfs->createDir(localDirForSharedLib);
     }
     auto libFileRepoInfo = extension::ExtensionUtils::getExtensionLibRepoInfo(info.name, info.repo);
-    auto localLibFilePath =
-        extension::ExtensionUtils::getLocalPathForExtensionLib(&context, info.name);
+
     tryDownloadExtensionFile(libFileRepoInfo, localLibFilePath);
+    return true;
 }
 
 void ExtensionInstaller::installDependencies() {

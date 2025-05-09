@@ -9,14 +9,33 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::extension;
 
+void InstallExtension::setOutputMessage(bool installed) {
+    if (info.forceInstall) {
+        outputMessage =
+            common::stringFormat("Extension: {} updated from the repo: {}.", info.name, info.repo);
+        return;
+    }
+    if (installed) {
+        outputMessage = common::stringFormat("Extension: {} installed from the repo: {}.",
+            info.name, info.repo);
+    } else {
+        outputMessage = common::stringFormat(
+            "Extension: {} is already installed.\nTo update it, you can run: UPDATE {}.", info.name,
+            info.name);
+    }
+}
+
 void InstallExtension::executeInternal(ExecutionContext* context) {
     extension::ExtensionInstaller installer{info, *context->clientContext};
-    installer.install();
+    bool installResult = installer.install();
+    setOutputMessage(installResult);
+    if (info.forceInstall) {
+        KU_ASSERT(installResult);
+    }
 }
 
 std::string InstallExtension::getOutputMsg() {
-    return common::stringFormat("Extension: {} has been installed from repo: {}.", info.name,
-        info.repo);
+    return outputMessage;
 }
 
 } // namespace processor

@@ -9,7 +9,7 @@ extern "C" {
 #define INIT_EXPORT __attribute__((visibility("default")))
 #endif
 INIT_EXPORT void install(const std::string& repo, kuzu::main::ClientContext& context) {
-    kuzu::extension::InstallExtensionInfo info{"delta", repo};
+    kuzu::extension::InstallExtensionInfo info{"delta", repo, false /* forceInstall */};
     kuzu::duckdb_extension::DuckDBInstaller installer{info, context};
     installer.install();
 }

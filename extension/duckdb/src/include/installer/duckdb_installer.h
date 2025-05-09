@@ -10,7 +10,7 @@ public:
     DuckDBInstaller(const extension::InstallExtensionInfo& info, main::ClientContext& context)
         : ExtensionInstaller{info, context} {}
 
-    void install() override;
+    bool install() override;
 };
 
 } // namespace duckdb_extension

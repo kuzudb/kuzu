@@ -307,8 +307,7 @@ Runtime exception: No loaded extension can handle database type: sqlite.
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL duckdb FROM 'http://localhost/extension/repo/'
----- 1
-Extension: duckdb has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT load extension duckdb
 ---- ok
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/tinysnb.db' as tinysnb (dbtype duckdb, skip_unsupported_table = true);

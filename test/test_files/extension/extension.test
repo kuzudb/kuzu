@@ -52,13 +52,13 @@ You can install it by: install httpfs.
 -CASE UninstallExtensionError
 -SKIP_IN_MEM
 -SKIP_WASM
--STATEMENT INSTALL fts;
+-STATEMENT INSTALL duckdb;
 ---- ok
--STATEMENT UNINSTALL fts;
+-STATEMENT UNINSTALL duckdb;
 ---- ok
--STATEMENT UNINSTALL fts;
+-STATEMENT UNINSTALL duckdb;
 ---- error
-Runtime exception: Can not uninstall extension: fts since it has not been installed.
+Runtime exception: Can not uninstall extension: duckdb since it has not been installed.
 -STATEMENT INSTALL vector;
 ---- ok
 -STATEMENT UNINSTALL vector;
@@ -68,3 +68,15 @@ Extension: vector has been uninstalled
 ---- error
 Binder exception: The extension XXX is not an official extension.
 Only official extensions can be uninstalled.
+
+-CASE ForceInstallExtension
+-SKIP_IN_MEM
+-SKIP_WASM
+-STATEMENT INSTALL neo4j;
+---- ok
+-STATEMENT FORCE INSTALL neo4j;
+---- 1
+Extension: neo4j updated from the repo: http://extension.kuzudb.com/.
+-STATEMENT UPDATE neo4j;
+---- 1
+Extension: neo4j updated from the repo: http://extension.kuzudb.com/.

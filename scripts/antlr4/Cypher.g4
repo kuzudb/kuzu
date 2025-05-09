@@ -100,6 +100,8 @@ FALSE : ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
 
 FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ;
 
+FORCE : ( 'F' | 'f' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'C' | 'c' ) ( 'E' | 'e' ) ;
+
 GLOB : ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'B' | 'b' ) ;
 
 GRAPH : ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'P' | 'p' ) ( 'H' | 'h' ) ;
@@ -211,6 +213,8 @@ UNION : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
 UNWIND : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ;
 
 UNINSTALL : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
+
+UPDATE : ( 'U' | 'u' ) ( 'P' | 'p' ) ( 'D' | 'd' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 
 USE : ( 'U' | 'u' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
 
@@ -439,16 +443,20 @@ kU_Transaction
 kU_Extension
     : kU_LoadExtension
         | kU_InstallExtension
-        | kU_UninstallExtension;
+        | kU_UninstallExtension
+        | kU_UpdateExtension ;
 
 kU_LoadExtension
     : LOAD SP (EXTENSION SP)? ( StringLiteral | oC_Variable ) ;
 
 kU_InstallExtension
-    : INSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
+    : (FORCE SP)? INSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
 
 kU_UninstallExtension
     : UNINSTALL SP oC_Variable;
+
+kU_UpdateExtension
+    : UPDATE SP oC_Variable;
 
 oC_Query
     : oC_RegularQuery ;
@@ -940,6 +948,7 @@ kU_NonReservedKeywords
         | EXPLAIN
         | EXPORT
         | EXTENSION
+        | FORCE
         | GRAPH
         | IF
         | IS
@@ -969,6 +978,7 @@ kU_NonReservedKeywords
         | TYPE
         | USE
         | UNINSTALL
+        | UPDATE
         | WRITE
         | FROM
         | TO

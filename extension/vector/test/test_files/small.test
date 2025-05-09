@@ -362,8 +362,7 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', '
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL vector FROM 'http://localhost/extension/repo/'
----- 1
-Extension: vector has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT LOAD vector
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));

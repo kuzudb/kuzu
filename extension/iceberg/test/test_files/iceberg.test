@@ -148,8 +148,7 @@ lineitem_iceberg/metadata/cf3d0be5-cf70-453d-ad8f-48fdc412e608-m0.avro|1|DATA|AD
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL iceberg FROM 'http://localhost/extension/repo/'
----- 1
-Extension: iceberg has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT load extension iceberg
 ---- ok
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct ORDER BY l_quantity, l_shipdate LIMIT 5;

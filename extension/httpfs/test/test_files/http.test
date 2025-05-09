@@ -164,8 +164,7 @@ Binder exception: Attaching a kuzu database without an alias is not allowed.
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL httpfs FROM 'http://localhost/extension/repo/'
----- 1
-Extension: httpfs has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT load extension httpfs
 ---- ok
 -STATEMENT load from "http://localhost/dataset/tinysnb/vPerson.csv" return * limit 5;

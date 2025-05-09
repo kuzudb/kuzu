@@ -91,8 +91,7 @@ Ethan|28|1800.600000|1996-03-10 00:00:00
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL DELTA FROM 'http://localhost/extension/repo/'
----- 1
-Extension: delta has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT load extension DELTA
 ---- ok
 -LOG LoadFromLocalDeltaTable

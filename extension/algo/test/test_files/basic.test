@@ -4,8 +4,7 @@
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL algo FROM 'http://localhost/extension/repo/'
----- 1
-Extension: algo has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT load algo
 ---- ok
 -STATEMENT load algo
