@@ -120,7 +120,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
+    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry->getName(), std::move(boundSource),
         std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
