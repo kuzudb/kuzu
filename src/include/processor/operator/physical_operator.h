@@ -70,6 +70,7 @@ enum class PhysicalOperatorType : uint8_t {
     UNION_ALL_SCAN,
     UNWIND,
     USE_DATABASE,
+    UNINSTALL_EXTENSION,
 };
 
 class PhysicalOperator;

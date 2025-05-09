@@ -49,7 +49,7 @@ void ExtensionInstaller::installExtension() {
         vfs->createDir(localExtensionDir);
     }
     auto localDirForExtension =
-        extension::ExtensionUtils::getLocalExtensionDir(&context, info.name);
+        extension::ExtensionUtils::getLocalDirForExtension(&context, info.name);
     if (!vfs->fileOrPathExists(localDirForExtension)) {
         vfs->createDir(localDirForExtension);
     }

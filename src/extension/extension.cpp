@@ -105,23 +105,23 @@ std::string ExtensionUtils::getExtensionFileName(const std::string& name) {
 
 std::string ExtensionUtils::getLocalPathForExtensionLib(main::ClientContext* context,
     const std::string& extensionName) {
-    return common::stringFormat("{}{}/{}", context->getExtensionDir(), extensionName,
+    return common::stringFormat("{}/{}", getLocalDirForExtension(context, extensionName),
         getExtensionFileName(extensionName));
 }
 
 std::string ExtensionUtils::getLocalPathForExtensionLoader(main::ClientContext* context,
     const std::string& extensionName) {
-    return common::stringFormat("{}{}/{}", context->getExtensionDir(), extensionName,
+    return common::stringFormat("{}/{}", getLocalDirForExtension(context, extensionName),
         getExtensionFileName(extensionName + EXTENSION_LOADER_SUFFIX));
 }
 
 std::string ExtensionUtils::getLocalPathForExtensionInstaller(main::ClientContext* context,
     const std::string& extensionName) {
-    return common::stringFormat("{}{}/{}", context->getExtensionDir(), extensionName,
+    return common::stringFormat("{}/{}", getLocalDirForExtension(context, extensionName),
         getExtensionFileName(extensionName + EXTENSION_INSTALLER_SUFFIX));
 }
 
-std::string ExtensionUtils::getLocalExtensionDir(main::ClientContext* context,
+std::string ExtensionUtils::getLocalDirForExtension(main::ClientContext* context,
     const std::string& extensionName) {
     return common::stringFormat("{}{}", context->getExtensionDir(), extensionName);
 }

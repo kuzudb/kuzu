@@ -38,8 +38,33 @@ Binder exception: The extension sqlitescanner is neither an official extension, 
 Binder exception: The extension /tmp/iceberg is neither an official extension, nor does the extension path: '/tmp/iceberg' exists.
 
 -CASE LoadNotInstalledExtension
--SKIP
--STATEMENT LOAD fts;
+-SKIP_IN_MEM
+-SKIP_WASM
+-STATEMENT INSTALL HTTPFS;
+---- ok
+-STATEMENT UNINSTALL HTTPFS;
+---- ok
+-STATEMENT LOAD HTTPFS;
 ---- error
-Binder exception: Extension: fts is an official extension and has not been installed.
-You can install it by: install fts.
+Binder exception: Extension: httpfs is an official extension and has not been installed.
+You can install it by: install httpfs.
+
+-CASE UninstallExtensionError
+-SKIP_IN_MEM
+-SKIP_WASM
+-STATEMENT INSTALL fts;
+---- ok
+-STATEMENT UNINSTALL fts;
+---- ok
+-STATEMENT UNINSTALL fts;
+---- error
+Runtime exception: Can not uninstall extension: fts since it has not been installed.
+-STATEMENT INSTALL vector;
+---- ok
+-STATEMENT UNINSTALL vector;
+---- 1
+Extension: vector has been uninstalled
+-STATEMENT UNINSTALL XXX;
+---- error
+Binder exception: The extension XXX is not an official extension.
+Only official extensions can be uninstalled.

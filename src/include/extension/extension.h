@@ -101,7 +101,7 @@ struct KUZU_API ExtensionUtils {
     static std::string getLocalPathForExtensionInstaller(main::ClientContext* context,
         const std::string& extensionName);
 
-    static std::string getLocalExtensionDir(main::ClientContext* context,
+    static std::string getLocalDirForExtension(main::ClientContext* context,
         const std::string& extensionName);
 
     static std::string appendLibSuffix(const std::string& libName);
