@@ -865,7 +865,7 @@ jobs:
       - name: Report benchmark result
         uses: thollander/actions-comment-pull-request@v3
         with:
-          filePath: compare_result.md
+          file-path: compare_result.md
           comment-tag: benchmark-execution
 
   clang-tidy:
