@@ -166,8 +166,7 @@ Unable to find primary key value 6.|${KUZU_ROOT_DIRECTORY}/dataset/json-error/in
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL json FROM 'http://localhost/extension/repo/'
----- 1
-Extension: json has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT load extension json
 ---- ok
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json" RETURN *;

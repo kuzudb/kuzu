@@ -34,6 +34,9 @@ public:
     }
 
 private:
+    void setOutputMessage(bool installed);
+
+private:
     extension::InstallExtensionInfo info;
     std::string outputMessage;
 };

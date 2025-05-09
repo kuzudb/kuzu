@@ -55,7 +55,10 @@ bool ExtensionInstaller::installExtension() {
         extension::ExtensionUtils::getLocalDirForExtension(&context, info.name);
     if (!vfs->fileOrPathExists(localDirForExtension)) {
         vfs->createDir(localDirForExtension);
-    } else if (!info.forceInstall) {
+    }
+    auto localLibFilePath =
+        extension::ExtensionUtils::getLocalPathForExtensionLib(&context, info.name);
+    if (vfs->fileOrPathExists(localLibFilePath) && !info.forceInstall) {
         // The extension has been installed, skip downloading from the repo.
         return false;
     }
@@ -64,8 +67,7 @@ bool ExtensionInstaller::installExtension() {
         vfs->createDir(localDirForSharedLib);
     }
     auto libFileRepoInfo = extension::ExtensionUtils::getExtensionLibRepoInfo(info.name, info.repo);
-    auto localLibFilePath =
-        extension::ExtensionUtils::getLocalPathForExtensionLib(&context, info.name);
+
     tryDownloadExtensionFile(libFileRepoInfo, localLibFilePath);
     return true;
 }

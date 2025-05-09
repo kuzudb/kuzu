@@ -110,8 +110,7 @@ Conversion Error: timestamp field value out of range: "08:30:00", expected forma
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL sqlite FROM 'http://localhost/extension/repo/'
----- 1
-Extension: sqlite has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT load extension sqlite
 ---- ok
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/tinysnb' as tinysnb (dbtype sqlite);

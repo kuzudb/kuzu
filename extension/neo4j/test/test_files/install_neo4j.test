@@ -4,8 +4,7 @@
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL neo4j FROM 'http://localhost/extension/repo/'
----- 1
-Extension: neo4j has been installed from repo: http://localhost/extension/repo/.
+---- ok
 -STATEMENT load extension neo4j
 ---- ok
 

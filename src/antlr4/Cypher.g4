@@ -206,16 +206,20 @@ kU_Transaction
 kU_Extension
     : kU_LoadExtension
         | kU_InstallExtension
-        | kU_UninstallExtension;
+        | kU_UninstallExtension
+        | kU_UpdateExtension ;
 
 kU_LoadExtension
     : LOAD SP (EXTENSION SP)? ( StringLiteral | oC_Variable ) ;
 
 kU_InstallExtension
-    : INSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
+    : (FORCE SP)? INSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
 
 kU_UninstallExtension
     : UNINSTALL SP oC_Variable;
+
+kU_UpdateExtension
+    : UPDATE SP oC_Variable;
 
 oC_Query
     : oC_RegularQuery ;
@@ -707,6 +711,7 @@ kU_NonReservedKeywords
         | EXPLAIN
         | EXPORT
         | EXTENSION
+        | FORCE
         | GRAPH
         | IF
         | IS
@@ -736,6 +741,7 @@ kU_NonReservedKeywords
         | TYPE
         | USE
         | UNINSTALL
+        | UPDATE
         | WRITE
         | FROM
         | TO
