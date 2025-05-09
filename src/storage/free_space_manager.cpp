@@ -41,7 +41,7 @@ void FreeSpaceManager::addUncheckpointedFreePages(PageRange entry) {
     uncheckpointedFreePageRanges.push_back(entry);
 }
 
-void FreeSpaceManager::rollbackCheckpoint() {
+void FreeSpaceManager::rollback() {
     uncheckpointedFreePageRanges.clear();
 }
 

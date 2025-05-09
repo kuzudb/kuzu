@@ -303,13 +303,14 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     updateInMemoryStats(inMemoryStats, other, startPosInOtherChunk, numValuesToAppend);
 }
 
-void ColumnChunkData::flush(FileHandle& dataFH) {
+void ColumnChunkData::flush(FileHandle& dataFH, bool reclaimOnRollback) {
     const auto preScanMetadata = getMetadataToFlush();
-    auto allocatedEntry = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
+    auto allocatedEntry = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages(),
+        reclaimOnRollback);
     const auto flushedMetadata = flushBuffer(&dataFH, allocatedEntry, preScanMetadata);
     setToOnDisk(flushedMetadata);
     if (nullData) {
-        nullData->flush(dataFH);
+        nullData->flush(dataFH, reclaimOnRollback);
     }
 }
 

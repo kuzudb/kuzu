@@ -29,7 +29,7 @@ public:
 
     // These pages are not reusable until the end of the next checkpoint
     void addUncheckpointedFreePages(PageRange entry);
-    void rollbackCheckpoint();
+    void rollback();
 
     void serialize(common::Serializer& serializer) const;
     void deserialize(common::Deserializer& deSer);

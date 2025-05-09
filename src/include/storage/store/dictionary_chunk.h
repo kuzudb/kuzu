@@ -48,7 +48,7 @@ public:
     static std::unique_ptr<DictionaryChunk> deserialize(MemoryManager& memoryManager,
         common::Deserializer& deSer);
 
-    void flush(FileHandle& dataFH);
+    void flush(FileHandle& dataFH, bool reclaimOnRollback = true);
 
 private:
     bool enableCompression;

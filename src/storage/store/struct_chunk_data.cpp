@@ -80,10 +80,10 @@ void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkDat
         });
 }
 
-void StructChunkData::flush(FileHandle& dataFH) {
-    ColumnChunkData::flush(dataFH);
+void StructChunkData::flush(FileHandle& dataFH, bool reclaimOnRollback) {
+    ColumnChunkData::flush(dataFH, reclaimOnRollback);
     for (const auto& childChunk : childChunks) {
-        childChunk->flush(dataFH);
+        childChunk->flush(dataFH, reclaimOnRollback);
     }
 }
 

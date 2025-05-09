@@ -219,7 +219,7 @@ void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {
         KU_ASSERT(tables.contains(tableEntry->getTableID()));
         tables.at(tableEntry->getTableID())->rollbackCheckpoint();
     }
-    dataFH->getPageManager()->rollbackCheckpoint();
+    dataFH->getPageManager()->rollback();
 }
 
 } // namespace storage

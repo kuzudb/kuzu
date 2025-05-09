@@ -101,9 +101,9 @@ uint64_t DictionaryChunk::getEstimatedMemoryUsage() const {
     return stringDataChunk->getEstimatedMemoryUsage() + offsetChunk->getEstimatedMemoryUsage();
 }
 
-void DictionaryChunk::flush(FileHandle& dataFH) {
-    stringDataChunk->flush(dataFH);
-    offsetChunk->flush(dataFH);
+void DictionaryChunk::flush(FileHandle& dataFH, bool reclaimOnRollback) {
+    stringDataChunk->flush(dataFH, reclaimOnRollback);
+    offsetChunk->flush(dataFH, reclaimOnRollback);
 }
 
 void DictionaryChunk::serialize(Serializer& serializer) const {
