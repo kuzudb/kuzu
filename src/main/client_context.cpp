@@ -153,7 +153,7 @@ std::unique_ptr<function::ScanReplacementData> ClientContext::tryReplaceByName(
         if (replaceHandles.empty()) {
             continue; // Fail to replace.
         }
-        return scanReplacement.replaceFunc(replaceHandles);
+        return scanReplacement.replaceFunc(std::span(replaceHandles.begin(), replaceHandles.end()));
     }
     return {};
 }

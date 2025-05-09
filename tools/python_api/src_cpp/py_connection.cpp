@@ -101,10 +101,10 @@ static std::unique_ptr<function::ScanReplacementData> tryReplacePyArrow(py::hand
 }
 
 static std::unique_ptr<function::ScanReplacementData> replacePythonObject(
-    std::span<const function::scan_replace_handle_t> candidateHandles) {
+    std::span<function::scan_replace_handle_t> candidateHandles) {
     py::gil_scoped_acquire acquire;
-    for (const auto& handle : candidateHandles) {
-        auto entry = py::handle(reinterpret_cast<PyObject* const>(handle));
+    for (auto* handle : candidateHandles) {
+        auto entry = py::handle(reinterpret_cast<PyObject*>(handle));
         auto result = tryReplacePD(entry);
         if (!result) {
             result = tryReplacePolars(entry);
