@@ -1,8 +1,10 @@
 #include "processor/operator/partitioner.h"
 
 #include "binder/expression/expression_util.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/rel_batch_insert.h"
+#include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
@@ -91,6 +93,18 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
 }
 
 void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
+    const auto clientContext = context->clientContext;
+    const auto storageManager = clientContext->getStorageManager();
+    const auto transaction = clientContext->getTransaction();
+
+    auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(transaction, sharedState->relTableName);
+    auto relTableEntry = tableEntry->ptrCast<catalog::RelTableCatalogEntry>();
+    auto relTable = storageManager->getTable(relTableEntry->getTableID())->ptrCast<RelTable>();
+
+    sharedState->srcNodeTable = storageManager->getTable(relTableEntry->getSrcTableID())->ptrCast<NodeTable>();
+    sharedState->dstNodeTable = storageManager->getTable(relTableEntry->getDstTableID())->ptrCast<NodeTable>();
+    sharedState->relTable = relTable;
+
     sharedState->initialize(dataInfo.columnTypes, info.infos.size(), context->clientContext);
 }
 
