@@ -1,0 +1,241 @@
+-DATASET CSV EMPTY
+
+--
+
+-CASE ProjectGraph
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, id INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 'A'}),
+        (u1:Node {id: 'B'}),
+        (u2:Node {id: 'C'}),
+        (u3:Node {id: 'D'}),
+        (u4:Node {id: 'E'}),
+        (u5:Node {id: 'F'}),
+        (u6:Node {id: 'G'}),
+        (u7:Node {id: 'H'}),
+        (u8:Node {id: 'I'}),
+        (u0)-[:Edge {id:0}]->(u1),
+        (u1)-[:Edge {id:1}]->(u2),
+        (u5)-[:Edge {id:2}]->(u4),
+        (u6)-[:Edge {id:3}]->(u4),
+        (u6)-[:Edge {id:4}]->(u5),
+        (u6)-[:Edge {id:5}]->(u7),
+        (u7)-[:Edge {id:6}]->(u4),
+        (u6)-[:Edge {id:7}]->(u5)
+---- ok
+-STATEMENT CALL project_graph('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL weakly_connected_components('Graph') RETURN group_id, collect(node.id);
+---- 4
+0|[D]
+1|[I]
+2|[B,C,A]
+5|[G,F,H,E]
+-STATEMENT CALL project_graph(
+               'Filtered_Graph',
+               {
+                   'Node': 'n.id <> "I"'
+               },
+               {
+                   'Edge': 'r.id < 3'
+               }
+           );
+---- ok
+-STATEMENT CALL weakly_connected_components('Filtered_Graph')
+           RETURN group_id, collect(node.id);
+---- 5
+0|[D]
+2|[B,C,A]
+5|[G]
+6|[F,E]
+7|[H]
+-STATEMENT CALL drop_projected_graph('Filtered_Graph');
+---- ok
+
+
+-CASE DemoWCC
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 'A'}),
+                   (u1:Node {id: 'B'}),
+                   (u2:Node {id: 'C'}),
+                   (u3:Node {id: 'D'}),
+                   (u4:Node {id: 'E'}),
+                   (u5:Node {id: 'F'}),
+                   (u6:Node {id: 'G'}),
+                   (u7:Node {id: 'H'}),
+                   (u8:Node {id: 'I'}),
+                   (u0)-[:Edge]->(u1),
+                   (u1)-[:Edge]->(u2),
+                   (u5)-[:Edge]->(u4),
+                   (u6)-[:Edge]->(u4),
+                   (u6)-[:Edge]->(u5),
+                   (u6)-[:Edge]->(u7),
+                   (u7)-[:Edge]->(u4),
+                   (u6)-[:Edge]->(u5);
+---- ok
+-STATEMENT CALL project_graph('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL weakly_connected_components('Graph') RETURN group_id, collect(node.id);
+---- 4
+0|[D]
+1|[I]
+2|[B,C,A]
+5|[G,F,H,E]
+
+-CASE DemoSCC
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 'A'}),
+                   (u1:Node {id: 'B'}),
+                   (u2:Node {id: 'C'}),
+                   (u3:Node {id: 'D'}),
+                   (u4:Node {id: 'E'}),
+                   (u5:Node {id: 'F'}),
+                   (u6:Node {id: 'G'}),
+                   (u7:Node {id: 'H'}),
+                   (u8:Node {id: 'I'}),
+                   (u0)-[:Edge]->(u1),
+                   (u1)-[:Edge]->(u2),
+                   (u1)-[:Edge]->(u4),
+                   (u2)-[:Edge]->(u2),
+                   (u2)-[:Edge]->(u5),
+                   (u3)-[:Edge]->(u1),
+                   (u3)-[:Edge]->(u6),
+                   (u4)-[:Edge]->(u0),
+                   (u4)-[:Edge]->(u5),
+                   (u4)-[:Edge]->(u3),
+                   (u5)-[:Edge]->(u7),
+                   (u6)-[:Edge]->(u4),
+                   (u6)-[:Edge]->(u5),
+                   (u7)-[:Edge]->(u8),
+                   (u8)-[:Edge]->(u5);
+---- ok
+-STATEMENT CALL project_graph('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL strongly_connected_components('Graph') RETURN group_id, collect(node.id);
+---- 3
+0|[I,F,H]
+3|[G,E,D,A,B]
+8|[C]
+-STATEMENT CALL strongly_connected_components_kosaraju('Graph') RETURN group_id, collect(node.id);
+---- 3
+0|[I,F,H]
+3|[G,E,D,A,B]
+8|[C]
+
+-CASE DemoPageRank
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 'A'}),
+                   (u1:Node {id: 'B'}),
+                   (u2:Node {id: 'C'}),
+                   (u3:Node {id: 'D'}),
+                   (u4:Node {id: 'E'}),
+                   (u0)-[:Edge]->(u1),
+                   (u0)-[:Edge]->(u4),
+                   (u1)-[:Edge]->(u4),
+                   (u2)-[:Edge]->(u4),
+                   (u3)-[:Edge]->(u4);
+---- ok
+-STATEMENT CALL project_graph('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL page_rank('Graph') RETURN node.id, rank ORDER BY rank DESC;
+-CHECK_ORDER
+---- 5
+E|0.130088
+B|0.042750
+D|0.030000
+C|0.030000
+A|0.030000
+
+
+-CASE DemoKCore
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+---- ok
+-STATEMENT CREATE (alice:Node {id:'Alice'}),
+                   (bridget:Node {id:'Bridget'}),
+                   (charles:Node {id:'Charles'}),
+                   (doug:Node {id:'Doug'}),
+                   (eli:Node {id:'Eli'}),
+                   (filip:Node {id:'Filip'}),
+                   (greg:Node {id:'Greg'}),
+                   (alice)-[:Edge]->(bridget),
+                   (bridget)-[:Edge]->(charles),
+                   (charles)-[:Edge]->(doug),
+                   (doug)-[:Edge]->(eli),
+                   (doug)-[:Edge]->(filip),
+                   (doug)-[:Edge]->(greg),
+                   (eli)-[:Edge]->(filip),
+                   (eli)-[:Edge]->(greg),
+                   (filip)-[:Edge]->(greg);
+---- ok
+-STATEMENT CALL project_graph('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL k_core_decomposition('Graph') RETURN node.id, k_degree ORDER BY k_degree DESC;
+-CHECK_ORDER
+---- 7
+Filip|3
+Greg|3
+Eli|3
+Doug|3
+Charles|1
+Bridget|1
+Alice|1
+
+-CASE DemoLouvain
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+---- ok
+-STATEMENT CREATE  (u0:Node {id: 'A'}),
+                   (u1:Node {id: 'B'}),
+                   (u2:Node {id: 'C'}),
+                   (u3:Node {id: 'D'}),
+                   (u4:Node {id: 'E'}),
+                   (u5:Node {id: 'F'}),
+                   (u6:Node {id: 'G'}),
+                   (u7:Node {id: 'H'}),
+                   (u0)-[:Edge]->(u1),
+                   (u0)-[:Edge]->(u2),
+                   (u1)-[:Edge]->(u2),
+                   (u0)-[:Edge]->(u3),
+                   (u1)-[:Edge]->(u3),
+                   (u2)-[:Edge]->(u3),
+                   (u4)-[:Edge]->(u5),
+                   (u4)-[:Edge]->(u6),
+                   (u5)-[:Edge]->(u6),
+                   (u4)-[:Edge]->(u7),
+                   (u5)-[:Edge]->(u7),
+                   (u6)-[:Edge]->(u7),
+                   (u3)-[:Edge]->(u4);
+---- ok
+-STATEMENT CALL project_graph('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL louvain('Graph') RETURN louvain_id, collect(node.id);
+---- 2
+0|[D,C,B,A]
+1|[E,G,H,F]

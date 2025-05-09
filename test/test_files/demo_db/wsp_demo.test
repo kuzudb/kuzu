@@ -1,0 +1,38 @@
+-DATASET CSV demo-db/csv
+--
+
+-CASE DemoDBWSP
+-STATEMENT ALTER TABLE Follows ADD score DOUBLE;
+---- ok
+-STATEMENT MATCH (a:User {name:'Adam'})-[e:Follows]->(b:User {name: 'Karissa'}) SET e.score = 5
+---- ok
+-STATEMENT MATCH (a:User {name:'Adam'})-[e:Follows]->(b:User {name: 'Zhang'}) SET e.score = 20
+---- ok
+-STATEMENT MATCH (a:User {name:'Karissa'})-[e:Follows]->(b:User {name: 'Zhang'}) SET e.score = 6
+---- ok
+-STATEMENT MATCH (a:User {name:'Zhang'})-[e:Follows]->(b:User {name: 'Noura'}) SET e.score = 22
+---- ok
+-STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, e.*, b.name;
+---- 4
+Adam|2020|20.000000|Zhang
+Adam|2020|5.000000|Karissa
+Karissa|2021|6.000000|Zhang
+Zhang|2022|22.000000|Noura
+-STATEMENT MATCH p=(a:User)-[e:Follows* WSHORTEST(score)]->(b:User)
+           WHERE a.name='Adam'
+           RETURN properties(nodes(p), 'name'), cost(e);
+---- 3
+[Adam,Karissa,Zhang,Noura]|33.000000
+[Adam,Karissa,Zhang]|11.000000
+[Adam,Karissa]|5.000000
+-STATEMENT MATCH (a:User {name:'Adam'}), (b:User {name: 'Zhang'}) CREATE (a)-[e:Follows {score:11}]->(b)
+---- ok
+-STATEMENT MATCH p=(a:User)-[e:Follows* ALL WSHORTEST(score)]->(b:User)
+           WHERE a.name='Adam'
+           RETURN properties(nodes(p), 'name'), cost(e);
+---- 5
+[Adam,Karissa,Zhang,Noura]|33.000000
+[Adam,Karissa,Zhang]|11.000000
+[Adam,Karissa]|5.000000
+[Adam,Zhang,Noura]|33.000000
+[Adam,Zhang]|11.000000
