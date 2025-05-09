@@ -613,6 +613,8 @@ void EmbeddedShell::run() {
     while (
         (line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT)) != nullptr) {
         auto lineStr = std::string(line);
+        if (lineStr.back() == ';')
+            lineStr.push_back(';');
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
             if (!continueLine && lineStr[1] == '\0') {
