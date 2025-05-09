@@ -402,7 +402,7 @@ void cypherParserInitialize() {
   	87,87,140,140,2,0,68,68,83,83,1,0,170,171,30,0,48,48,50,50,52,52,55,58,
   	61,61,63,64,66,68,70,71,74,74,77,77,79,79,84,86,88,88,90,90,94,95,97,
   	97,99,99,101,104,106,109,111,112,123,128,130,131,133,133,137,137,139,
-  	139,141,141,145,145,149,149,153,154,156,156,2,0,14,14,27,30,2,0,16,16,
+  	139,141,141,144,145,149,149,153,154,156,156,2,0,14,14,27,30,2,0,16,16,
   	31,34,2,0,35,45,158,158,3160,0,340,1,0,0,0,2,360,1,0,0,0,4,392,1,0,0,
   	0,6,394,1,0,0,0,8,420,1,0,0,0,10,467,1,0,0,0,12,469,1,0,0,0,14,499,1,
   	0,0,0,16,529,1,0,0,0,18,549,1,0,0,0,20,555,1,0,0,0,22,606,1,0,0,0,24,
@@ -1965,7 +1965,7 @@ CypherParser::KU_ColumnNamesContext* CypherParser::kU_ColumnNames() {
     _la = _input->LA(1);
     if (((((_la - 48) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 48)) & -4761776568397879403) != 0) || ((((_la - 112) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 112)) & -8065922596628203519) != 0)) {
+      ((1ULL << (_la - 112)) & -8065922592333236223) != 0)) {
       setState(426);
       oC_SchemaName();
       setState(437);
@@ -3407,7 +3407,7 @@ CypherParser::KU_CreateMacroContext* CypherParser::kU_CreateMacro() {
     _la = _input->LA(1);
     if (((((_la - 48) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 48)) & -4761776568397879403) != 0) || ((((_la - 112) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 112)) & -8065922596628203519) != 0)) {
+      ((1ULL << (_la - 112)) & -8065922592333236223) != 0)) {
       setState(677);
       kU_DefaultArg();
     }
@@ -7178,6 +7178,7 @@ CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
       case CypherParser::TO:
       case CypherParser::TRANSACTION:
       case CypherParser::TYPE:
+      case CypherParser::UNINSTALL:
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::YIELD:
@@ -9009,6 +9010,7 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
       case CypherParser::TO:
       case CypherParser::TRANSACTION:
       case CypherParser::TYPE:
+      case CypherParser::UNINSTALL:
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::YIELD:
@@ -10128,6 +10130,7 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
       case CypherParser::TRANSACTION:
       case CypherParser::TRUE:
       case CypherParser::TYPE:
+      case CypherParser::UNINSTALL:
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::SINGLE:
@@ -10799,6 +10802,7 @@ CypherParser::OC_PatternPartContext* CypherParser::oC_PatternPart() {
       case CypherParser::TO:
       case CypherParser::TRANSACTION:
       case CypherParser::TYPE:
+      case CypherParser::UNINSTALL:
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::YIELD:
@@ -11063,7 +11067,7 @@ CypherParser::OC_NodePatternContext* CypherParser::oC_NodePattern() {
     _la = _input->LA(1);
     if (((((_la - 48) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 48)) & -4761776568397879403) != 0) || ((((_la - 112) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 112)) & -8065922596628203519) != 0)) {
+      ((1ULL << (_la - 112)) & -8065922592333236223) != 0)) {
       setState(1758);
       oC_Variable();
       setState(1760);
@@ -11451,7 +11455,7 @@ CypherParser::OC_RelationshipDetailContext* CypherParser::oC_RelationshipDetail(
     _la = _input->LA(1);
     if (((((_la - 48) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 48)) & -4761776568397879403) != 0) || ((((_la - 112) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 112)) & -8065922596628203519) != 0)) {
+      ((1ULL << (_la - 112)) & -8065922592333236223) != 0)) {
       setState(1834);
       oC_Variable();
       setState(1836);
@@ -11598,7 +11602,7 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
     _la = _input->LA(1);
     if (((((_la - 48) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 48)) & -4761776568397879403) != 0) || ((((_la - 112) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 112)) & -8065922596628203519) != 0)) {
+      ((1ULL << (_la - 112)) & -8065922592333236223) != 0)) {
       setState(1864);
       oC_PropertyKeyName();
       setState(1866);
@@ -12594,7 +12598,7 @@ CypherParser::KU_RecursiveProjectionItemsContext* CypherParser::kU_RecursiveProj
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -572029811611360035) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 128)) & 171637079161389) != 0)) {
+      ((1ULL << (_la - 128)) & 171637079226925) != 0)) {
       setState(2052);
       oC_ProjectionItems();
     }
@@ -14387,7 +14391,7 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
       if ((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -572029811611360035) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 128)) & 171636944943661) != 0)) {
+        ((1ULL << (_la - 128)) & 171636945009197) != 0)) {
         setState(2293);
         oC_Expression();
       }
@@ -14400,7 +14404,7 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
       if ((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -572029811611360035) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 128)) & 171636944943661) != 0)) {
+        ((1ULL << (_la - 128)) & 171636945009197) != 0)) {
         setState(2297);
         oC_Expression();
       }
@@ -15475,7 +15479,7 @@ CypherParser::OC_ListLiteralContext* CypherParser::oC_ListLiteral() {
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -572029811611360035) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 128)) & 171636944943661) != 0)) {
+      ((1ULL << (_la - 128)) & 171636945009197) != 0)) {
       setState(2441);
       oC_Expression();
       setState(2443);
@@ -15574,7 +15578,7 @@ CypherParser::KU_ListEntryContext* CypherParser::kU_ListEntry() {
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -572029811611360035) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 128)) & 171636944943661) != 0)) {
+      ((1ULL << (_la - 128)) & 171636945009197) != 0)) {
       setState(2462);
       oC_Expression();
     }
@@ -15794,6 +15798,7 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
       case CypherParser::TO:
       case CypherParser::TRANSACTION:
       case CypherParser::TYPE:
+      case CypherParser::UNINSTALL:
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::YIELD:
@@ -16155,7 +16160,7 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
       if ((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -572029811611360035) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 128)) & 171636944943661) != 0)) {
+        ((1ULL << (_la - 128)) & 171636945009197) != 0)) {
         setState(2567);
         kU_FunctionParameter();
         setState(2569);
@@ -16556,6 +16561,7 @@ CypherParser::KU_LambdaVarsContext* CypherParser::kU_LambdaVars() {
       case CypherParser::TO:
       case CypherParser::TRANSACTION:
       case CypherParser::TYPE:
+      case CypherParser::UNINSTALL:
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::YIELD:
@@ -16987,6 +16993,7 @@ CypherParser::OC_PropertyLookupContext* CypherParser::oC_PropertyLookup() {
       case CypherParser::TO:
       case CypherParser::TRANSACTION:
       case CypherParser::TYPE:
+      case CypherParser::UNINSTALL:
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::YIELD:
@@ -17501,6 +17508,7 @@ CypherParser::OC_ParameterContext* CypherParser::oC_Parameter() {
       case CypherParser::TO:
       case CypherParser::TRANSACTION:
       case CypherParser::TYPE:
+      case CypherParser::UNINSTALL:
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::YIELD:
@@ -17891,6 +17899,7 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
       case CypherParser::TO:
       case CypherParser::TRANSACTION:
       case CypherParser::TYPE:
+      case CypherParser::UNINSTALL:
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::YIELD:
@@ -18122,6 +18131,10 @@ tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::USE() {
   return getToken(CypherParser::USE, 0);
 }
 
+tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::UNINSTALL() {
+  return getToken(CypherParser::UNINSTALL, 0);
+}
+
 tree::TerminalNode* CypherParser::KU_NonReservedKeywordsContext::WRITE() {
   return getToken(CypherParser::WRITE, 0);
 }
@@ -18162,7 +18175,7 @@ CypherParser::KU_NonReservedKeywordsContext* CypherParser::kU_NonReservedKeyword
     _la = _input->LA(1);
     if (!(((((_la - 48) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 48)) & -4761776568397879403) != 0) || ((((_la - 112) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 112)) & 24335992354817) != 0))) {
+      ((1ULL << (_la - 112)) & 24340287322113) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {

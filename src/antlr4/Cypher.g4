@@ -735,6 +735,7 @@ kU_NonReservedKeywords
         | TRANSACTION
         | TYPE
         | USE
+        | UNINSTALL
         | WRITE
         | FROM
         | TO
