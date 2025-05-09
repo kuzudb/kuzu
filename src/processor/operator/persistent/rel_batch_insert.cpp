@@ -8,6 +8,7 @@
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_utils.h"
+#include "storage/storage_manager.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
 
@@ -48,11 +49,51 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
     }
 }
 
-void RelBatchInsert::initGlobalStateInternal(ExecutionContext*) {
+void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
+    const auto clientContext = context->clientContext;
+    const auto storageManager = clientContext->getStorageManager();
+    const auto transaction = clientContext->getTransaction();
+
+    auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(transaction, tableName);
+    auto relTableEntry = tableEntry->ptrCast<RelTableCatalogEntry>();
+    auto relTable = storageManager->getTable(relTableEntry->getTableID())->ptrCast<RelTable>();
+
+    auto relInfo = info->ptrCast<RelBatchInsertInfo>();
+    relInfo->tableEntry = relTableEntry;
+
+    sharedState->table = relTable;
+
     progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
     progressSharedState->partitionsDone = 0;
     progressSharedState->partitionsTotal =
         partitionerSharedState->numPartitions[info->ptrCast<RelBatchInsertInfo>()->partitioningIdx];
+
+    // partitionerSharedState->srcNodeTable = storageManager->getTable(relTableEntry->getSrcTableID())->ptrCast<NodeTable>();
+    // partitionerSharedState->dstNodeTable =
+    //     storageManager->getTable(relTableEntry->getDstTableID())->ptrCast<NodeTable>();
+    // partitionerSharedState->relTable = relTable;
+
+    // columnIDs.push_back(0);                            // NBR_ID COLUMN.
+    // for (auto& property : copyFromInfo->tableEntry->getProperties()) {
+    //     columnTypes.push_back(property.getType().copy());
+    //     columnIDs.push_back(relTableEntry.getColumnID(property.getName()));
+    // }   
+
+    std::stack<LogicalType> columnTypes;
+    // columnTypes.push(LogicalType::INTERNAL_ID());
+    info->insertColumnIDs.push_back(0);
+    for (auto& property : relTableEntry->getProperties()) {
+        columnTypes.push(property.getType().copy());
+        info->insertColumnIDs.push_back(relTableEntry->getColumnID(property.getName()));
+    }
+
+    // relInfo->columnTypes only contains the warning data column types at this point
+    reverse(relInfo->columnTypes.begin(), relInfo->columnTypes.end());
+    while (!columnTypes.empty()) {
+        relInfo->columnTypes.push_back(std::move(columnTypes.top()));
+        columnTypes.pop();
+    }
+    reverse(relInfo->columnTypes.begin(), relInfo->columnTypes.end());
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
@@ -224,8 +265,7 @@ void RelBatchInsert::setRowIdxFromCSROffsets(ColumnChunkData& rowIdxChunk,
 
 void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrHeader,
     offset_t startNodeOffset, const RelBatchInsertInfo& relInfo) {
-    auto& relTableEntry = relInfo.tableEntry->constCast<RelTableCatalogEntry>();
-    if (!relTableEntry.isSingleMultiplicity(relInfo.direction)) {
+    if (!relInfo.tableEntry->isSingleMultiplicity(relInfo.direction)) {
         return;
     }
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
@@ -243,7 +283,7 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
         KU_ASSERT(relInfo->partitioningIdx == 0);
 
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
-            sharedState->getNumRows(), info->tableEntry->getName());
+            sharedState->getNumRows(), relInfo->tableEntry->getName());
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
 
