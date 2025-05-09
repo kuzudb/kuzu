@@ -102,7 +102,6 @@ True
 True
 
 -CASE FSMDeleteFullNodeGroupRepeat
-# After 2-3 cycles of copy -> delete -> checkpoint the number of free pages should stop increasing
 -STATEMENT create node table Person (id INT64, firstName STRING, lastName STRING, gender STRING, birthday INT64, creationDate INT64, locationIP STRING, browserUsed STRING, PRIMARY KEY (id));
 ---- ok
 -STATEMENT copy Person from '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv'(header=true, delim='|')
@@ -138,11 +137,11 @@ True
 -STATEMENT checkpoint
 ---- ok
 
-# There shouldn't be gaps in the free pages at the end
--STATEMENT call fsm_info() return count(*)
+# After the deletions the data file should be empty due to reclaiming + truncation
+-STATEMENT call fsm_info() return *
+---- 0
+-STATEMENT copy Person from '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv'(header=true, delim='|')
+---- ok
+-STATEMENT call storage_info('Person') where start_page_idx = 0 return count (*)
 ---- 1
 1
-
--STATEMENT call fsm_info() return start_page_idx
----- 1
-0

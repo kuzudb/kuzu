@@ -104,9 +104,22 @@
            return num_deleted = node_group_capacity
 ---- 1
 True
--STATEMENT call fsm_info() return sum(num_pages) > 0
+
+# on the next allocation the pages for the deleted node group should be reused
+-STATEMENT create node table other(id INT64, primary key(id))
+---- ok
+-STATEMENT begin transaction;
+        create (:other{id: 1});
+        create (:other{id: 2});
+        commit;
+---- ok
+---- ok
+---- ok
+---- ok
+-STATEMENT call storage_info('other') where start_page_idx = 0 return count (*)
 ---- 1
-True
+1
+
 -STATEMENT match (p:Post) with count(*) as remaining
            optional match (p:Post) where p.ID = 1030792523231 with p.imageFile as imageFile, remaining
            return remaining = 0 or imageFile = 'photo1030792523231.jpg'
@@ -125,16 +138,14 @@ True
 ---- 0
 -STATEMENT match (p:Post) delete p
 ---- ok
--STATEMENT call fsm_info() return sum(num_pages) > 0
----- 1
-True
-# copy again, most of the free pages should be reused
+# copy again, page allocation should start from 0 as the dropped pages are reclaimed + truncated
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 ---- ok
-# if most free pages were used the start page idx of free entries should be much larger than their size
--STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages, min(start_page_idx > 3 * num_pages) as check return num_free_pages is null or check
+-STATEMENT call fsm_info() return *
+---- 0
+-STATEMENT CALL storage_info('Post') where start_page_idx = 0 return count(*)
 ---- 1
-True
+1
 -RELOADDB
 # try some queries
 -STATEMENT match(p:Post) return count(*)

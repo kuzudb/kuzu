@@ -76,16 +76,15 @@ Runtime exception: Cannot detach delete from node table 'person' as it has conne
 ---- ok
 -STATEMENT match (a)-[k:knows]->(b) delete k
 ---- ok
--STATEMENT call fsm_info() return sum(num_pages) > 0
----- 1
-True
-# re-copy, most of the pages should be reused
+# re-copy, page allocation should start from end of Person since the pages for knows are reclaimed + truncated
 -STATEMENT copy knows from ["${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv","${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv"](parallel=false)
 ---- ok
-# if most free pages were used the start page idx of free entries should be much larger than their size
--STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages, min(start_page_idx > 3 * num_pages) as check return num_free_pages is null or check
+-STATEMENT call fsm_info() return *
+---- 0
+-STATEMENT CALL storage_info('Person') where start_page_idx < 4294967295 with max(start_page_idx + num_pages) as expected_start_page_idx
+        CALL storage_info('knows') where start_page_idx = expected_start_page_idx return count(*)
 ---- 1
-True
+1
 -RELOADDB
 # try some queries
 -STATEMENT match (a)-[k:knows]->(b) return count(*)
