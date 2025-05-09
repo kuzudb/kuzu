@@ -38,13 +38,20 @@ Binder exception: The extension sqlitescanner is neither an official extension, 
 Binder exception: The extension /tmp/iceberg is neither an official extension, nor does the extension path: '/tmp/iceberg' exists.
 
 -CASE LoadNotInstalledExtension
--SKIP
+-STATEMENT INSTALL FTS;
+---- ok
+-STATEMENT UNINSTALL FTS;
+---- ok
 -STATEMENT LOAD fts;
 ---- error
 Binder exception: Extension: fts is an official extension and has not been installed.
 You can install it by: install fts.
 
 -CASE UninstallExtensionError
+-STATEMENT INSTALL fts;
+---- ok
+-STATEMENT UNINSTALL fts;
+---- ok
 -STATEMENT UNINSTALL fts;
 ---- error
 Runtime exception: Can not uninstall extension: fts since it has not been installed.
