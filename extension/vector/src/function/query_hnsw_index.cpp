@@ -245,30 +245,28 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(
 }
 
 static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingClause,
-    expression_vector predicates, const std::vector<std::unique_ptr<LogicalPlan>>& logicalPlans) {
+    expression_vector predicates, LogicalPlan& plan) {
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
     const auto bindData = call.getBindData()->constPtrCast<QueryHNSWIndexBindData>();
-    for (auto& plan : logicalPlans) {
-        auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
-        // Check if there is filter predicate on the base node table. If so, we need to plan the
-        // filtered search.
-        if (!bindData->boundInput.graphEntry.isEmpty()) {
-            KU_ASSERT(bindData->boundInput.graphEntry.nodeInfos.size() == 1);
-            auto& nodeInfo = bindData->boundInput.graphEntry.nodeInfos[0];
-            if (nodeInfo.predicate) {
-                // We have filter predicate on the base node table. Should add a semi mask subplan
-                // and pass the semi mask to QueryHNSWIndexFunction to perform filtered search.
-                auto& nodeExpr = nodeInfo.nodeOrRel->constCast<NodeExpression>();
-                auto filterPlan = planner->getNodeSemiMaskPlan(SemiMaskTargetType::SCAN_NODE,
-                    nodeExpr, nodeInfo.predicate);
-                std::vector nodeMaskRoots{filterPlan.getLastOperator()};
-                op->setNodeMaskRoots(std::move(nodeMaskRoots));
-                op->addChild(filterPlan.getLastOperator());
-            }
+    auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
+    // Check if there is filter predicate on the base node table. If so, we need to plan the
+    // filtered search.
+    if (!bindData->boundInput.graphEntry.isEmpty()) {
+        KU_ASSERT(bindData->boundInput.graphEntry.nodeInfos.size() == 1);
+        auto& nodeInfo = bindData->boundInput.graphEntry.nodeInfos[0];
+        if (nodeInfo.predicate) {
+            // We have filter predicate on the base node table. Should add a semi mask subplan
+            // and pass the semi mask to QueryHNSWIndexFunction to perform filtered search.
+            auto& nodeExpr = nodeInfo.nodeOrRel->constCast<NodeExpression>();
+            auto filterPlan = planner->getNodeSemiMaskPlan(SemiMaskTargetType::SCAN_NODE, nodeExpr,
+                nodeInfo.predicate);
+            std::vector nodeMaskRoots{filterPlan.getLastOperator()};
+            op->setNodeMaskRoots(std::move(nodeMaskRoots));
+            op->addChild(filterPlan.getLastOperator());
         }
-        op->computeFactorizedSchema();
-        planner->planReadOp(op, predicates, *plan);
     }
+    op->computeFactorizedSchema();
+    planner->planReadOp(op, predicates, plan);
     auto nodeOutput = bindData->outputNode->ptrCast<NodeExpression>();
     KU_ASSERT(nodeOutput != nullptr);
     auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
@@ -277,11 +275,9 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     }
     expression_vector joinConditions;
     joinConditions.push_back(nodeOutput->getInternalID());
-    for (auto& plan : logicalPlans) {
-        planner->appendHashJoin(joinConditions, JoinType::INNER, scanPlan, *plan, *plan);
-        plan->getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
-            SIPDirection::FORCE_BUILD_TO_PROBE;
-    }
+    planner->appendHashJoin(joinConditions, JoinType::INNER, scanPlan, plan, plan);
+    plan.getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
+        SIPDirection::FORCE_BUILD_TO_PROBE;
 }
 
 function_set QueryVectorIndexFunction::getFunctionSet() {

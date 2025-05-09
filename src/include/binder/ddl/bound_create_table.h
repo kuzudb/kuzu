@@ -7,13 +7,14 @@ namespace kuzu {
 namespace binder {
 
 class BoundCreateTable final : public BoundStatement {
+    static constexpr common::StatementType type_ = common::StatementType::CREATE_TABLE;
+
 public:
     explicit BoundCreateTable(BoundCreateTableInfo info)
-        : BoundStatement{common::StatementType::CREATE_TABLE,
-              BoundStatementResult::createSingleStringColumnResult()},
+        : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}
 
-    inline const BoundCreateTableInfo* getInfo() const { return &info; }
+    const BoundCreateTableInfo& getInfo() const { return info; }
 
 private:
     BoundCreateTableInfo info;

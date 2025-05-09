@@ -138,9 +138,9 @@ using table_func_finalize_t =
     std::function<void(const processor::ExecutionContext*, TableFuncSharedState*)>;
 using table_func_rewrite_t =
     std::function<std::string(main::ClientContext&, const TableFuncBindData& bindData)>;
-using table_func_get_logical_plan_t = std::function<void(planner::Planner*,
-    const binder::BoundReadingClause&, std::vector<std::shared_ptr<binder::Expression>>,
-    std::vector<std::unique_ptr<planner::LogicalPlan>>&)>;
+using table_func_get_logical_plan_t =
+    std::function<void(planner::Planner*, const binder::BoundReadingClause&,
+        std::vector<std::shared_ptr<binder::Expression>>, planner::LogicalPlan&)>;
 using table_func_get_physical_plan_t = std::function<std::unique_ptr<processor::PhysicalOperator>(
     processor::PlanMapper*, const planner::LogicalOperator*)>;
 using table_func_infer_input_types =
@@ -189,7 +189,7 @@ struct KUZU_API TableFunction final : Function {
     // Get logical plan func
     static void getLogicalPlan(planner::Planner* planner,
         const binder::BoundReadingClause& boundReadingClause, binder::expression_vector predicates,
-        std::vector<std::unique_ptr<planner::LogicalPlan>>& plans);
+        planner::LogicalPlan& plan);
     // Get physical plan func
     static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp);

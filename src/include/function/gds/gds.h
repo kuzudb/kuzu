@@ -95,7 +95,7 @@ public:
         const TableFuncInitSharedStateInput& input);
     static void getLogicalPlan(planner::Planner* planner,
         const binder::BoundReadingClause& readingClause, binder::expression_vector predicates,
-        std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans);
+        planner::LogicalPlan& plan);
     static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp);
 };

@@ -21,11 +21,9 @@ struct ScalarMacroFunction {
         : expression{std::move(expression)}, positionalArgs{std::move(positionalArgs)},
           defaultArgs{std::move(defaultArgs)} {}
 
-    inline std::string getDefaultParameterName(uint64_t idx) const {
-        return defaultArgs[idx].first;
-    }
+    std::string getDefaultParameterName(uint64_t idx) const { return defaultArgs[idx].first; }
 
-    inline uint64_t getNumArgs() const { return positionalArgs.size() + defaultArgs.size(); }
+    uint64_t getNumArgs() const { return positionalArgs.size() + defaultArgs.size(); }
 
     std::vector<std::string> getPositionalArgs() const { return positionalArgs; }
 

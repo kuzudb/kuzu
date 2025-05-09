@@ -17,26 +17,25 @@ public:
 
     void init(const binder::QueryGraph* queryGraph, const binder::expression_vector& predicates);
 
-    inline binder::expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
+    binder::expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
 
-    inline bool containPlans(const binder::SubqueryGraph& subqueryGraph) const {
+    bool containPlans(const binder::SubqueryGraph& subqueryGraph) const {
         return subPlansTable->containSubgraphPlans(subqueryGraph);
     }
-    inline std::vector<std::unique_ptr<LogicalPlan>>& getPlans(
+    std::vector<std::unique_ptr<LogicalPlan>>& getPlans(
         const binder::SubqueryGraph& subqueryGraph) const {
         return subPlansTable->getSubgraphPlans(subqueryGraph);
     }
-    inline void addPlan(const binder::SubqueryGraph& subqueryGraph,
-        std::unique_ptr<LogicalPlan> plan) {
+    void addPlan(const binder::SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan) {
         subPlansTable->addPlan(subqueryGraph, std::move(plan));
     }
 
-    inline binder::SubqueryGraph getEmptySubqueryGraph() const {
+    binder::SubqueryGraph getEmptySubqueryGraph() const {
         return binder::SubqueryGraph(*queryGraph);
     }
     binder::SubqueryGraph getFullyMatchedSubqueryGraph() const;
 
-    inline const binder::QueryGraph* getQueryGraph() { return queryGraph; }
+    const binder::QueryGraph* getQueryGraph() { return queryGraph; }
 
     void resetState();
 

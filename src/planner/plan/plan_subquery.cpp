@@ -125,7 +125,7 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
         // Optional match is the first clause, e.g. OPTIONAL MATCH <pattern> RETURN *
         info.predicates = predicates;
         auto plan = planQueryGraphCollection(queryGraphCollection, info);
-        leftPlan.setLastOperator(plan->getLastOperator());
+        leftPlan.setLastOperator(plan.getLastOperator());
         appendOptionalAccumulate(mark, leftPlan);
         return;
     }
@@ -134,9 +134,9 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
         info.predicates = predicates;
         auto rightPlan = planQueryGraphCollection(queryGraphCollection, info);
         if (leftPlan.hasUpdate()) {
-            appendAccOptionalCrossProduct(mark, leftPlan, *rightPlan, leftPlan);
+            appendAccOptionalCrossProduct(mark, leftPlan, rightPlan, leftPlan);
         } else {
-            appendOptionalCrossProduct(mark, leftPlan, *rightPlan, leftPlan);
+            appendOptionalCrossProduct(mark, leftPlan, rightPlan, leftPlan);
         }
         return;
     }
@@ -144,7 +144,7 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
     info.corrExprsCard = leftPlan.getCardinality();
     auto analyzer = SubqueryPredicatePullUpAnalyzer(*leftPlan.getSchema(), queryGraphCollection);
     std::vector<expression_pair> joinConditions;
-    std::unique_ptr<LogicalPlan> rightPlan;
+    LogicalPlan rightPlan;
     if (analyzer.analyze(predicates)) {
         // Unnest as left join
         info.subqueryType = SubqueryPlanningType::UNNEST_CORRELATED;
@@ -164,9 +164,9 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
         appendAccumulate(correlatedExprs, leftPlan);
     }
     if (leftPlan.hasUpdate()) {
-        appendAccHashJoin(joinConditions, JoinType::LEFT, mark, leftPlan, *rightPlan, leftPlan);
+        appendAccHashJoin(joinConditions, JoinType::LEFT, mark, leftPlan, rightPlan, leftPlan);
     } else {
-        appendHashJoin(joinConditions, JoinType::LEFT, mark, leftPlan, *rightPlan, leftPlan);
+        appendHashJoin(joinConditions, JoinType::LEFT, mark, leftPlan, rightPlan, leftPlan);
     }
 }
 
@@ -194,9 +194,9 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
         info.subqueryType = SubqueryPlanningType::NONE;
         auto rightPlan = planQueryGraphCollectionInNewContext(queryGraphCollection, info);
         if (leftPlan.hasUpdate()) {
-            appendCrossProduct(*rightPlan, leftPlan, leftPlan);
+            appendCrossProduct(rightPlan, leftPlan, leftPlan);
         } else {
-            appendCrossProduct(leftPlan, *rightPlan, leftPlan);
+            appendCrossProduct(leftPlan, rightPlan, leftPlan);
         }
     } else {
         // TODO(Xiyang): there is a question regarding if we want to plan as a correlated subquery
@@ -207,9 +207,9 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
         info.corrExprsCard = leftPlan.getCardinality();
         auto rightPlan = planQueryGraphCollectionInNewContext(queryGraphCollection, info);
         if (leftPlan.hasUpdate()) {
-            appendHashJoin(joinNodeIDs, JoinType::INNER, *rightPlan, leftPlan, leftPlan);
+            appendHashJoin(joinNodeIDs, JoinType::INNER, rightPlan, leftPlan, leftPlan);
         } else {
-            appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, *rightPlan, leftPlan);
+            appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, rightPlan, leftPlan);
         }
     }
     for (auto& predicate : predicatesToPullUp) {
@@ -222,7 +222,7 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
     auto subquery = expression->ptrCast<SubqueryExpression>();
     auto correlatedExprs = getDependentExprs(expression, *outerPlan.getSchema());
     auto predicates = subquery->getPredicatesSplitOnAnd();
-    std::unique_ptr<LogicalPlan> innerPlan;
+    LogicalPlan innerPlan;
     auto info = QueryGraphPlanningInfo();
     info.hint = subquery->getHint();
     if (correlatedExprs.empty()) {
@@ -236,16 +236,16 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
         switch (subquery->getSubqueryType()) {
         case common::SubqueryType::EXISTS: {
             auto aggregates = expression_vector{subquery->getCountStarExpr()};
-            appendAggregate(emptyHashKeys, aggregates, *innerPlan);
-            appendProjection(projectExprs, *innerPlan);
+            appendAggregate(emptyHashKeys, aggregates, innerPlan);
+            appendProjection(projectExprs, innerPlan);
         } break;
         case common::SubqueryType::COUNT: {
-            appendAggregate(emptyHashKeys, projectExprs, *innerPlan);
+            appendAggregate(emptyHashKeys, projectExprs, innerPlan);
         } break;
         default:
             KU_UNREACHABLE;
         }
-        appendCrossProduct(outerPlan, *innerPlan, outerPlan);
+        appendCrossProduct(outerPlan, innerPlan, outerPlan);
         return;
     }
     // Plan correlated subquery
@@ -275,15 +275,15 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
     }
     switch (subquery->getSubqueryType()) {
     case common::SubqueryType::EXISTS: {
-        appendMarkJoin(joinConditions, expression, outerPlan, *innerPlan, outerPlan);
+        appendMarkJoin(joinConditions, expression, outerPlan, innerPlan, outerPlan);
     } break;
     case common::SubqueryType::COUNT: {
         expression_vector hashKeys;
         for (auto& joinCondition : joinConditions) {
             hashKeys.push_back(joinCondition.second);
         }
-        appendAggregate(hashKeys, expression_vector{subquery->getProjectionExpr()}, *innerPlan);
-        appendHashJoin(joinConditions, common::JoinType::COUNT, nullptr, outerPlan, *innerPlan,
+        appendAggregate(hashKeys, expression_vector{subquery->getProjectionExpr()}, innerPlan);
+        appendHashJoin(joinConditions, common::JoinType::COUNT, nullptr, outerPlan, innerPlan,
             outerPlan);
     } break;
     default:
