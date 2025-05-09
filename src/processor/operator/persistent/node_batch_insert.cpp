@@ -38,15 +38,10 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto storageManager = clientContext->getStorageManager();
-    auto transaction = clientContext->getTransaction();
-
-    auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(transaction, tableName);
+    auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
-    auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
-
+    auto nodeTable = clientContext->getStorageManager()->getTable(nodeTableEntry->getTableID());
     auto fTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-
     const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
 
@@ -57,7 +52,6 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     nodeSharedState->initPKIndex(context);
 
     info->tableEntry = nodeTableEntry;
-
     for (auto& property : nodeTableEntry->getProperties()) {
         info->insertColumnIDs.push_back(nodeTableEntry->getColumnID(property.getName()));
     }
