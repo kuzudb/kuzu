@@ -150,7 +150,7 @@ void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& h
         Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
         do {
             for (entry_pos_t originalEntryPos = 0; originalEntryPos < getSlotCapacity<T>();
-                 originalEntryPos++) {
+                originalEntryPos++) {
                 if (!originalSlot->header.isEntryValid(originalEntryPos)) {
                     continue; // Skip invalid entries.
                 }
@@ -297,10 +297,9 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
     // may not be consecutive, but we reduce the memory overhead for storing the information about
     // the sorted data and still just process each page once.
     for (uint64_t localSlotId = 0; localSlotId < insertLocalStorage.numPrimarySlots();
-         localSlotId += NUM_SLOTS_PER_PAGE) {
+        localSlotId += NUM_SLOTS_PER_PAGE) {
         for (size_t i = 0;
-             i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots();
-             i++) {
+            i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots(); i++) {
             auto localSlot =
                 typename InMemHashIndex<T>::SlotIterator(localSlotId + i, &insertLocalStorage);
             partitionedEntries[i].clear();
@@ -422,21 +421,18 @@ template class HashIndex<float>;
 template class HashIndex<int128_t>;
 template class HashIndex<ku_string_t>;
 
-PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-    bool inMemMode, PhysicalTypeID keyDataType, MemoryManager& memoryManager,
-    ShadowFile* shadowFile, VirtualFileSystem* vfs, main::ClientContext* context)
-    : keyDataTypeID(keyDataType),
-      fileHandle{memoryManager.getBufferManager()->getFileHandle(dbFileIDAndName.fName,
-          inMemMode ? FileHandle::O_PERSISTENT_FILE_IN_MEM :
-          readOnly  ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                      FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-          vfs, context)},
-      dbFileIDAndName{dbFileIDAndName}, shadowFile{*shadowFile} {
+PrimaryKeyIndex::PrimaryKeyIndex(FileHandle* dataFH, const DBFileIDAndName& dbFileIDAndName,
+    bool readOnly, bool inMemMode, PhysicalTypeID keyDataType, MemoryManager& memoryManager,
+    ShadowFile* shadowFile, VirtualFileSystem* vfs, main::ClientContext* context,
+    page_idx_t firstHeaderPage, page_idx_t overflowHeaderPage)
+    : keyDataTypeID(keyDataType), fileHandle{dataFH}, dbFileIDAndName{dbFileIDAndName},
+      shadowFile{*shadowFile}, firstHeaderPage{firstHeaderPage},
+      overflowHeaderPage{overflowHeaderPage} {
     KU_ASSERT(!(inMemMode && readOnly));
-    bool newIndex = fileHandle->getNumPages() == 0;
+    bool newIndex = this->firstHeaderPage == INVALID_PAGE_IDX;
 
     if (newIndex) {
-        fileHandle->addNewPages(INDEX_HEADER_PAGES);
+        this->firstHeaderPage = fileHandle->addNewPages(INDEX_HEADER_PAGES);
         hashIndexHeadersForReadTrx.resize(NUM_HASH_INDEXES);
         hashIndexHeadersForWriteTrx.resize(NUM_HASH_INDEXES);
     } else {
@@ -445,7 +441,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
             fileHandle->optimisticReadPage(headerPageIdx, [&](auto* frame) {
                 const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
+                    i++) {
                     hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
                     headerIdx++;
                 }
@@ -457,15 +453,17 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
     }
     hashIndexDiskArrays =
         std::make_unique<DiskArrayCollection>(*fileHandle, dbFileIDAndName.dbFileID, *shadowFile,
-            INDEX_HEADER_PAGES /*firstHeaderPage follows the index header pages*/,
+            this->firstHeaderPage +
+                INDEX_HEADER_PAGES /*firstHeaderPage follows the index header pages*/,
             true /*bypassShadowing*/);
 
     if (keyDataTypeID == PhysicalTypeID::STRING) {
         if (inMemMode) {
-            overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName, memoryManager);
+            overflowFile =
+                std::make_unique<InMemOverflowFile>(dbFileIDAndName.dbFileID, memoryManager);
         } else {
-            overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, memoryManager,
-                shadowFile, readOnly, vfs, context);
+            overflowFile = std::make_unique<OverflowFile>(fileHandle, dbFileIDAndName.dbFileID,
+                memoryManager, shadowFile, vfs, context, this->overflowHeaderPage);
         }
     }
     if (newIndex) {
@@ -569,7 +567,7 @@ void PrimaryKeyIndex::writeHeaders() {
             [&](auto* frame) {
                 auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
+                    i++) {
                     hashIndexHeadersForWriteTrx[headerIdx++].write(onDiskFrame[i]);
                 }
             });
@@ -611,6 +609,13 @@ void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
     // disk array
     fileHandle->flushAllDirtyPagesInFrames();
     checkpointInMemory();
+}
+
+void PrimaryKeyIndex::serialize(Serializer& serializer) {
+    serializer.writeDebuggingInfo("firstHeaderPage");
+    serializer.write(firstHeaderPage);
+    serializer.writeDebuggingInfo("overflowHeaderPage");
+    serializer.write(overflowHeaderPage);
 }
 
 PrimaryKeyIndex::~PrimaryKeyIndex() = default;

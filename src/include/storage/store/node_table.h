@@ -116,7 +116,7 @@ public:
 
     void initializePKIndex(const std::string& databasePath,
         const catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+        common::VirtualFileSystem* vfs, main::ClientContext* context, common::Deserializer* deSer);
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 

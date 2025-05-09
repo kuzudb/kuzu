@@ -307,9 +307,10 @@ inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transactio
 
 class PrimaryKeyIndex {
 public:
-    PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly, bool inMemMode,
-        common::PhysicalTypeID keyDataType, MemoryManager& memoryManager, ShadowFile* shadowFile,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+    PrimaryKeyIndex(FileHandle* dataFH, const DBFileIDAndName& dbFileIDAndName, bool readOnly,
+        bool inMemMode, common::PhysicalTypeID keyDataType, MemoryManager& memoryManager,
+        ShadowFile* shadowFile, common::VirtualFileSystem* vfs, main::ClientContext* context,
+        common::page_idx_t firstHeaderPage, common::page_idx_t overflowHeaderPage);
 
     ~PrimaryKeyIndex();
 
@@ -392,6 +393,8 @@ public:
 
     void writeHeaders();
 
+    void serialize(common::Serializer& serializer);
+
 private:
     common::PhysicalTypeID keyDataTypeID;
     FileHandle* fileHandle;
@@ -403,6 +406,8 @@ private:
     ShadowFile& shadowFile;
     // Stores both primary and overflow slots
     std::unique_ptr<DiskArrayCollection> hashIndexDiskArrays;
+    common::page_idx_t firstHeaderPage;
+    common::page_idx_t overflowHeaderPage;
 };
 
 } // namespace storage

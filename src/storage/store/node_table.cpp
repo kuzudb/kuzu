@@ -230,11 +230,11 @@ NodeTable::NodeTable(const StorageManager* storageManager,
             dataFH, memoryManager, shadowFile, enableCompression);
     }
 
+    initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
+        storageManager->isReadOnly(), vfs, context, deSer);
     nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
         storageManager->getDataFH(), deSer, &versionRecordHandler);
-    initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
-        storageManager->isReadOnly(), vfs, context);
 }
 
 std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catalog& catalog,
@@ -255,12 +255,21 @@ std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catal
 
 void NodeTable::initializePKIndex(const std::string& databasePath,
     const NodeTableCatalogEntry* nodeTableEntry, bool readOnly, VirtualFileSystem* vfs,
-    main::ClientContext* context) {
-    pkIndex = std::make_unique<PrimaryKeyIndex>(
-        StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
-        main::DBConfig::isDBPathInMemory(databasePath),
+    main::ClientContext* context, Deserializer* deSer) {
+    page_idx_t firstHeaderPage = INVALID_PAGE_IDX;
+    page_idx_t overflowHeaderPage = INVALID_PAGE_IDX;
+    if (deSer) {
+        std::string key;
+        deSer->validateDebuggingInfo(key, "firstHeaderPage");
+        deSer->deserializeValue<page_idx_t>(firstHeaderPage);
+        deSer->validateDebuggingInfo(key, "overflowHeaderPage");
+        deSer->deserializeValue<page_idx_t>(overflowHeaderPage);
+    }
+    pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH,
+        DBFileIDAndName{DBFileID::newDataFileID(), StorageUtils::getDataFName(vfs, databasePath)},
+        readOnly, main::DBConfig::isDBPathInMemory(databasePath),
         nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *memoryManager,
-        shadowFile, vfs, context);
+        shadowFile, vfs, context, firstHeaderPage, overflowHeaderPage);
 }
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
@@ -512,7 +521,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -613,6 +622,7 @@ TableStats NodeTable::getStats(const Transaction* transaction) const {
 
 void NodeTable::serialize(Serializer& serializer) const {
     Table::serialize(serializer);
+    pkIndex->serialize(serializer);
     nodeGroups->serialize(serializer);
 }
 
@@ -652,7 +662,7 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to

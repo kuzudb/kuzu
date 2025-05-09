@@ -60,6 +60,9 @@ void ShadowFile::clearShadowPage(file_idx_t originalFile, page_idx_t originalPag
 
 page_idx_t ShadowFile::getOrCreateShadowPage(DBFileID dbFileID, file_idx_t originalFile,
     page_idx_t originalPage) {
+    if (dbFileID.dbFileType == DBFileType::NODE_INDEX) {
+        auto x = 10;
+    }
     if (hasShadowPage(originalFile, originalPage)) {
         return shadowPagesMap[originalFile][originalPage];
     }
