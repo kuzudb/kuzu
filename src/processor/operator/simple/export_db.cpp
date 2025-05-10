@@ -88,16 +88,10 @@ std::string getSchemaCypher(ClientContext* clientContext) {
         ss << nodeTableEntry->toCypher(toCypherInfo) << std::endl;
     }
     RelTableToCypherInfo relTableToCypherInfo{clientContext};
-    for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
-        if (entry->hasParentRelGroup(catalog, transaction)) {
-            continue;
-        }
+    for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
         ss << entry->toCypher(relTableToCypherInfo) << std::endl;
     }
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
-    for (const auto& relGroupEntry : catalog->getRelGroupEntries(transaction)) {
-        ss << relGroupEntry->toCypher(relGroupToCypherInfo) << std::endl;
-    }
     for (const auto sequenceEntry : catalog->getSequenceEntries(transaction)) {
         ss << sequenceEntry->toCypher(relGroupToCypherInfo) << std::endl;
     }
@@ -119,7 +113,7 @@ std::string getCopyCypher(const Catalog* catalog, Transaction* transaction,
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
         writeCopyStatement(ss, nodeTableEntry, boundFileInfo);
     }
-    for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
+    for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
         writeCopyStatement(ss, entry, boundFileInfo);
     }
     return ss.str();

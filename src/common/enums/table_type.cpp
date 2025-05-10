@@ -13,7 +13,7 @@ std::string TableTypeUtils::toString(TableType tableType) {
     case TableType::NODE: {
         return "NODE";
     }
-    case TableType::REL: {
+    case TableType::REL_GROUP: {
         return "REL";
     }
     case TableType::FOREIGN: {

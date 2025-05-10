@@ -194,16 +194,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
             default:
                 KU_UNREACHABLE;
             }
-        } else if (catalog->containsRelGroup(transaction, tableName)) {
-            auto entry = catalog->getRelGroupEntry(transaction, tableName);
-            KU_ASSERT(entry->getNumRelTables() > 0);
-            auto id = entry->getRelTableIDs()[0];
-            auto relEntry =
-                catalog->getTableCatalogEntry(transaction, id)->ptrCast<RelTableCatalogEntry>();
-            columnNames.emplace_back("storage_direction");
-            columnTypes.push_back(LogicalType::STRING());
-            infos = getRelPropertyInfos(relEntry->ptrCast<RelTableCatalogEntry>());
-            type = CatalogEntryType::REL_TABLE_ENTRY;
         } else {
             throw CatalogException(stringFormat("{} does not exist in catalog.", tableName));
         }

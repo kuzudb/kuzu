@@ -1,6 +1,6 @@
 #include "binder/expression/rel_expression.h"
 
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/extend_direction_util.h"
 #include "common/exception/binder.h"
@@ -43,7 +43,7 @@ std::vector<common::ExtendDirection> RelExpression::getExtendDirections() const 
         const bool addDirection = std::all_of(entries.begin(), entries.end(),
             [direction](const catalog::TableCatalogEntry* tableEntry) {
                 const auto* relTableEntry =
-                    tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
+                    tableEntry->constPtrCast<catalog::RelGroupCatalogEntry>();
                 return common::containsValue(relTableEntry->getRelDataDirections(),
                     ExtendDirectionUtil::getRelDataDirection(direction));
             });

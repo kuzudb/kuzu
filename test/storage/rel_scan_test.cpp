@@ -33,7 +33,7 @@ public:
             nodeEntries.push_back(entry);
         }
         std::vector<catalog::TableCatalogEntry*> relEntries;
-        for (auto& entry : catalog->getRelTableEntries(transaction)) {
+        for (auto& entry : catalog->getRelGroupEntries(transaction)) {
             relEntries.push_back(entry);
         }
         auto entry = graph::GraphEntry(nodeEntries, relEntries);

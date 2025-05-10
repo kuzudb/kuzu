@@ -18,8 +18,7 @@ void CreateTable::executeInternal(ExecutionContext* context) {
     // Check conflict
     // We don't allow naming conflicting between tables and rel groups because rel groups are
     // transparent to user.
-    auto contains = catalog->containsTable(transaction, info.tableName) ||
-                    catalog->containsRelGroup(transaction, info.tableName);
+    auto contains = catalog->containsTable(transaction, info.tableName);
     if (contains) {
         switch (info.onConflict) {
         case ConflictAction::ON_CONFLICT_DO_NOTHING: {
@@ -36,11 +35,8 @@ void CreateTable::executeInternal(ExecutionContext* context) {
     CatalogEntry* entry = nullptr;
     switch (info.type) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
-    case CatalogEntryType::REL_TABLE_ENTRY: {
-        entry = catalog->createTableEntry(transaction, info);
-    } break;
     case CatalogEntryType::REL_GROUP_ENTRY: {
-        entry = catalog->createRelGroupEntry(transaction, info);
+        entry = catalog->createTableEntry(transaction, info);
     } break;
     default:
         KU_UNREACHABLE;

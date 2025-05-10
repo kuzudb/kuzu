@@ -101,9 +101,6 @@ public:
     /*** bind DDL ***/
     BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo* info);
     BoundCreateTableInfo bindCreateNodeTableInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo* info,
-        const parser::options_t& parsedOptions);
     BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement) const;
@@ -130,7 +127,7 @@ public:
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
         catalog::NodeTableCatalogEntry* nodeTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
-        catalog::RelTableCatalogEntry* relTableEntry);
+        common::NodePair& nodePair, std::vector<binder::PropertyDefinition> properties);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
@@ -280,9 +277,12 @@ public:
     /*** bind table entries ***/
     std::vector<catalog::TableCatalogEntry*> bindNodeTableEntries(
         const std::vector<std::string>& tableNames) const;
-    catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name) const;
-    std::vector<catalog::TableCatalogEntry*> bindRelTableEntries(
+    std::vector<catalog::TableCatalogEntry*> bindRelGroupEntries(
         const std::vector<std::string>& tableNames) const;
+    catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name) const;
+    std::vector<PropertyDefinition> bindRelPropertyDefinitions(const parser::CreateTableInfo& info);
+    std::vector<common::NodePair> bindNodePairs(
+        const std::vector<std::pair<std::string, std::string>>& srcDstTablePairs);
 
     /*** validations ***/
     static void validateOrderByFollowedBySkipOrLimitInWithClause(

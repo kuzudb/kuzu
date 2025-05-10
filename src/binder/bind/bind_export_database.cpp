@@ -3,7 +3,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
@@ -63,15 +63,20 @@ static void bindExportNodeTableDataQuery(const TableCatalogEntry& entry, std::st
     exportQuery = stringFormat("match (a:`{}`) return a.*", entry.getName());
 }
 
-static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery,
+// Todo(Ziyi relgroup): fix
+static void bindExportRelGroupDataQuery(const TableCatalogEntry& entry, std::string& exportQuery,
     const Catalog& catalog, const Transaction* transaction) {
-    auto relTableEntry = entry.constPtrCast<RelTableCatalogEntry>();
-    auto& srcTableEntry = catalog.getTableCatalogEntry(transaction, relTableEntry->getSrcTableID())
+    auto relGroupEntry = entry.constPtrCast<RelGroupCatalogEntry>();
+    auto& srcTableEntry = catalog
+                              .getTableCatalogEntry(transaction,
+                                  relGroupEntry->getRelTableInfos()[0].nodePair.srcTableID)
                               ->constCast<NodeTableCatalogEntry>();
-    auto& dstTableEntry = catalog.getTableCatalogEntry(transaction, relTableEntry->getDstTableID())
+    auto& dstTableEntry = catalog
+                              .getTableCatalogEntry(transaction,
+                                  relGroupEntry->getRelTableInfos()[0].nodePair.dstTableID)
                               ->constCast<NodeTableCatalogEntry>();
     exportQuery = stringFormat("match (a:`{}`)-[r:`{}`]->(b:`{}`) return a.{},b.{},r.*;",
-        srcTableEntry.getName(), relTableEntry->getName(), dstTableEntry.getName(),
+        srcTableEntry.getName(), relGroupEntry->getName(), dstTableEntry.getName(),
         srcTableEntry.getPrimaryKeyName(), dstTableEntry.getPrimaryKeyName());
 }
 
@@ -81,8 +86,8 @@ static bool bindExportQuery(std::string& exportQuery, const TableCatalogEntry& e
     case TableType::NODE: {
         bindExportNodeTableDataQuery(entry, exportQuery);
     } break;
-    case TableType::REL: {
-        bindExportRelTableDataQuery(entry, exportQuery, catalog, transaction);
+    case TableType::REL_GROUP: {
+        bindExportRelGroupDataQuery(entry, exportQuery, catalog, transaction);
     } break;
     default:
         return false;

@@ -25,12 +25,12 @@ public:
     }
     bool hasRelInfo() const {
         return hasInfo([](const BoundSetPropertyInfo& info) {
-            return info.tableType == common::TableType::REL;
+            return info.tableType == common::TableType::REL_GROUP;
         });
     }
     std::vector<BoundSetPropertyInfo> getRelInfos() const {
         return getInfos([](const BoundSetPropertyInfo& info) {
-            return info.tableType == common::TableType::REL;
+            return info.tableType == common::TableType::REL_GROUP;
         });
     }
 

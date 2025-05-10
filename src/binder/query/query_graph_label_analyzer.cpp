@@ -1,7 +1,7 @@
 #include "binder/query/query_graph_label_analyzer.h"
 
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 
@@ -22,6 +22,7 @@ void QueryGraphLabelAnalyzer::pruneLabel(QueryGraph& graph) const {
     }
 }
 
+// todo(xiyang relgroup): fix
 void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression& node) const {
     auto catalog = clientContext.getCatalog();
     for (auto i = 0u; i < graph.getNumQueryRels(); ++i) {
@@ -37,9 +38,9 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
         if (queryRel->getDirectionType() == RelDirectionType::BOTH) {
             if (isSrcConnect || isDstConnect) {
                 for (auto entry : queryRel->getEntries()) {
-                    auto& relEntry = entry->constCast<RelTableCatalogEntry>();
-                    auto srcTableID = relEntry.getSrcTableID();
-                    auto dstTableID = relEntry.getDstTableID();
+                    auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
+                    auto srcTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
+                    auto dstTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
                     candidates.insert(srcTableID);
                     candidates.insert(dstTableID);
                     auto srcEntry = catalog->getTableCatalogEntry(tx, srcTableID);
@@ -51,16 +52,16 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
         } else {
             if (isSrcConnect) {
                 for (auto entry : queryRel->getEntries()) {
-                    auto& relEntry = entry->constCast<RelTableCatalogEntry>();
-                    auto srcTableID = relEntry.getSrcTableID();
+                    auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
+                    auto srcTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
                     candidates.insert(srcTableID);
                     auto srcEntry = catalog->getTableCatalogEntry(tx, srcTableID);
                     candidateNamesSet.insert(srcEntry->getName());
                 }
             } else if (isDstConnect) {
                 for (auto entry : queryRel->getEntries()) {
-                    auto& relEntry = entry->constCast<RelTableCatalogEntry>();
-                    auto dstTableID = relEntry.getDstTableID();
+                    auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
+                    auto dstTableID = relEntry.getRelTableInfos()[0].nodePair.dstTableID;
                     candidates.insert(dstTableID);
                     auto dstEntry = catalog->getTableCatalogEntry(tx, dstTableID);
                     candidateNamesSet.insert(dstEntry->getName());
@@ -94,6 +95,7 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
     }
 }
 
+// todo(xiyang relgroup): fix
 void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) const {
     if (rel.isRecursive()) {
         return;
@@ -109,9 +111,9 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) const {
             dstBoundTableIDSet.insert(entry->getTableID());
         }
         for (auto& entry : rel.getEntries()) {
-            auto& relEntry = entry->constCast<RelTableCatalogEntry>();
-            auto srcTableID = relEntry.getSrcTableID();
-            auto dstTableID = relEntry.getDstTableID();
+            auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
+            auto srcTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
+            auto dstTableID = relEntry.getRelTableInfos()[0].nodePair.dstTableID;
             if ((srcBoundTableIDSet.contains(srcTableID) &&
                     dstBoundTableIDSet.contains(dstTableID)) ||
                 (dstBoundTableIDSet.contains(srcTableID) &&
@@ -123,9 +125,9 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) const {
         auto srcTableIDSet = rel.getSrcNode()->getTableIDsSet();
         auto dstTableIDSet = rel.getDstNode()->getTableIDsSet();
         for (auto& entry : rel.getEntries()) {
-            auto& relEntry = entry->constCast<RelTableCatalogEntry>();
-            auto srcTableID = relEntry.getSrcTableID();
-            auto dstTableID = relEntry.getDstTableID();
+            auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
+            auto srcTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
+            auto dstTableID = relEntry.getRelTableInfos()[0].nodePair.dstTableID;
             if (!srcTableIDSet.contains(srcTableID) || !dstTableIDSet.contains(dstTableID)) {
                 continue;
             }

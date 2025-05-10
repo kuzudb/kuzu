@@ -41,9 +41,6 @@ void Alter::executeInternal(ExecutionContext* context) {
             }
         }
         alterTable(clientContext, entry, info);
-    } else if (catalog->containsRelGroup(transaction, info.tableName)) {
-        auto entry = catalog->getRelGroupEntry(transaction, info.tableName);
-        alterRelGroup(clientContext, entry, info);
     } else {
         throw BinderException("Table " + info.tableName + " does not exist.");
     }
@@ -141,8 +138,7 @@ static bool checkRenamePropertyConflicts(TableCatalogEntry* tableEntry,
 static void checkNewTableNameNotExist(const std::string& newName, main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
-    if (catalog->containsRelGroup(transaction, newName) ||
-        catalog->containsTable(transaction, newName)) {
+    if (catalog->containsTable(transaction, newName)) {
         throw BinderException("Table " + newName + " already exists.");
     }
 }
@@ -212,7 +208,7 @@ void Alter::alterRelGroup(main::ClientContext* clientContext, RelGroupCatalogEnt
     auto transaction = clientContext->getTransaction();
     alterRelGroupChildren(clientContext, entry, alterInfo);
     checkAlterRelGroupConflicts(alterInfo, clientContext);
-    catalog->alterRelGroupEntry(transaction, info);
+    // catalog->alterRelGroupEntry(transaction, info);
 }
 
 void Alter::alterRelGroupChildren(main::ClientContext* clientContext, RelGroupCatalogEntry* entry,
