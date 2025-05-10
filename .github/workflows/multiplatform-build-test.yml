@@ -35,7 +35,7 @@ jobs:
   rhel-fedora-build-test:
     strategy:
       matrix:
-        image: ["fedora:40", "fedora:41"]
+        image: ["rockylinux:8", "rockylinux:9"]
       fail-fast: false
     name: ${{ matrix.image }}
     needs: [generate-binary-demo]
@@ -74,12 +74,12 @@ jobs:
           source /opt/rh/gcc-toolset-12/enable
           echo $PATH >> $GITHUB_PATH
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.9 on RockyLinux
         if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
         continue-on-error: true
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.9'
 
       - uses: actions/checkout@v4
         continue-on-error: true
