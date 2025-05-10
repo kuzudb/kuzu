@@ -69,12 +69,12 @@ jobs:
 
       - name: Set up Python 3.11
         continue-on-error: true
-        if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Enable gcc-toolset-12
+        if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
         continue-on-error: true
         run: |
           source /opt/rh/gcc-toolset-12/enable
