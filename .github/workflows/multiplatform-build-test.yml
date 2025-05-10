@@ -65,7 +65,7 @@ jobs:
         continue-on-error: true
         run: |
           curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-          dnf install -y git cmake ${{ (matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9') && 'gcc-toolset-12' || 'gcc gcc-c++ python3-devel' }} java-17-openjdk-devel nodejs
+          dnf install -y git cmake ${{ (matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9') && 'gcc-toolset-12 python3.11 python3.11-devel' || 'gcc gcc-c++ python3-devel' }} java-17-openjdk-devel nodejs
 
       - name: Enable gcc-toolset-12
         if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
@@ -73,13 +73,6 @@ jobs:
         run: |
           source /opt/rh/gcc-toolset-12/enable
           echo $PATH >> $GITHUB_PATH
-
-      - name: Set up Python 3.9 on RockyLinux
-        if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
-        continue-on-error: true
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
 
       - uses: actions/checkout@v4
         continue-on-error: true
