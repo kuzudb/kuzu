@@ -101,9 +101,9 @@ struct PIPUpdates {
 class DiskArrayInternal {
 public:
     // Used when loading from file
-    DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
-        const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
-        ShadowFile* shadowFile, uint64_t elementSize, bool bypassShadowing = false);
+    DiskArrayInternal(FileHandle& fileHandle, const DiskArrayHeader& headerForReadTrx,
+        DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, uint64_t elementSize,
+        bool bypassShadowing = false);
 
     virtual ~DiskArrayInternal() = default;
 
@@ -241,7 +241,6 @@ private:
 protected:
     PageStorageInfo storageInfo;
     FileHandle& fileHandle;
-    DBFileID dbFileID;
     const DiskArrayHeader& header;
     DiskArrayHeader& headerForWriteTrx;
     bool hasTransactionalUpdates;
@@ -267,10 +266,10 @@ public:
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
-    DiskArray(FileHandle& fileHandle, DBFileID dbFileID, const DiskArrayHeader& headerForReadTrx,
+    DiskArray(FileHandle& fileHandle, const DiskArrayHeader& headerForReadTrx,
         DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, bool bypassWAL = false)
-        : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, shadowFile,
-              sizeof(U), bypassWAL) {}
+        : diskArray(fileHandle, headerForReadTrx, headerForWriteTrx, shadowFile, sizeof(U),
+              bypassWAL) {}
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.

@@ -145,7 +145,7 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
         compressBuffer(bufferToCompress, alg, preScanMetadata.get(), dataFH, dataType);
 
     auto columnReader = ColumnReadWriterFactory::createColumnReadWriter(dataType.getPhysicalType(),
-        DBFileID::newDataFileID(), dataFH, &storageManager->getShadowFile());
+        dataFH, &storageManager->getShadowFile());
 
     auto* clientContext = getClientContext(*conn);
     clientContext->getTransactionContext()->beginWriteTransaction();

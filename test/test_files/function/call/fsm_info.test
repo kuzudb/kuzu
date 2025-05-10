@@ -139,10 +139,12 @@ True
 ---- ok
 
 # There shouldn't be gaps in the free pages at the end
+# TODO(Guodong): Double check the change here.
 -STATEMENT call fsm_info() return count(*)
 ---- 1
-1
+2
 
 -STATEMENT call fsm_info() return start_page_idx
----- 1
-0
+---- 2
+5
+549

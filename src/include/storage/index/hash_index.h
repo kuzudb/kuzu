@@ -67,7 +67,7 @@ public:
 template<typename T>
 class HashIndex final : public OnDiskHashIndex {
 public:
-    HashIndex(MemoryManager& memoryManager, DBFileIDAndName dbFileIDAndName, FileHandle* fileHandle,
+    HashIndex(MemoryManager& memoryManager, FileHandle* fileHandle,
         OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
         ShadowFile* shadowFile, const HashIndexHeader& indexHeaderForReadTrx,
         HashIndexHeader& indexHeaderForWriteTrx);
@@ -278,7 +278,6 @@ private:
         const transaction::Transaction* transaction, slot_id_t pSlotId);
 
 private:
-    DBFileIDAndName dbFileIDAndName;
     ShadowFile* shadowFile;
     uint64_t headerPageIdx;
     FileHandle* fileHandle;
@@ -307,10 +306,9 @@ inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transactio
 
 class PrimaryKeyIndex {
 public:
-    PrimaryKeyIndex(FileHandle* dataFH, const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-        bool inMemMode, common::PhysicalTypeID keyDataType, MemoryManager& memoryManager,
-        ShadowFile* shadowFile, common::VirtualFileSystem* vfs, main::ClientContext* context,
-        common::page_idx_t firstHeaderPage, common::page_idx_t overflowHeaderPage);
+    PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, common::PhysicalTypeID keyDataType,
+        MemoryManager& memoryManager, ShadowFile* shadowFile, common::page_idx_t firstHeaderPage,
+        common::page_idx_t overflowHeaderPage);
 
     ~PrimaryKeyIndex();
 
@@ -393,7 +391,7 @@ public:
 
     void writeHeaders();
 
-    void serialize(common::Serializer& serializer);
+    void serialize(common::Serializer& serializer) const;
 
 private:
     common::PhysicalTypeID keyDataTypeID;
@@ -402,7 +400,6 @@ private:
     std::vector<std::unique_ptr<OnDiskHashIndex>> hashIndices;
     std::vector<HashIndexHeader> hashIndexHeadersForReadTrx;
     std::vector<HashIndexHeader> hashIndexHeadersForWriteTrx;
-    DBFileIDAndName dbFileIDAndName;
     ShadowFile& shadowFile;
     // Stores both primary and overflow slots
     std::unique_ptr<DiskArrayCollection> hashIndexDiskArrays;

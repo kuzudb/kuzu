@@ -146,7 +146,7 @@ public:
 
     static std::unique_ptr<RelTable> loadTable(common::Deserializer& deSer,
         const catalog::Catalog& catalog, StorageManager* storageManager,
-        MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
+        MemoryManager* memoryManager);
 
     common::table_id_t getFromNodeTableID() const { return fromNodeTableID; }
     common::table_id_t getToNodeTableID() const { return toNodeTableID; }

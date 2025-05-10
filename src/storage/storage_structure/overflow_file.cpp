@@ -147,12 +147,11 @@ void OverflowFileHandle::read(TransactionType trxType, page_idx_t pageIdx,
     overflowFile.readFromDisk(trxType, pageIdx, func);
 }
 
-OverflowFile::OverflowFile(FileHandle* dataFH, const DBFileID& dbFileID,
-    MemoryManager& memoryManager, ShadowFile* shadowFile, VirtualFileSystem* vfs,
-    main::ClientContext* context, page_idx_t headerPageIdx)
-    : dbFileID{dbFileID}, fileHandle{dataFH}, shadowFile{shadowFile}, memoryManager{memoryManager},
+OverflowFile::OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager, ShadowFile* shadowFile,
+    page_idx_t headerPageIdx)
+    : fileHandle{dataFH}, shadowFile{shadowFile}, memoryManager{memoryManager},
       headerChanged{false}, headerPageIdx{headerPageIdx} {
-    KU_ASSERT(vfs && context && shadowFile);
+    KU_ASSERT(shadowFile);
     if (headerPageIdx != INVALID_PAGE_IDX) {
         readFromDisk(TransactionType::READ_ONLY, headerPageIdx,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
@@ -163,10 +162,8 @@ OverflowFile::OverflowFile(FileHandle* dataFH, const DBFileID& dbFileID,
     }
 }
 
-OverflowFile::OverflowFile(FileHandle* dataFH, const DBFileID& dbFileID,
-    MemoryManager& memoryManager)
-    : dbFileID{dbFileID}, fileHandle{dataFH}, shadowFile{nullptr}, memoryManager{memoryManager},
-      headerChanged{false} {
+OverflowFile::OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager)
+    : fileHandle{dataFH}, shadowFile{nullptr}, memoryManager{memoryManager}, headerChanged{false} {
     if (fileHandle) {
         numPagesOnDisk = fileHandle->getNumPages();
     } else {
@@ -188,9 +185,8 @@ void OverflowFile::readFromDisk(TransactionType trxType, page_idx_t pageIdx,
 void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
     if (pageIdx < numPagesOnDisk) {
         KU_ASSERT(shadowFile);
-        ShadowUtils::updatePage(*getFileHandle(), dbFileID, pageIdx,
-            true /* overwriting entire page*/, *shadowFile,
-            [&](auto* frame) { memcpy(frame, data, KUZU_PAGE_SIZE); });
+        ShadowUtils::updatePage(*getFileHandle(), pageIdx, true /* overwriting entire page*/,
+            *shadowFile, [&](auto* frame) { memcpy(frame, data, KUZU_PAGE_SIZE); });
     } else {
         KU_ASSERT(fileHandle);
         KU_ASSERT(!fileHandle->isInMemoryMode());

@@ -215,8 +215,7 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
 }
 
 NodeTable::NodeTable(const StorageManager* storageManager,
-    const NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager,
-    VirtualFileSystem* vfs, main::ClientContext* context, Deserializer* deSer)
+    const NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager, Deserializer* deSer)
     : Table{nodeTableEntry, storageManager, memoryManager},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyName())},
       versionRecordHandler(this) {
@@ -230,16 +229,14 @@ NodeTable::NodeTable(const StorageManager* storageManager,
             dataFH, memoryManager, shadowFile, enableCompression);
     }
 
-    initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
-        storageManager->isReadOnly(), vfs, context, deSer);
+    initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry, deSer);
     nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
         storageManager->getDataFH(), deSer, &versionRecordHandler);
 }
 
 std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catalog& catalog,
-    StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem* vfs,
-    main::ClientContext* context) {
+    StorageManager* storageManager, MemoryManager* memoryManager) {
     std::string key;
     table_id_t tableID = INVALID_TABLE_ID;
     deSer.validateDebuggingInfo(key, "table_id");
@@ -250,12 +247,11 @@ std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catal
             stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
     }
     return std::make_unique<NodeTable>(storageManager,
-        catalogEntry->ptrCast<NodeTableCatalogEntry>(), memoryManager, vfs, context, &deSer);
+        catalogEntry->ptrCast<NodeTableCatalogEntry>(), memoryManager, &deSer);
 }
 
 void NodeTable::initializePKIndex(const std::string& databasePath,
-    const NodeTableCatalogEntry* nodeTableEntry, bool readOnly, VirtualFileSystem* vfs,
-    main::ClientContext* context, Deserializer* deSer) {
+    const NodeTableCatalogEntry* nodeTableEntry, Deserializer* deSer) {
     page_idx_t firstHeaderPage = INVALID_PAGE_IDX;
     page_idx_t overflowHeaderPage = INVALID_PAGE_IDX;
     if (deSer) {
@@ -265,11 +261,10 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
         deSer->validateDebuggingInfo(key, "overflowHeaderPage");
         deSer->deserializeValue<page_idx_t>(overflowHeaderPage);
     }
-    pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH,
-        DBFileIDAndName{DBFileID::newDataFileID(), StorageUtils::getDataFName(vfs, databasePath)},
-        readOnly, main::DBConfig::isDBPathInMemory(databasePath),
-        nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *memoryManager,
-        shadowFile, vfs, context, firstHeaderPage, overflowHeaderPage);
+    pkIndex =
+        std::make_unique<PrimaryKeyIndex>(dataFH, main::DBConfig::isDBPathInMemory(databasePath),
+            nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *memoryManager,
+            shadowFile, firstHeaderPage, overflowHeaderPage);
 }
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {

@@ -81,8 +81,7 @@ class OverflowFile {
 
 public:
     // For reading an existing overflow file
-    OverflowFile(FileHandle* dataFH, const DBFileID& dbFileID, MemoryManager& memoryManager,
-        ShadowFile* shadowFile, common::VirtualFileSystem* vfs, main::ClientContext* context,
+    OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager, ShadowFile* shadowFile,
         common::page_idx_t headerPageIdx);
 
     virtual ~OverflowFile() = default;
@@ -107,8 +106,7 @@ public:
     }
 
 protected:
-    explicit OverflowFile(FileHandle* dataFH, const DBFileID& dbFileID,
-        MemoryManager& memoryManager);
+    explicit OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager);
 
     common::page_idx_t getNewPageIdx() {
         // If this isn't the first call reserving the page header, then the header flag must be set
@@ -133,7 +131,6 @@ protected:
     std::vector<std::unique_ptr<OverflowFileHandle>> handles;
     StringOverflowFileHeader header;
     common::page_idx_t numPagesOnDisk;
-    DBFileID dbFileID;
     FileHandle* fileHandle;
     ShadowFile* shadowFile;
     MemoryManager& memoryManager;
@@ -144,8 +141,8 @@ protected:
 
 class InMemOverflowFile final : public OverflowFile {
 public:
-    explicit InMemOverflowFile(const DBFileID& dbFileID, MemoryManager& memoryManager)
-        : OverflowFile{nullptr, dbFileID, memoryManager} {}
+    explicit InMemOverflowFile(MemoryManager& memoryManager)
+        : OverflowFile{nullptr, memoryManager} {}
 };
 
 } // namespace storage

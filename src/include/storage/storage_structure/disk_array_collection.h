@@ -27,7 +27,7 @@ class DiskArrayCollection {
     static_assert(std::has_unique_object_representations_v<HeaderPage>);
 
 public:
-    DiskArrayCollection(FileHandle& fileHandle, DBFileID dbFileID, ShadowFile& shadowFile,
+    DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
         common::page_idx_t firstHeaderPage = 0, bool bypassShadowing = false);
 
     void checkpoint();
@@ -52,15 +52,14 @@ public:
                                ->headers[idx % HeaderPage::NUM_HEADERS_PER_PAGE];
         auto& writeHeader = headersForWriteTrx[idx / HeaderPage::NUM_HEADERS_PER_PAGE]
                                 ->headers[idx % HeaderPage::NUM_HEADERS_PER_PAGE];
-        return std::make_unique<DiskArray<T>>(fileHandle, dbFileID, readHeader, writeHeader,
-            &shadowFile, bypassShadowing);
+        return std::make_unique<DiskArray<T>>(fileHandle, readHeader, writeHeader, &shadowFile,
+            bypassShadowing);
     }
 
     size_t addDiskArray();
 
 private:
     FileHandle& fileHandle;
-    DBFileID dbFileID;
     ShadowFile& shadowFile;
     bool bypassShadowing;
     common::page_idx_t headerPagesOnDisk;

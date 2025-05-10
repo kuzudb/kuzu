@@ -36,13 +36,12 @@ PIPWrapper::PIPWrapper(const FileHandle& fileHandle, page_idx_t pipPageIdx)
     fileHandle.readPageFromDisk(reinterpret_cast<uint8_t*>(&pipContents), pipPageIdx);
 }
 
-DiskArrayInternal::DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
+DiskArrayInternal::DiskArrayInternal(FileHandle& fileHandle,
     const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
     ShadowFile* shadowFile, uint64_t elementSize, bool bypassShadowing)
-    : storageInfo{elementSize}, fileHandle{fileHandle}, dbFileID{dbFileID},
-      header{headerForReadTrx}, headerForWriteTrx{headerForWriteTrx},
-      hasTransactionalUpdates{false}, shadowFile{shadowFile}, lastAPPageIdx{INVALID_PAGE_IDX},
-      lastPageOnDisk{INVALID_PAGE_IDX} {
+    : storageInfo{elementSize}, fileHandle{fileHandle}, header{headerForReadTrx},
+      headerForWriteTrx{headerForWriteTrx}, hasTransactionalUpdates{false}, shadowFile{shadowFile},
+      lastAPPageIdx{INVALID_PAGE_IDX}, lastPageOnDisk{INVALID_PAGE_IDX} {
     if (this->header.firstPIPPageIdx != ShadowUtils::NULL_PAGE_IDX) {
         pips.emplace_back(fileHandle, header.firstPIPPageIdx);
         while (pips[pips.size() - 1].pipContents.nextPipPageIdx != ShadowUtils::NULL_PAGE_IDX) {
@@ -111,7 +110,7 @@ void DiskArrayInternal::updatePage(uint64_t pageIdx, bool isNewPage,
         // This may still be used to create new pages since bypassing the WAL is currently optional
         // and if disabled lastPageOnDisk will be INVALID_PAGE_IDX (and the above comparison will
         // always be true)
-        ShadowUtils::updatePage(fileHandle, dbFileID, pageIdx, isNewPage, *shadowFile, updateOp);
+        ShadowUtils::updatePage(fileHandle, pageIdx, isNewPage, *shadowFile, updateOp);
     } else {
         const auto frame = fileHandle.pinPage(pageIdx,
             isNewPage ? PageReadPolicy::DONT_READ_PAGE : PageReadPolicy::READ_PAGE);
@@ -239,13 +238,13 @@ void DiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
 
 void DiskArrayInternal::checkpoint() {
     if (pipUpdates.updatedLastPIP.has_value()) {
-        ShadowUtils::updatePage(fileHandle, dbFileID, pipUpdates.updatedLastPIP->pipPageIdx, true,
+        ShadowUtils::updatePage(fileHandle, pipUpdates.updatedLastPIP->pipPageIdx, true,
             *shadowFile, [&](auto* frame) {
                 memcpy(frame, &pipUpdates.updatedLastPIP->pipContents, sizeof(PIP));
             });
     }
     for (auto& newPIP : pipUpdates.newPIPs) {
-        ShadowUtils::updatePage(fileHandle, dbFileID, newPIP.pipPageIdx, true, *shadowFile,
+        ShadowUtils::updatePage(fileHandle, newPIP.pipPageIdx, true, *shadowFile,
             [&](auto* frame) { memcpy(frame, &newPIP.pipContents, sizeof(PIP)); });
     }
 }
@@ -355,7 +354,7 @@ void DiskArrayInternal::WriteIterator::getPage(page_idx_t newPageIdx, bool isNew
     if (newPageIdx <= diskArray.lastPageOnDisk) {
         // Pin new page
         shadowPageAndFrame = ShadowUtils::createShadowVersionIfNecessaryAndPinPage(newPageIdx,
-            isNewlyAdded, diskArray.fileHandle, diskArray.dbFileID, *diskArray.shadowFile);
+            isNewlyAdded, diskArray.fileHandle, *diskArray.shadowFile);
     } else {
         shadowPageAndFrame.frame = diskArray.fileHandle.pinPage(newPageIdx,
             isNewlyAdded ? PageReadPolicy::DONT_READ_PAGE : PageReadPolicy::READ_PAGE);
