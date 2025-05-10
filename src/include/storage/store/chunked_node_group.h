@@ -180,6 +180,9 @@ public:
 
     void setUnused(const MemoryManager& mm);
 
+private:
+    void handleAppendException();
+
 protected:
     NodeGroupDataFormat format;
     ResidencyState residencyState;

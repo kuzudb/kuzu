@@ -151,8 +151,13 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
     const auto numRowsToAppendInChunk = std::min(numValuesToAppend, capacity - numRows);
     for (auto i = 0u; i < columnVectors.size(); i++) {
         const auto columnVector = columnVectors[i];
-        chunks[i]->getData().append(columnVector,
-            columnVector->state->getSelVector().slice(startRowInVectors, numRowsToAppendInChunk));
+        try {
+            chunks[i]->getData().append(columnVector,
+                columnVector->state->getSelVector().slice(startRowInVectors,
+                    numRowsToAppendInChunk));
+        } catch (std::exception& e) {
+            handleAppendException();
+        }
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {
@@ -194,8 +199,13 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
     for (auto i = 0u; i < columnIDs.size(); i++) {
         auto columnID = columnIDs[i];
         KU_ASSERT(columnID < chunks.size());
-        chunks[columnID]->getData().append(&other[i]->getData(), offsetInOtherNodeGroup,
-            numToAppendInChunkedGroup);
+
+        try {
+            chunks[columnID]->getData().append(&other[i]->getData(), offsetInOtherNodeGroup,
+                numToAppendInChunkedGroup);
+        } catch (std::exception& e) {
+            handleAppendException();
+        }
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {
@@ -568,6 +578,18 @@ uint64_t ChunkedNodeGroup::spillToDisk() {
         }
     }
     return reclaimedSpace;
+}
+
+void ChunkedNodeGroup::handleAppendException() {
+    // After an exception is thrown other threads may continue to work on this chunked group for a
+    // while before they are interrupted
+    // Although the changes will eventually be rolled back
+    // We reset the state of the chunk so later changes won't corrupt any data
+    // Due to the numValues in column chunks not matching the number of rows
+    for (const auto& chunk : chunks) {
+        chunk->setNumValues(numRows);
+    }
+    std::rethrow_exception(std::current_exception());
 }
 
 } // namespace storage
