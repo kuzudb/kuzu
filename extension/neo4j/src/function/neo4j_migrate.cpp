@@ -200,7 +200,7 @@ static LogicalType inferKuzuType(nlohmann::json types) {
 }
 
 std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli,
-    const std::string& nodeName) {
+    const std::string& nodeName, std::vector<std::string>& outputTables) {
     auto neo4jQuery = common::stringFormat(
         "call db.schema.nodeTypeProperties() yield nodeType, propertyName,propertyTypes where "
         "nodeType = ':`{}`' return propertyName,propertyTypes",
@@ -214,6 +214,11 @@ std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli
         }
         auto property = item["row"][0].get<std::string>();
         auto kuType = inferKuzuType(item["row"][1]);
+
+        auto newNode = stringFormat("['{}','{}','{}','{}']", nodeName, property, kuType.toString(),
+            nlohmann::to_string(item["row"][1]));
+        outputTables.emplace_back(std::move(newNode));
+
         propertyDefinitions.emplace_back(property, kuType.copy());
     }
     // According to neo4j doc: https://neo4j.com/docs/apoc/current/export/csv/:
@@ -258,7 +263,7 @@ std::vector<std::string> getRelProperties(httplib::Client& cli, std::string srcL
 }
 
 std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relName,
-    const std::vector<std::string>& nodeLabelsToImport) {
+    const std::vector<std::string>& nodeLabelsToImport, std::vector<std::string>& outputTables) {
     auto neo4jQuery = common::stringFormat(
         "call db.schema.relTypeProperties() yield relType, propertyName,propertyTypes where "
         "relType = ':`{}`' and propertyName is not null and  propertyTypes is not null return "
@@ -267,11 +272,13 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
     auto data = executeNeo4jQuery(cli, neo4jQuery);
 
     std::unordered_map<std::string, std::string> propertyTypes;
+    std::unordered_map<std::string, std::string> originalTypes;
     std::vector<binder::ColumnDefinition> propertyDefinitions;
     for (const auto& item : data) {
         auto property = item["row"][0].get<std::string>();
         auto kuType = inferKuzuType(item["row"][1]);
         propertyTypes.emplace(property, kuType.toString());
+        originalTypes.emplace(property, nlohmann::to_string(item["row"][1]));
         propertyDefinitions.emplace_back(property, kuType.copy());
     }
     std::sort(propertyDefinitions.begin(), propertyDefinitions.end(),
@@ -326,6 +333,10 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
             if (i != relProperties.size() - 1) {
                 propertiesToCopy += ",";
             }
+            auto newRel = stringFormat("['{}_{}_{}','{}','{}','{}']", relName, srcLabel, dstLabel,
+                relProperties[i], propertyTypes.at(relProperties[i]),
+                originalTypes.at(relProperties[i]));
+            outputTables.emplace_back(std::move(newRel));
         }
         copyQuery +=
             common::stringFormat("COPY `{}`({}) FROM (LOAD WITH HEADERS(_id STRING, _labels "
@@ -346,17 +357,30 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
 
 std::string migrateQuery(ClientContext& /*context*/, const TableFuncBindData& bindData) {
     std::string result;
+    std::vector<std::string> outputTables;
     auto neo4jMigrateBindData = bindData.constPtrCast<Neo4jMigrateBindData>();
     for (auto node : neo4jMigrateBindData->nodesToImport) {
         exportNeo4jNodeToCSV(node, *neo4jMigrateBindData->client);
-        auto [ddl, copyQuery] = getCreateNodeTableQuery(*neo4jMigrateBindData->client, node);
+        auto [ddl, copyQuery] =
+            getCreateNodeTableQuery(*neo4jMigrateBindData->client, node, outputTables);
         result += ddl;
         result += copyQuery;
     }
     for (auto rel : neo4jMigrateBindData->relsToImport) {
         result += getCreateRelTableQuery(*neo4jMigrateBindData->client, rel,
-            neo4jMigrateBindData->nodesToImport);
+            neo4jMigrateBindData->nodesToImport, outputTables);
     }
+    std::string outputQuery;
+    outputQuery.append("UNWIND [");
+    for (auto i = 0u; i < outputTables.size(); i++) {
+        outputQuery.append(outputTables[i]);
+        if (i != outputTables.size() - 1) {
+            outputQuery.append(",");
+        }
+    }
+    outputQuery.append("] as row RETURN row[1] as kuzu_table, row[2] as kuzu_property, row[3] as "
+                       "kuzu_type, row[4] as neo4j_types;");
+    result += outputQuery;
     return result;
 }
 
