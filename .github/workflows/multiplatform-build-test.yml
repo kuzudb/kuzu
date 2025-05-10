@@ -497,7 +497,6 @@ jobs:
 
       - name: Enable gcc-toolset-12
         continue-on-error: true
-        if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
         run: |
           source /opt/rh/gcc-toolset-12/enable
           echo $PATH >> $GITHUB_PATH
