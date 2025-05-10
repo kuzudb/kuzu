@@ -35,7 +35,7 @@ jobs:
   rhel-fedora-build-test:
     strategy:
       matrix:
-        image: ["fedora:38", "fedora:39"]
+        image: ["fedora:40", "fedora:41"]
       fail-fast: false
     name: ${{ matrix.image }}
     needs: [generate-binary-demo]
@@ -67,18 +67,19 @@ jobs:
           curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
           dnf install -y git cmake ${{ (matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9') && 'gcc-toolset-12' || 'gcc gcc-c++' }} java-17-openjdk-devel nodejs
 
-      - name: Set up Python 3.11
-        continue-on-error: true
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Enable gcc-toolset-12
         if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
         continue-on-error: true
         run: |
           source /opt/rh/gcc-toolset-12/enable
           echo $PATH >> $GITHUB_PATH
+
+      - name: Set up Python 3.11
+        if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
+        continue-on-error: true
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - uses: actions/checkout@v4
         continue-on-error: true
@@ -94,8 +95,8 @@ jobs:
         run: |
           python3 -m venv /opt/venv
           source /opt/venv/bin/activate
-          pip3 install torch~=2.2.1 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
+          pip3 install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
 
       - name: Ensure Node.js dependencies
         continue-on-error: true
