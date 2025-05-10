@@ -3,6 +3,7 @@
 #include "function/table/bind_data.h"
 #include "function/table/table_function.h"
 #include "planner/operator/logical_operator.h"
+#include "sip/logical_semi_masker.h"
 
 namespace kuzu {
 namespace planner {
@@ -33,6 +34,13 @@ public:
     }
     std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskRoots() const { return nodeMaskRoots; }
 
+    void setInputNodeMaskRoots(std::vector<std::shared_ptr<LogicalSemiMasker>> roots) {
+        inputNodeMaskRoots = std::move(roots);
+    }
+    std::vector<std::shared_ptr<LogicalSemiMasker>> getInputNodeMaskRoots() const {
+        return inputNodeMaskRoots;
+    }
+
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
 
@@ -48,6 +56,8 @@ private:
 
     // TODO(Xiyang): We should unify how masks are planned in GDS and HNSW.
     std::vector<std::shared_ptr<LogicalOperator>> nodeMaskRoots;
+    // Gds function input parameter's nodeMask
+    std::vector<std::shared_ptr<LogicalSemiMasker>> inputNodeMaskRoots;
 };
 
 } // namespace planner
