@@ -65,7 +65,7 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
             deSer.validateDebuggingInfo(key, "num_tables");
             deSer.deserializeValue<uint64_t>(numTables);
             for (auto i = 0u; i < numTables; i++) {
-                auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
+                auto table = Table::loadTable(deSer, catalog, this, &memoryManager);
                 tables[table->getTableID()] = std::move(table);
             }
             deSer.validateDebuggingInfo(key, "page_manager");
@@ -95,18 +95,16 @@ void StorageManager::recover(main::ClientContext& clientContext) {
     }
 }
 
-void StorageManager::createNodeTable(NodeTableCatalogEntry* entry, main::ClientContext* context) {
-    KU_ASSERT(context != nullptr);
-    tables[entry->getTableID()] =
-        std::make_unique<NodeTable>(this, entry, &memoryManager, context->getVFSUnsafe(), context);
+void StorageManager::createNodeTable(NodeTableCatalogEntry* entry) {
+    tables[entry->getTableID()] = std::make_unique<NodeTable>(this, entry, &memoryManager);
 }
 
 void StorageManager::createRelTable(RelTableCatalogEntry* entry) {
     tables[entry->getTableID()] = std::make_unique<RelTable>(entry, this, &memoryManager);
 }
 
-void StorageManager::createRelTableGroup(catalog::RelGroupCatalogEntry* entry,
-    main::ClientContext* context) {
+void StorageManager::createRelTableGroup(const RelGroupCatalogEntry* entry,
+    const main::ClientContext* context) {
     for (const auto id : entry->getRelTableIDs()) {
         createRelTable(context->getCatalog()
                            ->getTableCatalogEntry(context->getTransaction(), id)
@@ -114,11 +112,11 @@ void StorageManager::createRelTableGroup(catalog::RelGroupCatalogEntry* entry,
     }
 }
 
-void StorageManager::createTable(catalog::CatalogEntry* entry, main::ClientContext* context) {
+void StorageManager::createTable(CatalogEntry* entry, const main::ClientContext* context) {
     std::lock_guard lck{mtx};
     switch (entry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
-        createNodeTable(entry->ptrCast<NodeTableCatalogEntry>(), context);
+        createNodeTable(entry->ptrCast<NodeTableCatalogEntry>());
     } break;
     case CatalogEntryType::REL_TABLE_ENTRY: {
         createRelTable(entry->ptrCast<RelTableCatalogEntry>());
@@ -208,7 +206,7 @@ void StorageManager::finalizeCheckpoint(main::ClientContext&) {
     dataFH->getPageManager()->finalizeCheckpoint();
 }
 
-void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {
+void StorageManager::rollbackCheckpoint(const main::ClientContext& clientContext) {
     if (main::DBConfig::isDBPathInMemory(databasePath)) {
         return;
     }

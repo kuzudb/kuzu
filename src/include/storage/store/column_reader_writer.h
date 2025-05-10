@@ -1,7 +1,6 @@
 #pragma once
 
 #include "storage/compression/float_compression.h"
-#include "storage/db_file_id.h"
 
 namespace kuzu {
 namespace transaction {
@@ -38,12 +37,12 @@ using filter_func_t = std::function<bool(common::offset_t, common::offset_t)>;
 
 struct ColumnReadWriterFactory {
     static std::unique_ptr<ColumnReadWriter> createColumnReadWriter(common::PhysicalTypeID dataType,
-        DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile);
+        FileHandle* dataFH, ShadowFile* shadowFile);
 };
 
 class ColumnReadWriter {
 public:
-    ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile);
+    ColumnReadWriter(FileHandle* dataFH, ShadowFile* shadowFile);
 
     virtual ~ColumnReadWriter() = default;
 
@@ -78,21 +77,20 @@ public:
         const write_values_func_t& writeFunc) = 0;
 
     void readFromPage(const transaction::Transaction* transaction, common::page_idx_t pageIdx,
-        const std::function<void(uint8_t*)>& readFunc);
+        const std::function<void(uint8_t*)>& readFunc) const;
 
     // returns true if a new page was appended to the shadow file
     bool updatePageWithCursor(PageCursor cursor,
         const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
 
-    PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
-        common::page_idx_t groupPageIdx, uint64_t numValuesPerPage) const;
+    static PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
+        common::page_idx_t groupPageIdx, uint64_t numValuesPerPage);
 
 protected:
-    std::pair<common::offset_t, PageCursor> getOffsetAndCursor(common::offset_t nodeOffset,
-        const ChunkState& state) const;
+    static std::pair<common::offset_t, PageCursor> getOffsetAndCursor(common::offset_t nodeOffset,
+        const ChunkState& state);
 
 private:
-    DBFileID dbFileID;
     FileHandle* dataFH;
     ShadowFile* shadowFile;
 };

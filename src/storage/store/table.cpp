@@ -37,8 +37,7 @@ Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager*
       shadowFile{&storageManager->getShadowFile()}, hasChanges{false} {}
 
 std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Catalog& catalog,
-    StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem* vfs,
-    main::ClientContext* context) {
+    StorageManager* storageManager, MemoryManager* memoryManager) {
     std::string key;
     auto tableType = TableType::UNKNOWN;
     deSer.validateDebuggingInfo(key, "table_type");
@@ -46,10 +45,10 @@ std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Cata
     std::unique_ptr<Table> table;
     switch (tableType) {
     case TableType::NODE: {
-        table = NodeTable::loadTable(deSer, catalog, storageManager, memoryManager, vfs, context);
+        table = NodeTable::loadTable(deSer, catalog, storageManager, memoryManager);
     } break;
     case TableType::REL: {
-        table = RelTable::loadTable(deSer, catalog, storageManager, memoryManager, vfs, context);
+        table = RelTable::loadTable(deSer, catalog, storageManager, memoryManager);
     } break;
     default: {
         KU_UNREACHABLE;

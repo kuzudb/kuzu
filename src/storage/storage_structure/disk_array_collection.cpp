@@ -9,10 +9,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-DiskArrayCollection::DiskArrayCollection(FileHandle& fileHandle, DBFileID dbFileID,
-    ShadowFile& shadowFile, page_idx_t firstHeaderPage, bool bypassShadowing)
-    : fileHandle{fileHandle}, dbFileID{dbFileID}, shadowFile{shadowFile},
-      bypassShadowing{bypassShadowing}, headerPageIndices{firstHeaderPage}, numHeaders{0} {
+DiskArrayCollection::DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
+    page_idx_t firstHeaderPage, bool bypassShadowing)
+    : fileHandle{fileHandle}, shadowFile{shadowFile}, bypassShadowing{bypassShadowing},
+      headerPageIndices{firstHeaderPage}, numHeaders{0} {
     if (fileHandle.getNumPages() > firstHeaderPage) {
         // Read headers from disk
         page_idx_t headerPageIdx = firstHeaderPage;
@@ -50,8 +50,8 @@ void DiskArrayCollection::checkpoint() {
         KU_ASSERT(indexInMemory < headersForWriteTrx.size());
         if (indexInMemory >= headerPagesOnDisk ||
             *headersForWriteTrx[indexInMemory] != *headersForReadTrx[indexInMemory]) {
-            ShadowUtils::updatePage(fileHandle, dbFileID, *headerPageIdx,
-                true /*writing full page*/, shadowFile, [&](auto* frame) {
+            ShadowUtils::updatePage(fileHandle, *headerPageIdx, true /*writing full page*/,
+                shadowFile, [&](auto* frame) {
                     memcpy(frame, headersForWriteTrx[indexInMemory].get(), sizeof(HeaderPage));
                     if constexpr (sizeof(HeaderPage) < KUZU_PAGE_SIZE) {
                         // Zero remaining data in the page

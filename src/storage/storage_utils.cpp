@@ -46,13 +46,6 @@ std::string StorageUtils::getColumnName(const std::string& propertyName, ColumnT
     }
 }
 
-std::string StorageUtils::getNodeIndexFName(const VirtualFileSystem* vfs,
-    const std::string& directory, const table_id_t& tableID, FileVersionType fileVersionType) {
-    const auto fName = stringFormat("n-{}", tableID);
-    return appendWALFileSuffixIfNecessary(
-        vfs->joinPath(directory, fName + StorageConstants::INDEX_FILE_SUFFIX), fileVersionType);
-}
-
 uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {
     switch (type) {
     case PhysicalTypeID::STRING: {

@@ -36,7 +36,7 @@ public:
     // Where possible, updatePage/insertNewPage should be used instead
     static ShadowPageAndFrame createShadowVersionIfNecessaryAndPinPage(
         common::page_idx_t originalPage, bool insertingNewPage, FileHandle& fileHandle,
-        DBFileID dbFileID, ShadowFile& shadowFile);
+        ShadowFile& shadowFile);
 
     static std::pair<FileHandle*, common::page_idx_t> getFileHandleAndPhysicalPageIdxToPin(
         FileHandle& fileHandle, common::page_idx_t pageIdx, const ShadowFile& shadowFile,
@@ -47,7 +47,7 @@ public:
         const std::function<void(uint8_t*)>& readOp);
 
     static common::page_idx_t insertNewPage(
-        FileHandle& fileHandle, DBFileID dbFileID, ShadowFile& shadowFile,
+        FileHandle& fileHandle, ShadowFile& shadowFile,
         const std::function<void(uint8_t*)>& insertOp = [](uint8_t*) -> void {
             // DO NOTHING.
         });
@@ -55,8 +55,8 @@ public:
     // Note: This function updates a page "transactionally", i.e., creates the WAL version of the
     // page if it doesn't exist. For the original page to be updated, the current WRITE trx needs to
     // commit and checkpoint.
-    static void updatePage(FileHandle& fileHandle, DBFileID dbFileID,
-        common::page_idx_t originalPageIdx, bool isInsertingNewPage, ShadowFile& shadowFile,
+    static void updatePage(FileHandle& fileHandle, common::page_idx_t originalPageIdx,
+        bool isInsertingNewPage, ShadowFile& shadowFile,
         const std::function<void(uint8_t*)>& updateOp);
 };
 } // namespace storage

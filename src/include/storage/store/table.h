@@ -149,7 +149,7 @@ public:
 
     static std::unique_ptr<Table> loadTable(common::Deserializer& deSer,
         const catalog::Catalog& catalog, StorageManager* storageManager,
-        MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
+        MemoryManager* memoryManager);
 
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
