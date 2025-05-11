@@ -585,7 +585,7 @@ Binder exception: Cannot find property since for k.
 ---- 0
 -STATEMENT CALL storage_info('movies') where start_page_idx = 0 return count(*)
 ---- 1
-1
+0
 
 -CASE DropNodeTableRollbackRecovery
 -SKIP_IN_MEM
@@ -647,7 +647,7 @@ Binder exception: Table knows does not exist.
 -STATEMENT CALL storage_info('person') where start_page_idx < 4294967295 with max(start_page_idx + num_pages) as expected_start_page_idx
         CALL storage_info('knows') where start_page_idx = expected_start_page_idx return count(*)
 ---- 1
-1
+0
 
 -CASE DropRelTableRollbackRecovery
 -SKIP_IN_MEM

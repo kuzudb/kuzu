@@ -120,6 +120,7 @@ TEST_F(DBLockingTest, testReadOnly) {
             conn->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
                 ->isSuccess());
         ASSERT_TRUE(conn->query("CREATE (:Person {name: 'Alice', age: 25});")->isSuccess());
+        ASSERT_TRUE(conn->query("CHECKPOINT;")->isSuccess());
         exit(0);
     }
     waitpid(create_pid, NULL, 0);

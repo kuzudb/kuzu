@@ -163,11 +163,10 @@ OverflowFile::OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager, Sha
 }
 
 OverflowFile::OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager)
-    : fileHandle{dataFH}, shadowFile{nullptr}, memoryManager{memoryManager}, headerChanged{false} {
+    : numPagesOnDisk{0}, fileHandle{dataFH}, shadowFile{nullptr}, memoryManager{memoryManager},
+      headerChanged{false}, headerPageIdx{INVALID_PAGE_IDX} {
     if (fileHandle) {
         numPagesOnDisk = fileHandle->getNumPages();
-    } else {
-        numPagesOnDisk = 0;
     }
     // Reserve a page for the header
     getNewPageIdx();
@@ -207,7 +206,7 @@ void OverflowFile::checkpoint(bool forceUpdateHeader) {
         memcpy(page, &header, sizeof(header));
         // Zero free space at the end of the header page
         std::fill(page + sizeof(header), page + KUZU_PAGE_SIZE, 0);
-        writePageToDisk(HEADER_PAGE_IDX, page);
+        writePageToDisk(headerPageIdx + HEADER_PAGE_IDX, page);
     }
 }
 

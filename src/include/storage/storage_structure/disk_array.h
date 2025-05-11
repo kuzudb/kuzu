@@ -68,7 +68,7 @@ struct PIPUpdates {
     std::optional<PIPWrapper> updatedLastPIP;
     std::vector<PIPWrapper> newPIPs;
 
-    inline void clear() {
+    void clear() {
         updatedLastPIP.reset();
         newPIPs.clear();
     }
@@ -105,8 +105,6 @@ public:
         DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, uint64_t elementSize,
         bool bypassShadowing = false);
 
-    virtual ~DiskArrayInternal() = default;
-
     uint64_t getNumElements(
         transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY);
 
@@ -124,16 +122,16 @@ public:
     uint64_t resize(const transaction::Transaction* transaction, uint64_t newNumElements,
         std::span<std::byte> defaultVal);
 
-    virtual inline void checkpointInMemoryIfNecessary() {
+    void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
     }
-    virtual inline void rollbackInMemoryIfNecessary() {
+    void rollbackInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
 
-    virtual void checkpoint();
+    void checkpoint();
 
     // Write WriteIterator for making fast bulk changes to the disk array
     // The pages are cached while the elements are stored on the same page
@@ -179,7 +177,7 @@ public:
             return std::span(shadowPageAndFrame.frame + apCursor.elemPosInPage, valueSize);
         }
 
-        inline uint64_t size() const { return diskArray.headerForWriteTrx.numElements; }
+        uint64_t size() const { return diskArray.headerForWriteTrx.numElements; }
 
     private:
         void unpin();
@@ -196,13 +194,11 @@ protected:
 
     void updateLastPageOnDisk();
 
-    uint64_t pushBackNoLock(std::span<std::byte> val);
-
-    inline uint64_t getNumElementsNoLock(transaction::TransactionType trxType) const {
+    uint64_t getNumElementsNoLock(transaction::TransactionType trxType) const {
         return getDiskArrayHeader(trxType).numElements;
     }
 
-    inline uint64_t getNumAPs(const DiskArrayHeader& header) const {
+    uint64_t getNumAPs(const DiskArrayHeader& header) const {
         return (header.numElements + storageInfo.numElementsPerPage - 1) /
                storageInfo.numElementsPerPage;
     }
@@ -220,13 +216,13 @@ protected:
 
     void clearWALPageVersionAndRemovePageFromFrameIfNecessary(common::page_idx_t pageIdx);
 
-    virtual void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
+    void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
 
 private:
     bool checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx) const;
-    bool hasPIPUpdatesNoLock(uint64_t pipIdx);
+    bool hasPIPUpdatesNoLock(uint64_t pipIdx) const;
 
-    inline const DiskArrayHeader& getDiskArrayHeader(transaction::TransactionType trxType) const {
+    const DiskArrayHeader& getDiskArrayHeader(transaction::TransactionType trxType) const {
         if (trxType == transaction::TransactionType::CHECKPOINT) {
             return headerForWriteTrx;
         }

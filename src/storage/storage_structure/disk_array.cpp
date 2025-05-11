@@ -249,7 +249,7 @@ void DiskArrayInternal::checkpoint() {
     }
 }
 
-bool DiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) {
+bool DiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) const {
     // This is a request to a pipIdx > pips.size(). Since pips.size() is the original number of pips
     // we started with before the write transaction is updated, we return true, i.e., this PIP is
     // an "updated" PIP and should be read from the WAL version.
@@ -386,7 +386,7 @@ void BlockVectorInternal::resize(uint64_t newNumElements, std::span<std::byte> d
     uint64_t newNumArrayPages = getNumArrayPagesNeededForElements(newNumElements);
     for (auto i = oldNumArrayPages; i < newNumArrayPages; ++i) {
         inMemArrayPages.emplace_back(
-            memoryManager.allocateBuffer(true /*initializeToZero*/, common::KUZU_PAGE_SIZE));
+            memoryManager.allocateBuffer(true /*initializeToZero*/, KUZU_PAGE_SIZE));
     }
     for (uint64_t i = 0; i < newNumElements - oldNumElements; i++) {
         memcpy(operator[](oldNumElements + i), defaultVal.data(), defaultVal.size());

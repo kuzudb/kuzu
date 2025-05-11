@@ -10,8 +10,6 @@
 #include "storage//file_handle.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_utils.h"
-#include "storage/wal/shadow_file.h"
-#include "storage/wal/wal.h"
 
 namespace kuzu {
 namespace storage {
