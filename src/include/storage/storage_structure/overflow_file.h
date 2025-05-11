@@ -12,7 +12,6 @@
 #include "storage/storage_utils.h"
 #include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {
@@ -28,7 +27,8 @@ public:
     // Moving the handle would invalidate those pointers
     OverflowFileHandle(OverflowFileHandle&& other) = delete;
 
-    std::string readString(transaction::TransactionType trxType, const common::ku_string_t& str);
+    std::string readString(transaction::TransactionType trxType,
+        const common::ku_string_t& str) const;
 
     bool equals(transaction::TransactionType trxType, std::string_view keyToLookup,
         const common::ku_string_t& keyInEntry) const;
@@ -81,15 +81,10 @@ class OverflowFile {
 
 public:
     // For reading an existing overflow file
-    OverflowFile(const DBFileIDAndName& dbFileIdAndName, MemoryManager& memoryManager,
-        ShadowFile* shadowFile, bool readOnly, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
+    OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager, ShadowFile* shadowFile,
+        common::page_idx_t headerPageIdx);
 
     virtual ~OverflowFile() = default;
-
-    // For creating an overflow file from scratch
-    static void createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
 
     // Handles contain a reference to the overflow file
     OverflowFile(OverflowFile&& other) = delete;
@@ -111,13 +106,16 @@ public:
     }
 
 protected:
-    explicit OverflowFile(const DBFileIDAndName& dbFileIdAndName, MemoryManager& memoryManager);
+    explicit OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager);
 
     common::page_idx_t getNewPageIdx() {
         // If this isn't the first call reserving the page header, then the header flag must be set
         // prior to this
-        KU_ASSERT(pageCounter == HEADER_PAGE_IDX || headerChanged);
-        return pageCounter.fetch_add(1);
+        if (fileHandle) {
+            return fileHandle->addNewPage();
+        } else {
+            return pageCounter.fetch_add(1);
+        }
     }
 
 private:
@@ -133,18 +131,18 @@ protected:
     std::vector<std::unique_ptr<OverflowFileHandle>> handles;
     StringOverflowFileHeader header;
     common::page_idx_t numPagesOnDisk;
-    DBFileID dbFileID;
     FileHandle* fileHandle;
     ShadowFile* shadowFile;
     MemoryManager& memoryManager;
     std::atomic<common::page_idx_t> pageCounter;
     std::atomic<bool> headerChanged;
+    common::page_idx_t headerPageIdx;
 };
 
 class InMemOverflowFile final : public OverflowFile {
 public:
-    explicit InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName, MemoryManager& memoryManager)
-        : OverflowFile{dbFileIDAndName, memoryManager} {}
+    explicit InMemOverflowFile(MemoryManager& memoryManager)
+        : OverflowFile{nullptr, memoryManager} {}
 };
 
 } // namespace storage

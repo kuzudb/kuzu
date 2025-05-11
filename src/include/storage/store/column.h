@@ -3,7 +3,6 @@
 #include "catalog/catalog.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "storage/db_file_id.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/column_reader_writer.h"
 
@@ -137,7 +136,6 @@ protected:
 
 protected:
     std::string name;
-    DBFileID dbFileID;
     common::LogicalType dataType;
     FileHandle* dataFH;
     MemoryManager* mm;

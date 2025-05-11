@@ -12,12 +12,11 @@ bool isVisible(offset_t) {
 }
 
 TEST(LocalHashIndexTests, LocalInserts) {
-    DBFileIDAndName dbFileIDAndName{DBFileID{}, "in-mem-overflow"};
     PageCursor dummyCursor{0, 0};
     BufferManager bm(":memory:", "", 256 * 1024 * 1024 /*bufferPoolSize*/,
         256 * 1024 * 1024 /*maxDBSize*/, nullptr, true);
     MemoryManager memoryManager(&bm, nullptr);
-    auto overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName, memoryManager);
+    auto overflowFile = std::make_unique<InMemOverflowFile>(memoryManager);
     auto overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, dummyCursor);
     auto hashIndex = std::make_unique<LocalHashIndex>(memoryManager, PhysicalTypeID::INT64,
         overflowFileHandle.get());
@@ -52,12 +51,11 @@ std::string gen_random(const int len) {
 }
 
 TEST(LocalHashIndexTests, LocalStringInserts) {
-    DBFileIDAndName dbFileIDAndName{DBFileID{}, "in-mem-overflow"};
     PageCursor dummyCursor{INVALID_PAGE_IDX, 0};
     BufferManager bm(":memory:", "", 256 * 1024 * 1024 /*bufferPoolSize*/,
         256 * 1024 * 1024 /*maxDBSize*/, nullptr, true);
     MemoryManager memoryManager(&bm, nullptr);
-    auto overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName, memoryManager);
+    auto overflowFile = std::make_unique<InMemOverflowFile>(memoryManager);
     auto overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, dummyCursor);
     auto hashIndex = std::make_unique<LocalHashIndex>(memoryManager, PhysicalTypeID::STRING,
         overflowFileHandle.get());

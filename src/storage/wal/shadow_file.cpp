@@ -18,19 +18,16 @@ namespace kuzu {
 namespace storage {
 
 void ShadowPageRecord::serialize(Serializer& serializer) const {
-    serializer.write<DBFileID>(dbFileID);
     serializer.write<file_idx_t>(originalFileIdx);
     serializer.write<page_idx_t>(originalPageIdx);
 }
 
 ShadowPageRecord ShadowPageRecord::deserialize(Deserializer& deserializer) {
-    DBFileID dbFileID;
     file_idx_t originalFileIdx = INVALID_FILE_IDX;
     page_idx_t originalPageIdx = INVALID_PAGE_IDX;
-    deserializer.deserializeValue<DBFileID>(dbFileID);
     deserializer.deserializeValue<file_idx_t>(originalFileIdx);
     deserializer.deserializeValue<page_idx_t>(originalPageIdx);
-    return ShadowPageRecord{dbFileID, originalFileIdx, originalPageIdx};
+    return ShadowPageRecord{originalFileIdx, originalPageIdx};
 }
 
 ShadowFile::ShadowFile(const std::string& directory, bool readOnly, BufferManager& bufferManager,
@@ -58,14 +55,13 @@ void ShadowFile::clearShadowPage(file_idx_t originalFile, page_idx_t originalPag
     }
 }
 
-page_idx_t ShadowFile::getOrCreateShadowPage(DBFileID dbFileID, file_idx_t originalFile,
-    page_idx_t originalPage) {
+page_idx_t ShadowFile::getOrCreateShadowPage(file_idx_t originalFile, page_idx_t originalPage) {
     if (hasShadowPage(originalFile, originalPage)) {
         return shadowPagesMap[originalFile][originalPage];
     }
     const auto shadowPageIdx = shadowingFH->addNewPage();
     shadowPagesMap[originalFile][originalPage] = shadowPageIdx;
-    shadowPageRecords.push_back({dbFileID, originalFile, originalPage});
+    shadowPageRecords.push_back({originalFile, originalPage});
     return shadowPageIdx;
 }
 
@@ -75,17 +71,12 @@ page_idx_t ShadowFile::getShadowPage(file_idx_t originalFile, page_idx_t origina
 }
 
 void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
-    std::unordered_map<DBFileID, std::unique_ptr<FileInfo>> fileCache;
     const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     page_idx_t shadowPageIdx = 1; // Skip header page.
+    auto dataFileInfo = getDataFileInfo(context);
     for (const auto& record : shadowPageRecords) {
-        const auto& dbFileID = record.dbFileID;
-        if (!fileCache.contains(dbFileID)) {
-            fileCache.insert(std::make_pair(dbFileID, getFileInfo(context, dbFileID)));
-        }
-        const auto& fileInfoOfDBFile = fileCache.at(dbFileID);
         shadowingFH->readPageFromDisk(pageBuffer.get(), shadowPageIdx++);
-        fileInfoOfDBFile->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
+        dataFileInfo->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
             record.originalPageIdx * KUZU_PAGE_SIZE);
         // NOTE: We're not taking lock here, as we assume this is only called with single thread.
         context.getMemoryManager()->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
@@ -123,23 +114,9 @@ void ShadowFile::clearAll(ClientContext& context) {
     shadowingFH->addNewPage();
 }
 
-std::unique_ptr<FileInfo> ShadowFile::getFileInfo(const ClientContext& context, DBFileID dbFileID) {
-    std::string fileName;
-    switch (dbFileID.dbFileType) {
-    case DBFileType::DATA: {
-        fileName = StorageUtils::getDataFName(context.getVFSUnsafe(), context.getDatabasePath());
-    } break;
-    case DBFileType::NODE_INDEX: {
-        fileName = StorageUtils::getNodeIndexFName(context.getVFSUnsafe(),
-            context.getDatabasePath(), dbFileID.tableID, FileVersionType::ORIGINAL);
-        if (dbFileID.isOverflow) {
-            fileName = StorageUtils::getOverflowFileName(fileName);
-        }
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
+std::unique_ptr<FileInfo> ShadowFile::getDataFileInfo(const ClientContext& context) {
+    const auto fileName =
+        StorageUtils::getDataFName(context.getVFSUnsafe(), context.getDatabasePath());
     return context.getVFSUnsafe()->openFile(fileName,
         FileOpenFlags(FileFlags::READ_ONLY | FileFlags::WRITE));
 }
