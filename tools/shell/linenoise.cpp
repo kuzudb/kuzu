@@ -3604,8 +3604,6 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
                 }
                 l.buf[new_len++] = l.buf[i];
             }
-            if (new_len > 0 && l.buf[new_len - 1] != ';')
-                    l.buf[new_len++] = ';';
             l.buf[new_len] = '\0';
             return (int)new_len;
         }
