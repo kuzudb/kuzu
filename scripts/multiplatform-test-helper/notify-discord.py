@@ -41,7 +41,7 @@ if __name__ == "__main__":
     message += "## Multiplatform test result:\n"
     with open(sys.argv[1], "r") as f:
         result = json.load(f)
-        for platform in result:
+        for platform in sorted(result.keys()):
             if len(message) >= 1500:
                 messages.append(message)
                 message = ""
