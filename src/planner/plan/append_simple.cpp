@@ -7,6 +7,7 @@
 #include "binder/bound_standalone_call_function.h"
 #include "binder/bound_transaction_statement.h"
 #include "binder/bound_use_database.h"
+#include "binder/copy/bound_copy_from.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
@@ -22,11 +23,18 @@
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/logical_transaction.h"
+#include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
+
+#include "binder/copy/bound_copy_from.h"
+#include "binder/bound_scan_source.h"
+#include "binder/ddl/bound_create_table.h"
+#include "planner/operator/persistent/logical_copy_from.h"
+#include "planner/operator/logical_dummy_sink.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
