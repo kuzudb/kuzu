@@ -588,7 +588,6 @@ void EmbeddedShell::run() {
     int numCtrlC = 0;
     continueLine = false;
     currLine = "";
-    std::string lineStr;
     bool reQuery = false;
 
 #ifndef _WIN32
@@ -615,9 +614,8 @@ void EmbeddedShell::run() {
     while (
         (line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT)) != nullptr) {
         reQuery = false;
-        lineStr = std::string(line);
-        if (!lineStr.empty() && lineStr.back() == ';')
-            lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
+        auto lineStr = std::string(line);
+        lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
             if (!continueLine && lineStr[1] == '\0') {
                 numCtrlC++;
