@@ -2,7 +2,6 @@ name: Multiplatform Build and Test
 
 env:
   USE_EXISTING_BINARY_DATASET: 1
-  PIP_BREAK_SYSTEM_PACKAGES: 1
 
 on:
   workflow_dispatch:
@@ -62,6 +61,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          echo NUM_THREADS=$(sysctl -n hw.physicalcpu)
           make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Test,$?" >> status.txt
           make clean
@@ -91,6 +91,8 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          python --version
+          pip --version
           make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Python test,$?" >> status.txt
 
@@ -103,6 +105,8 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          node --version
+          npm --version
           make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Node.js test,$?" >> status.txt
 
@@ -110,6 +114,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          java --version
           make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Java test,$?" >> status.txt
 
@@ -129,6 +134,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           set +e
+          cargo --version
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
@@ -195,10 +201,11 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
+          echo NUMBER_OF_PROCESSORS=%NUMBER_OF_PROCESSORS%
           make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Test,%ERRORLEVEL% >> status.txt
           make clean
-          Remove-Item -Recurse -Force dataset\ldbc-1
+          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
@@ -225,6 +232,8 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
+          python --version
+          pip --version
           make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Python test,%ERRORLEVEL% >> status.txt
 
@@ -238,6 +247,8 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
+          node --version
+          npm --version
           make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Node.js test,%ERRORLEVEL% >> status.txt
 
@@ -253,6 +264,7 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
+          java --version
           make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Java test,%ERRORLEVEL% >> status.txt
 
@@ -269,6 +281,7 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
+          cargo --version
           set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
           set CXXFLAGS=/std:c++20
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
@@ -351,6 +364,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          echo NUM_THREADS=$(nproc)
           make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
           make clean
@@ -373,6 +387,8 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
+          python -m venv /opt/venv
+          source /opt/venv/bin/activate
           pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
 
@@ -380,6 +396,9 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          source /opt/venv/bin/activate
+          python --version
+          pip --version
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
@@ -392,6 +411,8 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          node --version
+          npm --version
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
@@ -399,6 +420,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          java --version
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
 
@@ -425,6 +447,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           set +e
+          cargo --version
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
@@ -507,6 +530,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          echo NUM_THREADS=$(nproc)
           make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
           make clean
@@ -539,6 +563,8 @@ jobs:
         run: |
           set +e
           source /opt/venv/bin/activate
+          python --version
+          pip --version
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
@@ -551,6 +577,8 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          node --version
+          npm --version
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
@@ -558,6 +586,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          java --version
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
 
@@ -584,6 +613,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           set +e
+          cargo --version
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
@@ -638,6 +668,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          echo NUM_THREADS=$(nproc)
           make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
           make clean
@@ -660,6 +691,8 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
+          python -m venv /opt/venv
+          source /opt/venv/bin/activate
           pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
 
@@ -667,6 +700,9 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          source /opt/venv/bin/activate
+          python --version
+          pip --version
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
@@ -679,6 +715,8 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          node --version
+          npm --version
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
@@ -686,6 +724,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          java --version
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
 
@@ -712,6 +751,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          cargo --version
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
