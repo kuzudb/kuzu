@@ -277,23 +277,6 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
 
-// temp (duplicated code)
-static std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExpression(
-    const expression_vector& columns, const PropertyDefinition& property,
-    ExpressionBinder& expressionBinder) {
-    for (auto& column : columns) {
-        if (property.getName() == column->toString()) {
-            if (column->dataType == property.getType()) {
-                return {ColumnEvaluateType::REFERENCE, column};
-            } else {
-                return {ColumnEvaluateType::CAST,
-                    expressionBinder.forceCast(column, property.getType())};
-            }
-        }
-    }
-    return {ColumnEvaluateType::DEFAULT, expressionBinder.bindExpression(*property.defaultExpr)};
-}
-
 std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& statement) {
     auto createTable = statement.constPtrCast<CreateTable>();
 
