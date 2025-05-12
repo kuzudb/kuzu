@@ -587,6 +587,7 @@ void EmbeddedShell::run() {
     const char ctrl_c = '\3';
     int numCtrlC = 0;
     continueLine = false;
+    bool EOF_ = false;
     currLine = "";
 
 #ifndef _WIN32
@@ -609,9 +610,12 @@ void EmbeddedShell::run() {
     oldOutputCP = GetConsoleOutputCP();
     SetConsoleOutputCP(CP_UTF8);
 #endif
-
-    while (
-        (line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT)) != nullptr) {
+    for(;;)
+    {
+        line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT);
+        EOF_ = line == nullptr;
+        if (EOF_)
+            break;
         auto lineStr = std::string(line);
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
@@ -628,6 +632,10 @@ void EmbeddedShell::run() {
             continue;
         }
         numCtrlC = 0;
+
+        if (EOF_ && !lineStr.empty() && lineStr.back() != ';')
+            lineStr.push_back(';');
+
         auto queryResults = processInput(lineStr);
         if (queryResults.empty()) {
             std::istringstream iss(lineStr);
