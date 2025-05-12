@@ -1,0 +1,2 @@
+create node table Person as (load from "~/Documents/test.csv" return *);
+create node table Test as (match (a:Person) return a.column0);
