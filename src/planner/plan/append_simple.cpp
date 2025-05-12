@@ -19,6 +19,7 @@
 #include "planner/operator/ddl/logical_create_type.h"
 #include "planner/operator/ddl/logical_drop.h"
 #include "planner/operator/logical_create_macro.h"
+#include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_table_function_call.h"
@@ -29,12 +30,6 @@
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
-
-#include "binder/copy/bound_copy_from.h"
-#include "binder/bound_scan_source.h"
-#include "binder/ddl/bound_create_table.h"
-#include "planner/operator/persistent/logical_copy_from.h"
-#include "planner/operator/logical_dummy_sink.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

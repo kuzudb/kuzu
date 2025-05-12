@@ -5,7 +5,6 @@
 #include "common/string_format.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
-#include "processor/operator/table_function_call.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/store/chunked_node_group.h"
