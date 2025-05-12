@@ -524,7 +524,7 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         input = std::move(currLine) + std::move(input);
         currLine = "";
         continueLine = false;
-    } 
+    }
     input = input.erase(input.find_last_not_of(" \t\n\r\f\v") + 1);
     // Decode escape sequences
     std::string unicodeInput;
@@ -658,10 +658,9 @@ void EmbeddedShell::run() {
         linenoiseHistorySave(path_to_history);
         free(line);
     }
-    if (!seenSemiColon)
-    {
+    if (!seenSemiColon) {
         auto queryResults = processInput(";");
-        if (!queryResults.empty()) 
+        if (!queryResults.empty())
             for (auto& queryResult : queryResults) {
                 if (queryResult->isSuccess()) {
                     printInterrupted = false;
@@ -670,7 +669,6 @@ void EmbeddedShell::run() {
                     printErrorMessage(lineStr, *queryResult);
                 }
             }
-
     }
 #ifndef _WIN32
     /* Don't even check the return value as it's too late. */
