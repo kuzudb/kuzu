@@ -1,4 +1,5 @@
 #include "planner/planner.h"
+
 #include "main/client_context.h"
 
 using namespace kuzu::binder;
