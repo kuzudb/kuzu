@@ -7,6 +7,7 @@
 #include "binder/bound_standalone_call_function.h"
 #include "binder/bound_transaction_statement.h"
 #include "binder/bound_use_database.h"
+#include "binder/copy/bound_copy_from.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
@@ -22,11 +23,18 @@
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/logical_transaction.h"
+#include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
+
+#include "binder/copy/bound_copy_from.h"
+#include "binder/bound_scan_source.h"
+#include "binder/ddl/bound_create_table.h"
+#include "planner/operator/persistent/logical_copy_from.h"
+#include "planner/operator/logical_dummy_sink.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -39,7 +47,36 @@ void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& pl
     auto info = createTable.getInfo();
     auto op = make_shared<LogicalCreateTable>(info->copy(),
         statement.getStatementResult()->getSingleColumnExpr());
-    plan.setLastOperator(std::move(op));
+
+    if (createTable.hasCopyInfo()) {
+        auto dummySink = std::make_shared<LogicalDummySink>(op);
+        auto& querySource = createTable.getCopyInfo()->source->constCast<BoundQueryScanSource>();
+        auto queryPlan = getBestPlan(planQuery(*querySource.statement));
+
+        std::shared_ptr<LogicalOperator> bottomOper = queryPlan->getLastOperator();
+        // find a leaf node, maybe do dfs to find actual deepest leaf?
+        while (bottomOper->getNumChildren() > 0) {
+            bottomOper = bottomOper->getChild(0);
+        }
+        bottomOper->addChild(std::move(dummySink));
+
+        if (queryPlan->getSchema()->getNumGroups() > 1) {
+            // Copy operator assumes all input are in the same data chunk. If this is not the case,
+            // we first materialize input in flat form into a factorized table.
+            appendAccumulate(AccumulateType::REGULAR, queryPlan->getSchema()->getExpressionsInScope(),
+                nullptr /* mark */, *queryPlan);
+        }
+
+        auto copyOper =
+            std::make_shared<LogicalCopyFrom>(createTable.getCopyInfo()->copy(),
+                BoundStatementResult::createSingleStringColumnResult().getColumns(),
+                queryPlan->getLastOperator());
+        copyOper->computeFactorizedSchema();
+
+        plan.setLastOperator(std::move(copyOper));
+    } else {
+        plan.setLastOperator(std::move(op));
+    }
 }
 
 void Planner::appendCreateType(const BoundStatement& statement, LogicalPlan& plan) {
