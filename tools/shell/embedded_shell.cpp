@@ -617,7 +617,7 @@ void EmbeddedShell::run() {
         reQuery = false;
         lineStr = std::string(line);
         if (!lineStr.empty() && lineStr.back() == ';')
-        lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
+            lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
             if (!continueLine && lineStr[1] == '\0') {
                 numCtrlC++;
@@ -660,11 +660,11 @@ void EmbeddedShell::run() {
     if (reQuery) {
         auto queryResults = processInput(";");
         if (!queryResults.empty())
-            for (auto& queryResult : queryResults) 
+            for (auto& queryResult : queryResults)
                 if (queryResult->isSuccess()) {
                     printInterrupted = false;
                     printExecutionResult(*queryResult);
-                } 
+                }
     }
 #ifndef _WIN32
     /* Don't even check the return value as it's too late. */
