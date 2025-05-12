@@ -90,9 +90,9 @@ jobs:
       - name: Python test
         continue-on-error: true
         run: |
-          set +e
           python --version
           pip --version
+          set +e
           make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Python test,$?" >> status.txt
 
@@ -104,17 +104,17 @@ jobs:
       - name: Node.js test
         continue-on-error: true
         run: |
-          set +e
           node --version
           npm --version
+          set +e
           make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
-          set +e
           java --version
+          set +e
           make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Java test,$?" >> status.txt
 
@@ -133,8 +133,8 @@ jobs:
         continue-on-error: true
         working-directory: tools/rust_api
         run: |
-          set +e
           cargo --version
+          set +e
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
@@ -212,7 +212,7 @@ jobs:
         shell: cmd
         run: |
           make release NUM_THREADS=%NUMBER_OF_PROCESSORS%
-          echo Build,%ERRORLEVEL% > status.txt
+          echo Build,%ERRORLEVEL% >> status.txt
 
       - name: C and C++ examples
         continue-on-error: true
@@ -247,8 +247,6 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
-          node --version
-          npm --version
           make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Node.js test,%ERRORLEVEL% >> status.txt
 
@@ -292,6 +290,8 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
+          set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
+          set CXXFLAGS=/std:c++20
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
           cargo build --release --features arrow
           echo Rust example,%ERRORLEVEL% >> status.txt
@@ -323,7 +323,7 @@ jobs:
       CXX: g++
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     steps:
-      - name: Setup Node.js
+      - name: Setup Node.js repo
         if: ${{ matrix.image != 'debian:sid' && matrix.image != 'ubuntu:25.04' }}
         continue-on-error: true
         run: |
@@ -337,7 +337,7 @@ jobs:
         continue-on-error: true
         run: |
           apt-get update
-          apt-get install -y git build-essential cmake python3 python3-dev python3-pip openjdk-17-jdk nodejs ca-certificates curl gnupg ${{ matrix.image == 'ubuntu:22.04' && 'gcc-12 g++-12' || 'gcc g++' }}
+          apt-get install -y git build-essential cmake python3 python3-dev python3-venv python3-pip openjdk-17-jdk ca-certificates curl gnupg ${{ matrix.image == 'ubuntu:22.04' && 'gcc-12 g++-12' || 'gcc g++' }} ${{ (matrix.image == 'debian:sid' || matrix.image == 'ubuntu:25.04') && 'nodejs npm' || 'nodejs' }}
 
       - name: Setup gcc 12
         if: ${{ matrix.image == 'ubuntu:22.04' }}
@@ -345,11 +345,6 @@ jobs:
         run: |
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100
           update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
-
-      - name: Install npm
-        if: ${{ matrix.image == 'debian:sid' }}
-        continue-on-error: true
-        run: apt-get install -y npm
 
       - uses: actions/checkout@v4
         continue-on-error: true
@@ -387,18 +382,18 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          python -m venv /opt/venv
-          source /opt/venv/bin/activate
+          python3 -m venv /opt/venv
+          . /opt/venv/bin/activate
           pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+          pip install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
 
       - name: Python test
         continue-on-error: true
         run: |
-          set +e
-          source /opt/venv/bin/activate
+          . /opt/venv/bin/activate
           python --version
           pip --version
+          set +e
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
@@ -410,17 +405,17 @@ jobs:
       - name: Node.js test
         continue-on-error: true
         run: |
-          set +e
           node --version
           npm --version
+          set +e
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
-          set +e
           java --version
+          set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
 
@@ -446,8 +441,8 @@ jobs:
         continue-on-error: true
         working-directory: tools/rust_api
         run: |
-          set +e
           cargo --version
+          set +e
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
@@ -514,6 +509,8 @@ jobs:
         run: |
           source /opt/rh/gcc-toolset-12/enable
           echo $PATH >> $GITHUB_PATH
+          alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+          alternatives --set python3 /usr/bin/python3.11
           echo "PYTHON_EXECUTABLE=/usr/bin/python3.11" >> $GITHUB_ENV
           echo "PYBIND11_PYTHON_VERSION=3.11" >> $GITHUB_ENV
 
@@ -553,7 +550,7 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          ${{ (matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9') && 'python3.11' || 'python3' }} -m venv /opt/venv
+          python3 -m venv /opt/venv
           source /opt/venv/bin/activate
           pip3 install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
@@ -561,10 +558,10 @@ jobs:
       - name: Python test
         continue-on-error: true
         run: |
-          set +e
           source /opt/venv/bin/activate
           python --version
           pip --version
+          set +e
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
@@ -576,17 +573,17 @@ jobs:
       - name: Node.js test
         continue-on-error: true
         run: |
-          set +e
           node --version
           npm --version
+          set +e
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
-          set +e
           java --version
+          set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
 
@@ -612,8 +609,8 @@ jobs:
         continue-on-error: true
         working-directory: tools/rust_api
         run: |
-          set +e
           cargo --version
+          set +e
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
@@ -691,18 +688,18 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          python -m venv /opt/venv
+          python3 -m venv /opt/venv
           source /opt/venv/bin/activate
           pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+          pip install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
 
       - name: Python test
         continue-on-error: true
         run: |
-          set +e
           source /opt/venv/bin/activate
           python --version
           pip --version
+          set +e
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
@@ -714,17 +711,17 @@ jobs:
       - name: Node.js test
         continue-on-error: true
         run: |
-          set +e
           node --version
           npm --version
+          set +e
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
-          set +e
           java --version
+          set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
 
@@ -750,8 +747,8 @@ jobs:
         working-directory: tools/rust_api
         continue-on-error: true
         run: |
-          set +e
           cargo --version
+          set +e
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
