@@ -19,6 +19,7 @@
 #include "planner/operator/ddl/logical_create_type.h"
 #include "planner/operator/ddl/logical_drop.h"
 #include "planner/operator/logical_create_macro.h"
+#include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_table_function_call.h"
@@ -29,12 +30,6 @@
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
-
-#include "binder/copy/bound_copy_from.h"
-#include "binder/bound_scan_source.h"
-#include "binder/ddl/bound_create_table.h"
-#include "planner/operator/persistent/logical_copy_from.h"
-#include "planner/operator/logical_dummy_sink.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -48,13 +43,14 @@ void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& pl
     auto op = make_shared<LogicalCreateTable>(info->copy(),
         statement.getStatementResult()->getSingleColumnExpr());
 
+    // If it is CREATE NODE TABLE AS, then copy as well
     if (createTable.hasCopyInfo()) {
-        auto dummySink = std::make_shared<LogicalDummySink>(op);
+        auto dummySink = std::make_shared<LogicalDummySink>(std::move(op));
         auto& querySource = createTable.getCopyInfo()->source->constCast<BoundQueryScanSource>();
         auto queryPlan = getBestPlan(planQuery(*querySource.statement));
 
         std::shared_ptr<LogicalOperator> bottomOper = queryPlan->getLastOperator();
-        // find a leaf node, maybe do dfs to find actual deepest leaf?
+        // Find a leaf node, maybe do dfs instead to find actual deepest leaf?
         while (bottomOper->getNumChildren() > 0) {
             bottomOper = bottomOper->getChild(0);
         }
