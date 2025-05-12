@@ -524,8 +524,7 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         input = std::move(currLine) + std::move(input);
         currLine = "";
         continueLine = false;
-    } else if (!input.empty() && input[0] != ':' && input.back() != ';')
-        input.push_back(';');
+    } 
     input = input.erase(input.find_last_not_of(" \t\n\r\f\v") + 1);
     // Decode escape sequences
     std::string unicodeInput;
@@ -589,6 +588,8 @@ void EmbeddedShell::run() {
     int numCtrlC = 0;
     continueLine = false;
     currLine = "";
+    bool seenSemiColon = false;
+    std::string lineStr;
 
 #ifndef _WIN32
     termios raw{};
@@ -613,7 +614,9 @@ void EmbeddedShell::run() {
 
     while (
         (line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT)) != nullptr) {
-        auto lineStr = std::string(line);
+        lineStr = std::string(line);
+        if (!lineStr.empty() && lineStr.back() == ';')
+            seenSemiColon = true;
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
             if (!continueLine && lineStr[1] == '\0') {
@@ -635,6 +638,7 @@ void EmbeddedShell::run() {
             std::string command;
             iss >> command;
             if (command == shellCommand.QUIT) {
+                seenSemiColon = true;
                 free(line);
                 break;
             }
@@ -643,6 +647,7 @@ void EmbeddedShell::run() {
             if (queryResult->isSuccess()) {
                 printInterrupted = false;
                 printExecutionResult(*queryResult);
+                seenSemiColon = false;
             } else {
                 printErrorMessage(lineStr, *queryResult);
             }
@@ -652,6 +657,20 @@ void EmbeddedShell::run() {
         }
         linenoiseHistorySave(path_to_history);
         free(line);
+    }
+    if (!seenSemiColon)
+    {
+        auto queryResults = processInput(";");
+        if (!queryResults.empty()) 
+            for (auto& queryResult : queryResults) {
+                if (queryResult->isSuccess()) {
+                    printInterrupted = false;
+                    printExecutionResult(*queryResult);
+                } else {
+                    printErrorMessage(lineStr, *queryResult);
+                }
+            }
+
     }
 #ifndef _WIN32
     /* Don't even check the return value as it's too late. */
