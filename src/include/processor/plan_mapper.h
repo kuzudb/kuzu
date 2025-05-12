@@ -234,6 +234,8 @@ public:
         const planner::Schema& schema);
     static planner::LogicalSemiMasker* findSemiMaskerInPlan(
         planner::LogicalOperator* logicalOperator);
+    static std::shared_ptr<planner::LogicalSemiMasker> findSemiMaskerInPlan(
+        std::shared_ptr<planner::LogicalOperator> logicalOperator);
     static FactorizedTableSchema createFlatFTableSchema(
         const binder::expression_vector& expressions, const planner::Schema& schema);
     std::unique_ptr<common::SemiMask> createSemiMask(common::table_id_t tableID) const;

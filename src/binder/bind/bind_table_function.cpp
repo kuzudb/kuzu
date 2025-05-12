@@ -25,12 +25,12 @@ BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
         auto param = expressionBinder.bindExpression(childExpr);
         if (!childExpr.hasAlias()) {
             ExpressionUtil::validateExpressionType(*param,
-                {ExpressionType::LITERAL, ExpressionType::PARAMETER});
+                {ExpressionType::LITERAL, ExpressionType::PARAMETER, ExpressionType::PATTERN});
             positionalParams.push_back(param);
             positionalParamTypes.push_back(param->getDataType().copy());
         } else {
             ExpressionUtil::validateExpressionType(*param,
-                {ExpressionType::LITERAL, ExpressionType::PARAMETER});
+                {ExpressionType::LITERAL, ExpressionType::PARAMETER, ExpressionType::PATTERN});
             if (param->expressionType == ExpressionType::LITERAL) {
                 auto literalExpr = param->constPtrCast<LiteralExpression>();
                 optionalParams.emplace(childExpr.getAlias(), literalExpr->getValue());
