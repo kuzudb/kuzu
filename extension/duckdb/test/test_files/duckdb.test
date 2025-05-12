@@ -306,7 +306,7 @@ You can load it by: load extension postgres;
 Runtime exception: No loaded extension can handle database type: sqlite.
 
 -CASE InstallOfficialExtension
--STATEMENT INSTALL duckdb FROM 'http://localhost/extension/repo/'
+-STATEMENT FORCE INSTALL duckdb FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension duckdb
 ---- ok

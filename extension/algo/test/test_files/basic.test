@@ -3,7 +3,7 @@
 --
 
 -CASE InstallOfficialExtension
--STATEMENT INSTALL algo FROM 'http://localhost/extension/repo/'
+-STATEMENT FORCE INSTALL algo FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load algo
 ---- ok

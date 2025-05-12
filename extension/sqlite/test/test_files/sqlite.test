@@ -109,7 +109,7 @@ Conversion Error: timestamp field value out of range: "08:30:00", expected forma
 4|Dan||750.600000|25|1|1998-09-05|1998-09-05 09:15:00|
 
 -CASE InstallOfficialExtension
--STATEMENT INSTALL sqlite FROM 'http://localhost/extension/repo/'
+-STATEMENT FORCE INSTALL sqlite FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension sqlite
 ---- ok

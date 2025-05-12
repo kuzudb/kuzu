@@ -3,7 +3,7 @@
 --
 
 -CASE InstallOfficialExtension
--STATEMENT INSTALL neo4j FROM 'http://localhost/extension/repo/'
+-STATEMENT FORCE INSTALL neo4j FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension neo4j
 ---- ok
