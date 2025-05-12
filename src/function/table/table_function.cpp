@@ -79,13 +79,11 @@ std::vector<std::string> TableFunction::extractYieldVariables(const std::vector<
     return variableNames;
 }
 
-void TableFunction::getLogicalPlan(planner::Planner* planner,
+void TableFunction::getLogicalPlan(Planner* planner,
     const binder::BoundReadingClause& boundReadingClause, binder::expression_vector predicates,
-    std::vector<std::unique_ptr<planner::LogicalPlan>>& plans) {
-    for (auto& plan : plans) {
-        auto op = planner->getTableFunctionCall(boundReadingClause);
-        planner->planReadOp(op, predicates, *plan);
-    }
+    LogicalPlan& plan) {
+    auto op = planner->getTableFunctionCall(boundReadingClause);
+    planner->planReadOp(op, predicates, plan);
 }
 
 std::unique_ptr<PhysicalOperator> TableFunction::getPhysicalPlan(PlanMapper* planMapper,

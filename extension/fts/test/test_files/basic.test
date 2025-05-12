@@ -307,7 +307,7 @@ title3
 5
 
 -CASE InstallOfficialExtension
--STATEMENT INSTALL fts FROM 'http://localhost/extension/repo/'
+-STATEMENT FORCE INSTALL fts FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load fts
 ---- ok

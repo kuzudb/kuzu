@@ -13,10 +13,10 @@ public:
               BoundStatementResult::createSingleStringColumnResult()},
           attachInfo{std::move(attachInfo)} {}
 
-    binder::AttachInfo getAttachInfo() const { return attachInfo; }
+    AttachInfo getAttachInfo() const { return attachInfo; }
 
 private:
-    binder::AttachInfo attachInfo;
+    AttachInfo attachInfo;
 };
 
 } // namespace binder

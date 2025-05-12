@@ -187,16 +187,16 @@ std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskPlanRoots(const GDSBind
 };
 
 void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& readingClause,
-    binder::expression_vector predicates, std::vector<std::unique_ptr<LogicalPlan>>& logicalPlans) {
+    expression_vector predicates, LogicalPlan& plan) {
     auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
     auto bindData = call.getBindData()->constPtrCast<GDSBindData>();
     auto maskRoots = getNodeMaskPlanRoots(*bindData, planner);
-    for (auto& plan : logicalPlans) {
-        auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
-        op->setNodeMaskRoots(maskRoots);
-        op->computeFactorizedSchema();
-        planner->planReadOp(std::move(op), predicates, *plan);
-    }
+
+    auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
+    op->setNodeMaskRoots(maskRoots);
+    op->computeFactorizedSchema();
+    planner->planReadOp(std::move(op), predicates, plan);
+
     auto nodeOutput = bindData->nodeOutput->ptrCast<NodeExpression>();
     KU_ASSERT(nodeOutput != nullptr);
     auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
@@ -205,9 +205,7 @@ void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& rea
     }
     expression_vector joinConditions;
     joinConditions.push_back(nodeOutput->getInternalID());
-    for (auto& plan : logicalPlans) {
-        planner->appendHashJoin(joinConditions, JoinType::INNER, *plan, scanPlan, *plan);
-    }
+    planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
 }
 
 std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planMapper,

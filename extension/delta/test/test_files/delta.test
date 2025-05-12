@@ -90,7 +90,7 @@ Diana|40|2500.300000|1983-07-20 00:00:00
 Ethan|28|1800.600000|1996-03-10 00:00:00
 
 -CASE InstallOfficialExtension
--STATEMENT INSTALL DELTA FROM 'http://localhost/extension/repo/'
+-STATEMENT FORCE INSTALL DELTA FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension DELTA
 ---- ok

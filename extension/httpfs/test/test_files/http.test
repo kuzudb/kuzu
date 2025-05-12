@@ -163,7 +163,7 @@ Runtime exception: Cannot attach an external Kuzu database with non-empty wal fi
 Binder exception: Attaching a kuzu database without an alias is not allowed.
 
 -CASE InstallOfficialExtension
--STATEMENT INSTALL httpfs FROM 'http://localhost/extension/repo/'
+-STATEMENT FORCE INSTALL httpfs FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension httpfs
 ---- ok

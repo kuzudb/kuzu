@@ -22,13 +22,5 @@ std::unique_ptr<LogicalPlan> LogicalPlan::shallowCopy() const {
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> LogicalPlan::deepCopy() const {
-    KU_ASSERT(!isEmpty());
-    auto plan = std::make_unique<LogicalPlan>();
-    plan->lastOperator = lastOperator->copy(); // deep copy sub-plan
-    plan->cost = cost;
-    return plan;
-}
-
 } // namespace planner
 } // namespace kuzu

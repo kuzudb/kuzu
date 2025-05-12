@@ -7,13 +7,14 @@ namespace kuzu {
 namespace binder {
 
 class BoundAlter final : public BoundStatement {
+    static constexpr common::StatementType type_ = common::StatementType::ALTER;
+
 public:
     explicit BoundAlter(BoundAlterInfo info)
-        : BoundStatement{common::StatementType::ALTER,
-              BoundStatementResult::createSingleStringColumnResult()},
+        : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}
 
-    inline const BoundAlterInfo* getInfo() const { return &info; }
+    const BoundAlterInfo& getInfo() const { return info; }
 
 private:
     BoundAlterInfo info;

@@ -68,6 +68,7 @@ using export_combine_t = std::function<void(ExportFuncSharedState&, ExportFuncLo
 using export_finalize_t = std::function<void(ExportFuncSharedState&)>;
 
 struct KUZU_API ExportFunction : public Function {
+    ExportFunction() = default;
     explicit ExportFunction(std::string name) : Function{std::move(name), {}} {}
 
     ExportFunction(std::string name, export_init_local_t initLocal,

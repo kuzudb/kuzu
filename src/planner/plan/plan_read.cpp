@@ -10,63 +10,53 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void Planner::planReadingClause(const BoundReadingClause& readingClause,
-    std::vector<std::unique_ptr<LogicalPlan>>& prevPlans) {
+void Planner::planReadingClause(const BoundReadingClause& readingClause, LogicalPlan& plan) {
     switch (readingClause.getClauseType()) {
     case ClauseType::MATCH: {
-        planMatchClause(readingClause, prevPlans);
+        planMatchClause(readingClause, plan);
     } break;
     case ClauseType::UNWIND: {
-        planUnwindClause(readingClause, prevPlans);
+        planUnwindClause(readingClause, plan);
     } break;
     case ClauseType::TABLE_FUNCTION_CALL: {
-        planTableFunctionCall(readingClause, prevPlans);
+        planTableFunctionCall(readingClause, plan);
     } break;
     case ClauseType::LOAD_FROM: {
-        planLoadFrom(readingClause, prevPlans);
+        planLoadFrom(readingClause, plan);
     } break;
     default:
         KU_UNREACHABLE;
     }
 }
 
-void Planner::planMatchClause(const BoundReadingClause& readingClause,
-    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planMatchClause(const BoundReadingClause& readingClause, LogicalPlan& plan) {
     auto& boundMatchClause = readingClause.constCast<BoundMatchClause>();
     auto queryGraphCollection = boundMatchClause.getQueryGraphCollection();
     auto predicates = boundMatchClause.getConjunctivePredicates();
     switch (boundMatchClause.getMatchClauseType()) {
     case MatchClauseType::MATCH: {
-        if (plans.size() == 1 && plans[0]->isEmpty()) {
+        if (plan.isEmpty()) {
             auto info = QueryGraphPlanningInfo();
             info.predicates = predicates;
             info.hint = boundMatchClause.getHint();
-            plans = enumerateQueryGraphCollection(*queryGraphCollection, info);
+            plan = planQueryGraphCollection(*queryGraphCollection, info);
         } else {
-            for (auto& plan : plans) {
-                planRegularMatch(*queryGraphCollection, predicates, *plan,
-                    boundMatchClause.getHint());
-            }
+            planRegularMatch(*queryGraphCollection, predicates, plan, boundMatchClause.getHint());
         }
     } break;
     case MatchClauseType::OPTIONAL_MATCH: {
-        for (auto& plan : plans) {
-            planOptionalMatch(*queryGraphCollection, predicates, *plan, boundMatchClause.getHint());
-        }
+        planOptionalMatch(*queryGraphCollection, predicates, plan, boundMatchClause.getHint());
     } break;
     default:
         KU_UNREACHABLE;
     }
 }
 
-void Planner::planUnwindClause(const BoundReadingClause& boundReadingClause,
-    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    for (auto& plan : plans) {
-        if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
-            appendDummyScan(*plan);
-        }
-        appendUnwind(boundReadingClause, *plan);
+void Planner::planUnwindClause(const BoundReadingClause& boundReadingClause, LogicalPlan& plan) {
+    if (plan.isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
+        appendDummyScan(plan);
     }
+    appendUnwind(boundReadingClause, plan);
 }
 
 class PredicatesDependencyAnalyzer {
@@ -109,34 +99,26 @@ private:
     std::unordered_set<std::string> columnNameSet;
 };
 
-void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
-    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planTableFunctionCall(const BoundReadingClause& readingClause, LogicalPlan& plan) {
     auto& boundCall = readingClause.constCast<BoundTableFunctionCall>();
     auto analyzer = PredicatesDependencyAnalyzer(boundCall.getBindData()->columns);
     analyzer.analyze(boundCall.getConjunctivePredicates());
     KU_ASSERT(boundCall.getTableFunc().getLogicalPlanFunc);
     boundCall.getTableFunc().getLogicalPlanFunc(this, readingClause,
-        analyzer.predicatesDependsOnlyOnOutputColumns, plans);
+        analyzer.predicatesDependsOnlyOnOutputColumns, plan);
     if (!analyzer.predicatesWithOtherDependencies.empty()) {
-        for (auto& plan : plans) {
-            appendFilters(analyzer.predicatesWithOtherDependencies, *plan);
-        }
+        appendFilters(analyzer.predicatesWithOtherDependencies, plan);
     }
 }
 
-void Planner::planLoadFrom(const BoundReadingClause& readingClause,
-    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+void Planner::planLoadFrom(const BoundReadingClause& readingClause, LogicalPlan& plan) {
     auto& loadFrom = readingClause.constCast<BoundLoadFrom>();
     auto analyzer = PredicatesDependencyAnalyzer(loadFrom.getInfo()->bindData->columns);
     analyzer.analyze(loadFrom.getConjunctivePredicates());
-    for (auto& plan : plans) {
-        auto op = getTableFunctionCall(*loadFrom.getInfo());
-        planReadOp(std::move(op), analyzer.predicatesDependsOnlyOnOutputColumns, *plan);
-    }
+    auto op = getTableFunctionCall(*loadFrom.getInfo());
+    planReadOp(std::move(op), analyzer.predicatesDependsOnlyOnOutputColumns, plan);
     if (!analyzer.predicatesWithOtherDependencies.empty()) {
-        for (auto& plan : plans) {
-            appendFilters(analyzer.predicatesWithOtherDependencies, *plan);
-        }
+        appendFilters(analyzer.predicatesWithOtherDependencies, plan);
     }
 }
 

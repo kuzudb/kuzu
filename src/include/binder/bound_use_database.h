@@ -6,9 +6,11 @@ namespace kuzu {
 namespace binder {
 
 class BoundUseDatabase final : public BoundDatabaseStatement {
+    static constexpr common::StatementType type_ = common::StatementType::USE_DATABASE;
+
 public:
     explicit BoundUseDatabase(std::string dbName)
-        : BoundDatabaseStatement{common::StatementType::USE_DATABASE, std::move(dbName)} {}
+        : BoundDatabaseStatement{type_, std::move(dbName)} {}
 };
 
 } // namespace binder

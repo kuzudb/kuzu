@@ -3,7 +3,7 @@
 --
 
 -CASE InstallOfficialExtension
--STATEMENT INSTALL postgres FROM 'http://localhost/extension/repo/'
+-STATEMENT FORCE INSTALL postgres FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension postgres
 ---- ok
