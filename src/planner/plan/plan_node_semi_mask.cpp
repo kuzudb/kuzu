@@ -28,21 +28,12 @@ LogicalPlan Planner::getNodeSemiMaskPlan(SemiMaskTargetType targetType, const No
     appendScanNodeTable(node.getInternalID(), node.getTableIDs(), getProperties(node), plan);
     appendFilter(nodePredicate, plan);
     exitPropertyExprCollection(std::move(prevCollection));
-    return getNodeSemiMaskPlan(targetType, node, plan, true);
-}
-
-LogicalPlan Planner::getNodeSemiMaskPlan(SemiMaskTargetType targetType, const NodeExpression& node,
-    LogicalPlan& plan, bool includeDummySink) {
     auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskKeyType::NODE, targetType,
         node.getInternalID(), node.getTableIDs(), plan.getLastOperator());
     semiMasker->computeFactorizedSchema();
-    if (includeDummySink) {
-        auto dummySink = std::make_shared<LogicalDummySink>(semiMasker);
-        dummySink->computeFactorizedSchema();
-        plan.setLastOperator(dummySink);
-        return plan;
-    }
-    plan.setLastOperator(semiMasker);
+    auto dummySink = std::make_shared<LogicalDummySink>(semiMasker);
+    dummySink->computeFactorizedSchema();
+    plan.setLastOperator(dummySink);
     return plan;
 }
 

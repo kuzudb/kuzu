@@ -37,12 +37,6 @@ public:
     void setOutputNodeMask() { hasOutputNodeMask_ = true; }
 
     bool hasNodePredicate() const { return !children.empty(); }
-    std::shared_ptr<LogicalOperator> getNodeMaskRoot() const {
-        if (!children.empty()) {
-            return children[0];
-        }
-        return nullptr;
-    }
 
     std::string getExpressionsForPrinting() const override { return function->getFunctionName(); }
 

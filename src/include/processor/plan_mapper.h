@@ -78,7 +78,7 @@ public:
         common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
         std::vector<common::LogicalType> columnTypes, uint32_t operatorID);
 
-    std::unique_ptr<PhysicalOperator> mapOperator(const planner::LogicalOperator* logicalOperator);
+    KUZU_API std::unique_ptr<PhysicalOperator> mapOperator(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAccumulate(
         const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAggregate(const planner::LogicalOperator* logicalOperator);
@@ -232,21 +232,26 @@ public:
 
     static std::vector<DataPos> getDataPos(const binder::expression_vector& expressions,
         const planner::Schema& schema);
-    static planner::LogicalSemiMasker* findSemiMaskerInPlan(
-        planner::LogicalOperator* logicalOperator);
-    static std::shared_ptr<planner::LogicalSemiMasker> findSemiMaskerInPlan(
-        std::shared_ptr<planner::LogicalOperator> logicalOperator);
     static FactorizedTableSchema createFlatFTableSchema(
         const binder::expression_vector& expressions, const planner::Schema& schema);
     std::unique_ptr<common::SemiMask> createSemiMask(common::table_id_t tableID) const;
 
+    void addOperatorMapping(const planner::LogicalOperator* logicalOp, PhysicalOperator* physicalOp) {
+        KU_ASSERT(!logicalOpToPhysicalOpMap.contains(logicalOp));
+        logicalOpToPhysicalOpMap.insert({logicalOp, physicalOp});
+    }
+    void eraseOperatorMapping(const planner::LogicalOperator* logicalOp) {
+        KU_ASSERT(logicalOpToPhysicalOpMap.contains(logicalOp));
+        logicalOpToPhysicalOpMap.erase(logicalOp);
+    }
+
 public:
     ExecutionContext* executionContext;
     main::ClientContext* clientContext;
-    std::unordered_map<const planner::LogicalOperator*, PhysicalOperator*> logicalOpToPhysicalOpMap;
 
 private:
-    uint32_t physicalOperatorID;
+    std::unordered_map<const planner::LogicalOperator*, PhysicalOperator*> logicalOpToPhysicalOpMap;
+    physical_op_id physicalOperatorID;
 };
 
 } // namespace processor

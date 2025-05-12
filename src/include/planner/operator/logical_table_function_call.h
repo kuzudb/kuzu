@@ -3,7 +3,6 @@
 #include "function/table/bind_data.h"
 #include "function/table/table_function.h"
 #include "planner/operator/logical_operator.h"
-#include "sip/logical_semi_masker.h"
 
 namespace kuzu {
 namespace planner {
@@ -29,18 +28,6 @@ public:
         bindData->setColumnPredicates(std::move(predicates));
     }
 
-    void setNodeMaskRoots(std::vector<std::shared_ptr<LogicalOperator>> roots) {
-        nodeMaskRoots = std::move(roots);
-    }
-    std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskRoots() const { return nodeMaskRoots; }
-
-    void setInputNodeMaskRoots(std::vector<std::shared_ptr<LogicalSemiMasker>> roots) {
-        inputNodeMaskRoots = std::move(roots);
-    }
-    std::vector<std::shared_ptr<LogicalSemiMasker>> getInputNodeMaskRoots() const {
-        return inputNodeMaskRoots;
-    }
-
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
 
@@ -53,11 +40,6 @@ public:
 private:
     function::TableFunction tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
-
-    // TODO(Xiyang): We should unify how masks are planned in GDS and HNSW.
-    std::vector<std::shared_ptr<LogicalOperator>> nodeMaskRoots;
-    // Gds function input parameter's nodeMask
-    std::vector<std::shared_ptr<LogicalSemiMasker>> inputNodeMaskRoots;
 };
 
 } // namespace planner

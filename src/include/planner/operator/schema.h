@@ -114,7 +114,7 @@ public:
     // Get the group positions containing at least one expression in scope.
     f_group_pos_set getGroupsPosInScope() const;
 
-    std::unique_ptr<Schema> copy() const;
+    KUZU_API std::unique_ptr<Schema> copy() const;
 
     void clear();
 
