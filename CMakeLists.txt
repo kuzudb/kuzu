@@ -151,6 +151,8 @@ if(MSVC)
     add_compile_options("/EHa")
     # Reduces the size of the static library by roughly 1/2
     add_compile_options("/Zc:inline")
+    # Disable type conversion warnings
+    add_compile_options(/wd4244 /wd4267)
     # Remove the default to avoid warnings
     STRING(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     STRING(REPLACE "/EHs" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -277,7 +279,7 @@ if (ENABLE_BACKTRACES)
         FetchContent_Declare(
           cpptrace
           GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-          GIT_TAG        v0.5.4
+          GIT_TAG        v0.8.3
           GIT_SHALLOW    TRUE
         )
         FetchContent_MakeAvailable(cpptrace)

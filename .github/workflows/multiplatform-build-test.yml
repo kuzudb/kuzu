@@ -2,7 +2,6 @@ name: Multiplatform Build and Test
 
 env:
   USE_EXISTING_BINARY_DATASET: 1
-  PIP_BREAK_SYSTEM_PACKAGES: 1
 
 on:
   workflow_dispatch:
@@ -35,11 +34,11 @@ jobs:
   macos-build-test:
     strategy:
       matrix:
-        runner: [macos-13, macos-14]
+        runner: [ macos-14, macos-15 ]
       fail-fast: false
     name: ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
-    needs: [generate-binary-demo]
+    needs: [ generate-binary-demo ]
     defaults:
       run:
         shell: bash
@@ -56,35 +55,24 @@ jobs:
       - uses: actions/setup-python@v4
         continue-on-error: true
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
-      - name: Ensure Python dependencies
+      - name: Test
         continue-on-error: true
         run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        working-directory: tools/nodejs_api
-        run: npm install --include=dev
+          set +e
+          echo NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          echo "Test,$?" >> status.txt
+          make clean
+          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
         run: |
           set +e
           make release NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          echo "Build,$?" > status.txt
-
-      - name: Test
-        continue-on-error: true
-        run: |
-          set +e
-          make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
-          echo "Test,$?" >> status.txt
-
-      - name: Remove ldbc-1
-        run: rm -rf dataset/ldbc-1
+          echo "Build,$?" >> status.txt
 
       - name: C and C++ examples
         continue-on-error: true
@@ -93,16 +81,31 @@ jobs:
           make example NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "C and C++ examples,$?" >> status.txt
 
+      - name: Ensure Python dependencies
+        continue-on-error: true
+        run: |
+          pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+
       - name: Python test
         continue-on-error: true
         run: |
+          python --version
+          pip --version
           set +e
           make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Python test,$?" >> status.txt
 
+      - name: Ensure Node.js dependencies
+        continue-on-error: true
+        working-directory: tools/nodejs_api
+        run: npm install --include=dev
+
       - name: Node.js test
         continue-on-error: true
         run: |
+          node --version
+          npm --version
           set +e
           make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Node.js test,$?" >> status.txt
@@ -110,6 +113,7 @@ jobs:
       - name: Java test
         continue-on-error: true
         run: |
+          java --version
           set +e
           make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Java test,$?" >> status.txt
@@ -129,6 +133,7 @@ jobs:
         continue-on-error: true
         working-directory: tools/rust_api
         run: |
+          cargo --version
           set +e
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
@@ -154,10 +159,10 @@ jobs:
   windows-build-test:
     strategy:
       matrix:
-        runner: [windows-2019, windows-2022, windows-2025]
+        runner: [ windows-2022, windows-2025 ]
       fail-fast: false
     name: ${{ matrix.runner }}
-    needs: [generate-binary-demo]
+    needs: [ generate-binary-demo ]
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Disable Windows Defender
@@ -190,37 +195,24 @@ jobs:
       - uses: actions/setup-python@v4
         continue-on-error: true
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
-      - name: Ensure Python dependencies
+      - name: Test
         continue-on-error: true
         shell: cmd
         run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        shell: cmd
-        working-directory: .\tools\nodejs_api
-        run: npm install --include=dev
+          echo NUMBER_OF_PROCESSORS=%NUMBER_OF_PROCESSORS%
+          make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          echo Test,%ERRORLEVEL% >> status.txt
+          make clean
+          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
         shell: cmd
         run: |
           make release NUM_THREADS=%NUMBER_OF_PROCESSORS%
-          echo Build,%ERRORLEVEL% > status.txt
-
-      - name: Test
-        continue-on-error: true
-        shell: cmd
-        run: |
-          make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
-          echo Test,%ERRORLEVEL% >> status.txt
-
-      - name: Remove ldbc-1
-        run: Remove-Item -Recurse -Force dataset\ldbc-1
+          echo Build,%ERRORLEVEL% >> status.txt
 
       - name: C and C++ examples
         continue-on-error: true
@@ -229,12 +221,27 @@ jobs:
           make example NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo C and C++ examples,%ERRORLEVEL% >> status.txt
 
+      - name: Ensure Python dependencies
+        continue-on-error: true
+        shell: cmd
+        run: |
+          pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+
       - name: Python test
         continue-on-error: true
         shell: cmd
         run: |
+          python --version
+          pip --version
           make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Python test,%ERRORLEVEL% >> status.txt
+
+      - name: Ensure Node.js dependencies
+        continue-on-error: true
+        shell: cmd
+        working-directory: .\tools\nodejs_api
+        run: npm install --include=dev
 
       - name: Node.js test
         continue-on-error: true
@@ -243,10 +250,19 @@ jobs:
           make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Node.js test,%ERRORLEVEL% >> status.txt
 
+      - name: Set up JDK 11
+        continue-on-error: true
+        if: ${{ matrix.runner == 'windows-2022' }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
       - name: Java test
         continue-on-error: true
         shell: cmd
         run: |
+          java --version
           make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Java test,%ERRORLEVEL% >> status.txt
 
@@ -263,7 +279,7 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
-          make clean
+          cargo --version
           set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
           set CXXFLAGS=/std:c++20
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
@@ -274,6 +290,8 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
+          set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
+          set CXXFLAGS=/std:c++20
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
           cargo build --release --features arrow
           echo Rust example,%ERRORLEVEL% >> status.txt
@@ -293,10 +311,10 @@ jobs:
   debian-ubuntu-build-test:
     strategy:
       matrix:
-        image: ["ubuntu:22.04", "ubuntu:24.04", "ubuntu:24.10", "debian:12", "debian:sid"]
+        image: [ "ubuntu:22.04", "ubuntu:24.04", "ubuntu:25.04", "debian:12", "debian:sid" ]
       fail-fast: false
     name: ${{ matrix.image }}
-    needs: [generate-binary-demo]
+    needs: [ generate-binary-demo ]
     runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.image }}
@@ -305,8 +323,8 @@ jobs:
       CXX: g++
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     steps:
-      - name: Setup Node.js
-        if: ${{ matrix.image != 'debian:sid' }}
+      - name: Setup Node.js repo
+        if: ${{ matrix.image != 'debian:sid' && matrix.image != 'ubuntu:25.04' }}
         continue-on-error: true
         run: |
           apt-get update
@@ -317,14 +335,16 @@ jobs:
 
       - name: Install packages
         continue-on-error: true
-        run: |    
+        run: |
           apt-get update
-          apt-get install -y git build-essential cmake gcc g++ python3 python3-dev python3-pip openjdk-17-jdk nodejs ca-certificates curl gnupg
+          apt-get install -y git build-essential cmake python3 python3-dev python3-venv python3-pip openjdk-17-jdk ca-certificates curl gnupg ${{ matrix.image == 'ubuntu:22.04' && 'gcc-12 g++-12' || 'gcc g++' }} ${{ (matrix.image == 'debian:sid' || matrix.image == 'ubuntu:25.04') && 'nodejs npm' || 'nodejs' }}
 
-      - name: Install npm
-        if: ${{ matrix.image == 'debian:sid' }}
+      - name: Setup gcc 12
+        if: ${{ matrix.image == 'ubuntu:22.04' }}
         continue-on-error: true
-        run: apt-get install -y npm
+        run: |
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100
+          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
 
       - uses: actions/checkout@v4
         continue-on-error: true
@@ -335,40 +355,22 @@ jobs:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
 
-      - name: Ensure Python dependencies
+      - name: Test
         continue-on-error: true
         run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        working-directory: tools/nodejs_api
-        continue-on-error: true
-        run: npm install --include=dev
-
-      - name: Install Rust
-        continue-on-error: true
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.81
+          set +e
+          echo NUM_THREADS=$(nproc)
+          make test NUM_THREADS=$(nproc)
+          echo "Test,$?" >> status.txt
+          make clean
+          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
         run: |
           set +e
           make release NUM_THREADS=$(nproc)
-          echo "Build,$?" > status.txt
-
-      - name: Test
-        continue-on-error: true
-        run: |
-          set +e
-          make test NUM_THREADS=$(nproc)
-          echo "Test,$?" >> status.txt
-
-      - name: Remove ldbc-1
-        run: rm -rf dataset/ldbc-1
+          echo "Build,$?" >> status.txt
 
       - name: C and C++ examples
         continue-on-error: true
@@ -377,16 +379,34 @@ jobs:
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
+      - name: Ensure Python dependencies
+        continue-on-error: true
+        run: |
+          python3 -m venv /opt/venv
+          . /opt/venv/bin/activate
+          pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+
       - name: Python test
         continue-on-error: true
         run: |
+          . /opt/venv/bin/activate
+          python --version
+          pip --version
           set +e
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
+      - name: Ensure Node.js dependencies
+        working-directory: tools/nodejs_api
+        continue-on-error: true
+        run: npm install --include=dev
+
       - name: Node.js test
         continue-on-error: true
         run: |
+          node --version
+          npm --version
           set +e
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
@@ -394,12 +414,20 @@ jobs:
       - name: Java test
         continue-on-error: true
         run: |
+          java --version
           set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
 
       - name: Cleanup
         run: make clean
+
+      - name: Install Rust
+        continue-on-error: true
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          $HOME/.cargo/bin/rustup toolchain install 1.81
 
       - name: Rust share build
         continue-on-error: true
@@ -413,6 +441,7 @@ jobs:
         continue-on-error: true
         working-directory: tools/rust_api
         run: |
+          cargo --version
           set +e
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
@@ -441,17 +470,17 @@ jobs:
   rhel-fedora-build-test:
     strategy:
       matrix:
-        image: ["rockylinux:8", "rockylinux:9", "fedora:38", "fedora:39"]
+        image: [ "rockylinux:8", "rockylinux:9", "fedora:41", "fedora:42" ]
       fail-fast: false
     name: ${{ matrix.image }}
-    needs: [generate-binary-demo]
+    needs: [ generate-binary-demo ]
     runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.image }}
     env:
       CC: gcc
       CXX: g++
-      JAVA_HOME: /usr/lib/jvm/java-17-openjdk
+      JAVA_HOME: /usr/lib/jvm/java-${{ matrix.image == 'fedora:42' && '21' || '17' }}-openjdk
       HOME: /root
     steps:
       - name: Enable EPEL
@@ -471,18 +500,19 @@ jobs:
         continue-on-error: true
         run: |
           curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-          dnf install -y git cmake ${{ matrix.image == 'rockylinux:8' && 'gcc-toolset-12 python3.11 python3.11-devel' || 'gcc gcc-c++ python3-devel' }} java-17-openjdk-devel nodejs
+          dnf install -y git cmake nodejs ${{ (matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9') && 'gcc-toolset-12 python3.11 python3.11-devel' || 'gcc gcc-c++ python3-devel' }} ${{ matrix.image == 'fedora:42' && 'java-21-openjdk-devel' || 'java-17-openjdk-devel' }}
+          dnf clean all
 
-      - name: Enable gcc-toolset-12 and python3.11 on Rocky Linux 8
+      - name: Enable gcc-toolset-12 and python3.11 on Rocky Linux
+        if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
         continue-on-error: true
-        if: matrix.image == 'rockylinux:8'
         run: |
-          alternatives --set python /usr/bin/python3.11
+          source /opt/rh/gcc-toolset-12/enable
+          echo $PATH >> $GITHUB_PATH
+          alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
           alternatives --set python3 /usr/bin/python3.11
           echo "PYTHON_EXECUTABLE=/usr/bin/python3.11" >> $GITHUB_ENV
           echo "PYBIND11_PYTHON_VERSION=3.11" >> $GITHUB_ENV
-          source /opt/rh/gcc-toolset-12/enable
-          echo $PATH >> $GITHUB_PATH
 
       - uses: actions/checkout@v4
         continue-on-error: true
@@ -493,42 +523,22 @@ jobs:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
 
-      - name: Ensure Python dependencies
+      - name: Test
         continue-on-error: true
         run: |
-          python3 -m venv /opt/venv
-          source /opt/venv/bin/activate
-          pip3 install torch~=2.2.1 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
-
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        working-directory: tools/nodejs_api
-        run: npm install --include=dev
-
-      - name: Install Rust
-        continue-on-error: true
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.81
+          set +e
+          echo NUM_THREADS=$(nproc)
+          make test NUM_THREADS=$(nproc)
+          echo "Test,$?" >> status.txt
+          make clean
+          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
         run: |
           set +e
           make release NUM_THREADS=$(nproc)
-          echo "Build,$?" > status.txt
-
-      - name: Test
-        continue-on-error: true
-        run: |
-          set +e
-          make test NUM_THREADS=$(nproc)
-          echo "Test,$?" >> status.txt
-
-      - name: Remove ldbc-1
-        run: rm -rf dataset/ldbc-1
+          echo "Build,$?" >> status.txt
 
       - name: C and C++ examples
         continue-on-error: true
@@ -537,17 +547,34 @@ jobs:
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
+      - name: Ensure Python dependencies
+        continue-on-error: true
+        run: |
+          python3 -m venv /opt/venv
+          source /opt/venv/bin/activate
+          pip3 install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+
       - name: Python test
         continue-on-error: true
         run: |
-          set +e
           source /opt/venv/bin/activate
+          python --version
+          pip --version
+          set +e
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
+
+      - name: Ensure Node.js dependencies
+        continue-on-error: true
+        working-directory: tools/nodejs_api
+        run: npm install --include=dev
 
       - name: Node.js test
         continue-on-error: true
         run: |
+          node --version
+          npm --version
           set +e
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
@@ -555,12 +582,20 @@ jobs:
       - name: Java test
         continue-on-error: true
         run: |
+          java --version
           set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
 
       - name: Cleanup
         run: make clean
+
+      - name: Install Rust
+        continue-on-error: true
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          $HOME/.cargo/bin/rustup toolchain install 1.81
 
       - name: Rust share build
         continue-on-error: true
@@ -574,6 +609,7 @@ jobs:
         continue-on-error: true
         working-directory: tools/rust_api
         run: |
+          cargo --version
           set +e
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
@@ -602,7 +638,7 @@ jobs:
   archlinux-build-test:
     name: archlinux
     runs-on: ubuntu-24.04
-    needs: [generate-binary-demo]
+    needs: [ generate-binary-demo ]
     container:
       image: archlinux:latest
     env:
@@ -625,40 +661,22 @@ jobs:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
 
-      - name: Ensure Python dependencies
+      - name: Test
         continue-on-error: true
         run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        working-directory: tools/nodejs_api
-        run: npm install --include=dev
-
-      - name: Install Rust
-        continue-on-error: true
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup toolchain install 1.81
+          set +e
+          echo NUM_THREADS=$(nproc)
+          make test NUM_THREADS=$(nproc)
+          echo "Test,$?" >> status.txt
+          make clean
+          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
         run: |
           set +e
           make release NUM_THREADS=$(nproc)
-          echo "Build,$?" > status.txt
-
-      - name: Test
-        continue-on-error: true
-        run: |
-          set +e
-          make test NUM_THREADS=$(nproc)
-          echo "Test,$?" >> status.txt
-
-      - name: Remove ldbc-1
-        run: rm -rf dataset/ldbc-1
+          echo "Build,$?" >> status.txt
 
       - name: C and C++ examples
         continue-on-error: true
@@ -667,16 +685,34 @@ jobs:
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
+      - name: Ensure Python dependencies
+        continue-on-error: true
+        run: |
+          python3 -m venv /opt/venv
+          source /opt/venv/bin/activate
+          pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
+
       - name: Python test
         continue-on-error: true
         run: |
+          source /opt/venv/bin/activate
+          python --version
+          pip --version
           set +e
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
+      - name: Ensure Node.js dependencies
+        continue-on-error: true
+        working-directory: tools/nodejs_api
+        run: npm install --include=dev
+
       - name: Node.js test
         continue-on-error: true
         run: |
+          node --version
+          npm --version
           set +e
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
@@ -684,12 +720,20 @@ jobs:
       - name: Java test
         continue-on-error: true
         run: |
+          java --version
           set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
 
       - name: Cleanup
         run: make clean
+
+      - name: Install Rust
+        continue-on-error: true
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          $HOME/.cargo/bin/rustup toolchain install stable
 
       - name: Rust share build
         continue-on-error: true
@@ -703,6 +747,7 @@ jobs:
         working-directory: tools/rust_api
         continue-on-error: true
         run: |
+          cargo --version
           set +e
           cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
@@ -732,6 +777,7 @@ jobs:
       DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
       DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
       GITHUB_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    if: ${{ always() }}
     needs:
       [
         macos-build-test,

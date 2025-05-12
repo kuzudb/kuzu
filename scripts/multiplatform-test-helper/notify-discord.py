@@ -12,7 +12,7 @@ messages = []
 
 if __name__ == "__main__":
     if not len(sys.argv) == 2:
-        print("Usage: python send-dicord-notification.py <result.json>")
+        print("Usage: python send-discord-notification.py <result.json>")
         sys.exit(1)
     if not os.path.isfile(sys.argv[1]):
         print(f"Error: {sys.argv[1]} is not a file")
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     message += "## Multiplatform test result:\n"
     with open(sys.argv[1], "r") as f:
         result = json.load(f)
-        for platform in result:
+        for platform in sorted(result.keys()):
             if len(message) >= 1500:
                 messages.append(message)
                 message = ""

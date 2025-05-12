@@ -40,12 +40,13 @@ def main():
     for platform in results_df_hash.keys():
         results_summary[platform] = []
         for stage in stages:
-            status = (
-                "✅"
-                if stage in results_exit_codes_hash[platform]
-                and results_exit_codes_hash[platform][stage] == 0
-                else "❌"
-            )
+            if stage in results_exit_codes_hash[platform]:
+                if results_exit_codes_hash[platform][stage] == 0:
+                    status = "✅"
+                else:
+                    status = "❌"
+            else:
+                status = "❓"
             results_summary[platform].append({"stage": stage, "status": status})
 
     summary_df = {"stage": stages}
