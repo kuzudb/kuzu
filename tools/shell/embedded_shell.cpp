@@ -525,8 +525,6 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         currLine = "";
         continueLine = false;
     }
-    else if (input.back() != ';')
-        input.push_back(';');
     input = input.erase(input.find_last_not_of(" \t\n\r\f\v") + 1);
     // Decode escape sequences
     std::string unicodeInput;
