@@ -131,6 +131,10 @@ public:
     static std::pair<common::ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExpression(
         const expression_vector& columns, const PropertyDefinition& property,
         ExpressionBinder& expressionBinder);
+    BoundCopyFromInfo bindCopyNodeFromInfo(std::string tableName, const std::vector<PropertyDefinition>& properties,
+        const parser::BaseScanSource* source, const parser::options_t& parsingOptions,
+        const std::vector<std::string>& expectedColumnNames,
+        const std::vector<common::LogicalType>& expectedColumnTypes);
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
         catalog::NodeTableCatalogEntry* nodeTableEntry);

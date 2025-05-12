@@ -18,8 +18,8 @@ public:
               BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)}, copyInfo{std::move(copyInfo)} {}
 
-    inline const BoundCreateTableInfo* getInfo() const { return &info; }
-    inline bool hasCopyInfo() const { return copyInfo.has_value(); }
+    const BoundCreateTableInfo* getInfo() const { return &info; }
+    bool hasCopyInfo() const { return copyInfo.has_value(); }
     const BoundCopyFromInfo* getCopyInfo() const { return &copyInfo.value(); }
 
 private:
