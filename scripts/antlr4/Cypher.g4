@@ -245,7 +245,6 @@ oC_Cypher
 oC_Statement
     : oC_Query
         | kU_CreateNodeTable
-        | kU_CreateNodeTableAs
         | kU_CreateRelTable
         | kU_CreateSequence
         | kU_CreateType
@@ -330,10 +329,7 @@ kU_IfNotExists
     : IF SP NOT SP EXISTS ;
 
 kU_CreateNodeTable
-    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint )? SP? ')' ;
-
-kU_CreateNodeTableAs
-    : CREATE SP NODE SP TABLE SP oC_SchemaName SP AS SP '(' oC_Query ')' ;
+    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName ( SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint )? SP? ')' | SP AS SP? '(' oC_Query ')' ) ;
 
 kU_CreateRelTable
     : CREATE SP REL SP TABLE ( SP GROUP )? ( SP kU_IfNotExists )? SP oC_SchemaName

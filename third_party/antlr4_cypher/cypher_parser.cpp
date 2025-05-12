@@ -1521,10 +1521,6 @@ CypherParser::KU_CreateNodeTableContext* CypherParser::OC_StatementContext::kU_C
   return getRuleContext<CypherParser::KU_CreateNodeTableContext>(0);
 }
 
-CypherParser::KU_CreateNodeTableAsContext* CypherParser::OC_StatementContext::kU_CreateNodeTableAs() {
-  return getRuleContext<CypherParser::KU_CreateNodeTableAsContext>(0);
-}
-
 CypherParser::KU_CreateRelTableContext* CypherParser::OC_StatementContext::kU_CreateRelTable() {
   return getRuleContext<CypherParser::KU_CreateRelTableContext>(0);
 }
@@ -2237,6 +2233,8 @@ CypherParser::KU_CopyFromByColumnContext* CypherParser::kU_CopyFromByColumn() {
     match(CypherParser::COPY);
     setState(472);
     oC_SchemaName();
+    setState(472);
+    match(CypherParser::SP);
     setState(473);
     oC_SchemaName();
     setState(474);
@@ -3272,14 +3270,20 @@ CypherParser::KU_CommentOnContext* CypherParser::kU_CommentOn() {
     match(CypherParser::COMMENT);
     setState(650);
     match(CypherParser::ON);
+    setState(650);
+    match(CypherParser::SP);
     setState(651);
     match(CypherParser::ON);
     setState(652);
     match(CypherParser::TABLE);
+    setState(652);
+    match(CypherParser::SP);
     setState(653);
     match(CypherParser::TABLE);
     setState(654);
     oC_SchemaName();
+    setState(654);
+    match(CypherParser::SP);
     setState(655);
     oC_SchemaName();
     setState(656);
@@ -3408,7 +3412,7 @@ CypherParser::KU_CreateMacroContext* CypherParser::kU_CreateMacro() {
     setState(674);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 58, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 59, _ctx)) {
     case 1: {
       setState(673);
       kU_PositionalArgs();
@@ -3432,19 +3436,6 @@ CypherParser::KU_CreateMacroContext* CypherParser::kU_CreateMacro() {
       break;
     }
     setState(680);
-    _errHandler->sync(this);
-
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 59, _ctx)) {
-    case 1: {
-      setState(675);
-      match(CypherParser::SP);
-      break;
-    }
-
-    default:
-      break;
-    }
-    setState(679);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -3938,6 +3929,14 @@ CypherParser::KU_PropertyDefinitionsContext* CypherParser::KU_CreateNodeTableCon
   return getRuleContext<CypherParser::KU_PropertyDefinitionsContext>(0);
 }
 
+tree::TerminalNode* CypherParser::KU_CreateNodeTableContext::AS() {
+  return getToken(CypherParser::AS, 0);
+}
+
+CypherParser::OC_QueryContext* CypherParser::KU_CreateNodeTableContext::oC_Query() {
+  return getRuleContext<CypherParser::OC_QueryContext>(0);
+}
+
 CypherParser::KU_IfNotExistsContext* CypherParser::KU_CreateNodeTableContext::kU_IfNotExists() {
   return getRuleContext<CypherParser::KU_IfNotExistsContext>(0);
 }
@@ -3970,6 +3969,8 @@ CypherParser::KU_CreateNodeTableContext* CypherParser::kU_CreateNodeTable() {
     match(CypherParser::CREATE);
     setState(771);
     match(CypherParser::NODE);
+    setState(771);
+    match(CypherParser::SP);
     setState(772);
     match(CypherParser::NODE);
     setState(773);
@@ -4133,7 +4134,7 @@ size_t CypherParser::KU_CreateRelTableContext::getRuleIndex() const {
 
 CypherParser::KU_CreateRelTableContext* CypherParser::kU_CreateRelTable() {
   KU_CreateRelTableContext *_localctx = _tracker.createInstance<KU_CreateRelTableContext>(_ctx, getState());
-  enterRule(_localctx, 48, CypherParser::RuleKU_CreateRelTable);
+  enterRule(_localctx, 46, CypherParser::RuleKU_CreateRelTable);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -4158,7 +4159,7 @@ CypherParser::KU_CreateRelTableContext* CypherParser::kU_CreateRelTable() {
     setState(812);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 85, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 87, _ctx)) {
     case 1: {
       setState(810);
       match(CypherParser::SP);
@@ -4173,7 +4174,7 @@ CypherParser::KU_CreateRelTableContext* CypherParser::kU_CreateRelTable() {
     setState(816);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 86, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 88, _ctx)) {
     case 1: {
       setState(814);
       match(CypherParser::SP);
@@ -4362,7 +4363,7 @@ size_t CypherParser::KU_FromToConnectionsContext::getRuleIndex() const {
 
 CypherParser::KU_FromToConnectionsContext* CypherParser::kU_FromToConnections() {
   KU_FromToConnectionsContext *_localctx = _tracker.createInstance<KU_FromToConnectionsContext>(_ctx, getState());
-  enterRule(_localctx, 50, CypherParser::RuleKU_FromToConnections);
+  enterRule(_localctx, 48, CypherParser::RuleKU_FromToConnections);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -4379,7 +4380,7 @@ CypherParser::KU_FromToConnectionsContext* CypherParser::kU_FromToConnections() 
     kU_FromToConnection();
     setState(880);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 102, _ctx);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 104, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
         setState(871);
@@ -4405,7 +4406,7 @@ CypherParser::KU_FromToConnectionsContext* CypherParser::kU_FromToConnections() 
       }
       setState(882);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 102, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 104, _ctx);
     }
    
   }
@@ -4456,7 +4457,7 @@ size_t CypherParser::KU_FromToConnectionContext::getRuleIndex() const {
 
 CypherParser::KU_FromToConnectionContext* CypherParser::kU_FromToConnection() {
   KU_FromToConnectionContext *_localctx = _tracker.createInstance<KU_FromToConnectionContext>(_ctx, getState());
-  enterRule(_localctx, 52, CypherParser::RuleKU_FromToConnection);
+  enterRule(_localctx, 50, CypherParser::RuleKU_FromToConnection);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4538,7 +4539,7 @@ size_t CypherParser::KU_CreateSequenceContext::getRuleIndex() const {
 
 CypherParser::KU_CreateSequenceContext* CypherParser::kU_CreateSequence() {
   KU_CreateSequenceContext *_localctx = _tracker.createInstance<KU_CreateSequenceContext>(_ctx, getState());
-  enterRule(_localctx, 54, CypherParser::RuleKU_CreateSequence);
+  enterRule(_localctx, 52, CypherParser::RuleKU_CreateSequence);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4561,7 +4562,7 @@ CypherParser::KU_CreateSequenceContext* CypherParser::kU_CreateSequence() {
     setState(898);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 103, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 105, _ctx)) {
     case 1: {
       setState(895);
       kU_IfNotExists();
@@ -4577,7 +4578,7 @@ CypherParser::KU_CreateSequenceContext* CypherParser::kU_CreateSequence() {
     oC_SchemaName();
     setState(905);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 104, _ctx);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 106, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
         setState(901);
@@ -4587,7 +4588,7 @@ CypherParser::KU_CreateSequenceContext* CypherParser::kU_CreateSequence() {
       }
       setState(907);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 104, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 106, _ctx);
     }
    
   }
@@ -4642,7 +4643,7 @@ size_t CypherParser::KU_CreateTypeContext::getRuleIndex() const {
 
 CypherParser::KU_CreateTypeContext* CypherParser::kU_CreateType() {
   KU_CreateTypeContext *_localctx = _tracker.createInstance<KU_CreateTypeContext>(_ctx, getState());
-  enterRule(_localctx, 56, CypherParser::RuleKU_CreateType);
+  enterRule(_localctx, 54, CypherParser::RuleKU_CreateType);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4674,7 +4675,7 @@ CypherParser::KU_CreateTypeContext* CypherParser::kU_CreateType() {
     setState(918);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 105, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 107, _ctx)) {
     case 1: {
       setState(917);
       match(CypherParser::SP);
@@ -4729,7 +4730,7 @@ size_t CypherParser::KU_SequenceOptionsContext::getRuleIndex() const {
 
 CypherParser::KU_SequenceOptionsContext* CypherParser::kU_SequenceOptions() {
   KU_SequenceOptionsContext *_localctx = _tracker.createInstance<KU_SequenceOptionsContext>(_ctx, getState());
-  enterRule(_localctx, 58, CypherParser::RuleKU_SequenceOptions);
+  enterRule(_localctx, 56, CypherParser::RuleKU_SequenceOptions);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4741,7 +4742,7 @@ CypherParser::KU_SequenceOptionsContext* CypherParser::kU_SequenceOptions() {
   try {
     setState(925);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 106, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 108, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
       setState(920);
@@ -4829,7 +4830,7 @@ size_t CypherParser::KU_IncrementByContext::getRuleIndex() const {
 
 CypherParser::KU_IncrementByContext* CypherParser::kU_IncrementBy() {
   KU_IncrementByContext *_localctx = _tracker.createInstance<KU_IncrementByContext>(_ctx, getState());
-  enterRule(_localctx, 60, CypherParser::RuleKU_IncrementBy);
+  enterRule(_localctx, 58, CypherParser::RuleKU_IncrementBy);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -4910,7 +4911,7 @@ size_t CypherParser::KU_MinValueContext::getRuleIndex() const {
 
 CypherParser::KU_MinValueContext* CypherParser::kU_MinValue() {
   KU_MinValueContext *_localctx = _tracker.createInstance<KU_MinValueContext>(_ctx, getState());
-  enterRule(_localctx, 62, CypherParser::RuleKU_MinValue);
+  enterRule(_localctx, 60, CypherParser::RuleKU_MinValue);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5002,7 +5003,7 @@ size_t CypherParser::KU_MaxValueContext::getRuleIndex() const {
 
 CypherParser::KU_MaxValueContext* CypherParser::kU_MaxValue() {
   KU_MaxValueContext *_localctx = _tracker.createInstance<KU_MaxValueContext>(_ctx, getState());
-  enterRule(_localctx, 64, CypherParser::RuleKU_MaxValue);
+  enterRule(_localctx, 62, CypherParser::RuleKU_MaxValue);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5098,7 +5099,7 @@ size_t CypherParser::KU_StartWithContext::getRuleIndex() const {
 
 CypherParser::KU_StartWithContext* CypherParser::kU_StartWith() {
   KU_StartWithContext *_localctx = _tracker.createInstance<KU_StartWithContext>(_ctx, getState());
-  enterRule(_localctx, 66, CypherParser::RuleKU_StartWith);
+  enterRule(_localctx, 64, CypherParser::RuleKU_StartWith);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5171,7 +5172,7 @@ size_t CypherParser::KU_CycleContext::getRuleIndex() const {
 
 CypherParser::KU_CycleContext* CypherParser::kU_Cycle() {
   KU_CycleContext *_localctx = _tracker.createInstance<KU_CycleContext>(_ctx, getState());
-  enterRule(_localctx, 68, CypherParser::RuleKU_Cycle);
+  enterRule(_localctx, 66, CypherParser::RuleKU_Cycle);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5232,7 +5233,7 @@ size_t CypherParser::KU_IfExistsContext::getRuleIndex() const {
 
 CypherParser::KU_IfExistsContext* CypherParser::kU_IfExists() {
   KU_IfExistsContext *_localctx = _tracker.createInstance<KU_IfExistsContext>(_ctx, getState());
-  enterRule(_localctx, 70, CypherParser::RuleKU_IfExists);
+  enterRule(_localctx, 68, CypherParser::RuleKU_IfExists);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5302,7 +5303,7 @@ size_t CypherParser::KU_DropContext::getRuleIndex() const {
 
 CypherParser::KU_DropContext* CypherParser::kU_Drop() {
   KU_DropContext *_localctx = _tracker.createInstance<KU_DropContext>(_ctx, getState());
-  enterRule(_localctx, 72, CypherParser::RuleKU_Drop);
+  enterRule(_localctx, 70, CypherParser::RuleKU_Drop);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5334,7 +5335,7 @@ CypherParser::KU_DropContext* CypherParser::kU_Drop() {
     setState(988);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 116, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 118, _ctx)) {
     case 1: {
       setState(985);
       kU_IfExists();
@@ -5397,7 +5398,7 @@ size_t CypherParser::KU_AlterTableContext::getRuleIndex() const {
 
 CypherParser::KU_AlterTableContext* CypherParser::kU_AlterTable() {
   KU_AlterTableContext *_localctx = _tracker.createInstance<KU_AlterTableContext>(_ctx, getState());
-  enterRule(_localctx, 74, CypherParser::RuleKU_AlterTable);
+  enterRule(_localctx, 72, CypherParser::RuleKU_AlterTable);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5463,7 +5464,7 @@ size_t CypherParser::KU_AlterOptionsContext::getRuleIndex() const {
 
 CypherParser::KU_AlterOptionsContext* CypherParser::kU_AlterOptions() {
   KU_AlterOptionsContext *_localctx = _tracker.createInstance<KU_AlterOptionsContext>(_ctx, getState());
-  enterRule(_localctx, 76, CypherParser::RuleKU_AlterOptions);
+  enterRule(_localctx, 74, CypherParser::RuleKU_AlterOptions);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5475,7 +5476,7 @@ CypherParser::KU_AlterOptionsContext* CypherParser::kU_AlterOptions() {
   try {
     setState(1004);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 117, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 119, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
       setState(1000);
@@ -5560,7 +5561,7 @@ size_t CypherParser::KU_AddPropertyContext::getRuleIndex() const {
 
 CypherParser::KU_AddPropertyContext* CypherParser::kU_AddProperty() {
   KU_AddPropertyContext *_localctx = _tracker.createInstance<KU_AddPropertyContext>(_ctx, getState());
-  enterRule(_localctx, 78, CypherParser::RuleKU_AddProperty);
+  enterRule(_localctx, 76, CypherParser::RuleKU_AddProperty);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5578,7 +5579,7 @@ CypherParser::KU_AddPropertyContext* CypherParser::kU_AddProperty() {
     setState(1011);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 118, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 120, _ctx)) {
     case 1: {
       setState(1008);
       kU_IfNotExists();
@@ -5599,7 +5600,7 @@ CypherParser::KU_AddPropertyContext* CypherParser::kU_AddProperty() {
     setState(1018);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 119, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 121, _ctx)) {
     case 1: {
       setState(1016);
       match(CypherParser::SP);
@@ -5648,7 +5649,7 @@ size_t CypherParser::KU_DefaultContext::getRuleIndex() const {
 
 CypherParser::KU_DefaultContext* CypherParser::kU_Default() {
   KU_DefaultContext *_localctx = _tracker.createInstance<KU_DefaultContext>(_ctx, getState());
-  enterRule(_localctx, 80, CypherParser::RuleKU_Default);
+  enterRule(_localctx, 78, CypherParser::RuleKU_Default);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5710,7 +5711,7 @@ size_t CypherParser::KU_DropPropertyContext::getRuleIndex() const {
 
 CypherParser::KU_DropPropertyContext* CypherParser::kU_DropProperty() {
   KU_DropPropertyContext *_localctx = _tracker.createInstance<KU_DropPropertyContext>(_ctx, getState());
-  enterRule(_localctx, 82, CypherParser::RuleKU_DropProperty);
+  enterRule(_localctx, 80, CypherParser::RuleKU_DropProperty);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5728,7 +5729,7 @@ CypherParser::KU_DropPropertyContext* CypherParser::kU_DropProperty() {
     setState(1029);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 120, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 122, _ctx)) {
     case 1: {
       setState(1026);
       kU_IfExists();
@@ -5787,7 +5788,7 @@ size_t CypherParser::KU_RenameTableContext::getRuleIndex() const {
 
 CypherParser::KU_RenameTableContext* CypherParser::kU_RenameTable() {
   KU_RenameTableContext *_localctx = _tracker.createInstance<KU_RenameTableContext>(_ctx, getState());
-  enterRule(_localctx, 84, CypherParser::RuleKU_RenameTable);
+  enterRule(_localctx, 82, CypherParser::RuleKU_RenameTable);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5857,7 +5858,7 @@ size_t CypherParser::KU_RenamePropertyContext::getRuleIndex() const {
 
 CypherParser::KU_RenamePropertyContext* CypherParser::kU_RenameProperty() {
   KU_RenamePropertyContext *_localctx = _tracker.createInstance<KU_RenamePropertyContext>(_ctx, getState());
-  enterRule(_localctx, 86, CypherParser::RuleKU_RenameProperty);
+  enterRule(_localctx, 84, CypherParser::RuleKU_RenameProperty);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -5923,7 +5924,7 @@ size_t CypherParser::KU_ColumnDefinitionsContext::getRuleIndex() const {
 
 CypherParser::KU_ColumnDefinitionsContext* CypherParser::kU_ColumnDefinitions() {
   KU_ColumnDefinitionsContext *_localctx = _tracker.createInstance<KU_ColumnDefinitionsContext>(_ctx, getState());
-  enterRule(_localctx, 88, CypherParser::RuleKU_ColumnDefinitions);
+  enterRule(_localctx, 86, CypherParser::RuleKU_ColumnDefinitions);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -5940,7 +5941,7 @@ CypherParser::KU_ColumnDefinitionsContext* CypherParser::kU_ColumnDefinitions() 
     kU_ColumnDefinition();
     setState(1058);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 123, _ctx);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 125, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
         setState(1049);
@@ -5966,7 +5967,7 @@ CypherParser::KU_ColumnDefinitionsContext* CypherParser::kU_ColumnDefinitions() 
       }
       setState(1060);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 123, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 125, _ctx);
     }
    
   }
@@ -6005,7 +6006,7 @@ size_t CypherParser::KU_ColumnDefinitionContext::getRuleIndex() const {
 
 CypherParser::KU_ColumnDefinitionContext* CypherParser::kU_ColumnDefinition() {
   KU_ColumnDefinitionContext *_localctx = _tracker.createInstance<KU_ColumnDefinitionContext>(_ctx, getState());
-  enterRule(_localctx, 90, CypherParser::RuleKU_ColumnDefinition);
+  enterRule(_localctx, 88, CypherParser::RuleKU_ColumnDefinition);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6063,7 +6064,7 @@ size_t CypherParser::KU_PropertyDefinitionsContext::getRuleIndex() const {
 
 CypherParser::KU_PropertyDefinitionsContext* CypherParser::kU_PropertyDefinitions() {
   KU_PropertyDefinitionsContext *_localctx = _tracker.createInstance<KU_PropertyDefinitionsContext>(_ctx, getState());
-  enterRule(_localctx, 92, CypherParser::RuleKU_PropertyDefinitions);
+  enterRule(_localctx, 90, CypherParser::RuleKU_PropertyDefinitions);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -6080,7 +6081,7 @@ CypherParser::KU_PropertyDefinitionsContext* CypherParser::kU_PropertyDefinition
     kU_PropertyDefinition();
     setState(1076);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 126, _ctx);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 128, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
         setState(1067);
@@ -6106,7 +6107,7 @@ CypherParser::KU_PropertyDefinitionsContext* CypherParser::kU_PropertyDefinition
       }
       setState(1078);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 126, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 128, _ctx);
     }
    
   }
@@ -6157,7 +6158,7 @@ size_t CypherParser::KU_PropertyDefinitionContext::getRuleIndex() const {
 
 CypherParser::KU_PropertyDefinitionContext* CypherParser::kU_PropertyDefinition() {
   KU_PropertyDefinitionContext *_localctx = _tracker.createInstance<KU_PropertyDefinitionContext>(_ctx, getState());
-  enterRule(_localctx, 94, CypherParser::RuleKU_PropertyDefinition);
+  enterRule(_localctx, 92, CypherParser::RuleKU_PropertyDefinition);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6173,7 +6174,7 @@ CypherParser::KU_PropertyDefinitionContext* CypherParser::kU_PropertyDefinition(
     setState(1082);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 127, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 129, _ctx)) {
     case 1: {
       setState(1080);
       match(CypherParser::SP);
@@ -6188,7 +6189,7 @@ CypherParser::KU_PropertyDefinitionContext* CypherParser::kU_PropertyDefinition(
     setState(1088);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 128, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 130, _ctx)) {
     case 1: {
       setState(1084);
       match(CypherParser::SP);
@@ -6249,7 +6250,7 @@ size_t CypherParser::KU_CreateNodeConstraintContext::getRuleIndex() const {
 
 CypherParser::KU_CreateNodeConstraintContext* CypherParser::kU_CreateNodeConstraint() {
   KU_CreateNodeConstraintContext *_localctx = _tracker.createInstance<KU_CreateNodeConstraintContext>(_ctx, getState());
-  enterRule(_localctx, 96, CypherParser::RuleKU_CreateNodeConstraint);
+  enterRule(_localctx, 94, CypherParser::RuleKU_CreateNodeConstraint);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -6375,8 +6376,8 @@ CypherParser::KU_DataTypeContext* CypherParser::kU_DataType(int precedence) {
   CypherParser::KU_DataTypeContext *_localctx = _tracker.createInstance<KU_DataTypeContext>(_ctx, parentState);
   CypherParser::KU_DataTypeContext *previousContext = _localctx;
   (void)previousContext; // Silence compiler, in case the context is not used by generated code.
-  size_t startState = 98;
-  enterRecursionRule(_localctx, 98, CypherParser::RuleKU_DataType, precedence);
+  size_t startState = 96;
+  enterRecursionRule(_localctx, 96, CypherParser::RuleKU_DataType, precedence);
 
     size_t _la = 0;
 
@@ -6392,7 +6393,7 @@ CypherParser::KU_DataTypeContext* CypherParser::kU_DataType(int precedence) {
     enterOuterAlt(_localctx, 1);
     setState(1180);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 148, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 150, _ctx)) {
     case 1: {
       setState(1107);
       oC_SymbolicName();
@@ -6589,7 +6590,7 @@ CypherParser::KU_DataTypeContext* CypherParser::kU_DataType(int precedence) {
     _ctx->stop = _input->LT(-1);
     setState(1186);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 149, _ctx);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 151, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
         if (!_parseListeners.empty())
@@ -6605,7 +6606,7 @@ CypherParser::KU_DataTypeContext* CypherParser::kU_DataType(int precedence) {
       }
       setState(1188);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 149, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 151, _ctx);
     }
   }
   catch (RecognitionException &e) {
@@ -6638,7 +6639,7 @@ size_t CypherParser::KU_ListIdentifiersContext::getRuleIndex() const {
 
 CypherParser::KU_ListIdentifiersContext* CypherParser::kU_ListIdentifiers() {
   KU_ListIdentifiersContext *_localctx = _tracker.createInstance<KU_ListIdentifiersContext>(_ctx, getState());
-  enterRule(_localctx, 100, CypherParser::RuleKU_ListIdentifiers);
+  enterRule(_localctx, 98, CypherParser::RuleKU_ListIdentifiers);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6654,7 +6655,7 @@ CypherParser::KU_ListIdentifiersContext* CypherParser::kU_ListIdentifiers() {
     kU_ListIdentifier();
     setState(1193);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 150, _ctx);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 152, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
         setState(1190);
@@ -6662,7 +6663,7 @@ CypherParser::KU_ListIdentifiersContext* CypherParser::kU_ListIdentifiers() {
       }
       setState(1195);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 150, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 152, _ctx);
     }
    
   }
@@ -6693,7 +6694,7 @@ size_t CypherParser::KU_ListIdentifierContext::getRuleIndex() const {
 
 CypherParser::KU_ListIdentifierContext* CypherParser::kU_ListIdentifier() {
   KU_ListIdentifierContext *_localctx = _tracker.createInstance<KU_ListIdentifierContext>(_ctx, getState());
-  enterRule(_localctx, 102, CypherParser::RuleKU_ListIdentifier);
+  enterRule(_localctx, 100, CypherParser::RuleKU_ListIdentifier);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -6750,7 +6751,7 @@ size_t CypherParser::OC_AnyCypherOptionContext::getRuleIndex() const {
 
 CypherParser::OC_AnyCypherOptionContext* CypherParser::oC_AnyCypherOption() {
   OC_AnyCypherOptionContext *_localctx = _tracker.createInstance<OC_AnyCypherOptionContext>(_ctx, getState());
-  enterRule(_localctx, 104, CypherParser::RuleOC_AnyCypherOption);
+  enterRule(_localctx, 102, CypherParser::RuleOC_AnyCypherOption);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6817,7 +6818,7 @@ size_t CypherParser::OC_ExplainContext::getRuleIndex() const {
 
 CypherParser::OC_ExplainContext* CypherParser::oC_Explain() {
   OC_ExplainContext *_localctx = _tracker.createInstance<OC_ExplainContext>(_ctx, getState());
-  enterRule(_localctx, 106, CypherParser::RuleOC_Explain);
+  enterRule(_localctx, 104, CypherParser::RuleOC_Explain);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6833,7 +6834,7 @@ CypherParser::OC_ExplainContext* CypherParser::oC_Explain() {
     setState(1209);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 153, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 155, _ctx)) {
     case 1: {
       setState(1207);
       match(CypherParser::SP);
@@ -6874,7 +6875,7 @@ size_t CypherParser::OC_ProfileContext::getRuleIndex() const {
 
 CypherParser::OC_ProfileContext* CypherParser::oC_Profile() {
   OC_ProfileContext *_localctx = _tracker.createInstance<OC_ProfileContext>(_ctx, getState());
-  enterRule(_localctx, 108, CypherParser::RuleOC_Profile);
+  enterRule(_localctx, 106, CypherParser::RuleOC_Profile);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6948,7 +6949,7 @@ size_t CypherParser::KU_TransactionContext::getRuleIndex() const {
 
 CypherParser::KU_TransactionContext* CypherParser::kU_Transaction() {
   KU_TransactionContext *_localctx = _tracker.createInstance<KU_TransactionContext>(_ctx, getState());
-  enterRule(_localctx, 110, CypherParser::RuleKU_Transaction);
+  enterRule(_localctx, 108, CypherParser::RuleKU_Transaction);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -6960,7 +6961,7 @@ CypherParser::KU_TransactionContext* CypherParser::kU_Transaction() {
   try {
     setState(1226);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 154, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 156, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
       setState(1213);
@@ -7056,7 +7057,7 @@ size_t CypherParser::KU_ExtensionContext::getRuleIndex() const {
 
 CypherParser::KU_ExtensionContext* CypherParser::kU_Extension() {
   KU_ExtensionContext *_localctx = _tracker.createInstance<KU_ExtensionContext>(_ctx, getState());
-  enterRule(_localctx, 112, CypherParser::RuleKU_Extension);
+  enterRule(_localctx, 110, CypherParser::RuleKU_Extension);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -7150,7 +7151,7 @@ size_t CypherParser::KU_LoadExtensionContext::getRuleIndex() const {
 
 CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
   KU_LoadExtensionContext *_localctx = _tracker.createInstance<KU_LoadExtensionContext>(_ctx, getState());
-  enterRule(_localctx, 114, CypherParser::RuleKU_LoadExtension);
+  enterRule(_localctx, 112, CypherParser::RuleKU_LoadExtension);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -7168,7 +7169,7 @@ CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
     setState(1238);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 156, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 158, _ctx)) {
     case 1: {
       setState(1236);
       match(CypherParser::EXTENSION);
@@ -8485,7 +8486,7 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1425);
+        setState(1411);
         match(CypherParser::SP);
       }
       setState(1418);
@@ -11823,20 +11824,20 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1895);
+          setState(1896);
           match(CypherParser::SP);
         }
-        setState(1898);
+        setState(1899);
         oC_Expression();
-        setState(1900);
+        setState(1901);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1899);
+          setState(1900);
           match(CypherParser::SP);
         }
-        setState(1906);
+        setState(1907);
         _errHandler->sync(this);
         _la = _input->LA(1);
       }
@@ -15843,20 +15844,20 @@ CypherParser::KU_StructLiteralContext* CypherParser::kU_StructLiteral() {
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2484);
+        setState(2485);
         match(CypherParser::SP);
       }
-      setState(2487);
+      setState(2488);
       kU_StructField();
-      setState(2489);
+      setState(2490);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2488);
+        setState(2489);
         match(CypherParser::SP);
       }
-      setState(2495);
+      setState(2496);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -16321,20 +16322,20 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2564);
+        setState(2565);
         match(CypherParser::SP);
       }
-      setState(2567);
+      setState(2568);
       match(CypherParser::T__1);
-      setState(2569);
+      setState(2570);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2568);
+        setState(2569);
         match(CypherParser::SP);
       }
-      setState(2575);
+      setState(2576);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -16397,20 +16398,20 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(2582);
+            setState(2583);
             match(CypherParser::SP);
           }
-          setState(2585);
+          setState(2586);
           kU_FunctionParameter();
-          setState(2587);
+          setState(2588);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(2586);
+            setState(2587);
             match(CypherParser::SP);
           }
-          setState(2593);
+          setState(2594);
           _errHandler->sync(this);
           _la = _input->LA(1);
         }
@@ -16844,20 +16845,20 @@ CypherParser::KU_LambdaVarsContext* CypherParser::kU_LambdaVars() {
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(2640);
+            setState(2641);
             match(CypherParser::SP);
           }
-          setState(2643);
+          setState(2644);
           oC_SymbolicName();
-          setState(2645);
+          setState(2646);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(2644);
+            setState(2645);
             match(CypherParser::SP);
           }
-          setState(2651);
+          setState(2652);
           _errHandler->sync(this);
           _la = _input->LA(1);
         }

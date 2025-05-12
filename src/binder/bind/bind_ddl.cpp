@@ -286,42 +286,23 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
     auto columnTypes = innerQueryResult->getColumnTypes();
     std::vector<PropertyDefinition> propertyDefinitions;
     propertyDefinitions.reserve(columnNames.size());
-
     for (size_t i = 0; i < columnNames.size(); ++i) {
         propertyDefinitions.emplace_back(
             ColumnDefinition(std::string(columnNames[i]), columnTypes[i].copy()));
     }
 
     auto parsingOptions = options_t{}; // temp
-    auto boundSource =
-        bindQueryScanSource(*createTable->getSource(), parsingOptions, columnNames, columnTypes);
-    auto warningDataExprs = boundSource->getWarningColumns();
-
-    expression_vector columns;
-    std::vector<ColumnEvaluateType> evaluateTypes;
-    for (auto& property : propertyDefinitions) {
-        auto [evaluateType, column] =
-            matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
-        columns.push_back(column);
-        evaluateTypes.push_back(evaluateType);
-    }
-    columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
-
     // first column is primary key column temporarily for now
     auto pkName = columnNames[0];
-
     auto createInfo = createTable->getInfo();
+    auto boundCopyFromInfo = bindCopyNodeFromInfo(createInfo->tableName,
+        propertyDefinitions, createTable->getSource(), std::move(parsingOptions),
+        columnNames, columnTypes);
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
     auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
         createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
         clientContext->useInternalCatalogEntry());
-
-    auto offset =
-        createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    auto boundCopyFromInfo = BoundCopyFromInfo(createInfo->tableName, std::move(boundSource), std::move(offset),
-        std::move(columns), std::move(evaluateTypes), nullptr);
-
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo), std::move(boundCopyFromInfo));
 }
 
