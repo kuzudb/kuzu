@@ -15,24 +15,45 @@
 ---- 0
 ]
 
+
 -CASE MigrateFromNeo4jBaseCase
 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
--STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["student", "teacher"], ["knows"]);
----- ok
--STATEMENT match (p:student) return p.*;
----- 5
-0|1|True|35|1900-01-01|5.000000|Alice|[96,54,86,92]|1.731000|0|False|3 years 2 days 13 hours 2 minutes|2011-08-20 11:25:30|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11|["Aida"]|[10,5]
-1|2|True|30|1900-01-01|5.100000|Bob|[98,42,93,88]|0.990000|2|False|10 years 5 months 13 hours 24 us|2008-11-03 15:25:30.000526|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12|["Bobby"]|[12,8]
-2|1|False|45|1940-06-22|5.000000|Carol|[91,75,21,95]|1.000000|3|True|48 hours 24 minutes 11 seconds|1911-08-20 02:32:21|a0eebc999c0b4ef8bb6d6bb9bd380a13|["Carmen","Fred"]|[4,5]
-3|2|False|20|1950-07-23|4.800000|Dan|[76,88,99,89]|1.300000|5|True|10 years 5 months 13 hours 24 us|2031-11-30 12:25:30|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14|["Wolfeschlegelstein","Daniel"]|[1,9]
-4|1|False|20|1980-10-26|4.700000|Elizabeth|[96,59,65,88]|1.463000|7|True|48 hours 24 minutes 11 seconds|1976-12-23 11:21:42|a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15|["Ein"]|[2]
 
--STATEMENT match (s:teacher) return s.*;
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["Student", "Teacher"], ["KNOWS"]);
+---- 18
+Student|scores|INT64[]|["LongArray"]
+Student|active|BOOL|["Boolean"]
+Student|type|INT64|["Long"]
+Student|uuid|STRING|["String"]
+Student|tags|INT64[]|["LongArray"]
+Student|duration|STRING|["String"]
+Student|dob|DATE|["Date"]
+Student|graduated|BOOL|["Boolean"]
+Student|name|STRING|["String"]
+Student|rank|INT64|["Long"]
+Student|nicknames|STRING[]|["StringArray"]
+Student|age|INT64|["Long"]
+Student|timestamp|TIMESTAMP|["DateTime"]
+Student|height|DOUBLE|["Double"]
+Student|ratio|DOUBLE|["Double"]
+Teacher|code|STRING|["String"]
+KNOWS_Student_Student|length|INT64|["Long"]
+KNOWS_Teacher_Student|reason|STRING|["String"]
+
+-STATEMENT match (p:Student) return p.type, p.active, p.age, p.dob, p.height, p.name, p.scores, p.ratio, p.rank, p.graduated, p.duration, p.timestamp, p.uuid, p.nicknames, p.tags;
+---- 5
+1|True|35|1900-01-01|5.000000|Alice|[96,54,86,92]|1.731000|0|False|3 years 2 days 13 hours 2 minutes|2011-08-20 11:25:30|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11|["Aida"]|[10,5]
+2|True|30|1900-01-01|5.100000|Bob|[98,42,93,88]|0.990000|2|False|10 years 5 months 13 hours 24 us|2008-11-03 15:25:30.000526|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12|["Bobby"]|[12,8]
+1|False|45|1940-06-22|5.000000|Carol|[91,75,21,95]|1.000000|3|True|48 hours 24 minutes 11 seconds|1911-08-20 02:32:21|a0eebc999c0b4ef8bb6d6bb9bd380a13|["Carmen","Fred"]|[4,5]
+2|False|20|1950-07-23|4.800000|Dan|[76,88,99,89]|1.300000|5|True|10 years 5 months 13 hours 24 us|2031-11-30 12:25:30|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14|["Wolfeschlegelstein","Daniel"]|[1,9]
+1|False|20|1980-10-26|4.700000|Elizabeth|[96,59,65,88]|1.463000|7|True|48 hours 24 minutes 11 seconds|1976-12-23 11:21:42|a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15|["Ein"]|[2]
+
+-STATEMENT match (s:teacher) return s.code;
 ---- 2
-5|57
-6|unknown
+57
+unknown
 
 -STATEMENT match (a)-[e]->(b) return a._id_,b._id_,e.length, e.reason;
 ---- 8
@@ -44,24 +65,46 @@
 3|0|79|
 5|0||teach
 6|0||teach
--INSERT_STATEMENT_BLOCK CLEAN_DB
--STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["student"], []);
----- ok
--STATEMENT match (s:student) return s.*;
----- 5
-0|1|True|35|1900-01-01|5.000000|Alice|[96,54,86,92]|1.731000|0|False|3 years 2 days 13 hours 2 minutes|2011-08-20 11:25:30|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11|["Aida"]|[10,5]
-1|2|True|30|1900-01-01|5.100000|Bob|[98,42,93,88]|0.990000|2|False|10 years 5 months 13 hours 24 us|2008-11-03 15:25:30.000526|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12|["Bobby"]|[12,8]
-2|1|False|45|1940-06-22|5.000000|Carol|[91,75,21,95]|1.000000|3|True|48 hours 24 minutes 11 seconds|1911-08-20 02:32:21|a0eebc999c0b4ef8bb6d6bb9bd380a13|["Carmen","Fred"]|[4,5]
-3|2|False|20|1950-07-23|4.800000|Dan|[76,88,99,89]|1.300000|5|True|10 years 5 months 13 hours 24 us|2031-11-30 12:25:30|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14|["Wolfeschlegelstein","Daniel"]|[1,9]
-4|1|False|20|1980-10-26|4.700000|Elizabeth|[96,59,65,88]|1.463000|7|True|48 hours 24 minutes 11 seconds|1976-12-23 11:21:42|a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15|["Ein"]|[2]
 
 -INSERT_STATEMENT_BLOCK CLEAN_DB
--STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["teacher"], []);
----- ok
--STATEMENT match (s:teacher) return s.*;
+
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["Student"], []);
+---- 15
+Student|scores|INT64[]|["LongArray"]
+Student|active|BOOL|["Boolean"]
+Student|type|INT64|["Long"]
+Student|uuid|STRING|["String"]
+Student|tags|INT64[]|["LongArray"]
+Student|duration|STRING|["String"]
+Student|dob|DATE|["Date"]
+Student|graduated|BOOL|["Boolean"]
+Student|name|STRING|["String"]
+Student|rank|INT64|["Long"]
+Student|nicknames|STRING[]|["StringArray"]
+Student|age|INT64|["Long"]
+Student|timestamp|TIMESTAMP|["DateTime"]
+Student|height|DOUBLE|["Double"]
+Student|ratio|DOUBLE|["Double"]
+
+-STATEMENT match (p:Student) return p.type, p.active, p.age, p.dob, p.height, p.name, p.scores, p.ratio, p.rank, p.graduated, p.duration, p.timestamp, p.uuid, p.nicknames, p.tags;
+---- 5
+1|True|35|1900-01-01|5.000000|Alice|[96,54,86,92]|1.731000|0|False|3 years 2 days 13 hours 2 minutes|2011-08-20 11:25:30|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11|["Aida"]|[10,5]
+2|True|30|1900-01-01|5.100000|Bob|[98,42,93,88]|0.990000|2|False|10 years 5 months 13 hours 24 us|2008-11-03 15:25:30.000526|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12|["Bobby"]|[12,8]
+1|False|45|1940-06-22|5.000000|Carol|[91,75,21,95]|1.000000|3|True|48 hours 24 minutes 11 seconds|1911-08-20 02:32:21|a0eebc999c0b4ef8bb6d6bb9bd380a13|["Carmen","Fred"]|[4,5]
+2|False|20|1950-07-23|4.800000|Dan|[76,88,99,89]|1.300000|5|True|10 years 5 months 13 hours 24 us|2031-11-30 12:25:30|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14|["Wolfeschlegelstein","Daniel"]|[1,9]
+1|False|20|1980-10-26|4.700000|Elizabeth|[96,59,65,88]|1.463000|7|True|48 hours 24 minutes 11 seconds|1976-12-23 11:21:42|a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15|["Ein"]|[2]
+
+-INSERT_STATEMENT_BLOCK CLEAN_DB
+
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["Teacher"], []);
+---- 1
+Teacher|code|STRING|["String"]
+
+-STATEMENT match (s:teacher) return s.code;
 ---- 2
-5|57
-6|unknown
+57
+unknown
+
 
 -CASE MigrateFromEmptyNeo4j
 
@@ -70,46 +113,47 @@
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
 -STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", [], []);
----- ok
+---- 0
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 0
 
+
 -CASE MigrateFromBothEmptyNodes
-# Created by query in neo4j: create (a)-[:emptyrel]->(b)
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
--STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "kuzuneo4j", [], ["emptyrel"]);
----- ok
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", [], ["RELTOEMPTY2"]);
+---- 0
+
 
 -CASE MigrateFromOneEmptyNodes
-# Created by query in neo4j: create (a:person)-[:emptyrel1]->(b)
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
--STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "kuzuneo4j", ["person"], ["emptyrel1"]);
----- ok
--STATEMENT MATCH (a:person) RETURN label(a)
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["Node"], ["RELTOEMPTY2"]);
+---- 0
+-STATEMENT MATCH (a:Node) RETURN label(a)
 ---- 1
-person
+Node
+
 
 -CASE MigrateWithTypesCustomPort
-# Created by query in neo4j: CREATE (:types_test {
-#                               boolean: true,
-#                               date: date('2023-10-23'),
-#                               duration: duration('P1Y2M3DT4H5M6S'),
-#                               float: 3.1415,
-#                               integer: 42,
-#                               list: ["A", "B", "C"],
-#                               local_datetime: localdatetime('2023-10-23T14:30:45'),
-#                               local_time: localtime('14:30:45'),
-#                               point: point({x: 12.34, y: 56.78}),
-#                               string: 'Sample text',
-#                               zoned_datetime: datetime('2023-10-23T14:30:45+01:00'),
-#                               zoned_time: time('14:30:45+01:00')
-#                               })
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
--STATEMENT CALL NEO4J_MIGRATE("http://localhost:7475", "neo4j", "kuzuneo4j", ["types_test"], []);
----- ok
--STATEMENT MATCH (a:types_test) RETURN a.*
+
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["AllTypes"], []);
+---- 12
+AllTypes|duration|STRING|["Duration"]
+AllTypes|date|DATE|["Date"]
+AllTypes|zoned_datetime|TIMESTAMP|["DateTime"]
+AllTypes|boolean|BOOL|["Boolean"]
+AllTypes|local_time|STRING|["LocalTime"]
+AllTypes|float|DOUBLE|["Double"]
+AllTypes|zoned_time|STRING|["Time"]
+AllTypes|list|STRING[]|["StringArray"]
+AllTypes|string|STRING|["String"]
+AllTypes|integer|INT64|["Long"]
+AllTypes|local_datetime|STRING|["LocalDateTime"]
+AllTypes|point|STRING|["Point"]
+
+-STATEMENT MATCH (a:AllTypes) RETURN a.boolean, a.date, a.duration, a.float, a.integer, a.list, a.local_datetime, a.local_time, a.point, a.string, a.zoned_datetime, a.zoned_time
 ---- 1
-0|True|2023-10-23|P1Y2M3DT4H5M6S|3.141500|42|["A","B","C"]|2023-10-23T14:30:45|14:30:45|{"crs":"cartesian","x":12.34,"y":56.78,"z":null}|Sample text|2023-10-23 13:30:45|14:30:45+01:00
+True|2023-10-23|P1Y2M3DT4H5M6S|3.141500|42|["A","B","C"]|2023-10-23T14:30:45|14:30:45|{"crs":"cartesian","x":12.34,"y":56.78,"z":null}|Sample text|2023-10-23 13:30:45|14:30:45+01:00

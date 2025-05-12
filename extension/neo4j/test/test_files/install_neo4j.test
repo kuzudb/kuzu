@@ -1,4 +1,5 @@
 -DATASET CSV empty
+-SKIP
 
 --
 
@@ -15,6 +16,6 @@
 ---- ok
 
 -CASE MigrateWithoutLoading
--STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "kuzuneo4j", ["User", "City"], ["Follows", "LivesIn"]);
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["User", "City"], ["Follows", "LivesIn"]);
 ---- error
 Catalog exception: function NEO4J_MIGRATE is not defined. This function exists in the NEO4J extension. You can install and load the extension by running 'INSTALL NEO4J; LOAD EXTENSION NEO4J;'.

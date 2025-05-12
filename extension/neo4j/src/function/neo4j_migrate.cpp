@@ -45,8 +45,8 @@ nlohmann::json executeNeo4jQuery(httplib::Client& cli, std::string neo4jQuery) {
     req.body.assign(reinterpret_cast<const char*>(requestBody.c_str()), requestBody.length());
     auto res = cli.send(req);
     if (!res) {
-        throw common::RuntimeException{"Failed to connect to neo4j server. Please check whether it "
-                                       "is valid neo4j server url."};
+        throw common::RuntimeException{"Failed to connect to Neo4j. Please check whether it "
+                                       "is a valid connection url."};
     }
     if (res->status != 200) {
         throw common::RuntimeException{
@@ -56,13 +56,13 @@ nlohmann::json executeNeo4jQuery(httplib::Client& cli, std::string neo4jQuery) {
     auto jsonifyResult = nlohmann::json::parse(res->body);
     if (!jsonifyResult["errors"].empty()) {
         throw common::RuntimeException{
-            common::stringFormat("Failed to execute query: {} in neo4j. Error: {}.", neo4jQuery,
+            common::stringFormat("Failed to execute query '{}' in Neo4j. Error: {}.", neo4jQuery,
                 jsonifyResult["errors"].dump())};
     }
     // Neo4j server should always return one queryResult.
     if (jsonifyResult["results"].size() != 1) {
         throw common::RuntimeException{
-            "Neo4j server returns multiple results: " + jsonifyResult["results"].dump()};
+            "Neo4j returned multiple results: " + jsonifyResult["results"].dump()};
     }
     return jsonifyResult["results"][0]["data"];
 }
@@ -102,7 +102,7 @@ static std::vector<std::string> getNodeOrRels(httplib::Client& cli, common::Tabl
     for (auto i = 0u; i < labelVals.getChildrenSize(); i++) {
         auto label = NestedVal::getChildVal(&labelVals, i)->toString();
         if (!labelsInNeo4j.contains(label)) {
-            throw common::RuntimeException{common::stringFormat("{}: {} does not exist in neo4j.",
+            throw common::RuntimeException{common::stringFormat("{} '{}' does not exist in neo4j.",
                 TableTypeUtils::toString(tableType), label)};
         }
         // Importing multi-label nodes is not supported right now.
@@ -310,14 +310,14 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
         if (std::find(nodeLabelsToImport.begin(), nodeLabelsToImport.end(), srcLabel) ==
             nodeLabelsToImport.end()) {
             throw common::RuntimeException{common::stringFormat(
-                "The dependent source node label: {} of {} must be imported into kuzu.", srcLabel,
-                relName)};
+                "The source node label '{}' of '{}' must be present in the nodes import list.",
+                srcLabel, relName)};
         }
         if (std::find(nodeLabelsToImport.begin(), nodeLabelsToImport.end(), dstLabel) ==
             nodeLabelsToImport.end()) {
             throw common::RuntimeException{common::stringFormat(
-                "The dependent dst node label: {} of {} must be imported into kuzu.", dstLabel,
-                relName)};
+                "The destination node label '{}' of '{}' must be present in the nodes import list.",
+                dstLabel, relName)};
         }
         nodePairs.emplace_back(srcLabel, dstLabel);
         nodePairsString += common::stringFormat("FROM {} TO {},", srcLabel, dstLabel);
