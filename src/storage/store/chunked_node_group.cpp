@@ -149,15 +149,15 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     KU_ASSERT(columnVectors.size() == chunks.size());
     const auto numRowsToAppendInChunk = std::min(numValuesToAppend, capacity - numRows);
-    for (auto i = 0u; i < columnVectors.size(); i++) {
-        const auto columnVector = columnVectors[i];
-        try {
+    try {
+        for (auto i = 0u; i < columnVectors.size(); i++) {
+            const auto columnVector = columnVectors[i];
             chunks[i]->getData().append(columnVector,
                 columnVector->state->getSelVector().slice(startRowInVectors,
                     numRowsToAppendInChunk));
-        } catch (std::exception& e) {
-            handleAppendException();
         }
+    } catch ([[maybe_unused]] std::exception& e) {
+        handleAppendException();
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {
@@ -196,16 +196,15 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
     KU_ASSERT(residencyState == ResidencyState::IN_MEMORY);
     KU_ASSERT(other.size() == columnIDs.size());
     const auto numToAppendInChunkedGroup = std::min(numRowsToAppend, capacity - numRows);
-    for (auto i = 0u; i < columnIDs.size(); i++) {
-        auto columnID = columnIDs[i];
-        KU_ASSERT(columnID < chunks.size());
-
-        try {
+    try {
+        for (auto i = 0u; i < columnIDs.size(); i++) {
+            auto columnID = columnIDs[i];
+            KU_ASSERT(columnID < chunks.size());
             chunks[columnID]->getData().append(&other[i]->getData(), offsetInOtherNodeGroup,
                 numToAppendInChunkedGroup);
-        } catch (std::exception& e) {
-            handleAppendException();
         }
+    } catch ([[maybe_unused]] std::exception& e) {
+        handleAppendException();
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {
