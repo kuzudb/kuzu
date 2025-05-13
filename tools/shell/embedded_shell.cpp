@@ -586,7 +586,7 @@ void EmbeddedShell::run() {
     char* line = nullptr;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
-    continueLine = false;
+    continueLine = false; // Set to true when a multiline query is setup (seeProcessInput)
     currLine = "";
     std::string lineStr;
 
@@ -614,12 +614,19 @@ void EmbeddedShell::run() {
     while (true) {
         line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT);
 
-        if (line == nullptr && !continueLine)
+        // EOF is reached and there is no input left to process
+        if (line == nullptr && !continueLine) {
             break;
-        else if (line == nullptr)
+
+        // EOF is reached, but there is a query not terminated by a semiColon <- indicated by continueLine being true
+        // we add a semiColon and attempt to process the query
+        } else if (line == nullptr) {
             lineStr = ";";
-        else
+
+        // Not EOF. We take the input as is.
+        } else {
             lineStr = std::string(line);
+        }
 
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
@@ -654,8 +661,11 @@ void EmbeddedShell::run() {
                 printErrorMessage(lineStr, *queryResult);
             }
         }
-        if (line == nullptr)
+
+        // We do not want to add EOF to our history.
+        if (line == nullptr) {
             break;
+        }
         if (!continueLine && !historyLine.empty()) {
             linenoiseHistoryAdd(historyLine.c_str());
         }
