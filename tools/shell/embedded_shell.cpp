@@ -618,12 +618,12 @@ void EmbeddedShell::run() {
         if (line == nullptr && !continueLine) {
             break;
 
-        // EOF is reached, but there is a query not terminated by a semiColon <- indicated by continueLine being true
-        // we add a semiColon and attempt to process the query
+            // EOF is reached, but there is a query not terminated by a semiColon <- indicated by
+            // continueLine being true we add a semiColon and attempt to process the query
         } else if (line == nullptr) {
             lineStr = ";";
 
-        // Not EOF. We take the input as is.
+            // Not EOF. We take the input as is.
         } else {
             lineStr = std::string(line);
         }
