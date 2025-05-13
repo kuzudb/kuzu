@@ -588,7 +588,7 @@ void EmbeddedShell::run() {
     int numCtrlC = 0;
     continueLine = false;
     currLine = "";
-    bool reQuery = false;
+    std::string lineStr;
 
 #ifndef _WIN32
     termios raw{};
@@ -611,10 +611,17 @@ void EmbeddedShell::run() {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    while (
-        (line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT)) != nullptr) {
-        reQuery = false;
-        auto lineStr = std::string(line);
+    while (true)
+    {
+        line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT);
+
+        if (line == nullptr && !continueLine)
+            break;
+        else if (line == nullptr)
+            lineStr = ";";
+        else
+            lineStr = std::string(line);
+
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
             if (!continueLine && lineStr[1] == '\0') {
@@ -639,7 +646,6 @@ void EmbeddedShell::run() {
                 free(line);
                 break;
             }
-            reQuery = true;
         }
         for (auto& queryResult : queryResults) {
             if (queryResult->isSuccess()) {
@@ -649,21 +655,15 @@ void EmbeddedShell::run() {
                 printErrorMessage(lineStr, *queryResult);
             }
         }
+        if (line == nullptr)
+            break;
         if (!continueLine && !historyLine.empty()) {
             linenoiseHistoryAdd(historyLine.c_str());
         }
         linenoiseHistorySave(path_to_history);
         free(line);
     }
-    if (reQuery) {
-        auto queryResults = processInput(";");
-        if (!queryResults.empty())
-            for (auto& queryResult : queryResults)
-                if (queryResult->isSuccess()) {
-                    printInterrupted = false;
-                    printExecutionResult(*queryResult);
-                }
-    }
+
 #ifndef _WIN32
     /* Don't even check the return value as it's too late. */
     if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
