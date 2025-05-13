@@ -96,7 +96,7 @@ inline void stringFormatHelper(std::string& ret, std::string_view format, Arg&& 
 //! Formats `args` according to `format`. Accepts {} for formatting the argument and {{}} for
 //! a literal {}. Formatting is done with std::ostream::operator<<.
 template<typename... Args>
-inline std::string stringFormat(std::string_view format, Args... args) {
+std::string stringFormat(std::string_view format, Args&&... args) {
     std::string ret;
     ret.reserve(32); // Optimistic pre-allocation.
     string_format_detail::stringFormatHelper(ret, format, std::forward<Args>(args)...);
