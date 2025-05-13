@@ -611,8 +611,7 @@ void EmbeddedShell::run() {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    while (true)
-    {
+    while (true) {
         line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT);
 
         if (line == nullptr && !continueLine)
