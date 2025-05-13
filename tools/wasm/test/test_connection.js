@@ -94,17 +94,17 @@ describe("Execute", function () {
     }
   });
 
-  it("should throw error if the parameters is not a plain object", async function () {
+  it("should throw error if the parameters is null", async function () {
     try {
       const preparedStatement = await conn.prepare(
         "MATCH (a:person) WHERE a.ID = $1 RETURN COUNT(*)"
       );
       assert.exists(preparedStatement);
       assert.isTrue(preparedStatement.isSuccess());
-      await conn.execute(preparedStatement, []);
-      assert.fail("No error thrown when params is not a plain object.");
+      await conn.execute(preparedStatement, null);
+      assert.fail("No error thrown when params is null.");
     } catch (e) {
-      assert.equal(e.message, "params must be a plain object.");
+      assert.equal(e.message, "params is not valid.");
     }
   });
 });
