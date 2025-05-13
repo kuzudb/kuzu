@@ -1,6 +1,7 @@
 #include "embedded_shell.h"
 
 #include "binder/visitor/confidential_statement_analyzer.h"
+#include "linenoise.h"
 
 #ifndef _WIN32
 #include <termios.h>
@@ -609,8 +610,12 @@ void EmbeddedShell::run() {
     oldOutputCP = GetConsoleOutputCP();
     SetConsoleOutputCP(CP_UTF8);
 #endif
-    while((line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT)) != nullptr)
+    for(;;)
     {
+        line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT);
+        if (line == nullptr)
+            break;
+
         auto lineStr = std::string(line);
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
