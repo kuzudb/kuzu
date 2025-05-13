@@ -1,5 +1,5 @@
 
--DATASET CSV tinysnb
+-DATASET CSV tinysnb copy-fault-tests/duplicate-ids
 --
 
 -CASE DropAndCreateTables
@@ -581,3 +581,21 @@ Binder exception: Expression ABC has data type STRING but expected INT64[3]. Imp
 ---- 2
 0|Alice
 2|Bob
+
+-CASE CreateTableAsDuplicateIntIDs
+-STATEMENT CREATE NODE TABLE Foo AS (LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv" RETURN *);
+---- error
+Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
+
+-CASE CreateTableAsDuplicateStringIDs
+-STATEMENT CREATE NODE TABLE Foo AS (LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vOrg.csv" RETURN *);
+---- error
+Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
+
+-CASE CreateTableAsEmptyReturn
+-STATEMENT CREATE NODE TABLE Bar AS (RETURN *);
+---- error
+Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.
+-STATEMENT CREATE NODE TABLE FooBar AS (MATCH () RETURN *);
+---- error
+Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.
