@@ -586,7 +586,7 @@ void EmbeddedShell::run() {
     char* line = nullptr;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
-    // Set to true when a multiline query is incomplete. See `EmbeddedShell::processInput`.
+    // `true` when a multiline query is incomplete. See `EmbeddedShell::processInput`.
     continueLine = false;
     currLine = "";
     std::string lineStr;
@@ -616,7 +616,7 @@ void EmbeddedShell::run() {
         line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT);
 
         if (line == nullptr && !continueLine) {
-            // EOF is reached and there is no input left to process.
+            // EOF is reached and there is no input left to process. Exit loop.
             break;
         }
 
@@ -663,10 +663,6 @@ void EmbeddedShell::run() {
             }
         }
 
-        // We do not want to add EOF to our history.
-        if (line == nullptr) {
-            break;
-        }
         if (!continueLine && !historyLine.empty()) {
             linenoiseHistoryAdd(historyLine.c_str());
         }
