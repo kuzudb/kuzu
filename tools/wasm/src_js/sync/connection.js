@@ -125,16 +125,14 @@ class Connection {
   execute(preparedStatement, params = {}) {
     this._checkConnection();
     if (!preparedStatement ||
-      typeof preparedStatement !== "object" ||
-      preparedStatement.constructor.name !== "PreparedStatement" ||
       preparedStatement._isClosed) {
-      throw new Error("preparedStatement must be a valid PreparedStatement object.");
+      throw new Error("preparedStatement is not valid or is closed.");
     }
     if (!preparedStatement.isSuccess()) {
       throw new Error(preparedStatement.getErrorMessage());
     }
-    if (params.constructor.name !== "Object") {
-      throw new Error("params must be a plain object.");
+    if (!params) {
+      throw new Error("params is not valid.");
     }
     const paramsArray = [];
     for (const key in params) {
