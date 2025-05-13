@@ -1,2 +1,4 @@
-create node table Person as (load from "~/Documents/test.csv" return *);
-create node table Test as (match (a:Person) return a.column0);
+CREATE NODE TABLE Test AS (LOAD FROM "dataset/tinysnb/vPerson.csv" WHERE ISStudent = True RETURN id, Gender, fname);
+MATCH (a:Test) RETURN a.*;
+CREATE NODE TABLE Test2 AS (MATCH (a:TEST) RETURN a.id, a.fname);
+MATCH (a:Test2) RETURN a.*;
