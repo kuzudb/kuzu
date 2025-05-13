@@ -1,4 +1,5 @@
 #include "embedded_shell.h"
+#include <iostream>
 
 #include "binder/visitor/confidential_statement_analyzer.h"
 
@@ -613,10 +614,13 @@ void EmbeddedShell::run() {
     for(;;)
     {
         line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT);
-        if (line == nullptr && !currLine.empty() && currLine.back() == ';')
+        if (line == nullptr && !continueLine)
             break;
         else if (line == nullptr)
+        {
+            std::cout << "Got here " << std::endl;
             lineStr = ";";
+        }
         else
             lineStr = std::string(line);
 
