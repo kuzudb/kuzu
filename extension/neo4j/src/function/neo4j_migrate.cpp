@@ -1,4 +1,4 @@
-#include "function/neo4j_migrate.h"
+#include "../include/function/neo4j_migrate.h"
 
 #include "binder/ddl/property_definition.h"
 #include "binder/expression/literal_expression.h"
@@ -101,6 +101,12 @@ static std::vector<std::string> getNodeOrRels(httplib::Client& cli, common::Tabl
     auto labelVals = expression->constPtrCast<binder::LiteralExpression>()->getValue();
     for (auto i = 0u; i < labelVals.getChildrenSize(); i++) {
         auto label = NestedVal::getChildVal(&labelVals, i)->toString();
+        if (label == "*")
+        {
+            for (auto i = 0u; i < labelVals.getChildrenSize(); i++) 
+                std::cout << NestedVal::getChildVal(&labelVals, i)->toString() << std::endl;
+            throw(5);
+        }
         if (!labelsInNeo4j.contains(label)) {
             throw common::RuntimeException{common::stringFormat("{} '{}' does not exist in neo4j.",
                 TableTypeUtils::toString(tableType), label)};
