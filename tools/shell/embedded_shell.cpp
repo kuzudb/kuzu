@@ -589,7 +589,6 @@ void EmbeddedShell::run() {
     // `true` when a multiline query is incomplete. See `EmbeddedShell::processInput`.
     continueLine = false;
     currLine = "";
-    std::string lineStr;
 
 #ifndef _WIN32
     termios raw{};
@@ -620,6 +619,7 @@ void EmbeddedShell::run() {
             break;
         }
 
+        std::string lineStr;
         if (line == nullptr) {
             // EOF is reached, but there is an incomplete query (`continueLine` == true).
             // Mark as complete with a semicolon and attempt to process the query.
@@ -628,7 +628,6 @@ void EmbeddedShell::run() {
             // Not EOF. We take the input as is.
             lineStr = std::string(line);
         }
-
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
             if (!continueLine && lineStr[1] == '\0') {
