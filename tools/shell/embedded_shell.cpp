@@ -586,7 +586,8 @@ void EmbeddedShell::run() {
     char* line = nullptr;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
-    continueLine = false; // Set to true when a multiline query is setup (seeProcessInput)
+    // Set to true when a multiline query is incomplete. See `EmbeddedShell::processInput`.
+    continueLine = false;
     currLine = "";
     std::string lineStr;
 
@@ -614,17 +615,17 @@ void EmbeddedShell::run() {
     while (true) {
         line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT);
 
-        // EOF is reached and there is no input left to process
         if (line == nullptr && !continueLine) {
+            // EOF is reached and there is no input left to process.
             break;
+        }
 
-            // EOF is reached, but there is a query not terminated by a semiColon <- indicated by
-            // continueLine being true we add a semiColon and attempt to process the query
-        } else if (line == nullptr) {
+        if (line == nullptr) {
+            // EOF is reached, but there is an incomplete query (`continueLine` == true).
+            // Mark as complete with a semicolon and attempt to process the query.
             lineStr = ";";
-
-            // Not EOF. We take the input as is.
         } else {
+            // Not EOF. We take the input as is.
             lineStr = std::string(line);
         }
 
