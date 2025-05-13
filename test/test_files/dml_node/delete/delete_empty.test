@@ -2,6 +2,130 @@
 
 --
 
+-CASE CreateDeleteNodeInSingelStatement
+-STATEMENT CREATE NODE TABLE A (id INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE NODE TABLE B (id INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE REL TABLE R (FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {id:0})-[:R]->(b:B {id:10})
+---- ok
+-STATEMENT CREATE (a:A {id:1})-[:R]->(b:B {id:11})
+---- ok
+-STATEMENT UNWIND [2,3] AS x
+           CREATE (a:A {id:x})-[:R]->(b:B {id:10 + x})
+           WITH b
+           WHERE b.id = 12
+           DETACH DELETE b
+           RETURN b.id
+---- 1
+12
+-STATEMENT MATCH (a)-[e]->(b) HINT a JOIN (e JOIN b) RETURN COUNT(*);
+---- 1
+3
+-STATEMENT MATCH (a)-[e]->(b) HINT (a JOIN e) JOIN b RETURN COUNT(*);
+---- 1
+3
+
+-CASE MultipleDeletionsSingleTransaction
+-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:2});
+---- ok
+-STATEMENT CREATE (t:test {id:3});
+---- ok
+-STATEMENT CREATE (t:test {id:4});
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.id > 2 DELETE t;
+---- ok
+-STATEMENT MATCH (t:test) DELETE t;
+---- ok
+-STATEMENT MATCH (t:test) RETURN COUNT(t);
+---- 1
+0
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT MATCH (t:test) RETURN COUNT(t);
+---- 1
+0
+
+-CASE DeleteFromFirstVector
+-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT UNWIND RANGE(1, 2048) AS x CREATE (t:test {id:x});
+---- ok
+-STATEMENT UNWIND RANGE(2049, 4000) AS x CREATE (t:test {id:x});
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.id < 100 DELETE t;
+---- ok
+-STATEMENT MATCH (t:test) RETURN MIN(t.id), MAX(t.id);
+---- 1
+100|4000
+
+-CASE DeleteLocalNodeAtLargeOffset
+-STATEMENT create node table Comment (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv";
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:Comment {id: 8933535696141})
+---- ok
+-STATEMENT MATCH (c:Comment) WHERE c.id = 8933535696141 RETURN c.id
+---- 1
+8933535696141
+-STATEMENT MATCH (c:Comment) WHERE c.id = 8933535696141 DELETE c
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (c:Comment) WHERE c.id = 8933535696141 RETURN c.id, c.creationDate
+---- 0
+
+-CASE DeleteFirstNodeGroup
+-SKIP_IN_MEM
+-STATEMENT call checkpoint_threshold=0
+---- ok
+-STATEMENT create node table Post (id INT64, imageFile STRING, creationDate INT64, locationIP STRING, browserUsed STRING, language STRING, content STRING, length INT32, PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
+-PARALLELISM 1
+---- ok
+-STATEMENT call fsm_info() return *
+---- 0
+-STATEMENT call storage_info('Post') where node_group_id = 0 with num_values as node_group_capacity limit 1
+           match (p:Post) where ID(p) < internal_id(0, node_group_capacity) delete p with count(*) as num_deleted, node_group_capacity
+           return num_deleted = node_group_capacity
+---- 1
+True
+
+# on the next allocation the pages for the deleted node group should be reused
+-STATEMENT create node table other(id INT64, primary key(id))
+---- ok
+-STATEMENT begin transaction;
+        create (:other{id: 1});
+        create (:other{id: 2});
+        commit;
+---- ok
+---- ok
+---- ok
+---- ok
+-STATEMENT call storage_info('other') where start_page_idx = 0 return count (*)
+---- 1
+1
+
+-STATEMENT match (p:Post) with count(*) as remaining
+           optional match (p:Post) where p.ID = 1030792523231 with p.imageFile as imageFile, remaining
+           return remaining = 0 or imageFile = 'photo1030792523231.jpg'
+---- 1
+True
+
 -CASE DeleteAllTuples
 -SKIP_IN_MEM
 -STATEMENT call checkpoint_threshold=0
