@@ -1,7 +1,6 @@
 #include "embedded_shell.h"
 
 #include "binder/visitor/confidential_statement_analyzer.h"
-#include "linenoise.h"
 
 #ifndef _WIN32
 #include <termios.h>
@@ -589,6 +588,7 @@ void EmbeddedShell::run() {
     int numCtrlC = 0;
     continueLine = false;
     currLine = "";
+    std::string lineStr;
 
 #ifndef _WIN32
     termios raw{};
@@ -613,10 +613,13 @@ void EmbeddedShell::run() {
     for(;;)
     {
         line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT);
-        if (line == nullptr)
+        if (line == nullptr && !currLine.empty() && currLine.back() == ';')
             break;
+        else if (line == nullptr)
+            lineStr = ";";
+        else
+            lineStr = std::string(line);
 
-        auto lineStr = std::string(line);
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
             if (!continueLine && lineStr[1] == '\0') {
