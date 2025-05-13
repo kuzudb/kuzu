@@ -653,6 +653,8 @@ void EmbeddedShell::run() {
                 printErrorMessage(lineStr, *queryResult);
             }
         }
+        if (line == nullptr)
+            break;
         if (!continueLine && !historyLine.empty()) {
             linenoiseHistoryAdd(historyLine.c_str());
         }
