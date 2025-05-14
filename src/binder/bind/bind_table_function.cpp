@@ -24,7 +24,7 @@ BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
         auto& childExpr = *expr.getChild(i);
         auto param = expressionBinder.bindExpression(childExpr);
         ExpressionUtil::validateExpressionType(*param,
-                {ExpressionType::LITERAL, ExpressionType::PARAMETER, ExpressionType::PATTERN});
+            {ExpressionType::LITERAL, ExpressionType::PARAMETER, ExpressionType::PATTERN});
         if (!childExpr.hasAlias()) {
             positionalParams.push_back(param);
             positionalParamTypes.push_back(param->getDataType().copy());

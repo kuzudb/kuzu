@@ -78,7 +78,8 @@ public:
         common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
         std::vector<common::LogicalType> columnTypes, uint32_t operatorID);
 
-    KUZU_API std::unique_ptr<PhysicalOperator> mapOperator(const planner::LogicalOperator* logicalOperator);
+    KUZU_API std::unique_ptr<PhysicalOperator> mapOperator(
+        const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAccumulate(
         const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAggregate(const planner::LogicalOperator* logicalOperator);
@@ -236,7 +237,8 @@ public:
         const binder::expression_vector& expressions, const planner::Schema& schema);
     std::unique_ptr<common::SemiMask> createSemiMask(common::table_id_t tableID) const;
 
-    void addOperatorMapping(const planner::LogicalOperator* logicalOp, PhysicalOperator* physicalOp) {
+    void addOperatorMapping(const planner::LogicalOperator* logicalOp,
+        PhysicalOperator* physicalOp) {
         KU_ASSERT(!logicalOpToPhysicalOpMap.contains(logicalOp));
         logicalOpToPhysicalOpMap.insert({logicalOp, physicalOp});
     }

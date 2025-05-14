@@ -36,13 +36,14 @@ struct KUZU_API GDSBindData : public TableFuncBindData {
     std::unique_ptr<GDSOptionalParams> optionalParams;
 
     GDSBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> nodeOutput, std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
+        std::shared_ptr<binder::Expression> nodeOutput,
+        std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
         : TableFuncBindData{std::move(columns)}, graphEntry{graphEntry.copy()},
           nodeOutput{std::move(nodeOutput)}, optionalParams{std::move(optionalParams)} {}
 
     GDSBindData(const GDSBindData& other)
         : TableFuncBindData{other}, graphEntry{other.graphEntry.copy()},
-           nodeOutput{other.nodeOutput},
+          nodeOutput{other.nodeOutput},
           optionalParams{other.optionalParams == nullptr ? nullptr : other.optionalParams->copy()},
           resultTable{other.resultTable} {}
 

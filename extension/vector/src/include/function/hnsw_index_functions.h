@@ -84,7 +84,8 @@ struct QueryHNSWIndexSharedState final : function::TableFuncSharedState {
     storage::NodeTable* nodeTable;
     common::offset_t numNodes;
 
-    QueryHNSWIndexSharedState(storage::NodeTable* nodeTable, common::offset_t numNodes) : TableFuncSharedState{1 /* maxOffset */}, nodeTable{nodeTable}, numNodes{numNodes} {}
+    QueryHNSWIndexSharedState(storage::NodeTable* nodeTable, common::offset_t numNodes)
+        : TableFuncSharedState{1 /* maxOffset */}, nodeTable{nodeTable}, numNodes{numNodes} {}
 };
 
 struct QueryHNSWLocalState final : function::TableFuncLocalState {

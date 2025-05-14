@@ -111,7 +111,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     bindData->flipPath = *boundNode == *rel->getRightNode();
     auto resultColumns = recursiveInfo->function->getResultColumns(*bindData);
     auto recursiveExtend = std::make_shared<LogicalRecursiveExtend>(recursiveInfo->function->copy(),
-       *recursiveInfo->bindData, resultColumns);
+        *recursiveInfo->bindData, resultColumns);
     if (recursiveInfo->nodePredicate != nullptr) {
         auto p = getNodeSemiMaskPlan(SemiMaskTargetType::RECURSIVE_EXTEND_PATH_NODE,
             *recursiveInfo->node, recursiveInfo->nodePredicate);

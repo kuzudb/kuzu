@@ -8,19 +8,19 @@
 #include "common/mask.h"
 #include "common/types/value/nested.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
+#include "function/gds/gds.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
 #include "index/hnsw_index.h"
 #include "index/hnsw_index_utils.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_table_function_call.h"
+#include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 #include "processor/execution_context.h"
 #include "processor/operator/table_function_call.h"
-#include "storage/storage_manager.h"
 #include "processor/plan_mapper.h"
-#include "function/gds/gds.h"
-#include "planner/operator/sip/logical_semi_masker.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -100,8 +100,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     // Bind columns
     auto columnNames = std::vector<std::string>{QueryVectorIndexFunction::nnColumnName,
         QueryVectorIndexFunction::distanceColumnName};
-    columnNames =
-        TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto outputNode = input->binder->createQueryNode(columnNames[0], {nodeTableEntry});
     input->binder->addToScope(outputNode->toString(), outputNode);
     expression_vector columns;
@@ -115,11 +114,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     bindData->indexEntry = indexEntry;
     KU_ASSERT(indexEntry->getPropertyIDs().size() == 1);
     auto propertyID = indexEntry->getPropertyIDs()[0];
-    KU_ASSERT(nodeTableEntry->getProperty(propertyID).getType().getLogicalTypeID() == LogicalTypeID::ARRAY);
+    KU_ASSERT(nodeTableEntry->getProperty(propertyID).getType().getLogicalTypeID() ==
+              LogicalTypeID::ARRAY);
     bindData->indexColumnID = nodeTableEntry->getColumnID(propertyID);
     const auto& auxInfo = bindData->indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
-    bindData->upperHNSWRelTableEntry = catalog->getTableCatalogEntry(transaction, auxInfo.upperRelTableID)->ptrCast<RelTableCatalogEntry>();
-    bindData->lowerHNSWRelTableEntry = catalog->getTableCatalogEntry(transaction, auxInfo.lowerRelTableID)->ptrCast<RelTableCatalogEntry>();
+    bindData->upperHNSWRelTableEntry =
+        catalog->getTableCatalogEntry(transaction, auxInfo.upperRelTableID)
+            ->ptrCast<RelTableCatalogEntry>();
+    bindData->lowerHNSWRelTableEntry =
+        catalog->getTableCatalogEntry(transaction, auxInfo.lowerRelTableID)
+            ->ptrCast<RelTableCatalogEntry>();
     bindData->config = QueryHNSWConfig{input->optionalParams};
     bindData->queryExpression = input->params[2];
     bindData->kExpression = input->params[3];
@@ -160,7 +164,8 @@ static std::vector<T> getQueryVector(main::ClientContext* context,
     return convertQueryVector<T>(value);
 }
 
-static const LogicalType& getIndexColumnType(const NodeTableCatalogEntry& nodeEntry, const IndexCatalogEntry& indexEntry) {
+static const LogicalType& getIndexColumnType(const NodeTableCatalogEntry& nodeEntry,
+    const IndexCatalogEntry& indexEntry) {
     const auto columnName = indexEntry.getPropertyIDs()[0];
     return nodeEntry.getProperty(columnName).getType();
 }
@@ -172,15 +177,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     // call, and output the rest of the query result in chunks in following calls.
     if (!localState->hasResultToOutput()) {
         // We start searching when there is no query result to output.
-        const auto& auxInfo =
-            bindData->indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
+        const auto& auxInfo = bindData->indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
         const auto index = std::make_unique<OnDiskHNSWIndex>(input.context->clientContext,
-            bindData->nodeTableEntry, bindData->indexColumnID,
-            bindData->upperHNSWRelTableEntry, bindData->lowerHNSWRelTableEntry,
-            auxInfo.config.copy());
+            bindData->nodeTableEntry, bindData->indexColumnID, bindData->upperHNSWRelTableEntry,
+            bindData->lowerHNSWRelTableEntry, auxInfo.config.copy());
         index->setDefaultUpperEntryPoint(auxInfo.upperEntryPoint);
         index->setDefaultLowerEntryPoint(auxInfo.lowerEntryPoint);
-        const auto dimension = ArrayType::getNumElements(getIndexColumnType(*bindData->nodeTableEntry, *bindData->indexEntry));
+        const auto dimension = ArrayType::getNumElements(
+            getIndexColumnType(*bindData->nodeTableEntry, *bindData->indexEntry));
         auto indexType = index->getElementType();
         TypeUtils::visit(
             indexType,
@@ -214,8 +218,9 @@ static std::unique_ptr<TableFuncSharedState> initQueryHNSWSharedState(
     const TableFuncInitSharedStateInput& input) {
     const auto bindData = input.bindData->constPtrCast<QueryHNSWIndexBindData>();
     auto context = input.context->clientContext;
-    auto nodeTable = context->getStorageManager()->getTable(bindData->nodeTableEntry->getTableID())
-                    ->ptrCast<storage::NodeTable>();
+    auto nodeTable = context->getStorageManager()
+                         ->getTable(bindData->nodeTableEntry->getTableID())
+                         ->ptrCast<storage::NodeTable>();
     auto numNodes = nodeTable->getStats(context->getTransaction()).getTableCard();
     return std::make_unique<QueryHNSWIndexSharedState>(nodeTable, numNodes);
 }
@@ -225,8 +230,7 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(
     const auto hnswBindData = input.bindData.constPtrCast<QueryHNSWIndexBindData>();
     const auto hnswSharedState = input.sharedState.ptrCast<QueryHNSWIndexSharedState>();
     auto context = input.clientContext;
-    auto val =
-        evaluateParamExpr(hnswBindData->kExpression, context, LogicalType::INT64());
+    auto val = evaluateParamExpr(hnswBindData->kExpression, context, LogicalType::INT64());
     auto k = ExpressionUtil::getExpressionVal<int64_t>(*hnswBindData->kExpression, val,
         LogicalType::INT64(), validateK);
     HNSWSearchState searchState{context->getTransaction(), context->getMemoryManager(),
@@ -279,11 +283,13 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     const LogicalOperator* logicalOp) {
     auto op = TableFunction::getPhysicalPlan(planMapper, logicalOp);
     auto sharedState = op->constCast<TableFunctionCall>().getSharedState();
-    auto bindData = logicalOp->constPtrCast<LogicalTableFunctionCall>()->getBindData()->constPtrCast<QueryHNSWIndexBindData>();
+    auto bindData = logicalOp->constPtrCast<LogicalTableFunctionCall>()
+                        ->getBindData()
+                        ->constPtrCast<QueryHNSWIndexBindData>();
     // Map node predicate pipeline
     if (!bindData->graphEntry.isEmpty() && bindData->graphEntry.nodeInfos[0].predicate) {
         sharedState->semiMasks.addMask(bindData->nodeTableEntry->getTableID(),
-                SemiMaskUtil::createMask(bindData->numRows));
+            SemiMaskUtil::createMask(bindData->numRows));
         planMapper->addOperatorMapping(logicalOp, op.get());
         KU_ASSERT(logicalOp->getNumChildren() == 1);
         auto logicalRoot = logicalOp->getChild(0);
