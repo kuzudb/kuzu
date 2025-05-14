@@ -127,8 +127,9 @@ public:
         const std::string& tableName, const std::string& propertyName);
 
     /*** bind copy ***/
-    BoundCopyFromInfo bindCopyNodeFromInfo(std::string tableName, const std::vector<PropertyDefinition>& properties,
-        const parser::BaseScanSource* source, const parser::options_t& parsingOptions,
+    BoundCopyFromInfo bindCopyNodeFromInfo(std::string tableName,
+        const std::vector<PropertyDefinition>& properties, const parser::BaseScanSource* source,
+        const parser::options_t& parsingOptions,
         const std::vector<std::string>& expectedColumnNames,
         const std::vector<common::LogicalType>& expectedColumnTypes);
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);

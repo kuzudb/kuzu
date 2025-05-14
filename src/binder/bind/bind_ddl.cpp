@@ -301,15 +301,15 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
     }
     auto pkName = columnNames[0];
     auto createInfo = createTable->getInfo();
-    auto boundCopyFromInfo = bindCopyNodeFromInfo(createInfo->tableName,
-        propertyDefinitions, createTable->getSource(), std::move(parsingOptions),
-        columnNames, columnTypes);
+    auto boundCopyFromInfo = bindCopyNodeFromInfo(createInfo->tableName, propertyDefinitions,
+        createTable->getSource(), std::move(parsingOptions), columnNames, columnTypes);
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
     auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
         createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
         clientContext->useInternalCatalogEntry());
-    return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo), std::move(boundCopyFromInfo));
+    return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo),
+        std::move(boundCopyFromInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) const {

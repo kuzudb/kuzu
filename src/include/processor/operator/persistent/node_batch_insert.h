@@ -40,8 +40,7 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
     evaluator::evaluator_vector_t columnEvaluators;
     std::vector<common::ColumnEvaluateType> evaluateTypes;
 
-    NodeBatchInsertInfo(bool compressionEnabled,
-        std::vector<common::LogicalType> columnTypes,
+    NodeBatchInsertInfo(bool compressionEnabled, std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<common::ColumnEvaluateType> evaluateTypes,
         common::column_id_t numWarningDataColumns)
@@ -80,8 +79,9 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
 
     NodeBatchInsertSharedState(std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal,
         storage::MemoryManager* mm)
-        : BatchInsertSharedState{nullptr, std::move(fTable), wal, mm}, globalIndexBuilder(std::nullopt),
-          tableFuncSharedState{nullptr}, sharedNodeGroup{nullptr} {}
+        : BatchInsertSharedState{nullptr, std::move(fTable), wal, mm},
+          globalIndexBuilder(std::nullopt), tableFuncSharedState{nullptr},
+          sharedNodeGroup{nullptr} {}
 
     void initPKIndex(const ExecutionContext* context);
 };
@@ -108,7 +108,8 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
-              std::move(printInfo)}, tableName{std::move(tableName)} {
+              std::move(printInfo)},
+          tableName{std::move(tableName)} {
         children.push_back(std::move(child));
     }
 

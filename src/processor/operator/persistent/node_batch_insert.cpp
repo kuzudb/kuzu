@@ -7,9 +7,9 @@
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
+#include "storage/storage_manager.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
-#include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -37,10 +37,12 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(), tableName);
+    auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(
+        clientContext->getTransaction(), tableName);
     auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
     auto nodeTable = clientContext->getStorageManager()->getTable(nodeTableEntry->getTableID());
-    auto fTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto fTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
 
@@ -96,8 +98,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         // Evaluate expressions if needed.
         const auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
         evaluateExpressions(numTuples);
-        copyToNodeGroup(clientContext->getTransaction(),
-            clientContext->getMemoryManager());
+        copyToNodeGroup(clientContext->getTransaction(), clientContext->getMemoryManager());
         nodeLocalState->columnState->setSelVector(originalSelVector);
     }
     if (nodeLocalState->chunkedGroup->getNumRows() > 0) {

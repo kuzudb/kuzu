@@ -64,8 +64,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(
         auto sharedState = std::make_shared<PrimaryKeyScanSharedState>(tableInfos.size());
         auto printInfo = std::make_unique<PrimaryKeyScanPrintInfo>(scan.getProperties(),
             primaryKeyScanInfo.key->toString(), alias);
-        result = std::make_unique<PrimaryKeyScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
-            std::move(evaluator), std::move(sharedState), getOperatorID(), std::move(printInfo));
+        result = std::make_unique<PrimaryKeyScanNodeTable>(std::move(scanInfo),
+            std::move(tableInfos), std::move(evaluator), std::move(sharedState), getOperatorID(),
+            std::move(printInfo));
     } break;
     default:
         KU_UNREACHABLE;

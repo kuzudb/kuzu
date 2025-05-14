@@ -13,7 +13,7 @@ public:
     explicit BoundCreateTable(BoundCreateTableInfo info)
         : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}
-    
+
     BoundCreateTable(BoundCreateTableInfo info, BoundCopyFromInfo copyInfo)
         : BoundStatement{common::StatementType::CREATE_TABLE,
               BoundStatementResult::createSingleStringColumnResult()},

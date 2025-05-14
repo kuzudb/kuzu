@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "binder/bound_attach_database.h"
 #include "binder/bound_create_macro.h"
 #include "binder/bound_detach_database.h"
@@ -33,8 +35,6 @@
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
-
-#include <iostream>
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

@@ -93,7 +93,8 @@ BoundCopyFromInfo Binder::bindCopyNodeFromInfo(std::string tableName,
     const std::vector<PropertyDefinition>& properties, const BaseScanSource* source,
     const options_t& parsingOptions, const std::vector<std::string>& expectedColumnNames,
     const std::vector<LogicalType>& expectedColumnTypes) {
-    auto boundSource = bindScanSource(source, parsingOptions, expectedColumnNames, expectedColumnTypes);
+    auto boundSource =
+        bindScanSource(source, parsingOptions, expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     expression_vector columns;
     std::vector<ColumnEvaluateType> evaluateTypes;
@@ -106,8 +107,8 @@ BoundCopyFromInfo Binder::bindCopyNodeFromInfo(std::string tableName,
     columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    return BoundCopyFromInfo(tableName, std::move(boundSource),
-        std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);  
+    return BoundCopyFromInfo(tableName, std::move(boundSource), std::move(offset),
+        std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
