@@ -7,7 +7,13 @@
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
 -STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["User", "City"], ["Follows", "LivesIn"]);
----- ok
+---- 5
+City|name|STRING|["String"]
+City|population|INT64|["Long"]
+User|name|STRING|["String"]
+User|age|INT64|["Long"]
+Follows_User_User|since|INT64|["Long"]
+
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 4
 0|User|NODE|local(kuzu)|
