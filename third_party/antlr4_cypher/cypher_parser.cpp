@@ -7464,7 +7464,7 @@ CypherParser::KU_UpdateExtensionContext* CypherParser::kU_UpdateExtension() {
     match(CypherParser::UPDATE);
     setState(1262);
     match(CypherParser::SP);
-    setState(1269);
+    setState(1266);
     oC_Variable();
    
   }
@@ -7506,7 +7506,7 @@ CypherParser::OC_QueryContext* CypherParser::oC_Query() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1271);
+    setState(1268);
     oC_RegularQuery();
    
   }
@@ -7573,30 +7573,30 @@ CypherParser::OC_RegularQueryContext* CypherParser::oC_RegularQuery() {
   });
   try {
     size_t alt;
-    setState(1294);
+    setState(1291);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 164, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(1273);
+      setState(1270);
       oC_SingleQuery();
-      setState(1280);
+      setState(1277);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 161, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
-          setState(1275);
+          setState(1272);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(1274);
+            setState(1271);
             match(CypherParser::SP);
           }
-          setState(1277);
+          setState(1274);
           oC_Union(); 
         }
-        setState(1282);
+        setState(1279);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 161, _ctx);
       }
@@ -7605,20 +7605,20 @@ CypherParser::OC_RegularQueryContext* CypherParser::oC_RegularQuery() {
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(1287); 
+      setState(1284); 
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
-                setState(1283);
+                setState(1280);
                 oC_Return();
-                setState(1285);
+                setState(1282);
                 _errHandler->sync(this);
 
                 _la = _input->LA(1);
                 if (_la == CypherParser::SP) {
-                  setState(1284);
+                  setState(1281);
                   match(CypherParser::SP);
                 }
                 break;
@@ -7627,11 +7627,11 @@ CypherParser::OC_RegularQueryContext* CypherParser::oC_RegularQuery() {
         default:
           throw NoViableAltException(this);
         }
-        setState(1289); 
+        setState(1286); 
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 163, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
-      setState(1291);
+      setState(1288);
       oC_SingleQuery();
        notifyReturnNotAtEnd(_localctx->start); 
       break;
@@ -7696,43 +7696,43 @@ CypherParser::OC_UnionContext* CypherParser::oC_Union() {
     exitRule();
   });
   try {
-    setState(1308);
+    setState(1305);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 167, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(1296);
+      setState(1293);
       match(CypherParser::UNION);
-      setState(1297);
+      setState(1294);
       match(CypherParser::SP);
-      setState(1298);
+      setState(1295);
       match(CypherParser::ALL);
-      setState(1300);
+      setState(1297);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1299);
+        setState(1296);
         match(CypherParser::SP);
       }
-      setState(1302);
+      setState(1299);
       oC_SingleQuery();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(1303);
+      setState(1300);
       match(CypherParser::UNION);
-      setState(1305);
+      setState(1302);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1304);
+        setState(1301);
         match(CypherParser::SP);
       }
-      setState(1307);
+      setState(1304);
       oC_SingleQuery();
       break;
     }
@@ -7783,19 +7783,19 @@ CypherParser::OC_SingleQueryContext* CypherParser::oC_SingleQuery() {
     exitRule();
   });
   try {
-    setState(1312);
+    setState(1309);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 168, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(1310);
+      setState(1307);
       oC_SinglePartQuery();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(1311);
+      setState(1308);
       oC_MultiPartQuery();
       break;
     }
@@ -7868,92 +7868,92 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
   });
   try {
     size_t alt;
-    setState(1349);
+    setState(1346);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 177, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(1320);
+      setState(1317);
       _errHandler->sync(this);
       _la = _input->LA(1);
       while (_la == CypherParser::CALL || ((((_la - 104) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 104)) & 1099511660553) != 0)) {
         setState(1308);
         oC_ReadingClause();
-        setState(1316);
+        setState(1313);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1315);
+          setState(1312);
           match(CypherParser::SP);
         }
-        setState(1322);
+        setState(1319);
         _errHandler->sync(this);
         _la = _input->LA(1);
       }
-      setState(1323);
+      setState(1320);
       oC_Return();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(1330);
+      setState(1327);
       _errHandler->sync(this);
       _la = _input->LA(1);
       while (_la == CypherParser::CALL || ((((_la - 104) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 104)) & 1099511660553) != 0)) {
         setState(1318);
         oC_ReadingClause();
-        setState(1326);
+        setState(1323);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1325);
+          setState(1322);
           match(CypherParser::SP);
         }
-        setState(1332);
+        setState(1329);
         _errHandler->sync(this);
         _la = _input->LA(1);
       }
-      setState(1333);
+      setState(1330);
       oC_UpdatingClause();
-      setState(1340);
+      setState(1337);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 174, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
-          setState(1335);
+          setState(1332);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(1334);
+            setState(1331);
             match(CypherParser::SP);
           }
-          setState(1337);
+          setState(1334);
           oC_UpdatingClause(); 
         }
-        setState(1342);
+        setState(1339);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 174, _ctx);
       }
-      setState(1347);
+      setState(1344);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 176, _ctx)) {
       case 1: {
-        setState(1344);
+        setState(1341);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1343);
+          setState(1340);
           match(CypherParser::SP);
         }
-        setState(1346);
+        setState(1343);
         oC_Return();
         break;
       }
@@ -8025,20 +8025,20 @@ CypherParser::OC_MultiPartQueryContext* CypherParser::oC_MultiPartQuery() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(1355); 
+    setState(1352); 
     _errHandler->sync(this);
     alt = 1;
     do {
       switch (alt) {
         case 1: {
-              setState(1351);
+              setState(1348);
               kU_QueryPart();
-              setState(1353);
+              setState(1350);
               _errHandler->sync(this);
 
               _la = _input->LA(1);
               if (_la == CypherParser::SP) {
-                setState(1352);
+                setState(1349);
                 match(CypherParser::SP);
               }
               break;
@@ -8047,11 +8047,11 @@ CypherParser::OC_MultiPartQueryContext* CypherParser::oC_MultiPartQuery() {
       default:
         throw NoViableAltException(this);
       }
-      setState(1357); 
+      setState(1354); 
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 179, _ctx);
     } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
-    setState(1359);
+    setState(1356);
     oC_SinglePartQuery();
    
   }
@@ -8118,45 +8118,45 @@ CypherParser::KU_QueryPartContext* CypherParser::kU_QueryPart() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1367);
+    setState(1364);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CypherParser::CALL || ((((_la - 104) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 104)) & 1099511660553) != 0)) {
       setState(1355);
       oC_ReadingClause();
-      setState(1363);
+      setState(1360);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1362);
+        setState(1359);
         match(CypherParser::SP);
       }
-      setState(1369);
+      setState(1366);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(1376);
+    setState(1373);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (((((_la - 69) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 69)) & -9223370937343147743) != 0)) {
       setState(1364);
       oC_UpdatingClause();
-      setState(1372);
+      setState(1369);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1371);
+        setState(1368);
         match(CypherParser::SP);
       }
-      setState(1378);
+      setState(1375);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(1379);
+    setState(1376);
     oC_With();
    
   }
@@ -8209,26 +8209,26 @@ CypherParser::OC_UpdatingClauseContext* CypherParser::oC_UpdatingClause() {
     exitRule();
   });
   try {
-    setState(1385);
+    setState(1382);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::CREATE: {
         enterOuterAlt(_localctx, 1);
-        setState(1381);
+        setState(1378);
         oC_Create();
         break;
       }
 
       case CypherParser::MERGE: {
         enterOuterAlt(_localctx, 2);
-        setState(1382);
+        setState(1379);
         oC_Merge();
         break;
       }
 
       case CypherParser::SET: {
         enterOuterAlt(_localctx, 3);
-        setState(1383);
+        setState(1380);
         oC_Set();
         break;
       }
@@ -8236,7 +8236,7 @@ CypherParser::OC_UpdatingClauseContext* CypherParser::oC_UpdatingClause() {
       case CypherParser::DELETE:
       case CypherParser::DETACH: {
         enterOuterAlt(_localctx, 4);
-        setState(1384);
+        setState(1381);
         oC_Delete();
         break;
       }
@@ -8295,34 +8295,34 @@ CypherParser::OC_ReadingClauseContext* CypherParser::oC_ReadingClause() {
     exitRule();
   });
   try {
-    setState(1391);
+    setState(1388);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::MATCH:
       case CypherParser::OPTIONAL: {
         enterOuterAlt(_localctx, 1);
-        setState(1387);
+        setState(1384);
         oC_Match();
         break;
       }
 
       case CypherParser::UNWIND: {
         enterOuterAlt(_localctx, 2);
-        setState(1388);
+        setState(1385);
         oC_Unwind();
         break;
       }
 
       case CypherParser::CALL: {
         enterOuterAlt(_localctx, 3);
-        setState(1389);
+        setState(1386);
         kU_InQueryCall();
         break;
       }
 
       case CypherParser::LOAD: {
         enterOuterAlt(_localctx, 4);
-        setState(1390);
+        setState(1387);
         kU_LoadFrom();
         break;
       }
@@ -8407,27 +8407,27 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1393);
+    setState(1390);
     match(CypherParser::LOAD);
-    setState(1411);
+    setState(1408);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 189, _ctx)) {
     case 1: {
-      setState(1394);
+      setState(1391);
       match(CypherParser::SP);
-      setState(1395);
+      setState(1392);
       match(CypherParser::WITH);
-      setState(1396);
+      setState(1393);
       match(CypherParser::SP);
-      setState(1397);
+      setState(1394);
       match(CypherParser::HEADERS);
-      setState(1399);
+      setState(1396);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1398);
+        setState(1395);
         match(CypherParser::SP);
       }
       setState(1401);
@@ -8469,7 +8469,7 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
       }
       setState(1414);
       match(CypherParser::T__1);
-      setState(1403);
+      setState(1400);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -8477,17 +8477,17 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
         setState(1411);
         match(CypherParser::SP);
       }
-      setState(1405);
+      setState(1402);
       kU_ColumnDefinitions();
-      setState(1407);
+      setState(1404);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1406);
+        setState(1403);
         match(CypherParser::SP);
       }
-      setState(1409);
+      setState(1406);
       match(CypherParser::T__2);
       break;
     }
@@ -8495,48 +8495,48 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
     default:
       break;
     }
-    setState(1413);
+    setState(1410);
     match(CypherParser::SP);
-    setState(1414);
+    setState(1411);
     match(CypherParser::FROM);
-    setState(1415);
+    setState(1412);
     match(CypherParser::SP);
-    setState(1416);
+    setState(1413);
     kU_ScanSource();
-    setState(1430);
+    setState(1427);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 195, _ctx)) {
     case 1: {
-      setState(1418);
+      setState(1415);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1417);
+        setState(1414);
         match(CypherParser::SP);
       }
-      setState(1420);
+      setState(1417);
       match(CypherParser::T__1);
-      setState(1422);
+      setState(1419);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1421);
+        setState(1418);
         match(CypherParser::SP);
       }
-      setState(1424);
+      setState(1421);
       kU_Options();
-      setState(1426);
+      setState(1423);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1425);
+        setState(1422);
         match(CypherParser::SP);
       }
-      setState(1428);
+      setState(1425);
       match(CypherParser::T__2);
       break;
     }
@@ -8544,20 +8544,20 @@ CypherParser::KU_LoadFromContext* CypherParser::kU_LoadFrom() {
     default:
       break;
     }
-    setState(1436);
+    setState(1433);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 198, _ctx)) {
     case 1: {
-      setState(1433);
+      setState(1430);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1432);
+        setState(1429);
         match(CypherParser::SP);
       }
-      setState(1435);
+      setState(1432);
       oC_Where();
       break;
     }
@@ -8621,18 +8621,18 @@ CypherParser::OC_YieldItemContext* CypherParser::oC_YieldItem() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1443);
+    setState(1440);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 196, _ctx)) {
     case 1: {
-      setState(1438);
+      setState(1435);
       oC_Variable();
-      setState(1439);
+      setState(1436);
       match(CypherParser::SP);
-      setState(1440);
+      setState(1437);
       match(CypherParser::AS);
-      setState(1441);
+      setState(1438);
       match(CypherParser::SP);
       break;
     }
@@ -8640,7 +8640,7 @@ CypherParser::OC_YieldItemContext* CypherParser::oC_YieldItem() {
     default:
       break;
     }
-    setState(1445);
+    setState(1442);
     oC_Variable();
    
   }
@@ -8696,35 +8696,35 @@ CypherParser::OC_YieldItemsContext* CypherParser::oC_YieldItems() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(1447);
+    setState(1444);
     oC_YieldItem();
-    setState(1458);
+    setState(1455);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 199, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(1449);
+        setState(1446);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1448);
+          setState(1445);
           match(CypherParser::SP);
         }
-        setState(1451);
+        setState(1448);
         match(CypherParser::T__3);
-        setState(1453);
+        setState(1450);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1452);
+          setState(1449);
           match(CypherParser::SP);
         }
-        setState(1455);
+        setState(1452);
         oC_YieldItem(); 
       }
-      setState(1460);
+      setState(1457);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 199, _ctx);
     }
@@ -8793,7 +8793,7 @@ CypherParser::KU_InQueryCallContext* CypherParser::kU_InQueryCall() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1461);
+    setState(1458);
     match(CypherParser::CALL);
     setState(1462);
     _errHandler->sync(this);
@@ -8821,15 +8821,15 @@ CypherParser::KU_InQueryCallContext* CypherParser::kU_InQueryCall() {
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 203, _ctx)) {
     case 1: {
-      setState(1465);
+      setState(1462);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1464);
+        setState(1461);
         match(CypherParser::SP);
       }
-      setState(1467);
+      setState(1464);
       oC_Where();
       break;
     }
@@ -8837,24 +8837,24 @@ CypherParser::KU_InQueryCallContext* CypherParser::kU_InQueryCall() {
     default:
       break;
     }
-    setState(1476);
+    setState(1473);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 206, _ctx)) {
     case 1: {
-      setState(1471);
+      setState(1468);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1470);
+        setState(1467);
         match(CypherParser::SP);
       }
-      setState(1473);
+      setState(1470);
       match(CypherParser::YIELD);
-      setState(1474);
+      setState(1471);
       match(CypherParser::SP);
-      setState(1475);
+      setState(1472);
       oC_YieldItems();
       break;
     }
@@ -8927,36 +8927,36 @@ CypherParser::OC_MatchContext* CypherParser::oC_Match() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1480);
+    setState(1477);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::OPTIONAL) {
-      setState(1478);
+      setState(1475);
       match(CypherParser::OPTIONAL);
-      setState(1479);
+      setState(1476);
       match(CypherParser::SP);
     }
-    setState(1482);
+    setState(1479);
     match(CypherParser::MATCH);
-    setState(1484);
+    setState(1481);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1483);
+      setState(1480);
       match(CypherParser::SP);
     }
-    setState(1486);
+    setState(1483);
     oC_Pattern();
-    setState(1489);
+    setState(1486);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 206, _ctx)) {
     case 1: {
-      setState(1487);
+      setState(1484);
       match(CypherParser::SP);
-      setState(1488);
+      setState(1485);
       oC_Where();
       break;
     }
@@ -8964,14 +8964,14 @@ CypherParser::OC_MatchContext* CypherParser::oC_Match() {
     default:
       break;
     }
-    setState(1493);
+    setState(1490);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 207, _ctx)) {
     case 1: {
-      setState(1491);
+      setState(1488);
       match(CypherParser::SP);
-      setState(1492);
+      setState(1489);
       kU_Hint();
       break;
     }
@@ -9027,11 +9027,11 @@ CypherParser::KU_HintContext* CypherParser::kU_Hint() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1495);
+    setState(1492);
     match(CypherParser::HINT);
-    setState(1496);
+    setState(1493);
     match(CypherParser::SP);
-    setState(1497);
+    setState(1494);
     kU_JoinNode(0);
    
   }
@@ -9118,31 +9118,31 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(1511);
+    setState(1508);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::T__1: {
-        setState(1500);
+        setState(1497);
         match(CypherParser::T__1);
-        setState(1502);
+        setState(1499);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1501);
+          setState(1498);
           match(CypherParser::SP);
         }
-        setState(1504);
+        setState(1501);
         kU_JoinNode(0);
-        setState(1506);
+        setState(1503);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1505);
+          setState(1502);
           match(CypherParser::SP);
         }
-        setState(1508);
+        setState(1505);
         match(CypherParser::T__2);
         break;
       }
@@ -9207,7 +9207,7 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
-        setState(1510);
+        setState(1507);
         oC_SchemaName();
         break;
       }
@@ -9216,7 +9216,7 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
       throw NoViableAltException(this);
     }
     _ctx->stop = _input->LT(-1);
-    setState(1529);
+    setState(1526);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 213, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
@@ -9224,22 +9224,22 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
         if (!_parseListeners.empty())
           triggerExitRuleEvent();
         previousContext = _localctx;
-        setState(1527);
+        setState(1524);
         _errHandler->sync(this);
         switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 212, _ctx)) {
         case 1: {
           _localctx = _tracker.createInstance<KU_JoinNodeContext>(parentContext, parentState);
           pushNewRecursionContext(_localctx, startState, RuleKU_JoinNode);
-          setState(1513);
+          setState(1510);
 
           if (!(precpred(_ctx, 4))) throw FailedPredicateException(this, "precpred(_ctx, 4)");
-          setState(1514);
+          setState(1511);
           match(CypherParser::SP);
-          setState(1515);
+          setState(1512);
           match(CypherParser::JOIN);
-          setState(1516);
+          setState(1513);
           match(CypherParser::SP);
-          setState(1517);
+          setState(1514);
           kU_JoinNode(5);
           break;
         }
@@ -9247,22 +9247,22 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
         case 2: {
           _localctx = _tracker.createInstance<KU_JoinNodeContext>(parentContext, parentState);
           pushNewRecursionContext(_localctx, startState, RuleKU_JoinNode);
-          setState(1518);
+          setState(1515);
 
           if (!(precpred(_ctx, 3))) throw FailedPredicateException(this, "precpred(_ctx, 3)");
-          setState(1523); 
+          setState(1520); 
           _errHandler->sync(this);
           alt = 1;
           do {
             switch (alt) {
               case 1: {
-                    setState(1519);
+                    setState(1516);
                     match(CypherParser::SP);
-                    setState(1520);
+                    setState(1517);
                     match(CypherParser::MULTI_JOIN);
-                    setState(1521);
+                    setState(1518);
                     match(CypherParser::SP);
-                    setState(1522);
+                    setState(1519);
                     oC_SchemaName();
                     break;
                   }
@@ -9270,7 +9270,7 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
             default:
               throw NoViableAltException(this);
             }
-            setState(1525); 
+            setState(1522); 
             _errHandler->sync(this);
             alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 211, _ctx);
           } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -9281,7 +9281,7 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
           break;
         } 
       }
-      setState(1531);
+      setState(1528);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 213, _ctx);
     }
@@ -9344,25 +9344,25 @@ CypherParser::OC_UnwindContext* CypherParser::oC_Unwind() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1532);
+    setState(1529);
     match(CypherParser::UNWIND);
-    setState(1534);
+    setState(1531);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1533);
+      setState(1530);
       match(CypherParser::SP);
     }
-    setState(1536);
+    setState(1533);
     oC_Expression();
-    setState(1537);
+    setState(1534);
     match(CypherParser::SP);
-    setState(1538);
+    setState(1535);
     match(CypherParser::AS);
-    setState(1539);
+    setState(1536);
     match(CypherParser::SP);
-    setState(1540);
+    setState(1537);
     oC_Variable();
    
   }
@@ -9413,17 +9413,17 @@ CypherParser::OC_CreateContext* CypherParser::oC_Create() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1542);
+    setState(1539);
     match(CypherParser::CREATE);
-    setState(1544);
+    setState(1541);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1543);
+      setState(1540);
       match(CypherParser::SP);
     }
-    setState(1546);
+    setState(1543);
     oC_Pattern();
    
   }
@@ -9487,29 +9487,29 @@ CypherParser::OC_MergeContext* CypherParser::oC_Merge() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(1548);
+    setState(1545);
     match(CypherParser::MERGE);
-    setState(1550);
+    setState(1547);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1549);
+      setState(1546);
       match(CypherParser::SP);
     }
-    setState(1552);
+    setState(1549);
     oC_Pattern();
-    setState(1557);
+    setState(1554);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 217, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(1553);
+        setState(1550);
         match(CypherParser::SP);
-        setState(1554);
+        setState(1551);
         oC_MergeAction(); 
       }
-      setState(1559);
+      setState(1556);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 217, _ctx);
     }
@@ -9572,35 +9572,35 @@ CypherParser::OC_MergeActionContext* CypherParser::oC_MergeAction() {
     exitRule();
   });
   try {
-    setState(1570);
+    setState(1567);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 218, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(1560);
+      setState(1557);
       match(CypherParser::ON);
-      setState(1561);
+      setState(1558);
       match(CypherParser::SP);
-      setState(1562);
+      setState(1559);
       match(CypherParser::MATCH);
-      setState(1563);
+      setState(1560);
       match(CypherParser::SP);
-      setState(1564);
+      setState(1561);
       oC_Set();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(1565);
+      setState(1562);
       match(CypherParser::ON);
-      setState(1566);
+      setState(1563);
       match(CypherParser::SP);
-      setState(1567);
+      setState(1564);
       match(CypherParser::CREATE);
-      setState(1568);
+      setState(1565);
       match(CypherParser::SP);
-      setState(1569);
+      setState(1566);
       oC_Set();
       break;
     }
@@ -9666,45 +9666,45 @@ CypherParser::OC_SetContext* CypherParser::oC_Set() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(1572);
+    setState(1569);
     match(CypherParser::SET);
-    setState(1574);
+    setState(1571);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1573);
+      setState(1570);
       match(CypherParser::SP);
     }
-    setState(1576);
+    setState(1573);
     oC_SetItem();
-    setState(1587);
+    setState(1584);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 222, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(1578);
+        setState(1575);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1577);
+          setState(1574);
           match(CypherParser::SP);
         }
-        setState(1580);
+        setState(1577);
         match(CypherParser::T__3);
-        setState(1582);
+        setState(1579);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1581);
+          setState(1578);
           match(CypherParser::SP);
         }
-        setState(1584);
+        setState(1581);
         oC_SetItem(); 
       }
-      setState(1589);
+      setState(1586);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 222, _ctx);
     }
@@ -9761,27 +9761,27 @@ CypherParser::OC_SetItemContext* CypherParser::oC_SetItem() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1590);
+    setState(1587);
     oC_PropertyExpression();
-    setState(1592);
+    setState(1589);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1591);
+      setState(1588);
       match(CypherParser::SP);
     }
-    setState(1594);
+    setState(1591);
     match(CypherParser::T__5);
-    setState(1596);
+    setState(1593);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1595);
+      setState(1592);
       match(CypherParser::SP);
     }
-    setState(1598);
+    setState(1595);
     oC_Expression();
    
   }
@@ -9845,55 +9845,55 @@ CypherParser::OC_DeleteContext* CypherParser::oC_Delete() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(1602);
+    setState(1599);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::DETACH) {
-      setState(1600);
+      setState(1597);
       match(CypherParser::DETACH);
-      setState(1601);
+      setState(1598);
       match(CypherParser::SP);
     }
-    setState(1604);
+    setState(1601);
     match(CypherParser::DELETE);
-    setState(1606);
+    setState(1603);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1605);
+      setState(1602);
       match(CypherParser::SP);
     }
-    setState(1608);
+    setState(1605);
     oC_Expression();
-    setState(1619);
+    setState(1616);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 229, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(1610);
+        setState(1607);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1609);
+          setState(1606);
           match(CypherParser::SP);
         }
-        setState(1612);
+        setState(1609);
         match(CypherParser::T__3);
-        setState(1614);
+        setState(1611);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1613);
+          setState(1610);
           match(CypherParser::SP);
         }
-        setState(1616);
+        setState(1613);
         oC_Expression(); 
       }
-      setState(1621);
+      setState(1618);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 229, _ctx);
     }
@@ -9950,24 +9950,24 @@ CypherParser::OC_WithContext* CypherParser::oC_With() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1622);
+    setState(1619);
     match(CypherParser::WITH);
-    setState(1623);
+    setState(1620);
     oC_ProjectionBody();
-    setState(1628);
+    setState(1625);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 231, _ctx)) {
     case 1: {
-      setState(1625);
+      setState(1622);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1624);
+        setState(1621);
         match(CypherParser::SP);
       }
-      setState(1627);
+      setState(1624);
       oC_Where();
       break;
     }
@@ -10019,9 +10019,9 @@ CypherParser::OC_ReturnContext* CypherParser::oC_Return() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1630);
+    setState(1627);
     match(CypherParser::RETURN);
-    setState(1631);
+    setState(1628);
     oC_ProjectionBody();
    
   }
@@ -10088,20 +10088,20 @@ CypherParser::OC_ProjectionBodyContext* CypherParser::oC_ProjectionBody() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1637);
+    setState(1634);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 233, _ctx)) {
     case 1: {
-      setState(1634);
+      setState(1631);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1633);
+        setState(1630);
         match(CypherParser::SP);
       }
-      setState(1636);
+      setState(1633);
       match(CypherParser::DISTINCT);
       break;
     }
@@ -10109,18 +10109,18 @@ CypherParser::OC_ProjectionBodyContext* CypherParser::oC_ProjectionBody() {
     default:
       break;
     }
-    setState(1639);
+    setState(1636);
     match(CypherParser::SP);
-    setState(1640);
+    setState(1637);
     oC_ProjectionItems();
-    setState(1643);
+    setState(1640);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 234, _ctx)) {
     case 1: {
-      setState(1641);
+      setState(1638);
       match(CypherParser::SP);
-      setState(1642);
+      setState(1639);
       oC_Order();
       break;
     }
@@ -10128,14 +10128,14 @@ CypherParser::OC_ProjectionBodyContext* CypherParser::oC_ProjectionBody() {
     default:
       break;
     }
-    setState(1647);
+    setState(1644);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 235, _ctx)) {
     case 1: {
-      setState(1645);
+      setState(1642);
       match(CypherParser::SP);
-      setState(1646);
+      setState(1643);
       oC_Skip();
       break;
     }
@@ -10143,14 +10143,14 @@ CypherParser::OC_ProjectionBodyContext* CypherParser::oC_ProjectionBody() {
     default:
       break;
     }
-    setState(1651);
+    setState(1648);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 236, _ctx)) {
     case 1: {
-      setState(1649);
+      setState(1646);
       match(CypherParser::SP);
-      setState(1650);
+      setState(1647);
       oC_Limit();
       break;
     }
@@ -10215,40 +10215,40 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
   });
   try {
     size_t alt;
-    setState(1681);
+    setState(1678);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::STAR: {
         enterOuterAlt(_localctx, 1);
-        setState(1653);
+        setState(1650);
         match(CypherParser::STAR);
-        setState(1664);
+        setState(1661);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 239, _ctx);
         while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
           if (alt == 1) {
-            setState(1655);
+            setState(1652);
             _errHandler->sync(this);
 
             _la = _input->LA(1);
             if (_la == CypherParser::SP) {
-              setState(1654);
+              setState(1651);
               match(CypherParser::SP);
             }
-            setState(1657);
+            setState(1654);
             match(CypherParser::T__3);
-            setState(1659);
+            setState(1656);
             _errHandler->sync(this);
 
             _la = _input->LA(1);
             if (_la == CypherParser::SP) {
-              setState(1658);
+              setState(1655);
               match(CypherParser::SP);
             }
-            setState(1661);
+            setState(1658);
             oC_ProjectionItem(); 
           }
-          setState(1666);
+          setState(1663);
           _errHandler->sync(this);
           alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 239, _ctx);
         }
@@ -10336,35 +10336,35 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
         enterOuterAlt(_localctx, 2);
-        setState(1667);
+        setState(1664);
         oC_ProjectionItem();
-        setState(1678);
+        setState(1675);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 242, _ctx);
         while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
           if (alt == 1) {
-            setState(1669);
+            setState(1666);
             _errHandler->sync(this);
 
             _la = _input->LA(1);
             if (_la == CypherParser::SP) {
-              setState(1668);
+              setState(1665);
               match(CypherParser::SP);
             }
-            setState(1671);
+            setState(1668);
             match(CypherParser::T__3);
-            setState(1673);
+            setState(1670);
             _errHandler->sync(this);
 
             _la = _input->LA(1);
             if (_la == CypherParser::SP) {
-              setState(1672);
+              setState(1669);
               match(CypherParser::SP);
             }
-            setState(1675);
+            setState(1672);
             oC_ProjectionItem(); 
           }
-          setState(1680);
+          setState(1677);
           _errHandler->sync(this);
           alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 242, _ctx);
         }
@@ -10429,27 +10429,27 @@ CypherParser::OC_ProjectionItemContext* CypherParser::oC_ProjectionItem() {
     exitRule();
   });
   try {
-    setState(1690);
+    setState(1687);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 244, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(1683);
+      setState(1680);
       oC_Expression();
-      setState(1684);
+      setState(1681);
       match(CypherParser::SP);
-      setState(1685);
+      setState(1682);
       match(CypherParser::AS);
-      setState(1686);
+      setState(1683);
       match(CypherParser::SP);
-      setState(1687);
+      setState(1684);
       oC_Variable();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(1689);
+      setState(1686);
       oC_Expression();
       break;
     }
@@ -10518,33 +10518,33 @@ CypherParser::OC_OrderContext* CypherParser::oC_Order() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1692);
+    setState(1689);
     match(CypherParser::ORDER);
-    setState(1693);
+    setState(1690);
     match(CypherParser::SP);
-    setState(1694);
+    setState(1691);
     match(CypherParser::BY);
-    setState(1695);
+    setState(1692);
     match(CypherParser::SP);
-    setState(1696);
+    setState(1693);
     oC_SortItem();
-    setState(1704);
+    setState(1701);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CypherParser::T__3) {
-      setState(1697);
+      setState(1694);
       match(CypherParser::T__3);
-      setState(1699);
+      setState(1696);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1698);
+        setState(1695);
         match(CypherParser::SP);
       }
-      setState(1701);
+      setState(1698);
       oC_SortItem();
-      setState(1706);
+      setState(1703);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -10596,11 +10596,11 @@ CypherParser::OC_SkipContext* CypherParser::oC_Skip() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1707);
+    setState(1704);
     match(CypherParser::L_SKIP);
-    setState(1708);
+    setState(1705);
     match(CypherParser::SP);
-    setState(1709);
+    setState(1706);
     oC_Expression();
    
   }
@@ -10650,11 +10650,11 @@ CypherParser::OC_LimitContext* CypherParser::oC_Limit() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1711);
+    setState(1708);
     match(CypherParser::LIMIT);
-    setState(1712);
+    setState(1709);
     match(CypherParser::SP);
-    setState(1713);
+    setState(1710);
     oC_Expression();
    
   }
@@ -10717,22 +10717,22 @@ CypherParser::OC_SortItemContext* CypherParser::oC_SortItem() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1715);
+    setState(1712);
     oC_Expression();
-    setState(1720);
+    setState(1717);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 248, _ctx)) {
     case 1: {
-      setState(1717);
+      setState(1714);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1716);
+        setState(1713);
         match(CypherParser::SP);
       }
-      setState(1719);
+      setState(1716);
       _la = _input->LA(1);
       if (!(((((_la - 53) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 53)) & 12582915) != 0))) {
@@ -10796,11 +10796,11 @@ CypherParser::OC_WhereContext* CypherParser::oC_Where() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1722);
+    setState(1719);
     match(CypherParser::WHERE);
-    setState(1723);
+    setState(1720);
     match(CypherParser::SP);
-    setState(1724);
+    setState(1721);
     oC_Expression();
    
   }
@@ -10856,35 +10856,35 @@ CypherParser::OC_PatternContext* CypherParser::oC_Pattern() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(1726);
+    setState(1723);
     oC_PatternPart();
-    setState(1737);
+    setState(1734);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 251, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(1728);
+        setState(1725);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1727);
+          setState(1724);
           match(CypherParser::SP);
         }
-        setState(1730);
+        setState(1727);
         match(CypherParser::T__3);
-        setState(1732);
+        setState(1729);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1731);
+          setState(1728);
           match(CypherParser::SP);
         }
-        setState(1734);
+        setState(1731);
         oC_PatternPart(); 
       }
-      setState(1739);
+      setState(1736);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 251, _ctx);
     }
@@ -10940,7 +10940,7 @@ CypherParser::OC_PatternPartContext* CypherParser::oC_PatternPart() {
     exitRule();
   });
   try {
-    setState(1751);
+    setState(1748);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ADD:
@@ -11004,34 +11004,34 @@ CypherParser::OC_PatternPartContext* CypherParser::oC_PatternPart() {
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
         enterOuterAlt(_localctx, 1);
-        setState(1740);
+        setState(1737);
         oC_Variable();
-        setState(1742);
+        setState(1739);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1741);
+          setState(1738);
           match(CypherParser::SP);
         }
-        setState(1744);
+        setState(1741);
         match(CypherParser::T__5);
-        setState(1746);
+        setState(1743);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1745);
+          setState(1742);
           match(CypherParser::SP);
         }
-        setState(1748);
+        setState(1745);
         oC_AnonymousPatternPart();
         break;
       }
 
       case CypherParser::T__1: {
         enterOuterAlt(_localctx, 2);
-        setState(1750);
+        setState(1747);
         oC_AnonymousPatternPart();
         break;
       }
@@ -11079,7 +11079,7 @@ CypherParser::OC_AnonymousPatternPartContext* CypherParser::oC_AnonymousPatternP
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1753);
+    setState(1750);
     oC_PatternElement();
    
   }
@@ -11142,30 +11142,30 @@ CypherParser::OC_PatternElementContext* CypherParser::oC_PatternElement() {
   });
   try {
     size_t alt;
-    setState(1769);
+    setState(1766);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 257, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(1755);
+      setState(1752);
       oC_NodePattern();
-      setState(1762);
+      setState(1759);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 256, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
-          setState(1757);
+          setState(1754);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(1756);
+            setState(1753);
             match(CypherParser::SP);
           }
-          setState(1759);
+          setState(1756);
           oC_PatternElementChain(); 
         }
-        setState(1764);
+        setState(1761);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 256, _ctx);
       }
@@ -11174,11 +11174,11 @@ CypherParser::OC_PatternElementContext* CypherParser::oC_PatternElement() {
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(1765);
+      setState(1762);
       match(CypherParser::T__1);
-      setState(1766);
+      setState(1763);
       oC_PatternElement();
-      setState(1767);
+      setState(1764);
       match(CypherParser::T__2);
       break;
     }
@@ -11243,17 +11243,17 @@ CypherParser::OC_NodePatternContext* CypherParser::oC_NodePattern() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1771);
+    setState(1768);
     match(CypherParser::T__1);
-    setState(1773);
+    setState(1770);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1772);
+      setState(1769);
       match(CypherParser::SP);
     }
-    setState(1779);
+    setState(1776);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -11279,48 +11279,48 @@ CypherParser::OC_NodePatternContext* CypherParser::oC_NodePattern() {
     if (_la == CypherParser::COLON) {
       setState(1775);
       oC_Variable();
-      setState(1777);
+      setState(1774);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1776);
+        setState(1773);
         match(CypherParser::SP);
       }
     }
-    setState(1785);
+    setState(1782);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::COLON) {
-      setState(1781);
+      setState(1778);
       oC_NodeLabels();
-      setState(1783);
+      setState(1780);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1782);
+        setState(1779);
         match(CypherParser::SP);
       }
     }
-    setState(1791);
+    setState(1788);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::T__8) {
-      setState(1787);
+      setState(1784);
       kU_Properties();
-      setState(1789);
+      setState(1786);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1788);
+        setState(1785);
         match(CypherParser::SP);
       }
     }
-    setState(1793);
+    setState(1790);
     match(CypherParser::T__2);
    
   }
@@ -11371,17 +11371,17 @@ CypherParser::OC_PatternElementChainContext* CypherParser::oC_PatternElementChai
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1795);
+    setState(1792);
     oC_RelationshipPattern();
-    setState(1797);
+    setState(1794);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1796);
+      setState(1793);
       match(CypherParser::SP);
     }
-    setState(1799);
+    setState(1796);
     oC_NodePattern();
    
   }
@@ -11447,29 +11447,29 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
     exitRule();
   });
   try {
-    setState(1845);
+    setState(1842);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 277, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(1801);
+      setState(1798);
       oC_LeftArrowHead();
-      setState(1803);
+      setState(1800);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1802);
+        setState(1799);
         match(CypherParser::SP);
       }
-      setState(1805);
+      setState(1802);
       oC_Dash();
-      setState(1807);
+      setState(1804);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 267, _ctx)) {
       case 1: {
-        setState(1806);
+        setState(1803);
         match(CypherParser::SP);
         break;
       }
@@ -11477,37 +11477,37 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
       default:
         break;
       }
-      setState(1810);
+      setState(1807);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::T__6) {
-        setState(1809);
+        setState(1806);
         oC_RelationshipDetail();
       }
-      setState(1813);
+      setState(1810);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1812);
+        setState(1809);
         match(CypherParser::SP);
       }
-      setState(1815);
+      setState(1812);
       oC_Dash();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(1817);
+      setState(1814);
       oC_Dash();
-      setState(1819);
+      setState(1816);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 270, _ctx)) {
       case 1: {
-        setState(1818);
+        setState(1815);
         match(CypherParser::SP);
         break;
       }
@@ -11515,12 +11515,12 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
       default:
         break;
       }
-      setState(1822);
+      setState(1819);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::T__6) {
-        setState(1821);
+        setState(1818);
         oC_RelationshipDetail();
       }
       setState(1819);
@@ -11547,34 +11547,34 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1824);
+        setState(1821);
         match(CypherParser::SP);
       }
-      setState(1827);
+      setState(1824);
       oC_Dash();
-      setState(1829);
+      setState(1826);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1828);
+        setState(1825);
         match(CypherParser::SP);
       }
-      setState(1831);
+      setState(1828);
       oC_RightArrowHead();
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(1833);
+      setState(1830);
       oC_Dash();
-      setState(1835);
+      setState(1832);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 274, _ctx)) {
       case 1: {
-        setState(1834);
+        setState(1831);
         match(CypherParser::SP);
         break;
       }
@@ -11582,23 +11582,23 @@ CypherParser::OC_RelationshipPatternContext* CypherParser::oC_RelationshipPatter
       default:
         break;
       }
-      setState(1838);
+      setState(1835);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::T__6) {
-        setState(1837);
+        setState(1834);
         oC_RelationshipDetail();
       }
-      setState(1841);
+      setState(1838);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1840);
+        setState(1837);
         match(CypherParser::SP);
       }
-      setState(1843);
+      setState(1840);
       oC_Dash();
       break;
     }
@@ -11667,17 +11667,17 @@ CypherParser::OC_RelationshipDetailContext* CypherParser::oC_RelationshipDetail(
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1847);
+    setState(1844);
     match(CypherParser::T__6);
-    setState(1849);
+    setState(1846);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1848);
+      setState(1845);
       match(CypherParser::SP);
     }
-    setState(1855);
+    setState(1852);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -11703,64 +11703,64 @@ CypherParser::OC_RelationshipDetailContext* CypherParser::oC_RelationshipDetail(
     if (_la == CypherParser::COLON) {
       setState(1851);
       oC_Variable();
-      setState(1853);
+      setState(1850);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1852);
+        setState(1849);
         match(CypherParser::SP);
       }
     }
-    setState(1861);
+    setState(1858);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::COLON) {
-      setState(1857);
+      setState(1854);
       oC_RelationshipTypes();
-      setState(1859);
+      setState(1856);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1858);
+        setState(1855);
         match(CypherParser::SP);
       }
     }
-    setState(1867);
+    setState(1864);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::STAR) {
-      setState(1863);
+      setState(1860);
       kU_RecursiveDetail();
-      setState(1865);
+      setState(1862);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1864);
+        setState(1861);
         match(CypherParser::SP);
       }
     }
-    setState(1873);
+    setState(1870);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::T__8) {
-      setState(1869);
+      setState(1866);
       kU_Properties();
-      setState(1871);
+      setState(1868);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1870);
+        setState(1867);
         match(CypherParser::SP);
       }
     }
-    setState(1875);
+    setState(1872);
     match(CypherParser::T__7);
    
   }
@@ -11831,17 +11831,17 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1877);
+    setState(1874);
     match(CypherParser::T__8);
-    setState(1879);
+    setState(1876);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1878);
+      setState(1875);
       match(CypherParser::SP);
     }
-    setState(1914);
+    setState(1911);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -11863,71 +11863,71 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
       match(CypherParser::COLON);
       setState(1881);
       oC_PropertyKeyName();
-      setState(1883);
+      setState(1880);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1882);
+        setState(1879);
         match(CypherParser::SP);
       }
-      setState(1885);
+      setState(1882);
       match(CypherParser::COLON);
-      setState(1887);
+      setState(1884);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1886);
+        setState(1883);
         match(CypherParser::SP);
       }
-      setState(1889);
+      setState(1886);
       oC_Expression();
-      setState(1891);
+      setState(1888);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1890);
+        setState(1887);
         match(CypherParser::SP);
       }
-      setState(1911);
+      setState(1908);
       _errHandler->sync(this);
       _la = _input->LA(1);
       while (_la == CypherParser::T__3) {
-        setState(1893);
+        setState(1890);
         match(CypherParser::T__3);
-        setState(1895);
+        setState(1892);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1894);
+          setState(1891);
           match(CypherParser::SP);
         }
-        setState(1897);
+        setState(1894);
         oC_PropertyKeyName();
-        setState(1899);
+        setState(1896);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1898);
+          setState(1895);
           match(CypherParser::SP);
         }
-        setState(1901);
+        setState(1898);
         match(CypherParser::COLON);
-        setState(1903);
+        setState(1900);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1902);
+          setState(1899);
           match(CypherParser::SP);
         }
-        setState(1905);
+        setState(1902);
         oC_Expression();
-        setState(1907);
+        setState(1904);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
@@ -11950,7 +11950,7 @@ CypherParser::KU_PropertiesContext* CypherParser::kU_Properties() {
         _la = _input->LA(1);
       }
     }
-    setState(1916);
+    setState(1913);
     match(CypherParser::T__9);
    
   }
@@ -12014,53 +12014,53 @@ CypherParser::OC_RelationshipTypesContext* CypherParser::oC_RelationshipTypes() 
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(1918);
+    setState(1915);
     match(CypherParser::COLON);
-    setState(1920);
+    setState(1917);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1919);
+      setState(1916);
       match(CypherParser::SP);
     }
-    setState(1922);
+    setState(1919);
     oC_RelTypeName();
-    setState(1936);
+    setState(1933);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 301, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(1924);
+        setState(1921);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1923);
+          setState(1920);
           match(CypherParser::SP);
         }
-        setState(1926);
+        setState(1923);
         match(CypherParser::T__10);
-        setState(1928);
+        setState(1925);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::COLON) {
-          setState(1927);
+          setState(1924);
           match(CypherParser::COLON);
         }
-        setState(1931);
+        setState(1928);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1930);
+          setState(1927);
           match(CypherParser::SP);
         }
-        setState(1933);
+        setState(1930);
         oC_RelTypeName(); 
       }
-      setState(1938);
+      setState(1935);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 301, _ctx);
     }
@@ -12118,25 +12118,25 @@ CypherParser::OC_NodeLabelsContext* CypherParser::oC_NodeLabels() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(1939);
+    setState(1936);
     oC_NodeLabel();
-    setState(1946);
+    setState(1943);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 303, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(1941);
+        setState(1938);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(1940);
+          setState(1937);
           match(CypherParser::SP);
         }
-        setState(1943);
+        setState(1940);
         oC_NodeLabel(); 
       }
-      setState(1948);
+      setState(1945);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 303, _ctx);
     }
@@ -12189,17 +12189,17 @@ CypherParser::OC_NodeLabelContext* CypherParser::oC_NodeLabel() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1949);
+    setState(1946);
     match(CypherParser::COLON);
-    setState(1951);
+    setState(1948);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(1950);
+      setState(1947);
       match(CypherParser::SP);
     }
-    setState(1953);
+    setState(1950);
     oC_LabelName();
    
   }
@@ -12262,7 +12262,7 @@ CypherParser::KU_RecursiveDetailContext* CypherParser::kU_RecursiveDetail() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(1955);
+    setState(1952);
     match(CypherParser::STAR);
     setState(1954);
     _errHandler->sync(this);
@@ -12298,7 +12298,7 @@ CypherParser::KU_RecursiveDetailContext* CypherParser::kU_RecursiveDetail() {
         setState(1956);
         match(CypherParser::SP);
       }
-      setState(1959);
+      setState(1956);
       kU_RecursiveType();
       break;
     }
@@ -12306,17 +12306,17 @@ CypherParser::KU_RecursiveDetailContext* CypherParser::kU_RecursiveDetail() {
     default:
       break;
     }
-    setState(1966);
+    setState(1963);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 310, _ctx)) {
     case 1: {
-      setState(1963);
+      setState(1960);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 310, _ctx)) {
       case 1: {
-        setState(1962);
+        setState(1959);
         match(CypherParser::SP);
         break;
       }
@@ -12324,7 +12324,7 @@ CypherParser::KU_RecursiveDetailContext* CypherParser::kU_RecursiveDetail() {
       default:
         break;
       }
-      setState(1965);
+      setState(1962);
       oC_RangeLiteral();
       break;
     }
@@ -12332,20 +12332,20 @@ CypherParser::KU_RecursiveDetailContext* CypherParser::kU_RecursiveDetail() {
     default:
       break;
     }
-    setState(1972);
+    setState(1969);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 313, _ctx)) {
     case 1: {
-      setState(1969);
+      setState(1966);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1968);
+        setState(1965);
         match(CypherParser::SP);
       }
-      setState(1971);
+      setState(1968);
       kU_RecursiveComprehension();
       break;
     }
@@ -12421,84 +12421,84 @@ CypherParser::KU_RecursiveTypeContext* CypherParser::kU_RecursiveType() {
     exitRule();
   });
   try {
-    setState(1998);
+    setState(1995);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 315, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(1976);
+      setState(1973);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::ALL) {
-        setState(1974);
+        setState(1971);
         match(CypherParser::ALL);
-        setState(1975);
+        setState(1972);
         match(CypherParser::SP);
       }
-      setState(1978);
+      setState(1975);
       match(CypherParser::WSHORTEST);
-      setState(1980);
+      setState(1977);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1979);
+        setState(1976);
         match(CypherParser::SP);
       }
-      setState(1982);
+      setState(1979);
       match(CypherParser::T__1);
-      setState(1984);
+      setState(1981);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1983);
+        setState(1980);
         match(CypherParser::SP);
       }
-      setState(1986);
+      setState(1983);
       oC_PropertyKeyName();
-      setState(1988);
+      setState(1985);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(1987);
+        setState(1984);
         match(CypherParser::SP);
       }
-      setState(1990);
+      setState(1987);
       match(CypherParser::T__2);
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(1992);
+      setState(1989);
       match(CypherParser::SHORTEST);
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(1993);
+      setState(1990);
       match(CypherParser::ALL);
-      setState(1994);
+      setState(1991);
       match(CypherParser::SP);
-      setState(1995);
+      setState(1992);
       match(CypherParser::SHORTEST);
       break;
     }
 
     case 4: {
       enterOuterAlt(_localctx, 4);
-      setState(1996);
+      setState(1993);
       match(CypherParser::TRAIL);
       break;
     }
 
     case 5: {
       enterOuterAlt(_localctx, 5);
-      setState(1997);
+      setState(1994);
       match(CypherParser::ACYCLIC);
       break;
     }
@@ -12562,35 +12562,35 @@ CypherParser::OC_RangeLiteralContext* CypherParser::oC_RangeLiteral() {
     exitRule();
   });
   try {
-    setState(2014);
+    setState(2011);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 320, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(2001);
+      setState(1998);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::DecimalInteger) {
-        setState(2000);
+        setState(1997);
         oC_LowerBound();
       }
-      setState(2004);
+      setState(2001);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2003);
+        setState(2000);
         match(CypherParser::SP);
       }
-      setState(2006);
+      setState(2003);
       match(CypherParser::T__11);
-      setState(2008);
+      setState(2005);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 318, _ctx)) {
       case 1: {
-        setState(2007);
+        setState(2004);
         match(CypherParser::SP);
         break;
       }
@@ -12598,12 +12598,12 @@ CypherParser::OC_RangeLiteralContext* CypherParser::oC_RangeLiteral() {
       default:
         break;
       }
-      setState(2011);
+      setState(2008);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::DecimalInteger) {
-        setState(2010);
+        setState(2007);
         oC_UpperBound();
       }
       break;
@@ -12611,7 +12611,7 @@ CypherParser::OC_RangeLiteralContext* CypherParser::oC_RangeLiteral() {
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(2013);
+      setState(2010);
       oC_IntegerLiteral();
       break;
     }
@@ -12684,29 +12684,29 @@ CypherParser::KU_RecursiveComprehensionContext* CypherParser::kU_RecursiveCompre
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2016);
+    setState(2013);
     match(CypherParser::T__1);
-    setState(2018);
+    setState(2015);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2017);
+      setState(2014);
       match(CypherParser::SP);
     }
-    setState(2020);
+    setState(2017);
     oC_Variable();
-    setState(2022);
+    setState(2019);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 327, _ctx)) {
     case 1: {
-      setState(2030);
+      setState(2027);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 326, _ctx)) {
       case 1: {
-        setState(2037);
+        setState(2034);
         match(CypherParser::SP);
         break;
       }
@@ -12720,61 +12720,61 @@ CypherParser::KU_RecursiveComprehensionContext* CypherParser::kU_RecursiveCompre
     default:
       break;
     }
-    setState(2061);
+    setState(2058);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::T__10 || _la == CypherParser::SP) {
-      setState(2043);
+      setState(2040);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2042);
+        setState(2039);
         match(CypherParser::SP);
       }
-      setState(2045);
+      setState(2042);
       match(CypherParser::T__10);
-      setState(2047);
+      setState(2044);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2046);
+        setState(2043);
         match(CypherParser::SP);
       }
-      setState(2049);
+      setState(2046);
       kU_RecursiveProjectionItems();
-      setState(2051);
+      setState(2048);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2050);
+        setState(2047);
         match(CypherParser::SP);
       }
-      setState(2053);
+      setState(2050);
       match(CypherParser::T__3);
-      setState(2055);
+      setState(2052);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2054);
+        setState(2051);
         match(CypherParser::SP);
       }
-      setState(2057);
+      setState(2054);
       kU_RecursiveProjectionItems();
-      setState(2059);
+      setState(2056);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2058);
+        setState(2055);
         match(CypherParser::SP);
       }
     }
-    setState(2063);
+    setState(2060);
     match(CypherParser::T__2);
    
   }
@@ -12825,14 +12825,14 @@ CypherParser::KU_RecursiveProjectionItemsContext* CypherParser::kU_RecursiveProj
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2065);
+    setState(2062);
     match(CypherParser::T__8);
-    setState(2067);
+    setState(2064);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 334, _ctx)) {
     case 1: {
-      setState(2066);
+      setState(2063);
       match(CypherParser::SP);
       break;
     }
@@ -12840,7 +12840,7 @@ CypherParser::KU_RecursiveProjectionItemsContext* CypherParser::kU_RecursiveProj
     default:
       break;
     }
-    setState(2070);
+    setState(2067);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -12851,15 +12851,15 @@ CypherParser::KU_RecursiveProjectionItemsContext* CypherParser::kU_RecursiveProj
       setState(2063);
       oC_ProjectionItems();
     }
-    setState(2073);
+    setState(2070);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2072);
+      setState(2069);
       match(CypherParser::SP);
     }
-    setState(2075);
+    setState(2072);
     match(CypherParser::T__9);
    
   }
@@ -12901,7 +12901,7 @@ CypherParser::OC_LowerBoundContext* CypherParser::oC_LowerBound() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2077);
+    setState(2074);
     match(CypherParser::DecimalInteger);
    
   }
@@ -12943,7 +12943,7 @@ CypherParser::OC_UpperBoundContext* CypherParser::oC_UpperBound() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2079);
+    setState(2076);
     match(CypherParser::DecimalInteger);
    
   }
@@ -12985,7 +12985,7 @@ CypherParser::OC_LabelNameContext* CypherParser::oC_LabelName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2081);
+    setState(2078);
     oC_SchemaName();
    
   }
@@ -13027,7 +13027,7 @@ CypherParser::OC_RelTypeNameContext* CypherParser::oC_RelTypeName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2083);
+    setState(2080);
     oC_SchemaName();
    
   }
@@ -13069,7 +13069,7 @@ CypherParser::OC_ExpressionContext* CypherParser::oC_Expression() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2085);
+    setState(2082);
     oC_OrExpression();
    
   }
@@ -13132,23 +13132,23 @@ CypherParser::OC_OrExpressionContext* CypherParser::oC_OrExpression() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2087);
+    setState(2084);
     oC_XorExpression();
-    setState(2094);
+    setState(2091);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 337, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2088);
+        setState(2085);
         match(CypherParser::SP);
-        setState(2089);
+        setState(2086);
         match(CypherParser::OR);
-        setState(2090);
+        setState(2087);
         match(CypherParser::SP);
-        setState(2091);
+        setState(2088);
         oC_XorExpression(); 
       }
-      setState(2096);
+      setState(2093);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 337, _ctx);
     }
@@ -13213,23 +13213,23 @@ CypherParser::OC_XorExpressionContext* CypherParser::oC_XorExpression() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2097);
+    setState(2094);
     oC_AndExpression();
-    setState(2104);
+    setState(2101);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 338, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2098);
+        setState(2095);
         match(CypherParser::SP);
-        setState(2099);
+        setState(2096);
         match(CypherParser::XOR);
-        setState(2100);
+        setState(2097);
         match(CypherParser::SP);
-        setState(2101);
+        setState(2098);
         oC_AndExpression(); 
       }
-      setState(2106);
+      setState(2103);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 338, _ctx);
     }
@@ -13294,23 +13294,23 @@ CypherParser::OC_AndExpressionContext* CypherParser::oC_AndExpression() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2107);
+    setState(2104);
     oC_NotExpression();
-    setState(2114);
+    setState(2111);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 339, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2108);
+        setState(2105);
         match(CypherParser::SP);
-        setState(2109);
+        setState(2106);
         match(CypherParser::AND);
-        setState(2110);
+        setState(2107);
         match(CypherParser::SP);
-        setState(2111);
+        setState(2108);
         oC_NotExpression(); 
       }
-      setState(2116);
+      setState(2113);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 339, _ctx);
     }
@@ -13371,25 +13371,25 @@ CypherParser::OC_NotExpressionContext* CypherParser::oC_NotExpression() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2123);
+    setState(2120);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CypherParser::NOT) {
-      setState(2117);
+      setState(2114);
       match(CypherParser::NOT);
-      setState(2119);
+      setState(2116);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2118);
+        setState(2115);
         match(CypherParser::SP);
       }
-      setState(2125);
+      setState(2122);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(2126);
+    setState(2123);
     oC_ComparisonExpression();
    
   }
@@ -13456,37 +13456,37 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
   });
   try {
     size_t alt;
-    setState(2176);
+    setState(2173);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 352, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(2128);
+      setState(2125);
       kU_BitwiseOrOperatorExpression();
-      setState(2138);
+      setState(2135);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 344, _ctx)) {
       case 1: {
-        setState(2130);
+        setState(2127);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2129);
+          setState(2126);
           match(CypherParser::SP);
         }
-        setState(2132);
+        setState(2129);
         kU_ComparisonOperator();
-        setState(2134);
+        setState(2131);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2133);
+          setState(2130);
           match(CypherParser::SP);
         }
-        setState(2136);
+        setState(2133);
         kU_BitwiseOrOperatorExpression();
         break;
       }
@@ -13499,28 +13499,28 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(2140);
+      setState(2137);
       kU_BitwiseOrOperatorExpression();
 
-      setState(2142);
+      setState(2139);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2141);
+        setState(2138);
         match(CypherParser::SP);
       }
-      setState(2144);
+      setState(2141);
       antlrcpp::downCast<OC_ComparisonExpressionContext *>(_localctx)->invalid_not_equalToken = match(CypherParser::INVALID_NOT_EQUAL);
-      setState(2146);
+      setState(2143);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2145);
+        setState(2142);
         match(CypherParser::SP);
       }
-      setState(2148);
+      setState(2145);
       kU_BitwiseOrOperatorExpression();
        notifyInvalidNotEqualOperator(antlrcpp::downCast<OC_ComparisonExpressionContext *>(_localctx)->invalid_not_equalToken); 
       break;
@@ -13528,53 +13528,53 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(2152);
+      setState(2149);
       kU_BitwiseOrOperatorExpression();
-      setState(2154);
+      setState(2151);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2153);
+        setState(2150);
         match(CypherParser::SP);
       }
-      setState(2156);
+      setState(2153);
       kU_ComparisonOperator();
-      setState(2158);
+      setState(2155);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2157);
+        setState(2154);
         match(CypherParser::SP);
       }
-      setState(2160);
+      setState(2157);
       kU_BitwiseOrOperatorExpression();
-      setState(2170); 
+      setState(2167); 
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
-                setState(2162);
+                setState(2159);
                 _errHandler->sync(this);
 
                 _la = _input->LA(1);
                 if (_la == CypherParser::SP) {
-                  setState(2161);
+                  setState(2158);
                   match(CypherParser::SP);
                 }
-                setState(2164);
+                setState(2161);
                 kU_ComparisonOperator();
-                setState(2166);
+                setState(2163);
                 _errHandler->sync(this);
 
                 _la = _input->LA(1);
                 if (_la == CypherParser::SP) {
-                  setState(2165);
+                  setState(2162);
                   match(CypherParser::SP);
                 }
-                setState(2168);
+                setState(2165);
                 kU_BitwiseOrOperatorExpression();
                 break;
               }
@@ -13582,7 +13582,7 @@ CypherParser::OC_ComparisonExpressionContext* CypherParser::oC_ComparisonExpress
         default:
           throw NoViableAltException(this);
         }
-        setState(2172); 
+        setState(2169); 
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 351, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -13630,7 +13630,7 @@ CypherParser::KU_ComparisonOperatorContext* CypherParser::kU_ComparisonOperator(
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2178);
+    setState(2175);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 254016) != 0))) {
@@ -13694,35 +13694,35 @@ CypherParser::KU_BitwiseOrOperatorExpressionContext* CypherParser::kU_BitwiseOrO
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2180);
+    setState(2177);
     kU_BitwiseAndOperatorExpression();
-    setState(2191);
+    setState(2188);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 355, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2182);
+        setState(2179);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2181);
+          setState(2178);
           match(CypherParser::SP);
         }
-        setState(2184);
+        setState(2181);
         match(CypherParser::T__10);
-        setState(2186);
+        setState(2183);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2185);
+          setState(2182);
           match(CypherParser::SP);
         }
-        setState(2188);
+        setState(2185);
         kU_BitwiseAndOperatorExpression(); 
       }
-      setState(2193);
+      setState(2190);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 355, _ctx);
     }
@@ -13780,35 +13780,35 @@ CypherParser::KU_BitwiseAndOperatorExpressionContext* CypherParser::kU_BitwiseAn
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2194);
+    setState(2191);
     kU_BitShiftOperatorExpression();
-    setState(2205);
+    setState(2202);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 358, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2196);
+        setState(2193);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2195);
+          setState(2192);
           match(CypherParser::SP);
         }
-        setState(2198);
+        setState(2195);
         match(CypherParser::T__17);
-        setState(2200);
+        setState(2197);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2199);
+          setState(2196);
           match(CypherParser::SP);
         }
-        setState(2202);
+        setState(2199);
         kU_BitShiftOperatorExpression(); 
       }
-      setState(2207);
+      setState(2204);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 358, _ctx);
     }
@@ -13874,35 +13874,35 @@ CypherParser::KU_BitShiftOperatorExpressionContext* CypherParser::kU_BitShiftOpe
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2208);
+    setState(2205);
     oC_AddOrSubtractExpression();
-    setState(2220);
+    setState(2217);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 361, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2210);
+        setState(2207);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2209);
+          setState(2206);
           match(CypherParser::SP);
         }
-        setState(2212);
+        setState(2209);
         kU_BitShiftOperator();
-        setState(2214);
+        setState(2211);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2213);
+          setState(2210);
           match(CypherParser::SP);
         }
-        setState(2216);
+        setState(2213);
         oC_AddOrSubtractExpression(); 
       }
-      setState(2222);
+      setState(2219);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 361, _ctx);
     }
@@ -13943,7 +13943,7 @@ CypherParser::KU_BitShiftOperatorContext* CypherParser::kU_BitShiftOperator() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2223);
+    setState(2220);
     _la = _input->LA(1);
     if (!(_la == CypherParser::T__18
 
@@ -14016,35 +14016,35 @@ CypherParser::OC_AddOrSubtractExpressionContext* CypherParser::oC_AddOrSubtractE
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2225);
+    setState(2222);
     oC_MultiplyDivideModuloExpression();
-    setState(2237);
+    setState(2234);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 364, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2227);
+        setState(2224);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2226);
+          setState(2223);
           match(CypherParser::SP);
         }
-        setState(2229);
+        setState(2226);
         kU_AddOrSubtractOperator();
-        setState(2231);
+        setState(2228);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2230);
+          setState(2227);
           match(CypherParser::SP);
         }
-        setState(2233);
+        setState(2230);
         oC_MultiplyDivideModuloExpression(); 
       }
-      setState(2239);
+      setState(2236);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 364, _ctx);
     }
@@ -14089,7 +14089,7 @@ CypherParser::KU_AddOrSubtractOperatorContext* CypherParser::kU_AddOrSubtractOpe
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2240);
+    setState(2237);
     _la = _input->LA(1);
     if (!(_la == CypherParser::T__20 || _la == CypherParser::MINUS)) {
     _errHandler->recoverInline(this);
@@ -14160,35 +14160,35 @@ CypherParser::OC_MultiplyDivideModuloExpressionContext* CypherParser::oC_Multipl
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2242);
+    setState(2239);
     oC_PowerOfExpression();
-    setState(2254);
+    setState(2251);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 367, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2244);
+        setState(2241);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2243);
+          setState(2240);
           match(CypherParser::SP);
         }
-        setState(2246);
+        setState(2243);
         kU_MultiplyDivideModuloOperator();
-        setState(2248);
+        setState(2245);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2247);
+          setState(2244);
           match(CypherParser::SP);
         }
-        setState(2250);
+        setState(2247);
         oC_PowerOfExpression(); 
       }
-      setState(2256);
+      setState(2253);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 367, _ctx);
     }
@@ -14233,7 +14233,7 @@ CypherParser::KU_MultiplyDivideModuloOperatorContext* CypherParser::kU_MultiplyD
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2257);
+    setState(2254);
     _la = _input->LA(1);
     if (!(_la == CypherParser::T__21
 
@@ -14298,35 +14298,35 @@ CypherParser::OC_PowerOfExpressionContext* CypherParser::oC_PowerOfExpression() 
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2259);
+    setState(2256);
     oC_UnaryAddSubtractOrFactorialExpression();
-    setState(2270);
+    setState(2267);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 370, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2261);
+        setState(2258);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2260);
+          setState(2257);
           match(CypherParser::SP);
         }
-        setState(2263);
+        setState(2260);
         match(CypherParser::T__23);
-        setState(2265);
+        setState(2262);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2264);
+          setState(2261);
           match(CypherParser::SP);
         }
-        setState(2267);
+        setState(2264);
         oC_UnaryAddSubtractOrFactorialExpression(); 
       }
-      setState(2272);
+      setState(2269);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 370, _ctx);
     }
@@ -14391,40 +14391,40 @@ CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext* CypherParser::oC_
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2279);
+    setState(2276);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CypherParser::MINUS) {
-      setState(2273);
+      setState(2270);
       match(CypherParser::MINUS);
-      setState(2275);
+      setState(2272);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2274);
+        setState(2271);
         match(CypherParser::SP);
       }
-      setState(2281);
+      setState(2278);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(2282);
+    setState(2279);
     oC_StringListNullOperatorExpression();
-    setState(2287);
+    setState(2284);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 374, _ctx)) {
     case 1: {
-      setState(2284);
+      setState(2281);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2283);
+        setState(2280);
         match(CypherParser::SP);
       }
-      setState(2286);
+      setState(2283);
       match(CypherParser::FACTORIAL);
       break;
     }
@@ -14489,26 +14489,26 @@ CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::oC_Strin
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2289);
+    setState(2286);
     oC_PropertyOrLabelsExpression();
-    setState(2297);
+    setState(2294);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 376, _ctx)) {
     case 1: {
-      setState(2290);
+      setState(2287);
       oC_StringOperatorExpression();
       break;
     }
 
     case 2: {
-      setState(2292); 
+      setState(2289); 
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
-                setState(2291);
+                setState(2288);
                 oC_ListOperatorExpression();
                 break;
               }
@@ -14516,7 +14516,7 @@ CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::oC_Strin
         default:
           throw NoViableAltException(this);
         }
-        setState(2294); 
+        setState(2291); 
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 375, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -14524,7 +14524,7 @@ CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::oC_Strin
     }
 
     case 3: {
-      setState(2296);
+      setState(2293);
       oC_NullOperatorExpression();
       break;
     }
@@ -14596,35 +14596,35 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
     exitRule();
   });
   try {
-    setState(2318);
+    setState(2315);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 380, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(2299);
+      setState(2296);
       match(CypherParser::SP);
-      setState(2300);
+      setState(2297);
       match(CypherParser::IN);
-      setState(2302);
+      setState(2299);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2301);
+        setState(2298);
         match(CypherParser::SP);
       }
-      setState(2304);
+      setState(2301);
       oC_PropertyOrLabelsExpression();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(2305);
+      setState(2302);
       match(CypherParser::T__6);
-      setState(2306);
+      setState(2303);
       oC_Expression();
-      setState(2307);
+      setState(2304);
       match(CypherParser::T__7);
       break;
     }
@@ -14648,7 +14648,7 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
       match(CypherParser::COLON);
       setState(2309);
       match(CypherParser::T__6);
-      setState(2311);
+      setState(2308);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -14659,9 +14659,9 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
         setState(2308);
         oC_Expression();
       }
-      setState(2313);
+      setState(2310);
       match(CypherParser::COLON);
-      setState(2315);
+      setState(2312);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -14669,10 +14669,10 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
         ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -572029811611360035) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 128)) & 171636945009197) != 0)) {
-        setState(2314);
+        setState(2311);
         oC_Expression();
       }
-      setState(2317);
+      setState(2314);
       match(CypherParser::T__7);
       break;
     }
@@ -14749,43 +14749,43 @@ CypherParser::OC_StringOperatorExpressionContext* CypherParser::oC_StringOperato
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2331);
+    setState(2328);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 381, _ctx)) {
     case 1: {
-      setState(2320);
+      setState(2317);
       oC_RegularExpression();
       break;
     }
 
     case 2: {
-      setState(2321);
+      setState(2318);
       match(CypherParser::SP);
-      setState(2322);
+      setState(2319);
       match(CypherParser::STARTS);
-      setState(2323);
+      setState(2320);
       match(CypherParser::SP);
-      setState(2324);
+      setState(2321);
       match(CypherParser::WITH);
       break;
     }
 
     case 3: {
-      setState(2325);
+      setState(2322);
       match(CypherParser::SP);
-      setState(2326);
+      setState(2323);
       match(CypherParser::ENDS);
-      setState(2327);
+      setState(2324);
       match(CypherParser::SP);
-      setState(2328);
+      setState(2325);
       match(CypherParser::WITH);
       break;
     }
 
     case 4: {
-      setState(2329);
+      setState(2326);
       match(CypherParser::SP);
-      setState(2330);
+      setState(2327);
       match(CypherParser::CONTAINS);
       break;
     }
@@ -14793,15 +14793,15 @@ CypherParser::OC_StringOperatorExpressionContext* CypherParser::oC_StringOperato
     default:
       break;
     }
-    setState(2334);
+    setState(2331);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2333);
+      setState(2330);
       match(CypherParser::SP);
     }
-    setState(2336);
+    setState(2333);
     oC_PropertyOrLabelsExpression();
    
   }
@@ -14844,15 +14844,15 @@ CypherParser::OC_RegularExpressionContext* CypherParser::oC_RegularExpression() 
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2339);
+    setState(2336);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2338);
+      setState(2335);
       match(CypherParser::SP);
     }
-    setState(2341);
+    setState(2338);
     match(CypherParser::T__24);
    
   }
@@ -14909,35 +14909,35 @@ CypherParser::OC_NullOperatorExpressionContext* CypherParser::oC_NullOperatorExp
     exitRule();
   });
   try {
-    setState(2353);
+    setState(2350);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 384, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(2343);
+      setState(2340);
       match(CypherParser::SP);
-      setState(2344);
+      setState(2341);
       match(CypherParser::IS);
-      setState(2345);
+      setState(2342);
       match(CypherParser::SP);
-      setState(2346);
+      setState(2343);
       match(CypherParser::NULL_);
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(2347);
+      setState(2344);
       match(CypherParser::SP);
-      setState(2348);
+      setState(2345);
       match(CypherParser::IS);
-      setState(2349);
+      setState(2346);
       match(CypherParser::SP);
-      setState(2350);
+      setState(2347);
       match(CypherParser::NOT);
-      setState(2351);
+      setState(2348);
       match(CypherParser::SP);
-      setState(2352);
+      setState(2349);
       match(CypherParser::NULL_);
       break;
     }
@@ -15003,25 +15003,25 @@ CypherParser::OC_PropertyOrLabelsExpressionContext* CypherParser::oC_PropertyOrL
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2355);
+    setState(2352);
     oC_Atom();
-    setState(2362);
+    setState(2359);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 386, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(2357);
+        setState(2354);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2356);
+          setState(2353);
           match(CypherParser::SP);
         }
-        setState(2359);
+        setState(2356);
         oC_PropertyLookup(); 
       }
-      setState(2364);
+      setState(2361);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 386, _ctx);
     }
@@ -15096,68 +15096,68 @@ CypherParser::OC_AtomContext* CypherParser::oC_Atom() {
     exitRule();
   });
   try {
-    setState(2374);
+    setState(2371);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 387, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(2365);
+      setState(2362);
       oC_Literal();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(2366);
+      setState(2363);
       oC_Parameter();
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(2367);
+      setState(2364);
       oC_CaseExpression();
       break;
     }
 
     case 4: {
       enterOuterAlt(_localctx, 4);
-      setState(2368);
+      setState(2365);
       oC_ParenthesizedExpression();
       break;
     }
 
     case 5: {
       enterOuterAlt(_localctx, 5);
-      setState(2369);
+      setState(2366);
       oC_FunctionInvocation();
       break;
     }
 
     case 6: {
       enterOuterAlt(_localctx, 6);
-      setState(2370);
+      setState(2367);
       oC_PathPatterns();
       break;
     }
 
     case 7: {
       enterOuterAlt(_localctx, 7);
-      setState(2371);
+      setState(2368);
       oC_ExistCountSubquery();
       break;
     }
 
     case 8: {
       enterOuterAlt(_localctx, 8);
-      setState(2372);
+      setState(2369);
       oC_Variable();
       break;
     }
 
     case 9: {
       enterOuterAlt(_localctx, 9);
-      setState(2373);
+      setState(2370);
       oC_Quantifier();
       break;
     }
@@ -15229,153 +15229,153 @@ CypherParser::OC_QuantifierContext* CypherParser::oC_Quantifier() {
     exitRule();
   });
   try {
-    setState(2432);
+    setState(2429);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ALL: {
         enterOuterAlt(_localctx, 1);
-        setState(2376);
+        setState(2373);
         match(CypherParser::ALL);
-        setState(2378);
+        setState(2375);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2377);
+          setState(2374);
           match(CypherParser::SP);
         }
-        setState(2380);
+        setState(2377);
         match(CypherParser::T__1);
-        setState(2382);
+        setState(2379);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2381);
+          setState(2378);
           match(CypherParser::SP);
         }
-        setState(2384);
+        setState(2381);
         oC_FilterExpression();
-        setState(2386);
+        setState(2383);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2385);
+          setState(2382);
           match(CypherParser::SP);
         }
-        setState(2388);
+        setState(2385);
         match(CypherParser::T__2);
         break;
       }
 
       case CypherParser::ANY: {
         enterOuterAlt(_localctx, 2);
-        setState(2390);
+        setState(2387);
         match(CypherParser::ANY);
-        setState(2392);
+        setState(2389);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2391);
+          setState(2388);
           match(CypherParser::SP);
         }
-        setState(2394);
+        setState(2391);
         match(CypherParser::T__1);
-        setState(2396);
+        setState(2393);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2395);
+          setState(2392);
           match(CypherParser::SP);
         }
-        setState(2398);
+        setState(2395);
         oC_FilterExpression();
-        setState(2400);
+        setState(2397);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2399);
+          setState(2396);
           match(CypherParser::SP);
         }
-        setState(2402);
+        setState(2399);
         match(CypherParser::T__2);
         break;
       }
 
       case CypherParser::NONE: {
         enterOuterAlt(_localctx, 3);
-        setState(2404);
+        setState(2401);
         match(CypherParser::NONE);
-        setState(2406);
+        setState(2403);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2405);
+          setState(2402);
           match(CypherParser::SP);
         }
-        setState(2408);
+        setState(2405);
         match(CypherParser::T__1);
-        setState(2410);
+        setState(2407);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2409);
+          setState(2406);
           match(CypherParser::SP);
         }
-        setState(2412);
+        setState(2409);
         oC_FilterExpression();
-        setState(2414);
+        setState(2411);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2413);
+          setState(2410);
           match(CypherParser::SP);
         }
-        setState(2416);
+        setState(2413);
         match(CypherParser::T__2);
         break;
       }
 
       case CypherParser::SINGLE: {
         enterOuterAlt(_localctx, 4);
-        setState(2418);
+        setState(2415);
         match(CypherParser::SINGLE);
-        setState(2420);
+        setState(2417);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2419);
+          setState(2416);
           match(CypherParser::SP);
         }
-        setState(2422);
+        setState(2419);
         match(CypherParser::T__1);
-        setState(2424);
+        setState(2421);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2423);
+          setState(2420);
           match(CypherParser::SP);
         }
-        setState(2426);
+        setState(2423);
         oC_FilterExpression();
-        setState(2428);
+        setState(2425);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2427);
+          setState(2424);
           match(CypherParser::SP);
         }
-        setState(2430);
+        setState(2427);
         match(CypherParser::T__2);
         break;
       }
@@ -15431,11 +15431,11 @@ CypherParser::OC_FilterExpressionContext* CypherParser::oC_FilterExpression() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2434);
+    setState(2431);
     oC_IdInColl();
-    setState(2435);
+    setState(2432);
     match(CypherParser::SP);
-    setState(2436);
+    setState(2433);
     oC_Where();
    
   }
@@ -15493,15 +15493,15 @@ CypherParser::OC_IdInCollContext* CypherParser::oC_IdInColl() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2438);
+    setState(2435);
     oC_Variable();
-    setState(2439);
+    setState(2436);
     match(CypherParser::SP);
-    setState(2440);
+    setState(2437);
     match(CypherParser::IN);
-    setState(2441);
+    setState(2438);
     match(CypherParser::SP);
-    setState(2442);
+    setState(2439);
     oC_Expression();
    
   }
@@ -15562,21 +15562,21 @@ CypherParser::OC_LiteralContext* CypherParser::oC_Literal() {
     exitRule();
   });
   try {
-    setState(2450);
+    setState(2447);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::DecimalInteger:
       case CypherParser::ExponentDecimalReal:
       case CypherParser::RegularDecimalReal: {
         enterOuterAlt(_localctx, 1);
-        setState(2444);
+        setState(2441);
         oC_NumberLiteral();
         break;
       }
 
       case CypherParser::StringLiteral: {
         enterOuterAlt(_localctx, 2);
-        setState(2445);
+        setState(2442);
         match(CypherParser::StringLiteral);
         break;
       }
@@ -15584,28 +15584,28 @@ CypherParser::OC_LiteralContext* CypherParser::oC_Literal() {
       case CypherParser::FALSE:
       case CypherParser::TRUE: {
         enterOuterAlt(_localctx, 3);
-        setState(2446);
+        setState(2443);
         oC_BooleanLiteral();
         break;
       }
 
       case CypherParser::NULL_: {
         enterOuterAlt(_localctx, 4);
-        setState(2447);
+        setState(2444);
         match(CypherParser::NULL_);
         break;
       }
 
       case CypherParser::T__6: {
         enterOuterAlt(_localctx, 5);
-        setState(2448);
+        setState(2445);
         oC_ListLiteral();
         break;
       }
 
       case CypherParser::T__8: {
         enterOuterAlt(_localctx, 6);
-        setState(2449);
+        setState(2446);
         kU_StructLiteral();
         break;
       }
@@ -15658,7 +15658,7 @@ CypherParser::OC_BooleanLiteralContext* CypherParser::oC_BooleanLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2452);
+    setState(2449);
     _la = _input->LA(1);
     if (!(_la == CypherParser::FALSE
 
@@ -15726,17 +15726,17 @@ CypherParser::OC_ListLiteralContext* CypherParser::oC_ListLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2454);
+    setState(2451);
     match(CypherParser::T__6);
-    setState(2456);
+    setState(2453);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2455);
+      setState(2452);
       match(CypherParser::SP);
     }
-    setState(2471);
+    setState(2468);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -15746,34 +15746,34 @@ CypherParser::OC_ListLiteralContext* CypherParser::oC_ListLiteral() {
       ((1ULL << (_la - 128)) & 686547780138075) != 0)) {
       setState(2452);
       oC_Expression();
-      setState(2460);
+      setState(2457);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2459);
+        setState(2456);
         match(CypherParser::SP);
       }
-      setState(2468);
+      setState(2465);
       _errHandler->sync(this);
       _la = _input->LA(1);
       while (_la == CypherParser::T__3) {
-        setState(2462);
+        setState(2459);
         kU_ListEntry();
-        setState(2464);
+        setState(2461);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2463);
+          setState(2460);
           match(CypherParser::SP);
         }
-        setState(2470);
+        setState(2467);
         _errHandler->sync(this);
         _la = _input->LA(1);
       }
     }
-    setState(2473);
+    setState(2470);
     match(CypherParser::T__7);
    
   }
@@ -15820,14 +15820,14 @@ CypherParser::KU_ListEntryContext* CypherParser::kU_ListEntry() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2475);
+    setState(2472);
     match(CypherParser::T__3);
-    setState(2477);
+    setState(2474);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 407, _ctx)) {
     case 1: {
-      setState(2476);
+      setState(2473);
       match(CypherParser::SP);
       break;
     }
@@ -15835,7 +15835,7 @@ CypherParser::KU_ListEntryContext* CypherParser::kU_ListEntry() {
     default:
       break;
     }
-    setState(2480);
+    setState(2477);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
@@ -15899,43 +15899,43 @@ CypherParser::KU_StructLiteralContext* CypherParser::kU_StructLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2482);
+    setState(2479);
     match(CypherParser::T__8);
-    setState(2484);
+    setState(2481);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2483);
+      setState(2480);
       match(CypherParser::SP);
     }
-    setState(2486);
+    setState(2483);
     kU_StructField();
-    setState(2488);
+    setState(2485);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2487);
+      setState(2484);
       match(CypherParser::SP);
     }
-    setState(2500);
+    setState(2497);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == CypherParser::T__3) {
-      setState(2490);
+      setState(2487);
       match(CypherParser::T__3);
-      setState(2492);
+      setState(2489);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2491);
+        setState(2488);
         match(CypherParser::SP);
       }
-      setState(2494);
+      setState(2491);
       kU_StructField();
-      setState(2496);
+      setState(2493);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -15957,7 +15957,7 @@ CypherParser::KU_StructLiteralContext* CypherParser::kU_StructLiteral() {
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(2503);
+    setState(2500);
     match(CypherParser::T__9);
    
   }
@@ -16020,7 +16020,7 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2507);
+    setState(2504);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ADD:
@@ -16083,13 +16083,13 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
-        setState(2505);
+        setState(2502);
         oC_SymbolicName();
         break;
       }
 
       case CypherParser::StringLiteral: {
-        setState(2506);
+        setState(2503);
         match(CypherParser::StringLiteral);
         break;
       }
@@ -16097,25 +16097,25 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
     default:
       throw NoViableAltException(this);
     }
-    setState(2510);
+    setState(2507);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2509);
+      setState(2506);
       match(CypherParser::SP);
     }
-    setState(2512);
+    setState(2509);
     match(CypherParser::COLON);
-    setState(2514);
+    setState(2511);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2513);
+      setState(2510);
       match(CypherParser::SP);
     }
-    setState(2516);
+    setState(2513);
     oC_Expression();
    
   }
@@ -16166,27 +16166,27 @@ CypherParser::OC_ParenthesizedExpressionContext* CypherParser::oC_ParenthesizedE
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2518);
+    setState(2515);
     match(CypherParser::T__1);
-    setState(2520);
+    setState(2517);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2519);
+      setState(2516);
       match(CypherParser::SP);
     }
-    setState(2522);
+    setState(2519);
     oC_Expression();
-    setState(2524);
+    setState(2521);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2523);
+      setState(2520);
       match(CypherParser::SP);
     }
-    setState(2526);
+    setState(2523);
     match(CypherParser::T__2);
    
   }
@@ -16268,109 +16268,109 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
     exitRule();
   });
   try {
-    setState(2605);
+    setState(2602);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 438, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(2528);
+      setState(2525);
       match(CypherParser::COUNT);
-      setState(2530);
+      setState(2527);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2529);
+        setState(2526);
         match(CypherParser::SP);
       }
-      setState(2532);
+      setState(2529);
       match(CypherParser::T__1);
-      setState(2534);
+      setState(2531);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2533);
+        setState(2530);
         match(CypherParser::SP);
       }
-      setState(2536);
+      setState(2533);
       match(CypherParser::STAR);
-      setState(2538);
+      setState(2535);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2537);
+        setState(2534);
         match(CypherParser::SP);
       }
-      setState(2540);
+      setState(2537);
       match(CypherParser::T__2);
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(2541);
+      setState(2538);
       match(CypherParser::CAST);
-      setState(2543);
+      setState(2540);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2542);
+        setState(2539);
         match(CypherParser::SP);
       }
-      setState(2545);
+      setState(2542);
       match(CypherParser::T__1);
-      setState(2547);
+      setState(2544);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2546);
+        setState(2543);
         match(CypherParser::SP);
       }
-      setState(2549);
+      setState(2546);
       kU_FunctionParameter();
-      setState(2551);
+      setState(2548);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2550);
+        setState(2547);
         match(CypherParser::SP);
       }
-      setState(2563);
+      setState(2560);
       _errHandler->sync(this);
       switch (_input->LA(1)) {
         case CypherParser::AS: {
-          setState(2553);
+          setState(2550);
           match(CypherParser::AS);
-          setState(2555);
+          setState(2552);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(2554);
+            setState(2551);
             match(CypherParser::SP);
           }
-          setState(2557);
+          setState(2554);
           kU_DataType(0);
           break;
         }
 
         case CypherParser::T__3: {
-          setState(2558);
+          setState(2555);
           match(CypherParser::T__3);
-          setState(2560);
+          setState(2557);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(2559);
+            setState(2556);
             match(CypherParser::SP);
           }
-          setState(2562);
+          setState(2559);
           kU_FunctionParameter();
           break;
         }
@@ -16378,34 +16378,34 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
       default:
         throw NoViableAltException(this);
       }
-      setState(2566);
+      setState(2563);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2565);
+        setState(2562);
         match(CypherParser::SP);
       }
-      setState(2568);
+      setState(2565);
       match(CypherParser::T__2);
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(2570);
+      setState(2567);
       oC_FunctionName();
-      setState(2572);
+      setState(2569);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2571);
+        setState(2568);
         match(CypherParser::SP);
       }
-      setState(2574);
+      setState(2571);
       match(CypherParser::T__1);
-      setState(2576);
+      setState(2573);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -16449,16 +16449,16 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
         ((1ULL << (_la - 128)) & 686547780138075) != 0)) {
         setState(2578);
         match(CypherParser::DISTINCT);
-        setState(2580);
+        setState(2577);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2579);
+          setState(2576);
           match(CypherParser::SP);
         }
       }
-      setState(2601);
+      setState(2598);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
@@ -16466,33 +16466,33 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
         ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -572029811611360035) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 128)) & 171636945009197) != 0)) {
-        setState(2584);
+        setState(2581);
         kU_FunctionParameter();
-        setState(2586);
+        setState(2583);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2585);
+          setState(2582);
           match(CypherParser::SP);
         }
-        setState(2598);
+        setState(2595);
         _errHandler->sync(this);
         _la = _input->LA(1);
         while (_la == CypherParser::T__3) {
-          setState(2588);
+          setState(2585);
           match(CypherParser::T__3);
-          setState(2590);
+          setState(2587);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(2589);
+            setState(2586);
             match(CypherParser::SP);
           }
-          setState(2592);
+          setState(2589);
           kU_FunctionParameter();
-          setState(2594);
+          setState(2591);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
@@ -16515,7 +16515,7 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
           _la = _input->LA(1);
         }
       }
-      setState(2603);
+      setState(2600);
       match(CypherParser::T__2);
       break;
     }
@@ -16563,7 +16563,7 @@ CypherParser::OC_FunctionNameContext* CypherParser::oC_FunctionName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2607);
+    setState(2604);
     oC_SymbolicName();
    
   }
@@ -16625,36 +16625,36 @@ CypherParser::KU_FunctionParameterContext* CypherParser::kU_FunctionParameter() 
     exitRule();
   });
   try {
-    setState(2622);
+    setState(2619);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 442, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(2618);
+      setState(2615);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 441, _ctx)) {
       case 1: {
-        setState(2609);
+        setState(2606);
         oC_SymbolicName();
-        setState(2611);
+        setState(2608);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2610);
+          setState(2607);
           match(CypherParser::SP);
         }
-        setState(2613);
+        setState(2610);
         match(CypherParser::COLON);
-        setState(2614);
+        setState(2611);
         match(CypherParser::T__5);
-        setState(2616);
+        setState(2613);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2615);
+          setState(2612);
           match(CypherParser::SP);
         }
         break;
@@ -16663,14 +16663,14 @@ CypherParser::KU_FunctionParameterContext* CypherParser::kU_FunctionParameter() 
       default:
         break;
       }
-      setState(2620);
+      setState(2617);
       oC_Expression();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(2621);
+      setState(2618);
       kU_LambdaParameter();
       break;
     }
@@ -16735,36 +16735,36 @@ CypherParser::KU_LambdaParameterContext* CypherParser::kU_LambdaParameter() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2624);
+    setState(2621);
     kU_LambdaVars();
-    setState(2626);
+    setState(2623);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2625);
+      setState(2622);
       match(CypherParser::SP);
     }
-    setState(2628);
+    setState(2625);
     match(CypherParser::MINUS);
-    setState(2629);
+    setState(2626);
     match(CypherParser::T__15);
-    setState(2631);
+    setState(2628);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2630);
+      setState(2627);
       match(CypherParser::SP);
     }
-    setState(2633);
+    setState(2630);
     oC_Expression();
-    setState(2635);
+    setState(2632);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 445, _ctx)) {
     case 1: {
-      setState(2634);
+      setState(2631);
       match(CypherParser::SP);
       break;
     }
@@ -16824,7 +16824,7 @@ CypherParser::KU_LambdaVarsContext* CypherParser::kU_LambdaVars() {
     exitRule();
   });
   try {
-    setState(2661);
+    setState(2658);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ADD:
@@ -16888,50 +16888,50 @@ CypherParser::KU_LambdaVarsContext* CypherParser::kU_LambdaVars() {
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
         enterOuterAlt(_localctx, 1);
-        setState(2637);
+        setState(2634);
         oC_SymbolicName();
         break;
       }
 
       case CypherParser::T__1: {
         enterOuterAlt(_localctx, 2);
-        setState(2638);
+        setState(2635);
         match(CypherParser::T__1);
-        setState(2640);
+        setState(2637);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2639);
+          setState(2636);
           match(CypherParser::SP);
         }
-        setState(2642);
+        setState(2639);
         oC_SymbolicName();
-        setState(2644);
+        setState(2641);
         _errHandler->sync(this);
 
         _la = _input->LA(1);
         if (_la == CypherParser::SP) {
-          setState(2643);
+          setState(2640);
           match(CypherParser::SP);
         }
-        setState(2656);
+        setState(2653);
         _errHandler->sync(this);
         _la = _input->LA(1);
         while (_la == CypherParser::T__3) {
-          setState(2646);
+          setState(2643);
           match(CypherParser::T__3);
-          setState(2648);
+          setState(2645);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
           if (_la == CypherParser::SP) {
-            setState(2647);
+            setState(2644);
             match(CypherParser::SP);
           }
-          setState(2650);
+          setState(2647);
           oC_SymbolicName();
-          setState(2652);
+          setState(2649);
           _errHandler->sync(this);
 
           _la = _input->LA(1);
@@ -16953,7 +16953,7 @@ CypherParser::KU_LambdaVarsContext* CypherParser::kU_LambdaVars() {
           _errHandler->sync(this);
           _la = _input->LA(1);
         }
-        setState(2659);
+        setState(2656);
         match(CypherParser::T__2);
         break;
       }
@@ -17019,23 +17019,23 @@ CypherParser::OC_PathPatternsContext* CypherParser::oC_PathPatterns() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2663);
+    setState(2660);
     oC_NodePattern();
-    setState(2668); 
+    setState(2665); 
     _errHandler->sync(this);
     alt = 1;
     do {
       switch (alt) {
         case 1: {
-              setState(2665);
+              setState(2662);
               _errHandler->sync(this);
 
               _la = _input->LA(1);
               if (_la == CypherParser::SP) {
-                setState(2664);
+                setState(2661);
                 match(CypherParser::SP);
               }
-              setState(2667);
+              setState(2664);
               oC_PatternElementChain();
               break;
             }
@@ -17043,7 +17043,7 @@ CypherParser::OC_PathPatternsContext* CypherParser::oC_PathPatterns() {
       default:
         throw NoViableAltException(this);
       }
-      setState(2670); 
+      setState(2667); 
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 453, _ctx);
     } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -17116,7 +17116,7 @@ CypherParser::OC_ExistCountSubqueryContext* CypherParser::oC_ExistCountSubquery(
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2672);
+    setState(2669);
     _la = _input->LA(1);
     if (!(_la == CypherParser::COUNT
 
@@ -17127,17 +17127,17 @@ CypherParser::OC_ExistCountSubqueryContext* CypherParser::oC_ExistCountSubquery(
       _errHandler->reportMatch(this);
       consume();
     }
-    setState(2674);
+    setState(2671);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2673);
+      setState(2670);
       match(CypherParser::SP);
     }
-    setState(2676);
+    setState(2673);
     match(CypherParser::T__8);
-    setState(2678);
+    setState(2675);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 458, _ctx)) {
@@ -17154,33 +17154,54 @@ CypherParser::OC_ExistCountSubqueryContext* CypherParser::oC_ExistCountSubquery(
       oC_Where();
       break;
     }
-    setState(2680);
+    setState(2677);
     match(CypherParser::MATCH);
-    setState(2682);
+    setState(2679);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2681);
+      setState(2678);
       match(CypherParser::SP);
     }
-    setState(2684);
+    setState(2681);
     oC_Pattern();
-    setState(2689);
+    setState(2686);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 460, _ctx)) {
     case 1: {
-      setState(2686);
+      setState(2683);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2685);
+        setState(2682);
         match(CypherParser::SP);
       }
-      setState(2688);
+      setState(2685);
       oC_Where();
+      break;
+    }
+
+    default:
+      break;
+    }
+    setState(2692);
+    _errHandler->sync(this);
+
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 463, _ctx)) {
+    case 1: {
+      setState(2689);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2688);
+        match(CypherParser::SP);
+      }
+      setState(2691);
+      kU_Hint();
       break;
     }
 
@@ -17190,33 +17211,12 @@ CypherParser::OC_ExistCountSubqueryContext* CypherParser::oC_ExistCountSubquery(
     setState(2695);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 463, _ctx)) {
-    case 1: {
-      setState(2692);
-      _errHandler->sync(this);
-
-      _la = _input->LA(1);
-      if (_la == CypherParser::SP) {
-        setState(2691);
-        match(CypherParser::SP);
-      }
-      setState(2694);
-      kU_Hint();
-      break;
-    }
-
-    default:
-      break;
-    }
-    setState(2698);
-    _errHandler->sync(this);
-
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2697);
+      setState(2694);
       match(CypherParser::SP);
     }
-    setState(2700);
+    setState(2697);
     match(CypherParser::T__9);
    
   }
@@ -17267,17 +17267,17 @@ CypherParser::OC_PropertyLookupContext* CypherParser::oC_PropertyLookup() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2702);
+    setState(2699);
     match(CypherParser::T__4);
-    setState(2704);
+    setState(2701);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2703);
+      setState(2700);
       match(CypherParser::SP);
     }
-    setState(2708);
+    setState(2705);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ADD:
@@ -17340,13 +17340,13 @@ CypherParser::OC_PropertyLookupContext* CypherParser::oC_PropertyLookup() {
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
-        setState(2706);
+        setState(2703);
         oC_PropertyKeyName();
         break;
       }
 
       case CypherParser::STAR: {
-        setState(2707);
+        setState(2704);
         match(CypherParser::STAR);
         break;
       }
@@ -17428,27 +17428,27 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2732);
+    setState(2729);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 469, _ctx)) {
     case 1: {
-      setState(2710);
+      setState(2707);
       match(CypherParser::CASE);
-      setState(2715); 
+      setState(2712); 
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
-                setState(2712);
+                setState(2709);
                 _errHandler->sync(this);
 
                 _la = _input->LA(1);
                 if (_la == CypherParser::SP) {
-                  setState(2711);
+                  setState(2708);
                   match(CypherParser::SP);
                 }
-                setState(2714);
+                setState(2711);
                 oC_CaseAlternative();
                 break;
               }
@@ -17456,7 +17456,7 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
         default:
           throw NoViableAltException(this);
         }
-        setState(2717); 
+        setState(2714); 
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 465, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -17464,33 +17464,33 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
     }
 
     case 2: {
-      setState(2719);
+      setState(2716);
       match(CypherParser::CASE);
-      setState(2721);
+      setState(2718);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2720);
+        setState(2717);
         match(CypherParser::SP);
       }
-      setState(2723);
+      setState(2720);
       oC_Expression();
-      setState(2728); 
+      setState(2725); 
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
-                setState(2725);
+                setState(2722);
                 _errHandler->sync(this);
 
                 _la = _input->LA(1);
                 if (_la == CypherParser::SP) {
-                  setState(2724);
+                  setState(2721);
                   match(CypherParser::SP);
                 }
-                setState(2727);
+                setState(2724);
                 oC_CaseAlternative();
                 break;
               }
@@ -17498,7 +17498,7 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
         default:
           throw NoViableAltException(this);
         }
-        setState(2730); 
+        setState(2727); 
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 468, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
@@ -17508,30 +17508,30 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
     default:
       break;
     }
-    setState(2742);
+    setState(2739);
     _errHandler->sync(this);
 
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 472, _ctx)) {
     case 1: {
-      setState(2735);
+      setState(2732);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2734);
+        setState(2731);
         match(CypherParser::SP);
       }
-      setState(2737);
+      setState(2734);
       match(CypherParser::ELSE);
-      setState(2739);
+      setState(2736);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2738);
+        setState(2735);
         match(CypherParser::SP);
       }
-      setState(2741);
+      setState(2738);
       oC_Expression();
       break;
     }
@@ -17539,15 +17539,15 @@ CypherParser::OC_CaseExpressionContext* CypherParser::oC_CaseExpression() {
     default:
       break;
     }
-    setState(2745);
+    setState(2742);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2744);
+      setState(2741);
       match(CypherParser::SP);
     }
-    setState(2747);
+    setState(2744);
     match(CypherParser::END);
    
   }
@@ -17610,37 +17610,37 @@ CypherParser::OC_CaseAlternativeContext* CypherParser::oC_CaseAlternative() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2749);
+    setState(2746);
     match(CypherParser::WHEN);
-    setState(2751);
+    setState(2748);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2750);
+      setState(2747);
       match(CypherParser::SP);
     }
-    setState(2753);
+    setState(2750);
     oC_Expression();
-    setState(2755);
+    setState(2752);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2754);
+      setState(2751);
       match(CypherParser::SP);
     }
-    setState(2757);
+    setState(2754);
     match(CypherParser::THEN);
-    setState(2759);
+    setState(2756);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2758);
+      setState(2755);
       match(CypherParser::SP);
     }
-    setState(2761);
+    setState(2758);
     oC_Expression();
    
   }
@@ -17682,7 +17682,7 @@ CypherParser::OC_VariableContext* CypherParser::oC_Variable() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2763);
+    setState(2760);
     oC_SymbolicName();
    
   }
@@ -17727,20 +17727,20 @@ CypherParser::OC_NumberLiteralContext* CypherParser::oC_NumberLiteral() {
     exitRule();
   });
   try {
-    setState(2767);
+    setState(2764);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ExponentDecimalReal:
       case CypherParser::RegularDecimalReal: {
         enterOuterAlt(_localctx, 1);
-        setState(2765);
+        setState(2762);
         oC_DoubleLiteral();
         break;
       }
 
       case CypherParser::DecimalInteger: {
         enterOuterAlt(_localctx, 2);
-        setState(2766);
+        setState(2763);
         oC_IntegerLiteral();
         break;
       }
@@ -17792,9 +17792,9 @@ CypherParser::OC_ParameterContext* CypherParser::oC_Parameter() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2769);
+    setState(2766);
     match(CypherParser::T__25);
-    setState(2772);
+    setState(2769);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::ADD:
@@ -17857,13 +17857,13 @@ CypherParser::OC_ParameterContext* CypherParser::oC_Parameter() {
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
       case CypherParser::EscapedSymbolicName: {
-        setState(2770);
+        setState(2767);
         oC_SymbolicName();
         break;
       }
 
       case CypherParser::DecimalInteger: {
-        setState(2771);
+        setState(2768);
         match(CypherParser::DecimalInteger);
         break;
       }
@@ -17920,17 +17920,17 @@ CypherParser::OC_PropertyExpressionContext* CypherParser::oC_PropertyExpression(
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2774);
+    setState(2771);
     oC_Atom();
-    setState(2776);
+    setState(2773);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2775);
+      setState(2772);
       match(CypherParser::SP);
     }
-    setState(2778);
+    setState(2775);
     oC_PropertyLookup();
    
   }
@@ -17972,7 +17972,7 @@ CypherParser::OC_PropertyKeyNameContext* CypherParser::oC_PropertyKeyName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2780);
+    setState(2777);
     oC_SchemaName();
    
   }
@@ -18014,7 +18014,7 @@ CypherParser::OC_IntegerLiteralContext* CypherParser::oC_IntegerLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2782);
+    setState(2779);
     match(CypherParser::DecimalInteger);
    
   }
@@ -18061,7 +18061,7 @@ CypherParser::OC_DoubleLiteralContext* CypherParser::oC_DoubleLiteral() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2784);
+    setState(2781);
     _la = _input->LA(1);
     if (!(_la == CypherParser::ExponentDecimalReal
 
@@ -18112,7 +18112,7 @@ CypherParser::OC_SchemaNameContext* CypherParser::oC_SchemaName() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2786);
+    setState(2783);
     oC_SymbolicName();
    
   }
@@ -18165,19 +18165,19 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
     exitRule();
   });
   try {
-    setState(2793);
+    setState(2790);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case CypherParser::UnescapedSymbolicName: {
         enterOuterAlt(_localctx, 1);
-        setState(2788);
+        setState(2785);
         match(CypherParser::UnescapedSymbolicName);
         break;
       }
 
       case CypherParser::EscapedSymbolicName: {
         enterOuterAlt(_localctx, 2);
-        setState(2789);
+        setState(2786);
         antlrcpp::downCast<OC_SymbolicNameContext *>(_localctx)->escapedsymbolicnameToken = match(CypherParser::EscapedSymbolicName);
         if ((antlrcpp::downCast<OC_SymbolicNameContext *>(_localctx)->escapedsymbolicnameToken != nullptr ? antlrcpp::downCast<OC_SymbolicNameContext *>(_localctx)->escapedsymbolicnameToken->getText() : "") == "``") { notifyEmptyToken(antlrcpp::downCast<OC_SymbolicNameContext *>(_localctx)->escapedsymbolicnameToken); }
         break;
@@ -18185,7 +18185,7 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
 
       case CypherParser::HexLetter: {
         enterOuterAlt(_localctx, 3);
-        setState(2791);
+        setState(2788);
         match(CypherParser::HexLetter);
         break;
       }
@@ -18248,7 +18248,7 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
       case CypherParser::DECIMAL:
       case CypherParser::L_SKIP: {
         enterOuterAlt(_localctx, 4);
-        setState(2792);
+        setState(2789);
         kU_NonReservedKeywords();
         break;
       }
@@ -18521,7 +18521,7 @@ CypherParser::KU_NonReservedKeywordsContext* CypherParser::kU_NonReservedKeyword
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2795);
+    setState(2792);
     _la = _input->LA(1);
     if (!(((((_la - 48) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 48)) & 8923191552623093653) != 0) || ((((_la - 112) & ~ 0x3fULL) == 0) &&
@@ -18569,7 +18569,7 @@ CypherParser::OC_LeftArrowHeadContext* CypherParser::oC_LeftArrowHead() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2797);
+    setState(2794);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 2013282304) != 0))) {
@@ -18616,7 +18616,7 @@ CypherParser::OC_RightArrowHeadContext* CypherParser::oC_RightArrowHead() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2799);
+    setState(2796);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 32212320256) != 0))) {
@@ -18667,7 +18667,7 @@ CypherParser::OC_DashContext* CypherParser::oC_Dash() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2801);
+    setState(2798);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 70334384439296) != 0) || _la == CypherParser::MINUS)) {
