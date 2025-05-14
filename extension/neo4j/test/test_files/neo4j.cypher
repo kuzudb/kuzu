@@ -34,3 +34,20 @@ CREATE
     }),
     (:TwoLabels1:TwoLabels2)-[:KNOWS2]->()
 ;
+
+
+CREATE (u:User {name: 'Adam', age: 30});
+CREATE (u:User {name: 'Karissa', age: 40});
+CREATE (u:User {name: 'Zhang', age: 50});
+CREATE (u:User {name: 'Noura', age: 25});
+CREATE (c:City {name: 'Waterloo', population: 150000});
+CREATE (c:City {name: 'Kitchener', population: 200000});
+CREATE (c:City {name: 'Guelph', population: 75000});
+MATCH (u:User {name: 'Adam'}), (c:City {name: 'Waterloo'}) CREATE (u)-[:LivesIn]->(c);
+MATCH (u:User {name: 'Karissa'}), (c:City {name: 'Waterloo'}) CREATE (u)-[:LivesIn]->(c);
+MATCH (u:User {name: 'Zhang'}), (c:City {name: 'Kitchener'}) CREATE (u)-[:LivesIn]->(c);
+MATCH (u:User {name: 'Noura'}), (c:City {name: 'Guelph'}) CREATE (u)-[:LivesIn]->(c);
+MATCH (u:User {name: 'Adam'}), (u1:User {name: 'Karissa'}) CREATE (u)-[:Follows {since: 2020}]->(u1);
+MATCH (u:User {name: 'Adam'}), (u1:User {name: 'Zhang'}) CREATE (u)-[:Follows {since: 2020}]->(u1);
+MATCH (u:User {name: 'Karissa'}), (u1:User {name: 'Zhang'}) CREATE (u)-[:Follows {since: 2021}]->(u1);
+MATCH (u:User {name: 'Zhang'}), (u1:User {name: 'Noura'}) CREATE (u)-[:Follows {since: 2022}]->(u1);
