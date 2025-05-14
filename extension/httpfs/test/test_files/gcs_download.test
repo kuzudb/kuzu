@@ -26,7 +26,6 @@ Binder exception: Invalid option name: gcs_url_style.
 Binder exception: Invalid option name: gcs_region.
 
 -CASE ScanFromGCSFile
--SKIP
 # In-memory mode doesn't support file cache.
 -SKIP_IN_MEM
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
