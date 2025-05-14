@@ -1,4 +1,4 @@
-#include "../include/function/neo4j_migrate.h"
+#include "function/neo4j_migrate.h"
 
 #include "binder/ddl/property_definition.h"
 #include "binder/expression/literal_expression.h"
