@@ -64,18 +64,14 @@ static ConflictAction getConflictAction(CypherParser::KU_IfNotExistsContext* ctx
 std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     CypherParser::KU_CreateNodeTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    std::string pkName;
+    pkName = getPKName(ctx);
     auto createTableInfo = CreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, tableName,
         getConflictAction(ctx.kU_IfNotExists()));
-    if (ctx.oC_Query()) {
-        // If CREATE NODE TABLE AS syntax
-        return std::make_unique<CreateTable>(std::move(createTableInfo),
-            std::make_unique<QueryScanSource>(transformQuery(*ctx.oC_Query())));
-    } else {
-        createTableInfo.propertyDefinitions =
-            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
-        createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(getPKName(ctx));
-        return std::make_unique<CreateTable>(std::move(createTableInfo));
-    }
+    createTableInfo.propertyDefinitions =
+        transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
+    return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
 static bool requireRelGroup(const std::vector<std::pair<std::string, std::string>>& fromToPairs) {

@@ -89,16 +89,29 @@ static std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExp
     return {ColumnEvaluateType::DEFAULT, expressionBinder.bindExpression(*property.defaultExpr)};
 }
 
-BoundCopyFromInfo Binder::bindCopyNodeFromInfo(std::string tableName,
-    const std::vector<PropertyDefinition>& properties, const BaseScanSource* source,
-    const options_t& parsingOptions, const std::vector<std::string>& expectedColumnNames,
-    const std::vector<LogicalType>& expectedColumnTypes) {
-    auto boundSource =
-        bindScanSource(source, parsingOptions, expectedColumnNames, expectedColumnTypes);
+std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
+    NodeTableCatalogEntry* nodeTableEntry) {
+    auto& copyStatement = ku_dynamic_cast<const CopyFrom&>(statement);
+    // Bind expected columns based on catalog information.
+    std::vector<std::string> expectedColumnNames;
+    std::vector<LogicalType> expectedColumnTypes;
+    bindExpectedNodeColumns(nodeTableEntry, copyStatement.getCopyColumnInfo(), expectedColumnNames,
+        expectedColumnTypes);
+    auto boundSource = bindScanSource(copyStatement.getSource(), copyStatement.getParsingOptions(),
+        expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
+    if (boundSource->type == ScanSourceType::FILE) {
+        auto& source = boundSource->constCast<BoundTableScanSource>();
+        auto bindData = source.info.bindData->constPtrCast<ScanFileBindData>();
+        if (copyStatement.byColumn() &&
+            bindData->fileScanInfo.fileTypeInfo.fileType != FileType::NPY) {
+            throw BinderException(stringFormat("Copy by column with {} file type is not supported.",
+                bindData->fileScanInfo.fileTypeInfo.fileTypeStr));
+        }
+    }
     expression_vector columns;
     std::vector<ColumnEvaluateType> evaluateTypes;
-    for (auto& property : properties) {
+    for (auto& property : nodeTableEntry->getProperties()) {
         auto [evaluateType, column] =
             matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
         columns.push_back(column);
@@ -107,23 +120,8 @@ BoundCopyFromInfo Binder::bindCopyNodeFromInfo(std::string tableName,
     columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    return BoundCopyFromInfo(tableName, std::move(boundSource), std::move(offset),
-        std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
-}
-
-std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
-    NodeTableCatalogEntry* nodeTableEntry) {
-    auto& copyStatement = ku_dynamic_cast<const CopyFrom&>(statement);
-
-    // Bind expected columns based on catalog information.
-    std::vector<std::string> expectedColumnNames;
-    std::vector<LogicalType> expectedColumnTypes;
-    bindExpectedNodeColumns(nodeTableEntry, copyStatement.getCopyColumnInfo(), expectedColumnNames,
-        expectedColumnTypes);
-
-    auto boundCopyFromInfo = bindCopyNodeFromInfo(nodeTableEntry->getName(),
-        nodeTableEntry->getProperties(), copyStatement.getSource(),
-        copyStatement.getParsingOptions(), expectedColumnNames, expectedColumnTypes);
+    auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
+        std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

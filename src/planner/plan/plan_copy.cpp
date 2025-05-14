@@ -24,9 +24,9 @@ static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan&
 }
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
-    auto tableEntry = copyFromInfo.tableEntry;
-    const auto* tableCatalogEntry = tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
-    LogicalPartitionerInfo info(tableEntry, copyFromInfo.offset);
+    const auto* tableCatalogEntry =
+        copyFromInfo.tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
+    LogicalPartitionerInfo info(copyFromInfo.tableEntry, copyFromInfo.offset);
     for (auto direction : tableCatalogEntry->getRelDataDirections()) {
         info.partitioningInfos.push_back(
             LogicalPartitioningInfo(RelDirectionUtils::relDirectionToKeyIdx(direction)));
@@ -49,7 +49,8 @@ LogicalPlan Planner::planCopyFrom(const BoundStatement& statement) {
     auto& copyFrom = statement.constCast<BoundCopyFrom>();
     auto outExprs = statement.getStatementResult()->getColumns();
     auto copyFromInfo = copyFrom.getInfo();
-    switch (copyFromInfo->tableType) {
+    auto tableType = copyFromInfo->tableEntry->getTableType();
+    switch (tableType) {
     case TableType::NODE: {
         return planCopyNodeFrom(copyFromInfo, outExprs);
     }

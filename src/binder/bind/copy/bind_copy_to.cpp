@@ -6,6 +6,7 @@
 #include "function/built_in_function_utils.h"
 #include "main/client_context.h"
 #include "parser/copy.h"
+#include "parser/query/regular_query.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -18,7 +19,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto boundFilePath = copyToStatement.getFilePath();
     auto fileTypeInfo = bindFileTypeInfo({boundFilePath});
     std::vector<std::string> columnNames;
-    auto parsedQuery = copyToStatement.getStatement();
+    auto parsedQuery = copyToStatement.getStatement()->constPtrCast<RegularQuery>();
     auto query = bindQuery(*parsedQuery);
     auto columns = query->getStatementResult()->getColumns();
     auto fileTypeStr = fileTypeInfo.fileTypeStr;
