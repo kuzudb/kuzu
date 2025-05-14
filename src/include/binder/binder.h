@@ -6,7 +6,6 @@
 #include "binder/query/query_graph.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/file_scan_info.h"
-#include "common/enums/column_evaluate_type.h"
 #include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 
@@ -128,9 +127,6 @@ public:
         const std::string& tableName, const std::string& propertyName);
 
     /*** bind copy ***/
-    static std::pair<common::ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExpression(
-        const expression_vector& columns, const PropertyDefinition& property,
-        ExpressionBinder& expressionBinder);
     BoundCopyFromInfo bindCopyNodeFromInfo(std::string tableName, const std::vector<PropertyDefinition>& properties,
         const parser::BaseScanSource* source, const parser::options_t& parsingOptions,
         const std::vector<std::string>& expectedColumnNames,

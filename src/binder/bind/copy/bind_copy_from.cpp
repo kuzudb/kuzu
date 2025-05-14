@@ -73,7 +73,7 @@ static void bindExpectedRelColumns(const RelTableCatalogEntry* relTableEntry,
     const CopyFromColumnInfo& info, std::vector<std::string>& columnNames,
     std::vector<LogicalType>& columnTypes, const main::ClientContext* context);
 
-std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> Binder::matchColumnExpression(
+static std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExpression(
     const expression_vector& columns, const PropertyDefinition& property,
     ExpressionBinder& expressionBinder) {
     for (auto& column : columns) {
