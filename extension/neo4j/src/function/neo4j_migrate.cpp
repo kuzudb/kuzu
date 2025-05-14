@@ -99,33 +99,28 @@ static std::vector<std::string> getNodeOrRels(httplib::Client& cli, common::Tabl
     auto labelsInNeo4j = getLabelsInNeo4j(cli, tableType);
     std::vector<std::string> labels;
     auto labelVals = expression->constPtrCast<binder::LiteralExpression>()->getValue();
-    bool kleene_star = false;
 
     for (auto i = 0u; i < labelVals.getChildrenSize(); i++) {
         auto label = NestedVal::getChildVal(&labelVals, i)->toString();
         if (label == "*")
-            kleene_star = true;
+        {
+            for(auto label : labelsInNeo4j)
+            {
+                if (tableType == common::TableType::NODE) {
+                    auto res = executeNeo4jQuery(cli, stringFormat("match (n:{}) where size(labels(n)) > 1 return labels(n) limit 1", label));
+                    if (!res.empty()) {
+                        auto row = res[0]["row"];
+                        throw common::RuntimeException{common::stringFormat(
+                            "Importing nodes with multi-labels is not supported right now. Found: {}",
+                            to_string(row))};
+                    }
+                }
+                labels.push_back(std::move(label));
+            }
+            return labels;
+        }
     }
 
-    if (kleene_star)
-    {
-        for(auto label : labelsInNeo4j)
-        {
-            if (tableType == common::TableType::NODE) {
-                auto res = executeNeo4jQuery(cli,
-                    stringFormat("match (n:{}) where size(labels(n)) > 1 return labels(n) limit 1",
-                        label));
-                if (!res.empty()) {
-                    auto row = res[0]["row"];
-                    throw common::RuntimeException{common::stringFormat(
-                        "Importing nodes with multi-labels is not supported right now. Found: {}",
-                        to_string(row))};
-                }
-            }
-            labels.push_back(std::move(label));
-        }
-        return labels;
-    }
 
     for (auto i = 0u; i < labelVals.getChildrenSize(); i++) {
         auto label = NestedVal::getChildVal(&labelVals, i)->toString();
