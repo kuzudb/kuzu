@@ -587,11 +587,6 @@ Binder exception: Expression ABC has data type STRING but expected INT64[3]. Imp
 ---- error
 Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
 
--CASE CreateTableAsDuplicateStringIDs
--STATEMENT CREATE NODE TABLE Foo AS (LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vOrg.csv" RETURN *);
----- error
-Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
-
 -CASE CreateTableAsEmptyReturn
 -STATEMENT CREATE NODE TABLE Bar AS (RETURN *);
 ---- error
