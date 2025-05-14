@@ -272,7 +272,6 @@ TEST_F(ApiTest, QueryWithHeadingNewline) {
 }
 
 TEST_F(ApiTest, LoadFromInvalidParam) {
-    createDBAndConn();
     std::unordered_map<std::string, std::unique_ptr<Value>> params;
     params["val"] = std::make_unique<Value>(Value::createValue(3));
     auto prep = conn->prepareWithParams("LOAD FROM $val RETURN *", std::move(params));
@@ -282,3 +281,24 @@ TEST_F(ApiTest, LoadFromInvalidParam) {
         "types that can be scanned from are pandas/polars dataframes and pyarrow tables.",
         prep->getErrorMessage().c_str());
 }
+
+TEST_F(ApiTest, CopyFromInvalidParam) {
+    ASSERT_TRUE(conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY);")->isSuccess());
+    std::unordered_map<std::string, std::unique_ptr<Value>> params;
+    params["val"] = std::make_unique<Value>(Value::createValue(3));
+    auto prep = conn->prepareWithParams("COPY test FROM $val", std::move(params));
+    ASSERT_FALSE(prep->isSuccess());
+    ASSERT_STREQ(
+        "Binder exception: Trying to scan from unsupported data type INT32. The only parameter "
+        "types that can be scanned from are pandas/polars dataframes and pyarrow tables.",
+        prep->getErrorMessage().c_str());
+}
+
+// TODO: FIX-ME
+// TEST_F(ApiTest, MissingParam) {
+//     std::unordered_map<std::string, std::unique_ptr<Value>> params;
+//     params["val1"] = std::make_unique<Value>(Value::createValue(3));
+//     auto prep = conn->prepareWithParams("RETURN $val1 + $val2", std::move(params));
+//     ASSERT_FALSE(prep->isSuccess());
+//     ASSERT_STREQ("Parameter val2 not found.", prep->getErrorMessage().c_str());
+// }
