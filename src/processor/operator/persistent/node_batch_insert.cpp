@@ -83,6 +83,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 }
 
 void NodeBatchInsert::executeInternal(ExecutionContext* context) {
+    const auto clientContext = context->clientContext;
     std::optional<ProducerToken> token;
     auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
     const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
@@ -95,12 +96,12 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         // Evaluate expressions if needed.
         const auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
         evaluateExpressions(numTuples);
-        copyToNodeGroup(context->clientContext->getTransaction(),
-            context->clientContext->getMemoryManager());
+        copyToNodeGroup(clientContext->getTransaction(),
+            clientContext->getMemoryManager());
         nodeLocalState->columnState->setSelVector(originalSelVector);
     }
     if (nodeLocalState->chunkedGroup->getNumRows() > 0) {
-        appendIncompleteNodeGroup(context->clientContext->getTransaction(),
+        appendIncompleteNodeGroup(clientContext->getTransaction(),
             std::move(nodeLocalState->chunkedGroup), nodeLocalState->localIndexBuilder,
             context->clientContext->getMemoryManager());
     }
