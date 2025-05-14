@@ -273,6 +273,9 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
     auto createTable = statement.constPtrCast<CreateTable>();
+    if (createTable->getSource()) {
+        return bindCreateTableAs(statement);
+    }
     auto boundCreateInfo = bindCreateTableInfo(createTable->getInfo());
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }

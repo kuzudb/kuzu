@@ -27,11 +27,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     std::unique_ptr<BoundStatement> boundStatement;
     switch (statement.getStatementType()) {
     case StatementType::CREATE_TABLE: {
-        if (statement.constPtrCast<CreateTable>()->getSource()) {
-            boundStatement = bindCreateTableAs(statement);
-        } else {
-            boundStatement = bindCreateTable(statement);
-        }
+        boundStatement = bindCreateTable(statement);
     } break;
     case StatementType::CREATE_TYPE: {
         boundStatement = bindCreateType(statement);

@@ -34,6 +34,8 @@
 #include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
 
+#include <iostream>
+
 using namespace kuzu::binder;
 using namespace kuzu::common;
 
