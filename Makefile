@@ -82,6 +82,8 @@ ifdef WASM_NODEFS
 	CMAKE_FLAGS += -DWASM_NODEFS=$(WASM_NODEFS)
 endif
 
+CMAKE_FLAGS += -DUSE_STD_FORMAT=$(if $(USE_STD_FORMAT),TRUE,FALSE)
+
 # Must be first in the Makefile so that it is the default target.
 release:
 	$(call run-cmake-release,)
