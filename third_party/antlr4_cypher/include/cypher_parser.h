@@ -671,6 +671,8 @@ public:
     antlr4::tree::TerminalNode *TABLE();
     OC_SchemaNameContext *oC_SchemaName();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
+    antlr4::tree::TerminalNode *AS();
+    OC_QueryContext *oC_Query();
     KU_IfNotExistsContext *kU_IfNotExists();
     KU_CreateNodeConstraintContext *kU_CreateNodeConstraint();
 
