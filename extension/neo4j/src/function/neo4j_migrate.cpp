@@ -118,14 +118,11 @@ static std::vector<std::string> getNodeOrRels(httplib::Client& cli, common::Tabl
     auto labelVals = expression->constPtrCast<binder::LiteralExpression>()->getValue();
 
     // Check for kleene star. In this case we add all known labels
-    for (auto i = 0u; i < labelVals.getChildrenSize(); i++) {
-        auto label = NestedVal::getChildVal(&labelVals, i)->toString();
-        if (label == "*") {
-            for (auto label : labelsInNeo4j) {
-                addLabel(cli, tableType, label, labels);
-            }
-            return labels;
+    if (labelVals.getChildrenSize() == 1 && NestedVal::getChildVal(&labelVals, 0)->toString() == "*") {
+        for (auto label : labelsInNeo4j) {
+            addLabel(cli, tableType, label, labels);
         }
+        return labels;
     }
 
     for (auto i = 0u; i < labelVals.getChildrenSize(); i++) {
