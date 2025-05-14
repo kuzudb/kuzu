@@ -186,6 +186,7 @@ public:
 
     LogicalPlan getNodeSemiMaskPlan(SemiMaskTargetType targetType,
         const binder::NodeExpression& node, std::shared_ptr<binder::Expression> nodePredicate);
+
     // This is mostly used when we try to reinterpret function output as node and read its
     // properties, e.g. query_vector_index, gds algorithms ...
     LogicalPlan getNodePropertyScanPlan(const binder::NodeExpression& node);

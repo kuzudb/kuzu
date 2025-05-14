@@ -60,50 +60,32 @@ struct FinalizeHNSWSharedState final : function::SimpleTableFuncSharedState {
     }
 };
 
-struct BoundQueryHNSWIndexInput {
-    catalog::NodeTableCatalogEntry* nodeTableEntry;
-    graph::GraphEntry graphEntry;
-    catalog::IndexCatalogEntry* indexEntry;
-    std::shared_ptr<binder::Expression> queryExpression;
-    std::shared_ptr<binder::Expression> kExpression;
-
-    BoundQueryHNSWIndexInput(catalog::NodeTableCatalogEntry* nodeTableEntry,
-        graph::GraphEntry graphEntry, catalog::IndexCatalogEntry* indexEntry,
-        std::shared_ptr<binder::Expression> queryExpression,
-        std::shared_ptr<binder::Expression> kExpression)
-        : nodeTableEntry{nodeTableEntry}, graphEntry{std::move(graphEntry)}, indexEntry{indexEntry},
-          queryExpression{std::move(queryExpression)}, kExpression{std::move(kExpression)} {}
-    BoundQueryHNSWIndexInput(const BoundQueryHNSWIndexInput& rhs)
-        : nodeTableEntry{rhs.nodeTableEntry}, graphEntry{rhs.graphEntry.copy()},
-          indexEntry{rhs.indexEntry}, queryExpression{rhs.queryExpression},
-          kExpression{rhs.kExpression} {}
-};
-
 struct QueryHNSWIndexBindData final : function::TableFuncBindData {
-    main::ClientContext* context;
-    BoundQueryHNSWIndexInput boundInput;
-    common::column_id_t indexColumnID;
-    catalog::RelTableCatalogEntry* upperHNSWRelTableEntry;
-    catalog::RelTableCatalogEntry* lowerHNSWRelTableEntry;
+    graph::GraphEntry graphEntry;
+    catalog::NodeTableCatalogEntry* nodeTableEntry = nullptr;
+    catalog::IndexCatalogEntry* indexEntry = nullptr;
+    common::column_id_t indexColumnID = common::INVALID_COLUMN_ID;
+    catalog::RelTableCatalogEntry* upperHNSWRelTableEntry = nullptr;
+    catalog::RelTableCatalogEntry* lowerHNSWRelTableEntry = nullptr;
+
     QueryHNSWConfig config;
 
+    std::shared_ptr<binder::Expression> queryExpression;
+    std::shared_ptr<binder::Expression> kExpression;
     std::shared_ptr<binder::NodeExpression> outputNode;
 
-    QueryHNSWIndexBindData(main::ClientContext* context, binder::expression_vector columns,
-        const BoundQueryHNSWIndexInput& boundInput, QueryHNSWConfig config,
-        std::shared_ptr<binder::NodeExpression> outputNode);
+    explicit QueryHNSWIndexBindData(binder::expression_vector columns)
+        : TableFuncBindData({std::move(columns), 1 /* maxOffset */}) {}
 
-    std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<QueryHNSWIndexBindData>(context, columns, boundInput, config,
-            outputNode);
-    }
+    std::unique_ptr<TableFuncBindData> copy() const override;
 };
 
 struct QueryHNSWIndexSharedState final : function::TableFuncSharedState {
     storage::NodeTable* nodeTable;
     common::offset_t numNodes;
 
-    explicit QueryHNSWIndexSharedState(const QueryHNSWIndexBindData& bindData);
+    QueryHNSWIndexSharedState(storage::NodeTable* nodeTable, common::offset_t numNodes)
+        : TableFuncSharedState{1 /* maxOffset */}, nodeTable{nodeTable}, numNodes{numNodes} {}
 };
 
 struct QueryHNSWLocalState final : function::TableFuncLocalState {

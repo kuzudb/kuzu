@@ -1,6 +1,5 @@
 #include "processor/plan_mapper.h"
 
-#include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/profile.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
@@ -210,19 +209,6 @@ FactorizedTableSchema PlanMapper::createFlatFTableSchema(const expression_vector
 std::unique_ptr<SemiMask> PlanMapper::createSemiMask(table_id_t tableID) const {
     auto table = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
     return SemiMaskUtil::createMask(table->getNumTotalRows(clientContext->getTransaction()));
-}
-
-LogicalSemiMasker* PlanMapper::findSemiMaskerInPlan(LogicalOperator* logicalOperator) {
-    if (logicalOperator->getOperatorType() == LogicalOperatorType::SEMI_MASKER) {
-        return logicalOperator->ptrCast<LogicalSemiMasker>();
-    }
-    for (auto& child : logicalOperator->getChildren()) {
-        const auto semiMasker = findSemiMaskerInPlan(child.get());
-        if (semiMasker) {
-            return semiMasker;
-        }
-    }
-    return nullptr;
 }
 
 } // namespace processor

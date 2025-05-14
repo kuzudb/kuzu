@@ -23,14 +23,12 @@ BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
     for (auto i = 0u; i < expr.getNumChildren(); i++) {
         auto& childExpr = *expr.getChild(i);
         auto param = expressionBinder.bindExpression(childExpr);
+        ExpressionUtil::validateExpressionType(*param,
+            {ExpressionType::LITERAL, ExpressionType::PARAMETER, ExpressionType::PATTERN});
         if (!childExpr.hasAlias()) {
-            ExpressionUtil::validateExpressionType(*param,
-                {ExpressionType::LITERAL, ExpressionType::PARAMETER});
             positionalParams.push_back(param);
             positionalParamTypes.push_back(param->getDataType().copy());
         } else {
-            ExpressionUtil::validateExpressionType(*param,
-                {ExpressionType::LITERAL, ExpressionType::PARAMETER});
             if (param->expressionType == ExpressionType::LITERAL) {
                 auto literalExpr = param->constPtrCast<LiteralExpression>();
                 optionalParams.emplace(childExpr.getAlias(), literalExpr->getValue());
@@ -42,7 +40,7 @@ BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
     auto func = BuiltInFunctionsUtils::matchFunction(tableFuncName, positionalParamTypes,
         entry->ptrCast<catalog::FunctionCatalogEntry>());
     auto tableFunc = func->constPtrCast<TableFunction>();
-    std::vector<common::LogicalType> inputTypes;
+    std::vector<LogicalType> inputTypes;
     if (tableFunc->inferInputTypes) {
         // For functions which take in nested data types, we have to use the input parameters to
         // detect the input types. (E.g. query_hnsw_index takes in an ARRAY which needs the user
@@ -52,7 +50,7 @@ BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
         // For functions which don't have nested type parameters, we can simply use the types
         // declared in the function signature.
         for (auto i = 0u; i < tableFunc->parameterTypeIDs.size(); i++) {
-            inputTypes.push_back(common::LogicalType(tableFunc->parameterTypeIDs[i]));
+            inputTypes.push_back(LogicalType(tableFunc->parameterTypeIDs[i]));
         }
     }
     for (auto i = 0u; i < positionalParams.size(); ++i) {

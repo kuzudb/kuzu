@@ -28,11 +28,6 @@ public:
         bindData->setColumnPredicates(std::move(predicates));
     }
 
-    void setNodeMaskRoots(std::vector<std::shared_ptr<LogicalOperator>> roots) {
-        nodeMaskRoots = std::move(roots);
-    }
-    std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskRoots() const { return nodeMaskRoots; }
-
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
 
@@ -45,9 +40,6 @@ public:
 private:
     function::TableFunction tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
-
-    // TODO(Xiyang): We should unify how masks are planned in GDS and HNSW.
-    std::vector<std::shared_ptr<LogicalOperator>> nodeMaskRoots;
 };
 
 } // namespace planner

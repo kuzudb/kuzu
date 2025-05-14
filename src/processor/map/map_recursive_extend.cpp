@@ -47,21 +47,21 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
         extend.getFunction().copy(), bindData, sharedState, getOperatorID(), std::move(printInfo));
     // Map node predicate pipeline
     if (extend.hasNodePredicate()) {
-        logicalOpToPhysicalOpMap.insert({logicalOperator, recursiveExtend.get()});
+        addOperatorMapping(logicalOperator, recursiveExtend.get());
         sharedState->setPathNodeMask(std::make_unique<NodeOffsetMaskMap>());
         auto maskMap = sharedState->getPathNodeMaskMap();
-        auto logicalRoot = extend.getNodeMaskRoot();
-        KU_ASSERT(logicalRoot->getNumChildren() == 1);
-        auto child = logicalRoot->getChild(0);
-        KU_ASSERT(child->getOperatorType() == LogicalOperatorType::SEMI_MASKER);
-        auto logicalSemiMasker = child->ptrCast<LogicalSemiMasker>();
+        KU_ASSERT(extend.getNumChildren() == 1);
+        auto logicalRoot = extend.getChild(0);
+        KU_ASSERT(logicalRoot->getNumChildren() == 1 &&
+                  logicalRoot->getChild(0)->getOperatorType() == LogicalOperatorType::SEMI_MASKER);
+        auto logicalSemiMasker = logicalRoot->getChild(0)->ptrCast<LogicalSemiMasker>();
         logicalSemiMasker->addTarget(logicalOperator);
         for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
             maskMap->addMask(tableID, createSemiMask(tableID));
         }
         auto root = mapOperator(logicalRoot.get());
         recursiveExtend->addChild(std::move(root));
-        logicalOpToPhysicalOpMap.erase(logicalOperator);
+        eraseOperatorMapping(logicalOperator);
     }
     logicalOpToPhysicalOpMap.insert({logicalOperator, recursiveExtend.get()});
     physical_op_vector_t children;

@@ -109,22 +109,16 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     bindData->extendDirection = direction;
     // If we extend from right to left, we need to print path in reverse direction.
     bindData->flipPath = *boundNode == *rel->getRightNode();
-
     auto resultColumns = recursiveInfo->function->getResultColumns(*bindData);
-
-    std::shared_ptr<LogicalOperator> nodeMaskRoot = nullptr;
+    auto recursiveExtend = std::make_shared<LogicalRecursiveExtend>(recursiveInfo->function->copy(),
+        *recursiveInfo->bindData, resultColumns);
     if (recursiveInfo->nodePredicate != nullptr) {
         auto p = getNodeSemiMaskPlan(SemiMaskTargetType::RECURSIVE_EXTEND_PATH_NODE,
             *recursiveInfo->node, recursiveInfo->nodePredicate);
-        nodeMaskRoot = p.getLastOperator();
-    }
-    auto probePlan = LogicalPlan();
-    auto recursiveExtend = std::make_shared<LogicalRecursiveExtend>(recursiveInfo->function->copy(),
-        *recursiveInfo->bindData, resultColumns);
-    if (nodeMaskRoot != nullptr) {
-        recursiveExtend->addChild(nodeMaskRoot);
+        recursiveExtend->addChild(p.getLastOperator());
     }
     recursiveExtend->computeFactorizedSchema();
+    auto probePlan = LogicalPlan();
     probePlan.setLastOperator(std::move(recursiveExtend));
     // Scan path node property pipeline
     std::shared_ptr<LogicalOperator> pathNodePropertyScanRoot = nullptr;

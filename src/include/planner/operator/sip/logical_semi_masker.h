@@ -57,7 +57,7 @@ struct ExtraNodeIDListKeyInfo final : ExtraKeyInfo {
     }
 };
 
-class LogicalSemiMasker final : public LogicalOperator {
+class KUZU_API LogicalSemiMasker final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::SEMI_MASKER;
 
 public:

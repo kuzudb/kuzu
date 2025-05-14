@@ -190,10 +190,10 @@ void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& rea
     expression_vector predicates, LogicalPlan& plan) {
     auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
     auto bindData = call.getBindData()->constPtrCast<GDSBindData>();
-    auto maskRoots = getNodeMaskPlanRoots(*bindData, planner);
-
     auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
-    op->setNodeMaskRoots(maskRoots);
+    for (auto root : getNodeMaskPlanRoots(*bindData, planner)) {
+        op->addChild(root);
+    }
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
@@ -227,12 +227,12 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
         std::make_unique<TableFunctionCallPrintInfo>(info.function.name, info.bindData->columns);
     auto call = std::make_unique<TableFunctionCall>(std::move(info), sharedState,
         planMapper->getOperatorID(), std::move(printInfo));
-    if (!logicalCall->getNodeMaskRoots().empty()) {
+    if (logicalCall->getNumChildren() > 0u) {
         const auto funcSharedState = sharedState->ptrCast<GDSFuncSharedState>();
         funcSharedState->setGraphNodeMask(std::make_unique<NodeOffsetMaskMap>());
         auto maskMap = funcSharedState->getGraphNodeMaskMap();
-        planMapper->logicalOpToPhysicalOpMap.insert({logicalOp, call.get()});
-        for (auto logicalRoot : logicalCall->getNodeMaskRoots()) {
+        planMapper->addOperatorMapping(logicalOp, call.get());
+        for (auto logicalRoot : logicalCall->getChildren()) {
             KU_ASSERT(logicalRoot->getNumChildren() == 1);
             auto child = logicalRoot->getChild(0);
             KU_ASSERT(child->getOperatorType() == LogicalOperatorType::SEMI_MASKER);
@@ -244,9 +244,9 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
             auto root = planMapper->mapOperator(logicalRoot.get());
             call->addChild(std::move(root));
         }
-        planMapper->logicalOpToPhysicalOpMap.erase(logicalOp);
+        planMapper->eraseOperatorMapping(logicalOp);
     }
-    planMapper->logicalOpToPhysicalOpMap.insert({logicalOp, call.get()});
+    planMapper->addOperatorMapping(logicalOp, call.get());
     physical_op_vector_t children;
     children.push_back(planMapper->createDummySink(logicalCall->getSchema(), std::move(call)));
     return planMapper->createFTableScanAligned(columns, logicalCall->getSchema(), table,
