@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/copy/bound_copy_from.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
@@ -273,43 +272,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
     auto createTable = statement.constPtrCast<CreateTable>();
-    if (createTable->getSource()) {
-        return bindCreateTableAs(statement);
-    }
     auto boundCreateInfo = bindCreateTableInfo(createTable->getInfo());
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
-}
-
-std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& statement) {
-    auto createTable = statement.constPtrCast<CreateTable>();
-
-    auto boundInnerQuery = bindQuery(*createTable->getSource()->statement.get());
-    auto innerQueryResult = boundInnerQuery->getStatementResult();
-    auto columnNames = innerQueryResult->getColumnNames();
-    auto columnTypes = innerQueryResult->getColumnTypes();
-    std::vector<PropertyDefinition> propertyDefinitions;
-    propertyDefinitions.reserve(columnNames.size());
-    for (size_t i = 0; i < columnNames.size(); ++i) {
-        propertyDefinitions.emplace_back(
-            ColumnDefinition(std::string(columnNames[i]), columnTypes[i].copy()));
-    }
-
-    auto parsingOptions = options_t{}; // temp
-    // first column is primary key column temporarily for now
-    if (columnNames.empty()) {
-        throw BinderException("Subquery returns no columns");
-    }
-    auto pkName = columnNames[0];
-    auto createInfo = createTable->getInfo();
-    auto boundCopyFromInfo = bindCopyNodeFromInfo(createInfo->tableName, propertyDefinitions,
-        createTable->getSource(), std::move(parsingOptions), columnNames, columnTypes);
-    auto boundExtraInfo =
-        std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
-    auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
-        createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
-        clientContext->useInternalCatalogEntry());
-    return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo),
-        std::move(boundCopyFromInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) const {

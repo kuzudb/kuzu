@@ -35,7 +35,7 @@ public:
         const logical_op_vector_t& children)
         : LogicalOperator{type_, children}, info{std::move(info)}, outExprs{std::move(outExprs)} {}
 
-    std::string getExpressionsForPrinting() const override { return info.tableName; }
+    std::string getExpressionsForPrinting() const override { return info.tableEntry->getName(); }
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -45,7 +45,7 @@ public:
     binder::expression_vector getOutExprs() const { return outExprs; }
 
     std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
-        return std::make_unique<LogicalCopyFromPrintInfo>(info.tableName);
+        return std::make_unique<LogicalCopyFromPrintInfo>(info.tableEntry->getName());
     }
 
     std::unique_ptr<LogicalOperator> copy() override {

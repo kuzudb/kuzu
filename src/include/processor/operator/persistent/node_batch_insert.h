@@ -40,11 +40,12 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
     evaluator::evaluator_vector_t columnEvaluators;
     std::vector<common::ColumnEvaluateType> evaluateTypes;
 
-    NodeBatchInsertInfo(bool compressionEnabled, std::vector<common::LogicalType> columnTypes,
+    NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
+        std::vector<common::column_id_t> columnIDs, std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<common::ColumnEvaluateType> evaluateTypes,
         common::column_id_t numWarningDataColumns)
-        : BatchInsertInfo{nullptr, compressionEnabled, std::vector<common::column_id_t>{},
+        : BatchInsertInfo{tableEntry, compressionEnabled, std::move(columnIDs),
               static_cast<common::column_id_t>(columnTypes.size() - numWarningDataColumns),
               numWarningDataColumns},
           columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
@@ -77,11 +78,12 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
     // ops.
     std::unique_ptr<storage::ChunkedNodeGroup> sharedNodeGroup;
 
-    NodeBatchInsertSharedState(std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal,
+    NodeBatchInsertSharedState(storage::Table* table, common::column_id_t pkColumnID,
+        common::LogicalType pkType, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal,
         storage::MemoryManager* mm)
-        : BatchInsertSharedState{nullptr, std::move(fTable), wal, mm},
-          globalIndexBuilder(std::nullopt), tableFuncSharedState{nullptr},
-          sharedNodeGroup{nullptr} {}
+        : BatchInsertSharedState{table, std::move(fTable), wal, mm}, pkColumnID{pkColumnID},
+          pkType{std::move(pkType)}, globalIndexBuilder(std::nullopt),
+          tableFuncSharedState{nullptr}, sharedNodeGroup{nullptr} {}
 
     void initPKIndex(const ExecutionContext* context);
 };
@@ -102,14 +104,13 @@ struct NodeBatchInsertLocalState final : BatchInsertLocalState {
 
 class NodeBatchInsert final : public BatchInsert {
 public:
-    NodeBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
+    NodeBatchInsert(std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
-              std::move(printInfo)},
-          tableName{std::move(tableName)} {
+              std::move(printInfo)} {
         children.push_back(std::move(child));
     }
 
@@ -123,7 +124,7 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<NodeBatchInsert>(tableName, info->copy(), sharedState,
+        return std::make_unique<NodeBatchInsert>(info->copy(), sharedState,
             resultSetDescriptor->copy(), children[0]->copy(), id, printInfo->copy());
     }
 
@@ -134,8 +135,6 @@ public:
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;
 
 private:
-    std::string tableName;
-
     void evaluateExpressions(uint64_t numTuples) const;
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,

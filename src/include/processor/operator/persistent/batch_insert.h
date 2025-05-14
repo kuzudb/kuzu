@@ -78,11 +78,6 @@ struct KUZU_API BatchInsertSharedState {
         common::UniqLock lockGuard{erroredRowMutex};
         return *numErroredRows;
     }
-
-    template<class TARGET>
-    TARGET* ptrCast() {
-        return common::ku_dynamic_cast<TARGET*>(this);
-    }
 };
 
 struct BatchInsertLocalState {

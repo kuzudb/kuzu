@@ -1,5 +1,5 @@
 
--DATASET CSV tinysnb copy-fault-tests/duplicate-ids
+-DATASET CSV tinysnb
 --
 
 -CASE DropAndCreateTables
@@ -567,30 +567,3 @@ Binder exception: Expression UPPER(abc) has data type STRING but expected INT64.
 -STATEMENT CREATE NODE TABLE default_val_type(val INT64, val1 INT64[3] default 'ABC', PRIMARY KEY(val))
 ---- error
 Binder exception: Expression ABC has data type STRING but expected INT64[3]. Implicit cast is not supported.
-
--CASE CreateTableAs
--STATEMENT CREATE NODE TABLE Test AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" WHERE ISStudent = True RETURN id, Gender, fname;
----- ok
--STATEMENT MATCH (a:Test) RETURN a.*;
----- 2
-0|1|Alice
-2|2|Bob
--STATEMENT CREATE NODE TABLE Test2 AS MATCH (a:TEST) RETURN a.id, a.fname;
----- ok
--STATEMENT MATCH (a:Test2) RETURN a.*;
----- 2
-0|Alice
-2|Bob
-
--CASE CreateTableAsDuplicateIntIDs
--STATEMENT CREATE NODE TABLE Foo AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv" RETURN *;
----- error
-Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
-
--CASE CreateTableAsEmptyReturn
--STATEMENT CREATE NODE TABLE Bar AS RETURN *;
----- error
-Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.
--STATEMENT CREATE NODE TABLE FooBar AS MATCH () RETURN *;
----- error
-Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.

@@ -14,16 +14,10 @@ public:
         : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}
 
-    BoundCreateTable(BoundCreateTableInfo info, BoundCopyFromInfo copyInfo)
-        : BoundStatement{common::StatementType::CREATE_TABLE,
-              BoundStatementResult::createSingleStringColumnResult()},
-          info{std::move(info)}, copyInfo{std::move(copyInfo)} {}
-
     const BoundCreateTableInfo& getInfo() const { return info; }
 
 private:
     BoundCreateTableInfo info;
-    std::optional<BoundCopyFromInfo> copyInfo;
 };
 
 } // namespace binder
