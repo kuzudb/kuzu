@@ -41,3 +41,13 @@ Runtime exception: The source node label 'Teacher' of 'KNOWS' must be present in
 -STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["TwoLabels1"], ["KNOWS2"]);
 ---- error
 Runtime exception: Importing nodes with multi-labels is not supported right now. Found: [["TwoLabels1","TwoLabels2"]]
+
+-CASE KleeneStarWithOtherLabels
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
+---- ok
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["*", "Student"], ["KNOWS"]);
+---- error
+Runtime exception: * cannot be specified with other labels
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["Student", "Teacher"], ["KNOWS", "*"]);
+---- error
+Runtime exception: * cannot be specified with other labels
