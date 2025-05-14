@@ -94,12 +94,13 @@ static std::unordered_set<std::string> getLabelsInNeo4j(httplib::Client& cli,
     return labels;
 }
 
-static void addLabel(httplib::Client& cli, common::TableType tableType, std::string& label, std::vector<std::string>& labels)
-{
+static void addLabel(httplib::Client& cli, common::TableType tableType, std::string& label,
+    std::vector<std::string>& labels) {
 
     // Importing multi-label nodes is not supported right now.
     if (tableType == common::TableType::NODE) {
-        auto res = executeNeo4jQuery(cli, stringFormat("match (n:{}) where size(labels(n)) > 1 return labels(n) limit 1", label));
+        auto res = executeNeo4jQuery(cli,
+            stringFormat("match (n:{}) where size(labels(n)) > 1 return labels(n) limit 1", label));
         if (!res.empty()) {
             auto row = res[0]["row"];
             throw common::RuntimeException{common::stringFormat(
@@ -110,30 +111,26 @@ static void addLabel(httplib::Client& cli, common::TableType tableType, std::str
     labels.push_back(std::move(label));
 }
 
-
 static std::vector<std::string> getNodeOrRels(httplib::Client& cli, common::TableType tableType,
     std::shared_ptr<binder::Expression> expression) {
     auto labelsInNeo4j = getLabelsInNeo4j(cli, tableType);
     std::vector<std::string> labels;
     auto labelVals = expression->constPtrCast<binder::LiteralExpression>()->getValue();
 
-    // Check for kleene star. In this case we add all known labels 
+    // Check for kleene star. In this case we add all known labels
     for (auto i = 0u; i < labelVals.getChildrenSize(); i++) {
         auto label = NestedVal::getChildVal(&labelVals, i)->toString();
-        if (label == "*")
-        {
-            for(auto label : labelsInNeo4j)
-            {
+        if (label == "*") {
+            for (auto label : labelsInNeo4j) {
                 addLabel(cli, tableType, label, labels);
             }
             return labels;
         }
     }
 
-
     for (auto i = 0u; i < labelVals.getChildrenSize(); i++) {
         auto label = NestedVal::getChildVal(&labelVals, i)->toString();
-         if (!labelsInNeo4j.contains(label)) {
+        if (!labelsInNeo4j.contains(label)) {
             throw common::RuntimeException{common::stringFormat("{} '{}' does not exist in neo4j.",
                 TableTypeUtils::toString(tableType), label)};
         }
