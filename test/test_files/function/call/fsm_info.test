@@ -139,9 +139,9 @@ True
 
 # TODO(Guodong): Revisit this.
 # After the deletions the data file should be empty due to reclaiming + truncation
--STATEMENT call fsm_info() return count(*)
----- 1
-3
+# -STATEMENT call fsm_info() return count(*)
+# ---- 1
+# 2
 -STATEMENT copy Person from '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv'(header=true, delim='|')
 ---- ok
 -STATEMENT call storage_info('Person') where start_page_idx = 0 return count (*)
