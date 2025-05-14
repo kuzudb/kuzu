@@ -130,8 +130,7 @@ static std::vector<std::string> getNodeOrRels(httplib::Client& cli, common::Tabl
         auto label = NestedVal::getChildVal(&labelVals, i)->toString();
         if (label == "*") {
             throw common::RuntimeException{"* cannot be specified with other labels"};
-        }
-        else if (!labelsInNeo4j.contains(label)) {
+        } else if (!labelsInNeo4j.contains(label)) {
             throw common::RuntimeException{common::stringFormat("{} '{}' does not exist in neo4j.",
                 TableTypeUtils::toString(tableType), label)};
         }
