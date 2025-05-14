@@ -293,6 +293,9 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
 
     auto parsingOptions = options_t{}; // temp
     // first column is primary key column temporarily for now
+    if (columnNames.empty()) {
+        throw BinderException("Subquery returns no columns");
+    }
     auto pkName = columnNames[0];
     auto createInfo = createTable->getInfo();
     auto boundCopyFromInfo = bindCopyNodeFromInfo(createInfo->tableName,
