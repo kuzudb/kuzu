@@ -3,6 +3,9 @@
 
 --
 
+
+# Using DATA B from neo4j.cypher
+
 -CASE MigrateFromNeo4jDocSample
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok

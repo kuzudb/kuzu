@@ -4,6 +4,8 @@
 
 --
 
+# Using DATA A from neo4j.cypher
+
 -DEFINE_STATEMENT_BLOCK CLEAN_DB [
 -STATEMENT DROP TABLE IF EXISTS knows
 ---- ok

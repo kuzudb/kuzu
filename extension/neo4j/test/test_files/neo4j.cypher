@@ -1,5 +1,7 @@
 // sudo docker run -it --rm --name neo4j --publish=7474:7474 --publish=7687:7687 --user="$(id -u):$(id -g)" -v /tmp:/tmp -v ~/neo4j/logs:/logs -v ~/neo4j/config:/conf -v ~/neo4j/plugins:/plugins --env NEO4J_AUTH=neo4j/czy990424 --env NEO4J_dbms_usage__report_enabled=false --env NEO4J_server_memory_pagecache_size=4G --env NEO4J_server_memory_heap_max__size=4G -e NEO4J_dbms_security_procedures_unrestricted=gds.\* -e NEO4J_apoc_export_file_enabled=true -e NEO4J_apoc_import_file_use__neo4j__config=false -e JAVA_OPTS=--add-opens=java.base/java.nio=ALL-UNNAMED neo4j:latest
 MATCH ()-[r]->() delete r; MATCH (n) delete n;
+
+// DATA A
 CREATE
     (a:Student {type: 1, active: true, age: 35, dob: date("1900-01-01"), height: 5.0, name: "Alice", scores: [96,54,86,92], ratio: 1.731, rank: 0, graduated: false, duration: "3 years 2 days 13 hours 2 minutes", timestamp: datetime("2011-08-20T11:25:30"), uuid: "A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11", nicknames: ["Aida"], tags: [10,5]}),
     (b:Student {type: 2, active: true, age: 30, dob: date("1900-01-01"), height: 5.1, name: "Bob", scores: [98,42,93,88], ratio: 0.99, rank: 2, graduated: false, duration: "10 years 5 months 13 hours 24 us", timestamp: datetime("2008-11-03T15:25:30.000526"), uuid: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", nicknames: ["Bobby"], tags: [12,8]}),
@@ -35,7 +37,7 @@ CREATE
     (:TwoLabels1:TwoLabels2)-[:KNOWS2]->()
 ;
 
-
+// DATA B
 CREATE (u:User {name: 'Adam', age: 30});
 CREATE (u:User {name: 'Karissa', age: 40});
 CREATE (u:User {name: 'Zhang', age: 50});
