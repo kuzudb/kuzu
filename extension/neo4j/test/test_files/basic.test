@@ -4,6 +4,8 @@
 
 --
 
+# Using DATA A from neo4j.cypher
+
 -DEFINE_STATEMENT_BLOCK CLEAN_DB [
 -STATEMENT DROP TABLE IF EXISTS knows
 ---- ok
@@ -65,6 +67,29 @@ unknown
 3|0|79|
 5|0||teach
 6|0||teach
+
+-INSERT_STATEMENT_BLOCK CLEAN_DB
+
+-STATEMENT CALL NEO4J_MIGRATE("http://localhost:7474", "neo4j", "czy990424", ["Student", "Teacher"], ["*"]);
+---- 18
+Student|scores|INT64[]|["LongArray"]   
+Student|active|BOOL|["Boolean"]     
+Student|type|INT64|["Long"]        
+Student|uuid|STRING|["String"]      
+Student|tags|INT64[]|["LongArray"]   
+Student|duration|STRING |["String"]      
+Student|dob|DATE|["Date"]        
+Student|graduated|BOOL|["Boolean"]     
+Student|name|STRING|["String"]      
+Student|rank|INT64|["Long"]        
+Student|nicknames|STRING[]|["StringArray"] 
+Student|age|INT64|["Long"]        
+Student|timestamp|TIMESTAMP|["DateTime"]    
+Student|height|DOUBLE|["Double"]      
+Student|ratio|DOUBLE|["Double"]      
+Teacher|code|STRING|["String"]      
+KNOWS_Student_Student|length|INT64|["Long"]        
+KNOWS_Teacher_Student|reason|STRING|["String"]
 
 -INSERT_STATEMENT_BLOCK CLEAN_DB
 
