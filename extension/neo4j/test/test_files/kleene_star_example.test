@@ -3,7 +3,7 @@
 
 --
 
--CASE MigrateFromNeo4jDocSample
+-CASE MigrateFromNeo4jDocSampleUsingKleeneStar
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
 -STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["*"], ["*"]);
