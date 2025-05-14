@@ -31,13 +31,28 @@ Follows_User_User|since|INT64|["Long"]
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok
 -STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["*"], ["*"]);
----- ok
+---- 5
+City|name|STRING|["String"]
+City|population|INT64|["Long"]
+User|name|STRING|["String"]
+User|age|INT64|["Long"]
+Follows_User_User|since|INT64|["Long"]
+
 -STATEMENT CALL SHOW_TABLES() RETURN *;
----- 4
-0|User|NODE|local(kuzu)|
-1|City|NODE|local(kuzu)|
-2|Follows|REL|local(kuzu)|
-3|LivesIn|REL|local(kuzu)|
+---- 8
+0|okLabel|NODE|local(kuzu)|
+3|badLabel|NODE|local(kuzu)|
+1|greatLabel|NODE|local(kuzu)|
+6|Follows|REL|local(kuzu)|
+4|User|NODE|local(kuzu)|
+2|City|NODE|local(kuzu)|
+5|LivesIn|REL|local(kuzu)|
+7|RANDOMREl|REL|local(kuzu)|
+
 -STATEMENT match (u:User)-[f:Follows]->(u1:User) return max(f.since);
 ---- 1
 2022
+
+-STATEMENT match (a)-[:RANDOMREL]->(b) return a._id_;
+---- 1
+13
