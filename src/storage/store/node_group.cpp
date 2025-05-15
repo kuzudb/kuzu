@@ -499,7 +499,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
             chunkCheckpointStates.push_back(ChunkCheckpointState{
                 insertChunkedGroup->moveColumnChunk(columnID), numPersistentRows, numInsertedRows});
         }
-        state.columns[i]->checkpointColumnChunk(firstGroup->getColumnChunk(columnID),
+        firstGroup->getColumnChunk(columnID).checkpoint(*state.columns[i],
             std::move(chunkCheckpointStates));
     }
     auto checkpointedChunkedGroup =

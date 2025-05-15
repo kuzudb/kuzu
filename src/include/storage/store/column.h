@@ -86,9 +86,6 @@ public:
         const uint8_t* data, const common::NullMask* nullChunkData,
         common::offset_t numValues) const;
 
-    void checkpointColumnChunk(ColumnChunk& persistentData,
-        std::vector<ChunkCheckpointState> chunkCheckpointStates) const;
-
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
@@ -97,6 +94,8 @@ public:
     const TARGET& cast() const {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
+
+    virtual void checkpointSegment(ColumnCheckpointState&& checkpointState) const;
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
@@ -133,8 +132,6 @@ protected:
 
     void checkpointColumnChunkOutOfPlace(const ChunkState& state,
         const ColumnCheckpointState& checkpointState) const;
-
-    virtual void checkpointSegment(ColumnCheckpointState&& checkpointState) const;
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {

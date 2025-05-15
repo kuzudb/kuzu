@@ -368,5 +368,46 @@ void ColumnChunk::write(Column& column, ChunkState& state, offset_t dstOffset,
     }
 }
 
+void ColumnChunk::checkpoint(Column& column,
+    std::vector<ChunkCheckpointState>&& chunkCheckpointStates) {
+    // TODO: maintain 64K of values in each segment. Values within a segement get updated in-place,
+    // if appending to the last one would go over the limit, create a new segment
+    // TODO(bmwinger): how will this differ from segmentation by size?
+    //  - Divide up new data by the current segment they map to
+    //  - Check if checkpointing can be done in-place for each existing segment
+    //  - Any segments which can't be checkpointed in-place get split in half
+    offset_t segmentStart = 0;
+    for (size_t i = 0; i < data.size(); i++) {
+        std::vector<SegmentCheckpointState> segmentCheckpointStates;
+        auto& segment = data[i];
+        for (auto& state : chunkCheckpointStates) {
+            if (state.startRow < segmentStart + segment->getNumValues() &&
+                state.startRow + state.numRows > segmentStart) {
+                auto startOffsetInSegment = state.startRow - segmentStart;
+                uint64_t startRowInChunk = 0;
+                if (state.startRow < segmentStart) {
+                    startRowInChunk = segmentStart - state.startRow;
+                }
+                segmentCheckpointStates.push_back(
+                    {*state.chunkData, startRowInChunk, startOffsetInSegment,
+                        std::min(state.numRows - startRowInChunk,
+                            segment->getNumValues() - startOffsetInSegment)});
+            }
+            // Append new data to the end of the last segment
+            // TODO: Create a new segment if the last segment is too large
+            if (i == data.size() - 1 &&
+                state.startRow + state.numRows > segmentStart + segment->getNumValues()) {
+                auto startOffsetInSegment = segment->getNumValues();
+                auto startRowInChunk = segmentStart + segment->getNumValues() - state.startRow;
+                segmentCheckpointStates.push_back({*state.chunkData, startRowInChunk,
+                    startOffsetInSegment, state.numRows - startRowInChunk});
+            }
+        }
+        column.checkpointSegment(
+            ColumnCheckpointState(*segment, std::move(segmentCheckpointStates)));
+        segmentStart += segment->getNumValues();
+    }
+}
+
 } // namespace storage
 } // namespace kuzu
