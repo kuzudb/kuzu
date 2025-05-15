@@ -10,29 +10,29 @@ public class FlatTuple implements AutoCloseable {
     /**
      * Check if the flat tuple has been destroyed.
      *
-     * @throws ObjectRefDestroyedException If the flat tuple has been destroyed.
+     * @throws RuntimeException If the flat tuple has been destroyed.
      */
-    private void checkNotDestroyed() throws ObjectRefDestroyedException {
+    private void checkNotDestroyed() throws RuntimeException {
         if (destroyed)
-            throw new ObjectRefDestroyedException("FlatTuple has been destroyed.");
+            throw new RuntimeException("FlatTuple has been destroyed.");
     }
 
     /**
      * Close the flat tuple and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
      *
-     * @throws ObjectRefDestroyedException If the flat tuple has been destroyed.
+     * @throws RuntimeException If the flat tuple has been destroyed.
      */
     @Override
-    public void close() throws ObjectRefDestroyedException {
+    public void close() throws RuntimeException {
         destroy();
     }
 
     /**
      * Destroy the flat tuple.
      *
-     * @throws ObjectRefDestroyedException If the flat tuple has been destroyed.
+     * @throws RuntimeException If the flat tuple has been destroyed.
      */
-    private void destroy() throws ObjectRefDestroyedException {
+    private void destroy() throws RuntimeException {
         checkNotDestroyed();
         Native.kuzu_flat_tuple_destroy(this);
         destroyed = true;
@@ -43,9 +43,9 @@ public class FlatTuple implements AutoCloseable {
      *
      * @param index: The index of the value.
      * @return The value at the given index.
-     * @throws ObjectRefDestroyedException If the flat tuple has been destroyed.
+     * @throws RuntimeException If the flat tuple has been destroyed.
      */
-    public Value getValue(long index) throws ObjectRefDestroyedException {
+    public Value getValue(long index) throws RuntimeException {
         checkNotDestroyed();
         return Native.kuzu_flat_tuple_get_value(this, index);
     }

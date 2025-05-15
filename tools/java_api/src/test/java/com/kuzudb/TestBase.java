@@ -18,14 +18,14 @@ public class TestBase {
     static Path tempDir;
 
     @BeforeAll
-    static void getDBandConn() throws IOException, ObjectRefDestroyedException {
+    static void getDBandConn() throws IOException, RuntimeException {
         TestHelper.loadData(tempDir.toFile().getAbsolutePath());
         db = TestHelper.getDatabase();
         conn = TestHelper.getConnection();
     }
 
     @AfterAll
-    static void destroyDBandConn() throws ObjectRefDestroyedException {
+    static void destroyDBandConn() throws RuntimeException {
         try {
             db.close();
             conn.close();

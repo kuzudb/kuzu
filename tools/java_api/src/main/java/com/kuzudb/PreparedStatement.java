@@ -10,29 +10,29 @@ public class PreparedStatement implements AutoCloseable {
     /**
      * Check if the prepared statement has been destroyed.
      *
-     * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
+     * @throws RuntimeException If the prepared statement has been destroyed.
      */
-    private void checkNotDestroyed() throws ObjectRefDestroyedException {
+    private void checkNotDestroyed() throws RuntimeException {
         if (destroyed)
-            throw new ObjectRefDestroyedException("PreparedStatement has been destroyed.");
+            throw new RuntimeException("PreparedStatement has been destroyed.");
     }
 
     /**
      * Close the prepared statement and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
      *
-     * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
+     * @throws RuntimeException If the prepared statement has been destroyed.
      */
     @Override
-    public void close() throws ObjectRefDestroyedException {
+    public void close() throws RuntimeException {
         destroy();
     }
 
     /**
      * Destroy the prepared statement.
      *
-     * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
+     * @throws RuntimeException If the prepared statement has been destroyed.
      */
-    private void destroy() throws ObjectRefDestroyedException {
+    private void destroy() throws RuntimeException {
         checkNotDestroyed();
         Native.kuzu_prepared_statement_destroy(this);
         destroyed = true;
@@ -42,9 +42,9 @@ public class PreparedStatement implements AutoCloseable {
      * Check if the query is prepared successfully or not.
      *
      * @return The query is prepared successfully or not.
-     * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
+     * @throws RuntimeException If the prepared statement has been destroyed.
      */
-    public boolean isSuccess() throws ObjectRefDestroyedException {
+    public boolean isSuccess() throws RuntimeException {
         checkNotDestroyed();
         return Native.kuzu_prepared_statement_is_success(this);
     }
@@ -53,9 +53,9 @@ public class PreparedStatement implements AutoCloseable {
      * Get the error message if the query is not prepared successfully.
      *
      * @return The error message if the query is not prepared successfully.
-     * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
+     * @throws RuntimeException If the prepared statement has been destroyed.
      */
-    public String getErrorMessage() throws ObjectRefDestroyedException {
+    public String getErrorMessage() throws RuntimeException {
         checkNotDestroyed();
         return Native.kuzu_prepared_statement_get_error_message(this);
     }

@@ -41,9 +41,9 @@ public class KuzuList implements AutoCloseable {
      * Get the size of the list.
      *
      * @return The size of the list.
-     * @throws ObjectRefDestroyedException If the list has been destroyed.
+     * @throws RuntimeException If the list has been destroyed.
      */
-    public long getListSize() throws ObjectRefDestroyedException {
+    public long getListSize() throws RuntimeException {
         listVal.checkNotDestroyed();
         return Native.kuzu_value_get_list_size(listVal);
     }
@@ -53,9 +53,9 @@ public class KuzuList implements AutoCloseable {
      *
      * @param index: The index of the element.
      * @return The element at the given index from the given list.
-     * @throws ObjectRefDestroyedException If the list has been destroyed.
+     * @throws RuntimeException If the list has been destroyed.
      */
-    public Value getListElement(long index) throws ObjectRefDestroyedException {
+    public Value getListElement(long index) throws RuntimeException {
         listVal.checkNotDestroyed();
         return Native.kuzu_value_get_list_element(listVal, index);
     }
@@ -65,9 +65,9 @@ public class KuzuList implements AutoCloseable {
      * size of the list doesn't fit in a 32-bit integer.
      *
      * @return the list as a Java array
-     * @throws ObjectRefDestroyedException
+     * @throws RuntimeException
      */
-    public Value[] toArray() throws ObjectRefDestroyedException {
+    public Value[] toArray() throws RuntimeException {
         int arraySize = ((Long) getListSize()).intValue();
         Value[] ret = new Value[arraySize];
         for (int i = 0; i < arraySize; ++i) {
@@ -79,9 +79,9 @@ public class KuzuList implements AutoCloseable {
     /**
      * Closes this object, relinquishing the underlying value
      *
-     * @throws ObjectRefDestroyedException
+     * @throws RuntimeException
      */
-    public void close() throws ObjectRefDestroyedException {
+    public void close() throws RuntimeException {
         listVal.close();
     }
 }

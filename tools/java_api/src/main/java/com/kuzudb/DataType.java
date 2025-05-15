@@ -24,29 +24,29 @@ public class DataType implements AutoCloseable {
     /**
      * Checks if the database instance has been destroyed.
      *
-     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
+     * @throws RuntimeException If the data type instance has been destroyed.
      */
-    private void checkNotDestroyed() throws ObjectRefDestroyedException {
+    private void checkNotDestroyed() throws RuntimeException {
         if (destroyed)
-            throw new ObjectRefDestroyedException("DataType has been destroyed.");
+            throw new RuntimeException("DataType has been destroyed.");
     }
 
     /**
      * Close the datatype and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
      *
-     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
+     * @throws RuntimeException If the data type instance has been destroyed.
      */
     @Override
-    public void close() throws ObjectRefDestroyedException {
+    public void close() throws RuntimeException {
         destroy();
     }
 
     /**
      * Destroy the data type instance.
      *
-     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
+     * @throws RuntimeException If the data type instance has been destroyed.
      */
-    private void destroy() throws ObjectRefDestroyedException {
+    private void destroy() throws RuntimeException {
         checkNotDestroyed();
         Native.kuzu_data_type_destroy(this);
         destroyed = true;
@@ -69,9 +69,9 @@ public class DataType implements AutoCloseable {
      *
      * @param other The other data type to compare with.
      * @return If the given data type is equal to the other data type or not.
-     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
+     * @throws RuntimeException If the data type instance has been destroyed.
      */
-    public boolean equals(DataType other) throws ObjectRefDestroyedException {
+    public boolean equals(DataType other) throws RuntimeException {
         checkNotDestroyed();
         return Native.kuzu_data_type_equals(this, other);
     }
@@ -80,9 +80,9 @@ public class DataType implements AutoCloseable {
      * Returns the enum internal id of the given data type.
      *
      * @return The enum internal id of the given data type.
-     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
+     * @throws RuntimeException If the data type instance has been destroyed.
      */
-    public DataTypeID getID() throws ObjectRefDestroyedException {
+    public DataTypeID getID() throws RuntimeException {
         checkNotDestroyed();
         return Native.kuzu_data_type_get_id(this);
     }
@@ -91,9 +91,9 @@ public class DataType implements AutoCloseable {
      * Returns the child type of the given data type.
      *
      * @return The child type of the given data type.
-     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
+     * @throws RuntimeException If the data type instance has been destroyed.
      */
-    public DataType getChildType() throws ObjectRefDestroyedException {
+    public DataType getChildType() throws RuntimeException {
         checkNotDestroyed();
         return Native.kuzu_data_type_get_child_type(this);
     }
@@ -102,9 +102,9 @@ public class DataType implements AutoCloseable {
      * Returns the fixed number of elements in the list of the given data type.
      *
      * @return The fixed number of elements in the list of the given data type.
-     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
+     * @throws RuntimeException If the data type instance has been destroyed.
      */
-    public long getFixedNumElementsInList() throws ObjectRefDestroyedException {
+    public long getFixedNumElementsInList() throws RuntimeException {
         checkNotDestroyed();
         return Native.kuzu_data_type_get_num_elements_in_array(this);
     }

@@ -10,9 +10,9 @@ public class ValueRelUtil {
      *
      * @param value: The rel value.
      * @return The id of the given rel value.
-     * @throws ObjectRefDestroyedException If the rel value has been destroyed.
+     * @throws RuntimeException If the rel value has been destroyed.
      */
-    public static InternalID getID(Value value) throws ObjectRefDestroyedException {
+    public static InternalID getID(Value value) throws RuntimeException {
         value.checkNotDestroyed();
         return Native.kuzu_rel_val_get_id(value);
     }
@@ -22,9 +22,9 @@ public class ValueRelUtil {
      *
      * @param value: The rel value.
      * @return The src id of the given rel value.
-     * @throws ObjectRefDestroyedException If the rel value has been destroyed.
+     * @throws RuntimeException If the rel value has been destroyed.
      */
-    public static InternalID getSrcID(Value value) throws ObjectRefDestroyedException {
+    public static InternalID getSrcID(Value value) throws RuntimeException {
         value.checkNotDestroyed();
         return Native.kuzu_rel_val_get_src_id(value);
     }
@@ -34,9 +34,9 @@ public class ValueRelUtil {
      *
      * @param value: The rel value.
      * @return The dst id of the given rel value.
-     * @throws ObjectRefDestroyedException If the rel value has been destroyed.
+     * @throws RuntimeException If the rel value has been destroyed.
      */
-    public static InternalID getDstID(Value value) throws ObjectRefDestroyedException {
+    public static InternalID getDstID(Value value) throws RuntimeException {
         value.checkNotDestroyed();
         return Native.kuzu_rel_val_get_dst_id(value);
     }
@@ -46,9 +46,9 @@ public class ValueRelUtil {
      *
      * @param value: The rel value.
      * @return The label name of the rel value.
-     * @throws ObjectRefDestroyedException If the rel value has been destroyed.
+     * @throws RuntimeException If the rel value has been destroyed.
      */
-    public static String getLabelName(Value value) throws ObjectRefDestroyedException {
+    public static String getLabelName(Value value) throws RuntimeException {
         value.checkNotDestroyed();
         return Native.kuzu_rel_val_get_label_name(value);
     }
@@ -58,9 +58,9 @@ public class ValueRelUtil {
      *
      * @param value: The rel value.
      * @return The property size of the rel value.
-     * @throws ObjectRefDestroyedException If the rel value has been destroyed.
+     * @throws RuntimeException If the rel value has been destroyed.
      */
-    public static long getPropertySize(Value value) throws ObjectRefDestroyedException {
+    public static long getPropertySize(Value value) throws RuntimeException {
         value.checkNotDestroyed();
         return Native.kuzu_rel_val_get_property_size(value);
     }
@@ -71,9 +71,9 @@ public class ValueRelUtil {
      * @param value: The rel value.
      * @param index: The index of the property.
      * @return The property name at the given index from the given rel value.
-     * @throws ObjectRefDestroyedException If the rel value has been destroyed.
+     * @throws RuntimeException If the rel value has been destroyed.
      */
-    public static String getPropertyNameAt(Value value, long index) throws ObjectRefDestroyedException {
+    public static String getPropertyNameAt(Value value, long index) throws RuntimeException {
         value.checkNotDestroyed();
         return Native.kuzu_rel_val_get_property_name_at(value, index);
     }
@@ -84,9 +84,9 @@ public class ValueRelUtil {
      * @param value: The rel value.
      * @param index: The index of the property.
      * @return The property value at the given index from the given rel value.
-     * @throws ObjectRefDestroyedException If the rel value has been destroyed.
+     * @throws RuntimeException If the rel value has been destroyed.
      */
-    public static Value getPropertyValueAt(Value value, long index) throws ObjectRefDestroyedException {
+    public static Value getPropertyValueAt(Value value, long index) throws RuntimeException {
         value.checkNotDestroyed();
         return Native.kuzu_rel_val_get_property_value_at(value, index);
     }
@@ -96,9 +96,9 @@ public class ValueRelUtil {
      *
      * @param value: The rel value.
      * @return The given rel value in string format.
-     * @throws ObjectRefDestroyedException If the rel value has been destroyed.
+     * @throws RuntimeException If the rel value has been destroyed.
      */
-    public static String toString(Value value) throws ObjectRefDestroyedException {
+    public static String toString(Value value) throws RuntimeException {
         value.checkNotDestroyed();
         return Native.kuzu_rel_val_to_string(value);
     }

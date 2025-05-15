@@ -9,10 +9,10 @@ public class ValueRecursiveRelUtil {
      *
      * @param value: The recursive_rel value.
      * @return The node list from the given recursive_rel value.
-     * @throws ObjectRefDestroyedException If the recursive_rel value has been
+     * @throws RuntimeException If the recursive_rel value has been
      *                                     destroyed.
      */
-    public static Value getNodeList(Value value) throws ObjectRefDestroyedException {
+    public static Value getNodeList(Value value) throws RuntimeException {
         return new KuzuStruct(value).getValueByIndex(0);
     }
 
@@ -21,10 +21,10 @@ public class ValueRecursiveRelUtil {
      *
      * @param value: The recursive_rel value.
      * @return The rel list from the given recursive_rel value.
-     * @throws ObjectRefDestroyedException If the recursive_rel value has been
+     * @throws RuntimeException If the recursive_rel value has been
      *                                     destroyed.
      */
-    public static Value getRelList(Value value) throws ObjectRefDestroyedException {
+    public static Value getRelList(Value value) throws RuntimeException {
         return new KuzuStruct(value).getValueByIndex(1);
     }
 }

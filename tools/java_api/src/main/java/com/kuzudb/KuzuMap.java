@@ -26,7 +26,7 @@ public class KuzuMap implements AutoCloseable {
      * @param keys:   The keys in the map
      * @param values: The values in the map
      */
-    public KuzuMap(Value[] keys, Value[] values) throws ObjectRefDestroyedException {
+    public KuzuMap(Value[] keys, Value[] values) throws RuntimeException {
         if (keys.length != values.length) {
             mapVal = null;
             return;
@@ -38,7 +38,7 @@ public class KuzuMap implements AutoCloseable {
         mapVal = Native.kuzu_create_map(keys, values);
     }
 
-    private Value getMapKeyOrValue(long index, boolean isKey) throws ObjectRefDestroyedException {
+    private Value getMapKeyOrValue(long index, boolean isKey) throws RuntimeException {
         if (index < 0 || index >= getNumFields()) {
             return null;
         }
@@ -50,9 +50,9 @@ public class KuzuMap implements AutoCloseable {
 
     /**
      * @return The number of fields in the map.
-     * @throws ObjectRefDestroyedException If the map has been destroyed.
+     * @throws RuntimeException If the map has been destroyed.
      */
-    public long getNumFields() throws ObjectRefDestroyedException {
+    public long getNumFields() throws RuntimeException {
         if (mapVal == null) {
             return 0;
         }
@@ -64,9 +64,9 @@ public class KuzuMap implements AutoCloseable {
      *
      * @param index: The index of the key.
      * @return The key.
-     * @throws ObjectRefDestroyedException If the map has been destroyed.
+     * @throws RuntimeException If the map has been destroyed.
      */
-    public Value getKey(long index) throws ObjectRefDestroyedException {
+    public Value getKey(long index) throws RuntimeException {
         return getMapKeyOrValue(index, true);
     }
 
@@ -75,18 +75,18 @@ public class KuzuMap implements AutoCloseable {
      *
      * @param index: The index of the value.
      * @return The value.
-     * @throws ObjectRefDestroyedException If the map value has been destroyed.
+     * @throws RuntimeException If the map value has been destroyed.
      */
-    public Value getValue(long index) throws ObjectRefDestroyedException {
+    public Value getValue(long index) throws RuntimeException {
         return getMapKeyOrValue(index, false);
     }
 
     /**
      * Closes this object, relinquishing the underlying value
      *
-     * @throws ObjectRefDestroyedException
+     * @throws RuntimeException
      */
-    public void close() throws ObjectRefDestroyedException {
+    public void close() throws RuntimeException {
         mapVal.close();
     }
 }

@@ -21,7 +21,7 @@ public class ConnectionTest extends TestBase {
         try (Connection conn = new Connection(db)) {
         } catch (AssertionError e) {
             fail("ConnCreationAndDestroy failed");
-        } catch (ObjectRefDestroyedException e) {
+        } catch (RuntimeException e) {
             fail("ConnCreationAndDestroy failed");
         }
     }
@@ -30,13 +30,13 @@ public class ConnectionTest extends TestBase {
     void ConnInvalidDB() {
         try {
             Connection conn = new Connection(null);
-            fail("DBInvalidPath did not throw ObjectRefDestroyedException as expected.");
+            fail("DBInvalidPath did not throw RuntimeException as expected.");
         } catch (AssertionError e) {
         }
     }
 
     @Test
-    void ConnQuery() throws ObjectRefDestroyedException {
+    void ConnQuery() throws RuntimeException {
         String query = "MATCH (a:person) RETURN a.fName;";
         try (QueryResult result = conn.query(query)) {
             assertNotNull(result);
@@ -50,7 +50,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnSetGetMaxNumThreadForExec() throws ObjectRefDestroyedException {
+    void ConnSetGetMaxNumThreadForExec() throws RuntimeException {
         conn.setMaxNumThreadForExec(4);
         assertEquals(conn.getMaxNumThreadForExec(), 4);
         conn.setMaxNumThreadForExec(8);
@@ -58,7 +58,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareBool() throws ObjectRefDestroyedException {
+    void ConnPrepareBool() throws RuntimeException {
         String query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("1", new Value(true));
@@ -77,7 +77,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareInt64() throws ObjectRefDestroyedException {
+    void ConnPrepareInt64() throws RuntimeException {
         String query = "MATCH (a:person) WHERE a.age > $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
 
@@ -98,7 +98,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareInt32() throws ObjectRefDestroyedException {
+    void ConnPrepareInt32() throws RuntimeException {
         String query = "MATCH (a:movies) WHERE a.length > $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("1", new Value((int) 200));
@@ -117,7 +117,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareInt16() throws ObjectRefDestroyedException {
+    void ConnPrepareInt16() throws RuntimeException {
         String query = "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.length > $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("1", new Value((short) 10));
@@ -136,7 +136,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareDouble() throws ObjectRefDestroyedException {
+    void ConnPrepareDouble() throws RuntimeException {
         String query = "MATCH (a:person) WHERE a.eyeSight > $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("1", new Value((double) 4.5));
@@ -155,7 +155,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareFloat() throws ObjectRefDestroyedException {
+    void ConnPrepareFloat() throws RuntimeException {
         String query = "MATCH (a:person) WHERE a.height < $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("1", new Value((float) 1.0));
@@ -174,7 +174,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareString() throws ObjectRefDestroyedException {
+    void ConnPrepareString() throws RuntimeException {
         String query = "MATCH (a:person) WHERE a.fName = $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("1", new Value("Alice"));
@@ -193,7 +193,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareDate() throws ObjectRefDestroyedException {
+    void ConnPrepareDate() throws RuntimeException {
         String query = "MATCH (a:person) WHERE a.birthdate > $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("1", new Value(LocalDate.ofEpochDay(0)));
@@ -212,7 +212,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareTimeStamp() throws ObjectRefDestroyedException {
+    void ConnPrepareTimeStamp() throws RuntimeException {
         String query = "MATCH (a:person) WHERE a.registerTime > $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("1", new Value(Instant.EPOCH));
@@ -231,7 +231,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareInterval() throws ObjectRefDestroyedException {
+    void ConnPrepareInterval() throws RuntimeException {
         String query = "MATCH (a:person) WHERE a.lastJobDuration > $1 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("1", new Value(Duration.ofDays(3650)));
@@ -250,7 +250,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareMultiParam() throws ObjectRefDestroyedException {
+    void ConnPrepareMultiParam() throws RuntimeException {
         String query = "MATCH (a:person) WHERE a.lastJobDuration > $1 AND a.fName = $2 RETURN COUNT(*)";
         Map<String, Value> m = new HashMap<String, Value>();
         Value v1 = new Value(Duration.ofDays(730));
@@ -277,7 +277,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnPrepareLimit() throws ObjectRefDestroyedException {
+    void ConnPrepareLimit() throws RuntimeException {
         String query = "MATCH (a:person) RETURN a.ID LIMIT $lt";
         Map<String, Value> m = new HashMap<String, Value>();
         m.put("lt", new Value((int) 2));
@@ -298,7 +298,7 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnQueryTimeout() throws ObjectRefDestroyedException {
+    void ConnQueryTimeout() throws RuntimeException {
         conn.setQueryTimeout(1);
         try (QueryResult result = conn.query("UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);")) {
             assertNotNull(result);

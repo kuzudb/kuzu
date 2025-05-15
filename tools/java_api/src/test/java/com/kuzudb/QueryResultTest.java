@@ -13,7 +13,7 @@ public class QueryResultTest extends TestBase {
     @TempDir
     static Path tempDir;
 
-    List<Value> copyFlatTuple(FlatTuple tuple, long tupleLen) throws ObjectRefDestroyedException {
+    List<Value> copyFlatTuple(FlatTuple tuple, long tupleLen) throws RuntimeException {
         List<Value> ret = new ArrayList<Value>();
         for (int i = 0; i < tupleLen; i++) {
             ret.add(tuple.getValue(i).clone());
@@ -22,7 +22,7 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetNextExample() throws ObjectRefDestroyedException {
+    void QueryResultGetNextExample() throws RuntimeException {
         QueryResult result = conn.query("MATCH (p:person) RETURN p.*");
         List<List<Value>> tuples = new ArrayList<List<Value>>();
         while (result.hasNext()) {
@@ -38,7 +38,7 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetErrorMessage() throws ObjectRefDestroyedException {
+    void QueryResultGetErrorMessage() throws RuntimeException {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN COUNT(*)")) {
             assertTrue(result.isSuccess());
             String errorMessage = result.getErrorMessage();
@@ -53,7 +53,7 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetNumColumns() throws ObjectRefDestroyedException {
+    void QueryResultGetNumColumns() throws RuntimeException {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height")) {
             assertTrue(result.isSuccess());
             assertEquals(result.getNumColumns(), 3);
@@ -61,7 +61,7 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetColumnName() throws ObjectRefDestroyedException {
+    void QueryResultGetColumnName() throws RuntimeException {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height")) {
             assertTrue(result.isSuccess());
 
@@ -80,7 +80,7 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetColumnDataType() throws ObjectRefDestroyedException {
+    void QueryResultGetColumnDataType() throws RuntimeException {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height, cast(1 as decimal)")) {
             assertTrue(result.isSuccess());
 
@@ -106,7 +106,7 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetQuerySummary() throws ObjectRefDestroyedException {
+    void QueryResultGetQuerySummary() throws RuntimeException {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height")) {
             assertTrue(result.isSuccess());
 
@@ -122,7 +122,7 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetNext() throws ObjectRefDestroyedException {
+    void QueryResultGetNext() throws RuntimeException {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName")) {
             assertTrue(result.isSuccess());
 
@@ -143,7 +143,7 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultResetIterator() throws ObjectRefDestroyedException {
+    void QueryResultResetIterator() throws RuntimeException {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
@@ -165,7 +165,7 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void getMultipleQueryResult() throws ObjectRefDestroyedException {
+    void getMultipleQueryResult() throws RuntimeException {
         try (QueryResult result = conn.query("return 1; return 2; return 3;")) {
             assertTrue(result.isSuccess());
             String str = result.toString();
