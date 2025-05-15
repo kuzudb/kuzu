@@ -12,7 +12,7 @@ public class PreparedStatement implements AutoCloseable {
      *
      * @throws RuntimeException If the prepared statement has been destroyed.
      */
-    private void checkNotDestroyed() throws RuntimeException {
+    private void checkNotDestroyed() {
         if (destroyed)
             throw new RuntimeException("PreparedStatement has been destroyed.");
     }
@@ -23,7 +23,7 @@ public class PreparedStatement implements AutoCloseable {
      * @throws RuntimeException If the prepared statement has been destroyed.
      */
     @Override
-    public void close() throws RuntimeException {
+    public void close() {
         destroy();
     }
 
@@ -32,7 +32,7 @@ public class PreparedStatement implements AutoCloseable {
      *
      * @throws RuntimeException If the prepared statement has been destroyed.
      */
-    private void destroy() throws RuntimeException {
+    private void destroy() {
         checkNotDestroyed();
         Native.kuzu_prepared_statement_destroy(this);
         destroyed = true;
@@ -44,7 +44,7 @@ public class PreparedStatement implements AutoCloseable {
      * @return The query is prepared successfully or not.
      * @throws RuntimeException If the prepared statement has been destroyed.
      */
-    public boolean isSuccess() throws RuntimeException {
+    public boolean isSuccess() {
         checkNotDestroyed();
         return Native.kuzu_prepared_statement_is_success(this);
     }
@@ -55,7 +55,7 @@ public class PreparedStatement implements AutoCloseable {
      * @return The error message if the query is not prepared successfully.
      * @throws RuntimeException If the prepared statement has been destroyed.
      */
-    public String getErrorMessage() throws RuntimeException {
+    public String getErrorMessage() {
         checkNotDestroyed();
         return Native.kuzu_prepared_statement_get_error_message(this);
     }

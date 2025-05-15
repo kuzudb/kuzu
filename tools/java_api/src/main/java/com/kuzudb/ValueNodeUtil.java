@@ -11,7 +11,7 @@ public class ValueNodeUtil {
      * @return The internal ID of the node value.
      * @throws RuntimeException If the node value has been destroyed.
      */
-    public static InternalID getID(Value value) throws RuntimeException {
+    public static InternalID getID(Value value) {
         value.checkNotDestroyed();
         return Native.kuzu_node_val_get_id(value);
     }
@@ -23,7 +23,7 @@ public class ValueNodeUtil {
      * @return The label name of the node value.
      * @throws RuntimeException If the node value has been destroyed.
      */
-    public static String getLabelName(Value value) throws RuntimeException {
+    public static String getLabelName(Value value) {
         value.checkNotDestroyed();
         return Native.kuzu_node_val_get_label_name(value);
     }
@@ -35,7 +35,7 @@ public class ValueNodeUtil {
      * @return The property size of the node value.
      * @throws RuntimeException If the node value has been destroyed.
      */
-    public static long getPropertySize(Value value) throws RuntimeException {
+    public static long getPropertySize(Value value) {
         value.checkNotDestroyed();
         return Native.kuzu_node_val_get_property_size(value);
     }
@@ -48,7 +48,7 @@ public class ValueNodeUtil {
      * @return The property name at the given index from the given node value.
      * @throws RuntimeException If the node value has been destroyed.
      */
-    public static String getPropertyNameAt(Value value, long index) throws RuntimeException {
+    public static String getPropertyNameAt(Value value, long index) {
         value.checkNotDestroyed();
         return Native.kuzu_node_val_get_property_name_at(value, index);
     }
@@ -61,7 +61,7 @@ public class ValueNodeUtil {
      * @return The property value at the given index from the given node value.
      * @throws RuntimeException If the node value has been destroyed.
      */
-    public static Value getPropertyValueAt(Value value, long index) throws RuntimeException {
+    public static Value getPropertyValueAt(Value value, long index) {
         value.checkNotDestroyed();
         return Native.kuzu_node_val_get_property_value_at(value, index);
     }
@@ -73,7 +73,7 @@ public class ValueNodeUtil {
      * @return The node value in string format.
      * @throws RuntimeException If the node value has been destroyed.
      */
-    public static String toString(Value value) throws RuntimeException {
+    public static String toString(Value value) {
         value.checkNotDestroyed();
         return Native.kuzu_node_val_to_string(value);
     }

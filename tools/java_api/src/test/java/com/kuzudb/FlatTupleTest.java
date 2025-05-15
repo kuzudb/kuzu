@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class FlatTupleTest extends TestBase {
 
     @Test
-    void FlatTupleGetValue() throws RuntimeException {
+    void FlatTupleGetValue() {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height ORDER BY a.fName LIMIT 1")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
@@ -39,7 +39,7 @@ public class FlatTupleTest extends TestBase {
     }
 
     @Test
-    void FlatTupleToString() throws RuntimeException {
+    void FlatTupleToString() {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height ORDER BY a.fName LIMIT 1")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());

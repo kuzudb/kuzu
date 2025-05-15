@@ -12,7 +12,7 @@ public class ValueRecursiveRelUtil {
      * @throws RuntimeException If the recursive_rel value has been
      *                                     destroyed.
      */
-    public static Value getNodeList(Value value) throws RuntimeException {
+    public static Value getNodeList(Value value) {
         return new KuzuStruct(value).getValueByIndex(0);
     }
 
@@ -24,7 +24,7 @@ public class ValueRecursiveRelUtil {
      * @throws RuntimeException If the recursive_rel value has been
      *                                     destroyed.
      */
-    public static Value getRelList(Value value) throws RuntimeException {
+    public static Value getRelList(Value value) {
         return new KuzuStruct(value).getValueByIndex(1);
     }
 }

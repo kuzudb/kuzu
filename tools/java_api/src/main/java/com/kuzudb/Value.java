@@ -13,7 +13,7 @@ public class Value implements AutoCloseable {
      *
      * @throws RuntimeException If the Value has been destroyed.
      */
-    public <T> Value(T val) throws RuntimeException {
+    public <T> Value(T val) {
         checkNotDestroyed();
         v_ref = Native.kuzu_value_create_value(val);
     }
@@ -51,7 +51,7 @@ public class Value implements AutoCloseable {
      *
      * @throws RuntimeException If the Value has been destroyed.
      */
-    public void checkNotDestroyed() throws RuntimeException {
+    public void checkNotDestroyed() {
         if (destroyed)
             throw new RuntimeException("Value has been destroyed.");
     }
@@ -62,7 +62,7 @@ public class Value implements AutoCloseable {
      * @throws RuntimeException If the Value has been destroyed.
      */
     @Override
-    public void close() throws RuntimeException {
+    public void close() {
         destroy();
     }
 
@@ -75,7 +75,7 @@ public class Value implements AutoCloseable {
      *
      * @throws RuntimeException If the Value has been destroyed.
      */
-    private void destroy() throws RuntimeException {
+    private void destroy() {
         checkNotDestroyed();
         if (!isOwnedByCPP) {
             Native.kuzu_value_destroy(this);
@@ -89,7 +89,7 @@ public class Value implements AutoCloseable {
      * @return True if the Value is null, false otherwise.
      * @throws RuntimeException If the Value has been destroyed.
      */
-    public boolean isNull() throws RuntimeException {
+    public boolean isNull() {
         checkNotDestroyed();
         return Native.kuzu_value_is_null(this);
     }
@@ -100,7 +100,7 @@ public class Value implements AutoCloseable {
      * @param flag: True if the Value is set to null, false otherwise.
      * @throws RuntimeException If the Value has been destroyed.
      */
-    public void setNull(boolean flag) throws RuntimeException {
+    public void setNull(boolean flag) {
         checkNotDestroyed();
         Native.kuzu_value_set_null(this, flag);
     }
@@ -111,7 +111,7 @@ public class Value implements AutoCloseable {
      * @param other: The Value to copy from.
      * @throws RuntimeException If the Value has been destroyed.
      */
-    public void copy(Value other) throws RuntimeException {
+    public void copy(Value other) {
         checkNotDestroyed();
         Native.kuzu_value_copy(this, other);
     }
@@ -134,7 +134,7 @@ public class Value implements AutoCloseable {
      * @return The value of the given type.
      * @throws RuntimeException If the Value has been destroyed.
      */
-    public <T> T getValue() throws RuntimeException {
+    public <T> T getValue() {
         checkNotDestroyed();
         return Native.kuzu_value_get_value(this);
     }
@@ -145,7 +145,7 @@ public class Value implements AutoCloseable {
      * @return The data type of the Value.
      * @throws RuntimeException If the Value has been destroyed.
      */
-    public DataType getDataType() throws RuntimeException {
+    public DataType getDataType() {
         checkNotDestroyed();
         return Native.kuzu_value_get_data_type(this);
     }

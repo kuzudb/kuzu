@@ -12,7 +12,7 @@ public class FlatTuple implements AutoCloseable {
      *
      * @throws RuntimeException If the flat tuple has been destroyed.
      */
-    private void checkNotDestroyed() throws RuntimeException {
+    private void checkNotDestroyed() {
         if (destroyed)
             throw new RuntimeException("FlatTuple has been destroyed.");
     }
@@ -23,7 +23,7 @@ public class FlatTuple implements AutoCloseable {
      * @throws RuntimeException If the flat tuple has been destroyed.
      */
     @Override
-    public void close() throws RuntimeException {
+    public void close() {
         destroy();
     }
 
@@ -32,7 +32,7 @@ public class FlatTuple implements AutoCloseable {
      *
      * @throws RuntimeException If the flat tuple has been destroyed.
      */
-    private void destroy() throws RuntimeException {
+    private void destroy() {
         checkNotDestroyed();
         Native.kuzu_flat_tuple_destroy(this);
         destroyed = true;
@@ -45,7 +45,7 @@ public class FlatTuple implements AutoCloseable {
      * @return The value at the given index.
      * @throws RuntimeException If the flat tuple has been destroyed.
      */
-    public Value getValue(long index) throws RuntimeException {
+    public Value getValue(long index) {
         checkNotDestroyed();
         return Native.kuzu_flat_tuple_get_value(this, index);
     }

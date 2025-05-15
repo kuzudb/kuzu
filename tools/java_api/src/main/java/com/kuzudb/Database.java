@@ -78,7 +78,7 @@ public class Database implements AutoCloseable {
      *
      * @throws RuntimeException If the database instance is destroyed.
      */
-    private void checkNotDestroyed() throws RuntimeException {
+    private void checkNotDestroyed() {
         if (destroyed)
             throw new RuntimeException("Database has been destroyed.");
     }
@@ -91,7 +91,7 @@ public class Database implements AutoCloseable {
      *                                     destroyed.
      */
     @Override
-    public void close() throws RuntimeException {
+    public void close() {
         destroy();
     }
 
@@ -101,7 +101,7 @@ public class Database implements AutoCloseable {
      * @throws RuntimeException If the database instance has been
      *                                     destroyed.
      */
-    private void destroy() throws RuntimeException {
+    private void destroy() {
         checkNotDestroyed();
         Native.kuzu_database_destroy(this);
         destroyed = true;

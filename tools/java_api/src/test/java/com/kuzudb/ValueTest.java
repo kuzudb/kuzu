@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ValueTest extends TestBase {
 
     @Test
-    void ValueCreateNull() throws RuntimeException {
+    void ValueCreateNull() {
         Value value = Value.createNull();
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.ANY);
@@ -23,7 +23,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateNullWithDatatype() throws RuntimeException {
+    void ValueCreateNullWithDatatype() {
         DataType type = new DataType(DataTypeID.INT64, null, 0);
         Value value = Value.createNullWithDataType(type);
         assertFalse(value.isOwnedByCPP());
@@ -33,7 +33,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueIsNull() throws RuntimeException {
+    void ValueIsNull() {
         Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
         assertFalse(value.isNull());
@@ -51,7 +51,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueSetNull() throws RuntimeException {
+    void ValueSetNull() {
         Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
         assertFalse(value.isNull());
@@ -65,7 +65,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateDefault() throws RuntimeException {
+    void ValueCreateDefault() {
         DataType type = new DataType(DataTypeID.INT64, null, 0);
         Value value = Value.createDefault(type);
         assertFalse(value.isOwnedByCPP());
@@ -88,7 +88,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateAndCloseDefault() throws RuntimeException {
+    void ValueCreateAndCloseDefault() {
         try (DataType type = new DataType(DataTypeID.INT64, null, 0);
                 Value value = Value.createDefault(type)) {
 
@@ -109,7 +109,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateBool() throws RuntimeException {
+    void ValueCreateBool() {
         // bool
         Value value = new Value(true);
         assertFalse(value.isOwnedByCPP());
@@ -125,7 +125,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateINT16() throws RuntimeException {
+    void ValueCreateINT16() {
         // INT16
         Value value = new Value((short) 123);
         assertFalse(value.isOwnedByCPP());
@@ -135,7 +135,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateINT32() throws RuntimeException {
+    void ValueCreateINT32() {
         // INT32
         Value value = new Value(123);
         assertFalse(value.isOwnedByCPP());
@@ -145,7 +145,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateINT64() throws RuntimeException {
+    void ValueCreateINT64() {
         // INT64
         Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
@@ -155,7 +155,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateFloat() throws RuntimeException {
+    void ValueCreateFloat() {
         // float
         Value value = new Value((float) 123.456);
         assertFalse(value.isOwnedByCPP());
@@ -165,7 +165,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateDouble() throws RuntimeException {
+    void ValueCreateDouble() {
         // double
         Value value = new Value((float) 123.456);
         assertFalse(value.isOwnedByCPP());
@@ -175,7 +175,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateDecimal() throws RuntimeException {
+    void ValueCreateDecimal() {
         // decimal
         Value value = new Value(new BigDecimal("-3.140"));
         assertFalse(value.isOwnedByCPP());
@@ -186,7 +186,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateInternalID() throws RuntimeException {
+    void ValueCreateInternalID() {
         // InternalID
         Value value = new Value(new InternalID(1, 123));
         assertFalse(value.isOwnedByCPP());
@@ -198,7 +198,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateDate() throws RuntimeException {
+    void ValueCreateDate() {
         // date
         Value value = new Value(LocalDate.ofEpochDay(123));
         assertFalse(value.isOwnedByCPP());
@@ -209,7 +209,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateTimeStamp() throws RuntimeException {
+    void ValueCreateTimeStamp() {
         // timestamp
         Value value = new Value(Instant.ofEpochSecond(123 / 1000000L, 123 % 1000000 * 1000)); // 123 microseconds
         assertFalse(value.isOwnedByCPP());
@@ -229,7 +229,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateInterval() throws RuntimeException {
+    void ValueCreateInterval() {
         // interval
         Duration inputDuration = Duration.ofMillis(31795200003L);
         Value value = new Value(inputDuration);
@@ -241,7 +241,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateString() throws RuntimeException {
+    void ValueCreateString() {
         // String
         Value value = new Value("abcdefg");
         assertFalse(value.isOwnedByCPP());
@@ -252,7 +252,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueClone() throws RuntimeException {
+    void ValueClone() {
         Value value = new Value("abcdefg");
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.STRING);
@@ -270,7 +270,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCopy() throws RuntimeException {
+    void ValueCopy() {
         Value value = new Value("abc");
         Value value2 = new Value("abcdefg");
 
@@ -285,7 +285,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateListLiteral() throws RuntimeException {
+    void CreateListLiteral() {
         Value[] listValues = { new Value(1), new Value(2), new Value(3) };
         KuzuList list = new KuzuList(listValues);
         Value[] listAsArray = list.toArray();
@@ -316,7 +316,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateListLiteralNested() throws RuntimeException {
+    void CreateListLiteralNested() {
         Value[][] nestedListValues = { { new Value(1), new Value(2), new Value(3) },
                 { new Value(4), new Value(5), new Value(6) } };
         KuzuList[] nestedLists = { new KuzuList(nestedListValues[0]), new KuzuList(nestedListValues[1]) };
@@ -356,7 +356,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateListDefaultValues() throws RuntimeException {
+    void CreateListDefaultValues() {
         int listLength = 5;
         KuzuList list = new KuzuList(new DataType(DataTypeID.INT32), listLength);
         assertEquals(listLength, list.getListSize());
@@ -369,7 +369,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetListSize() throws RuntimeException {
+    void ValueGetListSize() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -389,7 +389,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetListElement() throws RuntimeException {
+    void ValueGetListElement() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -423,7 +423,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetDatatype() throws RuntimeException {
+    void ValueGetDatatype() {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
@@ -451,7 +451,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetBool() throws RuntimeException {
+    void ValueGetBool() {
         // bool
         QueryResult result = conn.query("MATCH (a:person) RETURN a.isStudent ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -468,7 +468,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetINT8() throws RuntimeException {
+    void ValueGetINT8() {
         // INT8
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.level ORDER BY a.ID");
@@ -486,7 +486,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetINT16() throws RuntimeException {
+    void ValueGetINT16() {
         // INT16
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.length ORDER BY a.ID");
@@ -504,7 +504,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetINT32() throws RuntimeException {
+    void ValueGetINT32() {
         // INT32
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.length ORDER BY m.name");
         assertTrue(result.isSuccess());
@@ -521,7 +521,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetINT64() throws RuntimeException {
+    void ValueGetINT64() {
         // INT64
         QueryResult result = conn.query("MATCH (a:person) RETURN a.ID ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -538,7 +538,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUINT8() throws RuntimeException {
+    void ValueGetUINT8() {
         // UINT8
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulevel ORDER BY a.ID");
@@ -556,7 +556,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUINT16() throws RuntimeException {
+    void ValueGetUINT16() {
         // UINT16
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulength ORDER BY a.ID");
@@ -574,7 +574,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUINT32() throws RuntimeException {
+    void ValueGetUINT32() {
         // UINT32
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.temperature ORDER BY a.ID");
@@ -592,7 +592,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUINT64() throws RuntimeException {
+    void ValueGetUINT64() {
         // UINT64
         QueryResult result = conn.query("RETURN cast(1000043524, \"UINT64\")");
         assertTrue(result.isSuccess());
@@ -609,7 +609,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetInt128() throws RuntimeException {
+    void ValueGetInt128() {
         // INT128
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID");
@@ -628,7 +628,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetSERIAL() throws RuntimeException {
+    void ValueGetSERIAL() {
         // SERIAL
         QueryResult result = conn.query("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;");
         assertTrue(result.isSuccess());
@@ -645,7 +645,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetFloat() throws RuntimeException {
+    void ValueGetFloat() {
         // FLOAT
         QueryResult result = conn.query("MATCH (a:person) RETURN a.height ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -662,7 +662,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetDouble() throws RuntimeException {
+    void ValueGetDouble() {
         // Double
         QueryResult result = conn.query("MATCH (a:person) RETURN a.eyeSight ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -679,7 +679,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetDate() throws RuntimeException {
+    void ValueGetDate() {
         // Date
         QueryResult result = conn.query("MATCH (a:person) RETURN a.birthdate ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -697,7 +697,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStamp() throws RuntimeException {
+    void ValueGetTimeStamp() {
         // timestamp
         QueryResult result = conn.query("MATCH (a:person) RETURN a.registerTime ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -715,7 +715,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStampTz() throws RuntimeException {
+    void ValueGetTimeStampTz() {
         // timestamp_tz
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_tz");
         assertTrue(result.isSuccess());
@@ -733,7 +733,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStampNs() throws RuntimeException {
+    void ValueGetTimeStampNs() {
         // timestamp_ns
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ns");
         assertTrue(result.isSuccess());
@@ -751,7 +751,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStampMs() throws RuntimeException {
+    void ValueGetTimeStampMs() {
         // timestamp_ms
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ms");
         assertTrue(result.isSuccess());
@@ -769,7 +769,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStampSec() throws RuntimeException {
+    void ValueGetTimeStampSec() {
         // timestamp_sec
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_sec");
         assertTrue(result.isSuccess());
@@ -788,7 +788,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetInterval() throws RuntimeException {
+    void ValueGetInterval() {
         // Interval
         QueryResult result = conn.query("MATCH (a:person) RETURN a.lastJobDuration ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -811,7 +811,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetString() throws RuntimeException {
+    void ValueGetString() {
         // String
         QueryResult result = conn.query("MATCH (a:person) RETURN a.fName ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -829,7 +829,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetBlob() throws RuntimeException {
+    void ValueGetBlob() {
         QueryResult result = conn.query("RETURN BLOB('\\\\xAA\\\\xBB\\\\xCD\\\\x1A');");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -847,7 +847,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUUID() throws RuntimeException {
+    void ValueGetUUID() {
         QueryResult result = conn.query("RETURN UUID(\"A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11\");");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -864,7 +864,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueToString() throws RuntimeException {
+    void ValueToString() {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
@@ -889,7 +889,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValGetID() throws RuntimeException {
+    void NodeValGetID() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -907,7 +907,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValGetLabelName() throws RuntimeException {
+    void NodeValGetLabelName() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -924,7 +924,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValGetProperty() throws RuntimeException {
+    void NodeValGetProperty() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -963,7 +963,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValToString() throws RuntimeException {
+    void NodeValToString() {
         QueryResult result = conn.query("MATCH (b:organisation) RETURN b ORDER BY b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -981,7 +981,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RelValGetIDsAndLabel() throws RuntimeException {
+    void RelValGetIDsAndLabel() {
         QueryResult result = conn.query("MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1014,7 +1014,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RelValGetProperty() throws RuntimeException {
+    void RelValGetProperty() {
         QueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1042,7 +1042,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RelValToString() throws RuntimeException {
+    void RelValToString() {
         QueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1058,7 +1058,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateStructLiteral() throws RuntimeException {
+    void CreateStructLiteral() {
         String[] fieldNames = { "name", "ID", "age" };
         Value[] fieldValues = { new Value("Alice"), new Value(1), new Value(20) };
         KuzuStruct structVal = new KuzuStruct(fieldNames, fieldValues);
@@ -1082,7 +1082,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateStructLiteralNested() throws RuntimeException {
+    void CreateStructLiteralNested() {
         String[] personFieldNames = { "name", "ID" };
         Value[] personFieldValues = { new Value("Alice"), new Value(1) };
         KuzuStruct person = new KuzuStruct(personFieldNames, personFieldValues);
@@ -1115,7 +1115,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateStructLiteralFromMap() throws RuntimeException {
+    void CreateStructLiteralFromMap() {
         Map<String, Value> fields = Map.of(
                 "name", new Value("Alice"),
                 "ID", new Value(2),
@@ -1148,7 +1148,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetNumFields() throws RuntimeException {
+    void StructValGetNumFields() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1165,7 +1165,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void InternalIDEquality() throws RuntimeException {
+    void InternalIDEquality() {
         QueryResult result = conn.query("MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1198,7 +1198,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetIndexByFieldName() throws RuntimeException {
+    void StructValGetIndexByFieldName() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1224,7 +1224,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetFieldNameByIndex() throws RuntimeException {
+    void StructValGetFieldNameByIndex() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1250,7 +1250,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetValueByFieldName() throws RuntimeException {
+    void StructValGetValueByFieldName() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description ORDER BY m.name");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1271,7 +1271,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetValueByIndex() throws RuntimeException {
+    void StructValGetValueByIndex() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description ORDER BY m.name");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1294,7 +1294,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateMapLiteral() throws RuntimeException {
+    void CreateMapLiteral() {
         Value[] keys = { new Value("Alice"), new Value("Bob") };
         Value[] values = { new Value(1), new Value(2) };
         KuzuMap kuzuMap = new KuzuMap(keys, values);
@@ -1317,7 +1317,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateMapLiteralNested() throws RuntimeException {
+    void CreateMapLiteralNested() {
         Value[][] nestedKeys = { { new Value("Alice"), new Value("Bob") }, { new Value("Carol"), new Value("Dan") } };
         Value[][] nestedValues = { { new Value(1), new Value(2) }, { new Value(3), new Value(4) } };
         KuzuMap map0 = new KuzuMap(nestedKeys[0], nestedValues[0]);
@@ -1362,7 +1362,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void MapValGetNumFields() throws RuntimeException {
+    void MapValGetNumFields() {
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
         assertTrue(result.isSuccess());
 
@@ -1399,7 +1399,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void MapValGetKey() throws RuntimeException {
+    void MapValGetKey() {
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1443,7 +1443,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void MapValGetValue() throws RuntimeException {
+    void MapValGetValue() {
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1491,7 +1491,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RecursiveRelGetNodeAndRelList() throws RuntimeException {
+    void RecursiveRelGetNodeAndRelList() {
         try (QueryResult result = conn
                 .query("MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;")) {
             assertTrue(result.isSuccess());

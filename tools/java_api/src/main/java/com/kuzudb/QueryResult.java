@@ -13,7 +13,7 @@ public class QueryResult implements AutoCloseable {
      *
      * @throws RuntimeException If the query result has been destroyed.
      */
-    private void checkNotDestroyed() throws RuntimeException {
+    private void checkNotDestroyed() {
         if (destroyed)
             throw new RuntimeException("QueryResult has been destroyed.");
     }
@@ -24,7 +24,7 @@ public class QueryResult implements AutoCloseable {
      * @throws RuntimeException If the query result has been destroyed.
      */
     @Override
-    public void close() throws RuntimeException {
+    public void close() {
         destroy();
     }
 
@@ -37,7 +37,7 @@ public class QueryResult implements AutoCloseable {
      *
      * @throws RuntimeException If the query result has been destroyed.
      */
-    private void destroy() throws RuntimeException {
+    private void destroy() {
         checkNotDestroyed();
         if (!isOwnedByCPP) {
             Native.kuzu_query_result_destroy(this);
@@ -51,7 +51,7 @@ public class QueryResult implements AutoCloseable {
      * @return Query is executed successfully or not.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public boolean isSuccess() throws RuntimeException {
+    public boolean isSuccess() {
         checkNotDestroyed();
         return Native.kuzu_query_result_is_success(this);
     }
@@ -62,7 +62,7 @@ public class QueryResult implements AutoCloseable {
      * @return Error message of the query execution if the query fails.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public String getErrorMessage() throws RuntimeException {
+    public String getErrorMessage() {
         checkNotDestroyed();
         return Native.kuzu_query_result_get_error_message(this);
     }
@@ -73,7 +73,7 @@ public class QueryResult implements AutoCloseable {
      * @return The number of columns in the query result.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public long getNumColumns() throws RuntimeException {
+    public long getNumColumns() {
         checkNotDestroyed();
         return Native.kuzu_query_result_get_num_columns(this);
     }
@@ -85,7 +85,7 @@ public class QueryResult implements AutoCloseable {
      * @return The column name at the given index.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public String getColumnName(long index) throws RuntimeException {
+    public String getColumnName(long index) {
         checkNotDestroyed();
         return Native.kuzu_query_result_get_column_name(this, index);
     }
@@ -97,7 +97,7 @@ public class QueryResult implements AutoCloseable {
      * @return The column data type at the given index.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public DataType getColumnDataType(long index) throws RuntimeException {
+    public DataType getColumnDataType(long index) {
         checkNotDestroyed();
         return Native.kuzu_query_result_get_column_data_type(this, index);
     }
@@ -108,7 +108,7 @@ public class QueryResult implements AutoCloseable {
      * @return The number of tuples in the query result.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public long getNumTuples() throws RuntimeException {
+    public long getNumTuples() {
         checkNotDestroyed();
         return Native.kuzu_query_result_get_num_tuples(this);
     }
@@ -119,7 +119,7 @@ public class QueryResult implements AutoCloseable {
      * @return The query summary.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public QuerySummary getQuerySummary() throws RuntimeException {
+    public QuerySummary getQuerySummary() {
         checkNotDestroyed();
         return Native.kuzu_query_result_get_query_summary(this);
     }
@@ -130,7 +130,7 @@ public class QueryResult implements AutoCloseable {
      * @return Whether there are more tuples to read.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public boolean hasNext() throws RuntimeException {
+    public boolean hasNext() {
         checkNotDestroyed();
         return Native.kuzu_query_result_has_next(this);
     }
@@ -144,7 +144,7 @@ public class QueryResult implements AutoCloseable {
      * @return The next tuple.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public FlatTuple getNext() throws RuntimeException {
+    public FlatTuple getNext() {
         checkNotDestroyed();
         return Native.kuzu_query_result_get_next(this);
     }
@@ -155,7 +155,7 @@ public class QueryResult implements AutoCloseable {
      * @return Whether there are more query results to read.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public boolean hasNextQueryResult() throws RuntimeException {
+    public boolean hasNextQueryResult() {
         checkNotDestroyed();
         return Native.kuzu_query_result_has_next_query_result(this);
     }
@@ -166,7 +166,7 @@ public class QueryResult implements AutoCloseable {
      * @return The next query result.
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public QueryResult getNextQueryResult() throws RuntimeException {
+    public QueryResult getNextQueryResult() {
         checkNotDestroyed();
         return Native.kuzu_query_result_get_next_query_result(this);
     }
@@ -188,7 +188,7 @@ public class QueryResult implements AutoCloseable {
      *
      * @throws RuntimeException If the query result has been destroyed.
      */
-    public void resetIterator() throws RuntimeException {
+    public void resetIterator() {
         checkNotDestroyed();
         Native.kuzu_query_result_reset_iterator(this);
     }

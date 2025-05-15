@@ -43,7 +43,7 @@ public class KuzuList implements AutoCloseable {
      * @return The size of the list.
      * @throws RuntimeException If the list has been destroyed.
      */
-    public long getListSize() throws RuntimeException {
+    public long getListSize() {
         listVal.checkNotDestroyed();
         return Native.kuzu_value_get_list_size(listVal);
     }
@@ -55,7 +55,7 @@ public class KuzuList implements AutoCloseable {
      * @return The element at the given index from the given list.
      * @throws RuntimeException If the list has been destroyed.
      */
-    public Value getListElement(long index) throws RuntimeException {
+    public Value getListElement(long index) {
         listVal.checkNotDestroyed();
         return Native.kuzu_value_get_list_element(listVal, index);
     }
@@ -67,7 +67,7 @@ public class KuzuList implements AutoCloseable {
      * @return the list as a Java array
      * @throws RuntimeException
      */
-    public Value[] toArray() throws RuntimeException {
+    public Value[] toArray() {
         int arraySize = ((Long) getListSize()).intValue();
         Value[] ret = new Value[arraySize];
         for (int i = 0; i < arraySize; ++i) {
@@ -81,7 +81,7 @@ public class KuzuList implements AutoCloseable {
      *
      * @throws RuntimeException
      */
-    public void close() throws RuntimeException {
+    public void close() {
         listVal.close();
     }
 }

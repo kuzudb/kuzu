@@ -27,7 +27,7 @@ public class Connection implements AutoCloseable {
      *
      * @throws RuntimeException If the connection has been destroyed.
      */
-    private void checkNotDestroyed() throws RuntimeException {
+    private void checkNotDestroyed() {
         if (destroyed)
             throw new RuntimeException("Connection has been destroyed.");
     }
@@ -38,7 +38,7 @@ public class Connection implements AutoCloseable {
      * @throws RuntimeException If the connection has been destroyed.
      */
     @Override
-    public void close() throws RuntimeException {
+    public void close() {
         destroy();
     }
 
@@ -47,7 +47,7 @@ public class Connection implements AutoCloseable {
      *
      * @throws RuntimeException If the connection has been destroyed.
      */
-    private void destroy() throws RuntimeException {
+    private void destroy() {
         checkNotDestroyed();
         Native.kuzu_connection_destroy(this);
         destroyed = true;
@@ -59,7 +59,7 @@ public class Connection implements AutoCloseable {
      * @return The maximum number of threads used for execution in the current connection.
      * @throws RuntimeException If the connection has been destroyed.
      */
-    public long getMaxNumThreadForExec() throws RuntimeException {
+    public long getMaxNumThreadForExec() {
         checkNotDestroyed();
         return Native.kuzu_connection_get_max_num_thread_for_exec(this);
     }
@@ -70,7 +70,7 @@ public class Connection implements AutoCloseable {
      * @param numThreads: The maximum number of threads to use for execution in the current connection
      * @throws RuntimeException If the connection has been destroyed.
      */
-    public void setMaxNumThreadForExec(long numThreads) throws RuntimeException {
+    public void setMaxNumThreadForExec(long numThreads) {
         checkNotDestroyed();
         Native.kuzu_connection_set_max_num_thread_for_exec(this, numThreads);
     }
@@ -82,7 +82,7 @@ public class Connection implements AutoCloseable {
      * @return The result of the query.
      * @throws RuntimeException If the connection has been destroyed.
      */
-    public QueryResult query(String queryStr) throws RuntimeException {
+    public QueryResult query(String queryStr) {
         checkNotDestroyed();
         return Native.kuzu_connection_query(this, queryStr);
     }
@@ -94,7 +94,7 @@ public class Connection implements AutoCloseable {
      * @return The prepared statement.
      * @throws RuntimeException If the connection has been destroyed.
      */
-    public PreparedStatement prepare(String queryStr) throws RuntimeException {
+    public PreparedStatement prepare(String queryStr) {
         checkNotDestroyed();
         return Native.kuzu_connection_prepare(this, queryStr);
     }
@@ -108,7 +108,7 @@ public class Connection implements AutoCloseable {
      * @return The result of the query.
      * @throws RuntimeException If the connection has been destroyed.
      */
-    public QueryResult execute(PreparedStatement ps, Map<String, Value> m) throws RuntimeException {
+    public QueryResult execute(PreparedStatement ps, Map<String, Value> m) {
         checkNotDestroyed();
         return Native.kuzu_connection_execute(this, ps, m);
     }
@@ -118,7 +118,7 @@ public class Connection implements AutoCloseable {
      *
      * @throws RuntimeException If the connection has been destroyed.
      */
-    public void interrupt() throws RuntimeException {
+    public void interrupt() {
         checkNotDestroyed();
         Native.kuzu_connection_interrupt(this);
     }
@@ -129,7 +129,7 @@ public class Connection implements AutoCloseable {
      * @param timeoutInMs: The query timeout value in milliseconds.
      * @throws RuntimeException If the connection has been destroyed.
      */
-    public void setQueryTimeout(long timeoutInMs) throws RuntimeException {
+    public void setQueryTimeout(long timeoutInMs) {
         checkNotDestroyed();
         Native.kuzu_connection_set_query_timeout(this, timeoutInMs);
     }

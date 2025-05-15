@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class DataTypeTest extends TestBase {
 
     @Test
-    void DataTypeClone() throws RuntimeException {
+    void DataTypeClone() {
         DataType dataType = new DataType(DataTypeID.INT64, null, 0);
         assertNotNull(dataType);
         DataType dataTypeClone = dataType.clone();
@@ -40,7 +40,7 @@ public class DataTypeTest extends TestBase {
     }
 
     @Test
-    void DataTypeEquals() throws RuntimeException {
+    void DataTypeEquals() {
         DataType dataType = new DataType(DataTypeID.INT64, null, 0);
         assertNotNull(dataType);
         DataType dataTypeClone = dataType.clone();
@@ -73,7 +73,7 @@ public class DataTypeTest extends TestBase {
     }
 
     @Test
-    void DataTypeGetID() throws RuntimeException {
+    void DataTypeGetID() {
         DataType dataType = new DataType(DataTypeID.INT64, null, 0);
         assertNotNull(dataType);
         assertEquals(dataType.getID(), DataTypeID.INT64);
@@ -92,7 +92,7 @@ public class DataTypeTest extends TestBase {
     }
 
     @Test
-    void DataTypeGetChildType() throws RuntimeException {
+    void DataTypeGetChildType() {
         DataType dataType = new DataType(DataTypeID.INT64, null, 0);
         assertNotNull(dataType);
 
@@ -110,7 +110,7 @@ public class DataTypeTest extends TestBase {
     }
 
     @Test
-    void DataTypeGetFixedNumElementsInList() throws RuntimeException {
+    void DataTypeGetFixedNumElementsInList() {
         DataType dataType = new DataType(DataTypeID.INT64, null, 0);
         assertNotNull(dataType);
         assertEquals(dataType.getFixedNumElementsInList(), 0);
@@ -125,7 +125,7 @@ public class DataTypeTest extends TestBase {
     }
 
     @Test
-    void DataTypeTestDestroy() throws RuntimeException {
+    void DataTypeTestDestroy() {
         try (DataType dataType = new DataType(DataTypeID.INT64, null, 0)) {
             assertNotNull(dataType);
             assertEquals(dataType.getFixedNumElementsInList(), 0);

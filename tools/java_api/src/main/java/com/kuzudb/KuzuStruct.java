@@ -29,7 +29,7 @@ public class KuzuStruct implements AutoCloseable {
      * @param fields: The fields of the struct, with the keys representing the field
      *                names and the values representing the field values.
      */
-    public KuzuStruct(Map<String, Value> fields) throws RuntimeException {
+    public KuzuStruct(Map<String, Value> fields) {
         if (fields.isEmpty()) {
             structVal = null;
             return;
@@ -55,7 +55,7 @@ public class KuzuStruct implements AutoCloseable {
      * @param fieldNames:  The name of the struct fields
      * @param fieldValues: The values of the struct fields
      */
-    public KuzuStruct(String[] fieldNames, Value[] fieldValues) throws RuntimeException {
+    public KuzuStruct(String[] fieldNames, Value[] fieldValues) {
         if (fieldNames.length != fieldValues.length) {
             structVal = null;
             return;
@@ -74,7 +74,7 @@ public class KuzuStruct implements AutoCloseable {
      * @return The number of fields in the struct.
      * @throws RuntimeException If the struct has been destroyed.
      */
-    public long getNumFields() throws RuntimeException {
+    public long getNumFields() {
         if (structVal == null) {
             return 0;
         }
@@ -88,7 +88,7 @@ public class KuzuStruct implements AutoCloseable {
      * @return The index of the field with the given name, or -1 if it doesn't exist
      * @throws RuntimeException If the struct has been destroyed.
      */
-    public long getIndexByFieldName(String fieldName) throws RuntimeException {
+    public long getIndexByFieldName(String fieldName) {
         if (structVal == null) {
             return -1;
         }
@@ -102,7 +102,7 @@ public class KuzuStruct implements AutoCloseable {
      * @return The name of the field at the given index
      * @throws RuntimeException If the struct has been destroyed.
      */
-    public String getFieldNameByIndex(long index) throws RuntimeException {
+    public String getFieldNameByIndex(long index) {
         if (structVal == null) {
             return null;
         }
@@ -117,7 +117,7 @@ public class KuzuStruct implements AutoCloseable {
      *         value.
      * @throws RuntimeException If the struct has been destroyed.
      */
-    public Value getValueByFieldName(String fieldName) throws RuntimeException {
+    public Value getValueByFieldName(String fieldName) {
         long index = getIndexByFieldName(fieldName);
         if (index < 0) {
             return null;
@@ -133,7 +133,7 @@ public class KuzuStruct implements AutoCloseable {
      *         value.
      * @throws RuntimeException If the struct has been destroyed.
      */
-    public Value getValueByIndex(long index) throws RuntimeException {
+    public Value getValueByIndex(long index) {
         if (index < 0 || index >= getNumFields()) {
             return null;
         }
@@ -147,7 +147,7 @@ public class KuzuStruct implements AutoCloseable {
      * @return the struct as a Java map
      * @throws RuntimeException
      */
-    public Map<String, Value> toMap() throws RuntimeException {
+    public Map<String, Value> toMap() {
         if (structVal == null) {
             return null;
         }
@@ -164,7 +164,7 @@ public class KuzuStruct implements AutoCloseable {
      *
      * @throws RuntimeException
      */
-    public void close() throws RuntimeException {
+    public void close() {
         structVal.close();
     }
 }

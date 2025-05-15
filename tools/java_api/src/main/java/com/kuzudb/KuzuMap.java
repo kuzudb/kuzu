@@ -26,7 +26,7 @@ public class KuzuMap implements AutoCloseable {
      * @param keys:   The keys in the map
      * @param values: The values in the map
      */
-    public KuzuMap(Value[] keys, Value[] values) throws RuntimeException {
+    public KuzuMap(Value[] keys, Value[] values) {
         if (keys.length != values.length) {
             mapVal = null;
             return;
@@ -38,7 +38,7 @@ public class KuzuMap implements AutoCloseable {
         mapVal = Native.kuzu_create_map(keys, values);
     }
 
-    private Value getMapKeyOrValue(long index, boolean isKey) throws RuntimeException {
+    private Value getMapKeyOrValue(long index, boolean isKey) {
         if (index < 0 || index >= getNumFields()) {
             return null;
         }
@@ -52,7 +52,7 @@ public class KuzuMap implements AutoCloseable {
      * @return The number of fields in the map.
      * @throws RuntimeException If the map has been destroyed.
      */
-    public long getNumFields() throws RuntimeException {
+    public long getNumFields() {
         if (mapVal == null) {
             return 0;
         }
@@ -66,7 +66,7 @@ public class KuzuMap implements AutoCloseable {
      * @return The key.
      * @throws RuntimeException If the map has been destroyed.
      */
-    public Value getKey(long index) throws RuntimeException {
+    public Value getKey(long index) {
         return getMapKeyOrValue(index, true);
     }
 
@@ -77,7 +77,7 @@ public class KuzuMap implements AutoCloseable {
      * @return The value.
      * @throws RuntimeException If the map value has been destroyed.
      */
-    public Value getValue(long index) throws RuntimeException {
+    public Value getValue(long index) {
         return getMapKeyOrValue(index, false);
     }
 
@@ -86,7 +86,7 @@ public class KuzuMap implements AutoCloseable {
      *
      * @throws RuntimeException
      */
-    public void close() throws RuntimeException {
+    public void close() {
         mapVal.close();
     }
 }
