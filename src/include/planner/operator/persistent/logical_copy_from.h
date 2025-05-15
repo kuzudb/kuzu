@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/copy/bound_copy_from.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
@@ -35,7 +34,7 @@ public:
         const logical_op_vector_t& children)
         : LogicalOperator{type_, children}, info{std::move(info)}, outExprs{std::move(outExprs)} {}
 
-    std::string getExpressionsForPrinting() const override { return info.tableEntry->getName(); }
+    std::string getExpressionsForPrinting() const override { return info.tableName; }
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -45,7 +44,7 @@ public:
     binder::expression_vector getOutExprs() const { return outExprs; }
 
     std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
-        return std::make_unique<LogicalCopyFromPrintInfo>(info.tableEntry->getName());
+        return std::make_unique<LogicalCopyFromPrintInfo>(info.tableName);
     }
 
     std::unique_ptr<LogicalOperator> copy() override {
