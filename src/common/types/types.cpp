@@ -25,6 +25,24 @@ using kuzu::function::BuiltInFunctionsUtils;
 namespace kuzu {
 namespace common {
 
+void NodePair::serialize(common::Serializer& serializer) const {
+    serializer.writeDebuggingInfo("srcTableID");
+    serializer.serializeValue(srcTableID);
+    serializer.writeDebuggingInfo("dstTableID");
+    serializer.serializeValue(dstTableID);
+}
+
+NodePair NodePair::deserialize(common::Deserializer& deser) {
+    std::string debuggingInfo;
+    common::table_id_t srcTableID;
+    common::table_id_t dstTableID;
+    deser.validateDebuggingInfo(debuggingInfo, "srcTableID");
+    deser.deserializeValue(srcTableID);
+    deser.validateDebuggingInfo(debuggingInfo, "dstTableID");
+    deser.deserializeValue(dstTableID);
+    return NodePair{srcTableID, dstTableID};
+}
+
 internalID_t::internalID_t() : offset{INVALID_OFFSET}, tableID{INVALID_TABLE_ID} {}
 
 internalID_t::internalID_t(offset_t offset, table_id_t tableID)

@@ -23,10 +23,6 @@ void Drop::executeInternal(ExecutionContext* context) {
         dropSequence(clientContext);
     } break;
     case DropType::TABLE: {
-        if (catalog->containsRelGroup(transaction, dropInfo.name)) {
-            dropRelGroup(clientContext);
-            return;
-        }
         if (catalog->containsTable(transaction, dropInfo.name,
                 clientContext->useInternalCatalogEntry())) {
             dropTable(clientContext);
@@ -81,7 +77,7 @@ void Drop::dropTable(const main::ClientContext* context) {
                     entry->getName(), indexEntry->getIndexName()));
             }
         }
-        for (auto& relEntry : catalog->getRelTableEntries(transaction)) {
+        for (auto& relEntry : catalog->getRelGroupEntries(transaction)) {
             if (relEntry->isParent(entry->getTableID())) {
                 throw BinderException(stringFormat("Cannot delete node table {} because it is "
                                                    "referenced by relationship table {}.",
@@ -102,14 +98,6 @@ void Drop::dropTable(const main::ClientContext* context) {
         KU_UNREACHABLE;
     }
     catalog->dropTableEntryAndIndex(transaction, dropInfo.name);
-    entryDropped = true;
-}
-
-void Drop::dropRelGroup(const main::ClientContext* context) {
-    auto catalog = context->getCatalog();
-    auto transaction = context->getTransaction();
-    auto entry = catalog->getRelGroupEntry(transaction, dropInfo.name);
-    catalog->dropRelGroupEntry(transaction, entry);
     entryDropped = true;
 }
 
