@@ -65,7 +65,7 @@ public class QueryResultTest extends TestBase {
             }
         }
         catch (Exception e) {
-            assertEquals(e.getMessage(), "");
+            assertEquals("Binder exception: Table personnnn does not exist.", e.getMessage());
             return;
         }
         fail("QueryResultFailure failed:");

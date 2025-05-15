@@ -66,7 +66,7 @@ public class DatabaseTest extends TestBase {
             fail("DBCreationWithInvalidMaxDBSize failed:");
         }
         catch (Exception e) {
-            assertEquals(e.getMessage(), "The given max db size should be a power of 2.");
+            assertEquals("Buffer manager exception: The given max db size should be a power of 2.", e.getMessage());
             return;
         }
         fail("DBCreationWithInvalidMaxDBSize failed:");
