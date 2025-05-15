@@ -66,7 +66,7 @@ std::unique_ptr<TableFuncSharedState> DuckDBScanFunction::initSharedState(
             predicatesString += stringFormat(" AND {}", predicates.toString());
         }
     }
-    auto finalQuery = stringFormat(scanBindData->query, columnNames) + predicatesString;
+    auto finalQuery = vStringFormat(scanBindData->query, columnNames) + predicatesString;
     auto result = scanBindData->connector.executeQuery(finalQuery);
     if (result->HasError()) {
         throw RuntimeException(

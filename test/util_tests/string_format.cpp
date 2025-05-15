@@ -11,15 +11,10 @@ TEST(StringFormat, Basic) {
 }
 
 TEST(StringFormat, Escape) {
-    ASSERT_EQ(stringFormat("Escape this {{}} but not this {{ }}"),
-        "Escape this {} but not this {{ }}");
+    ASSERT_EQ(stringFormat("Escape this {{}} and this {{ }}"),
+        "Escape this {} and this { }");
     ASSERT_EQ(stringFormat("Escape before and after value works: {{}} {} {{}}", 4),
         "Escape before and after value works: {} 4 {}");
-}
-
-TEST(StringFormat, UnmatchedOpenBracket) {
-    ASSERT_EQ(stringFormat("Random open brackets are interpreted literally: {4 {} {", "abc"),
-        "Random open brackets are interpreted literally: {4 abc {");
 }
 
 TEST(StringFormat, TooManyArguments) {
@@ -38,7 +33,7 @@ TEST(StringFormat, Format8BitTypes) {
     char literal_character = 'a';
     TestEnum enum_val = TestEnum::NO;
     int8_t signed_int8 = 4;
-    ASSERT_EQ(stringFormat("{} {} {}", literal_character, enum_val, signed_int8), "a 1 4");
+    ASSERT_EQ(stringFormat("{} {} {}", literal_character, std::to_string(enum_val), signed_int8), "a 1 4");
 }
 
 TEST(StringFormat, FormatString) {

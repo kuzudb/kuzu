@@ -112,23 +112,22 @@ std::string InsertDatasetByRow::TableInfo::getBodyForLoad() const {
 }
 
 std::string InsertDatasetByRow::NodeTableInfo::getLoadFromQuery() const {
-    const std::string query = "LOAD WITH HEADERS ({}) FROM {} "
-                              "CREATE (:{} {});";
     const auto header = getHeaderForLoad();
     const auto body = getBodyForLoad();
-    return stringFormat(query, header, filePath, name, "{" + body + "}");
+    return stringFormat("LOAD WITH HEADERS ({}) FROM {} "
+                        "CREATE (:{} {});",
+        header, filePath, name, "{" + body + "}");
 }
 
 std::string InsertDatasetByRow::RelTableInfo::getLoadFromQuery() const {
-    const std::string query = "LOAD WITH HEADERS ({}) FROM {} "
-                              "MATCH (a:{}), (b:{}) WHERE a.{} = aid_ AND b.{} = bid_ "
-                              "CREATE (a)-[:{} {}]->(b);";
     auto header = stringFormat("aid_ {},bid_ {}", from.type, to.type);
     auto headerRest = getHeaderForLoad();
     header += headerRest.length() == 0 ? "" : "," + getHeaderForLoad();
     const auto body = getBodyForLoad();
-    return stringFormat(query, header, filePath, from.name, to.name, from.property, to.property,
-        name, "{" + body + "}");
+    return stringFormat("LOAD WITH HEADERS ({}) FROM {} "
+                        "MATCH (a:{}), (b:{}) WHERE a.{} = aid_ AND b.{} = bid_ "
+                        "CREATE (a)-[:{} {}]->(b);",
+        header, filePath, from.name, to.name, from.property, to.property, name, "{" + body + "}");
 }
 
 } // namespace testing

@@ -62,8 +62,7 @@ void SplitMultiCopyRandom::init() {
 
     const std::string tmpDir = TestHelper::getTempDir("multi_copy");
     auto totalFilePath = TestHelper::joinPath(tmpDir, tableName + ".csv");
-    std::string loadQuery = "COPY (LOAD FROM {} RETURN *) TO '{}';";
-    loadQuery = stringFormat(loadQuery, source, totalFilePath);
+    std::string loadQuery = stringFormat("COPY (LOAD FROM {} RETURN *) TO '{}';", source, totalFilePath);
     spdlog::info("QUERY: {}", loadQuery);
     validateQuery(connection, loadQuery);
 
@@ -96,9 +95,8 @@ void SplitMultiCopyRandom::init() {
 }
 
 void SplitMultiCopyRandom::run() {
-    const std::string query = "COPY {} FROM \"{}\";";
     for (auto file : splitFilePaths) {
-        auto currQuery = stringFormat(query, tableName, file);
+        auto currQuery = stringFormat("COPY {} FROM \"{}\";", tableName, file);
         spdlog::info("QUERY: {}", currQuery);
         validateQuery(connection, currQuery);
     }

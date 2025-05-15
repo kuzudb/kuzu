@@ -550,7 +550,7 @@ std::string getDateHeader(const timestamp_t& timestamp) {
         formatStr += "0";
     }
     formatStr += "{}";
-    return common::stringFormat(formatStr, year, month, day);
+    return common::vStringFormat(formatStr, year, month, day);
 }
 
 // Timestamp header is in the format: %Y%m%dT%H%M%SZ.
@@ -572,7 +572,7 @@ std::string getDateTimeHeader(const timestamp_t& timestamp) {
         formatStr += "0";
     }
     formatStr += "{}Z";
-    return common::stringFormat(formatStr, hours, minutes, seconds);
+    return common::vStringFormat(formatStr, hours, minutes, seconds);
 }
 
 HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::string host,

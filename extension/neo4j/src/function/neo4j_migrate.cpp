@@ -36,8 +36,8 @@ struct Neo4jMigrateBindData final : TableFuncBindData {
 };
 
 nlohmann::json executeNeo4jQuery(httplib::Client& cli, std::string neo4jQuery) {
-    std::string requestBody = R"({"statements":[{"statement":"{}"}]})";
-    requestBody = common::stringFormat(requestBody, neo4jQuery);
+    std::string requestBody =
+        common::stringFormat(R"({"statements":[{"statement":"{}"}]})", neo4jQuery);
     httplib::Request req;
     req.method = "POST";
     req.path = "/db/neo4j/tx/commit";

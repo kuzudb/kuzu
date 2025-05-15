@@ -208,9 +208,10 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
     auto numThreadsForExec = conn->getMaxNumThreadForExec();
     conn->setMaxNumThreadForExec(1);
     // Run queries in batch to fetch edges.
-    auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(b)) >= $s AND offset(id(b)) < "
-                       "$e RETURN offset(id(a)), offset(id(b))";
-    auto query = stringFormat(queryString, srcTableName, relName, dstTableName);
+    auto query =
+        stringFormat("MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(b)) >= $s AND offset(id(b)) < "
+                     "$e RETURN offset(id(a)), offset(id(b))",
+            srcTableName, relName, dstTableName);
     auto preparedStatement = conn->prepare(query);
     auto srcBuffer = buffer;
     auto dstBuffer = buffer + numRels;

@@ -13,9 +13,16 @@ namespace common {
 
 #if USE_STD_FORMAT
 
+// Wrapper around `std::format`. Checks format string at compile time.
 template<typename... Args>
 inline std::string stringFormat(std::format_string<Args...> format, Args&&... args) {
     return std::format(format, std::forward<Args>(args)...);
+}
+
+// Wrapper around `std::vformat`. Used for dynamic format strings.
+template<typename... Args>
+inline std::string vStringFormat(std::string_view format, Args&&... args) {
+    return std::vformat(format, std::make_format_args(args...));
 }
 
 #else
@@ -66,11 +73,17 @@ inline void stringFormatHelper(std::string& ret, std::string_view format, Args&&
         return;
     }
     ret += format.substr(0, bracket);
-    if (format.substr(bracket, 4) == "{{}}") {
-        // Escaped {}.
-        ret += "{}";
-        return stringFormatHelper(ret, format.substr(bracket + 4), std::forward<Args>(args)...);
-    } else if (format.substr(bracket, 2) == "{}") {
+    if (format.substr(bracket, 2) == "{{") {
+        // Escaped {.
+        ret += "{";
+        return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Args>(args)...);
+    }
+    if (format.substr(bracket, 2) == "}}") {
+        // Escaped }.
+        ret += "}";
+        return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Args>(args)...);
+    }
+    if (format.substr(bracket, 2) == "{}") {
         // Formatted {}.
         throw InternalException("Not enough values for string_format.");
     }
@@ -87,12 +100,19 @@ inline void stringFormatHelper(std::string& ret, std::string_view format, Arg&& 
         throw InternalException("Too many values for string_format.");
     }
     ret += format.substr(0, bracket);
-    if (format.substr(bracket, 4) == "{{}}") {
-        // Escaped {}.
-        ret += "{}";
-        return stringFormatHelper(ret, format.substr(bracket + 4), std::forward<Arg>(arg),
+    if (format.substr(bracket, 2) == "{{") {
+        // Escaped {.
+        ret += "{";
+        return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Arg>(arg),
             std::forward<Args>(args)...);
-    } else if (format.substr(bracket, 2) == "{}") {
+    }
+    if (format.substr(bracket, 2) == "}}") {
+        // Escaped }.
+        ret += "}";
+        return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Arg>(arg),
+            std::forward<Args>(args)...);
+    }
+    if (format.substr(bracket, 2) == "{}") {
         // Formatted {}.
         ret += map(arg);
         return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Args>(args)...);
@@ -112,6 +132,12 @@ inline std::string stringFormat(std::string_view format, Args&&... args) {
     ret.reserve(32); // Optimistic pre-allocation.
     string_format_detail::stringFormatHelper(ret, format, std::forward<Args>(args)...);
     return ret;
+}
+
+// Needed only to mirror the `USE_STD_FORMAT` API.
+template<typename... Args>
+inline std::string vStringFormat(std::string_view format, Args&&... args) {
+    return stringFormat(format, std::forward<Args>(args)...);
 }
 
 #endif

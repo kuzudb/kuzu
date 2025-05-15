@@ -18,12 +18,11 @@ static std::string getDuckDBExtensionOptions(httpfs_extension::S3AuthParams kuzu
 std::string DuckDBSecretManager::getRemoteFSSecret(main::ClientContext* context,
     const httpfs_extension::S3FileSystemConfig& config) {
     KU_ASSERT(config.fsName == "S3" || config.fsName == "GCS");
-    std::string templateQuery = R"(CREATE SECRET {}_secret (
+    return common::stringFormat(R"(CREATE SECRET {}_secret (
         {}
         TYPE {}
-    );)";
-    return common::stringFormat(templateQuery, config.fsName,
-        getDuckDBExtensionOptions(config.getAuthParams(context)), config.fsName);
+    );)",
+        config.fsName, getDuckDBExtensionOptions(config.getAuthParams(context)), config.fsName);
 }
 
 } // namespace duckdb_extension

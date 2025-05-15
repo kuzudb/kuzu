@@ -34,14 +34,14 @@ static std::string getUnityCatalogOptions(main::ClientContext* context, std::str
 }
 
 std::string DuckDBUnityCatalogSecretManager::getSecret(main::ClientContext* context) {
-    std::string templateQuery = R"(CREATE SECRET (
-        {}
-        TYPE UC
-    );)";
     std::string options = "";
     options += getUnityCatalogOptions(context, UnityCatalogToken::NAME);
     options += getUnityCatalogOptions(context, UnityCatalogEndPoint::NAME);
-    return common::stringFormat(templateQuery, options);
+    return common::stringFormat(R"(CREATE SECRET (
+        {}
+        TYPE UC
+    );)",
+        options);
 }
 
 } // namespace unity_catalog_extension

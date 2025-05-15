@@ -45,7 +45,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
             attachedDB->constCast<AttachedPostgresDatabase>().getAttachedCatalogNameInDuckDB(),
             escapeSpecialChars(query));
     // Query to sniff the column names and types.
-    auto queryToExecuteInDuckDB = common::stringFormat(queryTemplate, "*") + " limit 1";
+    auto queryToExecuteInDuckDB = common::vStringFormat(queryTemplate, "*") + " limit 1";
     auto& attachedPostgresDB = attachedDB->constCast<AttachedPostgresDatabase>();
     auto queryResult = attachedPostgresDB.executeQuery(queryToExecuteInDuckDB);
     std::vector<common::LogicalType> returnTypes;
@@ -64,7 +64,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
 
 std::unique_ptr<TableFuncSharedState> initSharedState(const TableFuncInitSharedStateInput& input) {
     auto scanBindData = input.bindData->constPtrCast<DuckDBScanBindData>();
-    auto finalQuery = stringFormat(scanBindData->query, scanBindData->getColumnsToSelect());
+    auto finalQuery = vStringFormat(scanBindData->query, scanBindData->getColumnsToSelect());
     auto result = scanBindData->connector.executeQuery(finalQuery);
     return std::make_unique<DuckDBScanSharedState>(std::move(result));
 }
