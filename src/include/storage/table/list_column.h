@@ -68,8 +68,7 @@ public:
     Column* getSizeColumn() const { return sizeColumn.get(); }
     Column* getDataColumn() const { return dataColumn.get(); }
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState,
-        PageAllocator& pageAllocator) override;
+    void checkpointSegment(ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const override;
 
 protected:
     void scanInternal(const ChunkState& state, common::offset_t startOffsetInChunk,

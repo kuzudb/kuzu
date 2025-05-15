@@ -106,8 +106,8 @@ public:
 
 protected:
     common::row_idx_t startRowIdx;
-    uint64_t capacity;
     std::atomic<common::row_idx_t> numRows;
+    uint64_t capacity;
     std::vector<std::unique_ptr<ColumnChunkData>> chunks;
     std::mutex spillToDiskMutex;
     // Used to track if the group may be in use and to verify that spillToDisk is only called when
@@ -256,8 +256,8 @@ protected:
     NodeGroupDataFormat format;
     ResidencyState residencyState;
     common::row_idx_t startRowIdx;
-    uint64_t capacity;
     std::atomic<common::row_idx_t> numRows;
+    uint64_t capacity;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     std::unique_ptr<VersionInfo> versionInfo;
 };

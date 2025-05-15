@@ -20,7 +20,7 @@ public:
         common::ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) const;
 
     DictionaryChunk::string_index_t append(const DictionaryChunk& dictChunk, ChunkState& state,
-        std::string_view val);
+        std::string_view val) const;
 
     bool canCommitInPlace(const ChunkState& state, uint64_t numNewStrings,
         uint64_t totalStringLengthToAdd) const;
