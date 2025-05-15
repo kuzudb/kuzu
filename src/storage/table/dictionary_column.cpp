@@ -98,7 +98,7 @@ void DictionaryColumn::scan(const ChunkState& offsetState, const ChunkState& dat
 }
 
 string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, ChunkState& state,
-    std::string_view val) {
+    std::string_view val) const {
     const auto startOffset = dataColumn->appendValues(*dictChunk.getStringDataChunk(),
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
         reinterpret_cast<const uint8_t*>(val.data()), nullptr /*nullChunkData*/, val.size());
