@@ -462,7 +462,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1connection_1destroy(JNIEnv* 
     Connection* conn = getConnection(env, thisConn);
     delete conn;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -480,7 +480,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1connection_1set_1max_1num_1t
     uint64_t threads = static_cast<uint64_t>(num_threads);
     conn->setMaxNumThreadForExec(threads);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -499,7 +499,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1connection_1get_1max_1num_1
     jlong num_threads = static_cast<jlong>(threads);
     return num_threads;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -526,7 +526,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1connection_1query(JNIEnv*
     env->SetLongField(newQRObject, J_C_QueryResult_F_qr_ref, qr_ref);
     return newQRObject;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -554,7 +554,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1connection_1prepare(JNIEn
         J_C_PreparedStatement_F_ps_ref);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -583,7 +583,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1connection_1execute(JNIEn
     jobject ret = createJavaObject(env, query_result, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -601,7 +601,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1connection_1interrupt(JNIEnv
     Connection* conn = getConnection(env, thisConn);
     conn->interrupt();
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -619,7 +619,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1connection_1set_1query_1time
     uint64_t timeout = static_cast<uint64_t>(timeout_in_ms);
     conn->setQueryTimeOut(timeout);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -640,7 +640,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1prepared_1statement_1destroy
     PreparedStatement* ps = getPreparedStatement(env, thisPS);
     delete ps;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -657,7 +657,7 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzu_1prepared_1statement_1is_
     PreparedStatement* ps = getPreparedStatement(env, thisPS);
     return static_cast<jboolean>(ps->isSuccess());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -677,7 +677,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1prepared_1statement_1get_
     jstring msg = env->NewStringUTF(errorMessage.c_str());
     return msg;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -699,7 +699,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1destroy(JNIEn
     QueryResult* qr = getQueryResult(env, thisQR);
     delete qr;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -716,7 +716,7 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1is_1succe
     QueryResult* qr = getQueryResult(env, thisQR);
     return static_cast<jboolean>(qr->isSuccess());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -736,7 +736,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1error
     jstring msg = env->NewStringUTF(errorMessage.c_str());
     return msg;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -754,7 +754,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1num_1co
     QueryResult* qr = getQueryResult(env, thisQR);
     return static_cast<jlong>(qr->getNumColumns());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -779,7 +779,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1colum
     jstring name = env->NewStringUTF(column_name.c_str());
     return name;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -810,7 +810,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1colum
     env->SetLongField(newDTObject, J_C_DataType_F_dt_ref, dt_ref);
     return newDTObject;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -828,7 +828,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1num_1tu
     QueryResult* qr = getQueryResult(env, thisQR);
     return static_cast<jlong>(qr->getNumTuples());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -853,7 +853,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1query
         env->NewObject(J_C_QuerySummary, J_C_QuerySummary_M_ctor, cmpTime, exeTime);
     return newQSObject;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -871,7 +871,7 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1has_1next
     QueryResult* qr = getQueryResult(env, thisQR);
     return static_cast<jboolean>(qr->hasNext());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -897,7 +897,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1next(
     env->SetLongField(newFTObject, J_C_FlatTuple_F_ft_ref, ft_ref);
     return newFTObject;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -915,7 +915,7 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1has_1next
     QueryResult* qr = getQueryResult(env, thisQR);
     return qr->hasNextQueryResult();
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -940,7 +940,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1next_
     env->SetBooleanField(ret, J_C_QueryResult_F_isOwnedByCPP, static_cast<jboolean>(true));
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -960,7 +960,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1to_1string
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -978,7 +978,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1reset_1iterat
     QueryResult* qr = getQueryResult(env, thisQR);
     qr->resetIterator();
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1004,7 +1004,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1destroy(JNIEnv*
     flat_tuple_shared_ptr->reset();
     delete flat_tuple_shared_ptr;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1032,7 +1032,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1get_1value(J
 
     return v;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1052,7 +1052,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1to_1string(J
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1069,19 +1069,7 @@ namespace kuzu::common {
 struct JavaAPIHelper {
     static inline LogicalType* createLogicalType(LogicalTypeID typeID,
         std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
-    try
-    {
-
-
         return new LogicalType(typeID, std::move(extraTypeInfo));
-        }
-        catch (const std::exception &e) {
-            throwJNIException(env, e.what());
-        }
-        catch (...) {
-            throwJNIException(env, "Unknown Error");
-        }
-        return nullptr;
     }
 };
 } // namespace kuzu::common
@@ -1110,7 +1098,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1create(JNIEnv* 
     uint64_t address = reinterpret_cast<uint64_t>(data_type);
     return static_cast<jlong>(address);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1131,7 +1119,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1clone(JNIEnv*
     jobject dt = createJavaObject(env, newDT, J_C_DataType, J_C_DataType_F_dt_ref);
     return dt;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1149,7 +1137,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1destroy(JNIEnv* 
     auto* dt = getDataType(env, thisDT);
     delete dt;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1168,7 +1156,7 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1equals(JNIEn
 
     return static_cast<jboolean>(*cppdt1 == *cppdt2);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1191,7 +1179,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1get_1id(JNIEn
     jobject id = env->GetStaticObjectField(J_C_DataTypeID, idField);
     return id;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1219,7 +1207,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1get_1child_1t
     jobject ret = createJavaObject(env, new_child_type, J_C_DataType, J_C_DataType_F_dt_ref);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1240,7 +1228,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1get_1num_1eleme
     }
     return static_cast<jlong>(ArrayType::getNumElements(*dt));
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1262,7 +1250,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1null(JNIEn
     jobject ret = createJavaObject(env, v, J_C_Value, J_C_Value_F_v_ref);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1282,7 +1270,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1null_1with
     jobject ret = createJavaObject(env, v, J_C_Value, J_C_Value_F_v_ref);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1300,7 +1288,7 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzu_1value_1is_1null(JNIEnv* 
     Value* v = getValue(env, thisV);
     return static_cast<jboolean>(v->isNull());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1318,7 +1306,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1value_1set_1null(JNIEnv* env
     Value* v = getValue(env, thisV);
     v->setNull(static_cast<bool>(is_null));
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1337,7 +1325,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1default(JN
     jobject ret = createJavaObject(env, v, J_C_Value, J_C_Value_F_v_ref);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1418,7 +1406,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
     uint64_t address = reinterpret_cast<uint64_t>(v);
     return static_cast<jlong>(address);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1437,7 +1425,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1clone(JNIEnv* env,
     Value* copy = new Value(*v);
     return createJavaObject(env, copy, J_C_Value, J_C_Value_F_v_ref);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1456,7 +1444,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1value_1copy(JNIEnv* env, jcl
     Value* otherV = getValue(env, otherValue);
     thisV->copyValueFrom(*otherV);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1473,7 +1461,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1value_1destroy(JNIEnv* env, 
     Value* v = getValue(env, thisValue);
     delete v;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1502,7 +1490,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1list___3Lcom_kuzu
     Value* listValue = new Value(LogicalType::LIST(std::move(childType)), std::move(children));
     return createJavaObject(env, listValue, J_C_Value, J_C_Value_F_v_ref);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1527,7 +1515,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1list__Lcom_kuzudb
     Value* listValue = new Value(LogicalType::LIST(logicalType->copy()), std::move(children));
     return createJavaObject(env, listValue, J_C_Value, J_C_Value_F_v_ref);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1545,7 +1533,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1list_1size(JNIE
     Value* v = getValue(env, thisValue);
     return static_cast<jlong>(NestedVal::getChildrenSize(v));
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1574,7 +1562,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1list_1element
     env->SetBooleanField(element, J_C_Value_F_isOwnedByCPP, static_cast<jboolean>(true));
     return element;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1593,7 +1581,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1data_1type(JN
     auto* dt = new LogicalType(v->getDataType().copy());
     return createJavaObject(env, dt, J_C_DataType, J_C_DataType_F_dt_ref);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1758,7 +1746,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
     default: {
     }
     }
-    catch (const std::exception &e) {
+    }
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1766,7 +1755,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
     }
         return nullptr;
     }
-}
+
 
 JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1to_1string(JNIEnv* env, jclass,
     jobject thisValue) {
@@ -1779,7 +1768,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1to_1string(JNIEnv*
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
                                                                          }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1803,7 +1792,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1get_1id(JNIEnv
     jobject ret = env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1826,7 +1815,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1get_1label_1na
     auto label = labelVal->getValue<std::string>();
     return env->NewStringUTF(label.c_str());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1845,7 +1834,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1get_1property_1s
     auto size = NodeVal::getNumProperties(nv);
     return static_cast<jlong>(size);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1864,7 +1853,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1get_1property_
     auto propertyName = NodeVal::getPropertyName(nv, index);
     return env->NewStringUTF(propertyName.c_str());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1885,7 +1874,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1get_1property_
     env->SetBooleanField(ret, J_C_Value_F_isOwnedByCPP, static_cast<jboolean>(true));
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1904,7 +1893,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1to_1string(JNI
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1929,7 +1918,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1id(JNIEnv*
     jobject ret = env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1953,7 +1942,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1src_1id(JN
     jobject ret = env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -1977,7 +1966,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1dst_1id(JN
     jobject ret = env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2000,7 +1989,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1label_1nam
     auto label = labelVal->getValue<std::string>();
     return env->NewStringUTF(label.c_str());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2018,7 +2007,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1property_1si
     auto size = RelVal::getNumProperties(rv);
     return static_cast<jlong>(size);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2037,7 +2026,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1property_1
     auto name = RelVal::getPropertyName(rv, index);
     return env->NewStringUTF(name.c_str());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2059,7 +2048,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1property_1
     env->SetBooleanField(ret, J_C_Value_F_isOwnedByCPP, static_cast<jboolean>(true));
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2079,7 +2068,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1to_1string(JNIE
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2133,7 +2122,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1map(JNIEnv* env, 
         std::move(children));
     return createJavaObject(env, mapValue, J_C_Value, J_C_Value_F_v_ref);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2168,7 +2157,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1struct(JNIEnv* en
         new Value(LogicalType::STRUCT(std::move(structFields)), std::move(children));
     return createJavaObject(env, structValue, J_C_Value, J_C_Value_F_v_ref);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2192,7 +2181,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field
     auto name = fieldNames[index];
     return env->NewStringUTF(name.c_str());
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2218,7 +2207,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(J
         return static_cast<jlong>(index);
     }
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2233,7 +2222,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1get_1version(JNIEnv* env,
     return env->NewStringUTF(Version::getVersion());
 
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2242,14 +2231,14 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1get_1version(JNIEnv* env,
     return jstring();
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1get_1storage_1version(JNIEnv*, jclass) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1get_1storage_1version(JNIEnv* env, jclass) {
     try
     {
 
     return static_cast<jlong>(Version::getStorageVersion());
 
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2264,7 +2253,7 @@ void createGlobalClassRef(JNIEnv* env, jclass& globalClassRef, const char* class
     globalClassRef = (jclass)env->NewGlobalRef(tempLocalClassRef);
     env->DeleteLocalRef(tempLocalClassRef);
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2335,7 +2324,7 @@ void initGlobalClassRef(JNIEnv* env) {
 
     createGlobalClassRef(env, J_C_String, "java/lang/String");
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2415,7 +2404,7 @@ void initGlobalMethodRef(JNIEnv* env) {
 
     J_C_BigDecimal_M_scale = env->GetMethodID(J_C_BigDecimal, "scale", "()I");
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2450,7 +2439,7 @@ void initGlobalFieldRef(JNIEnv* env) {
 
     J_C_Database_db_ref = env->GetFieldID(J_C_Database, "db_ref", "J");
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
@@ -2459,37 +2448,35 @@ void initGlobalFieldRef(JNIEnv* env) {
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
-    try
-    {
-
-
     JNIEnv* env = nullptr;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION) != JNI_OK) {
         return JNI_ERR;
     }
+    try 
+    {
     initGlobalClassRef(env);
     initGlobalMethodRef(env);
     initGlobalFieldRef(env);
     return JNI_VERSION;
     }
-    catch (const std::exception &e) {
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
         throwJNIException(env, "Unknown Error");
     }
     return jint();
+
 }
 
 JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* /*reserved*/) {
-    try
-    {
-
-    }
-
     JNIEnv* env = nullptr;
     vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION);
 
+
+
+    try
+    {
     env->DeleteGlobalRef(J_C_Map);
     env->DeleteGlobalRef(J_C_Set);
     env->DeleteGlobalRef(J_C_Iterator);
@@ -2519,7 +2506,8 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* /*reserved*/) {
     env->DeleteGlobalRef(J_C_Connection);
     env->DeleteGlobalRef(J_C_Database);
     env->DeleteGlobalRef(J_C_String);
-    catch (const std::exception &e) {
+    }
+    catch (const Exception &e) {
         throwJNIException(env, e.what());
     }
     catch (...) {
