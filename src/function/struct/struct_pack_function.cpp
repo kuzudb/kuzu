@@ -34,8 +34,8 @@ void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,
 }
 
 void StructPackFunctions::undirectedRelCompileFunc(FunctionBindData*,
-    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-    std::shared_ptr<common::ValueVector>& result) {
+    const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    std::shared_ptr<ValueVector>& result) {
     // Skip src and dst reference because we may change their state
     for (auto i = 2u; i < parameters.size(); i++) {
         if (parameters[i]->state == result->state) {
