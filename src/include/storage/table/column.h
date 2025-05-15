@@ -1,5 +1,9 @@
 #pragma once
 
+#include "common/null_mask.h"
+#include "common/types/types.h"
+#include "storage/table/column_chunk.h"
+#include "storage/table/column_chunk_data.h"
 #include "storage/table/column_reader_writer.h"
 
 namespace kuzu {
@@ -64,14 +68,16 @@ public:
     // Batch write to a set of sequential pages.
     virtual void write(ColumnChunkData& persistentChunk, ChunkState& state,
         common::offset_t dstOffset, const ColumnChunkData& data, common::offset_t srcOffset,
-        common::length_t numValues);
+        common::length_t numValues) const;
 
     // Append values to the end of the node group, resizing it if necessary
     common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
-        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t numValues);
+        const uint8_t* data, const common::NullMask* nullChunkData,
+        common::offset_t numValues) const;
 
-    virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState,
-        PageAllocator& pageAllocator);
+    void checkpointColumnChunk(ColumnChunk& persistentData,
+        std::vector<ChunkCheckpointState> chunkCheckpointStates,
+        PageAllocator& pageAllocator) const;
 
     template<class TARGET>
     TARGET& cast() {
@@ -101,15 +107,19 @@ protected:
         common::offset_t endOffset) const;
 
     virtual bool canCheckpointInPlace(const ChunkState& state,
-        const ColumnCheckpointState& checkpointState);
+        const ColumnCheckpointState& checkpointState) const;
 
     void checkpointColumnChunkInPlace(ChunkState& state,
-        const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator);
+        const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const;
+
     void checkpointNullData(const ColumnCheckpointState& checkpointState,
         PageAllocator& pageAllocator) const;
 
     void checkpointColumnChunkOutOfPlace(const ChunkState& state,
         const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const;
+
+    virtual void checkpointSegment(ColumnCheckpointState&& checkpointState,
+        PageAllocator& pageAllocator) const;
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {

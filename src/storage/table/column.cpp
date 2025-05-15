@@ -10,6 +10,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/file_handle.h"
+#include "storage/page_allocator.h"
 #include "storage/page_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk.h"
@@ -320,7 +321,7 @@ void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
 // segments, it might make more sense for it to be there instead of passing the Column in
 // ColumnChunk::write
 void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
-    const ColumnChunkData& data, offset_t srcOffset, length_t numValues) {
+    const ColumnChunkData& data, offset_t srcOffset, length_t numValues) const {
     std::optional<NullMask> nullMask = data.getNullMask();
     NullMask* nullMaskPtr = nullptr;
     if (nullMask) {
@@ -345,7 +346,7 @@ void Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* d
 
 // Append to the end of the chunk.
 offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
-    const uint8_t* data, const NullMask* nullChunkData, offset_t numValues) {
+    const uint8_t* data, const NullMask* nullChunkData, offset_t numValues) const {
     auto& metadata = persistentChunk.getMetadata();
     const auto startOffset = metadata.numValues;
     writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
@@ -369,14 +370,12 @@ bool Column::isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
 }
 
 void Column::checkpointColumnChunkInPlace(ChunkState& state,
-    const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) {
-    for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
-        KU_ASSERT(chunkCheckpointState.numRows > 0);
-        // TODO(bmwinger): persistentData should be turned into a ColumnChunk eventually
-        // checkpointState.persistentData.write(state, chunkCheckpointState.startRow,
-        //    *chunkCheckpointState.chunkData, 0 /*srcOffset*/, chunkCheckpointState.numRows);
-        Column::write(checkpointState.persistentData, state, chunkCheckpointState.startRow,
-            *chunkCheckpointState.chunkData, 0 /*srcOffset*/, chunkCheckpointState.numRows);
+    const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const {
+    for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
+        KU_ASSERT(segmentCheckpointState.numRows > 0);
+        state.column->write(checkpointState.persistentData, state,
+            segmentCheckpointState.offsetInSegment, segmentCheckpointState.chunkData,
+            segmentCheckpointState.startRowInData, segmentCheckpointState.numRows);
     }
     // FIXME(bmwinger): Why?
     checkpointState.persistentData.resetNumValuesFromMetadata();
@@ -387,18 +386,18 @@ void Column::checkpointColumnChunkInPlace(ChunkState& state,
 
 void Column::checkpointNullData(const ColumnCheckpointState& checkpointState,
     PageAllocator& pageAllocator) const {
-    std::vector<ChunkCheckpointState> nullChunkCheckpointStates;
-    for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
-        KU_ASSERT(chunkCheckpointState.chunkData->hasNullData());
-        ChunkCheckpointState nullChunkCheckpointState(
-            chunkCheckpointState.chunkData->moveNullData(), chunkCheckpointState.startRow,
-            chunkCheckpointState.numRows);
-        nullChunkCheckpointStates.push_back(std::move(nullChunkCheckpointState));
+    std::vector<SegmentCheckpointState> nullSegmentCheckpointStates;
+    for (const auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
+        KU_ASSERT(segmentCheckpointState.chunkData.hasNullData());
+        nullSegmentCheckpointStates.emplace_back(*segmentCheckpointState.chunkData.getNullData(),
+            segmentCheckpointState.startRowInData, segmentCheckpointState.offsetInSegment,
+            segmentCheckpointState.numRows);
     }
     KU_ASSERT(checkpointState.persistentData.hasNullData());
-    ColumnCheckpointState nullColumnCheckpointState(*checkpointState.persistentData.getNullData(),
-        std::move(nullChunkCheckpointStates));
-    nullColumn->checkpointColumnChunk(nullColumnCheckpointState, pageAllocator);
+    nullColumn->checkpointSegment(
+        ColumnCheckpointState(*checkpointState.persistentData.getNullData(),
+            std::move(nullSegmentCheckpointStates)),
+        pageAllocator);
 }
 
 void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
@@ -408,16 +407,17 @@ void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     checkpointState.persistentData.resize(numRows);
     scan(state, &checkpointState.persistentData);
     state.reclaimAllocatedPages(pageAllocator);
-    for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
-        checkpointState.persistentData.write(chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/,
-            chunkCheckpointState.startRow, chunkCheckpointState.numRows);
+    for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
+        checkpointState.persistentData.write(&segmentCheckpointState.chunkData,
+            segmentCheckpointState.startRowInData, segmentCheckpointState.offsetInSegment,
+            segmentCheckpointState.numRows);
     }
     checkpointState.persistentData.finalize();
     checkpointState.persistentData.flush(pageAllocator);
 }
 
 bool Column::canCheckpointInPlace(const ChunkState& state,
-    const ColumnCheckpointState& checkpointState) {
+    const ColumnCheckpointState& checkpointState) const {
     if (isEndOffsetOutOfPagesCapacity(checkpointState.persistentData.getMetadata(),
             checkpointState.endRowIdxToWrite)) {
         return false;
@@ -427,23 +427,63 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
     }
 
     InPlaceUpdateLocalState localUpdateState{};
-    for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
+    for (auto& chunkCheckpointState : checkpointState.segmentCheckpointStates) {
         auto& chunkData = chunkCheckpointState.chunkData;
-        KU_ASSERT(chunkData->getNumValues() == chunkCheckpointState.numRows);
-        if (chunkData->getNumValues() != 0 &&
-            !state.metadata.compMeta.canUpdateInPlace(chunkData->getData(), 0,
-                chunkData->getNumValues(), dataType.getPhysicalType(), localUpdateState,
-                chunkData->getNullMask())) {
+        if (chunkData.getNumValues() != 0 &&
+            !state.metadata.compMeta.canUpdateInPlace(chunkData.getData(),
+                chunkCheckpointState.startRowInData, chunkCheckpointState.numRows,
+                dataType.getPhysicalType(), localUpdateState, chunkData.getNullMask())) {
             return false;
         }
     }
     return true;
 }
 
-void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState, PageAllocator &pageAllocator) {
-    // TODO(bmwinger): This can probably be ignored for now, but we need to checkpoint in such a way
-    // that we can choose between in-place updates to the existing segments, and creating new
-    // segments/splitting segments
+void Column::checkpointColumnChunk(ColumnChunk& persistentData,
+    std::vector<ChunkCheckpointState> chunkCheckpointStates, PageAllocator& pageAllocator) const {
+    // TODO: maintain 64K of values in each segment. Values within a segement get updated in-place,
+    // if appending to the last one would go over the limit, create a new segment
+    // TODO(bmwinger): how will this differ from segmentation by size?
+    //  - Divide up new data by the current segment they map to
+    //  - Check if checkpointing can be done in-place for each existing segment
+    //  - Any segments which can't be checkpointed in-place get split in half
+    offset_t segmentStart = 0;
+    // TODO(bmwinger): I don't like the direct access into the ColumnChunk here, it might be better
+    // to move this function into ColumnChunk
+    auto& segments = persistentData.getSegmentsMut();
+    for (size_t i = 0; i < segments.size(); i++) {
+        std::vector<SegmentCheckpointState> segmentCheckpointStates;
+        auto& segment = segments[i];
+        for (auto& state : chunkCheckpointStates) {
+            if (state.startRow < segmentStart + segment->getNumValues() &&
+                state.startRow + state.numRows > segmentStart) {
+                auto startOffsetInSegment = state.startRow - segmentStart;
+                uint64_t startRowInChunk = 0;
+                if (state.startRow < segmentStart) {
+                    startRowInChunk = segmentStart - state.startRow;
+                }
+                segmentCheckpointStates.push_back(
+                    {*state.chunkData, startRowInChunk, startOffsetInSegment,
+                        std::min(state.numRows - startRowInChunk,
+                            segment->getNumValues() - startOffsetInSegment)});
+            }
+            // Append new data to the end of the last segment
+            // TODO: Create a new segment if the last segment is too large
+            if (i == segments.size() - 1 &&
+                state.startRow + state.numRows > segmentStart + segment->getNumValues()) {
+                auto startOffsetInSegment = segment->getNumValues();
+                auto startRowInChunk = segmentStart + segment->getNumValues() - state.startRow;
+                segmentCheckpointStates.push_back({*state.chunkData, startRowInChunk,
+                    startOffsetInSegment, state.numRows - startRowInChunk});
+            }
+        }
+        checkpointSegment(ColumnCheckpointState(*segment, std::move(segmentCheckpointStates)),
+            pageAllocator);
+        segmentStart += segment->getNumValues();
+    }
+}
+void Column::checkpointSegment(ColumnCheckpointState&& checkpointState,
+    PageAllocator& pageAllocator) const {
     ChunkState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     if (canCheckpointInPlace(chunkState, checkpointState)) {
