@@ -28,7 +28,7 @@ if(ANDROID_ABI)
 endif()
 
 if(${BUILD_SWIFT})
-    message(STATUS "Building for SWIFT, extension static linking is enabled by default")
+    message(STATUS "Building for Swift binding, extension static linking is enabled by default")
     add_static_link_extension(fts)
     add_static_link_extension(json)
     add_static_link_extension(vector)
