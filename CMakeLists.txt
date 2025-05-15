@@ -266,6 +266,7 @@ option(BUILD_TESTS "Build C++ tests." FALSE)
 option(BUILD_EXTENSION_TESTS "Build C++ extension tests." FALSE)
 option(BUILD_KUZU "Build Kuzu." TRUE)
 option(ENABLE_BACKTRACES "Enable backtrace printing for exceptions and segfaults" FALSE)
+option(USE_STD_FORMAT "Use std::format instead of a custom formatter." FALSE)
 
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
@@ -273,7 +274,7 @@ if(${BUILD_LCOV})
 endif()
 
 if (ENABLE_BACKTRACES)
-    find_package(cpptrace)
+    find_package(cpptrace QUIET)
     if (NOT cpptrace_FOUND)
         include(FetchContent)
         FetchContent_Declare(
@@ -285,6 +286,10 @@ if (ENABLE_BACKTRACES)
         FetchContent_MakeAvailable(cpptrace)
     endif()
     add_compile_definitions(KUZU_BACKTRACE)
+endif()
+
+if (USE_STD_FORMAT)
+    add_compile_definitions(USE_STD_FORMAT)
 endif()
 
 function(add_kuzu_test TEST_NAME)

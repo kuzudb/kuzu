@@ -742,7 +742,7 @@ jobs:
 
   sanity-checks:
     name: sanity checks
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -829,7 +829,7 @@ jobs:
 
   rustfmt-check:
     name: rustfmt check
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Update Rust
         run: rustup update
@@ -848,7 +848,7 @@ jobs:
   report-benchmark-result:
     name: report benchmark result
     needs: [ benchmark ]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     steps:
       - name: Download comparison results
@@ -1015,13 +1015,13 @@ jobs:
 
   shell-test:
     name: shell test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ sanity-checks ]
     steps:
       - uses: actions/checkout@v4
 
       - name: Build
-        run: make release NUM_THREADS=$(nproc)
+        run: make release NUM_THREADS=$(nproc) USE_STD_FORMAT=1
 
       - name: Test
         working-directory: tools/shell/test

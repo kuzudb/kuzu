@@ -14,6 +14,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     KU_ASSERT(getPhysicalPlanFunc);
     auto res = getPhysicalPlanFunc(this, logicalOperator);
     logicalOpToPhysicalOpMap.insert({logicalOperator, res.get()});
+    for (auto& child : logicalOperator->getChildren()) {
+        res->addChild(mapOperator(child.get()));
+    }
     return res;
 }
 

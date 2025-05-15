@@ -12,12 +12,14 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop.h"
+#include "catalog/catalog.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_create_type.h"
 #include "planner/operator/ddl/logical_drop.h"
 #include "planner/operator/logical_create_macro.h"
+#include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_table_function_call.h"
@@ -45,6 +47,20 @@ LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
     auto& createTable = statement.constCast<BoundCreateTable>();
     auto& info = createTable.getInfo();
     auto op = std::make_shared<LogicalCreateTable>(info.copy(), statement.getSingleColumnExpr());
+
+    // If it is a CREATE NODE TABLE AS, then copy as well
+    if (createTable.getCopyInfo()) {
+        auto copyPlan = planCopyNodeFrom(createTable.getCopyInfo(),
+            BoundStatementResult::createSingleStringColumnResult().getColumns());
+        // Find any leaf node
+        auto tmp = copyPlan.getLastOperator();
+        while (tmp->getNumChildren() > 0) {
+            tmp = tmp->getChild(0);
+        }
+        tmp->addChild(std::make_shared<LogicalDummySink>(std::move(op)));
+        return copyPlan;
+    }
+
     return getSimplePlan(std::move(op));
 }
 

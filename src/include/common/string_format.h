@@ -2,12 +2,23 @@
 
 #include <string>
 #include <string_view>
-#include <type_traits>
-
+#if USE_STD_FORMAT
+#include <format>
+#else
 #include "common/exception/internal.h"
+#endif
 
 namespace kuzu {
 namespace common {
+
+#if USE_STD_FORMAT
+
+template<typename... Args>
+inline std::string stringFormat(std::format_string<Args...> format, Args&&... args) {
+    return std::format(format, std::forward<Args>(args)...);
+}
+
+#else
 
 namespace string_format_detail {
 #define MAP_STD_TO_STRING(typ)                                                                     \
@@ -35,9 +46,9 @@ MAP_SELF(const char*);
 // Also covers std::string
 MAP_SELF(std::string_view)
 
-// chars are mapped to themselves, but signed char and unsigned char (which are used for int8_t and
+// Chars are mapped to themselves, but signed char and unsigned char (which are used for int8_t and
 // uint8_t respectively), need to be cast to be properly output as integers. This is consistent with
-// fmt's behaviour.
+// fmt's behavior.
 MAP_SELF(char)
 inline std::string map(signed char v) {
     return std::to_string(int(v));
@@ -93,8 +104,8 @@ inline void stringFormatHelper(std::string& ret, std::string_view format, Arg&& 
 }
 } // namespace string_format_detail
 
-//! Formats `args` according to `format`. Accepts {} for formatting the argument and {{}} for
-//! a literal {}. Formatting is done with std::ostream::operator<<.
+// Formats `args` according to `format`. Accepts {} for formatting the argument and {{}} for
+// a literal {}. Formatting is done with std::ostream::operator<<.
 template<typename... Args>
 inline std::string stringFormat(std::string_view format, Args&&... args) {
     std::string ret;
@@ -102,6 +113,8 @@ inline std::string stringFormat(std::string_view format, Args&&... args) {
     string_format_detail::stringFormatHelper(ret, format, std::forward<Args>(args)...);
     return ret;
 }
+
+#endif
 
 } // namespace common
 } // namespace kuzu
