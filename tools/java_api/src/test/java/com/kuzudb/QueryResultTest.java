@@ -52,6 +52,27 @@ public class QueryResultTest extends TestBase {
         }
     }
 
+
+    @Test
+    void QueryResultFailure() throws RuntimeException {
+        try (QueryResult result = conn.query("MATCH (a:personnnn) RETURN COUNT(*)")) {
+            assertFalse(result.isSuccess());
+            List<List<Value>> tuples = new ArrayList<List<Value>>();
+            while (result.hasNext()) {
+                FlatTuple tuple = result.getNext();
+                tuples.add(copyFlatTuple(tuple, result.getNumColumns()));
+                fail("QueryResultFailure failed:");
+            }
+        }
+        catch (Exception e) {
+            assertEquals(e.getMessage(), "");
+            return;
+        }
+        fail("QueryResultFailure failed:");
+
+    }
+
+
     @Test
     void QueryResultGetNumColumns() throws RuntimeException {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height")) {
