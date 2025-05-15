@@ -59,10 +59,10 @@ void UndirectedRelExpressionEvaluator::evaluate() {
     directionEvaluator->evaluate();
     auto& selVector = resultVector->state->getSelVector();
     for (auto i = 0u; i < selVector.getSelSize(); ++i) {
-        auto pos = selVector[i];
-        if (!directionVector->getValue<bool>(pos)) {
+        if (!directionVector->getValue<bool>(directionVector->state->getSelVector()[i])) {
             continue;
         }
+        auto pos = selVector[i];
         auto srcID = srcIDVector->getValue<internalID_t>(pos);
         auto dstID = dstIDVector->getValue<internalID_t>(pos);
         srcIDVector->setValue(pos, dstID);
