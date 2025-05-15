@@ -61,7 +61,7 @@ public class DatabaseTest extends TestBase {
                             false /* readOnly */,
                             (1 << 30) - 1 /* 1 GB - 1 Byte (Odd Number)*/,
                             false /* autoCheckpoint */,
-                            1234 /* checkpointThreshold */) 
+                            1234 /* checkpointThreshold */);
 
             fail("DBCreationWithInvalidMaxDBSize failed:");
         }
