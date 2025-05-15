@@ -262,7 +262,8 @@ public:
         return segments;
     }
 
-    const std::vector<std::unique_ptr<ColumnChunkData>>& getSegmentsMut() const { return data; }
+    void checkpoint(Column& column, std::vector<ChunkCheckpointState>&& chunkCheckpointStates,
+        PageAllocator& pageAllocator);
 
     void write(Column& column, ChunkState& state, common::offset_t dstOffset,
         const ColumnChunkData& dataToWrite, common::offset_t srcOffset, common::length_t numValues);
