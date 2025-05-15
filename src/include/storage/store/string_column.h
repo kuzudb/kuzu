@@ -26,9 +26,9 @@ public:
 
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
         const ColumnChunkData& data, common::offset_t srcOffset,
-        common::length_t numValues) override;
+        common::length_t numValues) const override;
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointSegment(ColumnCheckpointState&& checkpointState) const override;
 
     const DictionaryColumn& getDictionary() const { return dictionary; }
     const Column* getIndexColumn() const { return indexColumn.get(); }
@@ -52,7 +52,7 @@ protected:
 
 private:
     bool canCheckpointInPlace(const ChunkState& state,
-        const ColumnCheckpointState& checkpointState) override;
+        const ColumnCheckpointState& checkpointState) const override;
 
     bool canIndexCommitInPlace(const ChunkState& state, uint64_t numStrings,
         common::offset_t maxOffset) const;

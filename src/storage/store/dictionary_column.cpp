@@ -99,7 +99,7 @@ void DictionaryColumn::scan(const Transaction* transaction, const ChunkState& of
 }
 
 string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, ChunkState& state,
-    std::string_view val) {
+    std::string_view val) const {
     const auto startOffset = dataColumn->appendValues(*dictChunk.getStringDataChunk(),
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
         reinterpret_cast<const uint8_t*>(val.data()), nullptr /*nullChunkData*/, val.size());
@@ -136,7 +136,7 @@ void DictionaryColumn::scanValueToVector(const Transaction* transaction,
 }
 
 bool DictionaryColumn::canCommitInPlace(const ChunkState& state, uint64_t numNewStrings,
-    uint64_t totalStringLengthToAdd) {
+    uint64_t totalStringLengthToAdd) const {
     if (!canDataCommitInPlace(
             StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
             totalStringLengthToAdd)) {
@@ -152,7 +152,7 @@ bool DictionaryColumn::canCommitInPlace(const ChunkState& state, uint64_t numNew
 }
 
 bool DictionaryColumn::canDataCommitInPlace(const ChunkState& dataState,
-    uint64_t totalStringLengthToAdd) {
+    uint64_t totalStringLengthToAdd) const {
     // Make sure there is sufficient space in the data chunk (not currently compressed)
     auto totalStringDataAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
     if (totalStringDataAfterUpdate > dataState.metadata.getNumPages() * KUZU_PAGE_SIZE) {
@@ -163,7 +163,7 @@ bool DictionaryColumn::canDataCommitInPlace(const ChunkState& dataState,
 }
 
 bool DictionaryColumn::canOffsetCommitInPlace(const ChunkState& offsetState,
-    const ChunkState& dataState, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) {
+    const ChunkState& dataState, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) const {
     auto totalStringOffsetsAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
     auto offsetCapacity =
         offsetState.metadata.compMeta.numValues(KUZU_PAGE_SIZE, offsetColumn->getDataType()) *

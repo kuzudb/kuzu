@@ -22,10 +22,10 @@ public:
         common::ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) const;
 
     DictionaryChunk::string_index_t append(const DictionaryChunk& dictChunk, ChunkState& state,
-        std::string_view val);
+        std::string_view val) const;
 
     bool canCommitInPlace(const ChunkState& state, uint64_t numNewStrings,
-        uint64_t totalStringLengthToAdd);
+        uint64_t totalStringLengthToAdd) const;
 
     Column* getDataColumn() const { return dataColumn.get(); }
     Column* getOffsetColumn() const { return offsetColumn.get(); }
@@ -38,9 +38,9 @@ private:
         uint64_t startOffset, uint64_t endOffset, common::ValueVector* resultVector,
         uint64_t offsetInVector) const;
 
-    bool canDataCommitInPlace(const ChunkState& dataState, uint64_t totalStringLengthToAdd);
+    bool canDataCommitInPlace(const ChunkState& dataState, uint64_t totalStringLengthToAdd) const;
     bool canOffsetCommitInPlace(const ChunkState& offsetState, const ChunkState& dataState,
-        uint64_t numNewStrings, uint64_t totalStringLengthToAdd);
+        uint64_t numNewStrings, uint64_t totalStringLengthToAdd) const;
 
 private:
     // The offset column stores the offsets for each index, and the data column stores the data in

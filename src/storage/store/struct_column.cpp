@@ -81,7 +81,8 @@ void StructColumn::lookupInternal(const Transaction* transaction, const ChunkSta
 }
 
 void StructColumn::write(ColumnChunkData& persistentChunk, ChunkState& state,
-    offset_t offsetInChunk, const ColumnChunkData& data, offset_t dataOffset, length_t numValues) {
+    offset_t offsetInChunk, const ColumnChunkData& data, offset_t dataOffset,
+    length_t numValues) const {
     KU_ASSERT(data.getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->write(*persistentChunk.getNullData(), *state.nullState, offsetInChunk,
         *data.getNullData(), dataOffset, numValues);
@@ -94,19 +95,18 @@ void StructColumn::write(ColumnChunkData& persistentChunk, ChunkState& state,
     }
 }
 
-void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+void StructColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) const {
     auto& persistentStructChunk = checkpointState.persistentData.cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
-        std::vector<ChunkCheckpointState> childChunkCheckpointStates;
-        for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
-            ChunkCheckpointState childChunkCheckpointState(
-                chunkCheckpointState.chunkData->cast<StructChunkData>().moveChild(i),
-                chunkCheckpointState.startRow, chunkCheckpointState.numRows);
-            childChunkCheckpointStates.push_back(std::move(childChunkCheckpointState));
+        std::vector<SegmentCheckpointState> childSegmentCheckpointStates;
+        for (const auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
+            childSegmentCheckpointStates.emplace_back(
+                segmentCheckpointState.chunkData.cast<StructChunkData>().getChild(i),
+                segmentCheckpointState.startRowInData, segmentCheckpointState.offsetInSegment,
+                segmentCheckpointState.numRows);
         }
-        ColumnCheckpointState childColumnCheckpointState(*persistentStructChunk.getChild(i),
-            std::move(childChunkCheckpointStates));
-        childColumns[i]->checkpointColumnChunk(childColumnCheckpointState);
+        childColumns[i]->checkpointSegment(ColumnCheckpointState(*persistentStructChunk.getChild(i),
+            std::move(childSegmentCheckpointStates)));
     }
     Column::checkpointNullData(checkpointState);
     persistentStructChunk.syncNumValues();

@@ -4,6 +4,7 @@
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "storage/db_file_id.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/column_reader_writer.h"
 
@@ -78,13 +79,15 @@ public:
     // Batch write to a set of sequential pages.
     virtual void write(ColumnChunkData& persistentChunk, ChunkState& state,
         common::offset_t dstOffset, const ColumnChunkData& data, common::offset_t srcOffset,
-        common::length_t numValues);
+        common::length_t numValues) const;
 
     // Append values to the end of the node group, resizing it if necessary
     common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
-        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t numValues);
+        const uint8_t* data, const common::NullMask* nullChunkData,
+        common::offset_t numValues) const;
 
-    virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
+    void checkpointColumnChunk(ColumnChunk& persistentData,
+        std::vector<ChunkCheckpointState> chunkCheckpointStates) const;
 
     template<class TARGET>
     TARGET& cast() {
@@ -106,7 +109,7 @@ protected:
 
     common::page_idx_t writeValues(ChunkState& state, common::offset_t dstOffset,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
-        common::offset_t numValues = 1);
+        common::offset_t numValues = 1) const;
 
     // Produces a page cursor for the offset relative to the given node group
     static PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
@@ -122,14 +125,16 @@ protected:
         common::offset_t maxOffset) const;
 
     virtual bool canCheckpointInPlace(const ChunkState& state,
-        const ColumnCheckpointState& checkpointState);
+        const ColumnCheckpointState& checkpointState) const;
 
     void checkpointColumnChunkInPlace(ChunkState& state,
-        const ColumnCheckpointState& checkpointState);
+        const ColumnCheckpointState& checkpointState) const;
     void checkpointNullData(const ColumnCheckpointState& checkpointState) const;
 
     void checkpointColumnChunkOutOfPlace(const ChunkState& state,
-        const ColumnCheckpointState& checkpointState);
+        const ColumnCheckpointState& checkpointState) const;
+
+    virtual void checkpointSegment(ColumnCheckpointState&& checkpointState) const;
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {

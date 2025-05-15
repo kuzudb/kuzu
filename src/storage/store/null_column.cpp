@@ -55,7 +55,7 @@ void NullColumn::scan(const Transaction* transaction, const ChunkState& state,
 }
 
 void NullColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t offsetInChunk,
-    const ColumnChunkData& data, offset_t dataOffset, length_t numValues) {
+    const ColumnChunkData& data, offset_t dataOffset, length_t numValues) const {
     if (numValues == 0) {
         return;
     }

@@ -27,9 +27,9 @@ public:
     }
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t offsetInChunk,
         const ColumnChunkData& data, common::offset_t dataOffset,
-        common::length_t numValues) override;
+        common::length_t numValues) const override;
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointSegment(ColumnCheckpointState&& checkpointState) const override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,

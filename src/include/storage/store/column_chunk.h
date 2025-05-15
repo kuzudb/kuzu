@@ -22,18 +22,26 @@ struct ChunkCheckpointState {
         : chunkData{std::move(chunkData)}, startRow{startRow}, numRows{numRows} {}
 };
 
+struct SegmentCheckpointState {
+    const ColumnChunkData& chunkData;
+    common::row_idx_t startRowInData;
+    common::row_idx_t offsetInSegment;
+    common::row_idx_t numRows;
+};
+
 class ColumnChunk;
 struct ColumnCheckpointState {
     ColumnChunkData& persistentData;
-    std::vector<ChunkCheckpointState> chunkCheckpointStates;
+    std::vector<SegmentCheckpointState> segmentCheckpointStates;
     common::row_idx_t endRowIdxToWrite;
 
     ColumnCheckpointState(ColumnChunkData& persistentData,
-        std::vector<ChunkCheckpointState> chunkCheckpointStates)
-        : persistentData{persistentData}, chunkCheckpointStates{std::move(chunkCheckpointStates)},
-          endRowIdxToWrite{0} {
-        for (const auto& chunkCheckpointState : this->chunkCheckpointStates) {
-            const auto endRowIdx = chunkCheckpointState.startRow + chunkCheckpointState.numRows;
+        std::vector<SegmentCheckpointState> segmentCheckpointStates)
+        : persistentData{persistentData},
+          segmentCheckpointStates{std::move(segmentCheckpointStates)}, endRowIdxToWrite{0} {
+        for (const auto& chunkCheckpointState : this->segmentCheckpointStates) {
+            const auto endRowIdx =
+                chunkCheckpointState.offsetInSegment + chunkCheckpointState.numRows;
             if (endRowIdx > endRowIdxToWrite) {
                 endRowIdxToWrite = endRowIdx;
             }
@@ -252,6 +260,8 @@ public:
         return segments;
     }
 
+    const std::vector<std::unique_ptr<ColumnChunkData>>& getSegmentsMut() const { return data; }
+
     void write(Column& column, ChunkState& state, common::offset_t dstOffset,
         const ColumnChunkData& dataToWrite, common::offset_t srcOffset, common::length_t numValues);
 
@@ -260,8 +270,6 @@ public:
             segment->syncNumValues();
         }
     }
-
-    ColumnChunkData& getDataForCheckpoint() { return *data.front(); }
 
 private:
     void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,

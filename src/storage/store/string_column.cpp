@@ -96,7 +96,7 @@ void StringColumn::lookupInternal(const Transaction* transaction, const ChunkSta
 }
 
 void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
-    const ColumnChunkData& data, offset_t srcOffset, length_t numValues) {
+    const ColumnChunkData& data, offset_t srcOffset, length_t numValues) const {
     auto& stringPersistentChunk = persistentChunk.cast<StringChunkData>();
     numValues = std::min(numValues, data.getNumValues() - srcOffset);
     auto& strChunkToWriteFrom = data.cast<StringChunkData>();
@@ -126,8 +126,8 @@ void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, of
         dstOffset + numValues - 1, minWritten, maxWritten);
 }
 
-void StringColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
-    Column::checkpointColumnChunk(checkpointState);
+void StringColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) const {
+    Column::checkpointSegment(std::move(checkpointState));
     checkpointState.persistentData.syncNumValues();
 }
 
@@ -191,18 +191,17 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& stat
 }
 
 bool StringColumn::canCheckpointInPlace(const ChunkState& state,
-    const ColumnCheckpointState& checkpointState) {
+    const ColumnCheckpointState& checkpointState) const {
     row_idx_t strLenToAdd = 0u;
     idx_t numStrings = 0u;
-    for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
-        auto& strChunk = chunkCheckpointState.chunkData->cast<StringChunkData>();
-        KU_ASSERT(chunkCheckpointState.numRows == strChunk.getNumValues());
-        numStrings += strChunk.getNumValues();
-        for (auto i = 0u; i < strChunk.getNumValues(); i++) {
-            if (strChunk.getNullData()->isNull(i)) {
+    for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
+        auto& strChunk = segmentCheckpointState.chunkData.cast<StringChunkData>();
+        numStrings += segmentCheckpointState.numRows;
+        for (auto i = 0u; i < segmentCheckpointState.numRows; i++) {
+            if (strChunk.getNullData()->isNull(segmentCheckpointState.startRowInData + i)) {
                 continue;
             }
-            strLenToAdd += strChunk.getStringLength(i);
+            strLenToAdd += strChunk.getStringLength(segmentCheckpointState.startRowInData + i);
         }
     }
     if (!dictionary.canCommitInPlace(state, numStrings, strLenToAdd)) {

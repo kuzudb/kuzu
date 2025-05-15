@@ -68,7 +68,7 @@ public:
     Column* getSizeColumn() const { return sizeColumn.get(); }
     Column* getDataColumn() const { return dataColumn.get(); }
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointSegment(ColumnCheckpointState&& checkpointState) const override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
