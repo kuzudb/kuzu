@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PreparedStatementTest extends TestBase {
 
     @Test
-    void PrepStmtIsSuccess() throws ObjectRefDestroyedException {
+    void PrepStmtIsSuccess() {
         String query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
         try (PreparedStatement preparedStatement1 = conn.prepare(query)) {
             assertNotNull(preparedStatement1);
@@ -22,7 +22,7 @@ public class PreparedStatementTest extends TestBase {
     }
 
     @Test
-    void PrepStmtGetErrorMessage() throws ObjectRefDestroyedException {
+    void PrepStmtGetErrorMessage() {
         String query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
         try (PreparedStatement preparedStatement1 = conn.prepare(query)) {
             assertNotNull(preparedStatement1);

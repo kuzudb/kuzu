@@ -21,7 +21,7 @@ public class TestHelper {
         return conn;
     }
 
-    public static void loadData(String dbPath) throws IOException, ObjectRefDestroyedException {
+    public static void loadData(String dbPath) throws IOException {
         BufferedReader reader;
         db = new Database(dbPath);
         conn = new Connection(db);
