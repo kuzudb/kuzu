@@ -69,9 +69,12 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     for (auto&& warningDataColumnType : relBatchInsertInfo->columnTypes) {
         newColumnTypes.push_back(std::move(warningDataColumnType));
     }
-    relBatchInsertInfo->outputDataColumns.resize(newColumnTypes.size() - relBatchInsertInfo->warningDataColumns.size());
-    std::iota(relBatchInsertInfo->outputDataColumns.begin(), relBatchInsertInfo->outputDataColumns.end(), 0);
-    std::iota(relBatchInsertInfo->warningDataColumns.begin(), relBatchInsertInfo->warningDataColumns.end(), relBatchInsertInfo->outputDataColumns.size());
+    relBatchInsertInfo->outputDataColumns.resize(
+        newColumnTypes.size() - relBatchInsertInfo->warningDataColumns.size());
+    std::iota(relBatchInsertInfo->outputDataColumns.begin(),
+        relBatchInsertInfo->outputDataColumns.end(), 0);
+    std::iota(relBatchInsertInfo->warningDataColumns.begin(),
+        relBatchInsertInfo->warningDataColumns.end(), relBatchInsertInfo->outputDataColumns.size());
     relBatchInsertInfo->columnTypes = std::move(newColumnTypes);
 
     progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();

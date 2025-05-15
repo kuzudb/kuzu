@@ -45,7 +45,8 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
         common::RelDataDirection direction, uint64_t partitioningIdx,
         common::column_id_t offsetColumnID, std::vector<common::column_id_t> columnIDs,
         std::vector<common::LogicalType> columnTypes, common::column_id_t numWarningDataColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled, std::move(columnIDs), 0, numWarningDataColumns},
+        : BatchInsertInfo{tableEntry, compressionEnabled, std::move(columnIDs), 0,
+              numWarningDataColumns},
           direction{direction}, partitioningIdx{partitioningIdx},
           boundNodeOffsetColumnID{offsetColumnID}, columnTypes{std::move(columnTypes)} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
@@ -74,7 +75,8 @@ public:
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
-        : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id, std::move(printInfo)},
+        : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState),
+              std::move(resultSetDescriptor), id, std::move(printInfo)},
           partitionerSharedState{std::move(partitionerSharedState)},
           progressSharedState{std::move(progressSharedState)} {}
 
@@ -87,8 +89,8 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<RelBatchInsert>(tableName, info->copy(), partitionerSharedState, sharedState,
-            resultSetDescriptor->copy(), id, printInfo->copy(), progressSharedState);
+        return std::make_unique<RelBatchInsert>(tableName, info->copy(), partitionerSharedState,
+            sharedState, resultSetDescriptor->copy(), id, printInfo->copy(), progressSharedState);
     }
 
     void updateProgress(const ExecutionContext* context) const;

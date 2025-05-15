@@ -95,11 +95,15 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
 void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
     const auto clientContext = context->clientContext;
     const auto storageManager = clientContext->getStorageManager();
-    const auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(), dataInfo.tableName);
+    const auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(
+        clientContext->getTransaction(), dataInfo.tableName);
     const auto& relTableEntry = tableEntry->constCast<catalog::RelTableCatalogEntry>();
-    sharedState->srcNodeTable = storageManager->getTable(relTableEntry.getSrcTableID())->ptrCast<NodeTable>();
-    sharedState->dstNodeTable = storageManager->getTable(relTableEntry.getDstTableID())->ptrCast<NodeTable>();
-    sharedState->relTable = storageManager->getTable(relTableEntry.getTableID())->ptrCast<RelTable>();
+    sharedState->srcNodeTable =
+        storageManager->getTable(relTableEntry.getSrcTableID())->ptrCast<NodeTable>();
+    sharedState->dstNodeTable =
+        storageManager->getTable(relTableEntry.getDstTableID())->ptrCast<NodeTable>();
+    sharedState->relTable =
+        storageManager->getTable(relTableEntry.getTableID())->ptrCast<RelTable>();
     sharedState->initialize(dataInfo.columnTypes, info.infos.size(), context->clientContext);
 }
 

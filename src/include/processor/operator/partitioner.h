@@ -115,8 +115,8 @@ struct PartitionerDataInfo {
     PartitionerDataInfo(std::string tableName, std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<common::ColumnEvaluateType> evaluateTypes)
-        : tableName{std::move(tableName)}, columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
-          evaluateTypes{std::move(evaluateTypes)} {}
+        : tableName{std::move(tableName)}, columnTypes{std::move(columnTypes)},
+          columnEvaluators{std::move(columnEvaluators)}, evaluateTypes{std::move(evaluateTypes)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PartitionerDataInfo);
 
 private:

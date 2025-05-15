@@ -43,7 +43,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
     auto printInfo = std::make_unique<RelBatchInsertPrintInfo>(copyFromInfo.tableName);
     return std::make_unique<RelBatchInsert>(copyFromInfo.tableName, std::move(relBatchInsertInfo),
         std::move(partitionerSharedState), std::move(sharedState),
-        std::make_unique<ResultSetDescriptor>(outFSchema), operatorID, std::move(printInfo), nullptr);
+        std::make_unique<ResultSetDescriptor>(outFSchema), operatorID, std::move(printInfo),
+        nullptr);
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(const LogicalOperator* logicalOperator) {
@@ -134,8 +135,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
     for (auto idx : extraInfo.internalIDColumnIndices) {
         columnTypes[idx] = LogicalType::INTERNAL_ID();
     }
-    auto dataInfo = PartitionerDataInfo(copyFromInfo.tableName, LogicalType::copy(columnTypes), std::move(columnEvaluators),
-        copyFromInfo.columnEvaluateTypes);
+    auto dataInfo = PartitionerDataInfo(copyFromInfo.tableName, LogicalType::copy(columnTypes),
+        std::move(columnEvaluators), copyFromInfo.columnEvaluateTypes);
     auto sharedState = std::make_shared<PartitionerSharedState>(*clientContext->getMemoryManager());
     expression_vector expressions;
     for (auto& info : partitionerInfo.infos) {
@@ -166,8 +167,8 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
     physical_op_vector_t result;
     for (auto direction : directions) {
         auto copyRel = createRelBatchInsertOp(clientContext, partitionerSharedState,
-            batchInsertSharedState, *copyFrom.getInfo(), copyFrom.getSchema(), direction, std::vector<column_id_t>{},
-            logical_type_vec_t{}, getOperatorID());
+            batchInsertSharedState, *copyFrom.getInfo(), copyFrom.getSchema(), direction,
+            std::vector<column_id_t>{}, logical_type_vec_t{}, getOperatorID());
         result.push_back(std::move(copyRel));
     }
     result.push_back(std::move(partitioner));

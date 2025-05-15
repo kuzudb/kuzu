@@ -107,7 +107,8 @@ public:
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id, std::move(printInfo)} {
+        : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState),
+              std::move(resultSetDescriptor), id, std::move(printInfo)} {
         children.push_back(std::move(child));
     }
 
