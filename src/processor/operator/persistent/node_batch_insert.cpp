@@ -41,8 +41,6 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         clientContext->getTransaction(), tableName);
     auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
     auto nodeTable = clientContext->getStorageManager()->getTable(nodeTableEntry->getTableID());
-    auto fTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
 
