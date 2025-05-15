@@ -1,6 +1,6 @@
 #include "storage/store/rel_table.h"
 
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
@@ -124,14 +124,15 @@ void RelTableScanState::setNodeIDVectorToFlat(sel_t selPos) const {
     nodeIDVector->state->getSelVectorUnsafe()[0] = selPos;
 }
 
-RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
+RelTable::RelTable(RelGroupCatalogEntry* relGroupEntry, table_id_t fromTableID,
+    table_id_t toTableID, const StorageManager* storageManager,
     MemoryManager* memoryManager, Deserializer* deSer)
-    : Table{relTableEntry, storageManager, memoryManager},
-      fromNodeTableID{relTableEntry->getSrcTableID()},
-      toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0} {
-    for (auto direction : relTableEntry->getRelDataDirections()) {
+    : Table{relGroupEntry, storageManager, memoryManager}, fromNodeTableID{fromTableID},
+      toNodeTableID{toTableID}, nextRelOffset{0} {
+    for (auto direction : relGroupEntry->getRelDataDirections()) {
+        auto nbrTableID = direction == RelDataDirection::FWD ? toNodeTableID : fromNodeTableID;
         directedRelData.emplace_back(std::make_unique<RelTableData>(dataFH, memoryManager,
-            shadowFile, relTableEntry, direction, enableCompression, deSer));
+            shadowFile, *relGroupEntry, direction, nbrTableID, enableCompression, deSer));
     }
 }
 
@@ -145,12 +146,12 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
     deSer.deserializeValue<table_id_t>(tableID);
     deSer.validateDebuggingInfo(key, "next_rel_offset");
     deSer.deserializeValue<offset_t>(nextRelOffset);
-    const auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
-    if (!catalogEntry) {
+    const auto entry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
+    if (!entry) {
         throw RuntimeException(
             stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
     }
-    auto relTable = std::make_unique<RelTable>(catalogEntry->ptrCast<RelTableCatalogEntry>(),
+    auto relTable = std::make_unique<RelTable>(entry->ptrCast<RelGroupCatalogEntry>(),
         storageManager, memoryManager, &deSer);
     relTable->nextRelOffset = nextRelOffset;
     return relTable;
@@ -218,7 +219,7 @@ void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
         vectorsToLog.insert(vectorsToLog.end(), relInsertState.propertyVectors.begin(),
             relInsertState.propertyVectors.end());
         KU_ASSERT(relInsertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1);
-        wal.logTableInsertion(tableID, TableType::REL,
+        wal.logTableInsertion(tableID, TableType::REL_GROUP,
             relInsertState.srcNodeIDVector.state->getSelVector().getSelSize(), vectorsToLog);
     }
     hasChanges = true;

@@ -22,7 +22,36 @@ void QueryGraphLabelAnalyzer::pruneLabel(QueryGraph& graph) const {
     }
 }
 
-// todo(xiyang relgroup): fix
+struct Candidates {
+    table_id_set_t idSet;
+    std::unordered_set<std::string> nameSet;
+
+    void insert(const table_id_set_t& idsToInsert, Catalog* catalog, Transaction* transaction) {
+        for (auto id : idsToInsert) {
+            auto name = catalog->getTableCatalogEntry(transaction, id)->getName();
+            idSet.insert(id);
+            nameSet.insert(name);
+        }
+    }
+
+    bool empty() const {
+        return idSet.empty();
+    }
+
+    bool contains(const table_id_t& id) const {
+        return idSet.contains(id);
+    }
+
+    std::string toString() const {
+        auto names = std::vector<std::string>{nameSet.begin(), nameSet.end()};
+        auto result = names[0];
+        for (auto j = 1u; j < names.size(); ++j) {
+            result += ", " + names[j];
+        }
+        return result;
+    }
+};
+
 void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression& node) const {
     auto catalog = clientContext.getCatalog();
     for (auto i = 0u; i < graph.getNumQueryRels(); ++i) {
@@ -30,8 +59,7 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
         if (queryRel->isRecursive()) {
             continue;
         }
-        common::table_id_set_t candidates;
-        std::unordered_set<std::string> candidateNamesSet;
+        Candidates candidates;
         auto isSrcConnect = *queryRel->getSrcNode() == node;
         auto isDstConnect = *queryRel->getDstNode() == node;
         auto tx = clientContext.getTransaction();
@@ -39,32 +67,20 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
             if (isSrcConnect || isDstConnect) {
                 for (auto entry : queryRel->getEntries()) {
                     auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
-                    auto srcTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
-                    auto dstTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
-                    candidates.insert(srcTableID);
-                    candidates.insert(dstTableID);
-                    auto srcEntry = catalog->getTableCatalogEntry(tx, srcTableID);
-                    auto dstEntry = catalog->getTableCatalogEntry(tx, dstTableID);
-                    candidateNamesSet.insert(srcEntry->getName());
-                    candidateNamesSet.insert(dstEntry->getName());
+                    candidates.insert(relEntry.getSrcNodeTableIDSet(), catalog, tx);
+                    candidates.insert(relEntry.getDstNodeTableIDSet(), catalog, tx);
                 }
             }
         } else {
             if (isSrcConnect) {
                 for (auto entry : queryRel->getEntries()) {
                     auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
-                    auto srcTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
-                    candidates.insert(srcTableID);
-                    auto srcEntry = catalog->getTableCatalogEntry(tx, srcTableID);
-                    candidateNamesSet.insert(srcEntry->getName());
+                    candidates.insert(relEntry.getSrcNodeTableIDSet(), catalog, tx);
                 }
             } else if (isDstConnect) {
                 for (auto entry : queryRel->getEntries()) {
                     auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
-                    auto dstTableID = relEntry.getRelTableInfos()[0].nodePair.dstTableID;
-                    candidates.insert(dstTableID);
-                    auto dstEntry = catalog->getTableCatalogEntry(tx, dstTableID);
-                    candidateNamesSet.insert(dstEntry->getName());
+                    candidates.insert(relEntry.getDstNodeTableIDSet(), catalog, tx);
                 }
             }
         }
@@ -81,57 +97,51 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
         node.setEntries(prunedEntries);
         if (prunedEntries.empty()) {
             if (throwOnViolate) {
-                auto candidateNames =
-                    std::vector<std::string>{candidateNamesSet.begin(), candidateNamesSet.end()};
-                auto candidateStr = candidateNames[0];
-                for (auto j = 1u; j < candidateNames.size(); ++j) {
-                    candidateStr += ", " + candidateNames[j];
-                }
                 throw BinderException(
                     stringFormat("Query node {} violates schema. Expected labels are {}.",
-                        node.toString(), candidateStr));
+                        node.toString(), candidates.toString()));
             }
         }
     }
 }
 
-// todo(xiyang relgroup): fix
+bool hasOverlap(const table_id_set_t& left, const table_id_set_t& right) {
+    for (auto id : left) {
+        if (right.contains(id)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) const {
     if (rel.isRecursive()) {
         return;
     }
     std::vector<TableCatalogEntry*> prunedEntries;
+    auto srcTableIDSet = rel.getSrcNode()->getTableIDsSet();
+    auto dstTableIDSet = rel.getDstNode()->getTableIDsSet();
     if (rel.getDirectionType() == RelDirectionType::BOTH) {
-        table_id_set_t srcBoundTableIDSet;
-        table_id_set_t dstBoundTableIDSet;
-        for (auto entry : rel.getSrcNode()->getEntries()) {
-            srcBoundTableIDSet.insert(entry->getTableID());
-        }
-        for (auto entry : rel.getDstNode()->getEntries()) {
-            dstBoundTableIDSet.insert(entry->getTableID());
-        }
         for (auto& entry : rel.getEntries()) {
             auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
-            auto srcTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
-            auto dstTableID = relEntry.getRelTableInfos()[0].nodePair.dstTableID;
-            if ((srcBoundTableIDSet.contains(srcTableID) &&
-                    dstBoundTableIDSet.contains(dstTableID)) ||
-                (dstBoundTableIDSet.contains(srcTableID) &&
-                    srcBoundTableIDSet.contains(dstTableID))) {
+            auto fwdSrcOverlap = hasOverlap(srcTableIDSet, relEntry.getSrcNodeTableIDSet());
+            auto fwdDstOverlap = hasOverlap(dstTableIDSet, relEntry.getDstNodeTableIDSet());
+            auto fwdOverlap = fwdSrcOverlap && fwdDstOverlap;
+            auto bwdSrcOverlap = hasOverlap(dstTableIDSet, relEntry.getSrcNodeTableIDSet());
+            auto bwdDstOverlap = hasOverlap(srcTableIDSet, relEntry.getDstNodeTableIDSet());
+            auto bwdOverlap = bwdSrcOverlap && bwdDstOverlap;
+            if (fwdOverlap || bwdOverlap) {
                 prunedEntries.push_back(entry);
             }
         }
     } else {
-        auto srcTableIDSet = rel.getSrcNode()->getTableIDsSet();
-        auto dstTableIDSet = rel.getDstNode()->getTableIDsSet();
         for (auto& entry : rel.getEntries()) {
             auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
-            auto srcTableID = relEntry.getRelTableInfos()[0].nodePair.srcTableID;
-            auto dstTableID = relEntry.getRelTableInfos()[0].nodePair.dstTableID;
-            if (!srcTableIDSet.contains(srcTableID) || !dstTableIDSet.contains(dstTableID)) {
-                continue;
+            auto srcOverlap = hasOverlap(srcTableIDSet, relEntry.getSrcNodeTableIDSet());
+            auto dstOverlap = hasOverlap(dstTableIDSet, relEntry.getDstNodeTableIDSet());
+            if (srcOverlap && dstOverlap) {
+                prunedEntries.push_back(entry);
             }
-            prunedEntries.push_back(entry);
         }
     }
     rel.setEntries(prunedEntries);

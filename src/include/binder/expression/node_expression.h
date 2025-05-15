@@ -12,7 +12,7 @@ public:
         : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
               std::move(entries)} {}
 
-    ~NodeExpression() override;
+    bool isMultiLabeled() const override { return entries.size() > 0; }
 
     void setInternalID(std::unique_ptr<Expression> expression) {
         internalID = std::move(expression);

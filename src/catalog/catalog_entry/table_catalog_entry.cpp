@@ -54,10 +54,6 @@ void TableCatalogEntry::vacuumColumnIDs(column_id_t nextColumnID) {
     propertyCollection.vacuumColumnIDs(nextColumnID);
 }
 
-std::string TableCatalogEntry::propertiesToCypher() const {
-    return propertyCollection.toCypher();
-}
-
 bool TableCatalogEntry::containsProperty(const std::string& propertyName) const {
     return propertyCollection.contains(propertyName);
 }
@@ -93,11 +89,6 @@ void TableCatalogEntry::dropProperty(const std::string& propertyName) {
 void TableCatalogEntry::renameProperty(const std::string& propertyName,
     const std::string& newName) {
     propertyCollection.rename(propertyName, newName);
-}
-
-std::string TableCatalogEntry::getLabel(const Catalog* catalog,
-    const transaction::Transaction* transaction) {
-    return name;
 }
 
 void TableCatalogEntry::serialize(Serializer& serializer) const {

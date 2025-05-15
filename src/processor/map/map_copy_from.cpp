@@ -1,5 +1,5 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/expression_mapper.h"
@@ -59,7 +59,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(const LogicalOperator*
         fTable = copy->getSharedState()->fTable;
         children.push_back(std::move(op));
     } break;
-    case TableType::REL: {
+    case TableType::REL_GROUP: {
         children = mapCopyRelFrom(logicalOperator);
         const auto relBatchInsert = children[0]->ptrCast<RelBatchInsert>();
         fTable = relBatchInsert->getSharedState()->fTable;
@@ -159,7 +159,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
 physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOperator) {
     auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
     const auto copyFromInfo = copyFrom.getInfo();
-    auto& relTableEntry = copyFromInfo->tableEntry->constCast<RelTableCatalogEntry>();
+    auto& relTableEntry = copyFromInfo->tableEntry->constCast<RelGroupCatalogEntry>();
     auto partitioner = mapOperator(copyFrom.getChild(0).get());
     KU_ASSERT(partitioner->getOperatorType() == PhysicalOperatorType::PARTITIONER);
     const auto partitionerSharedState = partitioner->ptrCast<Partitioner>()->getSharedState();

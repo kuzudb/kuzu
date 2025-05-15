@@ -44,7 +44,6 @@ public:
 
     common::column_id_t getMaxColumnID() const;
     void vacuumColumnIDs(common::column_id_t nextColumnID);
-    std::string propertiesToCypher() const;
     std::vector<binder::PropertyDefinition> getProperties() const {
         return propertyCollection.getDefinitions();
     }
@@ -58,8 +57,6 @@ public:
     void addProperty(const binder::PropertyDefinition& propertyDefinition);
     void dropProperty(const std::string& propertyName);
     void renameProperty(const std::string& propertyName, const std::string& newName);
-
-    std::string getLabel(const Catalog* catalog, const transaction::Transaction* transaction);
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableCatalogEntry> deserialize(common::Deserializer& deserializer,

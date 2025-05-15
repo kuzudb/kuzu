@@ -27,7 +27,7 @@ public:
     std::string getVariableName() const { return variableName; }
 
     bool isEmpty() const { return entries.empty(); }
-    bool isMultiLabeled() const { return entries.size() > 1; }
+    virtual bool isMultiLabeled() const = 0;
     common::idx_t getNumEntries() const { return entries.size(); }
     common::table_id_vector_t getTableIDs() const;
     common::table_id_set_t getTableIDsSet() const;

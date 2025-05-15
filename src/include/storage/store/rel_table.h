@@ -1,6 +1,6 @@
 #pragma once
 
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "storage/store/rel_table_data.h"
 #include "storage/store/table.h"
 
@@ -141,7 +141,8 @@ public:
     using rel_multiplicity_constraint_throw_func_t =
         std::function<void(const std::string&, common::offset_t, common::RelDataDirection)>;
 
-    RelTable(catalog::RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
+    RelTable(catalog::RelGroupCatalogEntry* relGroupEntry, common::table_id_t fromTableID,
+        common::table_id_t toTableID, const StorageManager* storageManager,
         MemoryManager* memoryManager, common::Deserializer* deSer = nullptr);
 
     static std::unique_ptr<RelTable> loadTable(common::Deserializer& deSer,

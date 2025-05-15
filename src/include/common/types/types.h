@@ -131,32 +131,6 @@ struct union_entry_t {
     struct_entry_t entry;
 };
 
-struct NodePair {
-    common::table_id_t srcTableID = common::INVALID_TABLE_ID;
-    common::table_id_t dstTableID = common::INVALID_TABLE_ID;
-
-    NodePair() = default;
-    NodePair(common::table_id_t srcTableID, common::table_id_t dstTableID)
-        : srcTableID{srcTableID}, dstTableID{dstTableID} {}
-
-    void serialize(common::Serializer& serializer) const;
-    static NodePair deserialize(common::Deserializer& deser);
-};
-
-struct NodePairHash {
-    std::size_t operator()(const NodePair& np) const {
-        std::size_t h1 = std::hash<common::table_id_t>{}(np.srcTableID);
-        std::size_t h2 = std::hash<common::table_id_t>{}(np.dstTableID);
-        return h1 ^ (h2 << 1);
-    }
-};
-
-struct NodePairEqual {
-    bool operator()(const NodePair& lhs, const NodePair& rhs) const {
-        return lhs.srcTableID == rhs.srcTableID && lhs.dstTableID == rhs.dstTableID;
-    }
-};
-
 struct int128_t;
 struct ku_string_t;
 

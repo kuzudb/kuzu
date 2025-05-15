@@ -27,7 +27,7 @@ struct YieldVariable;
 
 namespace catalog {
 class NodeTableCatalogEntry;
-class RelTableCatalogEntry;
+class RelGroupCatalogEntry;
 class Catalog;
 } // namespace catalog
 
@@ -125,9 +125,9 @@ public:
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
-        catalog::NodeTableCatalogEntry* nodeTableEntry);
+        catalog::NodeTableCatalogEntry& nodeEntry);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
-        common::NodePair& nodePair, std::vector<binder::PropertyDefinition> properties);
+        catalog::RelGroupCatalogEntry& relGroupEntry, const std::string& fromTableName, const std::string& toTableName);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
@@ -281,8 +281,6 @@ public:
         const std::vector<std::string>& tableNames) const;
     catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name) const;
     std::vector<PropertyDefinition> bindRelPropertyDefinitions(const parser::CreateTableInfo& info);
-    std::vector<common::NodePair> bindNodePairs(
-        const std::vector<std::pair<std::string, std::string>>& srcDstTablePairs);
 
     /*** validations ***/
     static void validateOrderByFollowedBySkipOrLimitInWithClause(

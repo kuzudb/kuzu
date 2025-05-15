@@ -65,8 +65,8 @@ struct QueryHNSWIndexBindData final : function::TableFuncBindData {
     catalog::NodeTableCatalogEntry* nodeTableEntry = nullptr;
     catalog::IndexCatalogEntry* indexEntry = nullptr;
     common::column_id_t indexColumnID = common::INVALID_COLUMN_ID;
-    catalog::RelTableCatalogEntry* upperHNSWRelTableEntry = nullptr;
-    catalog::RelTableCatalogEntry* lowerHNSWRelTableEntry = nullptr;
+    catalog::RelGroupCatalogEntry* upperRelTableEntry = nullptr;
+    catalog::RelGroupCatalogEntry* lowerRelTableEntry = nullptr;
 
     QueryHNSWConfig config;
 

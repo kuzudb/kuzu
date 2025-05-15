@@ -62,6 +62,7 @@ private:
 };
 
 struct ExtraBoundCopyRelInfo final : ExtraBoundCopyFromInfo {
+
     // We process internal ID column as offset (INT64) column until partitioner. In partitioner,
     // we need to manually change offset(INT64) type to internal ID type.
     std::vector<common::idx_t> internalIDColumnIndices;

@@ -208,25 +208,6 @@ std::vector<PropertyDefinition> Binder::bindRelPropertyDefinitions(const CreateT
     return propertyDefinitions;
 }
 
-std::vector<common::NodePair> Binder::bindNodePairs(
-    const std::vector<std::pair<std::string, std::string>>& srcDstTablePairs) {
-    std::unordered_set<common::NodePair, NodePairHash, NodePairEqual> nodePairs;
-    for (auto& [srcTableName, dstTableName] : srcDstTablePairs) {
-        auto srcEntry = bindNodeTableEntry(srcTableName);
-        validateNodeTableType(srcEntry);
-        auto dstEntry = bindNodeTableEntry(dstTableName);
-        validateNodeTableType(dstEntry);
-        NodePair nodePair{srcEntry->getTableID(), dstEntry->getTableID()};
-        if (nodePairs.contains(nodePair)) {
-            throw BinderException(
-                stringFormat("Found duplicate FROM-TO {}-{} pairs.", srcTableName, dstTableName));
-        }
-        nodePairs.insert(nodePair);
-    }
-    std::vector<common::NodePair> result;
-    result.insert(result.end(), nodePairs.begin(), nodePairs.end());
-    return result;
-}
 
 BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* info) {
     auto propertyDefinitions = bindRelPropertyDefinitions(*info);
@@ -235,7 +216,22 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto dstMultiplicity = RelMultiplicityUtils::getBwd(extraInfo.relMultiplicity);
     auto boundOptions = bindParsingOptions(extraInfo.options);
     auto storageDirection = getStorageDirection(boundOptions);
-    auto nodePairs = bindNodePairs(extraInfo.srcDstTablePairs);
+    // Bind from to pairs
+    node_table_id_pair_set_t nodePairsSet;
+    for (auto& [srcTableName, dstTableName] : extraInfo.srcDstTablePairs) {
+        auto srcEntry = bindNodeTableEntry(srcTableName);
+        validateNodeTableType(srcEntry);
+        auto dstEntry = bindNodeTableEntry(dstTableName);
+        validateNodeTableType(dstEntry);
+        NodeTableIDPair pair{srcEntry->getTableID(), dstEntry->getTableID()};
+        if (nodePairsSet.contains(pair)) {
+            throw BinderException(
+                stringFormat("Found duplicate FROM-TO {}-{} pairs.", srcTableName, dstTableName));
+        }
+        nodePairsSet.insert(pair);
+    }
+    std::vector<NodeTableIDPair> nodePairs;
+    nodePairs.insert(nodePairs.end(), nodePairs.begin(), nodePairs.end());
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(propertyDefinitions),
             srcMultiplicity, dstMultiplicity, storageDirection, std::move(nodePairs));

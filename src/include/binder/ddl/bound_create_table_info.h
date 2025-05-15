@@ -1,10 +1,10 @@
 #pragma once
 
 #include "catalog/catalog_entry/catalog_entry_type.h"
+#include "catalog/catalog_entry/node_table_id_pair.h"
 #include "common/enums/conflict_action.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/rel_multiplicity.h"
-#include "common/enums/table_type.h"
 #include "common/types/types.h"
 #include "property_definition.h"
 
@@ -90,11 +90,11 @@ struct BoundExtraCreateRelTableGroupInfo final : BoundExtraCreateTableInfo {
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
     common::ExtendDirection storageDirection;
-    std::vector<common::NodePair> nodePairs;
+    std::vector<catalog::NodeTableIDPair> nodePairs;
 
     explicit BoundExtraCreateRelTableGroupInfo(std::vector<PropertyDefinition> definitions,
         common::RelMultiplicity srcMultiplicity, common::RelMultiplicity dstMultiplicity,
-        common::ExtendDirection storageDirection, std::vector<common::NodePair> nodePairs)
+        common::ExtendDirection storageDirection, std::vector<catalog::NodeTableIDPair> nodePairs)
         : BoundExtraCreateTableInfo{std::move(definitions)}, srcMultiplicity{srcMultiplicity},
           dstMultiplicity{dstMultiplicity}, storageDirection{storageDirection},
           nodePairs{std::move(nodePairs)} {}

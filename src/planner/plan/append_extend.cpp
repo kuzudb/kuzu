@@ -1,7 +1,7 @@
 #include <utility>
 
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/enums/join_type.h"
 #include "graph/graph_entry.h"
 #include "main/client_context.h"
@@ -26,17 +26,17 @@ static std::unordered_set<table_id_t> getBoundNodeTableIDSet(const RelExpression
     ExtendDirection extendDirection) {
     std::unordered_set<table_id_t> result;
     for (auto entry : rel.getEntries()) {
-        auto& relTableEntry = entry->constCast<RelTableCatalogEntry>();
+        auto& groupEntry = entry->constCast<RelGroupCatalogEntry>();
         switch (extendDirection) {
         case ExtendDirection::FWD: {
-            result.insert(relTableEntry.getBoundTableID(RelDataDirection::FWD));
+            result.merge(groupEntry.getBoundNodeTableIDSet(RelDataDirection::FWD));
         } break;
         case ExtendDirection::BWD: {
-            result.insert(relTableEntry.getBoundTableID(RelDataDirection::BWD));
+            result.merge(groupEntry.getBoundNodeTableIDSet(RelDataDirection::BWD));
         } break;
         case ExtendDirection::BOTH: {
-            result.insert(relTableEntry.getBoundTableID(RelDataDirection::FWD));
-            result.insert(relTableEntry.getBoundTableID(RelDataDirection::BWD));
+            result.merge(groupEntry.getBoundNodeTableIDSet(RelDataDirection::FWD));
+            result.merge(groupEntry.getBoundNodeTableIDSet(RelDataDirection::BWD));
         } break;
         default:
             KU_UNREACHABLE;
@@ -49,17 +49,17 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(const RelExpression& 
     ExtendDirection extendDirection) {
     std::unordered_set<table_id_t> result;
     for (auto entry : rel.getEntries()) {
-        auto& relTableEntry = entry->constCast<RelTableCatalogEntry>();
+        auto& groupEntry = entry->constCast<RelGroupCatalogEntry>();
         switch (extendDirection) {
         case ExtendDirection::FWD: {
-            result.insert(relTableEntry.getNbrTableID(RelDataDirection::FWD));
+            result.merge(groupEntry.getNbrNodeTableIDSet(RelDataDirection::FWD));
         } break;
         case ExtendDirection::BWD: {
-            result.insert(relTableEntry.getNbrTableID(RelDataDirection::BWD));
+            result.merge(groupEntry.getNbrNodeTableIDSet(RelDataDirection::BWD));
         } break;
         case ExtendDirection::BOTH: {
-            result.insert(relTableEntry.getNbrTableID(RelDataDirection::FWD));
-            result.insert(relTableEntry.getNbrTableID(RelDataDirection::BWD));
+            result.merge(groupEntry.getNbrNodeTableIDSet(RelDataDirection::FWD));
+            result.merge(groupEntry.getNbrNodeTableIDSet(RelDataDirection::BWD));
         } break;
         default:
             KU_UNREACHABLE;

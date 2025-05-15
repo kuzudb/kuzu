@@ -2,30 +2,31 @@
 
 #include "common/enums/extend_direction.h"
 #include "common/enums/rel_direction.h"
-#include "table_catalog_entry.h"
+#include "common/enums/rel_multiplicity.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
+#include "node_table_id_pair.h"
 
 namespace kuzu {
 namespace catalog {
 
-struct RelGroupToCypherInfo : public ToCypherInfo {
+struct RelGroupToCypherInfo : ToCypherInfo {
     const main::ClientContext* context;
 
     explicit RelGroupToCypherInfo(const main::ClientContext* context) : context{context} {}
 };
 
-struct RelTableInfo {
-    common::NodePair nodePair;
+struct RelTableCatalogInfo {
+    NodeTableIDPair nodePair;
     common::oid_t oid = common::INVALID_OID;
 
-    RelTableInfo() = default;
-    RelTableInfo(common::NodePair nodePair, common::oid_t oid)
+    RelTableCatalogInfo() = default;
+    RelTableCatalogInfo(NodeTableIDPair nodePair, common::oid_t oid)
         : nodePair{std::move(nodePair)}, oid{oid} {}
 
     void serialize(common::Serializer& ser) const;
-    static RelTableInfo deserialize(common::Deserializer& deser);
+    static RelTableCatalogInfo deserialize(common::Deserializer& deser);
 };
 
-class Catalog;
 class RelGroupCatalogEntry final : public TableCatalogEntry {
     static constexpr CatalogEntryType type_ = CatalogEntryType::REL_GROUP_ENTRY;
 
@@ -33,7 +34,7 @@ public:
     RelGroupCatalogEntry() = default;
     RelGroupCatalogEntry(std::string tableName, common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::ExtendDirection storageDirection,
-        std::vector<RelTableInfo> relTableInfos)
+        std::vector<RelTableCatalogInfo> relTableInfos)
         : TableCatalogEntry{type_, std::move(tableName)}, srcMultiplicity{srcMultiplicity},
           dstMultiplicity{dstMultiplicity}, storageDirection{storageDirection},
           relTableInfos{std::move(relTableInfos)} {
@@ -43,48 +44,32 @@ public:
 
     common::TableType getTableType() const override { return common::TableType::REL_GROUP; }
 
-    common::idx_t getNumRelTables() const { return relTableInfos.size(); }
-    std::vector<common::table_id_t> getRelTableIDs() const {
-        std::vector<common::table_id_t> tableIDs;
-        for (auto& relTableInfo : relTableInfos) {
-            tableIDs.push_back(relTableInfo.oid);
-        }
-        return tableIDs;
+    common::RelMultiplicity getMultiplicity(common::RelDataDirection direction) const {
+        return direction == common::RelDataDirection::FWD ? dstMultiplicity : srcMultiplicity;
     }
 
-    //===--------------------------------------------------------------------===//
-    // serialization & deserialization
-    //===--------------------------------------------------------------------===//
+    common::idx_t getNumRelTables() const { return relTableInfos.size(); }
+    const RelTableCatalogInfo& getSingleRelTableInfo() const ;
+    const RelTableCatalogInfo* getRelTableInfo(common::table_id_t srcTableID, common::table_id_t dstTableID) const;
+
+    std::unordered_set<common::table_id_t> getSrcNodeTableIDSet() const;
+    std::unordered_set<common::table_id_t> getDstNodeTableIDSet() const;
+    std::unordered_set<common::table_id_t> getBoundNodeTableIDSet(common::RelDataDirection direction) const {
+        return direction == common::RelDataDirection::FWD ? getSrcNodeTableIDSet() : getDstNodeTableIDSet();
+    }
+    std::unordered_set<common::table_id_t> getNbrNodeTableIDSet(common::RelDataDirection direction) const {
+        return direction == common::RelDataDirection::FWD ? getDstNodeTableIDSet() : getSrcNodeTableIDSet();
+    }
+
+    std::vector<common::RelDataDirection> getRelDataDirections() const;
+
+    std::unique_ptr<TableCatalogEntry> alter(common::transaction_t timestamp, const binder::BoundAlterInfo &alterInfo) const override;
+
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelGroupCatalogEntry> deserialize(common::Deserializer& deserializer);
     std::string toCypher(const ToCypherInfo& info) const override;
 
-    static std::string getChildTableName(const std::string& groupName, const std::string& srcName,
-        const std::string& dstName) {
-        return groupName + "_" + srcName + "_" + dstName;
-    }
-
-    void setComment(std::string newComment) { comment = std::move(newComment); }
-    std::string getComment() const { return comment; }
-
-    const std::vector<RelTableInfo>& getRelTableInfos() const { return relTableInfos; }
-
-    std::vector<common::RelDataDirection> getRelDataDirections() const;
-
-    // TODO(Ziyi relgroup): remove those two apis
-    common::table_id_t getSrcTableID() const { return relTableInfos[0].nodePair.srcTableID; }
-
-    common::table_id_t getDstTableID() const { return relTableInfos[0].nodePair.dstTableID; }
-
-    std::unique_ptr<TableCatalogEntry> copy() const override {
-        auto other = std::make_unique<RelGroupCatalogEntry>();
-        other->srcMultiplicity = srcMultiplicity;
-        other->dstMultiplicity = dstMultiplicity;
-        other->storageDirection = storageDirection;
-        other->relTableInfos = relTableInfos;
-        other->copyFrom(*this);
-        return other;
-    }
+    std::unique_ptr<TableCatalogEntry> copy() const override;
 
 protected:
     std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo> getBoundExtraCreateInfo(
@@ -94,7 +79,7 @@ private:
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
     common::ExtendDirection storageDirection;
-    std::vector<RelTableInfo> relTableInfos;
+    std::vector<RelTableCatalogInfo> relTableInfos;
 };
 
 } // namespace catalog

@@ -1,6 +1,6 @@
 #include "storage/store/rel_table_data.h"
 
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/enums/rel_direction.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
@@ -57,16 +57,15 @@ void InMemoryVersionRecordHandler::rollbackInsert(const Transaction* transaction
 }
 
 RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
-    const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression,
-    Deserializer* deSer)
-    : dataFH{dataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()},
+    const RelGroupCatalogEntry& relGroupEntry, RelDataDirection direction, table_id_t nbrTableID,
+    bool enableCompression, Deserializer* deSer)
+    : dataFH{dataFH}, tableID{relGroupEntry.getTableID()}, tableName{relGroupEntry.getName()},
       memoryManager{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
-      direction{direction}, persistentVersionRecordHandler(this),
+      direction{direction}, multiplicity{relGroupEntry.getMultiplicity(direction)},
+      persistentVersionRecordHandler(this),
       inMemoryVersionRecordHandler(this) {
-    multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
     initCSRHeaderColumns();
-    initPropertyColumns(tableEntry);
-
+    initPropertyColumns(relGroupEntry, nbrTableID);
     // default to using the persistent version record handler
     // if we want to use the in-memory handler we will explicitly pass it into
     // nodeGroups.pushInsertInfo()
@@ -86,23 +85,22 @@ void RelTableData::initCSRHeaderColumns() {
         dataFH, memoryManager, shadowFile, enableCompression, false /* requireNUllColumn */);
 }
 
-void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
-    const auto maxColumnID = tableEntry->getMaxColumnID();
+void RelTableData::initPropertyColumns(const RelGroupCatalogEntry& relGroupEntry, table_id_t nbrTableID) {
+    const auto maxColumnID = relGroupEntry.getMaxColumnID();
     columns.resize(maxColumnID + 1);
     auto nbrIDColName = StorageUtils::getColumnName("NBR_ID", StorageUtils::ColumnType::DEFAULT,
         RelDirectionUtils::relDirectionToString(direction));
     auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, dataFH, memoryManager,
         shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
-    for (auto& property : tableEntry->getProperties()) {
-        const auto columnID = tableEntry->getColumnID(property.getName());
+    for (auto& property : relGroupEntry.getProperties()) {
+        const auto columnID = relGroupEntry.getColumnID(property.getName());
         const auto colName = StorageUtils::getColumnName(property.getName(),
             StorageUtils::ColumnType::DEFAULT, RelDirectionUtils::relDirectionToString(direction));
         columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(), dataFH,
             memoryManager, shadowFile, enableCompression);
     }
     // Set common tableID for nbrIDColumn and relIDColumn.
-    const auto nbrTableID = tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(direction);
     columns[NBR_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(nbrTableID);
     columns[REL_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(tableID);
 }

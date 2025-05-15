@@ -11,6 +11,19 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
+bool RelExpression::isMultiLabeled() const {
+    if (entries.size() > 0) {
+        return true;
+    }
+    for (auto& entry : entries) {
+        auto relGroupEntry = entry->ptrCast<catalog::RelGroupCatalogEntry>();
+        if (relGroupEntry->getNumRelTables() > 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::string RelExpression::detailsToString() const {
     std::string result = toString();
     switch (relType) {
@@ -37,14 +50,14 @@ std::string RelExpression::detailsToString() const {
     return result;
 }
 
-std::vector<common::ExtendDirection> RelExpression::getExtendDirections() const {
+std::vector<ExtendDirection> RelExpression::getExtendDirections() const {
     std::vector<ExtendDirection> ret;
     for (const auto direction : {ExtendDirection::FWD, ExtendDirection::BWD}) {
         const bool addDirection = std::all_of(entries.begin(), entries.end(),
             [direction](const catalog::TableCatalogEntry* tableEntry) {
-                const auto* relTableEntry =
+                const auto* entry =
                     tableEntry->constPtrCast<catalog::RelGroupCatalogEntry>();
-                return common::containsValue(relTableEntry->getRelDataDirections(),
+                return common::containsValue(entry->getRelDataDirections(),
                     ExtendDirectionUtil::getRelDataDirection(direction));
             });
         if (addDirection) {

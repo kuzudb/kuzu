@@ -189,6 +189,7 @@ CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
     const BoundCreateTableInfo& info) {
     const auto extraInfo = info.extraInfo->ptrCast<BoundExtraCreateRelTableGroupInfo>();
     std::vector<RelTableInfo> relTableInfos;
+    // TODO(Guodong): I think we should maintian another OID just for rel table
     for (auto& nodePair : extraInfo->nodePairs) {
         relTableInfos.emplace_back(nodePair, tables->getNextOID());
     }
@@ -198,6 +199,7 @@ CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
     for (auto& definition : extraInfo->propertyDefinitions) {
         relGroupEntry->addProperty(definition);
     }
+    KU_ASSERT(info.hasParent == false);
     relGroupEntry->setHasParent(info.hasParent);
     createSerialSequence(transaction, relGroupEntry.get(), info.isInternal);
     auto catalogSet = info.isInternal ? internalTables.get() : tables.get();

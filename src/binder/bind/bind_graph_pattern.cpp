@@ -345,28 +345,29 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
-    table_catalog_entry_set_t entrySet;
+    table_catalog_entry_set_t nodeEntrySet;
     for (auto entry : entries) {
-        // TODO(Xiyang relgroup): fix this
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
-        entrySet.insert(catalog->getTableCatalogEntry(transaction,
-            relGroupEntry.getRelTableInfos()[0].nodePair.srcTableID));
-        entrySet.insert(catalog->getTableCatalogEntry(transaction,
-            relGroupEntry.getRelTableInfos()[0].nodePair.dstTableID));
+        for (auto id : relGroupEntry.getSrcNodeTableIDSet()) {
+            nodeEntrySet.insert(catalog->getTableCatalogEntry(transaction, id));
+        }
+        for (auto id : relGroupEntry.getDstNodeTableIDSet()) {
+            nodeEntrySet.insert(catalog->getTableCatalogEntry(transaction, id));
+        }
     }
     auto recursivePatternInfo = relPattern.getRecursiveInfo();
     auto prevScope = saveScope();
     scope.clear();
     // Bind intermediate node.
     auto node = createQueryNode(recursivePatternInfo->nodeName,
-        std::vector<TableCatalogEntry*>{entrySet.begin(), entrySet.end()});
+        std::vector<TableCatalogEntry*>{nodeEntrySet.begin(), nodeEntrySet.end()});
     addToScope(node->toString(), node);
     auto nodeFields = getBaseNodeStructFields();
     auto nodeProjectionList = bindRecursivePatternNodeProjectionList(*recursivePatternInfo, *node);
     bindProjectionListAsStructField(nodeProjectionList, nodeFields);
     node->setExtraTypeInfo(std::make_unique<StructTypeInfo>(std::move(nodeFields)));
     auto nodeCopy = createQueryNode(recursivePatternInfo->nodeName,
-        std::vector<TableCatalogEntry*>{entrySet.begin(), entrySet.end()});
+        std::vector<TableCatalogEntry*>{nodeEntrySet.begin(), nodeEntrySet.end()});
     // Bind intermediate rel
     auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, entries,
         nullptr /* srcNode */, nullptr /* dstNode */, directionType);
@@ -651,7 +652,7 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
     auto catalog = clientContext->getCatalog();
     auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
-    if (tableNames.empty()) {
+    if (tableNames.empty()) { // Rewrite as all node tables in database.
         for (auto entry : catalog->getNodeTableEntries(transaction, useInternal)) {
             entrySet.insert(entry);
         }
@@ -684,8 +685,8 @@ std::vector<TableCatalogEntry*> Binder::bindRelGroupEntries(
     auto catalog = clientContext->getCatalog();
     auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
-    if (tableNames.empty()) {
-        for (auto& entry : catalog->getRelGroupEntries(transaction, useInternal)) {
+    if (tableNames.empty()) { // Rewrite as all rel groups in database.
+        for (auto entry : catalog->getRelGroupEntries(transaction, useInternal)) {
             entrySet.insert(entry);
         }
     } else {

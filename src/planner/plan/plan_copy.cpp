@@ -1,6 +1,6 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
@@ -25,7 +25,7 @@ static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan&
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
     const auto* tableCatalogEntry =
-        copyFromInfo.tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
+        copyFromInfo.tableEntry->constPtrCast<catalog::RelGroupCatalogEntry>();
     LogicalPartitionerInfo info(copyFromInfo.tableEntry, copyFromInfo.offset);
     for (auto direction : tableCatalogEntry->getRelDataDirections()) {
         info.partitioningInfos.push_back(
@@ -54,7 +54,7 @@ LogicalPlan Planner::planCopyFrom(const BoundStatement& statement) {
     case TableType::NODE: {
         return planCopyNodeFrom(copyFromInfo, outExprs);
     }
-    case TableType::REL: {
+    case TableType::REL_GROUP: {
         return planCopyRelFrom(copyFromInfo, outExprs);
     }
     default:
