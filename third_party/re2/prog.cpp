@@ -859,6 +859,7 @@ void Prog::ComputeHints(std::vector<Inst>* flat, int begin, int end) {
             int c = lo + 1;
             while (c < 256) {
                 int next = splits.FindNextSetBit(c);
+                CHECK(next != -1);
                 // Ratchet backwards...
                 first = std::min(first, colors[next]);
                 // Recolor with id - because it's the new nearest conflict!
