@@ -139,12 +139,12 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
             auto connNames = testGroup->testCasesConnNames[testCaseName];
             testing::RegisterTest(testGroup->group.c_str(), testCaseName.c_str(), nullptr, nullptr,
                 __FILE__, __LINE__,
-                [filename, datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
+                [path, datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
                     testStatements = std::move(testStatements)]() mutable -> DBTest* {
                     decltype(testStatements) testStatementsCopy;
                     for (const auto& testStatement : testStatements) {
                         testStatementsCopy.emplace_back(
-                            std::make_unique<TestStatement>(*testStatement))->testFilePath = filename;
+                            std::make_unique<TestStatement>(*testStatement))->testFilePath = path;
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
                         checkpointWaitTimeout, connNames, std::move(testStatementsCopy));
