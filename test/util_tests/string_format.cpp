@@ -51,5 +51,9 @@ TEST(StringFormat, FormatIntegers) {
 TEST(StringFormat, FormatFloats) {
     float a = 2.3;
     double b = 5.4;
+#if USE_STD_FORMAT
+    ASSERT_EQ(stringFormat("{} {}", a, b), "2.3 5.4");
+#else
     ASSERT_EQ(stringFormat("{} {}", a, b), "2.300000 5.400000");
+#endif
 }
