@@ -193,7 +193,7 @@ static std::vector<LogicalOperator*> getRecursiveExtendOutputNodeCandidates(
     std::vector<LogicalOperator*> result;
     auto collector = LogicalRecursiveExtendCollector();
     collector.collect(root);
-    for (auto& op : collector.getOperators()) {
+    for (auto op : collector.getOperators()) {
         auto& recursiveExtend = op->constCast<LogicalRecursiveExtend>();
         auto& bindData = recursiveExtend.getBindData();
         if (nodeID == *bindData.nodeOutput->constCast<NodeExpression>().getInternalID()) {

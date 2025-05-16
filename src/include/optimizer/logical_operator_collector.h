@@ -12,7 +12,7 @@ public:
     void collect(planner::LogicalOperator* op);
 
     bool hasOperators() const { return !ops.empty(); }
-    std::vector<planner::LogicalOperator*> getOperators() const { return ops; }
+    const std::vector<planner::LogicalOperator*>& getOperators() const { return ops; }
 
 protected:
     std::vector<planner::LogicalOperator*> ops;

@@ -3528,11 +3528,12 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
                 }
                 continue;
             }
-            c = completeLine(current_sequence, &l);
+            int res = completeLine(current_sequence, &l);
             /* Return on errors */
-            if (c < 0)
+            if (res < 0)
                 return l.len;
-            /* Read next character when 0 */
+            c = res;
+            /* Read the next character when 0 */
             if (c == 0)
                 continue;
         }
