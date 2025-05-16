@@ -116,6 +116,7 @@ void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
     {
         throw TestException("Cannot open file: " + statement->testFilePath);
     }
+    outFile << statement->query << std::endl;
     const TestQueryResult& testAnswer =
         statement->result[std::min(resultIdx, statement->result.size() - 1)];
     outFile << "---- ";
@@ -225,15 +226,8 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
 
 
 void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStatement* statement,
-    size_t resultIdx) {
+    size_t resultIdx, std::ofstream& outFile) {
     /* TODO */
-    std::ofstream outFile;
-    outFile.open(statement->testFilePath, std::ios::app);
-    if (!outFile.is_open())
-    {
-        throw TestException("Cannot open file: " + statement->testFilePath);
-    }
-
     TestQueryResult& testAnswer = statement->result[resultIdx];
     if (testAnswer.type == ResultType::CSV_FILE) {
         /*TODO*/
