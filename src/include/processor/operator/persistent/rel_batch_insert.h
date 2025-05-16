@@ -45,8 +45,7 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
         common::RelDataDirection direction, uint64_t partitioningIdx,
         common::column_id_t offsetColumnID, std::vector<common::column_id_t> columnIDs,
         std::vector<common::LogicalType> columnTypes, common::column_id_t numWarningDataColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled, std::move(columnIDs), 0,
-              numWarningDataColumns},
+        : BatchInsertInfo{tableEntry, compressionEnabled, std::move(columnIDs), static_cast<common::column_id_t>(columnTypes.size() - numWarningDataColumns), numWarningDataColumns},
           direction{direction}, partitioningIdx{partitioningIdx},
           boundNodeOffsetColumnID{offsetColumnID}, columnTypes{std::move(columnTypes)} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
