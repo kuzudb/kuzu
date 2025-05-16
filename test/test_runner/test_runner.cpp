@@ -68,7 +68,7 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     QueryResult* currentQueryResult = actualResult.get();
     idx_t resultIdx = 0u;
     do {
-        checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
+        TestHelper::REWRITE_TESTS ? writeLogicalPlan(conn, currentQueryResult, statement, resultIdx) : checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
         currentQueryResult = currentQueryResult->getNextQueryResult();
         resultIdx++;
     } while (currentQueryResult);
@@ -102,6 +102,11 @@ void TestRunner::checkLogicalPlan(Connection& conn, QueryResult* queryResult,
         checkPlanResult(conn, queryResult, statement, resultIdx);
     }
     }
+}
+
+void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
+    TestStatement* statement, size_t resultIdx) {
+    /* TODO */
 }
 
 void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStatement* statement,
@@ -171,6 +176,13 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
         }
     }
 }
+
+
+void TestRunner::writePlanResult(Connection& conn, QueryResult* result, TestStatement* statement,
+    size_t resultIdx) {
+    /* TODO */
+}
+
 
 void TestRunner::outputFailedPlan(Connection& conn, const TestStatement* statement) {
     spdlog::error("QUERY FAILED.");
