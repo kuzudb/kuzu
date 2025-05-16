@@ -154,18 +154,32 @@ java:
 nodejs:
 	$(call run-cmake-release, -DBUILD_NODEJS=TRUE)
 
+nodejstest: nodejs
+	cd tools/nodejs_api && npm test
+
 python:
 	$(call run-cmake-release, -DBUILD_PYTHON=TRUE -DBUILD_SHELL=FALSE)
 
 python-debug:
 	$(call run-cmake-debug, -DBUILD_PYTHON=TRUE)
 
+pytest: python
+	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
+
+pytest-debug: python-debug
+	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
+
 wasm:
 	mkdir -p build/wasm && cd build/wasm &&\
 	emcmake cmake $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_WASM=TRUE -DBUILD_BENCHMARK=FALSE -DBUILD_TESTS=FALSE -DBUILD_SHELL=FALSE  ../.. && \
 	cmake --build . --config Release -j $(NUM_THREADS)
 
-# Language API tests
+wasmtest:
+	mkdir -p build/wasm && cd build/wasm &&\
+	emcmake cmake $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_WASM=TRUE -DBUILD_BENCHMARK=FALSE -DBUILD_TESTS=TRUE -DBUILD_SHELL=FALSE  ../.. && \
+	cmake --build . --config Release -j $(NUM_THREADS) &&\
+	cd ../.. && ctest --test-dir  build/wasm/test/ --output-on-failure -j ${TEST_JOBS} --timeout 600
+
 javatest:
 ifeq ($(OS),Windows_NT)
 	cd tools/java_api &&\
@@ -175,15 +189,6 @@ else
 	./gradlew test -i
 endif
 
-nodejstest: nodejs
-	cd tools/nodejs_api && npm test
-
-pytest: python
-	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
-
-pytest-debug: python-debug
-	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
-
 rusttest:
 ifeq ($(OS),Windows_NT)
 	set CARGO_BUILD_JOBS=$(NUM_THREADS)
@@ -191,12 +196,6 @@ else
 	export CARGO_BUILD_JOBS=$(NUM_THREADS)
 endif
 	cd tools/rust_api && cargo test --release --locked --all-features
-
-wasmtest:
-	mkdir -p build/wasm && cd build/wasm &&\
-	emcmake cmake $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_WASM=TRUE -DBUILD_BENCHMARK=FALSE -DBUILD_TESTS=TRUE -DBUILD_SHELL=FALSE  ../.. && \
-	cmake --build . --config Release -j $(NUM_THREADS) &&\
-	cd ../.. && ctest --test-dir  build/wasm/test/ --output-on-failure -j ${TEST_JOBS} --timeout 600
 
 # Other misc build targets
 benchmark:
@@ -212,14 +211,6 @@ extension-test-build:
 		-DBUILD_TESTS=TRUE \
 	)
 
-extension-json-test-build:
-	$(call run-cmake-relwithdebinfo, \
-		-DBUILD_EXTENSIONS="json" \
-		-DBUILD_EXTENSION_TESTS=TRUE \
-		-DENABLE_ADDRESS_SANITIZER=TRUE \
-	)
-
-# This should be removed and be replaced with something more flexible with any given extension names.
 extension-test: extension-test-build
 ifeq ($(OS),Windows_NT)
 	set "E2E_TEST_FILES_DIRECTORY=extension" && ctest --test-dir build/$(call get-build-path,Relwithdebinfo)/test/runner --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
@@ -227,6 +218,13 @@ else
 	E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/$(call get-build-path,Relwithdebinfo)/test/runner --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
 endif
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
+
+extension-json-test-build:
+	$(call run-cmake-relwithdebinfo, \
+		-DBUILD_EXTENSIONS="json" \
+		-DBUILD_EXTENSION_TESTS=TRUE \
+		-DENABLE_ADDRESS_SANITIZER=TRUE \
+	)
 
 extension-json-test: extension-json-test-build
 	ctest --test-dir build/$(call get-build-path,Relwithdebinfo)/extension --output-on-failure -j ${TEST_JOBS} -R json
@@ -244,8 +242,9 @@ extension-release:
 		-DBUILD_KUZU=FALSE \
 	)
 
+# Test files expect a Release build.
 shell-test:
-	$(call run-cmake-relwithdebinfo, \
+	$(call run-cmake-release, \
 		-DBUILD_SHELL=TRUE \
 	)
 	cd tools/shell/test && python3 -m pytest -v
@@ -294,7 +293,7 @@ get-build-type = $(if $(BUILD_TYPE),$(BUILD_TYPE),$1)
 get-build-path = $(if $(BUILD_PATH),$(BUILD_PATH),$(call lowercase,$(call get-build-type,$(1))))
 
 define config-cmake
-	cmake -B build/$(call get-build-path,$1) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=$(call get-build-type,$1) $2 .
+	cmake -B build/$(call get-build-path,$1) -DCMAKE_BUILD_TYPE=$(call get-build-type,$1) $2 $(CMAKE_FLAGS) .
 endef
 
 define build-cmake
