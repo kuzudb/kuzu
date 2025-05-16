@@ -107,9 +107,8 @@ public:
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
-              std::move(printInfo)},
-          tableName{std::move(tableName)} {
+        : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState),
+              std::move(resultSetDescriptor), id, std::move(printInfo)} {
         children.push_back(std::move(child));
     }
 
@@ -134,8 +133,6 @@ public:
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;
 
 private:
-    std::string tableName;
-
     void evaluateExpressions(uint64_t numTuples) const;
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,

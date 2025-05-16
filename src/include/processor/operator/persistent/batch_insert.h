@@ -100,12 +100,13 @@ class BatchInsert : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::BATCH_INSERT;
 
 public:
-    BatchInsert(std::unique_ptr<BatchInsertInfo> info,
+    BatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : Sink{std::move(resultSetDescriptor), type_, id, std::move(printInfo)},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+          tableName{std::move(tableName)}, info{std::move(info)},
+          sharedState{std::move(sharedState)} {}
 
     ~BatchInsert() override = default;
 
@@ -114,6 +115,7 @@ public:
     std::shared_ptr<BatchInsertSharedState> getSharedState() const { return sharedState; }
 
 protected:
+    std::string tableName;
     std::unique_ptr<BatchInsertInfo> info;
     std::shared_ptr<BatchInsertSharedState> sharedState;
     std::unique_ptr<BatchInsertLocalState> localState;
