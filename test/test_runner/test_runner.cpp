@@ -126,10 +126,15 @@ void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
         break;
     case ResultType::HASH:
             outFile << "hash" << std::endl;
+            writeLogicalPlan(conn, queryResult, statement, resultIdx);
         break;
 
     case ResultType::TUPLES:
-            outFile << queryResult->getNumTuples() << std::endl;
+            if (statement->checkColumnNames)
+                outFile << queryResult->getNumTuples() + 1 << std::endl;
+            else
+                outFile << queryResult->getNumTuples() << std::endl;
+            writeLogicalPlan(conn, queryResult, statement, resultIdx);
     break;
 
     case ResultType::ERROR_MSG:
@@ -137,14 +142,16 @@ void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
         break;
 
     case ResultType::ERROR_REGEX:
+            outFile << testAnswer.expectedResult[0] << std::endl;
+        break;
     case ResultType::CSV_FILE:
             outFile << testAnswer.expectedResult[0] << std::endl;
+            writeLogicalPlan(conn, queryResult, statement, resultIdx);
         break;
     default:
         KU_UNREACHABLE;
     }
 
-    writeLogicalPlan(conn, queryResult, statement, resultIdx);
         
 }
 
@@ -217,9 +224,32 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
 }
 
 
-void TestRunner::writePlanResult(Connection& conn, QueryResult* result, TestStatement* statement,
+void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStatement* statement,
     size_t resultIdx) {
     /* TODO */
+    std::ofstream outFile;
+    outFile.open(statement->testFilePath, std::ios::app);
+    if (!outFile.is_open())
+    {
+        throw TestException("Cannot open file: " + statement->testFilePath);
+    }
+
+    TestQueryResult& testAnswer = statement->result[resultIdx];
+    if (testAnswer.type == ResultType::CSV_FILE) {
+        /*TODO*/
+        return;
+    }
+    if (testAnswer.type == ResultType::HASH) {
+        std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
+            statement->checkColumnNames);
+        outFile << resultHash << std::endl;
+    } 
+    std::vector<std::string> resultTuples =
+        convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
+    for(size_t i = 0; i < resultTuples.size() - 1; ++i)
+        outFile << resultTuples[i] << '|';
+    if (resultTuples.size())
+        outFile << resultTuples[resultTuples.size() - 1] << std::endl;
 }
 
 
