@@ -136,8 +136,7 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* st
 }
 
 std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog& catalog,
-    StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem*,
-    main::ClientContext*) {
+    StorageManager* storageManager, MemoryManager* memoryManager) {
     std::string key;
     table_id_t tableID = INVALID_TABLE_ID;
     offset_t nextRelOffset = INVALID_OFFSET;

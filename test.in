@@ -1,3 +1,0 @@
-CREATE NODE TABLE User AS LOAD FROM "user.csv" RETURN *;
-CREATE REL TABLE Follows(FROM User TO User, since DATE);
-COPY Follows FROM "follows.csv";

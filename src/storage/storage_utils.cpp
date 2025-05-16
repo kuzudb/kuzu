@@ -1,7 +1,6 @@
 #include "storage/storage_utils.h"
 
 #include "common/assert.h"
-#include "common/file_system/virtual_file_system.h"
 #include "common/null_buffer.h"
 #include "common/string_format.h"
 #include "common/types/ku_list.h"
@@ -44,13 +43,6 @@ std::string StorageUtils::getColumnName(const std::string& propertyName, ColumnT
         return stringFormat("{}_{}", prefix, propertyName);
     }
     }
-}
-
-std::string StorageUtils::getNodeIndexFName(const VirtualFileSystem* vfs,
-    const std::string& directory, const table_id_t& tableID, FileVersionType fileVersionType) {
-    const auto fName = stringFormat("n-{}", tableID);
-    return appendWALFileSuffixIfNecessary(
-        vfs->joinPath(directory, fName + StorageConstants::INDEX_FILE_SUFFIX), fileVersionType);
 }
 
 uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {

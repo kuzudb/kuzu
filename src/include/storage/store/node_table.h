@@ -107,16 +107,14 @@ class KUZU_API NodeTable final : public Table {
 public:
     NodeTable(const StorageManager* storageManager,
         const catalog::NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager,
-        common::VirtualFileSystem* vfs, main::ClientContext* context,
         common::Deserializer* deSer = nullptr);
 
     static std::unique_ptr<NodeTable> loadTable(common::Deserializer& deSer,
         const catalog::Catalog& catalog, StorageManager* storageManager,
-        MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context);
+        MemoryManager* memoryManager);
 
     void initializePKIndex(const std::string& databasePath,
-        const catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+        const catalog::NodeTableCatalogEntry* nodeTableEntry, common::Deserializer* deSer);
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 

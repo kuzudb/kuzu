@@ -29,11 +29,11 @@ public:
 
     static void recover(main::ClientContext& clientContext);
 
-    void createTable(catalog::CatalogEntry* entry, main::ClientContext* context);
+    void createTable(catalog::CatalogEntry* entry, const main::ClientContext* context);
 
     void checkpoint(main::ClientContext& clientContext);
     void finalizeCheckpoint(main::ClientContext& clientContext);
-    void rollbackCheckpoint(main::ClientContext& clientContext);
+    void rollbackCheckpoint(const main::ClientContext& clientContext);
 
     Table* getTable(common::table_id_t tableID) {
         std::lock_guard lck{mtx};
@@ -54,9 +54,10 @@ private:
 
     void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
-    void createNodeTable(catalog::NodeTableCatalogEntry* entry, main::ClientContext* context);
+    void createNodeTable(catalog::NodeTableCatalogEntry* entry);
     void createRelTable(catalog::RelTableCatalogEntry* entry);
-    void createRelTableGroup(catalog::RelGroupCatalogEntry* entry, main::ClientContext* context);
+    void createRelTableGroup(const catalog::RelGroupCatalogEntry* entry,
+        const main::ClientContext* context);
 
     void reclaimDroppedTables(const main::ClientContext& clientContext);
 

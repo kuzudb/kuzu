@@ -68,7 +68,7 @@ struct PIPUpdates {
     std::optional<PIPWrapper> updatedLastPIP;
     std::vector<PIPWrapper> newPIPs;
 
-    inline void clear() {
+    void clear() {
         updatedLastPIP.reset();
         newPIPs.clear();
     }
@@ -101,11 +101,9 @@ struct PIPUpdates {
 class DiskArrayInternal {
 public:
     // Used when loading from file
-    DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
-        const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
-        ShadowFile* shadowFile, uint64_t elementSize, bool bypassShadowing = false);
-
-    virtual ~DiskArrayInternal() = default;
+    DiskArrayInternal(FileHandle& fileHandle, const DiskArrayHeader& headerForReadTrx,
+        DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, uint64_t elementSize,
+        bool bypassShadowing = false);
 
     uint64_t getNumElements(
         transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY);
@@ -124,16 +122,16 @@ public:
     uint64_t resize(const transaction::Transaction* transaction, uint64_t newNumElements,
         std::span<std::byte> defaultVal);
 
-    virtual inline void checkpointInMemoryIfNecessary() {
+    void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
     }
-    virtual inline void rollbackInMemoryIfNecessary() {
+    void rollbackInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
 
-    virtual void checkpoint();
+    void checkpoint();
 
     // Write WriteIterator for making fast bulk changes to the disk array
     // The pages are cached while the elements are stored on the same page
@@ -179,7 +177,7 @@ public:
             return std::span(shadowPageAndFrame.frame + apCursor.elemPosInPage, valueSize);
         }
 
-        inline uint64_t size() const { return diskArray.headerForWriteTrx.numElements; }
+        uint64_t size() const { return diskArray.headerForWriteTrx.numElements; }
 
     private:
         void unpin();
@@ -196,13 +194,11 @@ protected:
 
     void updateLastPageOnDisk();
 
-    uint64_t pushBackNoLock(std::span<std::byte> val);
-
-    inline uint64_t getNumElementsNoLock(transaction::TransactionType trxType) const {
+    uint64_t getNumElementsNoLock(transaction::TransactionType trxType) const {
         return getDiskArrayHeader(trxType).numElements;
     }
 
-    inline uint64_t getNumAPs(const DiskArrayHeader& header) const {
+    uint64_t getNumAPs(const DiskArrayHeader& header) const {
         return (header.numElements + storageInfo.numElementsPerPage - 1) /
                storageInfo.numElementsPerPage;
     }
@@ -220,13 +216,13 @@ protected:
 
     void clearWALPageVersionAndRemovePageFromFrameIfNecessary(common::page_idx_t pageIdx);
 
-    virtual void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
+    void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
 
 private:
     bool checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx) const;
-    bool hasPIPUpdatesNoLock(uint64_t pipIdx);
+    bool hasPIPUpdatesNoLock(uint64_t pipIdx) const;
 
-    inline const DiskArrayHeader& getDiskArrayHeader(transaction::TransactionType trxType) const {
+    const DiskArrayHeader& getDiskArrayHeader(transaction::TransactionType trxType) const {
         if (trxType == transaction::TransactionType::CHECKPOINT) {
             return headerForWriteTrx;
         }
@@ -241,7 +237,6 @@ private:
 protected:
     PageStorageInfo storageInfo;
     FileHandle& fileHandle;
-    DBFileID dbFileID;
     const DiskArrayHeader& header;
     DiskArrayHeader& headerForWriteTrx;
     bool hasTransactionalUpdates;
@@ -267,10 +262,10 @@ public:
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
-    DiskArray(FileHandle& fileHandle, DBFileID dbFileID, const DiskArrayHeader& headerForReadTrx,
+    DiskArray(FileHandle& fileHandle, const DiskArrayHeader& headerForReadTrx,
         DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, bool bypassWAL = false)
-        : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, shadowFile,
-              sizeof(U), bypassWAL) {}
+        : diskArray(fileHandle, headerForReadTrx, headerForWriteTrx, shadowFile, sizeof(U),
+              bypassWAL) {}
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
