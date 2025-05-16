@@ -68,14 +68,14 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     const auto actualResult = conn.query(statement->query);
     QueryResult* currentQueryResult = actualResult.get();
     idx_t resultIdx = 0u;
-    do {
-        TestHelper::REWRITE_TESTS ?
-            writeLogicalPlan(conn, currentQueryResult, statement, resultIdx) :
+    if (TestHelper::REWRITE_TESTS)
+            writeLogicalPlan(conn, currentQueryResult, statement, resultIdx);
+    else
+        do {
             checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
-
-        currentQueryResult = currentQueryResult->getNextQueryResult();
-        resultIdx++;
-    } while (currentQueryResult);
+            currentQueryResult = currentQueryResult->getNextQueryResult();
+            resultIdx++;
+        } while (currentQueryResult);
 }
 
 void TestRunner::checkLogicalPlan(Connection& conn, QueryResult* queryResult,
@@ -127,7 +127,7 @@ void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
         break;
     case ResultType::HASH:
             outFile << "hash" << std::endl;
-            writeLogicalPlan(conn, queryResult, statement, resultIdx);
+            writePlanResult(conn, queryResult, statement, resultIdx, outFile);
         break;
 
     case ResultType::TUPLES:
@@ -135,7 +135,7 @@ void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
                 outFile << queryResult->getNumTuples() + 1 << std::endl;
             else
                 outFile << queryResult->getNumTuples() << std::endl;
-            writeLogicalPlan(conn, queryResult, statement, resultIdx);
+            writePlanResult(conn, queryResult, statement, resultIdx, outFile);
     break;
 
     case ResultType::ERROR_MSG:
@@ -147,7 +147,7 @@ void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
         break;
     case ResultType::CSV_FILE:
             outFile << testAnswer.expectedResult[0] << std::endl;
-            writeLogicalPlan(conn, queryResult, statement, resultIdx);
+            writePlanResult(conn, queryResult, statement, resultIdx, outFile);
         break;
     default:
         KU_UNREACHABLE;
