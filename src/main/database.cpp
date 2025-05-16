@@ -86,7 +86,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig,
     initMembers(databasePath, constructBMFunc);
 }
 
-std::unique_ptr<storage::BufferManager> Database::initBufferManager(const Database& db) {
+std::unique_ptr<BufferManager> Database::initBufferManager(const Database& db) {
     return std::make_unique<BufferManager>(db.databasePath,
         db.vfs->joinPath(db.databasePath, StorageConstants::TEMP_SPILLING_FILE_NAME),
         db.dbConfig.bufferPoolSize, db.dbConfig.maxDBSize, db.vfs.get(), db.dbConfig.readOnly);
@@ -173,7 +173,7 @@ void Database::initAndLockDBDir() {
 }
 
 uint64_t Database::getNextQueryID() {
-    std::lock_guard<std::mutex> lock(queryIDGenerator.queryIDLock);
+    std::unique_lock lock(queryIDGenerator.queryIDLock);
     return queryIDGenerator.queryID++;
 }
 

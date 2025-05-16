@@ -20,7 +20,8 @@ public:
     void flush();
     void sync();
 
-    // Note: this function is reseting next file offset to be written. Make sure buffer is empty.
+    // Note: this function is resting the next file offset to be written. Make sure the buffer is
+    // empty.
     void setFileOffset(uint64_t fileOffset) { this->fileOffset = fileOffset; }
     uint64_t getFileOffset() const { return fileOffset; }
     void resetOffsets() {

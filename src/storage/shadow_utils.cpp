@@ -97,7 +97,7 @@ void ShadowUtils::readShadowVersionOfPage(const FileHandle& fileHandle, page_idx
     const auto frame =
         shadowFile.getShadowingFH().pinPage(shadowPageIdx, PageReadPolicy::READ_PAGE);
     readOp(frame);
-    unpinShadowPage(shadowPageIdx, originalPageIdx, shadowFile);
+    unpinShadowPage(originalPageIdx, shadowPageIdx, shadowFile);
 }
 
 } // namespace storage

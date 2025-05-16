@@ -12,13 +12,13 @@ namespace common {
 
 static constexpr uint64_t BUFFER_SIZE = KUZU_PAGE_SIZE;
 
-BufferedFileWriter::~BufferedFileWriter() {
-    flush();
-}
-
 BufferedFileWriter::BufferedFileWriter(FileInfo& fileInfo)
     : buffer(std::make_unique<uint8_t[]>(BUFFER_SIZE)), fileOffset(0), bufferOffset(0),
       fileInfo(fileInfo) {}
+
+BufferedFileWriter::~BufferedFileWriter() {
+    flush();
+}
 
 void BufferedFileWriter::write(const uint8_t* data, uint64_t size) {
     if (size > BUFFER_SIZE) {
