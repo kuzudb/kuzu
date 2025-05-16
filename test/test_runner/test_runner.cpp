@@ -111,7 +111,7 @@ void TestRunner::checkLogicalPlan(Connection& conn, QueryResult* queryResult,
 void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
     TestStatement* statement, size_t resultIdx) {
     std::ofstream outFile;
-    outFile.open(statement->testFilePath, std::ios::app);
+    outFile.open(statement->testFilePath.substr(0, statement->testFilePath.length() - 4) + "out", std::ios::app);
     if (!outFile.is_open())
     {
         throw TestException("Cannot open file: " + statement->testFilePath);
