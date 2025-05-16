@@ -2,6 +2,7 @@
 
 #include "storage/file_handle.h"
 #include "storage/shadow_utils.h"
+#include "storage/wal/shadow_file.h"
 
 namespace kuzu {
 namespace common {
@@ -29,11 +30,19 @@ void MetadataWriter::write(const uint8_t* data, uint64_t size) {
     }
 }
 
-void MetadataWriter::flush() {
-    auto numPages = buffers.size();
+void MetadataWriter::flush(storage::ShadowFile& shadowFile) const {
+    auto numPagesToFlush = buffers.size();
     auto pageManager = fileHandle->getPageManager();
-    auto pageRange = pageManager->allocatePageRange(numPages);
-    for (auto i = 0u; i < pageRange.numPages; i++) {}
+    auto numPages = fileHandle->getNumPages();
+    auto pageRange = pageManager->allocatePageRange(numPagesToFlush);
+    for (auto i = 0u; i < pageRange.numPages; i++) {
+        auto pageIdx = pageRange.startPageIdx + i;
+        auto insertingNewPage = pageIdx > numPages;
+        auto shadowPageAndFrame = storage::ShadowUtils::createShadowVersionIfNecessaryAndPinPage(
+            pageIdx, insertingNewPage, *fileHandle, storage::DBFileID::newDataFileID(), shadowFile);
+        memcpy(shadowPageAndFrame.frame, buffers[i]->getData(), KUZU_PAGE_SIZE);
+        shadowFile.getShadowingFH().unpinPage(shadowPageAndFrame.shadowPage);
+    }
 }
 
 bool MetadataWriter::needNewBuffer(uint64_t size) const {

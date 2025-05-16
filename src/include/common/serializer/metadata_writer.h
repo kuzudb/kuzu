@@ -5,6 +5,9 @@
 #include "common/serializer/writer.h"
 #include "storage/buffer_manager/memory_manager.h"
 
+namespace kuzu::storage {
+class ShadowFile;
+}
 namespace kuzu {
 namespace common {
 
@@ -13,7 +16,7 @@ public:
     MetadataWriter(storage::MemoryManager* mm, storage::FileHandle* fileHandle);
     void write(const uint8_t* data, uint64_t size) override;
 
-    void flush();
+    void flush(storage::ShadowFile& shadowFile) const;
 
 private:
     bool needNewBuffer(uint64_t size) const;
