@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include "main/connection.h"
 #include "test_runner/test_group.h"
 
@@ -31,7 +32,7 @@ private:
     static void checkPlanResult(main::Connection& conn, main::QueryResult* result,
         TestStatement* statement, size_t resultIdx);
     static void writePlanResult(main::Connection& conn, main::QueryResult* result,
-        TestStatement* statement, size_t resultIdx);
+        TestStatement* statement, size_t resultIdx, std::ofstream&);
 
 
     static void outputFailedPlan(main::Connection& conn, const TestStatement* statement);
