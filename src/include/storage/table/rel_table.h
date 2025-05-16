@@ -142,10 +142,6 @@ public:
         std::function<void(const std::string&, common::offset_t, common::RelDataDirection)>;
 
     RelTable(catalog::RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
-        MemoryManager* memoryManager, common::Deserializer* deSer = nullptr);
-
-    static std::unique_ptr<RelTable> loadTable(common::Deserializer& deSer,
-        const catalog::Catalog& catalog, StorageManager* storageManager,
         MemoryManager* memoryManager);
 
     common::table_id_t getFromNodeTableID() const { return fromNodeTableID; }
@@ -193,7 +189,7 @@ public:
 
     void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
-    void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
+    void checkpoint(catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override {};
     void reclaimStorage(FileHandle& dataFH) override;
 
@@ -214,6 +210,9 @@ public:
 
     std::vector<common::RelDataDirection> getStorageDirections() const;
 
+    void serialize(common::Serializer& ser) const override;
+    void deserialize(catalog::TableCatalogEntry* tableEntry, common::Deserializer& deSer) override;
+
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs, const NodeGroup& localNodeGroup,
@@ -231,8 +230,6 @@ private:
 
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
         const TableInsertState& state) const;
-
-    void commitRelTableData(common::RelDataDirection direction);
 
 private:
     common::table_id_t fromNodeTableID;

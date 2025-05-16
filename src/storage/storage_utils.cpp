@@ -88,14 +88,5 @@ uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
     }
 }
 
-std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(const std::string& fileName,
-    const std::string& suffix) {
-    const auto pos = fileName.find(StorageConstants::WAL_FILE_SUFFIX);
-    if (pos == std::string::npos) {
-        return fileName + suffix;
-    }
-    return fileName.substr(0, pos) + suffix + StorageConstants::WAL_FILE_SUFFIX;
-}
-
 } // namespace storage
 } // namespace kuzu

@@ -364,7 +364,7 @@ void DiskArrayInternal::WriteIterator::getPage(page_idx_t newPageIdx, bool isNew
 }
 
 DiskArrayInternal::WriteIterator DiskArrayInternal::iter_mut(uint64_t valueSize) {
-    return DiskArrayInternal::WriteIterator(valueSize, *this);
+    return WriteIterator(valueSize, *this);
 }
 
 page_idx_t DiskArrayInternal::getAPIdx(uint64_t idx) const {

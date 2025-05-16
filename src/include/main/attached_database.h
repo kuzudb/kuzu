@@ -56,9 +56,6 @@ public:
     transaction::TransactionManager* getTransactionManager() { return transactionManager.get(); }
 
 private:
-    void initCatalog(const std::string& path, ClientContext* context);
-
-private:
     std::unique_ptr<storage::StorageManager> storageManager;
     std::unique_ptr<transaction::TransactionManager> transactionManager;
 };

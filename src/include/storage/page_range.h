@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
+
 namespace kuzu::storage {
 
 struct PageRange {

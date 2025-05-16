@@ -215,7 +215,7 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
 }
 
 NodeTable::NodeTable(const StorageManager* storageManager,
-    const NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager, Deserializer* deSer)
+    const NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager)
     : Table{nodeTableEntry, storageManager, memoryManager},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyName())},
       versionRecordHandler(this) {
@@ -228,43 +228,12 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         columns[columnID] = ColumnFactory::createColumn(columnName, property.getType().copy(),
             dataFH, memoryManager, shadowFile, enableCompression);
     }
-
-    initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry, deSer);
-    nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
+    pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH, inMemory,
+        nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *memoryManager,
+        shadowFile, INVALID_PAGE_IDX, INVALID_PAGE_IDX, readOnly);
+    nodeGroups = std::make_unique<NodeGroupCollection>(
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
-        storageManager->getDataFH(), deSer, &versionRecordHandler);
-}
-
-std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catalog& catalog,
-    StorageManager* storageManager, MemoryManager* memoryManager) {
-    std::string key;
-    table_id_t tableID = INVALID_TABLE_ID;
-    deSer.validateDebuggingInfo(key, "table_id");
-    deSer.deserializeValue<table_id_t>(tableID);
-    const auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
-    if (!catalogEntry) {
-        throw RuntimeException(
-            stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
-    }
-    return std::make_unique<NodeTable>(storageManager,
-        catalogEntry->ptrCast<NodeTableCatalogEntry>(), memoryManager, &deSer);
-}
-
-void NodeTable::initializePKIndex(const std::string& databasePath,
-    const NodeTableCatalogEntry* nodeTableEntry, Deserializer* deSer) {
-    page_idx_t firstHeaderPage = INVALID_PAGE_IDX;
-    page_idx_t overflowHeaderPage = INVALID_PAGE_IDX;
-    if (deSer) {
-        std::string key;
-        deSer->validateDebuggingInfo(key, "firstHeaderPage");
-        deSer->deserializeValue<page_idx_t>(firstHeaderPage);
-        deSer->validateDebuggingInfo(key, "overflowHeaderPage");
-        deSer->deserializeValue<page_idx_t>(overflowHeaderPage);
-    }
-    pkIndex =
-        std::make_unique<PrimaryKeyIndex>(dataFH, main::DBConfig::isDBPathInMemory(databasePath),
-            nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *memoryManager,
-            shadowFile, firstHeaderPage, overflowHeaderPage);
+        storageManager->getDataFH(), &versionRecordHandler);
 }
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
@@ -556,9 +525,9 @@ visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {
         [this, transaction](offset_t offset_) -> bool { return isVisible(transaction, offset_); };
 }
 
-void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
+void NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
     if (hasChanges) {
-        // Deleted columns are vaccumed and not checkpointed or serialized.
+        // Deleted columns are vacuumed and not checkpointed.
         std::vector<std::unique_ptr<Column>> checkpointColumns;
         std::vector<column_id_t> columnIDs;
         for (auto& property : tableEntry->getProperties()) {
@@ -580,7 +549,6 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         hasChanges = false;
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
     }
-    serialize(ser);
 }
 
 void NodeTable::rollbackPKIndexInsert(const Transaction* transaction, row_idx_t startRow,
@@ -613,12 +581,6 @@ TableStats NodeTable::getStats(const Transaction* transaction) const {
         stats.merge(localStats);
     }
     return stats;
-}
-
-void NodeTable::serialize(Serializer& serializer) const {
-    Table::serialize(serializer);
-    pkIndex->serialize(serializer);
-    nodeGroups->serialize(serializer);
 }
 
 bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const {
@@ -675,6 +637,26 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
             }
         }
     }
+}
+
+void NodeTable::serialize(Serializer& serializer) const {
+    pkIndex->serialize(serializer);
+    nodeGroups->serialize(serializer);
+}
+
+void NodeTable::deserialize(TableCatalogEntry* entry, Deserializer& deSer) {
+    std::string key;
+    page_idx_t firstHeaderPage = INVALID_PAGE_IDX;
+    page_idx_t overflowHeaderPage = INVALID_PAGE_IDX;
+    deSer.validateDebuggingInfo(key, "firstHeaderPage");
+    deSer.deserializeValue<page_idx_t>(firstHeaderPage);
+    deSer.validateDebuggingInfo(key, "overflowHeaderPage");
+    deSer.deserializeValue<page_idx_t>(overflowHeaderPage);
+    auto pkType =
+        entry->cast<NodeTableCatalogEntry>().getPrimaryKeyDefinition().getType().getPhysicalType();
+    pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH, inMemory, pkType, *memoryManager,
+        shadowFile, firstHeaderPage, overflowHeaderPage, readOnly);
+    nodeGroups->deserialize(deSer, *memoryManager);
 }
 
 std::unique_ptr<NodeTableScanState> PKColumnScanHelper::initPKScanState(

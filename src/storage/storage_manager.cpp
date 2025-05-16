@@ -21,61 +21,35 @@ namespace kuzu {
 namespace storage {
 
 StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
-    const Catalog& catalog, MemoryManager& memoryManager, bool enableCompression,
-    VirtualFileSystem* vfs, main::ClientContext* context)
-    : databasePath{databasePath}, readOnly{readOnly}, memoryManager{memoryManager},
+    MemoryManager& memoryManager, bool enableCompression, VirtualFileSystem* vfs,
+    main::ClientContext* context)
+    : databasePath{databasePath}, readOnly{readOnly}, dataFH{nullptr}, memoryManager{memoryManager},
       enableCompression{enableCompression} {
     wal = std::make_unique<WAL>(databasePath, readOnly, vfs, context);
     shadowFile = std::make_unique<ShadowFile>(databasePath, readOnly,
         *memoryManager.getBufferManager(), vfs, context);
-    dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
-    metadataFH = initFileHandle(
-        StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL), vfs, context);
-    loadTables(catalog, vfs, context);
+    inMemory = main::DBConfig::isDBPathInMemory(databasePath);
+    initDataFileHandle(vfs, context);
 }
 
-StorageManager::~StorageManager() = default;
-
-FileHandle* StorageManager::initFileHandle(const std::string& fileName, VirtualFileSystem* vfs,
-    main::ClientContext* context) const {
-    if (main::DBConfig::isDBPathInMemory(databasePath)) {
-        return memoryManager.getBufferManager()->getFileHandle(fileName,
+void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientContext* context) {
+    if (inMemory) {
+        dataFH = memoryManager.getBufferManager()->getFileHandle(databasePath,
             FileHandle::O_PERSISTENT_FILE_IN_MEM, vfs, context);
+    } else {
+        const auto flag = readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                     FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS;
+        const auto dataFilePath = StorageUtils::getDataFName(vfs, databasePath);
+        dataFH = memoryManager.getBufferManager()->getFileHandle(dataFilePath, flag, vfs, context);
     }
-    return memoryManager.getBufferManager()->getFileHandle(fileName,
-        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                   FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        vfs, context);
-}
-
-void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
-    main::ClientContext* context) {
-    if (main::DBConfig::isDBPathInMemory(databasePath)) {
-        return;
-    }
-    const auto metaFilePath =
-        StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL);
-    if (vfs->fileOrPathExists(metaFilePath, context)) {
-        auto metadataFileInfo =
-            vfs->openFile(metaFilePath, FileOpenFlags(FileFlags::READ_ONLY), context);
-        if (metadataFileInfo->getFileSize() > 0) {
-            Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
-            std::string key;
-            uint64_t numTables = 0;
-            deSer.validateDebuggingInfo(key, "num_tables");
-            deSer.deserializeValue<uint64_t>(numTables);
-            for (auto i = 0u; i < numTables; i++) {
-                auto table = Table::loadTable(deSer, catalog, this, &memoryManager);
-                tables[table->getTableID()] = std::move(table);
-            }
-            deSer.validateDebuggingInfo(key, "page_manager");
-            dataFH->getPageManager()->deserialize(deSer);
-        }
+    if (dataFH->getNumPages() == 0) {
+        // Reserve the first page for the database header.
+        dataFH->addNewPage();
     }
 }
 
 void StorageManager::recover(main::ClientContext& clientContext) {
-    if (clientContext.getDatabasePath().empty()) {
+    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
         // In-memory mode. Nothing to recover from.
         return;
     }
@@ -140,11 +114,10 @@ ShadowFile& StorageManager::getShadowFile() const {
     return *shadowFile;
 }
 
-void StorageManager::reclaimDroppedTables(const main::ClientContext& clientContext) {
+void StorageManager::reclaimDroppedTables(const Catalog& catalog) {
     std::vector<table_id_t> droppedTables;
     for (const auto& [tableID, table] : tables) {
-        if (!clientContext.getCatalog()->containsTable(&DUMMY_CHECKPOINT_TRANSACTION, tableID,
-                true)) {
+        if (!catalog.containsTable(&DUMMY_CHECKPOINT_TRANSACTION, tableID, true)) {
             table->reclaimStorage(*dataFH);
             droppedTables.push_back(tableID);
         }
@@ -154,32 +127,17 @@ void StorageManager::reclaimDroppedTables(const main::ClientContext& clientConte
     }
 }
 
-void StorageManager::checkpoint(main::ClientContext& clientContext) {
-    if (main::DBConfig::isDBPathInMemory(databasePath)) {
-        return;
-    }
+void StorageManager::checkpoint(const Catalog& catalog) {
     std::lock_guard lck{mtx};
-    const auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
-        StorageUtils::getMetadataFName(clientContext.getVFSUnsafe(), databasePath,
-            FileVersionType::WAL_VERSION),
-        FileOpenFlags(FileFlags::READ_ONLY | FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS),
-        &clientContext);
-    const auto writer = std::make_shared<BufferedFileWriter>(*metadataFileInfo);
-    Serializer ser(writer);
-    const auto nodeTableEntries =
-        clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
-    const auto relTableEntries =
-        clientContext.getCatalog()->getRelTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
-    const auto numTables = nodeTableEntries.size() + relTableEntries.size();
-    ser.writeDebuggingInfo("num_tables");
-    ser.write<uint64_t>(numTables);
+    const auto nodeTableEntries = catalog.getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    const auto relTableEntries = catalog.getRelTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     for (const auto tableEntry : nodeTableEntries) {
         if (!tables.contains(tableEntry->getTableID())) {
             throw RuntimeException(
                 stringFormat("Checkpoint failed: table {} not found in storage manager.",
                     tableEntry->getName()));
         }
-        tables.at(tableEntry->getTableID())->checkpoint(ser, tableEntry);
+        tables.at(tableEntry->getTableID())->checkpoint(tableEntry);
     }
     for (const auto tableEntry : relTableEntries) {
         if (!tables.contains(tableEntry->getTableID())) {
@@ -187,37 +145,91 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
                 stringFormat("Checkpoint failed: table {} not found in storage manager.",
                     tableEntry->getName()));
         }
-        tables.at(tableEntry->getTableID())->checkpoint(ser, tableEntry);
+        tables.at(tableEntry->getTableID())->checkpoint(tableEntry);
     }
-    reclaimDroppedTables(clientContext);
-    ser.writeDebuggingInfo("page_manager");
-    dataFH->getPageManager()->serialize(ser);
-    writer->flush();
-    writer->sync();
-    shadowFile->flushAll();
-    // When a page is freed by the FSM it evicts it from the BM. However if the page is freed then
-    // reused over and over it can be appended to the eviction queue multiple times. To prevent
-    // multiple entries of the same page from existing in the eviction queue, at the end of each
-    // checkpoint we remove any already-evicted pages.
-    memoryManager.getBufferManager()->removeEvictedCandidates();
+    reclaimDroppedTables(catalog);
 }
 
-void StorageManager::finalizeCheckpoint(main::ClientContext&) {
+void StorageManager::finalizeCheckpoint() {
     dataFH->getPageManager()->finalizeCheckpoint();
 }
 
-void StorageManager::rollbackCheckpoint(const main::ClientContext& clientContext) {
-    if (main::DBConfig::isDBPathInMemory(databasePath)) {
-        return;
-    }
+void StorageManager::rollbackCheckpoint(const Catalog& catalog) {
     std::lock_guard lck{mtx};
-    const auto nodeTableEntries =
-        clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    const auto nodeTableEntries = catalog.getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     for (const auto tableEntry : nodeTableEntries) {
         KU_ASSERT(tables.contains(tableEntry->getTableID()));
         tables.at(tableEntry->getTableID())->rollbackCheckpoint();
     }
     dataFH->getPageManager()->rollbackCheckpoint();
+}
+
+void StorageManager::serialize(const Catalog& catalog, Serializer& ser) {
+    std::lock_guard lck{mtx};
+    auto nodeTableEntries = catalog.getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    auto relTableEntries = catalog.getRelTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    std::sort(nodeTableEntries.begin(), nodeTableEntries.end(),
+        [](const auto& a, const auto& b) { return a->getTableID() < b->getTableID(); });
+    std::sort(relTableEntries.begin(), relTableEntries.end(),
+        [](const auto& a, const auto& b) { return a->getTableID() < b->getTableID(); });
+    ser.writeDebuggingInfo("num_node_tables");
+    ser.write<uint64_t>(nodeTableEntries.size());
+    for (const auto tableEntry : nodeTableEntries) {
+        KU_ASSERT(tables.contains(tableEntry->getTableID()));
+        ser.writeDebuggingInfo("table_id");
+        ser.write<table_id_t>(tableEntry->getTableID());
+        tables.at(tableEntry->getTableID())->serialize(ser);
+    }
+    ser.writeDebuggingInfo("num_rel_tables");
+    ser.write<uint64_t>(relTableEntries.size());
+    for (const auto tableEntry : relTableEntries) {
+        KU_ASSERT(tables.contains(tableEntry->getTableID()));
+        ser.writeDebuggingInfo("table_id");
+        ser.write<table_id_t>(tableEntry->getTableID());
+        tables.at(tableEntry->getTableID())->serialize(ser);
+    }
+    ser.writeDebuggingInfo("page_manager");
+    dataFH->getPageManager()->serialize(ser);
+}
+
+void StorageManager::deserialize(const Catalog& catalog, Deserializer& deSer) {
+    std::string key;
+    deSer.validateDebuggingInfo(key, "num_node_tables");
+    uint64_t numNodeTables = 0;
+    deSer.deserializeValue<uint64_t>(numNodeTables);
+    for (auto i = 0u; i < numNodeTables; i++) {
+        deSer.validateDebuggingInfo(key, "table_id");
+        table_id_t tableID = INVALID_TABLE_ID;
+        deSer.deserializeValue<table_id_t>(tableID);
+        if (!catalog.containsTable(&DUMMY_TRANSACTION, tableID)) {
+            throw RuntimeException(
+                stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
+        }
+        KU_ASSERT(!tables.contains(tableID));
+        auto tableEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)
+                              ->ptrCast<NodeTableCatalogEntry>();
+        tables[tableID] = std::make_unique<NodeTable>(this, tableEntry, &memoryManager);
+        tables[tableID]->deserialize(tableEntry, deSer);
+    }
+    deSer.validateDebuggingInfo(key, "num_rel_tables");
+    uint64_t numRelTables = 0;
+    deSer.deserializeValue<uint64_t>(numRelTables);
+    for (auto i = 0u; i < numRelTables; i++) {
+        deSer.validateDebuggingInfo(key, "table_id");
+        table_id_t tableID = INVALID_TABLE_ID;
+        deSer.deserializeValue<table_id_t>(tableID);
+        if (!catalog.containsTable(&DUMMY_TRANSACTION, tableID)) {
+            throw RuntimeException(
+                stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
+        }
+        KU_ASSERT(!tables.contains(tableID));
+        auto tableEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)
+                              ->ptrCast<RelTableCatalogEntry>();
+        tables[tableID] = std::make_unique<RelTable>(tableEntry, this, &memoryManager);
+        tables[tableID]->deserialize(tableEntry, deSer);
+    }
+    deSer.validateDebuggingInfo(key, "page_manager");
+    dataFH->getPageManager()->deserialize(deSer);
 }
 
 } // namespace storage

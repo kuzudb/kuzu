@@ -57,8 +57,7 @@ void InMemoryVersionRecordHandler::rollbackInsert(const Transaction* transaction
 }
 
 RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
-    const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression,
-    Deserializer* deSer)
+    const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression)
     : dataFH{dataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()},
       memoryManager{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
       direction{direction}, persistentVersionRecordHandler(this),
@@ -68,10 +67,10 @@ RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* sh
     initPropertyColumns(tableEntry);
 
     // default to using the persistent version record handler
-    // if we want to use the in-memory handler we will explicitly pass it into
+    // if we want to use the in-memory handler, we will explicitly pass it into
     // nodeGroups.pushInsertInfo()
-    nodeGroups = std::make_unique<NodeGroupCollection>(*mm, getColumnTypes(), enableCompression,
-        dataFH, deSer, &persistentVersionRecordHandler);
+    nodeGroups = std::make_unique<NodeGroupCollection>(getColumnTypes(), enableCompression, dataFH,
+        &persistentVersionRecordHandler);
 }
 
 void RelTableData::initCSRHeaderColumns() {
@@ -269,6 +268,10 @@ void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
 
 void RelTableData::serialize(Serializer& serializer) const {
     nodeGroups->serialize(serializer);
+}
+
+void RelTableData::deserialize(Deserializer& deSerializer, MemoryManager& memoryManager) {
+    nodeGroups->deserialize(deSerializer, memoryManager);
 }
 
 const VersionRecordHandler* RelTableData::getVersionRecordHandler(

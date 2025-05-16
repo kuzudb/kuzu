@@ -81,7 +81,7 @@ bool HashIndex<T>::checkpoint() {
         }
         localStorage->applyLocalChanges(
             [&](Key) {
-                // TODO(Guodong/Ben): FIX-ME. We should vaccum the index during checkpoint.
+                // TODO(Guodong/Ben): FIX-ME. We should vacuum the index during checkpoint.
                 // DO NOTHING.
             },
             [&](const auto& insertions) { mergeBulkInserts(transaction, insertions); });
@@ -201,7 +201,7 @@ template<typename T>
 void HashIndex<T>::reserve(const Transaction* transaction, uint64_t newEntries) {
     slot_id_t numRequiredEntries =
         HashIndexUtils::getNumRequiredEntries(this->indexHeaderForWriteTrx.numEntries + newEntries);
-    // Can be no fewer slots that the current level requires
+    // Can be no fewer slots than the current level requires
     auto numRequiredSlots =
         std::max((numRequiredEntries + getSlotCapacity<T>() - 1) / getSlotCapacity<T>(),
             static_cast<slot_id_t>(1ul << this->indexHeaderForWriteTrx.currentLevel));
@@ -247,7 +247,7 @@ void HashIndex<T>::sortEntries(const Transaction* transaction,
         }
     } while (insertLocalStorage.nextChainedSlot(slotToMerge));
     std::sort(entries.begin(), entries.end(), [&](auto entry1, auto entry2) -> bool {
-        // Sort based on the entry's disk slot ID so that the first slot is at the end
+        // Sort based on the entry's disk slot ID so that the first slot is at the end.
         // Sorting is done reversed so that we can process from the back of the list,
         // using the size to track the remaining entries
         return entry1.diskSlotId > entry2.diskSlotId;
@@ -271,9 +271,9 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
     reserve(transaction, insertLocalStorage.size());
     // RUNTIME_CHECK(auto originalNumEntries = this->indexHeaderForWriteTrx.numEntries);
 
-    // Storing as many slots in-memory as on-disk shouldn't be necessary (for one it makes memory
+    // Storing as many slots in-memory as on-disk shouldn't be necessary (for one, it makes memory
     // usage an issue as we may need significantly more memory to store the slots that we would
-    // otherwise) Instead, when merging here we can re-hash and split each in-memory slot (into
+    // otherwise). Instead, when merging here, we can re-hash and split each in-memory slot (into
     // temporary vector buffers instead of slots for improved performance) and then merge each of
     // those one at a time into the disk slots. That will keep the low memory requirements and still
     // let us update each on-disk slot one at a time.
@@ -350,13 +350,13 @@ size_t HashIndex<T>::mergeSlot(const Transaction* transaction,
     Slot<T>* diskSlot = &*diskSlotIterator.seek(diskSlotId);
     KU_ASSERT(diskSlot->header.nextOvfSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID ||
               diskOverflowSlotIterator.size() > diskSlot->header.nextOvfSlotId);
-    // Merge slot from local storage to existing slot
+    // Merge slot from local storage to an existing slot.
     size_t merged = 0;
     for (auto it = std::rbegin(slotToMerge); it != std::rend(slotToMerge); ++it) {
         if (it->diskSlotId != diskSlotId) {
             return merged;
         }
-        // Find the next empty entry, or add a new slot if there are no more entries
+        // Find the next empty entry or add a new slot if there are no more entries
         while (
             diskSlot->header.isEntryValid(diskEntryPos) || diskEntryPos >= getSlotCapacity<T>()) {
             diskEntryPos++;
@@ -423,7 +423,7 @@ template class HashIndex<ku_string_t>;
 
 PrimaryKeyIndex::PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, PhysicalTypeID keyDataType,
     MemoryManager& memoryManager, ShadowFile* shadowFile, page_idx_t firstHeaderPage,
-    page_idx_t overflowHeaderPage)
+    page_idx_t overflowHeaderPage, bool readOnly)
     : keyDataTypeID(keyDataType), fileHandle{dataFH}, shadowFile{*shadowFile},
       firstHeaderPage{firstHeaderPage}, overflowHeaderPage{overflowHeaderPage} {
     bool newIndex = this->firstHeaderPage == INVALID_PAGE_IDX;
@@ -487,7 +487,10 @@ PrimaryKeyIndex::PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, PhysicalTyp
         },
         [&](auto) { KU_UNREACHABLE; });
 
-    if (newIndex && !inMemMode) {
+    // TODO(Guodong/Ben/Royi): Revisit this checkpointing logic. It doesn't look like the correct
+    // way to handle checkpoint rollback to me. We might need to make some changes to the hash index
+    // initialization.
+    if (newIndex && !inMemMode && !readOnly) {
         // checkpoint the creation of the index so that if we need to rollback it will be to a
         // state we can retry from (an empty index with the disk arrays initialized)
         checkpoint(true /* forceCheckpointAll */);

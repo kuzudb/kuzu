@@ -125,34 +125,14 @@ void RelTableScanState::setNodeIDVectorToFlat(sel_t selPos) const {
 }
 
 RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
-    MemoryManager* memoryManager, Deserializer* deSer)
+    MemoryManager* memoryManager)
     : Table{relTableEntry, storageManager, memoryManager},
       fromNodeTableID{relTableEntry->getSrcTableID()},
       toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0} {
     for (auto direction : relTableEntry->getRelDataDirections()) {
         directedRelData.emplace_back(std::make_unique<RelTableData>(dataFH, memoryManager,
-            shadowFile, relTableEntry, direction, enableCompression, deSer));
+            shadowFile, relTableEntry, direction, enableCompression));
     }
-}
-
-std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog& catalog,
-    StorageManager* storageManager, MemoryManager* memoryManager) {
-    std::string key;
-    table_id_t tableID = INVALID_TABLE_ID;
-    offset_t nextRelOffset = INVALID_OFFSET;
-    deSer.validateDebuggingInfo(key, "table_id");
-    deSer.deserializeValue<table_id_t>(tableID);
-    deSer.validateDebuggingInfo(key, "next_rel_offset");
-    deSer.deserializeValue<offset_t>(nextRelOffset);
-    const auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
-    if (!catalogEntry) {
-        throw RuntimeException(
-            stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
-    }
-    auto relTable = std::make_unique<RelTable>(catalogEntry->ptrCast<RelTableCatalogEntry>(),
-        storageManager, memoryManager, &deSer);
-    relTable->nextRelOffset = nextRelOffset;
-    return relTable;
 }
 
 void RelTable::initScanState(Transaction* transaction, TableScanState& scanState,
@@ -503,9 +483,9 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     }
 }
 
-void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
+void RelTable::checkpoint(TableCatalogEntry* tableEntry) {
     if (hasChanges) {
-        // Deleted columns are vaccumed and not checkpointed or serialized.
+        // Deleted columns are vacuumed and not checkpointed or serialized.
         std::vector<column_id_t> columnIDs;
         columnIDs.push_back(0);
         for (auto& property : tableEntry->getProperties()) {
@@ -517,12 +497,6 @@ void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         tableEntry->vacuumColumnIDs(1);
         hasChanges = false;
     }
-    Table::serialize(ser);
-    ser.writeDebuggingInfo("next_rel_offset");
-    ser.write<offset_t>(nextRelOffset);
-    for (auto& directedRelData : directedRelData) {
-        directedRelData->serialize(ser);
-    }
 }
 
 row_idx_t RelTable::getNumTotalRows(const Transaction* transaction) {
@@ -532,6 +506,23 @@ row_idx_t RelTable::getNumTotalRows(const Transaction* transaction) {
         numLocalRows = localTable->getNumTotalRows();
     }
     return numLocalRows + nextRelOffset;
+}
+
+void RelTable::serialize(Serializer& ser) const {
+    ser.writeDebuggingInfo("next_rel_offset");
+    ser.write<offset_t>(nextRelOffset);
+    for (auto& directedRelData : directedRelData) {
+        directedRelData->serialize(ser);
+    }
+}
+
+void RelTable::deserialize(TableCatalogEntry*, Deserializer& deSer) {
+    std::string key;
+    deSer.validateDebuggingInfo(key, "next_rel_offset");
+    deSer.deserializeValue<offset_t>(nextRelOffset);
+    for (auto i = 0u; i < directedRelData.size(); i++) {
+        directedRelData[i]->deserialize(deSer, *memoryManager);
+    }
 }
 
 } // namespace storage

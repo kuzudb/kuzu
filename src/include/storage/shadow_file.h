@@ -23,6 +23,8 @@ public:
     ShadowFile(const std::string& directory, bool readOnly, BufferManager& bufferManager,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
+    DELETE_COPY_DEFAULT_MOVE(ShadowFile);
+
     bool hasShadowPage(common::file_idx_t originalFile, common::page_idx_t originalPage) const {
         return shadowPagesMap.contains(originalFile) &&
                shadowPagesMap.at(originalFile).contains(originalPage);

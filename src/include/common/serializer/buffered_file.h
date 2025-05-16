@@ -20,7 +20,8 @@ public:
     void flush();
     void sync();
 
-    // Note: this function is reseting next file offset to be written. Make sure buffer is empty.
+    // Note: this function is resting the next file offset to be written. Make sure the buffer is
+    // empty.
     void setFileOffset(uint64_t fileOffset) { this->fileOffset = fileOffset; }
     uint64_t getFileOffset() const { return fileOffset; }
     void resetOffsets() {
@@ -40,6 +41,13 @@ protected:
 class BufferedFileReader final : public Reader {
 public:
     explicit BufferedFileReader(std::unique_ptr<FileInfo> fileInfo);
+
+    // Note: this function is resting the next file offset to read. Make sure the buffer is empty.
+    void resetReadOffset(uint64_t fileOffset) {
+        this->fileOffset = fileOffset;
+        bufferOffset = 0;
+        bufferSize = 0;
+    }
 
     void read(uint8_t* data, uint64_t size) override;
 

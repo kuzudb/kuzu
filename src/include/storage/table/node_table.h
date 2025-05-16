@@ -106,15 +106,7 @@ class StorageManager;
 class KUZU_API NodeTable final : public Table {
 public:
     NodeTable(const StorageManager* storageManager,
-        const catalog::NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager,
-        common::Deserializer* deSer = nullptr);
-
-    static std::unique_ptr<NodeTable> loadTable(common::Deserializer& deSer,
-        const catalog::Catalog& catalog, StorageManager* storageManager,
-        MemoryManager* memoryManager);
-
-    void initializePKIndex(const std::string& databasePath,
-        const catalog::NodeTableCatalogEntry* nodeTableEntry, common::Deserializer* deSer);
+        const catalog::NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager);
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 
@@ -167,7 +159,7 @@ public:
 
     void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
-    void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
+    void checkpoint(catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override;
     void reclaimStorage(FileHandle& dataFH) override;
 
@@ -197,11 +189,12 @@ public:
         nodeGroups->mergeStats(columnIDs, stats);
     }
 
+    void serialize(common::Serializer& serializer) const override;
+    void deserialize(catalog::TableCatalogEntry* entry, common::Deserializer& deSer) override;
+
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,
         common::ValueVector* pkVector) const;
-
-    void serialize(common::Serializer& serializer) const override;
 
     visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
     common::DataChunk constructDataChunkForPKColumn() const;

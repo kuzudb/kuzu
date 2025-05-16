@@ -1,6 +1,5 @@
 #include "storage/table/table.h"
 
-#include "common/serializer/deserializer.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
@@ -34,39 +33,11 @@ Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager*
     : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
       tableName{tableEntry->getName()}, enableCompression{storageManager->compressionEnabled()},
       dataFH{storageManager->getDataFH()}, memoryManager{memoryManager},
-      shadowFile{&storageManager->getShadowFile()}, hasChanges{false} {}
-
-std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Catalog& catalog,
-    StorageManager* storageManager, MemoryManager* memoryManager) {
-    std::string key;
-    auto tableType = TableType::UNKNOWN;
-    deSer.validateDebuggingInfo(key, "table_type");
-    deSer.deserializeValue<TableType>(tableType);
-    std::unique_ptr<Table> table;
-    switch (tableType) {
-    case TableType::NODE: {
-        table = NodeTable::loadTable(deSer, catalog, storageManager, memoryManager);
-    } break;
-    case TableType::REL: {
-        table = RelTable::loadTable(deSer, catalog, storageManager, memoryManager);
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
-    table->tableType = tableType;
-    return table;
-}
+      shadowFile{&storageManager->getShadowFile()}, hasChanges{false},
+      inMemory{storageManager->isInMemory()}, readOnly{storageManager->isReadOnly()} {}
 
 bool Table::scan(transaction::Transaction* transaction, TableScanState& scanState) {
     return scanInternal(transaction, scanState);
-}
-
-void Table::serialize(Serializer& serializer) const {
-    serializer.writeDebuggingInfo("table_type");
-    serializer.write<TableType>(tableType);
-    serializer.writeDebuggingInfo("table_id");
-    serializer.write<table_id_t>(tableID);
 }
 
 DataChunk Table::constructDataChunk(MemoryManager* mm, std::vector<LogicalType> types) {

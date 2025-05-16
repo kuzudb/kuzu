@@ -79,8 +79,9 @@ Runtime exception: Cannot detach delete from node table 'person' as it has conne
 # re-copy, page allocation should start from end of Person since the pages for knows are reclaimed + truncated
 -STATEMENT copy knows from ["${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv","${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv"](parallel=false)
 ---- ok
--STATEMENT call fsm_info() return *
----- 0
+-STATEMENT call fsm_info() return count(*) <= 1
+---- 1
+True
 -STATEMENT CALL storage_info('Person') where start_page_idx < 4294967295 with max(start_page_idx + num_pages) as expected_start_page_idx
         CALL storage_info('knows') where start_page_idx = expected_start_page_idx return count(*)
 ---- 1

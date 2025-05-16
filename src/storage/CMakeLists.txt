@@ -9,6 +9,7 @@ add_subdirectory(wal)
 
 add_library(kuzu_storage
         OBJECT
+        checkpointer.cpp
         disk_array.cpp
         disk_array_collection.cpp
         file_handle.cpp

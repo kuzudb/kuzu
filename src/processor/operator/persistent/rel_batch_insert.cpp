@@ -7,7 +7,6 @@
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
-#include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/rel_table.h"

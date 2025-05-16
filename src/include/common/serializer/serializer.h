@@ -8,7 +8,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "common/case_insensitive_map.h"
+#include "common/api.h"
 #include "common/serializer/writer.h"
 
 namespace kuzu {
@@ -19,9 +19,9 @@ public:
     explicit Serializer(std::shared_ptr<Writer> writer) : writer(std::move(writer)) {}
 
     template<typename T>
-        requires std::is_trivially_destructible<T>::value || std::is_same<std::string, T>::value
+        requires std::is_trivially_destructible_v<T> || std::is_same_v<std::string, T>
     void serializeValue(const T& value) {
-        writer->write((uint8_t*)&value, sizeof(T));
+        writer->write(reinterpret_cast<const uint8_t*>(&value), sizeof(T));
     }
 
     // Alias for serializeValue
@@ -113,8 +113,6 @@ public:
             serializeValue(value);
         }
     }
-
-    void serializeCaseInsensitiveSet(const common::case_insensitve_set_t& values);
 
 private:
     std::shared_ptr<Writer> writer;
