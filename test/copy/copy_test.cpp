@@ -236,7 +236,7 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCommitRecovery) {
         .executeFunc =
             [](main::Connection* conn, int) {
                 const auto queryString = common::stringFormat(
-                    "UNWIND RANGE(1,{}) AS i CREATE (a:account {ID:i})", numValues);
+                    "UNWIND RANGE(1,{}) AS i CREATE (a:account {{ID:i}})", numValues);
                 return conn->query(queryString);
             },
         .earlyExitOnFailureFunc = [](main::QueryResult*) { return false; },
@@ -256,7 +256,7 @@ TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery) {
                 conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
                 conn->query("CREATE REL TABLE follows(FROM account TO account);");
                 const auto queryString = common::stringFormat(
-                    "UNWIND RANGE(1,{}) AS i CREATE (a:account {ID:i})", numNodes);
+                    "UNWIND RANGE(1,{}) AS i CREATE (a:account {{ID:i}})", numNodes);
                 ASSERT_TRUE(conn->query(queryString)->isSuccess());
                 failureFrequency = 32;
             },
@@ -329,7 +329,7 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
         .executeFunc =
             [](main::Connection* conn, int) {
                 return conn->query(common::stringFormat(
-                    "UNWIND RANGE(1,{}) AS i CREATE (a:account {ID:i})", numValues));
+                    "UNWIND RANGE(1,{}) AS i CREATE (a:account {{ID:i}})", numValues));
             },
         .earlyExitOnFailureFunc = [](main::QueryResult*) { return true; },
         .checkFunc =
