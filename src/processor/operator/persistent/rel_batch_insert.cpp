@@ -75,7 +75,8 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         std::iota(relBatchInsertInfo->outputDataColumns.begin(),
             relBatchInsertInfo->outputDataColumns.end(), 0);
         std::iota(relBatchInsertInfo->warningDataColumns.begin(),
-            relBatchInsertInfo->warningDataColumns.end(), relBatchInsertInfo->outputDataColumns.size());
+            relBatchInsertInfo->warningDataColumns.end(),
+            relBatchInsertInfo->outputDataColumns.size());
         relBatchInsertInfo->columnTypes = std::move(newColumnTypes);
     }
     progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
