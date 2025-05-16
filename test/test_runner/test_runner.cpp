@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "common/assert.h"
 #include "common/exception/test.h"
 #include "common/md5.h"
 #include "common/string_utils.h"
@@ -109,7 +110,42 @@ void TestRunner::checkLogicalPlan(Connection& conn, QueryResult* queryResult,
 
 void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
     TestStatement* statement, size_t resultIdx) {
-    /* TODO */
+    std::ofstream outFile;
+    outFile.open(statement->testFilePath, std::ios::app);
+    if (!outFile.is_open())
+    {
+        throw TestException("Cannot open file: " + statement->testFilePath);
+    }
+    const TestQueryResult& testAnswer =
+        statement->result[std::min(resultIdx, statement->result.size() - 1)];
+    outFile << "---- ";
+    switch (testAnswer.type) {
+
+    case ResultType::OK:
+            outFile << "ok" << std::endl;
+        break;
+    case ResultType::HASH:
+            outFile << "hash" << std::endl;
+        break;
+
+    case ResultType::TUPLES:
+            outFile << queryResult->getNumTuples() << std::endl;
+    break;
+
+    case ResultType::ERROR_MSG:
+            outFile << "error" << std::endl;
+        break;
+
+    case ResultType::ERROR_REGEX:
+    case ResultType::CSV_FILE:
+            outFile << testAnswer.expectedResult[0] << std::endl;
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+
+    writeLogicalPlan(conn, queryResult, statement, resultIdx);
+        
 }
 
 void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStatement* statement,
