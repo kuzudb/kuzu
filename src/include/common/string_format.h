@@ -28,6 +28,7 @@ inline std::string vStringFormat(std::string_view format, Args&&... args) {
 #else
 
 namespace string_format_detail {
+
 #define MAP_STD_TO_STRING(typ)                                                                     \
     inline std::string map(typ v) {                                                                \
         return std::to_string(v);                                                                  \
@@ -67,61 +68,79 @@ inline std::string map(unsigned char v) {
 
 template<typename... Args>
 inline void stringFormatHelper(std::string& ret, std::string_view format, Args&&... args) {
-    size_t bracket = format.find('{');
-    if (bracket == std::string_view::npos) {
+    size_t openBracket = format.find('{');
+    size_t closeBracket = format.find('}');
+
+    // No '{' or '}' found.
+    if (openBracket == std::string_view::npos && closeBracket == std::string_view::npos) {
         ret += format;
         return;
     }
-    ret += format.substr(0, bracket);
-    if (format.substr(bracket, 2) == "{{") {
-        // Escaped {.
-        ret += "{";
-        return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Args>(args)...);
+
+    // Process '{'.
+    if (openBracket < closeBracket) {
+        ret += format.substr(0, openBracket);
+        if (format.substr(openBracket, 2) == "{{") {
+            // Escaped {.
+            ret += "{";
+            return stringFormatHelper(ret, format.substr(openBracket + 2), std::forward<Args>(args)...);
+        }
+        if (format.substr(openBracket, 2) == "{}") {
+            // Formatted {}.
+            throw InternalException("Not enough values for string_format");
+        }
+        throw InternalException("Unescaped '{'");
     }
-    if (format.substr(bracket, 2) == "}}") {
+
+    // Process '}'.
+    ret += format.substr(0, closeBracket);
+    if (format.substr(closeBracket, 2) == "}}") {
         // Escaped }.
         ret += "}";
-        return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Args>(args)...);
+        return stringFormatHelper(ret, format.substr(closeBracket + 2), std::forward<Args>(args)...);
     }
-    if (format.substr(bracket, 2) == "{}") {
-        // Formatted {}.
-        throw InternalException("Not enough values for string_format.");
-    }
-    // Something else.
-    ret.push_back('{');
-    return stringFormatHelper(ret, format.substr(bracket + 1), std::forward<Args>(args)...);
+    throw InternalException("Unescaped '}'");
 }
 
 template<typename Arg, typename... Args>
 inline void stringFormatHelper(std::string& ret, std::string_view format, Arg&& arg,
     Args&&... args) {
-    size_t bracket = format.find('{');
-    if (bracket == std::string_view::npos) {
+    size_t openBracket = format.find('{');
+    size_t closeBracket = format.find('}');
+
+    // No '{' or '}' found.
+    if (openBracket == std::string_view::npos && closeBracket == std::string_view::npos) {
         throw InternalException("Too many values for string_format.");
     }
-    ret += format.substr(0, bracket);
-    if (format.substr(bracket, 2) == "{{") {
-        // Escaped {.
-        ret += "{";
-        return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Arg>(arg),
-            std::forward<Args>(args)...);
+
+    if (openBracket < closeBracket) {
+        // Process '{'.
+        ret += format.substr(0, openBracket);
+        if (format.substr(openBracket, 2) == "{{") {
+            // Escaped {.
+            ret += "{";
+            return stringFormatHelper(ret, format.substr(openBracket + 2), std::forward<Arg>(arg),
+                std::forward<Args>(args)...);
+        }
+        if (format.substr(openBracket, 2) == "{}") {
+            // Formatted {}.
+            ret += map(arg);
+            return stringFormatHelper(ret, format.substr(openBracket + 2), std::forward<Args>(args)...);
+        }
+        throw InternalException("Unescaped '{'");
     }
-    if (format.substr(bracket, 2) == "}}") {
+
+    // Process '}'.
+    ret += format.substr(0, closeBracket);
+    if (format.substr(closeBracket, 2) == "}}") {
         // Escaped }.
         ret += "}";
-        return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Arg>(arg),
+        return stringFormatHelper(ret, format.substr(closeBracket + 2), std::forward<Arg>(arg),
             std::forward<Args>(args)...);
     }
-    if (format.substr(bracket, 2) == "{}") {
-        // Formatted {}.
-        ret += map(arg);
-        return stringFormatHelper(ret, format.substr(bracket + 2), std::forward<Args>(args)...);
-    }
-    // Something else.
-    ret.push_back('{');
-    return stringFormatHelper(ret, format.substr(bracket + 1), std::forward<Arg>(arg),
-        std::forward<Args>(args)...);
+    throw InternalException("Unescaped '}'");
 }
+
 } // namespace string_format_detail
 
 // Formats `args` according to `format`. Accepts {} for formatting the argument and {{}} for
