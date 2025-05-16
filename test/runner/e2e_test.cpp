@@ -224,11 +224,9 @@ int main(int argc, char** argv) {
         TestHelper::setE2ETestFilesDirectory(test_dir);
         TestHelper::setE2EImportDataDirectory(import_data_dir);
 
-        if (env_rewrite_tests != nullptr) {
-            rewrite_tests = env_rewrite_tests;
-        } else {
-            rewrite_tests = "test/test_files";
-        }
+        if (env_rewrite_tests != nullptr && std::string(env_rewrite_tests) != "FALSE" && std::string(env_rewrite_tests) != "OFF") {
+            rewrite_tests = true;
+        } 
         TestHelper::setRewriteTests(rewrite_tests);
 
 
