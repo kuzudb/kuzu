@@ -168,7 +168,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
     for (auto direction : directions) {
         auto copyRel = createRelBatchInsertOp(clientContext, partitionerSharedState,
             batchInsertSharedState, *copyFrom.getInfo(), copyFrom.getSchema(), direction,
-            std::vector<column_id_t>{}, logical_type_vec_t{}, getOperatorID());
+            {}, {}, getOperatorID());
         result.push_back(std::move(copyRel));
     }
     result.push_back(std::move(partitioner));
