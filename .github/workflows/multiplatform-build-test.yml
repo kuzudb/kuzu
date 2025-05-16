@@ -97,6 +97,13 @@ jobs:
           make clean
           rm -rf dataset/ldbc-1
 
+      - name: Extension Test Build
+        continue-on-error: true
+        run: |
+          set +e
+          make extension-test-build NUM_THREADS=$(nproc)
+          echo "Extension Test,$?" >> status.txt
+
       - name: Rename status.txt
         continue-on-error: true
         run: |
@@ -145,6 +152,13 @@ jobs:
           echo "Test,$?" >> status.txt
           make clean
           rm -rf dataset/ldbc-1
+
+      - name: Extension Test Build
+        continue-on-error: true
+        run: |
+          set +e
+          make extension-test-build NUM_THREADS=$(nproc) USE_STD_FORMAT=TRUE
+          echo "Extension Test,$?" >> status.txt
 
       - name: Rename status.txt
         continue-on-error: true
