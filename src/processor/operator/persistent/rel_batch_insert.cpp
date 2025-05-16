@@ -50,33 +50,34 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
 }
 
 void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
-    const auto clientContext = context->clientContext;
-    const auto catalog = clientContext->getCatalog();
-    const auto transaction = clientContext->getTransaction();
-    const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
-    const auto& relTableEntry = tableEntry->constCast<RelTableCatalogEntry>();
     const auto relBatchInsertInfo = info->ptrCast<RelBatchInsertInfo>();
+    // If initialization has to be done
+    if (info->insertColumnIDs.empty()) {
+        const auto clientContext = context->clientContext;
+        const auto catalog = clientContext->getCatalog();
+        const auto transaction = clientContext->getTransaction();
+        const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
+        const auto& relTableEntry = tableEntry->constCast<RelTableCatalogEntry>();
 
-    sharedState->table = partitionerSharedState->relTable;
-
-    logical_type_vec_t newColumnTypes;
-    newColumnTypes.push_back(LogicalType::INTERNAL_ID());
-    info->insertColumnIDs.push_back(0);
-    for (auto& property : relTableEntry.getProperties()) {
-        info->insertColumnIDs.push_back(relTableEntry.getColumnID(property.getName()));
-        newColumnTypes.push_back(property.getType().copy());
+        sharedState->table = partitionerSharedState->relTable;
+        logical_type_vec_t newColumnTypes;
+        newColumnTypes.push_back(LogicalType::INTERNAL_ID());
+        info->insertColumnIDs.push_back(0);
+        for (auto& property : relTableEntry.getProperties()) {
+            info->insertColumnIDs.push_back(relTableEntry.getColumnID(property.getName()));
+            newColumnTypes.push_back(property.getType().copy());
+        }
+        for (auto&& warningDataColumnType : relBatchInsertInfo->columnTypes) {
+            newColumnTypes.push_back(std::move(warningDataColumnType));
+        }
+        relBatchInsertInfo->outputDataColumns.resize(
+            newColumnTypes.size() - relBatchInsertInfo->warningDataColumns.size());
+        std::iota(relBatchInsertInfo->outputDataColumns.begin(),
+            relBatchInsertInfo->outputDataColumns.end(), 0);
+        std::iota(relBatchInsertInfo->warningDataColumns.begin(),
+            relBatchInsertInfo->warningDataColumns.end(), relBatchInsertInfo->outputDataColumns.size());
+        relBatchInsertInfo->columnTypes = std::move(newColumnTypes);
     }
-    for (auto&& warningDataColumnType : relBatchInsertInfo->columnTypes) {
-        newColumnTypes.push_back(std::move(warningDataColumnType));
-    }
-    relBatchInsertInfo->outputDataColumns.resize(
-        newColumnTypes.size() - relBatchInsertInfo->warningDataColumns.size());
-    std::iota(relBatchInsertInfo->outputDataColumns.begin(),
-        relBatchInsertInfo->outputDataColumns.end(), 0);
-    std::iota(relBatchInsertInfo->warningDataColumns.begin(),
-        relBatchInsertInfo->warningDataColumns.end(), relBatchInsertInfo->outputDataColumns.size());
-    relBatchInsertInfo->columnTypes = std::move(newColumnTypes);
-
     progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
     progressSharedState->partitionsDone = 0;
     progressSharedState->partitionsTotal =
