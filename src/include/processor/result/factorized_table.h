@@ -181,6 +181,10 @@ public:
         }
     }
 
+    static std::shared_ptr<FactorizedTable> EmptyTable(storage::MemoryManager* mm) {
+        return std::make_shared<FactorizedTable>(mm, FactorizedTableSchema());
+    }
+
 private:
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
 

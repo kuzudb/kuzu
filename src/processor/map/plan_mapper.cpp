@@ -134,6 +134,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(const LogicalOperator*
     case LogicalOperatorType::NODE_LABEL_FILTER: {
         physicalOperator = mapNodeLabelFilter(logicalOperator);
     } break;
+    case LogicalOperatorType::NOOP: {
+        physicalOperator = mapNoop(logicalOperator);
+    } break;
     case LogicalOperatorType::ORDER_BY: {
         physicalOperator = mapOrderBy(logicalOperator);
     } break;

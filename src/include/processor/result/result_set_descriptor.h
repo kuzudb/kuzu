@@ -34,6 +34,10 @@ struct KUZU_API ResultSetDescriptor {
     DELETE_BOTH_COPY(ResultSetDescriptor);
 
     std::unique_ptr<ResultSetDescriptor> copy() const;
+
+    static std::unique_ptr<ResultSetDescriptor> EmptyDescriptor() {
+        return std::make_unique<ResultSetDescriptor>();
+    }
 };
 
 } // namespace processor

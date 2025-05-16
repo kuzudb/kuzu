@@ -1,6 +1,5 @@
 add_library(kuzu_processor_mapper
         OBJECT
-        create_dummy_sink.cpp
         create_factorized_table_scan.cpp
         create_result_collector.cpp
         expression_mapper.cpp
@@ -32,6 +31,7 @@ add_library(kuzu_processor_mapper
         map_limit.cpp
         map_merge.cpp
         map_multiplicity_reducer.cpp
+        map_noop.cpp
         map_order_by.cpp
         map_path_property_probe.cpp
         map_projection.cpp

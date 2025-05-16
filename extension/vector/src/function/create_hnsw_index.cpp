@@ -18,6 +18,8 @@
 
 using namespace kuzu::common;
 using namespace kuzu::function;
+using namespace kuzu::processor;
+using namespace kuzu::processor;
 
 namespace kuzu {
 namespace vector_extension {
@@ -90,23 +92,22 @@ static double createInMemHNSWProgressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(numNodesInserted) / hnswSharedState->numNodes;
 }
 
-static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
-    processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp) {
+static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
+    const planner::LogicalOperator* logicalOp) {
     // _CreateHNSWIndex table function.
     auto logicalCallBoundData = logicalOp->constPtrCast<planner::LogicalTableFunctionCall>()
                                     ->getBindData()
                                     ->constPtrCast<CreateHNSWIndexBindData>();
     auto createHNSWCallOp = TableFunction::getPhysicalPlan(planMapper, logicalOp);
-    KU_ASSERT(createHNSWCallOp->getOperatorType() ==
-              processor::PhysicalOperatorType::TABLE_FUNCTION_CALL);
-    auto createFuncCall = createHNSWCallOp->ptrCast<processor::TableFunctionCall>();
+    KU_ASSERT(createHNSWCallOp->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL);
+    auto createFuncCall = createHNSWCallOp->ptrCast<TableFunctionCall>();
     auto createFuncSharedState =
         createFuncCall->getSharedState()->ptrCast<CreateInMemHNSWSharedState>();
     auto indexName = createFuncSharedState->name;
     // Append a dummy sink to end the first pipeline
-    auto createDummySink = std::make_unique<processor::DummySink>(
-        std::make_unique<processor::ResultSetDescriptor>(logicalOp->getSchema()),
-        std::move(createHNSWCallOp), planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
+    auto createDummySink = std::make_unique<DummySink>(
+        std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()), std::move(createHNSWCallOp),
+        planMapper->getOperatorID());
     // Append _FinalizeHNSWIndex table function.
     auto clientContext = planMapper->clientContext;
     auto finalizeFuncEntry =
@@ -114,7 +115,7 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
             InternalFinalizeHNSWIndexFunction::name, true /* useInternal */);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
         finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>());
-    auto info = processor::TableFunctionCallInfo();
+    auto info = TableFunctionCallInfo();
     info.function = *func->constPtrCast<TableFunction>();
     info.bindData = std::make_unique<TableFuncBindData>();
     auto initInput =
@@ -129,13 +130,13 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     finalizeFuncSharedState->numRows = numNodeGroups;
     finalizeFuncSharedState->maxMorselSize = 1;
     finalizeFuncSharedState->bindData = logicalCallBoundData->copy();
-    auto finalizeCallOp = std::make_unique<processor::TableFunctionCall>(std::move(info),
-        sharedState, planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
+    auto finalizeCallOp = std::make_unique<TableFunctionCall>(std::move(info), sharedState,
+        planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
     finalizeCallOp->addChild(std::move(createDummySink));
     // Append a dummy sink to the end of the second pipeline
-    auto finalizeHNSWDummySink = std::make_unique<processor::DummySink>(
-        std::make_unique<processor::ResultSetDescriptor>(logicalOp->getSchema()),
-        std::move(finalizeCallOp), planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
+    auto finalizeHNSWDummySink = std::make_unique<DummySink>(
+        std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()), std::move(finalizeCallOp),
+        planMapper->getOperatorID());
     // Append RelBatchInsert pipelines.
     // Get tables from storage.
     const auto storageManager = clientContext->getStorageManager();
@@ -161,8 +162,8 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());
     finalizeFuncSharedState->partitionerSharedState->initialize(callColumnTypes, clientContext);
     // Initialize fTable for BatchInsert.
-    auto fTable = processor::FactorizedTableUtils::getSingleStringColumnFTable(
-        clientContext->getMemoryManager());
+    auto fTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     // Figure out column types and IDs to COPY into.
     std::vector<LogicalType> columnTypes;
     std::vector<column_id_t> columnIDs;
@@ -175,8 +176,8 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     // Create RelBatchInsert and dummy sink operators.
     binder::BoundCopyFromInfo upperCopyFromInfo(upperRelTableEntry, nullptr, nullptr, {}, {},
         nullptr);
-    const auto upperBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
-        upperRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
+    const auto upperBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(upperRelTable,
+        fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
         partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
         upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
@@ -184,13 +185,13 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableEntry, nullptr, nullptr, {}, {},
         nullptr);
     lowerCopyFromInfo.tableEntry = lowerRelTableEntry;
-    const auto lowerBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
-        lowerRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
+    const auto lowerBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(lowerRelTable,
+        fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelLower = planMapper->createRelBatchInsertOp(clientContext,
         partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
         lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
         LogicalType::copy(columnTypes), planMapper->getOperatorID());
-    processor::physical_op_vector_t children;
+    physical_op_vector_t children;
     children.push_back(std::move(copyRelUpper));
     children.push_back(std::move(copyRelLower));
     children.push_back(std::move(finalizeHNSWDummySink));
@@ -239,7 +240,7 @@ static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutp
     return morsel.endOffset - morsel.startOffset;
 }
 
-static void finalizeHNSWTableFinalizeFunc(const processor::ExecutionContext* context,
+static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     TableFuncSharedState* sharedState) {
     const auto clientContext = context->clientContext;
     const auto transaction = clientContext->getTransaction();

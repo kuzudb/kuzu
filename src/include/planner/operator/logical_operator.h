@@ -45,6 +45,7 @@ enum class LogicalOperatorType : uint8_t {
     MERGE,
     MULTIPLICITY_REDUCER,
     NODE_LABEL_FILTER,
+    NOOP,
     ORDER_BY,
     PARTITIONER,
     PATH_PROPERTY_PROBE,

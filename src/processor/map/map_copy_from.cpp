@@ -78,7 +78,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
     const auto copyFromInfo = copyFrom.getInfo();
     const auto outFSchema = copyFrom.getSchema();
-    // Map reader.
+
     auto prevOperator = mapOperator(copyFrom.getChild(0).get());
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
@@ -105,9 +105,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
 
     auto tableName = copyFromInfo->tableName;
     auto printInfo = std::make_unique<NodeBatchInsertPrintInfo>(tableName);
-    return std::make_unique<NodeBatchInsert>(tableName, std::move(info), std::move(sharedState),
-        std::make_unique<ResultSetDescriptor>(copyFrom.getSchema()), std::move(prevOperator),
-        getOperatorID(), std::move(printInfo));
+    auto descriptor = std::make_unique<ResultSetDescriptor>(copyFrom.getSchema());
+    auto batchInsert =
+        std::make_unique<NodeBatchInsert>(tableName, std::move(info), std::move(sharedState),
+            std::move(descriptor), std::move(prevOperator), getOperatorID(), std::move(printInfo));
+    return batchInsert;
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
