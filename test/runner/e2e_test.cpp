@@ -195,13 +195,23 @@ int main(int argc, char** argv) {
     try {
         // Main logic
         std::string test_dir;
+        bool rewrite_tests = false;
         char* env_test_dir = std::getenv("E2E_TEST_FILES_DIRECTORY");
+        char* env_rewrite_tests = std::getenv("E2E_REWRITE_TESTS");
         if (env_test_dir != nullptr) {
             test_dir = env_test_dir;
         } else {
             test_dir = "test/test_files";
         }
         TestHelper::setE2ETestFilesDirectory(test_dir);
+
+        if (env_rewrite_tests != nullptr) {
+            rewrite_tests = env_rewrite_tests;
+        } else {
+            rewrite_tests = "test/test_files";
+        }
+        TestHelper::setRewriteTests(rewrite_tests);
+
 
         checkGtestParams(argc, argv);
         testing::InitGoogleTest(&argc, argv);
