@@ -19,6 +19,8 @@ private:
         const std::string& databasePath);
     static void checkLogicalPlan(main::Connection& conn, main::QueryResult* queryResult,
         TestStatement* statement, size_t resultIdx);
+    static void writeLogicalPlan(main::Connection& conn, main::QueryResult* queryResult,
+        TestStatement* statement, size_t resultIdx);
     static bool checkResultNumeric(main::QueryResult& queryResult, const TestStatement* statement,
         size_t resultIdx);
     static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
@@ -28,6 +30,9 @@ private:
     static std::string convertResultColumnsToString(const main::QueryResult& queryResult);
     static void checkPlanResult(main::Connection& conn, main::QueryResult* result,
         TestStatement* statement, size_t resultIdx);
+    static void writePlanResult(main::Connection& conn, main::QueryResult* result,
+        TestStatement* statement, size_t resultIdx);
+
 
     static void outputFailedPlan(main::Connection& conn, const TestStatement* statement);
 };
