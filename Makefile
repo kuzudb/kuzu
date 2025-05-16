@@ -12,13 +12,14 @@
 .ONESHELL:
 .SHELLFLAGS = -ec
 
-BUILD_TYPE ?= "Release"
-CLANGD_DIAGNOSTIC_INSTANCES ?= 4
+BUILD_TYPE ?=
+BUILD_PATH ?=
 NUM_THREADS ?= 1
 PREFIX ?= install
 TEST_JOBS ?= 10
 EXTENSION_LIST ?= httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector;neo4j;algo
 EXTENSION_TEST_EXCLUDE_FILTER ?= ""
+CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
 
@@ -87,6 +88,10 @@ ifdef USE_STD_FORMAT
 	CMAKE_FLAGS += -DUSE_STD_FORMAT=$(USE_STD_FORMAT)
 endif
 
+ifdef EXTRA_CMAKE_FLAGS
+	CMAKE_FLAGS += $(EXTRA_CMAKE_FLAGS)
+endif
+
 # Must be first in the Makefile so that it is the default target.
 release:
 	$(call run-cmake-release,)
@@ -130,18 +135,18 @@ test-build:
 
 test: test-build
 	python3 dataset/ldbc-1/download_data.py
-	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/$(call get-build-path,Relwithdebinfo)/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
 	python3 dataset/ldbc-1/download_data.py
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
-	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/$(call get-build-path,Release)/test --output-on-failure -j ${TEST_JOBS}
 
 # Language APIs
 
 # Required for clangd-related tools.
 java_native_header:
-	cmake --build build/release --target kuzu_java
+	cmake --build build/$(call get-build-path,Release) --target kuzu_java
 
 java:
 	$(call run-cmake-release, -DBUILD_JAVA=TRUE)
@@ -217,14 +222,14 @@ extension-json-test-build:
 # This should be removed and be replaced with something more flexible with any given extension names.
 extension-test: extension-test-build
 ifeq ($(OS),Windows_NT)
-	set "E2E_TEST_FILES_DIRECTORY=extension" && ctest --test-dir build/relwithdebinfo/test/runner --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
+	set "E2E_TEST_FILES_DIRECTORY=extension" && ctest --test-dir build/$(call get-build-path,Relwithdebinfo)/test/runner --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
 else
-	E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/relwithdebinfo/test/runner --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
+	E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/$(call get-build-path,Relwithdebinfo)/test/runner --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
 endif
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-json-test: extension-json-test-build
-	ctest --test-dir build/relwithdebinfo/extension --output-on-failure -j ${TEST_JOBS} -R json
+	ctest --test-dir build/$(call get-build-path,Relwithdebinfo)/extension --output-on-failure -j ${TEST_JOBS} -R json
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-debug:
@@ -251,37 +256,27 @@ shell-test:
 # `|` ensures these targets build in this order, even in the presence of
 # parallelism.
 tidy: | allconfig java_native_header
-	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
+	run-clang-tidy -p build/$(call get-build-path,Release) -quiet -j $(NUM_THREADS) \
 		"^$(realpath src)|$(realpath extension)/(?!fts/third_party/snowball/)|$(realpath tools)/(?!shell/linenoise.cpp)"
 
 tidy-analyzer: | allconfig java_native_header
-	run-clang-tidy -config-file .clang-tidy-analyzer -p build/release -quiet -j $(NUM_THREADS) \
+	run-clang-tidy -config-file .clang-tidy-analyzer -p build/$(call get-build-path,Release) -quiet -j $(NUM_THREADS) \
 		"^$(realpath src)/(?!function/vector_cast_functions.cpp)|$(realpath extension)/(?!fts/third_party/snowball/)|$(realpath tools)/(?!shell/linenoise.cpp)"
 
 clangd-diagnostics: | allconfig java_native_header
 	find src -name *.h -or -name *.cpp | xargs \
-		./scripts/get-clangd-diagnostics.py --compile-commands-dir build/release \
+		./scripts/get-clangd-diagnostics.py --compile-commands-dir build/$(call get-build-path,Release) \
 		-j $(NUM_THREADS) --instances $(CLANGD_DIAGNOSTIC_INSTANCES)
 
 
 # Installation
 install:
-	cmake --install build/release --prefix $(PREFIX)
+	cmake --install build/$(call get-build-path,Release) --prefix $(PREFIX)
 
 
 # Cleaning
 clean-extension:
-	cmake -E rm -rf extension/httpfs/build
-	cmake -E rm -rf extension/duckdb/build
-	cmake -E rm -rf extension/postgres/build
-	cmake -E rm -rf extension/sqlite/build
-	cmake -E rm -rf extension/fts/build
-	cmake -E rm -rf extension/delta/build
-	cmake -E rm -rf extension/iceberg/build
-	cmake -E rm -rf extension/unity_catalog/build
-	cmake -E rm -rf extension/vector/build
-	cmake -E rm -rf extension/neo4j/build
-	cmake -E rm -rf extension/gds/build
+	cmake -E rm -rf extension/*/build
 
 clean-python-api:
 	cmake -E rm -rf tools/python_api/build
@@ -294,37 +289,41 @@ clean: clean-extension clean-python-api clean-java
 
 
 # Utils
+lowercase = $(shell echo $(1) | tr '[:upper:]' '[:lower:]')
+get-build-type = $(if $(BUILD_TYPE),$(BUILD_TYPE),$1)
+get-build-path = $(if $(BUILD_PATH),$(BUILD_PATH),$(call lowercase,$(call get-build-type,$(1))))
+
 define config-cmake
-	cmake -B build/$1 $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=$2 $3 .
+	cmake -B build/$(call get-build-path,$1) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=$(call get-build-type,$1) $2 .
 endef
 
 define build-cmake
-	cmake --build build/$1 --config $2
+	cmake --build build/$(call get-build-path,$1) --config $(call get-build-type,$1)
 endef
 
 define run-cmake
-	$(call config-cmake,$1,$2,$3)
-	$(call build-cmake,$1,$2)
+	$(call config-cmake,$1,$2)
+	$(call build-cmake,$1)
 endef
 
 define run-cmake-debug
-	$(call run-cmake,debug,Debug,$1)
+	$(call run-cmake,Debug,$1)
 endef
 
 define build-cmake-release
-	$(call build-cmake,release,Release,$1)
+	$(call build-cmake,Release,$1)
 endef
 
 define build-cmake-relwithdebinfo
-	$(call build-cmake,relwithdebinfo,RelWithDebInfo,$1)
+	$(call build-cmake,RelWithDebInfo,$1)
 endef
 
 define config-cmake-release
-	$(call config-cmake,release,Release,$1)
+	$(call config-cmake,Release,$1)
 endef
 
 define config-cmake-relwithdebinfo
-	$(call config-cmake,relwithdebinfo,RelWithDebInfo,$1)
+	$(call config-cmake,RelWithDebInfo,$1)
 endef
 
 define run-cmake-release
