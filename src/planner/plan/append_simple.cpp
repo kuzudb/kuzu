@@ -49,18 +49,12 @@ LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
     auto op = std::make_shared<LogicalCreateTable>(info.copy(), statement.getSingleColumnExpr());
 
     // If it is a CREATE NODE TABLE AS, then copy as well
-    if (createTable.getCopyInfo()) {
-        auto copyPlan = planCopyNodeFrom(createTable.getCopyInfo(),
+    if (createTable.hasCopyInfo()) {
+        auto copyPlan = planCopyNodeFrom(&createTable.getCopyInfo(),
             BoundStatementResult::createSingleStringColumnResult().getColumns());
-        // Find any leaf node
-        auto tmp = copyPlan.getLastOperator();
-        while (tmp->getNumChildren() > 0) {
-            tmp = tmp->getChild(0);
-        }
-        tmp->addChild(std::make_shared<LogicalDummySink>(std::move(op)));
+        copyPlan.getLastOperator()->addChild(std::move(op));
         return copyPlan;
     }
-
     return getSimplePlan(std::move(op));
 }
 

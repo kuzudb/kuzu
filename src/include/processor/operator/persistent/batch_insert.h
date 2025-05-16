@@ -17,22 +17,25 @@ struct BatchInsertInfo {
     catalog::TableCatalogEntry* tableEntry;
     bool compressionEnabled;
 
+    std::vector<common::LogicalType> columnTypes;
     std::vector<common::column_id_t> insertColumnIDs;
     std::vector<common::column_id_t> outputDataColumns;
     std::vector<common::column_id_t> warningDataColumns;
 
     BatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        std::vector<common::column_id_t> insertColumnIDs, common::column_id_t numOutputDataColumns,
+        std::vector<common::column_id_t> insertColumnIDs,
+        std::vector<common::LogicalType> columnTypes, common::column_id_t numOutputDataColumns,
         common::column_id_t numWarningDataColumns)
         : tableEntry{tableEntry}, compressionEnabled{compressionEnabled},
-          insertColumnIDs{std::move(insertColumnIDs)}, outputDataColumns(numOutputDataColumns),
+          insertColumnIDs{std::move(insertColumnIDs)}, columnTypes{std::move(columnTypes)}, outputDataColumns(numOutputDataColumns),
           warningDataColumns(numWarningDataColumns) {
         std::iota(outputDataColumns.begin(), outputDataColumns.end(), 0);
         std::iota(warningDataColumns.begin(), warningDataColumns.end(), outputDataColumns.size());
     }
+    BatchInsertInfo(const BatchInsertInfo& other) : tableEntry {other.tableEntry},
+        compressionEnabled{other.compressionEnabled}, insertColumnIDs{other.insertColumnIDs},
+        outputDataColumns{other.outputDataColumns}, warningDataColumns{other.warningDataColumns} {}
     virtual ~BatchInsertInfo() = default;
-
-    BatchInsertInfo(const BatchInsertInfo& other) = delete;
 
     virtual std::unique_ptr<BatchInsertInfo> copy() const = 0;
 

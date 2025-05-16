@@ -1,6 +1,5 @@
 add_library(kuzu_processor_mapper
         OBJECT
-        create_dummy_sink.cpp
         create_factorized_table_scan.cpp
         create_result_collector.cpp
         expression_mapper.cpp

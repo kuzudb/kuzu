@@ -169,9 +169,6 @@ public:
         const binder::expression_vector& expressions, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
 
-    std::unique_ptr<PhysicalOperator> createDummySink(planner::Schema* schema,
-        std::unique_ptr<PhysicalOperator> prevOperator);
-
     // Scan fTable
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
         std::vector<ft_col_idx_t> colIndices, const planner::Schema* schema,
