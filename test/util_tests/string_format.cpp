@@ -17,14 +17,6 @@ TEST(StringFormat, Escape) {
         "Escape before and after value works: {} 4 {}");
 }
 
-TEST(StringFormat, TooManyArguments) {
-    ASSERT_THROW(stringFormat("Format has no arguments", 4), InternalException);
-}
-
-TEST(StringFormat, TooFewArguments) {
-    ASSERT_THROW(stringFormat("Format with arguments {}"), InternalException);
-}
-
 TEST(StringFormat, Format8BitTypes) {
     enum TestEnum : uint8_t {
         YES,

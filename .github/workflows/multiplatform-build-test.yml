@@ -666,7 +666,7 @@ jobs:
         run: |
           set +e
           echo NUM_THREADS=$(nproc)
-          make test NUM_THREADS=$(nproc) USE_STD_FORMAT=1
+          make test NUM_THREADS=$(nproc) USE_STD_FORMAT=TRUE
           echo "Test,$?" >> status.txt
           make clean
           rm -rf dataset/ldbc-1

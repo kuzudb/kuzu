@@ -12,6 +12,7 @@
 .ONESHELL:
 .SHELLFLAGS = -ec
 
+BUILD_TYPE ?= "Release"
 CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 NUM_THREADS ?= 1
 PREFIX ?= install
@@ -82,7 +83,9 @@ ifdef WASM_NODEFS
 	CMAKE_FLAGS += -DWASM_NODEFS=$(WASM_NODEFS)
 endif
 
-CMAKE_FLAGS += -DUSE_STD_FORMAT=$(if $(USE_STD_FORMAT),TRUE,FALSE)
+ifdef USE_STD_FORMAT
+	CMAKE_FLAGS += -DUSE_STD_FORMAT=$(USE_STD_FORMAT)
+endif
 
 # Must be first in the Makefile so that it is the default target.
 release:
