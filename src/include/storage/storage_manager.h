@@ -31,9 +31,9 @@ public:
 
     void createTable(catalog::CatalogEntry* entry, main::ClientContext* context);
 
-    void checkpoint(main::ClientContext& clientContext);
-    void finalizeCheckpoint(main::ClientContext& clientContext);
-    void rollbackCheckpoint(main::ClientContext& clientContext);
+    void checkpoint(const catalog::Catalog& catalog, common::Serializer& ser);
+    void finalizeCheckpoint();
+    void rollbackCheckpoint(const catalog::Catalog& catalog);
 
     Table* getTable(common::table_id_t tableID) {
         std::lock_guard lck{mtx};
@@ -58,7 +58,7 @@ private:
     void createRelTable(catalog::RelTableCatalogEntry* entry);
     void createRelTableGroup(catalog::RelGroupCatalogEntry* entry, main::ClientContext* context);
 
-    void reclaimDroppedTables(const main::ClientContext& clientContext);
+    void reclaimDroppedTables(const catalog::Catalog& catalog);
 
 private:
     std::mutex mtx;

@@ -12,7 +12,6 @@
 #include "storage/storage_utils.h"
 #include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {
@@ -86,10 +85,6 @@ public:
         main::ClientContext* context);
 
     virtual ~OverflowFile() = default;
-
-    // For creating an overflow file from scratch
-    static void createEmptyFiles(const std::string& fName, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
 
     // Handles contain a reference to the overflow file
     OverflowFile(OverflowFile&& other) = delete;

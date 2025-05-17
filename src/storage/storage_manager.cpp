@@ -142,11 +142,10 @@ ShadowFile& StorageManager::getShadowFile() const {
     return *shadowFile;
 }
 
-void StorageManager::reclaimDroppedTables(const main::ClientContext& clientContext) {
+void StorageManager::reclaimDroppedTables(const Catalog& catalog) {
     std::vector<table_id_t> droppedTables;
     for (const auto& [tableID, table] : tables) {
-        if (!clientContext.getCatalog()->containsTable(&DUMMY_CHECKPOINT_TRANSACTION, tableID,
-                true)) {
+        if (!catalog.containsTable(&DUMMY_CHECKPOINT_TRANSACTION, tableID, true)) {
             table->reclaimStorage(*dataFH);
             droppedTables.push_back(tableID);
         }
@@ -156,22 +155,10 @@ void StorageManager::reclaimDroppedTables(const main::ClientContext& clientConte
     }
 }
 
-void StorageManager::checkpoint(main::ClientContext& clientContext) {
-    if (main::DBConfig::isDBPathInMemory(databasePath)) {
-        return;
-    }
+void StorageManager::checkpoint(const Catalog& catalog, Serializer& ser) {
     std::lock_guard lck{mtx};
-    const auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
-        StorageUtils::getMetadataFName(clientContext.getVFSUnsafe(), databasePath,
-            FileVersionType::WAL_VERSION),
-        FileOpenFlags(FileFlags::READ_ONLY | FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS),
-        &clientContext);
-    const auto writer = std::make_shared<BufferedFileWriter>(*metadataFileInfo);
-    Serializer ser(writer);
-    const auto nodeTableEntries =
-        clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
-    const auto relTableEntries =
-        clientContext.getCatalog()->getRelTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    const auto nodeTableEntries = catalog.getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    const auto relTableEntries = catalog.getRelTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     const auto numTables = nodeTableEntries.size() + relTableEntries.size();
     ser.writeDebuggingInfo("num_tables");
     ser.write<uint64_t>(numTables);
@@ -191,30 +178,18 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
         }
         tables.at(tableEntry->getTableID())->checkpoint(ser, tableEntry);
     }
-    reclaimDroppedTables(clientContext);
+    reclaimDroppedTables(catalog);
     ser.writeDebuggingInfo("page_manager");
     dataFH->getPageManager()->serialize(ser);
-    writer->flush();
-    writer->sync();
-    shadowFile->flushAll();
-    // When a page is freed by the FSM it evicts it from the BM. However if the page is freed then
-    // reused over and over it can be appended to the eviction queue multiple times. To prevent
-    // multiple entries of the same page from existing in the eviction queue, at the end of each
-    // checkpoint we remove any already-evicted pages.
-    memoryManager.getBufferManager()->removeEvictedCandidates();
 }
 
-void StorageManager::finalizeCheckpoint(main::ClientContext&) {
+void StorageManager::finalizeCheckpoint() {
     dataFH->getPageManager()->finalizeCheckpoint();
 }
 
-void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {
-    if (main::DBConfig::isDBPathInMemory(databasePath)) {
-        return;
-    }
+void StorageManager::rollbackCheckpoint(const Catalog& catalog) {
     std::lock_guard lck{mtx};
-    const auto nodeTableEntries =
-        clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    const auto nodeTableEntries = catalog.getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     for (const auto tableEntry : nodeTableEntries) {
         KU_ASSERT(tables.contains(tableEntry->getTableID()));
         tables.at(tableEntry->getTableID())->rollbackCheckpoint();

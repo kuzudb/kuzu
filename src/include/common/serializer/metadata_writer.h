@@ -6,26 +6,34 @@
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu::storage {
+struct PageRange;
 class ShadowFile;
-}
+} // namespace kuzu::storage
+
 namespace kuzu {
 namespace common {
 
 class MetadataWriter final : public Writer {
 public:
-    MetadataWriter(storage::MemoryManager* mm, storage::FileHandle* fileHandle);
+    explicit MetadataWriter(storage::MemoryManager* mm);
+
     void write(const uint8_t* data, uint64_t size) override;
 
-    void flush(storage::ShadowFile& shadowFile) const;
+    std::span<uint8_t> getPage(page_idx_t pageIdx) const {
+        KU_ASSERT(pageIdx < pages.size());
+        return pages[pageIdx]->getBuffer();
+    }
+
+    storage::PageRange flush(storage::FileHandle* fileHandle,
+        storage::ShadowFile& shadowFile) const;
 
 private:
     bool needNewBuffer(uint64_t size) const;
 
 private:
-    std::vector<std::unique_ptr<storage::MemoryBuffer>> buffers;
+    std::vector<std::unique_ptr<storage::MemoryBuffer>> pages;
     storage::MemoryManager* mm;
-    storage::FileHandle* fileHandle;
-    uint64_t bufferOffset;
+    uint64_t pageOffset;
 };
 
 } // namespace common

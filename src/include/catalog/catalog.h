@@ -204,7 +204,8 @@ public:
 
     void incrementVersion() { version++; }
     uint64_t getVersion() const { return version; }
-    void checkpoint(const std::string& databasePath, common::VirtualFileSystem* fs) const;
+
+    void serialize(common::Serializer& ser) const;
 
     template<class TARGET>
     TARGET* ptrCast() {
@@ -216,8 +217,6 @@ private:
     // requires some user-specific configs (e.g. s3 username, password).
     void readFromFile(const std::string& directory, common::VirtualFileSystem* fs,
         common::FileVersionType versionType, main::ClientContext* context = nullptr);
-    void saveToFile(const std::string& directory, common::VirtualFileSystem* fs,
-        common::FileVersionType versionType) const;
 
 private:
     void initCatalogSets();

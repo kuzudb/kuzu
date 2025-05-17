@@ -7,31 +7,31 @@
 namespace kuzu {
 namespace common {
 
-MetadataWriter::MetadataWriter(storage::MemoryManager* mm, storage::FileHandle* fileHandle)
-    : mm{mm}, fileHandle{fileHandle}, bufferOffset{0} {}
+MetadataWriter::MetadataWriter(storage::MemoryManager* mm) : mm{mm}, pageOffset{0} {}
 
 void MetadataWriter::write(const uint8_t* data, uint64_t size) {
     auto remaining = size;
     while (remaining > 0) {
         if (needNewBuffer(size)) {
-            const auto lastBuffer = buffers.empty() ? nullptr : buffers.back().get();
-            if (lastBuffer) {
-                auto toCopy = std::min(size, lastBuffer->getBuffer().size() - bufferOffset);
-                memcpy(lastBuffer->getData() + bufferOffset, data + (size - remaining), toCopy);
+            const auto lastPage = pages.empty() ? nullptr : pages.back().get();
+            if (lastPage) {
+                auto toCopy = std::min(size, KUZU_PAGE_SIZE - pageOffset);
+                memcpy(lastPage->getData() + pageOffset, data + (size - remaining), toCopy);
                 remaining -= toCopy;
             }
-            buffers.push_back(mm->allocateBuffer(false, KUZU_PAGE_SIZE));
-            bufferOffset = 0;
+            pages.push_back(mm->allocateBuffer(false, KUZU_PAGE_SIZE));
+            pageOffset = 0;
         }
-        auto toCopy = std::min(remaining, buffers.back()->getBuffer().size() - bufferOffset);
-        memcpy(buffers.back()->getData() + bufferOffset, data + (size - remaining), toCopy);
-        bufferOffset += toCopy;
+        auto toCopy = std::min(remaining, KUZU_PAGE_SIZE - pageOffset);
+        memcpy(pages.back()->getData() + pageOffset, data + (size - remaining), toCopy);
+        pageOffset += toCopy;
         remaining -= toCopy;
     }
 }
 
-void MetadataWriter::flush(storage::ShadowFile& shadowFile) const {
-    auto numPagesToFlush = buffers.size();
+storage::PageRange MetadataWriter::flush(storage::FileHandle* fileHandle,
+    storage::ShadowFile& shadowFile) const {
+    auto numPagesToFlush = pages.size();
     auto pageManager = fileHandle->getPageManager();
     auto numPages = fileHandle->getNumPages();
     auto pageRange = pageManager->allocatePageRange(numPagesToFlush);
@@ -40,13 +40,14 @@ void MetadataWriter::flush(storage::ShadowFile& shadowFile) const {
         auto insertingNewPage = pageIdx > numPages;
         auto shadowPageAndFrame = storage::ShadowUtils::createShadowVersionIfNecessaryAndPinPage(
             pageIdx, insertingNewPage, *fileHandle, storage::DBFileID::newDataFileID(), shadowFile);
-        memcpy(shadowPageAndFrame.frame, buffers[i]->getData(), KUZU_PAGE_SIZE);
+        memcpy(shadowPageAndFrame.frame, pages[i]->getData(), KUZU_PAGE_SIZE);
         shadowFile.getShadowingFH().unpinPage(shadowPageAndFrame.shadowPage);
     }
+    return pageRange;
 }
 
 bool MetadataWriter::needNewBuffer(uint64_t size) const {
-    return buffers.empty() || bufferOffset + size > buffers.back()->getBuffer().size();
+    return pages.empty() || pageOffset + size > KUZU_PAGE_SIZE;
 }
 
 } // namespace common

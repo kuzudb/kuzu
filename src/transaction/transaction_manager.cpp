@@ -4,8 +4,10 @@
 
 #include "common/exception/checkpoint.h"
 #include "common/exception/transaction_manager.h"
+#include "common/serializer/metadata_writer.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
+#include "storage/checkpointer.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::common;
@@ -63,7 +65,8 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
         transaction->commitTS = lastTimestamp;
         transaction->commit(&wal);
         activeWriteTransactions.erase(transaction->getID());
-        if (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext)) {
+        if (transaction->shouldForceCheckpoint() ||
+            Checkpointer::canAutoCheckpoint(clientContext)) {
             checkpointNoLock(clientContext);
         }
     } break;
@@ -94,13 +97,6 @@ void TransactionManager::rollback(main::ClientContext& clientContext, Transactio
     }
 }
 
-void TransactionManager::rollbackCheckpoint(main::ClientContext& clientContext) {
-    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
-        return;
-    }
-    clientContext.getStorageManager()->rollbackCheckpoint(clientContext);
-}
-
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
     UniqLock lck{mtxForSerializingPublicFunctionCalls};
     if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
@@ -113,46 +109,25 @@ UniqLock TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave
     UniqLock startTransactionLock{mtxForStartingNewTransactions};
     uint64_t numTimesWaited = 0;
     while (true) {
-        if (!canCheckpointNoLock()) {
-            numTimesWaited++;
-            if (numTimesWaited * THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS >
-                checkpointWaitTimeoutInMicros) {
-                throw TransactionManagerException(
-                    "Timeout waiting for active transactions to leave the system before "
-                    "checkpointing. If you have an open transaction, please close it and try "
-                    "again.");
-            }
-            std::this_thread::sleep_for(
-                std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
-        } else {
+        if (hasNoActiveTransactions()) {
             break;
         }
+        numTimesWaited++;
+        if (numTimesWaited * THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS >
+            checkpointWaitTimeoutInMicros) {
+            throw TransactionManagerException(
+                "Timeout waiting for active transactions to leave the system before "
+                "checkpointing. If you have an open transaction, please close it and try "
+                "again.");
+        }
+        std::this_thread::sleep_for(
+            std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
     return startTransactionLock;
 }
 
-bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientContext) const {
-    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
-        return false;
-    }
-    if (!clientContext.getDBConfig()->autoCheckpoint) {
-        return false;
-    }
-    if (clientContext.getTransaction()->isRecovery()) {
-        // Recovery transactions are not allowed to trigger auto checkpoint.
-        return false;
-    }
-    const auto expectedSize =
-        clientContext.getTransaction()->getEstimatedMemUsage() + wal.getFileSize();
-    return expectedSize > clientContext.getDBConfig()->checkpointThreshold;
-}
-
-bool TransactionManager::canCheckpointNoLock() const {
+bool TransactionManager::hasNoActiveTransactions() const {
     return activeWriteTransactions.empty() && activeReadOnlyTransactions.empty();
-}
-
-void TransactionManager::finalizeCheckpointNoLock(main::ClientContext& clientContext) {
-    clientContext.getStorageManager()->finalizeCheckpoint(clientContext);
 }
 
 void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
@@ -164,34 +139,11 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
     auto lockForStartingTransaction = stopNewTransactionsAndWaitUntilAllTransactionsLeave();
+    Checkpointer checkpointer(clientContext);
     try {
-        const auto catalog = clientContext.getCatalog();
-        const auto storageManager = clientContext.getStorageManager();
-        // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
-        catalog->checkpoint(clientContext.getDatabasePath(), clientContext.getVFSUnsafe());
-        // Checkpoint node/relTables, which writes the updated/newly inserted pages and metadata to
-        // disk.
-        storageManager->checkpoint(clientContext);
-        // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
-        // files (snapshots of catalog and metadata) have been written to disk. The part that is not
-        // done is to replace them with the original pages or catalog and metadata files. If the
-        // system crashes before this point, the WAL can still be used to recover the system to a
-        // state where the checkpoint can be redone.
-        wal.logAndFlushCheckpoint();
-        // Replace the original pages and catalog and metadata files with the updated/newly-created
-        // ones.
-        StorageUtils::overwriteWALVersionFiles(clientContext.getDatabasePath(),
-            clientContext.getVFSUnsafe());
-        auto& shadowFile = storageManager->getShadowFile();
-        shadowFile.replayShadowPageRecords(clientContext);
-        // Clear the wal and also shadowing files.
-        wal.clearWAL();
-        shadowFile.clearAll(clientContext);
-        StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
-            clientContext.getVFSUnsafe());
-        finalizeCheckpointNoLock(clientContext);
+        checkpointer.writeCheckpoint();
     } catch (std::exception& e) {
-        rollbackCheckpoint(clientContext);
+        checkpointer.rollback();
         throw CheckpointException{e};
     }
 }
