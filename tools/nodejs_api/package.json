@@ -3,6 +3,16 @@
   "version": "0.0.1",
   "description": "An in-process property graph database management system built for query speed and scalability.",
   "main": "index.js",
+  "module": "src_js/index.mjs",
+  "types": "src_js/index.d.ts",
+  "exports":{
+    ".":{
+      "require": "./src_js/index.js",
+      "import": "./src_js/index.mjs",
+      "types": "./src_js/index.d.ts"
+    }
+  },
+  "type": "commonjs",
   "homepage": "https://kuzudb.com/",
   "repository": {
     "type": "git",
