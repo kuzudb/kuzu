@@ -1,232 +1,391 @@
-declare module "kuzu" {
-    export class Database {
-        /**
-         * Initialize a new Database object. Note that the initialization is done
-         * lazily, so the database file is not opened until the first query is
-         * executed. To initialize the database immediately, call the `init()`
-         * function on the returned object.
-         *
-         * @param databasePath path to the database file. If the path is not specified, or empty, or equal to
-         * `:memory:`, the database will be created in memory.
-         * @param bufferManagerSize size of the buffer manager in bytes.
-         * @param enableCompression whether to enable compression.
-         * @param readOnly if true, database will be opened in read-only mode.
-         * @param maxDBSize maximum size of the database file in bytes.
-         * @param autoCheckpoint whether to enable automatic checkpointing.
-         * @param checkpointThreshold threshold for automatic checkpointing.
-         */
-        constructor(
-            databasePath?: string,
-            bufferManagerSize?: number,
-            enableCompression?: boolean,
-            readOnly?: boolean,
-            maxDBSize?: number,
-            autoCheckpoint?: boolean,
-            checkpointThreshold?: number
-        );
 
-        /**
-         * Get the version of the library.
-         * @returns the version of the library.
-         */
-        static getVersion(): string;
+/**
+ * A nullable type that can be either T or null.
+ */
+export type Nullable<T> = T | null;
 
-        /**
-         * Get the storage version of the library.
-         * @returns the storage version of the library.
-         */
-        static getStorageVersion(): number;
+/**
+ * A callback function pattern used throughout the API.
+ * @template T The type of the result value (defaults to void)
+ */
+export type Callback<T = void> = (error: Error | null, result?: T) => void;
 
-        /**
-         * Initialize the database. Calling this function is optional, as the
-         * database is initialized automatically when the first query is executed.
-         */
-        init(): Promise<void>;
+/**
+ * Callback for query execution progress updates.
+ * @param pipelineProgress Progress of the current pipeline (0-100)
+ * @param numPipelinesFinished Number of pipelines completed
+ * @param numPipelines Total number of pipelines
+ */
+export type ProgressCallback = (
+    pipelineProgress: number,
+    numPipelinesFinished: number,
+    numPipelines: number
+) => void;
 
-        /**
-         * Close the database.
-         */
-        close(): Promise<void>;
-    }
+/**
+ * Represents a node ID in the graph database.
+ */
+export interface NodeID {
+    /** The offset of the node in its table */
+    offset: number;
+    /** The table ID the node belongs to */
+    table: number;
+}
 
-    export class Connection {
-        /**
-         * Initialize a new Connection object. Note that the initialization is done
-         * lazily, so the connection is not initialized until the first query is
-         * executed. To initialize the connection immediately, call the `init()`
-         * function on the returned object.
-         *
-         * @param database the database object to connect to.
-         * @param numThreads the maximum number of threads to use for query execution.
-         */
-        constructor(database: Database, numThreads?: number);
+/**
+ * Represents a node value in the graph.
+ */
+export interface NodeValue {
+    /** The label of the node (type) */
+    _label: string | null;
+    /** The ID of the node */
+    _id: NodeID | null;
+    /** Additional properties of the node */
+    [key: string]: any;
+}
 
-        /**
-         * Initialize the connection. Calling this function is optional, as the
-         * connection is initialized automatically when the first query is executed.
-         */
-        init(): Promise<void>;
+/**
+ * Represents a relationship (edge) value in the graph.
+ */
+export interface RelValue {
+    /** The source node ID */
+    _src: NodeID | null;
+    /** The destination node ID */
+    _dst: NodeID | null;
+    /** The relationship type/label */
+    _label: string | null;
+    /** The relationship ID */
+    _id: any;
+    /** Additional properties of the relationship */
+    [key: string]: any;
+}
 
-        /**
-         * Execute a prepared statement with the given parameters.
-         * @param preparedStatement the prepared statement to execute.
-         * @param params a plain object mapping parameter names to values.
-         * @param progressCallback Optional callback function that is invoked with the progress of the query execution.
-         * @returns a promise that resolves to the query result.
-         */
-        execute(
-            preparedStatement: PreparedStatement,
-            params?: Record<string, any>,
-            progressCallback?: (pipelineProgress: number, numPipelinesFinished: number, numPipelines: number) => void
-        ): Promise<QueryResult | QueryResult[]>;
+/**
+ * Represents a recursive relationship value (path) in the graph.
+ */
+export interface RecursiveRelValue {
+    /** Array of nodes in the path */
+    _nodes: any[];
+    /** Array of relationships in the path */
+    _rels: any[];
+}
 
-        /**
-         * Prepare a statement for execution.
-         * @param statement the statement to prepare.
-         * @returns a promise that resolves to the prepared statement.
-         */
-        prepare(statement: string): Promise<PreparedStatement>;
+/**
+ * Union type representing all possible value types in Kuzu.
+ */
+export type KuzuValue =
+    | null
+    | boolean
+    | number
+    | bigint
+    | string
+    | Date
+    | NodeValue
+    | RelValue
+    | RecursiveRelValue
+    | KuzuValue[]
+    | { [key: string]: KuzuValue };
 
-        /**
-         * Execute a query.
-         * @param statement the statement to execute.
-         * @param progressCallback Optional callback function that is invoked with the progress of the query execution.
-         * @returns a promise that resolves to the query result.
-         */
-        query(
-            statement: string,
-            progressCallback?: (pipelineProgress: number, numPipelinesFinished: number, numPipelines: number) => void
-        ): Promise<QueryResult | QueryResult[]>;
+/**
+ * Configuration options for the database system.
+ */
+export interface SystemConfig {
+    /** Size of the buffer pool in bytes */
+    bufferPoolSize?: number;
+    /** Whether to enable compression */
+    enableCompression?: boolean;
+    /** Whether to open the database in read-only mode */
+    readOnly?: boolean;
+    /** Maximum size of the database in bytes */
+    maxDBSize?: number;
+    /** Whether to enable automatic checkpoints */
+    autoCheckpoint?: boolean;
+    /** Threshold for automatic checkpoints */
+    checkpointThreshold?: number;
+}
 
-        /**
-         * Set the maximum number of threads to use for query execution.
-         * @param numThreads the maximum number of threads to use for query execution.
-         */
-        setMaxNumThreadForExec(numThreads: number): void;
-
-        /**
-         * Set the timeout for queries. Queries that take longer than the timeout
-         * will be aborted.
-         * @param timeoutInMs the timeout in milliseconds.
-         */
-        setQueryTimeout(timeoutInMs: number): void;
-
-        /**
-         * Close the connection.
-         * Note: Call to this method is optional. The connection will be closed
-         * automatically when the object goes out of scope.
-         */
-        close(): Promise<void>;
-    }
-
-    export class PreparedStatement {
-        /**
-         * Internal constructor. Use `Connection.prepare` to get a
-         * `PreparedStatement` object.
-         * @param connection the connection object.
-         * @param preparedStatement the native prepared statement object.
-         */
-        constructor(connection: Connection, preparedStatement: any);
-
-        /**
-         * Check if the prepared statement is successfully prepared.
-         * @returns true if the prepared statement is successfully prepared.
-         */
-        isSuccess(): boolean;
-
-        /**
-         * Get the error message if the prepared statement is not successfully prepared.
-         * @returns the error message.
-         */
-        getErrorMessage(): string;
-    }
-
-    export class QueryResult {
-        /**
-         * Internal constructor. Use `Connection.query` or `Connection.execute`
-         * to get a `QueryResult` object.
-         * @param connection the connection object.
-         * @param queryResult the native query result object.
-         */
-        constructor(connection: Connection, queryResult: any);
-
-        /**
-         * Reset the iterator of the query result to the beginning.
-         * This function is useful if the query result is iterated multiple times.
-         */
-        resetIterator(): void;
-
-        /**
-         * Check if the query result has more rows.
-         * @returns true if the query result has more rows.
-         */
-        hasNext(): boolean;
-
-        /**
-         * Get the number of rows of the query result.
-         * @returns the number of rows of the query result.
-         */
-        getNumTuples(): number;
-
-        /**
-         * Get the next row of the query result.
-         * @returns a promise that resolves to the next row of the query result.
-         */
-        getNext(): Promise<Record<string, any>>;
-
-        /**
-         * Iterate through the query result with callback functions.
-         * @param resultCallback the callback function that is called for each row of the query result.
-         * @param doneCallback the callback function that is called when the iteration is done.
-         * @param errorCallback the callback function that is called when there is an error.
-         */
-        each(
-            resultCallback: (row: Record<string, any>) => void,
-            doneCallback: () => void,
-            errorCallback: (error: Error) => void
-        ): void;
-
-        /**
-         * Get all rows of the query result.
-         * @returns a promise that resolves to all rows of the query result.
-         */
-        getAll(): Promise<Record<string, any>[]>;
-
-        /**
-         * Get all rows of the query result with callback functions.
-         * @param resultCallback the callback function that is called with all rows of the query result.
-         * @param errorCallback the callback function that is called when there is an error.
-         */
-        all(
-            resultCallback: (rows: Record<string, any>[]) => void,
-            errorCallback: (error: Error) => void
-        ): void;
-
-        /**
-         * Get the data types of the columns of the query result.
-         * @returns a promise that resolves to the data types of the columns of the query result.
-         */
-        getColumnDataTypes(): Promise<string[]>;
-
-        /**
-         * Get the names of the columns of the query result.
-         * @returns a promise that resolves to the names of the columns of the query result.
-         */
-        getColumnNames(): Promise<string[]>;
-
-        /**
-         * Close the query result.
-         */
-        close(): void;
-    }
+/**
+ * Represents a Kuzu database instance.
+ */
+export class Database {
+    /**
+     * Constructs a new Database instance.
+     * @param databasePath Path to the database directory
+     * @param bufferPoolSize Size of the buffer pool in bytes
+     * @param enableCompression Whether to enable compression
+     * @param readOnly Whether to open in read-only mode
+     * @param maxDBSize Maximum size of the database in bytes
+     * @param autoCheckpoint Whether to enable automatic checkpoints
+     * @param checkpointThreshold Threshold for automatic checkpoints
+     */
+    constructor(
+        databasePath?: string,
+        bufferPoolSize?: number,
+        enableCompression?: boolean,
+        readOnly?: boolean,
+        maxDBSize?: number,
+        autoCheckpoint?: boolean,
+        checkpointThreshold?: number
+    );
 
     /**
-     * Get the version of the library.
+     * Constructs a new Database instance with configuration object.
+     * @param databasePath Path to the database directory
+     * @param config Configuration options for the database
      */
-    export const VERSION: string;
+    constructor(
+        databasePath?: string,
+        config?: SystemConfig
+    );
 
     /**
-     * Get the storage version of the library.
+     * Initialize the database asynchronously. Calling this function is optional, as the
+     * database is initialized automatically when the first query is executed.
+     * @param callback Callback to be called when initialization completes
      */
-    export const STORAGE_VERSION: number;
-} 
+    initAsync(callback: Callback): void;
+
+    /**
+     * Initialize the database. Calling this function is optional, as the
+     * database is initialized automatically when the first query is executed.
+     * @returns Promise that resolves when initialization completes
+     */
+    init(): Promise<void>;
+
+    /**
+     * Close the database and release resources.
+     */
+    close(): void;
+
+    /**
+     * Get the version of the Kuzu library.
+     * @returns The version string of the library
+     */
+    static getVersion(): string;
+
+    /**
+     * Get the storage version of the Kuzu library.
+     * @returns The storage version number
+     */
+    static getStorageVersion(): number;
+}
+
+/**
+ * Represents a connection to a Kuzu database.
+ */
+export class Connection {
+    /**
+     * Creates a new connection to the specified database.
+     * @param database The database instance to connect to
+     */
+    constructor(database: Database);
+
+    /**
+     * Initialize the connection asynchronously.
+     * @param callback Callback to be called when initialization completes
+     */
+    initAsync(callback: Callback): void;
+
+    /**
+     * Initialize the connection.
+     * @returns Promise that resolves when initialization completes
+     */
+    init(): Promise<void>;
+
+    /**
+     * Set the maximum number of threads for query execution.
+     * @param numThreads The number of threads to use
+     */
+    setMaxNumThreadForExec(numThreads: number): void;
+
+    /**
+     * Set the query timeout in milliseconds.
+     * @param timeoutInMS Timeout in milliseconds
+     */
+    setQueryTimeout(timeoutInMS: number): void;
+
+    /**
+     * Close the connection.
+     */
+    close(): void;
+
+    /**
+     * Execute a prepared statement asynchronously.
+     * @param preparedStatement The prepared statement to execute
+     * @param queryResult The query result object to store results
+     * @param params Parameters for the query (as object or entries array)
+     * @param callback Callback to be called when execution completes
+     * @param progressCallback Optional progress callback
+     */
+    executeAsync(
+        preparedStatement: PreparedStatement,
+        queryResult: QueryResult,
+        params: Record<string, KuzuValue> | [string, KuzuValue][],
+        callback: Callback,
+        progressCallback?: ProgressCallback
+    ): void;
+
+    /**
+     * Execute a raw query string asynchronously.
+     * @param statement The query string to execute
+     * @param queryResult The query result object to store results
+     * @param callback Callback to be called when execution completes
+     * @param progressCallback Optional progress callback
+     */
+    queryAsync(
+        statement: string,
+        queryResult: QueryResult,
+ callback: Callback,
+        progressCallback?: ProgressCallback
+    ): void;
+
+    /**
+     * Execute a prepared statement synchronously.
+     * @param preparedStatement The prepared statement to execute
+     * @param queryResult The query result object to store results
+     * @param params Parameters for the query (as object or entries array)
+     */
+    executeSync(
+        preparedStatement: PreparedStatement,
+        queryResult: QueryResult,
+        params: Record<string, KuzuValue> | [string, KuzuValue][]
+    ): void;
+
+    /**
+     * Execute a raw query string synchronously.
+     * @param statement The query string to execute
+     * @param queryResult The query result object to store results
+     */
+    querySync(statement: string, queryResult: QueryResult): void;
+}
+
+/**
+ * Represents a prepared statement for efficient query execution.
+ */
+export class PreparedStatement {
+    /**
+     * Creates a new prepared statement.
+     * @param connection The connection to prepare the statement on
+     * @param query The query string to prepare
+     */
+    constructor(connection: Connection, query: string);
+
+    /**
+     * Initialize the prepared statement asynchronously.
+     * @param callback Callback to be called when initialization completes
+     */
+    initAsync(callback: Callback): void;
+
+    /**
+     * Initialize the prepared statement synchronously.
+     */
+    initSync(): void;
+
+    /**
+      * Check if the statement was prepared successfully.
+      * @returns True if preparation was successful
+      */
+    isSuccess(): boolean;
+
+    /**
+     * Get the error message if preparation failed.
+     * @returns The error message or empty string if successful
+     */
+    getErrorMessage(): string;
+}
+
+/**
+ * Represents the results of a query execution.
+ */
+export class QueryResult {
+    constructor();
+
+    /**
+     * Reset the iterator for reading results.
+     */
+    resetIterator(): void;
+
+    /**
+     * Check if there are more rows to read.
+     * @returns True if more rows are available
+     */
+    hasNext(): boolean;
+
+    /**
+     * Check if there are more query result chunks available.
+     * @returns True if more result chunks are available
+     */
+    hasNextQueryResult(): boolean;
+
+    /**
+     * Get the next query result chunk asynchronously.
+     * @param nextQueryResult The result object to store the next chunk
+     * @param callback Callback to be called when the next chunk is ready
+     */
+    getNextQueryResultAsync(nextQueryResult: QueryResult, callback: Callback): void;
+
+    /**
+     * Get the next query result chunk synchronously.
+     * @param nextQueryResult The result object to store the next chunk
+     */
+    getNextQueryResultSync(nextQueryResult: QueryResult): void;
+
+    /**
+     * Get the number of tuples (rows) in the result.
+     * @returns The number of rows
+     */
+    getNumTuples(): number;
+
+    /**
+     * Get the next row asynchronously.
+     * @param callback Callback receiving the next row or null if no more rows
+     */
+    getNextAsync(callback: Callback<Record<string, KuzuValue>>): void;
+
+    /**
+     * Get the next row synchronously.
+     * @returns The next row or null if no more rows
+     */
+    getNextSync(): Record<string, KuzuValue> | null;
+
+    /**
+     * Get the column data types asynchronously.
+     * @param callback Callback receiving the array of data type strings
+     */
+    getColumnDataTypesAsync(callback: Callback<string[]>): void;
+
+    /**
+     * Get the column data types synchronously.
+     * @returns Array of data type strings
+     */
+    getColumnDataTypesSync(): string[];
+
+    /**
+     * Get the column names asynchronously.
+     * @param callback Callback receiving the array of column names
+     */
+    getColumnNamesAsync(callback: Callback<string[]>): void;
+
+    /**
+     * Get the column names synchronously.
+     * @returns Array of column names
+     */
+    getColumnNamesSync(): string[];
+
+    /**
+     * Close the result set and release resources.
+     */
+    close(): void;
+}
+
+/**
+ * Default export for the Kuzu module.
+ */
+declare const kuzu: {
+    Database: typeof Database;
+    Connection: typeof Connection;
+    PreparedStatement: typeof PreparedStatement;
+    QueryResult: typeof QueryResult;
+};
+
+export default kuzu;
