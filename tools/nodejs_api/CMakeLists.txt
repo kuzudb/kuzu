@@ -38,7 +38,12 @@ include_directories(${CMAKE_JS_INC})
 include_directories(${NODE_ADDON_API_INCLUDE_PATH})
 
 file(GLOB CPP_SOURCE_FILES ./src_cpp/*)
-file(GLOB JS_SOURCE_FILES ./src_js/*.js)
+file(GLOB JS_SOURCE_FILES 
+    ./src_js/*.js
+    ./src_js/*.mjs
+    ./src_js/*.d.ts
+)
+# Copy all JS/TS files to build directory
 file(COPY ${JS_SOURCE_FILES} DESTINATION  "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
 add_library(kuzujs SHARED ${CPP_SOURCE_FILES} ${CMAKE_JS_SRC})

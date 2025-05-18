@@ -5,5 +5,4 @@ export const Database = kuzu.Database;
 export const Connection = kuzu.Connection;
 export const PreparedStatement = kuzu.PreparedStatement;
 export const QueryResult = kuzu.QueryResult;
-
 export default kuzu;
