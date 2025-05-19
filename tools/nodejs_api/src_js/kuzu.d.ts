@@ -165,9 +165,9 @@ export class Database {
 
     /**
      * Get the storage version of the Kuzu library.
-     * @returns The storage version number
+     * @returns The storage version the library
      */
-    static getStorageVersion(): number;
+    static getStorageVersion(): bigint;
 }
 
 /**
@@ -235,7 +235,7 @@ export class Connection {
     queryAsync(
         statement: string,
         queryResult: QueryResult,
- callback: Callback,
+        callback: Callback,
         progressCallback?: ProgressCallback
     ): void;
 
@@ -386,6 +386,8 @@ declare const kuzu: {
     Connection: typeof Connection;
     PreparedStatement: typeof PreparedStatement;
     QueryResult: typeof QueryResult;
+    VERSION: string;
+    STORAGE_VERSION: bigint;
 };
 
 export default kuzu;
