@@ -108,7 +108,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         // result, and pipeline sink is a dummy operator that does not materialize anything.
         prevOperator = std::make_unique<DummySink>(
             std::make_unique<ResultSetDescriptor>(logicalChild->getSchema()),
-            std::move(prevOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
+            std::move(prevOperator), getOperatorID());
         auto extend = logicalChild->getChild(0)->ptrCast<LogicalRecursiveExtend>();
         auto columns = extend->getResultColumns();
         auto physicalCall = logicalOpToPhysicalOpMap.at(extend)->ptrCast<RecursiveExtend>();

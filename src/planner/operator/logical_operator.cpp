@@ -76,6 +76,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "MULTIPLICITY_REDUCER";
     case LogicalOperatorType::NODE_LABEL_FILTER:
         return "NODE_LABEL_FILTER";
+    case LogicalOperatorType::NOOP:
+        return "NOOP";
     case LogicalOperatorType::ORDER_BY:
         return "ORDER_BY";
     case LogicalOperatorType::PARTITIONER:
