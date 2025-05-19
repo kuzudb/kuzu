@@ -97,11 +97,10 @@ class NodeBatchInsert final : public BatchInsert {
 public:
     NodeBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<BatchInsertSharedState> sharedState,
-        std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState),
-              std::move(resultSetDescriptor), id, std::move(printInfo)} {
+              id, std::move(printInfo)} {
         children.push_back(std::move(child));
     }
 
@@ -116,7 +115,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<NodeBatchInsert>(tableName, info->copy(), sharedState,
-            resultSetDescriptor->copy(), children[0]->copy(), id, printInfo->copy());
+            children[0]->copy(), id, printInfo->copy());
     }
 
     // The node group will be reset so that the only values remaining are the ones which were

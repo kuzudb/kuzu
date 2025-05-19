@@ -8,7 +8,9 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDummySink(const LogicalOperator* logicalOperator) {
     auto child = mapOperator(logicalOperator->getChild(0).get());
     auto descriptor = std::make_unique<ResultSetDescriptor>(logicalOperator->getSchema());
-    return std::make_unique<DummySink>(std::move(descriptor), std::move(child), getOperatorID());
+    auto sink = std::make_unique<DummySink>(std::move(child), getOperatorID());
+    sink->setDescriptor(std::move(descriptor));
+    return sink;
 }
 
 } // namespace processor

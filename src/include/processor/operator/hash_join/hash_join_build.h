@@ -83,15 +83,14 @@ private:
 
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        PhysicalOperatorType operatorType, std::shared_ptr<HashJoinSharedState> sharedState,
+    HashJoinBuild(PhysicalOperatorType operatorType, std::shared_ptr<HashJoinSharedState> sharedState,
         std::unique_ptr<HashJoinBuildInfo> info, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{std::move(resultSetDescriptor), operatorType, std::move(child), id,
+        : Sink{operatorType, std::move(child), id,
               std::move(printInfo)},
           sharedState{std::move(sharedState)}, info{std::move(info)} {}
 
-    inline std::shared_ptr<HashJoinSharedState> getSharedState() const { return sharedState; }
+    std::shared_ptr<HashJoinSharedState> getSharedState() const { return sharedState; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -100,12 +99,12 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<HashJoinBuild>(resultSetDescriptor->copy(), operatorType, sharedState,
+        return make_unique<HashJoinBuild>(operatorType, sharedState,
             info->copy(), children[0]->copy(), id, printInfo->copy());
     }
 
 protected:
-    virtual inline uint64_t appendVectors() {
+    virtual uint64_t appendVectors() {
         return hashTable->appendVectors(keyVectors, payloadVectors, keyState);
     }
 

@@ -58,7 +58,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* 
     for (auto& expression : payloadExpressions) {
         outPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
-    auto orderByDataInfo = std::make_unique<OrderByDataInfo>(keysPos, payloadsPos,
+    auto orderByDataInfo = OrderByDataInfo(keysPos, payloadsPos,
         LogicalType::copy(keyTypes), LogicalType::copy(payloadTypes),
         logicalOrderBy.getIsAscOrders(), std::move(payloadSchema), std::move(keyInPayloadPos));
     if (logicalOrderBy.hasLimitNum()) {
@@ -80,17 +80,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* 
         auto topKSharedState = std::make_shared<TopKSharedState>();
         auto printInfo =
             std::make_unique<TopKPrintInfo>(keyExpressions, payloadExpressions, skipNum, limitNum);
-        auto topK = make_unique<TopK>(std::make_unique<ResultSetDescriptor>(inSchema),
-            std::move(orderByDataInfo), topKSharedState, skipNum, limitNum, std::move(prevOperator),
+        auto topK = make_unique<TopK>(std::move(orderByDataInfo), topKSharedState, skipNum, limitNum, std::move(prevOperator),
             getOperatorID(), printInfo->copy());
+        topK->setDescriptor(std::make_unique<ResultSetDescriptor>(inSchema));
         return make_unique<TopKScan>(outPos, topKSharedState, std::move(topK), getOperatorID(),
             printInfo->copy());
     }
     auto orderBySharedState = std::make_shared<SortSharedState>();
     auto printInfo = std::make_unique<OrderByPrintInfo>(keyExpressions, payloadExpressions);
-    auto orderBy = make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(inSchema),
-        std::move(orderByDataInfo), orderBySharedState, std::move(prevOperator), getOperatorID(),
+    auto orderBy = make_unique<OrderBy>(std::move(orderByDataInfo), orderBySharedState, std::move(prevOperator), getOperatorID(),
         printInfo->copy());
+    orderBy->setDescriptor(std::make_unique<ResultSetDescriptor>(inSchema));
     auto dispatcher = std::make_shared<KeyBlockMergeTaskDispatcher>();
     auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
         std::move(orderBy), getOperatorID(), printInfo->copy());

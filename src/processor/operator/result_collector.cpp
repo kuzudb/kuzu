@@ -2,7 +2,6 @@
 
 #include "binder/expression/expression_util.h"
 #include "processor/execution_context.h"
-#include "processor/processor_task.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -59,8 +58,7 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
 void ResultCollector::finalizeInternal(ExecutionContext* context) {
     switch (info.accumulateType) {
     case AccumulateType::OPTIONAL_: {
-        auto localResultSet = processor::ProcessorTask::populateResultSet(this,
-            context->clientContext->getMemoryManager());
+        auto localResultSet = getResultSet(context->clientContext->getMemoryManager());
         initNecessaryLocalState(localResultSet.get(), context);
         // We should remove currIdx completely as some of the code still relies on currIdx = -1 to
         // check if the state if unFlat or not. This should no longer be necessary.

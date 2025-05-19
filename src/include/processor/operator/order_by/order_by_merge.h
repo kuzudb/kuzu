@@ -18,7 +18,7 @@ public:
         std::shared_ptr<KeyBlockMergeTaskDispatcher> sharedDispatcher,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{nullptr /* resultSetDescriptor */, type_, std::move(child), id,
+        : Sink{type_, std::move(child), id,
               std::move(printInfo)},
           sharedState{std::move(sharedState)}, sharedDispatcher{std::move(sharedDispatcher)} {}
 
@@ -26,7 +26,7 @@ public:
     OrderByMerge(std::shared_ptr<SortSharedState> sharedState,
         std::shared_ptr<KeyBlockMergeTaskDispatcher> sharedDispatcher, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{nullptr /* resultSetDescriptor */, type_, id, printInfo->copy()},
+        : Sink{type_, id, printInfo->copy()},
           sharedState{std::move(sharedState)}, sharedDispatcher{std::move(sharedDispatcher)} {}
 
     bool isSource() const override { return true; }

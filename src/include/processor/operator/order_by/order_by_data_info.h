@@ -23,16 +23,15 @@ struct OrderByDataInfo {
           keyTypes{std::move(keyTypes)}, payloadTypes{std::move(payloadTypes)},
           isAscOrder{std::move(isAscOrder)}, payloadTableSchema{std::move(payloadTableSchema)},
           keyInPayloadPos{std::move(keyInPayloadPos)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(OrderByDataInfo);
+
+private:
     OrderByDataInfo(const OrderByDataInfo& other)
         : keysPos{other.keysPos}, payloadsPos{other.payloadsPos},
           keyTypes{common::LogicalType::copy(other.keyTypes)},
           payloadTypes{common::LogicalType::copy(other.payloadTypes)}, isAscOrder{other.isAscOrder},
           payloadTableSchema{other.payloadTableSchema.copy()},
           keyInPayloadPos{other.keyInPayloadPos} {}
-
-    std::unique_ptr<OrderByDataInfo> copy() const {
-        return std::make_unique<OrderByDataInfo>(*this);
-    }
 };
 
 } // namespace processor

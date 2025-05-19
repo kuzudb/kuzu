@@ -26,11 +26,10 @@ class RecursiveExtend : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::RECURSIVE_EXTEND;
 
 public:
-    RecursiveExtend(std::unique_ptr<ResultSetDescriptor> descriptor,
-        std::unique_ptr<function::RJAlgorithm> function, function::RJBindData bindData,
+    RecursiveExtend(std::unique_ptr<function::RJAlgorithm> function, function::RJBindData bindData,
         std::shared_ptr<RecursiveExtendSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{std::move(descriptor), type_, id, std::move(printInfo)},
+        : Sink{type_, id, std::move(printInfo)},
           function{std::move(function)}, bindData{bindData}, sharedState{std::move(sharedState)} {}
 
     std::shared_ptr<RecursiveExtendSharedState> getSharedState() const { return sharedState; }
@@ -42,7 +41,7 @@ public:
     void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<RecursiveExtend>(resultSetDescriptor->copy(), function->copy(),
+        return std::make_unique<RecursiveExtend>(function->copy(),
             bindData, sharedState, id, printInfo->copy());
     }
 

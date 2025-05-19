@@ -248,9 +248,9 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
     }
     planMapper->addOperatorMapping(logicalOp, call.get());
     physical_op_vector_t children;
-    auto descriptor = std::make_unique<ResultSetDescriptor>(logicalCall->getSchema());
-    auto dummySink = std::make_unique<DummySink>(std::move(descriptor), std::move(call),
+    auto dummySink = std::make_unique<DummySink>( std::move(call),
         planMapper->getOperatorID());
+    dummySink->setDescriptor(std::make_unique<ResultSetDescriptor>(logicalCall->getSchema()));
     children.push_back(std::move(dummySink));
     return planMapper->createFTableScanAligned(columns, logicalCall->getSchema(), table,
         DEFAULT_VECTOR_CAPACITY, std::move(children));

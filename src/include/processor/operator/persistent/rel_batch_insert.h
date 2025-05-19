@@ -67,12 +67,11 @@ class RelBatchInsert final : public BatchInsert {
 public:
     RelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
-        std::shared_ptr<BatchInsertSharedState> sharedState,
-        std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
+        std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
         : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState),
-              std::move(resultSetDescriptor), id, std::move(printInfo)},
+              id, std::move(printInfo)},
           partitionerSharedState{std::move(partitionerSharedState)},
           progressSharedState{std::move(progressSharedState)} {}
 
@@ -86,7 +85,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<RelBatchInsert>(tableName, info->copy(), partitionerSharedState,
-            sharedState, resultSetDescriptor->copy(), id, printInfo->copy(), progressSharedState);
+            sharedState, id, printInfo->copy(), progressSharedState);
     }
 
     void updateProgress(const ExecutionContext* context) const;

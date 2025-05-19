@@ -257,29 +257,29 @@ void TopKLocalState::append(const std::vector<common::ValueVector*>& keyVectors,
 }
 
 void TopK::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    localState = std::make_unique<TopKLocalState>();
-    localState->init(*info, context->clientContext->getMemoryManager(), *resultSet, skipNumber,
+    localState = TopKLocalState();
+    localState.init(info, context->clientContext->getMemoryManager(), *resultSet, skipNumber,
         limitNumber);
-    for (auto& dataPos : info->payloadsPos) {
+    for (auto& dataPos : info.payloadsPos) {
         payloadVectors.push_back(resultSet->getValueVector(dataPos).get());
     }
-    for (auto& dataPos : info->keysPos) {
+    for (auto& dataPos : info.keysPos) {
         orderByVectors.push_back(resultSet->getValueVector(dataPos).get());
     }
 }
 
 void TopK::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->init(*info, context->clientContext->getMemoryManager(), skipNumber, limitNumber);
+    sharedState->init(info, context->clientContext->getMemoryManager(), skipNumber, limitNumber);
 }
 
 void TopK::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < resultSet->multiplicity; i++) {
-            localState->append(orderByVectors, payloadVectors);
+            localState.append(orderByVectors, payloadVectors);
         }
     }
-    localState->finalize();
-    sharedState->mergeLocalState(localState.get());
+    localState.finalize();
+    sharedState->mergeLocalState(&localState);
 }
 
 } // namespace processor
