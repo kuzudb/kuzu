@@ -135,6 +135,7 @@ public:
         const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapNodeLabelFilter(
         const planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapNoop(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapOrderBy(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapPartitioner(
         const planner::LogicalOperator* logicalOperator);
@@ -167,9 +168,6 @@ public:
 
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
-        std::unique_ptr<PhysicalOperator> prevOperator);
-
-    std::unique_ptr<PhysicalOperator> createDummySink(planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
 
     // Scan fTable

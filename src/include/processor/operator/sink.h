@@ -50,13 +50,12 @@ class KUZU_API DummySink final : public Sink {
 
 public:
     DummySink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)} {}
+        std::unique_ptr<PhysicalOperator> child, uint32_t id)
+        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id,
+              OPPrintInfo::EmptyInfo()} {}
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<DummySink>(resultSetDescriptor->copy(), children[0]->copy(), id,
-            printInfo->copy());
+        return std::make_unique<DummySink>(resultSetDescriptor->copy(), children[0]->copy(), id);
     }
 
 protected:

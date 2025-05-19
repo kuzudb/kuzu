@@ -12,7 +12,7 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop.h"
-#include "catalog/catalog.h"
+#include "binder/expression/literal_expression.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"
@@ -21,6 +21,7 @@
 #include "planner/operator/logical_create_macro.h"
 #include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/logical_explain.h"
+#include "planner/operator/logical_noop.h"
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/logical_transaction.h"
@@ -46,21 +47,23 @@ static LogicalPlan getSimplePlan(std::shared_ptr<LogicalOperator> op) {
 LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
     auto& createTable = statement.constCast<BoundCreateTable>();
     auto& info = createTable.getInfo();
-    auto op = std::make_shared<LogicalCreateTable>(info.copy(), statement.getSingleColumnExpr());
 
     // If it is a CREATE NODE TABLE AS, then copy as well
-    if (createTable.getCopyInfo()) {
-        auto copyPlan = planCopyNodeFrom(createTable.getCopyInfo(),
-            BoundStatementResult::createSingleStringColumnResult().getColumns());
-        // Find any leaf node
-        auto tmp = copyPlan.getLastOperator();
-        while (tmp->getNumChildren() > 0) {
-            tmp = tmp->getChild(0);
-        }
-        tmp->addChild(std::make_shared<LogicalDummySink>(std::move(op)));
-        return copyPlan;
+    if (createTable.hasCopyInfo()) {
+        // TODO(Xiyang): we should get rid of this dummyStr if CREATE TABLE AS has actual output.
+        // Currently, we need dummyStr as placeholder for the createTable & copy pipeline output
+        // messages. even though we do NOT actually output them
+        auto dummyStr = std::make_shared<LiteralExpression>(Value("dummy"), "dummy");
+        std::vector<std::shared_ptr<LogicalOperator>> children;
+        auto copyPlan = planCopyNodeFrom(&createTable.getCopyInfo(), {dummyStr});
+        children.push_back(copyPlan.getLastOperator());
+        auto create = std::make_shared<LogicalCreateTable>(info.copy(), dummyStr);
+        auto dummySink = std::make_shared<LogicalDummySink>(std::move(create));
+        children.push_back(std::move(dummySink));
+        auto noop = std::make_shared<LogicalNoop>(children);
+        return getSimplePlan(std::move(noop));
     }
-
+    auto op = std::make_shared<LogicalCreateTable>(info.copy(), statement.getSingleColumnExpr());
     return getSimplePlan(std::move(op));
 }
 

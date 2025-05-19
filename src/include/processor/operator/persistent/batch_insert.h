@@ -1,7 +1,5 @@
 #pragma once
 
-#include <numeric>
-
 #include "processor/operator/sink.h"
 #include "processor/result/factorized_table.h"
 #include "storage/store/table.h"
@@ -17,22 +15,31 @@ struct BatchInsertInfo {
     catalog::TableCatalogEntry* tableEntry;
     bool compressionEnabled;
 
+    std::vector<common::LogicalType> columnTypes;
+    // TODO(Guodong): Try to merge the following 3 fields into 2
     std::vector<common::column_id_t> insertColumnIDs;
     std::vector<common::column_id_t> outputDataColumns;
     std::vector<common::column_id_t> warningDataColumns;
 
     BatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        std::vector<common::column_id_t> insertColumnIDs, common::column_id_t numOutputDataColumns,
-        common::column_id_t numWarningDataColumns)
+        std::vector<common::column_id_t> insertColumnIDs,
+        std::vector<common::LogicalType> columnTypes, common::idx_t numWarningDataColumns)
         : tableEntry{tableEntry}, compressionEnabled{compressionEnabled},
-          insertColumnIDs{std::move(insertColumnIDs)}, outputDataColumns(numOutputDataColumns),
-          warningDataColumns(numWarningDataColumns) {
-        std::iota(outputDataColumns.begin(), outputDataColumns.end(), 0);
-        std::iota(warningDataColumns.begin(), warningDataColumns.end(), outputDataColumns.size());
+          columnTypes{std::move(columnTypes)}, insertColumnIDs{std::move(insertColumnIDs)} {
+        auto i = 0u;
+        for (; i < this->columnTypes.size() - numWarningDataColumns; ++i) {
+            outputDataColumns.push_back(i);
+        }
+        for (; i < this->columnTypes.size(); ++i) {
+            warningDataColumns.push_back(i);
+        }
+    }
+    BatchInsertInfo(const BatchInsertInfo& other)
+        : tableEntry{other.tableEntry}, compressionEnabled{other.compressionEnabled},
+          columnTypes{copyVector(other.columnTypes)}, insertColumnIDs{other.insertColumnIDs},
+          outputDataColumns{other.outputDataColumns}, warningDataColumns{other.warningDataColumns} {
     }
     virtual ~BatchInsertInfo() = default;
-
-    BatchInsertInfo(const BatchInsertInfo& other) = delete;
 
     virtual std::unique_ptr<BatchInsertInfo> copy() const = 0;
 

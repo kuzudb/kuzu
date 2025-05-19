@@ -11,18 +11,16 @@ class BoundCreateTable final : public BoundStatement {
     static constexpr common::StatementType type_ = common::StatementType::CREATE_TABLE;
 
 public:
-    explicit BoundCreateTable(BoundCreateTableInfo info)
-        : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
-          info{std::move(info)}, copyInfo{std::nullopt} {}
-
-    BoundCreateTable(BoundCreateTableInfo info, BoundCopyFromInfo copyInfo)
-        : BoundStatement{common::StatementType::CREATE_TABLE,
-              BoundStatementResult::createSingleStringColumnResult()},
-          info{std::move(info)}, copyInfo{std::move(copyInfo)} {}
+    explicit BoundCreateTable(BoundCreateTableInfo info, BoundStatementResult result)
+        : BoundStatement{type_, std::move(result)}, info{std::move(info)} {}
 
     const BoundCreateTableInfo& getInfo() const { return info; }
-    const BoundCopyFromInfo* getCopyInfo() const {
-        return (copyInfo.has_value() ? &copyInfo.value() : nullptr);
+
+    void setCopyInfo(BoundCopyFromInfo copyInfo_) { copyInfo = std::move(copyInfo_); }
+    bool hasCopyInfo() const { return copyInfo.has_value(); }
+    const BoundCopyFromInfo& getCopyInfo() const {
+        KU_ASSERT(copyInfo.has_value());
+        return copyInfo.value();
     }
 
 private:

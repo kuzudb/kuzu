@@ -188,7 +188,7 @@ std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskPlanRoots(const GDSBind
 
 void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& readingClause,
     expression_vector predicates, LogicalPlan& plan) {
-    auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
+    auto& call = readingClause.constCast<BoundTableFunctionCall>();
     auto bindData = call.getBindData()->constPtrCast<GDSBindData>();
     auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
     for (auto root : getNodeMaskPlanRoots(*bindData, planner)) {
@@ -248,7 +248,10 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
     }
     planMapper->addOperatorMapping(logicalOp, call.get());
     physical_op_vector_t children;
-    children.push_back(planMapper->createDummySink(logicalCall->getSchema(), std::move(call)));
+    auto descriptor = std::make_unique<ResultSetDescriptor>(logicalCall->getSchema());
+    auto dummySink = std::make_unique<DummySink>(std::move(descriptor), std::move(call),
+        planMapper->getOperatorID());
+    children.push_back(std::move(dummySink));
     return planMapper->createFTableScanAligned(columns, logicalCall->getSchema(), table,
         DEFAULT_VECTOR_CAPACITY, std::move(children));
 }
