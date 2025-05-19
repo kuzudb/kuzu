@@ -37,7 +37,7 @@ else if (fsCallback.existsSync(prebuiltPath)) {
     "src_js"
   );
   const jsFiles = fs.readdirSync(jsSourceDir).filter((file) => {
-    return file.endsWith(".js");
+    return file.endsWith(".js") || file.endsWith(".mjs") || file.endsWith(".d.ts");
   });
   console.log("Files to copy: ");
   for (const file of jsFiles) {
@@ -136,7 +136,7 @@ const BUILT_DIR = path.join(
 );
 // Get all the js and node files
 const files = fs.readdirSync(BUILT_DIR).filter((file) => {
-  return file.endsWith(".js") || file.endsWith(".node");
+  return file.endsWith(".js") || file.endsWith(".mjs") || file.endsWith(".d.ts") || file.endsWith(".node");
 });
 console.log("Files to copy: ");
 for (const file of files) {
