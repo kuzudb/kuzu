@@ -175,14 +175,19 @@ void Checkpointer::readCheckpoint() {
         return;
     }
     auto vfs = clientContext.getVFSUnsafe();
-    auto fileInfo = vfs->openFile(StorageUtils::getDataFName(vfs, clientContext.getDatabasePath()),
-        common::FileOpenFlags{common::FileFlags::READ_ONLY}, &clientContext);
+    readCheckpoint(clientContext.getDatabasePath(), &clientContext, vfs, clientContext.getCatalog(),
+        storageManager);
+}
+
+void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext* context,
+    common::VirtualFileSystem* vfs, catalog::Catalog* catalog, StorageManager* storageManager) {
+    auto fileInfo = vfs->openFile(StorageUtils::getDataFName(vfs, dbPath),
+        common::FileOpenFlags{common::FileFlags::READ_ONLY}, context);
     auto reader = std::make_unique<common::BufferedFileReader>(std::move(fileInfo));
     common::Deserializer deSer(std::move(reader));
     auto [catalogPageRange, metaPageRange] = readDatabaseHeader(deSer);
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         catalogPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
-    auto catalog = clientContext.getCatalog();
     catalog->deserialize(deSer);
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         metaPageRange.startPageIdx * common::KUZU_PAGE_SIZE);

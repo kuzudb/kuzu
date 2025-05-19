@@ -46,7 +46,7 @@ protected:
     std::unique_ptr<catalog::Catalog> catalog;
 };
 
-class AttachedKuzuDatabase : public AttachedDatabase {
+class AttachedKuzuDatabase final : public AttachedDatabase {
 public:
     AttachedKuzuDatabase(std::string dbPath, std::string dbName, std::string dbType,
         ClientContext* clientContext);

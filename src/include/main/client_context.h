@@ -62,8 +62,8 @@ struct ActiveQuery {
 };
 
 /**
- * @brief Contain client side configuration. We make profiler associated per query, so profiler is
- * not maintained in client context.
+ * @brief Contain client side configuration. We make profiler associated per query, so the profiler
+ * is not maintained in the client context.
  */
 class KUZU_API ClientContext {
     friend class Connection;
@@ -73,7 +73,7 @@ class KUZU_API ClientContext {
     friend class processor::TableFunctionCall;
     friend class parser::StandaloneCallRewriter;
     friend struct SpillToDiskSetting;
-    friend class main::EmbeddedShell;
+    friend class EmbeddedShell;
     friend class extension::ExtensionManager;
 
 public:
@@ -112,7 +112,7 @@ public:
     std::unique_ptr<function::ScanReplacementData> tryReplace(const std::string& objectName) const;
     // Extension
     void setExtensionOption(std::string name, common::Value value);
-    const main::ExtensionOption* getExtensionOption(std::string optionName) const;
+    const ExtensionOption* getExtensionOption(std::string optionName) const;
     std::string getExtensionDir() const;
 
     // Database component getters.
