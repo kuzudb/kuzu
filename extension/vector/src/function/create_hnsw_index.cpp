@@ -105,9 +105,9 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         createFuncCall->getSharedState()->ptrCast<CreateInMemHNSWSharedState>();
     auto indexName = createFuncSharedState->name;
     // Append a dummy sink to end the first pipeline
-    auto createDummySink = std::make_unique<DummySink>(
-        std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()), std::move(createHNSWCallOp),
-        planMapper->getOperatorID());
+    auto createDummySink =
+        std::make_unique<DummySink>(std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()),
+            std::move(createHNSWCallOp), planMapper->getOperatorID());
     // Append _FinalizeHNSWIndex table function.
     auto clientContext = planMapper->clientContext;
     auto finalizeFuncEntry =
@@ -134,9 +134,9 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
     finalizeCallOp->addChild(std::move(createDummySink));
     // Append a dummy sink to the end of the second pipeline
-    auto finalizeHNSWDummySink = std::make_unique<DummySink>(
-        std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()), std::move(finalizeCallOp),
-        planMapper->getOperatorID());
+    auto finalizeHNSWDummySink =
+        std::make_unique<DummySink>(std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()),
+            std::move(finalizeCallOp), planMapper->getOperatorID());
     // Append RelBatchInsert pipelines.
     // Get tables from storage.
     const auto storageManager = clientContext->getStorageManager();
