@@ -52,7 +52,7 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
 void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     const auto relBatchInsertInfo = info->ptrCast<RelBatchInsertInfo>();
     // If initialization is required
-    if (!relBatchInsertInfo->tableEntry) {
+    if (info->insertColumnIDs.empty()) {
         const auto clientContext = context->clientContext;
         const auto catalog = clientContext->getCatalog();
         const auto transaction = clientContext->getTransaction();

@@ -133,6 +133,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         bindCopyNodeFromInfo(nodeTableEntry->getName(), nodeTableEntry->getProperties(),
             copyStatement.getSource(), copyStatement.getParsingOptions(), expectedColumnNames,
             expectedColumnTypes, copyStatement.byColumn());
+    boundCopyFromInfo.tableEntry = nodeTableEntry;
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -211,6 +212,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
         bindCopyRelFromInfo(relTableEntry->getName(), relTableEntry->getProperties(),
             copyStatement.getSource(), getScanSourceOptions(copyStatement), expectedColumnNames,
             expectedColumnTypes, srcTableID, dstTableID);
+    boundCopyFromInfo.tableEntry = relTableEntry;
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
