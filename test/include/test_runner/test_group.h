@@ -66,6 +66,7 @@ struct TestStatement {
     std::string removeFilePath;
     // For rewriteTests
     std::string testFilePath;
+    std::string newOutput;
 };
 
 // Test group is a collection of test cases in a single file.
