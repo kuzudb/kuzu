@@ -240,11 +240,10 @@ void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStat
     } 
     std::vector<std::string> resultTuples =
         convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
-    for(size_t i = 0; i < resultTuples.size() - 1; ++i)
-        outFile << resultTuples[i] << '|';
-    if (resultTuples.size())
-        outFile << resultTuples[resultTuples.size() - 1] << std::endl;
-}
+    for(auto testOutput : resultTuples)
+        outFile << testOutput << std::endl;
+    outFile << std::endl;
+ }
 
 
 void TestRunner::outputFailedPlan(Connection& conn, const TestStatement* statement) {
