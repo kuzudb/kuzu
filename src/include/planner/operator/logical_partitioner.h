@@ -19,7 +19,8 @@ struct LogicalPartitionerInfo {
     std::shared_ptr<binder::Expression> offset;
     std::vector<LogicalPartitioningInfo> partitioningInfos;
 
-    explicit LogicalPartitionerInfo(std::shared_ptr<binder::Expression> offset) : offset{std::move(offset)} {}
+    explicit LogicalPartitionerInfo(std::shared_ptr<binder::Expression> offset)
+        : offset{std::move(offset)} {}
     LogicalPartitionerInfo(const LogicalPartitionerInfo& other) : offset{other.offset} {
         for (auto& partitioningInfo : other.partitioningInfos) {
             partitioningInfos.push_back(partitioningInfo.copy());
