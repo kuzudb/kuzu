@@ -32,7 +32,7 @@ private:
     static void checkPlanResult(main::Connection& conn, main::QueryResult* result,
         TestStatement* statement, size_t resultIdx);
     static void writePlanResult(main::Connection& conn, main::QueryResult* result,
-        TestStatement* statement, size_t resultIdx, std::ofstream&);
+        TestStatement* statement, size_t resultIdx); 
 
 
     static void outputFailedPlan(main::Connection& conn, const TestStatement* statement);
