@@ -199,8 +199,7 @@ void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStat
             f+= l + '\n';
         else 
         {
-            getline(file, l); // Add statement
-            f+= l + '\n';
+            f+= l + '\n'; // Add statement
             getline(file, l); // Add result specifier
             f+= l + '\n';
             TestQueryResult& testAnswer = statement->result[resultIdx];
@@ -219,7 +218,7 @@ void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStat
         }
 
     file.close();
-    file.open(statement->testFilePath, std::ios::trunc);
+    file.open(statement->testFilePath, std::ios::trunc | std::ios::out);
     file << f;
 }
 
