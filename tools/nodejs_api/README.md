@@ -102,7 +102,7 @@ npm test
 
 We bundle all prebuilt binaries directly into the npm package, inspired by the approach used by [prebuildify](https://github.com/prebuild/prebuildify).
 
-> This bundling allows faster installations without requiring runtime downloads or post-install scripts. If a matching prebuilt binary is available for your system, it will be extracted and used automatically.
+>  All prebuilt binaries are shipped inside the package that is published to npm, which means there's no need for a separate download step like you find in [`prebuild`](https://github.com/prebuild/prebuild). The irony of this approach is that it is faster to download all prebuilt binaries for every platform when they are bundled than it is to download a single prebuilt binary as an install script.
 
 ### Requirements (for building from source)
 
