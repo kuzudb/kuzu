@@ -190,12 +190,15 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
 void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStatement* statement,
     size_t resultIdx) {
     TestQueryResult& testAnswer = statement->result[resultIdx];
+    statement->testResultType = testAnswer.type;
     std::string f;
     switch (testAnswer.type) 
     {
         case ResultType::OK:
         {
             f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) +'\n';
+            if (!result->isSuccess())
+                    f+=result->getErrorMessage() + '\n';
         }
         break;
         case ResultType::HASH:
@@ -224,10 +227,7 @@ void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStat
         break;
         case ResultType::ERROR_REGEX:
         {
-            if (!result->isSuccess())
-                    return;
-            
-            f += "---- ok";
+            f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) +'\n';
         }
         break;
     }
