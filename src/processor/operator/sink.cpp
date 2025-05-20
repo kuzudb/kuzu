@@ -11,5 +11,5 @@ std::unique_ptr<ResultSet> Sink::getResultSet(storage::MemoryManager* memoryMana
     return std::make_unique<ResultSet>(resultSetDescriptor.get(), memoryManager);
 }
 
-}
-}
+} // namespace processor
+} // namespace kuzu

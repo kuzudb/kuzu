@@ -83,11 +83,11 @@ private:
 
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(PhysicalOperatorType operatorType, std::shared_ptr<HashJoinSharedState> sharedState,
-        std::unique_ptr<HashJoinBuildInfo> info, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{operatorType, std::move(child), id,
-              std::move(printInfo)},
+    HashJoinBuild(PhysicalOperatorType operatorType,
+        std::shared_ptr<HashJoinSharedState> sharedState, std::unique_ptr<HashJoinBuildInfo> info,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{operatorType, std::move(child), id, std::move(printInfo)},
           sharedState{std::move(sharedState)}, info{std::move(info)} {}
 
     std::shared_ptr<HashJoinSharedState> getSharedState() const { return sharedState; }
@@ -99,8 +99,8 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<HashJoinBuild>(operatorType, sharedState,
-            info->copy(), children[0]->copy(), id, printInfo->copy());
+        return make_unique<HashJoinBuild>(operatorType, sharedState, info->copy(),
+            children[0]->copy(), id, printInfo->copy());
     }
 
 protected:

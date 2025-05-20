@@ -36,11 +36,11 @@ class IntersectBuild final : public HashJoinBuild {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INTERSECT_BUILD;
 
 public:
-    IntersectBuild(std::shared_ptr<HashJoinSharedState> sharedState, std::unique_ptr<HashJoinBuildInfo> info,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : HashJoinBuild{type_, std::move(sharedState),
-              std::move(info), std::move(child), id, std::move(printInfo)} {}
+    IntersectBuild(std::shared_ptr<HashJoinSharedState> sharedState,
+        std::unique_ptr<HashJoinBuildInfo> info, std::unique_ptr<PhysicalOperator> child,
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : HashJoinBuild{type_, std::move(sharedState), std::move(info), std::move(child), id,
+              std::move(printInfo)} {}
 
     uint64_t appendVectors() final {
         KU_ASSERT(keyVectors.size() == 1);
@@ -48,8 +48,8 @@ public:
     }
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<IntersectBuild>(sharedState, info->copy(),
-            children[0]->copy(), id, printInfo->copy());
+        return make_unique<IntersectBuild>(sharedState, info->copy(), children[0]->copy(), id,
+            printInfo->copy());
     }
 };
 

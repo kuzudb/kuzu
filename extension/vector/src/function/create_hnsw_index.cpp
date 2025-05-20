@@ -136,7 +136,8 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     // Append a dummy sink to the end of the second pipeline
     auto finalizeHNSWDummySink =
         std::make_unique<DummySink>(std::move(finalizeCallOp), planMapper->getOperatorID());
-    finalizeHNSWDummySink->setDescriptor(std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
+    finalizeHNSWDummySink->setDescriptor(
+        std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
     // Append RelBatchInsert pipelines.
     // Get tables from storage.
     const auto storageManager = clientContext->getStorageManager();

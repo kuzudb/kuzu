@@ -86,8 +86,8 @@ void PartitioningBuffer::merge(const PartitioningBuffer& localPartitioningState)
 Partitioner::Partitioner(PartitionerInfo info, PartitionerDataInfo dataInfo,
     std::shared_ptr<PartitionerSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
     uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-    : Sink{type_, std::move(child), id, std::move(printInfo)},
-      dataInfo{std::move(dataInfo)}, info{std::move(info)}, sharedState{std::move(sharedState)} {
+    : Sink{type_, std::move(child), id, std::move(printInfo)}, dataInfo{std::move(dataInfo)},
+      info{std::move(info)}, sharedState{std::move(sharedState)} {
     partitionIdxes = std::make_unique<ValueVector>(LogicalTypeID::INT64);
 }
 

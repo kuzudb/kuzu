@@ -70,8 +70,8 @@ public:
         std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
-        : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState),
-              id, std::move(printInfo)},
+        : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState), id,
+              std::move(printInfo)},
           partitionerSharedState{std::move(partitionerSharedState)},
           progressSharedState{std::move(progressSharedState)} {}
 

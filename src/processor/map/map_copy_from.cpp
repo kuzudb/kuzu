@@ -41,9 +41,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
         clientContext->getStorageManager()->compressionEnabled(), direction, partitioningIdx,
         offsetVectorIdx, std::move(columnIDs), std::move(columnTypes), numWarningDataColumns);
     auto printInfo = std::make_unique<RelBatchInsertPrintInfo>(copyFromInfo.tableName);
-    auto batchInsert = std::make_unique<RelBatchInsert>(copyFromInfo.tableName, std::move(relBatchInsertInfo),
-        std::move(partitionerSharedState), std::move(sharedState), operatorID, std::move(printInfo),
-        nullptr);
+    auto batchInsert = std::make_unique<RelBatchInsert>(copyFromInfo.tableName,
+        std::move(relBatchInsertInfo), std::move(partitionerSharedState), std::move(sharedState),
+        operatorID, std::move(printInfo), nullptr);
     batchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(outFSchema));
     return batchInsert;
 }
@@ -106,9 +106,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
 
     auto tableName = copyFromInfo->tableName;
     auto printInfo = std::make_unique<NodeBatchInsertPrintInfo>(tableName);
-    auto batchInsert =
-        std::make_unique<NodeBatchInsert>(tableName, std::move(info), std::move(sharedState),
-           std::move(prevOperator), getOperatorID(), std::move(printInfo));
+    auto batchInsert = std::make_unique<NodeBatchInsert>(tableName, std::move(info),
+        std::move(sharedState), std::move(prevOperator), getOperatorID(), std::move(printInfo));
     batchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(copyFrom.getSchema()));
     return batchInsert;
 }
@@ -146,8 +145,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
         expressions.push_back(copyFromInfo.columnExprs[info.keyIdx]);
     }
     auto printInfo = std::make_unique<PartitionerPrintInfo>(expressions);
-    auto partitioner = std::make_unique<Partitioner>(std::move(partitionerInfo), std::move(dataInfo), std::move(sharedState),
-        std::move(prevOperator), getOperatorID(), std::move(printInfo));
+    auto partitioner =
+        std::make_unique<Partitioner>(std::move(partitionerInfo), std::move(dataInfo),
+            std::move(sharedState), std::move(prevOperator), getOperatorID(), std::move(printInfo));
     partitioner->setDescriptor(std::make_unique<ResultSetDescriptor>(outFSchema));
     return partitioner;
 }

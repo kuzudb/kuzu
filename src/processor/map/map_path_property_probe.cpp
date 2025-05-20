@@ -64,9 +64,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         auto nodeHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
             std::move(nodeKeyTypes), nodeBuildInfo->getTableSchema()->copy());
         nodeBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(nodeHashTable));
-        nodeBuild = make_unique<HashJoinBuild>(
-            PhysicalOperatorType::HASH_JOIN_BUILD, nodeBuildSharedState, std::move(nodeBuildInfo),
-            std::move(nodeBuildPrevOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
+        nodeBuild = make_unique<HashJoinBuild>(PhysicalOperatorType::HASH_JOIN_BUILD,
+            nodeBuildSharedState, std::move(nodeBuildInfo), std::move(nodeBuildPrevOperator),
+            getOperatorID(), std::make_unique<OPPrintInfo>());
         nodeBuild->setDescriptor(std::make_unique<ResultSetDescriptor>(nodeBuildSchema));
         auto [fieldIndices, columnIndices] = getColIdxToScan(nodePayloads, nodeKeys.size(),
             ListType::getChildType(
@@ -90,10 +90,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         auto relHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
             std::move(relKeyTypes), relBuildInfo->getTableSchema()->copy());
         relBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(relHashTable));
-        relBuild =
-            std::make_unique<HashJoinBuild>(
-                PhysicalOperatorType::HASH_JOIN_BUILD, relBuildSharedState, std::move(relBuildInfo),
-                std::move(relBuildPrvOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
+        relBuild = std::make_unique<HashJoinBuild>(PhysicalOperatorType::HASH_JOIN_BUILD,
+            relBuildSharedState, std::move(relBuildInfo), std::move(relBuildPrvOperator),
+            getOperatorID(), std::make_unique<OPPrintInfo>());
         relBuild->setDescriptor(std::make_unique<ResultSetDescriptor>(relBuildSchema));
         auto [fieldIndices, columnIndices] = getColIdxToScan(relPayloads, relKeys.size(),
             ListType::getChildType(

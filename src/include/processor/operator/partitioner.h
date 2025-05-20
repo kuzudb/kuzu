@@ -162,7 +162,8 @@ class Partitioner final : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PARTITIONER;
 
 public:
-    Partitioner(PartitionerInfo info, PartitionerDataInfo dataInfo, std::shared_ptr<PartitionerSharedState> sharedState,
+    Partitioner(PartitionerInfo info, PartitionerDataInfo dataInfo,
+        std::shared_ptr<PartitionerSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo);
 
@@ -173,8 +174,8 @@ public:
     std::shared_ptr<PartitionerSharedState> getSharedState() { return sharedState; }
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<Partitioner>(info.copy(), dataInfo.copy(),
-            sharedState, children[0]->copy(), id, printInfo->copy());
+        return std::make_unique<Partitioner>(info.copy(), dataInfo.copy(), sharedState,
+            children[0]->copy(), id, printInfo->copy());
     }
 
     static void initializePartitioningStates(const common::logical_type_vec_t& columnTypes,
