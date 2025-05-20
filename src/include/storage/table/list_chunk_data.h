@@ -107,7 +107,7 @@ public:
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
     void flush(FileHandle& dataFH) override;
-    void reclaimStorage(FileHandle& dataFH) override;
+    void reclaimStorage(PageManager& pageManager) override;
 
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);

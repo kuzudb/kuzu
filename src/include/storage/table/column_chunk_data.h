@@ -17,6 +17,9 @@
 #include "storage/table/column_reader_writer.h"
 #include "storage/table/in_memory_exception_chunk.h"
 
+namespace kuzu::storage {
+class PageManager;
+}
 namespace kuzu {
 namespace evaluator {
 class ExpressionEvaluator;
@@ -236,7 +239,7 @@ public:
 
     void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
 
-    virtual void reclaimStorage(FileHandle& dataFH);
+    virtual void reclaimStorage(PageManager& pageManager);
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in

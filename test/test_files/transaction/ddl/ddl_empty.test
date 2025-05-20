@@ -586,6 +586,11 @@ Binder exception: Cannot find property since for k.
 -STATEMENT CALL storage_info('movies') where start_page_idx = 0 return count(*)
 ---- 1
 0
+-STATEMENT match (m:movies) return m.name, m.length
+---- 3
+Sóló cón tu párejâ|126
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544
+Roma|298
 
 -CASE DropNodeTableRollbackRecovery
 -SKIP_IN_MEM

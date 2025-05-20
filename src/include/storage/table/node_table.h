@@ -193,7 +193,7 @@ public:
         LocalTable* localTable) override;
     bool checkpoint(catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override;
-    void reclaimStorage(FileHandle& dataFH) override;
+    void reclaimStorage(PageManager& pageManager) const override;
 
     void rollbackPKIndexInsert(transaction::Transaction* transaction, common::row_idx_t startRow,
         common::row_idx_t numRows_, common::node_group_idx_t nodeGroupIdx_);

@@ -153,8 +153,7 @@ public:
         common::transaction_t commitTS);
     void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
         common::transaction_t commitTS);
-    virtual void reclaimStorage(FileHandle& dataFH);
-    void reclaimColumn(FileHandle& dataFH, common::column_id_t columnID);
+    virtual void reclaimStorage(PageManager& pageManager) const;
 
     uint64_t getEstimatedMemoryUsage() const;
 

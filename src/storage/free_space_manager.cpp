@@ -16,7 +16,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -162,6 +162,7 @@ void FreeSpaceManager::mergePageRanges(free_list_t newInitialEntries, FileHandle
     PageRange prevEntry = allEntries[0];
     for (common::row_idx_t i = 1; i < allEntries.size(); ++i) {
         const auto& entry = allEntries[i];
+        KU_ASSERT(prevEntry.startPageIdx + prevEntry.numPages <= entry.startPageIdx);
         if (prevEntry.startPageIdx + prevEntry.numPages == entry.startPageIdx) {
             prevEntry.numPages += entry.numPages;
         } else {

@@ -249,6 +249,19 @@ void DiskArrayInternal::checkpoint() {
     }
 }
 
+void DiskArrayInternal::reclaimStorage(PageManager& pageManager) const {
+    for (auto& pip : pips) {
+        for (auto pageIdx : pip.pipContents.pageIdxs) {
+            if (pageIdx != ShadowUtils::NULL_PAGE_IDX) {
+                pageManager.freePage(pageIdx);
+            }
+        }
+        if (pip.pipPageIdx != ShadowUtils::NULL_PAGE_IDX) {
+            pageManager.freePage(pip.pipPageIdx);
+        }
+    }
+}
+
 bool DiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) const {
     // This is a request to a pipIdx > pips.size(). Since pips.size() is the original number of pips
     // we started with before the write transaction is updated, we return true, i.e., this PIP is
@@ -274,7 +287,7 @@ DiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
         KU_ASSERT(apIdx == getNumAPs(headerForWriteTrx));
         // We need to add a new AP. This may further cause a new pip to be inserted, which is
         // handled by the if/else-if/else branch below.
-        page_idx_t newAPPageIdx = fileHandle.addNewPage();
+        page_idx_t newAPPageIdx = fileHandle.getPageManager()->allocatePage();
         // We need to create a new array page and then add its apPageIdx (newAPPageIdx variable) to
         // an appropriate PIP.
         auto pipIdxAndOffsetOfNewAP =
@@ -296,7 +309,7 @@ DiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
             pip.pipContents.pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
         } else {
             // We need to create a new PIP and make the previous PIP (or the header) point to it.
-            auto pipPageIdx = fileHandle.addNewPage();
+            page_idx_t pipPageIdx = fileHandle.getPageManager()->allocatePage();
             pipUpdates.newPIPs.emplace_back(pipPageIdx);
             uint64_t pipIdxOfPreviousPIP = pipIdx - 1;
             setNextPIPPageIDxOfPIPNoLock(pipIdxOfPreviousPIP, pipPageIdx);

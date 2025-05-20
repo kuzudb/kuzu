@@ -126,6 +126,12 @@ void HashIndex<T>::rollbackCheckpoint() {
 }
 
 template<typename T>
+void HashIndex<T>::reclaimStorage(PageManager& pageManager) {
+    pSlots->reclaimStorage(pageManager);
+    oSlots->reclaimStorage(pageManager);
+}
+
+template<typename T>
 void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& header,
     slot_id_t numSlotsToSplit) {
     auto originalSlotIterator = pSlots->iter_mut();
@@ -149,7 +155,7 @@ void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& h
         Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
         do {
             for (entry_pos_t originalEntryPos = 0; originalEntryPos < getSlotCapacity<T>();
-                 originalEntryPos++) {
+                originalEntryPos++) {
                 if (!originalSlot->header.isEntryValid(originalEntryPos)) {
                     continue; // Skip invalid entries.
                 }
@@ -295,10 +301,9 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
     // may not be consecutive, but we reduce the memory overhead for storing the information about
     // the sorted data and still just process each page once.
     for (uint64_t localSlotId = 0; localSlotId < insertLocalStorage.numPrimarySlots();
-         localSlotId += NUM_SLOTS_PER_PAGE) {
+        localSlotId += NUM_SLOTS_PER_PAGE) {
         for (size_t i = 0;
-             i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots();
-             i++) {
+            i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots(); i++) {
             auto localSlot =
                 typename InMemHashIndex<T>::SlotIterator(localSlotId + i, &insertLocalStorage);
             partitionedEntries[i].clear();
@@ -459,7 +464,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStora
                 [&](auto* frame) {
                     const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                     for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                         i++) {
+                        i++) {
                         hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
                         headerIdx++;
                     }
@@ -593,8 +598,9 @@ void PrimaryKeyIndex::writeHeaders() const {
     size_t headerIdx = 0;
     auto& hashIndexStorageInfo = storageInfo->cast<PrimaryKeyIndexStorageInfo>();
     if (hashIndexStorageInfo.firstHeaderPage == INVALID_PAGE_IDX) {
-        hashIndexStorageInfo.firstHeaderPage =
-            fileHandle->addNewPages(NUM_HEADER_PAGES + 1 /*first DiskArrayCollection header page*/);
+        const auto allocatedPages = fileHandle->getPageManager()->allocatePageRange(
+            NUM_HEADER_PAGES + 1 /*first DiskArrayCollection header page*/);
+        hashIndexStorageInfo.firstHeaderPage = allocatedPages.startPageIdx;
     }
     for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
         ShadowUtils::updatePage(*fileHandle, hashIndexStorageInfo.firstHeaderPage + headerPageIdx,
@@ -602,7 +608,7 @@ void PrimaryKeyIndex::writeHeaders() const {
             [&](auto* frame) {
                 const auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
+                    i++) {
                     hashIndexHeadersForWriteTrx[headerIdx++].write(onDiskFrame[i]);
                 }
             });
@@ -631,8 +637,7 @@ void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
     }
     if (indexChanged || forceCheckpointAll) {
         writeHeaders();
-        const auto& hashIndexStorageInfo = storageInfo->cast<PrimaryKeyIndexStorageInfo>();
-        hashIndexDiskArrays->checkpoint(hashIndexStorageInfo.firstHeaderPage + NUM_HEADER_PAGES);
+        hashIndexDiskArrays->checkpoint(getDiskArrayFirstHeaderPage());
     }
     if (overflowFile) {
         overflowFile->checkpoint(forceCheckpointAll);
@@ -657,6 +662,25 @@ std::unique_ptr<Index> PrimaryKeyIndex::load(main::ClientContext* context,
     return std::make_unique<PrimaryKeyIndex>(indexInfo, std::move(storageInfo),
         storageManager->isInMemory(), *context->getMemoryManager(), storageManager->getDataFH(),
         &storageManager->getShadowFile());
+}
+
+void PrimaryKeyIndex::reclaimStorage(PageManager& pageManager) const {
+    for (auto& hashIndex : hashIndices) {
+        hashIndex->reclaimStorage(pageManager);
+    }
+    hashIndexDiskArrays->reclaimStorage(pageManager, getDiskArrayFirstHeaderPage());
+    if (overflowFile) {
+        overflowFile->reclaimStorage(pageManager);
+    }
+    fileHandle->getPageManager()->freePageRange({getFirstHeaderPage(), NUM_HEADER_PAGES});
+}
+
+page_idx_t PrimaryKeyIndex::getDiskArrayFirstHeaderPage() const {
+    return getFirstHeaderPage() + NUM_HEADER_PAGES;
+}
+
+page_idx_t PrimaryKeyIndex::getFirstHeaderPage() const {
+    return storageInfo->cast<PrimaryKeyIndexStorageInfo>().firstHeaderPage;
 }
 
 } // namespace storage

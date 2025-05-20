@@ -87,10 +87,10 @@ void StructChunkData::flush(FileHandle& dataFH) {
     }
 }
 
-void StructChunkData::reclaimStorage(FileHandle& dataFH) {
-    ColumnChunkData::reclaimStorage(dataFH);
+void StructChunkData::reclaimStorage(PageManager& pageManager) {
+    ColumnChunkData::reclaimStorage(pageManager);
     for (const auto& childChunk : childChunks) {
-        childChunk->reclaimStorage(dataFH);
+        childChunk->reclaimStorage(pageManager);
     }
 }
 

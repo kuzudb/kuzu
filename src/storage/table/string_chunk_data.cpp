@@ -256,11 +256,11 @@ void StringChunkData::flush(FileHandle& dataFH) {
     dictionaryChunk->flush(dataFH);
 }
 
-void StringChunkData::reclaimStorage(FileHandle& dataFH) {
-    ColumnChunkData::reclaimStorage(dataFH);
-    indexColumnChunk->reclaimStorage(dataFH);
-    dictionaryChunk->getOffsetChunk()->reclaimStorage(dataFH);
-    dictionaryChunk->getStringDataChunk()->reclaimStorage(dataFH);
+void StringChunkData::reclaimStorage(PageManager& pageManager) {
+    ColumnChunkData::reclaimStorage(pageManager);
+    indexColumnChunk->reclaimStorage(pageManager);
+    dictionaryChunk->getOffsetChunk()->reclaimStorage(pageManager);
+    dictionaryChunk->getStringDataChunk()->reclaimStorage(pageManager);
 }
 
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {

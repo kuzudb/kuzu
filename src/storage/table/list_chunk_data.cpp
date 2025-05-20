@@ -441,11 +441,11 @@ void ListChunkData::flush(FileHandle& dataFH) {
     offsetColumnChunk->flush(dataFH);
 }
 
-void ListChunkData::reclaimStorage(FileHandle& dataFH) {
-    ColumnChunkData::reclaimStorage(dataFH);
-    sizeColumnChunk->reclaimStorage(dataFH);
-    dataColumnChunk->reclaimStorage(dataFH);
-    offsetColumnChunk->reclaimStorage(dataFH);
+void ListChunkData::reclaimStorage(PageManager& pageManager) {
+    ColumnChunkData::reclaimStorage(pageManager);
+    sizeColumnChunk->reclaimStorage(pageManager);
+    dataColumnChunk->reclaimStorage(pageManager);
+    offsetColumnChunk->reclaimStorage(pageManager);
 }
 
 } // namespace storage

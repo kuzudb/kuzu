@@ -260,13 +260,13 @@ void ChunkedCSRNodeGroup::flush(FileHandle& dataFH) {
     }
 }
 
-void ChunkedCSRNodeGroup ::reclaimStorage(FileHandle& dataFH) {
-    ChunkedNodeGroup::reclaimStorage(dataFH);
+void ChunkedCSRNodeGroup ::reclaimStorage(PageManager& pageManager) const {
+    ChunkedNodeGroup::reclaimStorage(pageManager);
     if (csrHeader.offset) {
-        csrHeader.offset->reclaimStorage(dataFH);
+        csrHeader.offset->reclaimStorage(pageManager);
     }
     if (csrHeader.length) {
-        csrHeader.length->reclaimStorage(dataFH);
+        csrHeader.length->reclaimStorage(pageManager);
     }
 }
 

@@ -16,11 +16,30 @@ namespace storage {
 
 class OverflowFile;
 
+// Stores the current state of the overflow file
+// The cursors in use are stored here so that we can write new pages directly
+// to the overflow file, and in the case of an interruption and rollback the header will
+// still record the correct place in the file to allocate new pages
+//
+// The first page managed by each handle is also stored for cases where we wish to iterate through
+// all the managed pages (e.g. when reclaiming pages)
+struct StringOverflowFileHeader {
+    struct Entry {
+        common::page_idx_t startPageIdx{common::INVALID_PAGE_IDX};
+        PageCursor cursor;
+    } entries[NUM_HASH_INDEXES];
+
+    // pages starts at one to reserve space for this header
+    StringOverflowFileHeader() : entries{} {}
+};
+static_assert(std::has_unique_object_representations_v<StringOverflowFileHeader>);
+
 class OverflowFileHandle {
 
 public:
-    OverflowFileHandle(OverflowFile& overflowFile, PageCursor& nextPosToWriteTo)
-        : nextPosToWriteTo(nextPosToWriteTo), overflowFile{overflowFile} {}
+    OverflowFileHandle(OverflowFile& overflowFile, StringOverflowFileHeader::Entry& entry)
+        : startPageIdx(entry.startPageIdx), nextPosToWriteTo(entry.cursor),
+          overflowFile{overflowFile} {}
     // The OverflowFile stores the handles and returns pointers to them.
     // Moving the handle would invalidate those pointers
     OverflowFileHandle(OverflowFileHandle&& other) = delete;
@@ -42,6 +61,7 @@ public:
         pageWriteCache.clear();
         this->nextPosToWriteTo = nextPosToWriteTo_;
     }
+    void reclaimStorage(PageManager& pageManager);
 
 private:
     uint8_t* addANewPage();
@@ -54,25 +74,14 @@ private:
 private:
     static constexpr common::page_idx_t END_OF_PAGE =
         common::KUZU_PAGE_SIZE - sizeof(common::page_idx_t);
+    // Index of the first page managed by this handle
+    common::page_idx_t& startPageIdx;
     // This is the index of the last free byte to which we can write.
     PageCursor& nextPosToWriteTo;
     OverflowFile& overflowFile;
     // Cached pages which have been written in the current transaction
     std::unordered_map<common::page_idx_t, std::unique_ptr<MemoryBuffer>> pageWriteCache;
 };
-
-// Stores the current state of the overflow file
-// The number of pages in use are stored here so that we can write new pages directly
-// to the overflow file, and in the case of an interruption and rollback the header will
-// still record the correct place in the file to allocate new pages
-struct StringOverflowFileHeader {
-    common::page_idx_t pages;
-    PageCursor cursors[NUM_HASH_INDEXES];
-
-    // pages starts at one to reserve space for this header
-    StringOverflowFileHeader() : pages{1}, cursors{} {}
-};
-static_assert(std::has_unique_object_representations_v<StringOverflowFileHeader>);
 
 class OverflowFile {
     friend class OverflowFileHandle;
@@ -91,10 +100,12 @@ public:
     void checkpoint(bool forceUpdateHeader);
     void checkpointInMemory();
 
+    void reclaimStorage(PageManager& pageManager) const;
+
     OverflowFileHandle* addHandle() {
         KU_ASSERT(handles.size() < NUM_HASH_INDEXES);
         handles.emplace_back(
-            std::make_unique<OverflowFileHandle>(*this, header.cursors[handles.size()]));
+            std::make_unique<OverflowFileHandle>(*this, header.entries[handles.size()]));
         return handles.back().get();
     }
 
@@ -110,7 +121,7 @@ protected:
         // If this isn't the first call reserving the page header, then the header flag must be set
         // prior to this
         if (fileHandle) {
-            return fileHandle->addNewPage();
+            return fileHandle->getPageManager()->allocatePage();
         } else {
             return pageCounter.fetch_add(1);
         }

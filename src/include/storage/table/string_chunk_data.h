@@ -61,7 +61,7 @@ public:
     void finalize() override;
 
     void flush(FileHandle& dataFH) override;
-    void reclaimStorage(FileHandle& dataFH) override;
+    void reclaimStorage(PageManager& pageManager) override;
 
     void resetNumValuesFromMetadata() override;
     void syncNumValues() override {

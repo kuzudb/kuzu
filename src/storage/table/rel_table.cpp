@@ -439,9 +439,9 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     localRelTable.clear();
 }
 
-void RelTable::reclaimStorage(FileHandle& dataFH) {
+void RelTable::reclaimStorage(PageManager& pageManager) const {
     for (auto& relData : directedRelData) {
-        relData->reclaimStorage(dataFH);
+        relData->reclaimStorage(pageManager);
     }
 }
 

@@ -54,13 +54,15 @@ void Checkpointer::writeCheckpoint() {
     // Serialize the catalog if there are changes
     if (databaseHeader.catalogPageRange.startPageIdx == common::INVALID_PAGE_IDX ||
         catalog->changedSinceLastCheckpoint()) {
-        databaseHeader.catalogPageRange = serializeCatalog(*catalog, *storageManager);
+        databaseHeader.updateCatalogPageRange(*dataFH->getPageManager(),
+            serializeCatalog(*catalog, *storageManager));
     }
     // Serialize the storage metadata if there are changes
     if (databaseHeader.metadataPageRange.startPageIdx == common::INVALID_PAGE_IDX ||
         hasStorageChanges || catalog->changedSinceLastCheckpoint() ||
         dataFH->getPageManager()->changedSinceLastCheckpoint()) {
-        databaseHeader.metadataPageRange = serializeMetadata(*catalog, *storageManager);
+        databaseHeader.updateMetadataPageRange(*dataFH->getPageManager(),
+            serializeMetadata(*catalog, *storageManager));
     }
 
     writeDatabaseHeader(databaseHeader);
@@ -244,6 +246,20 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     storageManager->deserialize(context, catalog, deSer);
+}
+
+void DatabaseHeader::updateCatalogPageRange(PageManager& pageManager, PageRange newPageRange) {
+    if (catalogPageRange.startPageIdx != common::INVALID_PAGE_IDX) {
+        pageManager.freePageRange(catalogPageRange);
+    }
+    catalogPageRange = newPageRange;
+}
+
+void DatabaseHeader::updateMetadataPageRange(PageManager& pageManager, PageRange newPageRange) {
+    if (metadataPageRange.startPageIdx != common::INVALID_PAGE_IDX) {
+        pageManager.freePageRange(metadataPageRange);
+    }
+    metadataPageRange = newPageRange;
 }
 
 } // namespace storage

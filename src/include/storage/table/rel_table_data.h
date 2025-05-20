@@ -97,7 +97,7 @@ public:
 
     TableStats getStats() const { return nodeGroups->getStats(); }
 
-    void reclaimStorage(FileHandle& dataFH);
+    void reclaimStorage(PageManager& pageManager) const;
     void checkpoint(const std::vector<common::column_id_t>& columnIDs);
 
     void pushInsertInfo(const transaction::Transaction* transaction, const CSRNodeGroup& nodeGroup,

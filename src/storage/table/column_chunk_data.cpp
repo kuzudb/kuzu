@@ -1008,13 +1008,13 @@ uint64_t ColumnChunkData::spillToDisk() {
     return spilledBytes;
 }
 
-void ColumnChunkData::reclaimStorage(FileHandle& dataFH) {
+void ColumnChunkData::reclaimStorage(PageManager& pageManager) {
     if (nullData) {
-        nullData->reclaimStorage(dataFH);
+        nullData->reclaimStorage(pageManager);
     }
     if (residencyState == ResidencyState::ON_DISK) {
         if (metadata.getStartPageIdx() != INVALID_PAGE_IDX) {
-            dataFH.getPageManager()->freePageRange(metadata.pageRange);
+            pageManager.freePageRange(metadata.pageRange);
         }
     }
 }
