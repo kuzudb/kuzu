@@ -180,14 +180,10 @@ class HashAggregateFinalize final : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::AGGREGATE_FINALIZE;
 
 public:
-    HashAggregateFinalize(std::shared_ptr<HashAggregateSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+    HashAggregateFinalize(std::shared_ptr<HashAggregateSharedState> sharedState, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{type_, std::move(child), id, std::move(printInfo)},
-          sharedState{std::move(sharedState)} {}
+        : Sink{type_, id, std::move(printInfo)}, sharedState{std::move(sharedState)} {}
 
-    // Otherwise the runtime metrics for this operator are negative
-    // since it doesn't call children[0]->getNextTuple
     bool isSource() const override { return true; }
 
     void executeInternal(ExecutionContext* /*context*/) override {
@@ -199,8 +195,7 @@ public:
     }
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<HashAggregateFinalize>(sharedState, children[0]->copy(), id,
-            printInfo->copy());
+        return make_unique<HashAggregateFinalize>(sharedState, id, printInfo->copy());
     }
 
 private:

@@ -50,13 +50,6 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, id, std::move(printInfo)}, info{std::move(info)},
           sharedState{std::move(sharedState)} {}
-    // When exporting a kuzu database, we may have multiple copy to statements as children of the
-    // FactorizedTableScan function.
-    TableFunctionCall(TableFunctionCallInfo info,
-        std::shared_ptr<function::TableFuncSharedState> sharedState, physical_op_vector_t children,
-        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(children), id, std::move(printInfo)},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     const TableFunctionCallInfo& getInfo() const { return info; }
     std::shared_ptr<function::TableFuncSharedState> getSharedState() const { return sharedState; }

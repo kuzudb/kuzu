@@ -32,9 +32,9 @@ class Intersect : public PhysicalOperator {
 public:
     Intersect(const DataPos& outputDataPos, std::vector<IntersectDataInfo> intersectDataInfos,
         std::vector<std::shared_ptr<HashJoinSharedState>> sharedHTs,
-        std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
+        std::unique_ptr<PhysicalOperator> probeChild, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(children), id, std::move(printInfo)},
+        : PhysicalOperator{type_, std::move(probeChild), id, std::move(printInfo)},
           outputDataPos{outputDataPos}, intersectDataInfos{std::move(intersectDataInfos)},
           sharedHTs{std::move(sharedHTs)} {
         tupleIdxPerBuildSide.resize(this->sharedHTs.size(), 0);
@@ -47,10 +47,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        std::vector<std::unique_ptr<PhysicalOperator>> childrenCopy;
-        childrenCopy.push_back(children[0]->copy());
         return std::make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedHTs,
-            std::move(childrenCopy), id, printInfo->copy());
+            children[0]->copy(), id, printInfo->copy());
     }
 
 private:

@@ -58,7 +58,7 @@ public:
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           executors{std::move(executors)} {}
 
-    inline bool isParallel() const override { return false; }
+    bool isParallel() const override { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

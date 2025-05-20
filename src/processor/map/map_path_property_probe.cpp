@@ -150,17 +150,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     pathProbeInfo.extendFromLeft = logicalProbe.extendFromLeft;
     auto pathProbeSharedState =
         std::make_shared<PathPropertyProbeSharedState>(nodeBuildSharedState, relBuildSharedState);
-    std::vector<std::unique_ptr<PhysicalOperator>> children;
-    children.push_back(std::move(prevOperator));
-    if (nodeBuild != nullptr) {
-        children.push_back(std::move(nodeBuild));
-    }
-    if (relBuild != nullptr) {
-        children.push_back(std::move(relBuild));
-    }
     auto printInfo = std::make_unique<OPPrintInfo>();
     auto pathPropertyProbe = std::make_unique<PathPropertyProbe>(std::move(pathProbeInfo),
-        pathProbeSharedState, std::move(children), getOperatorID(), std::move(printInfo));
+        pathProbeSharedState, std::move(prevOperator), getOperatorID(), std::move(printInfo));
+    if (nodeBuild != nullptr) {
+        pathPropertyProbe->addChild(std::move(nodeBuild));
+    }
+    if (relBuild != nullptr) {
+        pathPropertyProbe->addChild(std::move(relBuild));
+    }
     if (logicalProbe.getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
         mapSIPJoin(pathPropertyProbe.get());
     }
