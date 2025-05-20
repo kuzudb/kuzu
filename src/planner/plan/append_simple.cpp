@@ -47,16 +47,18 @@ static LogicalPlan getSimplePlan(std::shared_ptr<LogicalOperator> op) {
 LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
     auto& createTable = statement.constCast<BoundCreateTable>();
     auto& info = createTable.getInfo();
-
-    // If it is a CREATE NODE TABLE AS, then copy as well
+    // If CREATE NODE/REL TABLE AS
     if (createTable.hasCopyInfo()) {
         // TODO(Xiyang): we should get rid of this dummyStr if CREATE TABLE AS has actual output.
         // Currently, we need dummyStr as placeholder for the createTable & copy pipeline output
         // messages. even though we do NOT actually output them
         auto dummyStr = std::make_shared<LiteralExpression>(Value("dummy"), "dummy");
         std::vector<std::shared_ptr<LogicalOperator>> children;
-        auto copyPlan = planCopyNodeFrom(&createTable.getCopyInfo(), {dummyStr});
-        children.push_back(copyPlan.getLastOperator());
+        if (info.type == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
+            children.push_back(planCopyNodeFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
+        } else {
+            children.push_back(planCopyRelFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
+        }
         auto create = std::make_shared<LogicalCreateTable>(info.copy(), dummyStr);
         auto dummySink = std::make_shared<LogicalDummySink>(std::move(create));
         children.push_back(std::move(dummySink));

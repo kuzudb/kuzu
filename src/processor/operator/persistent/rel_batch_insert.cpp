@@ -52,13 +52,13 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
 void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     const auto relBatchInsertInfo = info->ptrCast<RelBatchInsertInfo>();
     // If initialization is required
-    if (info->insertColumnIDs.empty()) {
+    if (!relBatchInsertInfo->tableEntry) {
         const auto clientContext = context->clientContext;
         const auto catalog = clientContext->getCatalog();
         const auto transaction = clientContext->getTransaction();
         const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
         const auto& relTableEntry = tableEntry->constCast<RelTableCatalogEntry>();
-
+        relBatchInsertInfo->tableEntry = tableEntry;
         sharedState->table = partitionerSharedState->relTable;
         logical_type_vec_t newColumnTypes;
         newColumnTypes.push_back(LogicalType::INTERNAL_ID());

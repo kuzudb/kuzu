@@ -66,8 +66,8 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto createTableInfo = CreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, tableName,
         getConflictAction(ctx.kU_IfNotExists()));
+    // If CREATE NODE TABLE AS syntax
     if (ctx.oC_Query()) {
-        // If CREATE NODE TABLE AS syntax
         return std::make_unique<CreateTable>(std::move(createTableInfo),
             std::make_unique<QueryScanSource>(transformQuery(*ctx.oC_Query())));
     } else {
@@ -103,6 +103,10 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     std::unique_ptr<ExtraCreateTableInfo> extraInfo;
     auto entryType = CatalogEntryType::DUMMY_ENTRY;
     if (requireRelGroup(fromToPairs)) {
+        if (ctx.oC_Query()) {
+            // Currently we don't support multiple from/to pairs for CREATE REL TABLE AS
+            throw ParserException("Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.");
+        }
         entryType = CatalogEntryType::REL_GROUP_ENTRY;
         extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
             std::move(fromToPairs), std::move(options));
@@ -113,12 +117,18 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     }
     auto conflictAction = getConflictAction(ctx.kU_IfNotExists());
     auto createTableInfo = CreateTableInfo(entryType, tableName, conflictAction);
-    if (ctx.kU_PropertyDefinitions()) {
-        createTableInfo.propertyDefinitions =
-            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
-    }
     createTableInfo.extraInfo = std::move(extraInfo);
-    return std::make_unique<CreateTable>(std::move(createTableInfo));
+    // If CREATE REL TABLE AS syntax
+    if (ctx.oC_Query()) {
+        auto scanSource = std::make_unique<QueryScanSource>(transformQuery(*ctx.oC_Query()));
+        return std::make_unique<CreateTable>(std::move(createTableInfo), std::move(scanSource));
+    } else {
+        if (ctx.kU_PropertyDefinitions()) {
+            createTableInfo.propertyDefinitions =
+                transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+        }
+        return std::make_unique<CreateTable>(std::move(createTableInfo));
+    }
 }
 
 std::unique_ptr<Statement> Transformer::transformCreateSequence(

@@ -25,9 +25,13 @@ static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan&
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
     auto tableEntry = copyFromInfo.tableEntry;
-    const auto* tableCatalogEntry = tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
-    LogicalPartitionerInfo info(tableEntry, copyFromInfo.offset);
-    for (auto direction : tableCatalogEntry->getRelDataDirections()) {
+    LogicalPartitionerInfo info(copyFromInfo.offset);
+    std::vector<RelDataDirection> directions = {RelDataDirection::FWD, RelDataDirection::BWD};
+    // If table entry doesn't exist, assume both directions
+    if (tableEntry) {
+        directions = tableEntry->constCast<RelTableCatalogEntry>().getRelDataDirections();
+    }
+    for (auto direction : directions) {
         info.partitioningInfos.push_back(
             LogicalPartitioningInfo(RelDirectionUtils::relDirectionToKeyIdx(direction)));
     }

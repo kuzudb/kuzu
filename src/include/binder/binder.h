@@ -6,6 +6,7 @@
 #include "binder/query/query_graph.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/file_scan_info.h"
+#include "parser/ddl/create_table.h"
 #include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 
@@ -106,7 +107,7 @@ public:
         const parser::options_t& parsedOptions);
     BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCreateTableAs(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateTableAs(const parser::CreateTable& createTable);
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement) const;
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement) const;
 
@@ -132,6 +133,11 @@ public:
         const parser::options_t& parsingOptions,
         const std::vector<std::string>& expectedColumnNames,
         const std::vector<common::LogicalType>& expectedColumnTypes, bool byColumn);
+    BoundCopyFromInfo bindCopyRelFromInfo(std::string tableName,
+        const std::vector<PropertyDefinition>& properties, const parser::BaseScanSource* source,
+        const parser::options_t& options,
+        const std::vector<std::string>& expectedColumnNames,
+        const std::vector<common::LogicalType>& expectedColumnTypes, common::table_id_t srcTableID, common::table_id_t dstTableID);
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
         catalog::NodeTableCatalogEntry* nodeTableEntry);

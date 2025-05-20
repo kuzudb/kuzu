@@ -96,8 +96,7 @@ void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
     // If initialization is required
     if (!sharedState->srcNodeTable) {
         const auto storageManager = clientContext->getStorageManager();
-        const auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(
-            clientContext->getTransaction(), dataInfo.tableName);
+        const auto tableEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(), dataInfo.tableName);
         const auto& relTableEntry = tableEntry->constCast<catalog::RelTableCatalogEntry>();
         sharedState->srcNodeTable =
             storageManager->getTable(relTableEntry.getSrcTableID())->ptrCast<NodeTable>();

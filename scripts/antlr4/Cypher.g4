@@ -329,15 +329,14 @@ kU_IfNotExists
     : IF SP NOT SP EXISTS ;
 
 kU_CreateNodeTable
-    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName ( SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint )? SP? ')' | SP AS SP? SP? oC_Query SP? ) ;
+    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName ( SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint )? SP? ')' | SP AS SP oC_Query ) ;
 
 kU_CreateRelTable
     : CREATE SP REL SP TABLE ( SP GROUP )? ( SP kU_IfNotExists )? SP oC_SchemaName
-        SP? '(' SP?
-            kU_FromToConnections SP?
+        SP? '(' SP? kU_FromToConnections SP? (
             ( ',' SP? kU_PropertyDefinitions SP? )?
             ( ',' SP? oC_SymbolicName SP? )? // Constraints
-        ')'
+            | ')' SP AS SP? '(' SP? oC_Query SP? ) ')'
          ( SP WITH SP? '(' SP? kU_Options SP? ')')? ;
 
 kU_FromToConnections
