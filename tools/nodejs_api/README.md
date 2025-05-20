@@ -1,88 +1,149 @@
-## Kuzu Node.js API
 
-### Install
+# Kuzu Node.js API
 
+A high-performance graph database for knowledge-intensive applications. This Node.js wrapper enables interaction with the Kuzu database via JavaScript or TypeScript using either **CommonJS** or **ES Modules**.
+
+---
+
+## 📦 Installation
+
+```bash
+npm install kuzu
 ```
-npm i kuzu
-```
 
-### Example usage
+---
+
+## 🚀 Quick Start
+
+### Example (ES Modules)
 
 ```js
-// Import library
-const kuzu = require("kuzu");
+// Import the Kùzu module (ESM)
+import { Database, Connection } from "kuzu";
 
-(async () => {
-  // Create an empty database and connect to it
-  const db = new kuzu.Database("./test");
-  const conn = new kuzu.Connection(db);
+const main = async () => {
+  // Initialize database and connection
+  const db = new Database("./test");
+  const conn = new Connection(db);
 
-  // Create the tables
-  await conn.query(
-    "CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))"
-  );
-  await conn.query(
-    "CREATE NODE TABLE City(name STRING, population INT64, PRIMARY KEY (name))"
-  );
-  await conn.query("CREATE REL TABLE Follows(FROM User TO User, since INT64)");
-  await conn.query("CREATE REL TABLE LivesIn(FROM User TO City)");
+  // Define schema
+  await conn.query(`
+    CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
+  `);
+  await conn.query(`
+    CREATE NODE TABLE City(name STRING, population INT64, PRIMARY KEY (name));
+  `);
+  await conn.query(`
+    CREATE REL TABLE Follows(FROM User TO User, since INT64);
+  `);
+  await conn.query(`
+    CREATE REL TABLE LivesIn(FROM User TO City);
+  `);
 
-  // Load the data
-  await conn.query('COPY User FROM "user.csv"');
-  await conn.query('COPY City FROM "city.csv"');
-  await conn.query('COPY Follows FROM "follows.csv"');
-  await conn.query('COPY LivesIn FROM "lives-in.csv"');
+  // Load data from CSV files
+  await conn.query(`COPY User FROM "user.csv"`);
+  await conn.query(`COPY City FROM "city.csv"`);
+  await conn.query(`COPY Follows FROM "follows.csv"`);
+  await conn.query(`COPY LivesIn FROM "lives-in.csv"`);
 
-  const queryResult = await conn.query("MATCH (u:User) RETURN u.name, u.age;");
+  // Run a query
+  const result = await conn.query("MATCH (u:User) RETURN u.name, u.age;");
 
-  // Get all rows from the query result
-  const rows = await queryResult.getAll();
+  // Fetch all results
+  const rows = await result.getAll();
 
-  // Print the rows
+  // Output results
   for (const row of rows) {
     console.log(row);
   }
-})();
+};
+
+main().catch(console.error);
+```
+ ✅ The dataset used in this example can be found in the [official Kuzu repository](https://github.com/kuzudb/kuzu/tree/master/dataset/demo-db/csv).
+
+---
+
+## 📚 API Overview
+
+The `kuzu` package exposes the following primary classes:
+
+* `Database` – Initializes a database from a file path.
+* `Connection` – Executes queries on a connected database.
+* `QueryResult` – Provides methods like `getAll()` to retrieve results.
+
+Both CommonJS (`require`) and ES Modules (`import`) are fully supported.
+
+---
+
+## 🛠️ Local Development (for Contributors)
+
+### Install Dev Dependencies
+
+```bash
+npm install --include=dev
 ```
 
-The dataset used in this example can be found [here](https://github.com/kuzudb/kuzu/tree/master/dataset/demo-db/csv).
+### Build Project
 
-### Local development (for contributors)
-
-#### Install dependency
-
-```
-npm i --include=dev
-```
-
-#### Build
-
-```
+```bash
 npm run build
 ```
 
-#### Run test
+### Run Tests
 
-```
+```bash
 npm test
 ```
 
-#### Package
+---
 
-We use the approach of packing all the prebuilt binaries into a single file, this approach is inspired by [prebuildify](https://github.com/prebuild/prebuildify).
+## 📦 Packaging and Binary Distribution
 
-> All prebuilt binaries are shipped inside the package that is published to npm, which means there's no need for a separate download step like you find in [`prebuild`](https://github.com/prebuild/prebuild). The irony of this approach is that it is faster to download all prebuilt binaries for every platform when they are bundled than it is to download a single prebuilt binary as an install script.
+We bundle all prebuilt binaries directly into the npm package, inspired by the approach used by [prebuildify](https://github.com/prebuild/prebuildify).
 
-During the installation, the package will check the platform and architecture of the current machine, and extract the corresponding prebuilt binaries from the package. If no prebuilt binaries are available for the current platform and architecture, it will try to build from source code. Note that building from source code requires CMake(>=3.15), Python 3, and a compiler that supports `C++20`.
+>  All prebuilt binaries are shipped inside the package that is published to npm, which means there's no need for a separate download step like you find in [`prebuild`](https://github.com/prebuild/prebuild). The irony of this approach is that it is faster to download all prebuilt binaries for every platform when they are bundled than it is to download a single prebuilt binary as an install script.
 
-We have configured our CI to build prebuilt binaries for Linux and macOS. To package the prebuilt binaries, put the prebuilt binaries under `prebuilt` directory, the name of the prebuilt binaries should be in the format of `kuzujs-${platform}-${arch}.node`, then run:
+### Requirements (for building from source)
 
-```
+If a prebuilt binary is unavailable for your platform, the module will be built from source during installation. Ensure the following tools are installed:
+
+* **CMake** (≥ 3.15)
+* **Python 3**
+* A **C++20-compatible compiler**
+
+### Packaging Prebuilt Binaries
+
+1. Place your binaries inside the `prebuilt` directory.
+2. Name them using the format:
+
+   ```
+   kuzujs-${platform}-${arch}.node
+   ```
+3. Run the packaging script:
+
+```bash
 node package
 ```
 
-If no prebuilt binaries are provided, the packaging script will still work, but it will create a source-only package, which means it will always be built from source code when installing the package.
+If no binaries are found, a source-only tarball will be generated.
 
-#### Publish
+---
 
-The created tarball can be published to npm. Please refer to [npm documentation](https://docs.npmjs.com/cli/v9/commands/npm-publish) for more details.
+## 🚀 Publishing
+
+To publish the package to npm:
+
+```bash
+npm publish
+```
+
+Refer to the [npm documentation](https://docs.npmjs.com/cli/v9/commands/npm-publish) for full details on publishing and versioning.
+
+---
+
+## 🔗 Resources
+
+* [Kuzu GitHub](https://github.com/kuzudb/kuzu)
+* [Kuzu Documentation](https://docs.kuzudb.com)
+* [Issue Tracker](https://github.com/kuzudb/kuzu/issues)
