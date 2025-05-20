@@ -1,6 +1,7 @@
-# Kùzu Node.js API
 
-A high-performance graph database for knowledge-intensive applications. This Node.js wrapper enables interaction with the Kùzu database via JavaScript or TypeScript using either **CommonJS** or **ES Modules**.
+# Kuzu Node.js API
+
+A high-performance graph database for knowledge-intensive applications. This Node.js wrapper enables interaction with the Kuzu database via JavaScript or TypeScript using either **CommonJS** or **ES Modules**.
 
 ---
 
@@ -59,8 +60,7 @@ const main = async () => {
 
 main().catch(console.error);
 ```
-
-> ✅ The dataset used in this example can be found in the [official Kùzu repository](https://github.com/kuzudb/kuzu/tree/master/dataset/demo-db/csv).
+ ✅ The dataset used in this example can be found in the [official Kuzu repository](https://github.com/kuzudb/kuzu/tree/master/dataset/demo-db/csv).
 
 ---
 
@@ -144,6 +144,6 @@ Refer to the [npm documentation](https://docs.npmjs.com/cli/v9/commands/npm-publ
 
 ## 🔗 Resources
 
-* [Kùzu GitHub](https://github.com/kuzudb/kuzu)
-* [Kùzu Documentation](https://docs.kuzudb.com)
+* [Kuzu GitHub](https://github.com/kuzudb/kuzu)
+* [Kuzu Documentation](https://docs.kuzudb.com)
 * [Issue Tracker](https://github.com/kuzudb/kuzu/issues)
