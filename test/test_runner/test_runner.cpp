@@ -239,7 +239,7 @@ void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStat
         outFile << resultHash << std::endl;
         return;
     } 
-    KU_ASSERT(testAnswer.type == ResultType::HASH);
+    KU_ASSERT(testAnswer.type == ResultType::TUPLES);
     std::vector<std::string> resultTuples =
         convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
     for(auto testOutput : resultTuples)
