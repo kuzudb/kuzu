@@ -1,3 +1,5 @@
+#include <fstream>
+#include <string>
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "test_helper/test_helper.h"
@@ -89,78 +91,65 @@ public:
             datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
             std::filesystem::remove_all(tempDatasetPath);
         }
-        if (!TestHelper::REWRITE_TESTS)
+        if (!TestHelper::REWRITE_TESTS || testStatements.empty())
             return;
+        std::fstream file;
+        std::string f;
+        std::string l;
+        file.open(testStatements.front()->testFilePath);
         for(auto& statement : testStatements)
         {
-            TestQueryResult& testAnswer = statement->result[resultIdx];
-            std::string f;
-            std::string l;
-            std::fstream file;
-            file.open(statement->testFilePath);
             while(getline(file, l))
                 if (l != "-STATEMENT " + statement->query)
-                    f+= l + '\n';
+                    f += l + '\n';
                 else
                 {
                     f += l + '\n';
                     getline(file, l); // result form specifier
-                    switch (testAnswer.type) 
+                    switch (statement->testResultType) 
                     {
                         case ResultType::OK:
                         {
-                            f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) +'\n';
+                            f += statement->newOutput;
                         }
-                        break;
+                        continue;
                         case ResultType::HASH:
                         {
                             f += l + '\n';
-                            std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder, statement->checkColumnNames);
-                            f += resultHash;
+                            f += statement->newOutput;
                             getline(file, l);
                         }
-                        break;
+                        continue;
                         case ResultType::TUPLES:
                         {
-                            f += "---- " + std::to_string(testAnswer.numTuples + statement->checkColumnNames) + '\n';
-                            std::vector<std::string> resultTuples = convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
-                            for(auto result : resultTuples)
-                            {
+                            int skip = std::stoi(l.substr(5));
+                            for(int i = 0; i < skip; ++i)
                                 getline(file, l);
-                                f+= result + '\n';
-                            }
+                            f+=statement->newOutput;
                         }
-                        break;
+                        continue;
                         case ResultType::CSV_FILE: // TODO
                         return;
                         case ResultType::ERROR_MSG:
                         {
-                            f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) +'\n';
+                            f+=statement->newOutput;
                             getline(file, l);
-                            f += result->getErrorMessage() + '\n';
                         }
-                        break;
+                        continue;
                         case ResultType::ERROR_REGEX:
                         {
-                            if (!result->isSuccess())
-                                    return;
-                            
-                            f += "---- ok";
+                            f+=statement->newOutput;
+                            getline(file, l);
+                            if (statement->newOutput != "ok\n")
+                                f += l + '\n';
                         }
-                        break;
+                        continue;
                     }
                 }
             file.close();
             file.open(statement->testFilePath, std::ios::trunc | std::ios::out);
             file << f;
         }
-
-
-
-
-
-
-
     }
 
     void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }
