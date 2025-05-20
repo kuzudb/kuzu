@@ -34,9 +34,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(const LogicalOperator
         auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
         sharedStates.push_back(sharedState);
         auto printInfo = std::make_unique<IntersectBuildPrintInfo>(keys, payloadExpressions);
-        children[i] = make_unique<IntersectBuild>(
-            std::make_unique<ResultSetDescriptor>(buildSchema), sharedState, std::move(buildInfo),
+        auto build = std::make_unique<IntersectBuild>(sharedState, std::move(buildInfo),
             std::move(buildPrevOperator), getOperatorID(), std::move(printInfo));
+        build->setDescriptor(std::make_unique<ResultSetDescriptor>(buildSchema));
+        children[i] = std::move(build);
         // Collect intersect info
         std::vector<DataPos> vectorsToScanPos;
         auto expressionsToScan = ExpressionUtil::excludeExpressions(

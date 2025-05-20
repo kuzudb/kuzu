@@ -83,12 +83,11 @@ void PartitioningBuffer::merge(const PartitioningBuffer& localPartitioningState)
     }
 }
 
-Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-    PartitionerInfo info, PartitionerDataInfo dataInfo,
+Partitioner::Partitioner(PartitionerInfo info, PartitionerDataInfo dataInfo,
     std::shared_ptr<PartitionerSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
     uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-    : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
-      dataInfo{std::move(dataInfo)}, info{std::move(info)}, sharedState{std::move(sharedState)} {
+    : Sink{type_, std::move(child), id, std::move(printInfo)}, dataInfo{std::move(dataInfo)},
+      info{std::move(info)}, sharedState{std::move(sharedState)} {
     partitionIdxes = std::make_unique<ValueVector>(LogicalTypeID::INT64);
 }
 
@@ -200,11 +199,6 @@ void Partitioner::copyDataToPartitions(MemoryManager& memoryManager,
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
         partition->append(memoryManager, vectorsToAppend, i, 1);
     }
-}
-
-std::unique_ptr<PhysicalOperator> Partitioner::copy() {
-    return std::make_unique<Partitioner>(resultSetDescriptor->copy(), info.copy(), dataInfo.copy(),
-        sharedState, children[0]->copy(), id, printInfo->copy());
 }
 
 } // namespace processor

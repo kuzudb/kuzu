@@ -149,24 +149,20 @@ private:
 
 class HashAggregate final : public BaseAggregate {
 public:
-    HashAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::shared_ptr<HashAggregateSharedState> sharedState,
+    HashAggregate(std::shared_ptr<BaseAggregateSharedState> sharedState,
         std::vector<function::AggregateFunction> aggregateFunctions,
         std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : BaseAggregate{std::move(resultSetDescriptor), std::move(sharedState),
-              std::move(aggregateFunctions), std::move(aggInfos), std::move(child), id,
-              std::move(printInfo)} {}
+        : BaseAggregate{std::move(sharedState), std::move(aggregateFunctions), std::move(aggInfos),
+              std::move(child), id, std::move(printInfo)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<HashAggregate>(resultSetDescriptor->copy(),
-            std::reinterpret_pointer_cast<HashAggregateSharedState>(sharedState),
-            copyVector(aggregateFunctions), copyVector(aggInfos), children[0]->copy(), id,
-            printInfo->copy());
+        return make_unique<HashAggregate>(sharedState, copyVector(aggregateFunctions),
+            copyVector(aggInfos), children[0]->copy(), id, printInfo->copy());
     }
 
     const HashAggregateSharedState& getSharedStateReference() const {
@@ -181,13 +177,13 @@ private:
 };
 
 class HashAggregateFinalize final : public Sink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::AGGREGATE_FINALIZE;
+
 public:
-    HashAggregateFinalize(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::shared_ptr<HashAggregateSharedState> sharedState,
+    HashAggregateFinalize(std::shared_ptr<HashAggregateSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::AGGREGATE_FINALIZE,
-              std::move(child), id, std::move(printInfo)},
+        : Sink{type_, std::move(child), id, std::move(printInfo)},
           sharedState{std::move(sharedState)} {}
 
     // Otherwise the runtime metrics for this operator are negative
@@ -203,8 +199,8 @@ public:
     }
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<HashAggregateFinalize>(resultSetDescriptor->copy(), sharedState,
-            children[0]->copy(), id, printInfo->copy());
+        return make_unique<HashAggregateFinalize>(sharedState, children[0]->copy(), id,
+            printInfo->copy());
     }
 
 private:

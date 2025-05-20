@@ -17,28 +17,28 @@ std::string OrderByPrintInfo::toString() const {
 }
 
 void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    localState = std::make_unique<SortLocalState>();
-    localState->init(*info, *sharedState, context->clientContext->getMemoryManager());
-    for (auto& dataPos : info->payloadsPos) {
+    localState = SortLocalState();
+    localState.init(info, *sharedState, context->clientContext->getMemoryManager());
+    for (auto& dataPos : info.payloadsPos) {
         payloadVectors.push_back(resultSet->getValueVector(dataPos).get());
     }
-    for (auto& dataPos : info->keysPos) {
+    for (auto& dataPos : info.keysPos) {
         orderByVectors.push_back(resultSet->getValueVector(dataPos).get());
     }
 }
 
 void OrderBy::initGlobalStateInternal(ExecutionContext* /*context*/) {
-    sharedState->init(*info);
+    sharedState->init(info);
 }
 
 void OrderBy::executeInternal(ExecutionContext* context) {
     // Append thread-local tuples.
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < resultSet->multiplicity; i++) {
-            localState->append(orderByVectors, payloadVectors);
+            localState.append(orderByVectors, payloadVectors);
         }
     }
-    localState->finalize(*sharedState);
+    localState.finalize(*sharedState);
 }
 
 } // namespace processor

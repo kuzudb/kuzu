@@ -42,9 +42,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     }
     auto printInfo =
         std::make_unique<RecursiveExtendPrintInfo>(extend.getFunction().getFunctionName());
-    auto descriptor = std::make_unique<ResultSetDescriptor>();
-    auto recursiveExtend = std::make_unique<RecursiveExtend>(std::move(descriptor),
-        extend.getFunction().copy(), bindData, sharedState, getOperatorID(), std::move(printInfo));
+    auto recursiveExtend = std::make_unique<RecursiveExtend>(extend.getFunction().copy(), bindData,
+        sharedState, getOperatorID(), std::move(printInfo));
     // Map node predicate pipeline
     if (extend.hasNodePredicate()) {
         addOperatorMapping(logicalOperator, recursiveExtend.get());
