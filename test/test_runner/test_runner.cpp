@@ -201,22 +201,49 @@ void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStat
         {
             f += l + '\n';
             getline(file, l); // result form specifier
-            f += l + '\n';
-            if (testAnswer.type == ResultType::TUPLES)
+            switch (testAnswer.type) 
             {
-                std::vector<std::string> resultTuples = convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
-                for(auto result : resultTuples)
+                case ResultType::OK:
                 {
-                    getline(file, l);
-                    f+= result + '\n';
+                    f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) +'\n';
                 }
-                f += '\n';
-            }
-            else if (testAnswer.type == ResultType::HASH)
-            {
-                std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder, statement->checkColumnNames);
-                f += resultHash;
-                getline(file, l);
+                break;
+                case ResultType::HASH:
+                {
+                    f += l + '\n';
+                    std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder, statement->checkColumnNames);
+                    f += resultHash;
+                    getline(file, l);
+                }
+                break;
+                case ResultType::TUPLES:
+                {
+                    f += "---- " + std::to_string(testAnswer.numTuples + statement->checkColumnNames) + '\n';
+                    std::vector<std::string> resultTuples = convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
+                    for(auto result : resultTuples)
+                    {
+                        getline(file, l);
+                        f+= result + '\n';
+                    }
+                }
+                break;
+                case ResultType::CSV_FILE: // TODO
+                return;
+                case ResultType::ERROR_MSG:
+                {
+                    f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) +'\n';
+                    getline(file, l);
+                    f += result->getErrorMessage() + '\n';
+                }
+                break;
+                case ResultType::ERROR_REGEX:
+                {
+                    if (!result->isSuccess())
+                            return;
+                    
+                    f += "---- ok";
+                }
+                break;
             }
         }
     file.close();
