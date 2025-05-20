@@ -38,8 +38,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(
     auto localState = CrossProductLocalState(table, maxMorselSize);
     auto printInfo = std::make_unique<OPPrintInfo>();
     auto crossProduct = std::make_unique<CrossProduct>(std::move(info), std::move(localState),
-        std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),
+        std::move(probeSidePrevOperator), getOperatorID(),
         std::move(printInfo));
+    crossProduct->addChild(std::move(resultCollector));
     if (logicalCrossProduct.getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
         mapSIPJoin(crossProduct.get());
     }

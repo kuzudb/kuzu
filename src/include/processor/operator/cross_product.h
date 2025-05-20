@@ -40,13 +40,6 @@ class CrossProduct final : public PhysicalOperator {
 
 public:
     CrossProduct(CrossProductInfo info, CrossProductLocalState localState,
-        std::unique_ptr<PhysicalOperator> probeChild, std::unique_ptr<PhysicalOperator> buildChild,
-        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(probeChild), std::move(buildChild), id,
-              std::move(printInfo)},
-          info{std::move(info)}, localState{std::move(localState)} {}
-
-    CrossProduct(CrossProductInfo info, CrossProductLocalState localState,
         std::unique_ptr<PhysicalOperator> child, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},

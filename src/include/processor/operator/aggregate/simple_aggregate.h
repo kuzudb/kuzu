@@ -130,13 +130,11 @@ class SimpleAggregateFinalize final : public Sink {
 
 public:
     SimpleAggregateFinalize(std::shared_ptr<SimpleAggregateSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, std::vector<AggregateInfo> aggInfos, uint32_t id,
+    std::vector<AggregateInfo> aggInfos, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{type_, std::move(child), id, std::move(printInfo)},
+        : Sink{type_,  id, std::move(printInfo)},
           sharedState{std::move(sharedState)}, aggInfos{std::move(aggInfos)} {}
 
-    // Otherwise the runtime metrics for this operator are negative
-    // since it doesn't call children[0]->getNextTuple
     bool isSource() const override { return true; }
 
     void executeInternal(ExecutionContext* context) override;
@@ -144,7 +142,7 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<SimpleAggregateFinalize>(sharedState, children[0]->copy(),
+        return std::make_unique<SimpleAggregateFinalize>(sharedState,
             copyVector(aggInfos), id, printInfo->copy());
     }
 

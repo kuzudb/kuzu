@@ -25,7 +25,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* 
     auto payloadExpressions = inSchema->getExpressionsInScope();
     std::vector<DataPos> payloadsPos;
     std::vector<LogicalType> payloadTypes;
-    binder::expression_map<ft_col_idx_t> payloadToColIdx;
+    expression_map<ft_col_idx_t> payloadToColIdx;
     auto payloadSchema = FactorizedTableSchema();
     auto mayContainUnFlatKey = inSchema->getNumGroups() == 1;
     for (auto i = 0u; i < payloadExpressions.size(); ++i) {
@@ -83,8 +83,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* 
         auto topK = make_unique<TopK>(std::move(orderByDataInfo), topKSharedState, skipNum,
             limitNum, std::move(prevOperator), getOperatorID(), printInfo->copy());
         topK->setDescriptor(std::make_unique<ResultSetDescriptor>(inSchema));
-        return make_unique<TopKScan>(outPos, topKSharedState, std::move(topK), getOperatorID(),
+        auto scan = std::make_unique<TopKScan>(outPos, topKSharedState, getOperatorID(),
             printInfo->copy());
+        scan->addChild(std::move(topK));
+        return scan;
     }
     auto orderBySharedState = std::make_shared<SortSharedState>();
     auto printInfo = std::make_unique<OrderByPrintInfo>(keyExpressions, payloadExpressions);
@@ -93,9 +95,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* 
     orderBy->setDescriptor(std::make_unique<ResultSetDescriptor>(inSchema));
     auto dispatcher = std::make_shared<KeyBlockMergeTaskDispatcher>();
     auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
-        std::move(orderBy), getOperatorID(), printInfo->copy());
-    return make_unique<OrderByScan>(outPos, orderBySharedState, std::move(orderByMerge),
         getOperatorID(), printInfo->copy());
+    orderByMerge->addChild(std::move(orderBy));
+    auto scan = std::make_unique<OrderByScan>(outPos, orderBySharedState, getOperatorID(), printInfo->copy());
+    scan->addChild(std::move(orderByMerge));
+    return scan;
 }
 
 } // namespace processor

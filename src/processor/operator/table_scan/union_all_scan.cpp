@@ -44,7 +44,7 @@ std::unique_ptr<UnionAllScanMorsel> UnionAllScanSharedState::getMorselNoLock(
 
 void UnionAllScan::initLocalStateInternal(ResultSet* /*resultSet_*/,
     ExecutionContext* /*context*/) {
-    for (auto& dataPos : info->outputPositions) {
+    for (auto& dataPos : info.outputPositions) {
         vectors.push_back(resultSet->getValueVector(dataPos).get());
     }
 }
@@ -54,7 +54,7 @@ bool UnionAllScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     if (morsel->numTuples == 0) {
         return false;
     }
-    morsel->table->scan(vectors, morsel->startTupleIdx, morsel->numTuples, info->columnIndices);
+    morsel->table->scan(vectors, morsel->startTupleIdx, morsel->numTuples, info.columnIndices);
     metrics->numOutputTuple.increase(morsel->numTuples);
     return true;
 }

@@ -33,13 +33,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUnionAll(const LogicalOperator*
         outputPositions.emplace_back(outSchema->getExpressionPos(*expression));
         columnIndices.push_back(i);
     }
-    auto info =
-        std::make_unique<UnionAllScanInfo>(std::move(outputPositions), std::move(columnIndices));
+    auto info = UnionAllScanInfo(std::move(outputPositions), std::move(columnIndices));
     auto maxMorselSize = tables[0]->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     auto unionSharedState = make_shared<UnionAllScanSharedState>(std::move(tables), maxMorselSize);
     auto printInfo = std::make_unique<UnionAllScanPrintInfo>(expressionsToUnion);
-    return make_unique<UnionAllScan>(std::move(info), unionSharedState, std::move(prevOperators),
+    auto scan = make_unique<UnionAllScan>(std::move(info), unionSharedState,
         getOperatorID(), std::move(printInfo));
+    for (auto& child : prevOperators) {
+        scan->addChild(std::move(child));
+    }
+    return scan;
 }
 
 } // namespace processor

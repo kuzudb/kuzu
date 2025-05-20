@@ -75,12 +75,6 @@ class PathPropertyProbe : public PhysicalOperator {
 public:
     PathPropertyProbe(PathPropertyProbeInfo info,
         std::shared_ptr<PathPropertyProbeSharedState> sharedState,
-        std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(children), id, std::move(printInfo)},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
-    PathPropertyProbe(PathPropertyProbeInfo info,
-        std::shared_ptr<PathPropertyProbeSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> probeChild, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(probeChild), id, std::move(printInfo)},

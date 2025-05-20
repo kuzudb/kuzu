@@ -28,12 +28,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     auto initInput = TableFuncInitSharedStateInput(info.bindData.get(), executionContext);
     auto sharedState = info.function.initSharedStateFunc(initInput);
     auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(function->name, exprs);
-    if (children.size() == 0) {
-        return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
+    auto result = std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
             std::move(printInfo));
+    for (auto& child : children) {
+        result->addChild(std::move(child));
     }
-    return std::make_unique<TableFunctionCall>(std::move(info), sharedState, std::move(children),
-        getOperatorID(), std::move(printInfo));
+    return result;
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_vector& exprs,

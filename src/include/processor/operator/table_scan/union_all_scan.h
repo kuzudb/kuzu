@@ -32,12 +32,11 @@ struct UnionAllScanInfo {
 
     UnionAllScanInfo(std::vector<DataPos> outputPositions, std::vector<ft_col_idx_t> columnIndices)
         : outputPositions{std::move(outputPositions)}, columnIndices{std::move(columnIndices)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(UnionAllScanInfo);
+
+private:
     UnionAllScanInfo(const UnionAllScanInfo& other)
         : outputPositions{other.outputPositions}, columnIndices{other.columnIndices} {}
-
-    inline std::unique_ptr<UnionAllScanInfo> copy() const {
-        return std::make_unique<UnionAllScanInfo>(*this);
-    }
 };
 
 struct UnionAllScanMorsel {
@@ -73,16 +72,8 @@ class UnionAllScan : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::UNION_ALL_SCAN;
 
 public:
-    UnionAllScan(std::unique_ptr<UnionAllScanInfo> info,
-        std::shared_ptr<UnionAllScanSharedState> sharedState,
-        std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(children), id, std::move(printInfo)},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
-
-    // For clone only
-    UnionAllScan(std::unique_ptr<UnionAllScanInfo> info,
-        std::shared_ptr<UnionAllScanSharedState> sharedState, uint32_t id,
+    UnionAllScan(UnionAllScanInfo info,
+        std::shared_ptr<UnionAllScanSharedState> sharedState, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, id, std::move(printInfo)}, info{std::move(info)},
           sharedState{std::move(sharedState)} {}
@@ -94,11 +85,11 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<UnionAllScan>(info->copy(), sharedState, id, printInfo->copy());
+        return std::make_unique<UnionAllScan>(info.copy(), sharedState, id, printInfo->copy());
     }
 
 private:
-    std::unique_ptr<UnionAllScanInfo> info;
+    UnionAllScanInfo info;
     std::shared_ptr<UnionAllScanSharedState> sharedState;
     std::vector<common::ValueVector*> vectors;
 };

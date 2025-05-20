@@ -68,16 +68,6 @@ class HashJoinProbe : public PhysicalOperator, public SelVectorOverWriter {
 public:
     HashJoinProbe(std::shared_ptr<HashJoinSharedState> sharedState, common::JoinType joinType,
         bool flatProbe, const ProbeDataInfo& probeDataInfo,
-        std::unique_ptr<PhysicalOperator> probeChild, std::unique_ptr<PhysicalOperator> buildChild,
-        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(probeChild), std::move(buildChild), id,
-              std::move(printInfo)},
-          sharedState{std::move(sharedState)}, joinType{joinType}, flatProbe{flatProbe},
-          probeDataInfo{probeDataInfo}, markVector(nullptr) {}
-
-    // This constructor is used for cloning only.
-    HashJoinProbe(std::shared_ptr<HashJoinSharedState> sharedState, common::JoinType joinType,
-        bool flatProbe, const ProbeDataInfo& probeDataInfo,
         std::unique_ptr<PhysicalOperator> probeChild, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(probeChild), id, std::move(printInfo)},
