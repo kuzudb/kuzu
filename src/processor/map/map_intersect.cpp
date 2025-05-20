@@ -16,8 +16,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(const LogicalOperator
     auto logicalIntersect = logicalOperator->constPtrCast<LogicalIntersect>();
     auto intersectNodeID = logicalIntersect->getIntersectNodeID();
     auto outSchema = logicalIntersect->getSchema();
-    // std::vector<std::unique_ptr<PhysicalOperator>> children;
-    // children.resize(logicalOperator->getNumChildren());
     std::vector<std::shared_ptr<HashJoinSharedState>> sharedStates;
     std::vector<IntersectDataInfo> intersectDataInfos;
     // Map build side children.
