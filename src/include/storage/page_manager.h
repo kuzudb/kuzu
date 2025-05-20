@@ -23,6 +23,7 @@ public:
 
     PageRange allocatePageRange(common::page_idx_t numPages);
     void freePageRange(PageRange block);
+    void freePage(common::page_idx_t pageIdx) { freePageRange(PageRange(pageIdx, 1)); }
 
     void serialize(common::Serializer& serializer);
     void deserialize(common::Deserializer& deSer);

@@ -126,6 +126,12 @@ void HashIndex<T>::rollbackCheckpoint() {
 }
 
 template<typename T>
+void HashIndex<T>::reclaimStorage(PageManager& pageManager) {
+    pSlots->reclaimStorage(pageManager);
+    oSlots->reclaimStorage(pageManager);
+}
+
+template<typename T>
 void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& header,
     slot_id_t numSlotsToSplit) {
     auto originalSlotIterator = pSlots->iter_mut();
@@ -149,7 +155,7 @@ void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& h
         Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
         do {
             for (entry_pos_t originalEntryPos = 0; originalEntryPos < getSlotCapacity<T>();
-                 originalEntryPos++) {
+                originalEntryPos++) {
                 if (!originalSlot->header.isEntryValid(originalEntryPos)) {
                     continue; // Skip invalid entries.
                 }
@@ -296,10 +302,9 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
     // may not be consecutive, but we reduce the memory overhead for storing the information about
     // the sorted data and still just process each page once.
     for (uint64_t localSlotId = 0; localSlotId < insertLocalStorage.numPrimarySlots();
-         localSlotId += NUM_SLOTS_PER_PAGE) {
+        localSlotId += NUM_SLOTS_PER_PAGE) {
         for (size_t i = 0;
-             i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots();
-             i++) {
+            i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots(); i++) {
             auto localSlot =
                 typename InMemHashIndex<T>::SlotIterator(localSlotId + i, &insertLocalStorage);
             partitionedEntries[i].clear();
@@ -438,7 +443,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, PhysicalTyp
             fileHandle->optimisticReadPage(this->firstHeaderPage + headerPageIdx, [&](auto* frame) {
                 const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
+                    i++) {
                     hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
                     headerIdx++;
                 }
@@ -562,7 +567,7 @@ void PrimaryKeyIndex::writeHeaders() {
             [&](auto* frame) {
                 auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
+                    i++) {
                     hashIndexHeadersForWriteTrx[headerIdx++].write(onDiskFrame[i]);
                 }
             });
@@ -606,14 +611,22 @@ void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
     checkpointInMemory();
 }
 
+void PrimaryKeyIndex::reclaimStorage(PageManager& pageManager) const {
+    for (auto& hashIndex : hashIndices) {
+        hashIndex->reclaimStorage(pageManager);
+    }
+    hashIndexDiskArrays->reclaimStorage(pageManager);
+    if (overflowFile) {
+        overflowFile->reclaimStorage(pageManager);
+    }
+}
+
 void PrimaryKeyIndex::serialize(Serializer& serializer) const {
     serializer.writeDebuggingInfo("firstHeaderPage");
     serializer.write(firstHeaderPage);
     serializer.writeDebuggingInfo("overflowHeaderPage");
     serializer.write(overflowHeaderPage);
 }
-
-PrimaryKeyIndex::~PrimaryKeyIndex() = default;
 
 } // namespace storage
 } // namespace kuzu

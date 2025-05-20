@@ -61,7 +61,7 @@ public:
     void finalize() override;
 
     void flush(FileHandle& dataFH) override;
-    void reclaimStorage(FileHandle& dataFH) override;
+    void reclaimStorage(PageManager& pageManager) override;
 
     uint64_t getNumValues() const override { return nullData->getNumValues(); }
     void resetNumValuesFromMetadata() override;

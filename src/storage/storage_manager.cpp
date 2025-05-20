@@ -107,8 +107,8 @@ void StorageManager::createRelTableGroup(const RelGroupCatalogEntry* entry,
     const main::ClientContext* context) {
     for (const auto id : entry->getRelTableIDs()) {
         createRelTable(context->getCatalog()
-                           ->getTableCatalogEntry(context->getTransaction(), id)
-                           ->ptrCast<RelTableCatalogEntry>());
+                ->getTableCatalogEntry(context->getTransaction(), id)
+                ->ptrCast<RelTableCatalogEntry>());
     }
 }
 
@@ -145,7 +145,7 @@ void StorageManager::reclaimDroppedTables(const main::ClientContext& clientConte
     for (const auto& [tableID, table] : tables) {
         if (!clientContext.getCatalog()->containsTable(&DUMMY_CHECKPOINT_TRANSACTION, tableID,
                 true)) {
-            table->reclaimStorage(*dataFH);
+            table->reclaimStorage(*dataFH->getPageManager());
             droppedTables.push_back(tableID);
         }
     }

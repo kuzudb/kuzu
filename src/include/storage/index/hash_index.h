@@ -15,6 +15,7 @@
 #include "storage/index/hash_index_utils.h"
 #include "storage/index/in_mem_hash_index.h"
 #include "storage/local_storage/local_hash_index.h"
+#include "storage/storage_structure/disk_array_collection.h"
 
 namespace kuzu {
 namespace common {
@@ -31,7 +32,7 @@ class BufferManager;
 class OverflowFileHandle;
 template<typename T>
 class DiskArray;
-class DiskArrayCollection;
+class PageManager;
 
 class OnDiskHashIndex {
 public:
@@ -41,6 +42,7 @@ public:
     virtual bool rollbackInMemory() = 0;
     virtual void rollbackCheckpoint() = 0;
     virtual void bulkReserve(uint64_t numValuesToAppend) = 0;
+    virtual void reclaimStorage(PageManager& pageManager) = 0;
 };
 
 // HashIndex is the entrance to handle all updates and lookups into the index after building from
@@ -152,6 +154,7 @@ public:
     bool checkpointInMemory() override;
     bool rollbackInMemory() override;
     void rollbackCheckpoint() override;
+    void reclaimStorage(PageManager& pageManager) override;
     inline FileHandle* getFileHandle() const { return fileHandle; }
 
 private:
@@ -310,8 +313,6 @@ public:
         MemoryManager& memoryManager, ShadowFile* shadowFile, common::page_idx_t firstHeaderPage,
         common::page_idx_t overflowHeaderPage);
 
-    ~PrimaryKeyIndex();
-
     template<typename T>
     inline HashIndex<HashIndexType<T>>* getTypedHashIndex(T key) {
         return common::ku_dynamic_cast<HashIndex<HashIndexType<T>>*>(
@@ -322,7 +323,7 @@ public:
         return common::ku_dynamic_cast<HashIndex<HashIndexType<T>>*>(hashIndices[indexPos].get());
     }
 
-    inline bool lookup(const transaction::Transaction* trx, common::ku_string_t key,
+    bool lookup(const transaction::Transaction* trx, common::ku_string_t key,
         common::offset_t& result, visible_func isVisible) {
         return lookup(trx, key.getAsStringView(), result, isVisible);
     }
@@ -336,7 +337,7 @@ public:
     bool lookup(const transaction::Transaction* trx, common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t& result, visible_func isVisible);
 
-    inline bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
+    bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
         common::offset_t value, visible_func isVisible) {
         return insert(transaction, key.getAsStringView(), value, isVisible);
     }
@@ -371,7 +372,7 @@ public:
         }
     }
 
-    inline void delete_(common::ku_string_t key) { return delete_(key.getAsStringView()); }
+    void delete_(common::ku_string_t key) { return delete_(key.getAsStringView()); }
     template<common::IndexHashable T>
     inline void delete_(T key) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
@@ -386,6 +387,8 @@ public:
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
     void rollbackCheckpoint();
+
+    void reclaimStorage(PageManager& pageManager) const;
 
     common::PhysicalTypeID keyTypeID() const { return keyDataTypeID; }
 

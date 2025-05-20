@@ -249,6 +249,19 @@ void DiskArrayInternal::checkpoint() {
     }
 }
 
+void DiskArrayInternal::reclaimStorage(PageManager& pageManager) const {
+    for (auto& pip : pips) {
+        for (auto pageIdx : pip.pipContents.pageIdxs) {
+            if (pageIdx != ShadowUtils::NULL_PAGE_IDX) {
+                pageManager.freePage(pageIdx);
+            }
+        }
+        if (pip.pipPageIdx != ShadowUtils::NULL_PAGE_IDX) {
+            pageManager.freePage(pip.pipPageIdx);
+        }
+    }
+}
+
 bool DiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) const {
     // This is a request to a pipIdx > pips.size(). Since pips.size() is the original number of pips
     // we started with before the write transaction is updated, we return true, i.e., this PIP is

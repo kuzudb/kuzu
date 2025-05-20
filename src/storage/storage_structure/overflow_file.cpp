@@ -138,6 +138,12 @@ void OverflowFileHandle::checkpoint() {
     }
 }
 
+void OverflowFileHandle::reclaimStorage(PageManager& pageManager) {
+    for (auto& [pageIdx, _] : pageWriteCache) {
+        pageManager.freePage(pageIdx);
+    }
+}
+
 void OverflowFileHandle::read(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
     auto cachedPage = pageWriteCache.find(pageIdx);
@@ -224,6 +230,8 @@ void OverflowFile::rollbackInMemory() {
         handle->rollbackInMemory(header.cursors[i]);
     }
 }
+
+void OverflowFile::reclaimStorage(PageManager& pageManager) {}
 
 } // namespace storage
 } // namespace kuzu
