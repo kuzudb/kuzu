@@ -89,6 +89,9 @@ public:
             datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
             std::filesystem::remove_all(tempDatasetPath);
         }
+        for(auto& t : testStatements)
+            std::cout << t->testFilePath << std::endl;
+        std::cout << "Test here " << std::endl;
     }
 
     void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }
