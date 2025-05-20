@@ -70,7 +70,7 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     QueryResult* currentQueryResult = actualResult.get();
     idx_t resultIdx = 0u;
     if (TestHelper::REWRITE_TESTS)
-            writeLogicalPlan(conn, currentQueryResult, statement, resultIdx);
+            writeOutput(currentQueryResult, statement, resultIdx);
     else
         do {
             checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
@@ -108,16 +108,6 @@ void TestRunner::checkLogicalPlan(Connection& conn, QueryResult* queryResult,
     }
     }
 }
-
-void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
-    TestStatement* statement, size_t resultIdx) {
-    (void)conn;
-    (void)queryResult;
-    (void)statement;
-    (void)resultIdx;
-    writePlanResult(conn, queryResult, statement, resultIdx);
-}
-
 
 void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStatement* statement,
     size_t resultIdx) {
@@ -187,7 +177,7 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
     }
 }
 
-void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStatement* statement,
+void TestRunner::writeOutput(QueryResult* result, TestStatement* statement,
     size_t resultIdx) {
     TestQueryResult& testAnswer = statement->result[resultIdx];
     statement->testResultType = testAnswer.type;
