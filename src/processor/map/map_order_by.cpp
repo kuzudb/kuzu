@@ -83,8 +83,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* 
         auto topK = make_unique<TopK>(std::move(orderByDataInfo), topKSharedState, skipNum,
             limitNum, std::move(prevOperator), getOperatorID(), printInfo->copy());
         topK->setDescriptor(std::make_unique<ResultSetDescriptor>(inSchema));
-        auto scan = std::make_unique<TopKScan>(outPos, topKSharedState, getOperatorID(),
-            printInfo->copy());
+        auto scan =
+            std::make_unique<TopKScan>(outPos, topKSharedState, getOperatorID(), printInfo->copy());
         scan->addChild(std::move(topK));
         return scan;
     }
@@ -97,7 +97,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* 
     auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
         getOperatorID(), printInfo->copy());
     orderByMerge->addChild(std::move(orderBy));
-    auto scan = std::make_unique<OrderByScan>(outPos, orderBySharedState, getOperatorID(), printInfo->copy());
+    auto scan = std::make_unique<OrderByScan>(outPos, orderBySharedState, getOperatorID(),
+        printInfo->copy());
     scan->addChild(std::move(orderByMerge));
     return scan;
 }

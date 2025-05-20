@@ -21,10 +21,9 @@ class TopKScan final : public PhysicalOperator {
 
 public:
     TopKScan(std::vector<DataPos> outVectorPos, std::shared_ptr<TopKSharedState> sharedState,
-         physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, id, std::move(printInfo)},
-          outVectorPos{std::move(outVectorPos)}, localState{std::make_unique<TopKLocalScanState>()},
-          sharedState{std::move(sharedState)} {}
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, id, std::move(printInfo)}, outVectorPos{std::move(outVectorPos)},
+          localState{std::make_unique<TopKLocalScanState>()}, sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }
     // Ordered table should be scanned in single-thread mode.
@@ -35,8 +34,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<TopKScan>(outVectorPos, sharedState, id,
-            printInfo->copy());
+        return std::make_unique<TopKScan>(outVectorPos, sharedState, id, printInfo->copy());
     }
 
 private:

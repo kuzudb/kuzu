@@ -111,7 +111,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(const LogicalOperator*
     }
     auto probePrintInfo = std::make_unique<HashJoinProbePrintInfo>(probeKeys);
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
-        hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator), getOperatorID(), probePrintInfo->copy());
+        hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
+        getOperatorID(), probePrintInfo->copy());
     hashJoinProbe->addChild(std::move(hashJoinBuild));
     if (hashJoin->getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
         mapSIPJoin(hashJoinProbe.get());

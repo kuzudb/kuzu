@@ -18,9 +18,10 @@ class Profile final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PROFILE;
 
 public:
-    Profile(DataPos outputPos, ProfileInfo info, ProfileLocalState localState, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, id, std::move(printInfo)}, outputPos{outputPos},
-          info{info}, localState{localState}, outputVector(nullptr) {}
+    Profile(DataPos outputPos, ProfileInfo info, ProfileLocalState localState, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{type_, id, std::move(printInfo)}, outputPos{outputPos}, info{info},
+          localState{localState}, outputVector(nullptr) {}
 
     bool isSource() const override { return true; }
     bool isParallel() const override { return false; }

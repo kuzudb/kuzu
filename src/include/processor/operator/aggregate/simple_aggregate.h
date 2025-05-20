@@ -130,10 +130,10 @@ class SimpleAggregateFinalize final : public Sink {
 
 public:
     SimpleAggregateFinalize(std::shared_ptr<SimpleAggregateSharedState> sharedState,
-    std::vector<AggregateInfo> aggInfos, physical_op_id id,
+        std::vector<AggregateInfo> aggInfos, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{type_,  id, std::move(printInfo)},
-          sharedState{std::move(sharedState)}, aggInfos{std::move(aggInfos)} {}
+        : Sink{type_, id, std::move(printInfo)}, sharedState{std::move(sharedState)},
+          aggInfos{std::move(aggInfos)} {}
 
     bool isSource() const override { return true; }
 
@@ -142,8 +142,8 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<SimpleAggregateFinalize>(sharedState,
-            copyVector(aggInfos), id, printInfo->copy());
+        return std::make_unique<SimpleAggregateFinalize>(sharedState, copyVector(aggInfos), id,
+            printInfo->copy());
     }
 
 private:

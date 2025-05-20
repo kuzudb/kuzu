@@ -101,8 +101,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(const LogicalOperator
     auto finalizer = std::make_unique<SimpleAggregateFinalize>(sharedState,
         std::move(aggregateInputInfos), getOperatorID(), printInfo->copy());
     finalizer->addChild(std::move(aggregate));
-    auto scan = std::make_unique<SimpleAggregateScan>(sharedState, aggOutputPos,
-        getOperatorID(), printInfo->copy());
+    auto scan = std::make_unique<SimpleAggregateScan>(sharedState, aggOutputPos, getOperatorID(),
+        printInfo->copy());
     scan->addChild(std::move(finalizer));
     return scan;
 }
@@ -181,11 +181,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     outputExpressions.insert(outputExpressions.end(), unFlatKeys.begin(), unFlatKeys.end());
     outputExpressions.insert(outputExpressions.end(), payloads.begin(), payloads.end());
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
-    auto finalizer = std::make_unique<HashAggregateFinalize>(sharedState, getOperatorID(), printInfo->copy());
+    auto finalizer =
+        std::make_unique<HashAggregateFinalize>(sharedState, getOperatorID(), printInfo->copy());
     finalizer->addChild(std::move(aggregate));
-    auto scan = std::make_unique<HashAggregateScan>(sharedState,
-        getDataPos(outputExpressions, *outSchema), std::move(aggOutputPos),
-        getOperatorID(), printInfo->copy());
+    auto scan =
+        std::make_unique<HashAggregateScan>(sharedState, getDataPos(outputExpressions, *outSchema),
+            std::move(aggOutputPos), getOperatorID(), printInfo->copy());
     scan->addChild(std::move(finalizer));
     return scan;
 }

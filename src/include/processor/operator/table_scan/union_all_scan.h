@@ -72,9 +72,8 @@ class UnionAllScan : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::UNION_ALL_SCAN;
 
 public:
-    UnionAllScan(UnionAllScanInfo info,
-        std::shared_ptr<UnionAllScanSharedState> sharedState, physical_op_id id,
-        std::unique_ptr<OPPrintInfo> printInfo)
+    UnionAllScan(UnionAllScanInfo info, std::shared_ptr<UnionAllScanSharedState> sharedState,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, id, std::move(printInfo)}, info{std::move(info)},
           sharedState{std::move(sharedState)} {}
 

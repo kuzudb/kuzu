@@ -180,10 +180,9 @@ class HashAggregateFinalize final : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::AGGREGATE_FINALIZE;
 
 public:
-    HashAggregateFinalize(std::shared_ptr<HashAggregateSharedState> sharedState,
-        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{type_,  id, std::move(printInfo)},
-          sharedState{std::move(sharedState)} {}
+    HashAggregateFinalize(std::shared_ptr<HashAggregateSharedState> sharedState, physical_op_id id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{type_, id, std::move(printInfo)}, sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }
 

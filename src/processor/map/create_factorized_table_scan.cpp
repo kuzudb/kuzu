@@ -29,7 +29,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     auto sharedState = info.function.initSharedStateFunc(initInput);
     auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(function->name, exprs);
     auto result = std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
-            std::move(printInfo));
+        std::move(printInfo));
     for (auto& child : children) {
         result->addChild(std::move(child));
     }
