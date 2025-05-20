@@ -197,77 +197,28 @@ void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStat
     while(getline(file, l))
         if (l != "-STATEMENT " + statement->query)
             f+= l + '\n';
-        else 
+        else
         {
-            f+= l + '\n'; // Add statement (Got in while loop)
-            getline(file, l); // Get current result specifier
-            switch (testAnswer.type) 
+            f += l + '\n';
+            getline(file, l); // result form specifier
+            f += l + '\n';
+            if (testAnswer.type == ResultType::TUPLES)
             {
-
-                case ResultType::TUPLES:
+                std::vector<std::string> resultTuples = convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
+                for(auto result : resultTuples)
                 {
-                        // PUT RESULT SPECIFIER
-                        f += "---- " + std::to_string(testAnswer.numTuples + statement->checkColumnNames) + '\n'; // we update tuple count if needed
-                        // ADD ACTUAL OUTPUT
-                        std::vector<std::string> resultTuples = convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
-
-                        for(auto& testOutput : resultTuples)
-                        {
-                            getline(file, l); // Ignore existing output
-                            f+= testOutput + '\n';
-                        }
+                    getline(file, l);
+                    f+= result + '\n';
                 }
-                break;
-
-                case ResultType::OK:
-                {
-                        // GET RESULT SPECIFIER
-                        f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) +'\n';
-                }
-                break;
-
-                case ResultType::ERROR_MSG:
-                {
-                        // GET RESULT SPECIFIER
-                        f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) +'\n';
-                        // IGNORE EXISTING OUTPUT
-                        getline(file, l);
-                        // ADD ACTUAL OUTPUT
-                        f += result->getErrorMessage() + '\n';
-                }
-                break;
-
-                case ResultType::ERROR_REGEX:
-                {
-                        // GET RESULT SPECIFIER
-                        f += l + '\n';
-                        // IGNORE EXISTING OUTPUT (non trivial in this case,
-                        // want to keep the original regex)
-
-                        // ADD ACTUAL OUTPUT
-                        getline(file, l);
-                        f += l + '\n';
-                }
-                break;
-
-                case ResultType::HASH:
-                {
-                        return;
-                        // GET RESULT SPECIFIER
-                        f += l + '\n';
-                        // IGNORE EXISTING OUTPUT
-                        getline(file, l);
-                        // ADD ACTUAL OUTPUT
-                        std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder, statement->checkColumnNames);
-                        f += resultHash;
-                }
-                break;
-
-                case ResultType::CSV_FILE:
-                return;
+                f += '\n';
+            }
+            else if (testAnswer.type == ResultType::HASH)
+            {
+                std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder, statement->checkColumnNames);
+                f += resultHash;
+                getline(file, l);
             }
         }
-
     file.close();
     file.open(statement->testFilePath, std::ios::trunc | std::ios::out);
     file << f;
