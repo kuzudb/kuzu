@@ -233,11 +233,13 @@ void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStat
         /*TODO*/
         return;
     }
-    if (testAnswer.type == ResultType::HASH) {
+    else if (testAnswer.type == ResultType::HASH) {
         std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
             statement->checkColumnNames);
         outFile << resultHash << std::endl;
+        return;
     } 
+    KU_ASSERT(testAnswer.type == ResultType::HASH);
     std::vector<std::string> resultTuples =
         convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
     for(auto testOutput : resultTuples)
