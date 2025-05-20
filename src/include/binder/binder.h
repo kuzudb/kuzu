@@ -135,9 +135,9 @@ public:
         const std::vector<common::LogicalType>& expectedColumnTypes, bool byColumn);
     BoundCopyFromInfo bindCopyRelFromInfo(std::string tableName,
         const std::vector<PropertyDefinition>& properties, const parser::BaseScanSource* source,
-        const parser::options_t& options,
-        const std::vector<std::string>& expectedColumnNames,
-        const std::vector<common::LogicalType>& expectedColumnTypes, common::table_id_t srcTableID, common::table_id_t dstTableID);
+        const parser::options_t& options, const std::vector<std::string>& expectedColumnNames,
+        const std::vector<common::LogicalType>& expectedColumnTypes, common::table_id_t srcTableID,
+        common::table_id_t dstTableID);
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
         catalog::NodeTableCatalogEntry* nodeTableEntry);

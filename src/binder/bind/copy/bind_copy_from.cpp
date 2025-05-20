@@ -152,11 +152,13 @@ static options_t getScanSourceOptions(const CopyFrom& copyFrom) {
 BoundCopyFromInfo Binder::bindCopyRelFromInfo(std::string tableName,
     const std::vector<PropertyDefinition>& properties, const BaseScanSource* source,
     const options_t& options, const std::vector<std::string>& expectedColumnNames,
-    const std::vector<LogicalType>& expectedColumnTypes, table_id_t srcTableID, table_id_t dstTableID) {
+    const std::vector<LogicalType>& expectedColumnTypes, table_id_t srcTableID,
+    table_id_t dstTableID) {
     auto boundSource = bindScanSource(source, options, expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     auto columns = boundSource->getColumns();
-    auto offset = createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
+    auto offset =
+        createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
     auto srcOffset = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalType::INT64());
     auto dstOffset = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalType::INT64());
     expression_vector columnExprs{srcOffset, dstOffset, offset};
@@ -170,7 +172,7 @@ BoundCopyFromInfo Binder::bindCopyRelFromInfo(std::string tableName,
         evaluateTypes.push_back(evaluateType);
     }
     columnExprs.insert(columnExprs.end(), warningDataExprs.begin(), warningDataExprs.end());
-    std::shared_ptr<Expression> srcKey = nullptr, dstKey = nullptr;   
+    std::shared_ptr<Expression> srcKey = nullptr, dstKey = nullptr;
     if (expectedColumnTypes[0] != columns[0]->getDataType()) {
         srcKey = expressionBinder.forceCast(columns[0], expectedColumnTypes[0]);
     } else {
@@ -205,7 +207,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
         expectedColumnTypes, clientContext);
     auto srcTableID = relTableEntry->getSrcTableID();
     auto dstTableID = relTableEntry->getDstTableID();
-    auto boundCopyFromInfo = bindCopyRelFromInfo(relTableEntry->getName(), relTableEntry->getProperties(), copyStatement.getSource(), getScanSourceOptions(copyStatement), expectedColumnNames, expectedColumnTypes, srcTableID, dstTableID);
+    auto boundCopyFromInfo =
+        bindCopyRelFromInfo(relTableEntry->getName(), relTableEntry->getProperties(),
+            copyStatement.getSource(), getScanSourceOptions(copyStatement), expectedColumnNames,
+            expectedColumnTypes, srcTableID, dstTableID);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

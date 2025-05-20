@@ -105,7 +105,8 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     if (requireRelGroup(fromToPairs)) {
         if (ctx.oC_Query()) {
             // Currently we don't support multiple from/to pairs for CREATE REL TABLE AS
-            throw ParserException("Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.");
+            throw ParserException(
+                "Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.");
         }
         entryType = CatalogEntryType::REL_GROUP_ENTRY;
         extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,

@@ -55,9 +55,11 @@ LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
         auto dummyStr = std::make_shared<LiteralExpression>(Value("dummy"), "dummy");
         std::vector<std::shared_ptr<LogicalOperator>> children;
         if (info.type == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
-            children.push_back(planCopyNodeFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
+            children.push_back(
+                planCopyNodeFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
         } else {
-            children.push_back(planCopyRelFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
+            children.push_back(
+                planCopyRelFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
         }
         auto create = std::make_shared<LogicalCreateTable>(info.copy(), dummyStr);
         auto dummySink = std::make_shared<LogicalDummySink>(std::move(create));
