@@ -94,11 +94,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(const LogicalOperator
     auto sharedState =
         make_shared<SimpleAggregateSharedState>(clientContext, aggFunctions, aggregateInputInfos);
     auto printInfo = std::make_unique<SimpleAggregatePrintInfo>(aggregates);
-    auto aggregate = make_unique<SimpleAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
-        sharedState, std::move(aggFunctions), copyVector(aggregateInputInfos),
-        std::move(prevOperator), getOperatorID(), printInfo->copy());
-    auto finalizer = std::make_unique<SimpleAggregateFinalize>(
-        std::make_unique<ResultSetDescriptor>(inSchema), sharedState, std::move(aggregate),
+    auto aggregate = make_unique<SimpleAggregate>(sharedState, std::move(aggFunctions),
+        copyVector(aggregateInputInfos), std::move(prevOperator), getOperatorID(),
+        printInfo->copy());
+    aggregate->setDescriptor(std::make_unique<ResultSetDescriptor>(inSchema));
+    auto finalizer = std::make_unique<SimpleAggregateFinalize>(sharedState, std::move(aggregate),
         std::move(aggregateInputInfos), getOperatorID(), printInfo->copy());
     return make_unique<SimpleAggregateScan>(sharedState, aggOutputPos, std::move(finalizer),
         getOperatorID(), printInfo->copy());
@@ -168,18 +168,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
         std::make_shared<HashAggregateSharedState>(clientContext, std::move(aggregateInfo),
             aggFunctions, aggregateInputInfos, std::move(keyTypes), std::move(payloadTypes));
     auto printInfo = std::make_unique<HashAggregatePrintInfo>(allKeys, aggregates);
-    auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
-        sharedState, std::move(aggFunctions), std::move(aggregateInputInfos),
-        std::move(prevOperator), getOperatorID(), printInfo->copy());
+    auto aggregate = make_unique<HashAggregate>(sharedState, std::move(aggFunctions),
+        std::move(aggregateInputInfos), std::move(prevOperator), getOperatorID(),
+        printInfo->copy());
+    aggregate->setDescriptor(std::make_unique<ResultSetDescriptor>(inSchema));
     // Create AggScan.
     expression_vector outputExpressions;
     outputExpressions.insert(outputExpressions.end(), flatKeys.begin(), flatKeys.end());
     outputExpressions.insert(outputExpressions.end(), unFlatKeys.begin(), unFlatKeys.end());
     outputExpressions.insert(outputExpressions.end(), payloads.begin(), payloads.end());
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
-    auto finalizer =
-        std::make_unique<HashAggregateFinalize>(std::make_unique<ResultSetDescriptor>(inSchema),
-            sharedState, std::move(aggregate), getOperatorID(), printInfo->copy());
+    auto finalizer = std::make_unique<HashAggregateFinalize>(sharedState, std::move(aggregate),
+        getOperatorID(), printInfo->copy());
     return std::make_unique<HashAggregateScan>(sharedState,
         getDataPos(outputExpressions, *outSchema), std::move(aggOutputPos), std::move(finalizer),
         getOperatorID(), printInfo->copy());

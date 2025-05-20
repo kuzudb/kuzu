@@ -10,19 +10,20 @@ namespace processor {
 
 class KUZU_API Sink : public PhysicalOperator {
 public:
-    Sink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        PhysicalOperatorType operatorType, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{operatorType, id, std::move(printInfo)},
-          resultSetDescriptor{std::move(resultSetDescriptor)} {}
-    Sink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+    Sink(PhysicalOperatorType operatorType, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{operatorType, std::move(child), id, std::move(printInfo)},
-          resultSetDescriptor{std::move(resultSetDescriptor)} {}
+        : PhysicalOperator{operatorType, id, std::move(printInfo)} {}
+    Sink(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : PhysicalOperator{operatorType, std::move(child), id, std::move(printInfo)} {}
 
     bool isSink() const override { return true; }
 
-    ResultSetDescriptor* getResultSetDescriptor() { return resultSetDescriptor.get(); }
+    void setDescriptor(std::unique_ptr<ResultSetDescriptor> descriptor) {
+        KU_ASSERT(resultSetDescriptor == nullptr);
+        resultSetDescriptor = std::move(descriptor);
+    }
+    std::unique_ptr<ResultSet> getResultSet(storage::MemoryManager* memoryManager);
 
     void execute(ResultSet* resultSet, ExecutionContext* context) {
         initLocalState(resultSet, context);
@@ -49,13 +50,11 @@ class KUZU_API DummySink final : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DUMMY_SINK;
 
 public:
-    DummySink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id)
-        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id,
-              OPPrintInfo::EmptyInfo()} {}
+    DummySink(std::unique_ptr<PhysicalOperator> child, uint32_t id)
+        : Sink{type_, std::move(child), id, OPPrintInfo::EmptyInfo()} {}
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<DummySink>(resultSetDescriptor->copy(), children[0]->copy(), id);
+        return std::make_unique<DummySink>(children[0]->copy(), id);
     }
 
 protected:

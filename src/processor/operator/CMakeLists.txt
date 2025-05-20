@@ -27,6 +27,7 @@ add_library(kuzu_processor_operator
         recursive_extend.cpp
         result_collector.cpp
         semi_masker.cpp
+        sink.cpp
         skip.cpp
         standalone_call.cpp
         table_function_call.cpp

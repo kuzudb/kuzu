@@ -108,12 +108,10 @@ class BatchInsert : public Sink {
 
 public:
     BatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
-        std::shared_ptr<BatchInsertSharedState> sharedState,
-        std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
+        std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{std::move(resultSetDescriptor), type_, id, std::move(printInfo)},
-          tableName{std::move(tableName)}, info{std::move(info)},
-          sharedState{std::move(sharedState)} {}
+        : Sink{type_, id, std::move(printInfo)}, tableName{std::move(tableName)},
+          info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     ~BatchInsert() override = default;
 
