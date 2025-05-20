@@ -1,5 +1,6 @@
 #include "test_runner/test_runner.h"
 
+#include <filesystem>
 #include <fstream>
 
 #include "common/assert.h"
@@ -110,51 +111,13 @@ void TestRunner::checkLogicalPlan(Connection& conn, QueryResult* queryResult,
 
 void TestRunner::writeLogicalPlan(Connection& conn, QueryResult* queryResult,
     TestStatement* statement, size_t resultIdx) {
-    std::ofstream outFile;
-    outFile.open(statement->testFilePath.substr(0, statement->testFilePath.length() - 4) + "out", std::ios::app);
-    if (!outFile.is_open())
-    {
-        throw TestException("Cannot open file: " + statement->testFilePath);
-    }
-    outFile << statement->query << std::endl;
-    const TestQueryResult& testAnswer =
-        statement->result[std::min(resultIdx, statement->result.size() - 1)];
-    outFile << "---- ";
-    switch (testAnswer.type) {
-
-    case ResultType::OK:
-            outFile << "ok" << std::endl;
-        break;
-    case ResultType::HASH:
-            outFile << "hash" << std::endl;
-            writePlanResult(conn, queryResult, statement, resultIdx, outFile);
-        break;
-
-    case ResultType::TUPLES:
-            if (statement->checkColumnNames)
-                outFile << queryResult->getNumTuples() + 1 << std::endl;
-            else
-                outFile << queryResult->getNumTuples() << std::endl;
-            writePlanResult(conn, queryResult, statement, resultIdx, outFile);
-    break;
-
-    case ResultType::ERROR_MSG:
-            outFile << "error" << std::endl;
-        break;
-
-    case ResultType::ERROR_REGEX:
-            outFile << testAnswer.expectedResult[0] << std::endl;
-        break;
-    case ResultType::CSV_FILE:
-            outFile << testAnswer.expectedResult[0] << std::endl;
-            writePlanResult(conn, queryResult, statement, resultIdx, outFile);
-        break;
-    default:
-        KU_UNREACHABLE;
-    }
-
-        
+    (void)conn;
+    (void)queryResult;
+    (void)statement;
+    (void)resultIdx;
+    writePlanResult(conn, queryResult, statement, resultIdx);
 }
+
 
 void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStatement* statement,
     size_t resultIdx) {
@@ -226,26 +189,40 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
 
 
 void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStatement* statement,
-    size_t resultIdx, std::ofstream& outFile) {
-    /* TODO */
-    TestQueryResult& testAnswer = statement->result[resultIdx];
-    if (testAnswer.type == ResultType::CSV_FILE) {
-        /*TODO*/
-        return;
-    }
-    else if (testAnswer.type == ResultType::HASH) {
-        std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
-            statement->checkColumnNames);
-        outFile << resultHash << std::endl;
-        return;
-    } 
-    KU_ASSERT(testAnswer.type == ResultType::TUPLES);
-    std::vector<std::string> resultTuples =
-        convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
-    for(auto testOutput : resultTuples)
-        outFile << testOutput << std::endl;
-    outFile << std::endl;
- }
+    size_t resultIdx) {
+    std::fstream file;
+    std::string f;
+    std::string l;
+    file.open(statement->testFilePath);
+    while(getline(file, l))
+        if (l != "-STATEMENT " + statement->query)
+            f+= l + '\n';
+        else 
+        {
+            getline(file, l); // Add statement
+            f+= l + '\n';
+            getline(file, l); // Add result specifier
+            f+= l + '\n';
+            TestQueryResult& testAnswer = statement->result[resultIdx];
+            if (testAnswer.type == ResultType::HASH) 
+            {
+                std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
+                                                                statement->checkColumnNames);
+                f += resultHash + '\n';
+            } 
+            KU_ASSERT(testAnswer.type == ResultType::TUPLES);
+            std::vector<std::string> resultTuples =
+                convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
+            for(auto testOutput : resultTuples)
+                f += testOutput + '\n';
+            f += '\n';
+        }
+
+    file.close();
+    file.open(statement->testFilePath, std::ios::trunc);
+    file << f;
+}
+
 
 
 void TestRunner::outputFailedPlan(Connection& conn, const TestStatement* statement) {
