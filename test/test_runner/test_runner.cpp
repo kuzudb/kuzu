@@ -207,14 +207,17 @@ void TestRunner::writePlanResult(Connection& /**/, QueryResult* result, TestStat
             {
                 std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
                                                                 statement->checkColumnNames);
-                f += resultHash + '\n';
+                f += resultHash;
+                getline(file, l); //ignore Expected
             } 
             KU_ASSERT(testAnswer.type == ResultType::TUPLES);
             std::vector<std::string> resultTuples =
                 convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
             for(auto testOutput : resultTuples)
+            {
+                getline(file, l); //ignore Expected
                 f += testOutput + '\n';
-            f += '\n';
+            }
         }
 
     file.close();
