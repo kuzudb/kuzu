@@ -204,7 +204,7 @@ public:
     }
 
     uint64_t getCapacity() const { return capacity; }
-    virtual uint64_t getNumValues() const { return numValues; }
+    uint64_t getNumValues() const { return numValues; }
     // TODO(Guodong): Alternatively, we can let `getNumValues` read from metadata when ON_DISK.
     virtual void resetNumValuesFromMetadata();
     virtual void setNumValues(uint64_t numValues_);
