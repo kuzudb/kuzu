@@ -28,9 +28,11 @@ class DiskArrayCollection {
 
 public:
     DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
-        common::page_idx_t firstHeaderPage = 0, bool bypassShadowing = false);
+        bool bypassShadowing = false);
+    DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
+        common::page_idx_t firstHeaderPage, bool bypassShadowing = false);
 
-    void checkpoint();
+    void checkpoint(common::page_idx_t firstHeaderPage);
 
     void checkpointInMemory() {
         for (size_t i = 0; i < headersForWriteTrx.size(); i++) {
@@ -65,8 +67,6 @@ private:
     common::page_idx_t headerPagesOnDisk;
     std::vector<std::unique_ptr<HeaderPage>> headersForReadTrx;
     std::vector<std::unique_ptr<HeaderPage>> headersForWriteTrx;
-    // List of indices used to store old header pages.
-    std::vector<common::page_idx_t> headerPageIndices;
     uint64_t numHeaders;
 };
 

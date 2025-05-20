@@ -35,7 +35,7 @@ public:
     // size configs (including tests which have high peak hash index memory usage) It should be
     // tweaked to a more accurate value when the hash index is capable of reducing its memory usage
     static constexpr uint64_t HASH_INDEX_MEM =
-        common::HashIndexConstants::NUM_HASH_INDEXES * common::KUZU_PAGE_SIZE * 8;
+        common::HashIndexConstants::NUM_HASH_INDEXES * common::KUZU_PAGE_SIZE * 9;
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING =
         (1ull << 26) /* (64MB) */ + HASH_INDEX_MEM;
 
