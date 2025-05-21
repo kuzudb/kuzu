@@ -101,10 +101,9 @@ public:
         std::string l;
         file.open(testPath);
 
-        std::streampos pos;
         for(auto& statement : testStatements)
         {
-            while(pos = file.tellg(), getline(file, l))
+            while(getline(file, l))
             {
                 if (!l.starts_with("-STATEMENT"))
                 {
@@ -112,12 +111,16 @@ public:
                     continue;
                 }
 
+                f += l + '\n';
                 std::string stmt = l;
                 while(getline(file, l))
                     if (l.starts_with("----"))
                         break;
                     else 
+                    {
+                        f += l + '\n';
                         stmt += l;
+                    }
 
                 auto normalize = [](const std::string& s)
                 {
@@ -139,18 +142,12 @@ public:
 
                 if (normalize(stmt) != (normalize("-STATEMENT " + statement->query))) 
                 {
-                    std::cout << "GOT HERE ON" << std::endl;
-                    std::cout << stmt << std::endl;
-                    std::cout << "-STATEMENT " + statement->query << std::endl;
-                    file.seekg(pos);
-                    getline(file, l);
                     f += l + '\n';
                     continue;
                 }
 
                 else
                 {
-                    f += stmt + '\n'; // Add statement back
                     switch (statement->testResultType) 
                     {
                         case ResultType::OK:
@@ -194,6 +191,9 @@ public:
                 }
             }
         }
+
+        while(getline(file, l)) // get any remaining lines in the file, could be comments or anything else
+            f+=l + '\n';
         file.close();
         file.open(testPath, std::ios::trunc | std::ios::out);
         file << f;
