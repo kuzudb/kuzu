@@ -170,7 +170,7 @@ public:
                             f+=statement->newOutput; // Add actual output
                         }
                         break;
-                        case ResultType::CSV_FILE: // TODO
+                        case ResultType::CSV_FILE: // not supported yet
                         break;
                         case ResultType::ERROR_MSG:
                         {

@@ -203,7 +203,7 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement,
         break;
         case ResultType::TUPLES:
         {
-            f += "---- " + std::to_string(testAnswer.numTuples + statement->checkColumnNames) + '\n';
+            f += "---- " + std::to_string(result->getNumTuples()) + '\n';
             std::vector<std::string> resultTuples = convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
             for(auto result : resultTuples)
             {
@@ -211,7 +211,7 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement,
             }
         }
         break;
-        case ResultType::CSV_FILE: // TODO
+        case ResultType::CSV_FILE: // not supported yet...
         return;
         case ResultType::ERROR_MSG:
         {
