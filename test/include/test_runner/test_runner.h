@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "main/connection.h"
 #include "test_runner/test_group.h"
 
