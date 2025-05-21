@@ -1,5 +1,6 @@
 #include <fstream>
 #include <string>
+#include <utility>
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "test_helper/test_helper.h"
@@ -31,10 +32,10 @@ public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
         std::optional<uint64_t> bufferPoolSize, uint64_t checkpointWaitTimeout,
         const std::set<std::string>& connNames,
-        std::vector<std::unique_ptr<TestStatement>> testStatements)
+        std::vector<std::unique_ptr<TestStatement>> testStatements, std::string  path)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
           checkpointWaitTimeout{checkpointWaitTimeout}, testStatements{std::move(testStatements)},
-          connNames{connNames} {}
+          connNames{connNames}, testPath{std::move(path)} {}
 
     void SetUp() override {
         setUpDataset();
@@ -91,15 +92,16 @@ public:
             datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
             std::filesystem::remove_all(tempDatasetPath);
         }
-        if (!TestHelper::REWRITE_TESTS || testStatements.empty())
+        if (!TestHelper::REWRITE_TESTS)
             return;
         std::fstream file;
         std::string f;
         std::string l;
-        file.open(testStatements.front()->testFilePath);
+        file.open(testPath);
         for(auto& statement : testStatements)
         {
             while(getline(file, l))
+            {
                 if (l != "-STATEMENT " + statement->query)
                     f += l + '\n';
                 else
@@ -112,14 +114,14 @@ public:
                         {
                             f += statement->newOutput;
                         }
-                        continue;
+                        break;
                         case ResultType::HASH:
                         {
                             f += l + '\n';
                             f += statement->newOutput;
                             getline(file, l);
                         }
-                        continue;
+                        break;
                         case ResultType::TUPLES:
                         {
                             int skip = std::stoi(l.substr(5));
@@ -127,15 +129,15 @@ public:
                                 getline(file, l);
                             f+=statement->newOutput;
                         }
-                        continue;
+                        break;
                         case ResultType::CSV_FILE: // TODO
-                        return;
+                        break;
                         case ResultType::ERROR_MSG:
                         {
                             f+=statement->newOutput;
                             getline(file, l);
                         }
-                        continue;
+                        break;
                         case ResultType::ERROR_REGEX:
                         {
                             f+=statement->newOutput;
@@ -143,13 +145,15 @@ public:
                             if (statement->newOutput != "ok\n")
                                 f += l + '\n';
                         }
-                        continue;
+                        break;
                     }
+                    break; // goto next statement
                 }
-            file.close();
-            file.open(statement->testFilePath, std::ios::trunc | std::ios::out);
-            file << f;
+            }
         }
+        file.close();
+        file.open(testPath, std::ios::trunc | std::ios::out);
+        file << f;
     }
 
     void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }
@@ -163,6 +167,7 @@ private:
     uint64_t checkpointWaitTimeout;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
     std::set<std::string> connNames;
+    std::string testPath;
 
     std::string generateTempDatasetPath() {
         std::string datasetName = dataset;
@@ -205,10 +210,10 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
                     decltype(testStatements) testStatementsCopy;
                     for (const auto& testStatement : testStatements) {
                         testStatementsCopy.emplace_back(
-                            std::make_unique<TestStatement>(*testStatement))->testFilePath = path;
+                            std::make_unique<TestStatement>(*testStatement));
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
-                        checkpointWaitTimeout, connNames, std::move(testStatementsCopy));
+                        checkpointWaitTimeout, connNames, std::move(testStatementsCopy), path);
                 });
         }
     } else {

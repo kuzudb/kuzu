@@ -65,7 +65,6 @@ struct TestStatement {
     bool removeFileFlag = false;
     std::string removeFilePath;
     // For rewriteTests
-    std::string testFilePath;
     std::string newOutput;
     ResultType testResultType;
 };
