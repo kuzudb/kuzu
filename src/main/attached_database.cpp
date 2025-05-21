@@ -41,6 +41,11 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
     if (path.ends_with('/')) {
         path = path.substr(0, path.size() - 1);
     }
+    auto dataFilePath = storage::StorageUtils::getDataFName(vfs, path);
+    if (!vfs->fileOrPathExists(dataFilePath, clientContext)) {
+        throw common::RuntimeException(common::stringFormat(
+            "Cannot attach a remote Kuzu database due to invalid path: {}.", path));
+    }
     catalog = std::make_unique<catalog::Catalog>();
     validateEmptyWAL(path, clientContext);
     storageManager = std::make_unique<storage::StorageManager>(path, true /* isReadOnly */,
