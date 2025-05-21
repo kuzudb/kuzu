@@ -2,7 +2,6 @@
 #include <string>
 #include <utility>
 
-#include "alp/state.hpp"
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "test_helper/test_helper.h"
