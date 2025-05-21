@@ -70,7 +70,11 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     QueryResult* currentQueryResult = actualResult.get();
     idx_t resultIdx = 0u;
     if (TestHelper::REWRITE_TESTS)
+        do {
             writeOutput(currentQueryResult, statement, resultIdx);
+            currentQueryResult = currentQueryResult->getNextQueryResult();
+            resultIdx++;
+        } while (currentQueryResult);
     else
         do {
             checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
@@ -221,7 +225,7 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement,
         }
         break;
     }
-    statement->newOutput = f;
+    statement->newOutput += f;
 }
 
 void TestRunner::outputFailedPlan(Connection& conn, const TestStatement* statement) {
