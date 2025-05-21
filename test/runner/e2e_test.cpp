@@ -1,6 +1,7 @@
 #include <fstream>
 #include <string>
 #include <utility>
+#include "alp/state.hpp"
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "test_helper/test_helper.h"
@@ -92,6 +93,7 @@ public:
             datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
             std::filesystem::remove_all(tempDatasetPath);
         }
+
         if (!TestHelper::REWRITE_TESTS)
             return;
         std::fstream file;
@@ -99,16 +101,56 @@ public:
         std::string l;
         file.open(testPath);
 
+        std::streampos pos;
         for(auto& statement : testStatements)
         {
-            while(getline(file, l))
+            while(pos = file.tellg(), getline(file, l))
             {
-                if (l != "-STATEMENT " + statement->query)
+                if (!l.starts_with("-STATEMENT"))
+                {
                     f += l + '\n';
+                    continue;
+                }
+
+                std::string stmt = l;
+                while(getline(file, l))
+                    if (l.starts_with("----"))
+                        break;
+                    else 
+                        stmt += l;
+
+                auto normalize = [](const std::string& s)
+                {
+                    std::string result;
+                    bool in_space = false;
+                    for (char c : s) {
+                        if (std::isspace(static_cast<unsigned char>(c))) {
+                            if (!in_space) {
+                                result += ' ';
+                                in_space = true;
+                            }
+                        } else {
+                            result += c;
+                            in_space = false;
+                        }
+                    }
+                    return result;
+                };
+
+                if (normalize(stmt) != (normalize("-STATEMENT " + statement->query))) 
+                {
+                    std::cout << "GOT HERE ON" << std::endl;
+                    std::cout << stmt << std::endl;
+                    std::cout << "-STATEMENT " + statement->query << std::endl;
+                    file.seekg(pos);
+                    getline(file, l);
+                    f += l + '\n';
+                    continue;
+                }
+
                 else
                 {
-                    f += l + '\n'; // Add statement back
-                    getline(file, l); // get result form specifier
+                    f += stmt + '\n'; // Add statement back
                     switch (statement->testResultType) 
                     {
                         case ResultType::OK:
