@@ -98,6 +98,7 @@ public:
         std::string f;
         std::string l;
         file.open(testPath);
+
         for(auto& statement : testStatements)
         {
             while(getline(file, l))
@@ -106,8 +107,8 @@ public:
                     f += l + '\n';
                 else
                 {
-                    f += l + '\n';
-                    getline(file, l); // result form specifier
+                    f += l + '\n'; // Add statement back
+                    getline(file, l); // get result form specifier
                     switch (statement->testResultType) 
                     {
                         case ResultType::OK:
@@ -117,25 +118,25 @@ public:
                         break;
                         case ResultType::HASH:
                         {
-                            f += l + '\n';
-                            f += statement->newOutput;
-                            getline(file, l);
+                            f += l + '\n'; // Add result specifier
+                            f += statement->newOutput; // Add produced hash
+                            getline(file, l); // Ignore expected hash
                         }
                         break;
                         case ResultType::TUPLES:
                         {
-                            int skip = std::stoi(l.substr(5));
+                            int skip = std::stoi(l.substr(5)); // Ignore expected tuples
                             for(int i = 0; i < skip; ++i)
                                 getline(file, l);
-                            f+=statement->newOutput;
+                            f+=statement->newOutput; // Add actual output
                         }
                         break;
                         case ResultType::CSV_FILE: // TODO
                         break;
                         case ResultType::ERROR_MSG:
                         {
-                            f+=statement->newOutput;
-                            getline(file, l);
+                            f+=statement->newOutput; // Add actual output (result and error msg)
+                            getline(file, l); //Ignore produced error msg 
                         }
                         break;
                         case ResultType::ERROR_REGEX:
