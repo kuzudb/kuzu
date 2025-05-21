@@ -1,0 +1,23 @@
+-DATASET CSV empty
+-BUFFER_POOL_SIZE 5000000
+
+--
+
+-CASE ExportDBTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT create node table person (id INT64, description json, primary key(id));
+---- ok
+-STATEMENT CREATE (p:person {id: 5, description: 6})
+---- ok
+-STATEMENT CREATE (p:person {id: 8, description: to_json({"family": "anatidae", "species": [ "duck", "goose", "swan", null]})})
+---- ok
+-STATEMENT EXPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_json/export'
+---- ok
+-IMPORT_DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_json/export'
+-STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_json/export';
+---- ok
+-STATEMENT MATCH (p:person) return p.*
+---- 2
+5|6
+8|{"family":"anatidae","species":["duck","goose","swan",null]}
