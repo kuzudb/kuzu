@@ -98,25 +98,25 @@ public:
         if (!TestHelper::REWRITE_TESTS)
             return;
         std::fstream file;
-        std::string f;
-        std::string l;
+        std::string newFile;
+        std::string currLine;
         file.open(testPath);
 
         for (auto& statement : testStatements) {
-            while (getline(file, l)) {
-                if (!l.starts_with("-STATEMENT")) {
-                    f += l + '\n';
+            while (getline(file, currLine)) {
+                if (!currLine.starts_with("-STATEMENT")) {
+                    newFile += currLine + '\n';
                     continue;
                 }
 
-                f += l + '\n';
-                std::string stmt = l;
-                while (getline(file, l))
-                    if (l.starts_with("----"))
+                newFile += currLine + '\n';
+                std::string stmt = currLine;
+                while (getline(file, currLine))
+                    if (currLine.starts_with("----"))
                         break;
                     else {
-                        f += l + '\n';
-                        stmt += l;
+                        newFile += currLine + '\n';
+                        stmt += currLine;
                     }
 
                 auto normalize = [](const std::string& s) {
@@ -137,37 +137,37 @@ public:
                 };
 
                 if (normalize(stmt) != (normalize("-STATEMENT " + statement->query))) {
-                    f += l + '\n';
+                    newFile += currLine + '\n';
                     continue;
                 }
 
                 else {
                     switch (statement->testResultType) {
                     case ResultType::OK: {
-                        f += statement->newOutput;
+                        newFile += statement->newOutput;
                     } break;
                     case ResultType::HASH: {
-                        f += l + '\n';             // Add result specifier
-                        f += statement->newOutput; // Add produced hash
-                        getline(file, l);          // Ignore expected hash
+                        newFile += currLine + '\n';             // Add result specifier
+                        newFile += statement->newOutput; // Add produced hash
+                        getline(file, currLine);          // Ignore expected hash
                     } break;
                     case ResultType::TUPLES: {
-                        int skip = std::stoi(l.substr(5)); // Ignore expected tuples
+                        int skip = std::stoi(currLine.substr(5)); // Ignore expected tuples
                         for (int i = 0; i < skip; ++i)
-                            getline(file, l);
-                        f += statement->newOutput; // Add actual output
+                            getline(file, currLine);
+                        newFile += statement->newOutput; // Add actual output
                     } break;
                     case ResultType::CSV_FILE: // not supported yet
                         break;
                     case ResultType::ERROR_MSG: {
-                        f += statement->newOutput; // Add actual output (result and error msg)
-                        getline(file, l);          // Ignore produced error msg
+                        newFile += statement->newOutput; // Add actual output (result and error msg)
+                        getline(file, currLine);          // Ignore produced error msg
                     } break;
                     case ResultType::ERROR_REGEX: {
-                        f += statement->newOutput;
-                        getline(file, l);
+                        newFile += statement->newOutput;
+                        getline(file, currLine);
                         if (statement->newOutput != "ok\n")
-                            f += l + '\n';
+                            newFile += currLine + '\n';
                     } break;
                     }
                     break; // goto next statement
@@ -176,11 +176,11 @@ public:
         }
 
         while (getline(file,
-            l)) // get any remaining lines in the file, could be comments or anything else
-            f += l + '\n';
+            currLine)) // get any remaining lines in the file such as comments
+            newFile += currLine + '\n';
         file.close();
         file.open(testPath, std::ios::trunc | std::ios::out);
-        file << f;
+        file << newFile;
     }
 
     void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }
