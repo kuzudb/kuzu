@@ -1,6 +1,7 @@
 #include <fstream>
 #include <string>
 #include <utility>
+
 #include "alp/state.hpp"
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
@@ -33,7 +34,7 @@ public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
         std::optional<uint64_t> bufferPoolSize, uint64_t checkpointWaitTimeout,
         const std::set<std::string>& connNames,
-        std::vector<std::unique_ptr<TestStatement>> testStatements, std::string  path)
+        std::vector<std::unique_ptr<TestStatement>> testStatements, std::string path)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
           checkpointWaitTimeout{checkpointWaitTimeout}, testStatements{std::move(testStatements)},
           connNames{connNames}, testPath{std::move(path)} {}
@@ -101,29 +102,24 @@ public:
         std::string l;
         file.open(testPath);
 
-        for(auto& statement : testStatements)
-        {
-            while(getline(file, l))
-            {
-                if (!l.starts_with("-STATEMENT"))
-                {
+        for (auto& statement : testStatements) {
+            while (getline(file, l)) {
+                if (!l.starts_with("-STATEMENT")) {
                     f += l + '\n';
                     continue;
                 }
 
                 f += l + '\n';
                 std::string stmt = l;
-                while(getline(file, l))
+                while (getline(file, l))
                     if (l.starts_with("----"))
                         break;
-                    else 
-                    {
+                    else {
                         f += l + '\n';
                         stmt += l;
                     }
 
-                auto normalize = [](const std::string& s)
-                {
+                auto normalize = [](const std::string& s) {
                     std::string result;
                     bool in_space = false;
                     for (char c : s) {
@@ -140,60 +136,48 @@ public:
                     return result;
                 };
 
-                if (normalize(stmt) != (normalize("-STATEMENT " + statement->query))) 
-                {
+                if (normalize(stmt) != (normalize("-STATEMENT " + statement->query))) {
                     f += l + '\n';
                     continue;
                 }
 
-                else
-                {
-                    switch (statement->testResultType) 
-                    {
-                        case ResultType::OK:
-                        {
-                            f += statement->newOutput;
-                        }
-                        break;
-                        case ResultType::HASH:
-                        {
-                            f += l + '\n'; // Add result specifier
-                            f += statement->newOutput; // Add produced hash
-                            getline(file, l); // Ignore expected hash
-                        }
-                        break;
-                        case ResultType::TUPLES:
-                        {
-                            int skip = std::stoi(l.substr(5)); // Ignore expected tuples
-                            for(int i = 0; i < skip; ++i)
-                                getline(file, l);
-                            f+=statement->newOutput; // Add actual output
-                        }
-                        break;
-                        case ResultType::CSV_FILE: // not supported yet
-                        break;
-                        case ResultType::ERROR_MSG:
-                        {
-                            f+=statement->newOutput; // Add actual output (result and error msg)
-                            getline(file, l); //Ignore produced error msg 
-                        }
-                        break;
-                        case ResultType::ERROR_REGEX:
-                        {
-                            f+=statement->newOutput;
+                else {
+                    switch (statement->testResultType) {
+                    case ResultType::OK: {
+                        f += statement->newOutput;
+                    } break;
+                    case ResultType::HASH: {
+                        f += l + '\n';             // Add result specifier
+                        f += statement->newOutput; // Add produced hash
+                        getline(file, l);          // Ignore expected hash
+                    } break;
+                    case ResultType::TUPLES: {
+                        int skip = std::stoi(l.substr(5)); // Ignore expected tuples
+                        for (int i = 0; i < skip; ++i)
                             getline(file, l);
-                            if (statement->newOutput != "ok\n")
-                                f += l + '\n';
-                        }
+                        f += statement->newOutput; // Add actual output
+                    } break;
+                    case ResultType::CSV_FILE: // not supported yet
                         break;
+                    case ResultType::ERROR_MSG: {
+                        f += statement->newOutput; // Add actual output (result and error msg)
+                        getline(file, l);          // Ignore produced error msg
+                    } break;
+                    case ResultType::ERROR_REGEX: {
+                        f += statement->newOutput;
+                        getline(file, l);
+                        if (statement->newOutput != "ok\n")
+                            f += l + '\n';
+                    } break;
                     }
                     break; // goto next statement
                 }
             }
         }
 
-        while(getline(file, l)) // get any remaining lines in the file, could be comments or anything else
-            f+=l + '\n';
+        while (getline(file,
+            l)) // get any remaining lines in the file, could be comments or anything else
+            f += l + '\n';
         file.close();
         file.open(testPath, std::ios::trunc | std::ios::out);
         file << f;
@@ -333,11 +317,11 @@ int main(int argc, char** argv) {
         TestHelper::setE2ETestFilesDirectory(test_dir);
         TestHelper::setE2EImportDataDirectory(import_data_dir);
 
-        if (env_rewrite_tests != nullptr && std::string(env_rewrite_tests) != "FALSE" && std::string(env_rewrite_tests) != "OFF") {
+        if (env_rewrite_tests != nullptr && std::string(env_rewrite_tests) != "FALSE" &&
+            std::string(env_rewrite_tests) != "OFF") {
             rewrite_tests = true;
-        } 
+        }
         TestHelper::setRewriteTests(rewrite_tests);
-
 
         checkGtestParams(argc, argv);
         testing::InitGoogleTest(&argc, argv);

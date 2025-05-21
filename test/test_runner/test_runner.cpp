@@ -181,49 +181,39 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
     }
 }
 
-void TestRunner::writeOutput(QueryResult* result, TestStatement* statement,
-    size_t resultIdx) {
+void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size_t resultIdx) {
     TestQueryResult& testAnswer = statement->result[resultIdx];
     statement->testResultType = testAnswer.type;
     std::string f;
-    switch (testAnswer.type) 
-    {
-        case ResultType::OK:
-        {
-            f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) +'\n';
-            if (!result->isSuccess())
-                    f+=result->getErrorMessage() + '\n';
-        }
-        break;
-        case ResultType::HASH:
-        {
-            std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder, statement->checkColumnNames);
-            f += resultHash;
-        }
-        break;
-        case ResultType::TUPLES:
-        {
-            f += "---- " + std::to_string(result->getNumTuples()) + '\n';
-            std::vector<std::string> resultTuples = convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
-            for(auto result : resultTuples)
-            {
-                f+= result + '\n';
-            }
-        }
-        break;
-        case ResultType::CSV_FILE: // not supported yet...
-        return;
-        case ResultType::ERROR_MSG:
-        {
-            f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) +'\n';
+    switch (testAnswer.type) {
+    case ResultType::OK: {
+        f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        if (!result->isSuccess())
             f += result->getErrorMessage() + '\n';
+    } break;
+    case ResultType::HASH: {
+        std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
+            statement->checkColumnNames);
+        f += resultHash;
+    } break;
+    case ResultType::TUPLES: {
+        f += "---- " + std::to_string(result->getNumTuples()) + '\n';
+        std::vector<std::string> resultTuples = convertResultToString(*result,
+            statement->checkOutputOrder, statement->checkColumnNames);
+        for (auto result : resultTuples) {
+            f += result + '\n';
         }
-        break;
-        case ResultType::ERROR_REGEX:
-        {
-            f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) +'\n';
-        }
-        break;
+    } break;
+    case ResultType::CSV_FILE: // not supported yet...
+        return;
+    case ResultType::ERROR_MSG: {
+        f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        f += result->getErrorMessage() + '\n';
+    } break;
+    case ResultType::ERROR_REGEX: {
+        f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) +
+             '\n';
+    } break;
     }
     statement->newOutput += f;
 }
