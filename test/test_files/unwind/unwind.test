@@ -234,3 +234,14 @@ Aida|Alice|Bob|Dan
 -STATEMENT MATCH (a:N) RETURN a.id
 ---- 1
 1
+
+-CASE UnwindNull
+-STATEMENT UNWIND NULL AS t RETURN t
+---- 0
+-STATEMENT UNWIND [] AS t RETURN t
+---- 0
+-STATEMENT UNWIND [NULL] AS t RETURN t
+---- 1
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-edge-case-tests/null-field.csv"(header=true) UNWIND col2 AS t RETURN t
+---- 0
