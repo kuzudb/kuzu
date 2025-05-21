@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import sys
-
 import kuzu
 import pytest
+
 from type_aliases import ConnDB
 
 
@@ -35,17 +34,17 @@ def test_read_only_exception(conn_db_readonly: ConnDB) -> None:
 
 def test_max_db_size_exception() -> None:
     with pytest.raises(
-        RuntimeError, match="Buffer manager exception: The given max db size should be at least 4194304 bytes."
+            RuntimeError, match="Buffer manager exception: The given max db size should be at least 8388608 bytes."
     ):
         kuzu.Database("test.db", max_db_size=1024)
 
     with pytest.raises(RuntimeError, match="Buffer manager exception: The given max db size should be a power of 2."):
-        kuzu.Database("test.db", max_db_size=4194305)
+        kuzu.Database("test.db", max_db_size=8388609)
 
 
 def test_buffer_pool_size_exception() -> None:
     with pytest.raises(
-        RuntimeError, match="Buffer manager exception: The given buffer pool size should be at least 4096 bytes."
+            RuntimeError, match="Buffer manager exception: The given buffer pool size should be at least 4096 bytes."
     ):
         kuzu.Database("test.db", buffer_pool_size=1024)
 

@@ -66,6 +66,7 @@ page_idx_t ShadowUtils::insertNewPage(FileHandle& fileHandle, ShadowFile& shadow
 void unpinShadowPage(page_idx_t originalPageIdx, page_idx_t shadowPageIdx,
     const ShadowFile& shadowFile) {
     KU_ASSERT(originalPageIdx != INVALID_PAGE_IDX && shadowPageIdx != INVALID_PAGE_IDX);
+    KU_UNUSED(originalPageIdx);
     shadowFile.getShadowingFH().unpinPage(shadowPageIdx);
 }
 

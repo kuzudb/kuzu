@@ -83,10 +83,10 @@ def test_max_db_size(temp_db, flag) -> None:
     # invalid flag
     test = ShellTest().add_argument(temp_db).add_argument(flag).add_argument("1000")
     result = test.run()
-    result.check_stderr(f"Buffer manager exception: The given max db size should be at least 4194304 bytes.")
+    result.check_stderr(f"Buffer manager exception: The given max db size should be at least 8388608 bytes.")
 
     # successful flag
-    test = ShellTest().add_argument(temp_db).add_argument(flag).add_argument("4194304")
+    test = ShellTest().add_argument(temp_db).add_argument(flag).add_argument("8388608")
     result = test.run()
     result.check_stdout(f"Opening the database at path: {temp_db} in read-write mode.")
 
@@ -291,7 +291,8 @@ def test_mode(temp_db, flag) -> None:
     result.check_stdout("<th>a</th>")
     result.check_stdout("</tr>")
     result.check_stdout("<tr>")
-    result.check_stdout("<td>This is a &lt;test&gt; &amp; &quot;example&quot; with &apos;special&apos; characters.</td>")
+    result.check_stdout(
+        "<td>This is a &lt;test&gt; &amp; &quot;example&quot; with &apos;special&apos; characters.</td>")
     result.check_stdout("</tr>")
     result.check_stdout("</table>")
 
@@ -369,7 +370,8 @@ def test_mode(temp_db, flag) -> None:
     result.check_stdout("\\hline")
     result.check_stdout("a\\\\")
     result.check_stdout("\\hline")
-    result.check_stdout("This is a test with special characters: \\%, \\$, \\&, \\#, \\_, \\{, \\}, \\textasciitilde{}, \\textasciicircum{}, \\textbackslash{}, \\textless{}, and \\textgreater{}.\\\\")
+    result.check_stdout(
+        "This is a test with special characters: \\%, \\$, \\&, \\#, \\_, \\{, \\}, \\textasciitilde{}, \\textasciicircum{}, \\textbackslash{}, \\textless{}, and \\textgreater{}.\\\\")
     result.check_stdout("\\hline")
     result.check_stdout("\\end{tabular}")
 
@@ -384,7 +386,7 @@ def test_mode(temp_db, flag) -> None:
     result = test.run()
     result.check_stdout("a = Databases Rule")
     result.check_stdout("b = kuzu is cool")
-    
+
     # test list mode
     test = (
         ShellTest()
@@ -486,7 +488,7 @@ def test_mode(temp_db, flag) -> None:
     )
     result = test.run()
     result.check_stderr("Cannot parse 'invalid' as output mode.")
-    
+
 
 @pytest.mark.parametrize(
     "flag",
@@ -519,6 +521,7 @@ def test_no_stats(temp_db, flag) -> None:
     result.check_stdout("(1 tuple)")
     result.check_stdout("(1 column)")
     result.check_stdout("Time: ")
+
 
 @pytest.mark.parametrize(
     "flag",

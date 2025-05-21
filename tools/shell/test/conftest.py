@@ -6,6 +6,7 @@ import subprocess
 
 import pexpect
 import pytest
+
 from test_helper import KUZU_EXEC_PATH, KUZU_ROOT, deleteIfExists
 
 
@@ -213,4 +214,3 @@ def singleline():
     test.send_finished_statement(":singleline\r")
     assert test.shell_process.expect_exact(["Single line mode enabled", pexpect.EOF]) == 0
     return test
-

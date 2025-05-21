@@ -15,7 +15,7 @@ using namespace kuzu::main;
 using namespace kuzu::testing;
 
 TEST_F(ApiTest, BasicConnect) {
-    ApiTest::assertMatchPersonCountStar(conn.get());
+    assertMatchPersonCountStar(conn.get());
 }
 
 #ifndef __SINGLE_THREADED__

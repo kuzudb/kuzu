@@ -75,7 +75,7 @@ TEST_F(SystemConfigTest, testMaxDBSize) {
     } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given max db size should be at least " +
-                std::to_string(KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) + " bytes.");
+                std::to_string(2 * KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) + " bytes.");
     }
     systemConfig->maxDBSize = 268435457;
     try {

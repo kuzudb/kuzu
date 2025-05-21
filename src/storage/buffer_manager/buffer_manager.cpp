@@ -104,10 +104,11 @@ void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize
         throw BufferManagerException(stringFormat(
             "The given buffer pool size should be at least {} bytes.", KUZU_PAGE_SIZE));
     }
-    if (maxDBSize < KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
+    // We require at least two page groups, one for the main data file, and one for the shadow file.
+    if (maxDBSize < 2 * KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
         throw BufferManagerException(
             "The given max db size should be at least " +
-            std::to_string(KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) + " bytes.");
+            std::to_string(2 * KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) + " bytes.");
     }
     if ((maxDBSize & (maxDBSize - 1)) != 0) {
         throw BufferManagerException("The given max db size should be a power of 2.");
