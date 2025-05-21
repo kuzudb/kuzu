@@ -147,9 +147,9 @@ public:
                         newFile += statement->newOutput;
                     } break;
                     case ResultType::HASH: {
-                        newFile += currLine + '\n';             // Add result specifier
+                        newFile += currLine + '\n';      // Add result specifier
                         newFile += statement->newOutput; // Add produced hash
-                        getline(file, currLine);          // Ignore expected hash
+                        getline(file, currLine);         // Ignore expected hash
                     } break;
                     case ResultType::TUPLES: {
                         int skip = std::stoi(currLine.substr(5)); // Ignore expected tuples
@@ -161,7 +161,7 @@ public:
                         break;
                     case ResultType::ERROR_MSG: {
                         newFile += statement->newOutput; // Add actual output (result and error msg)
-                        getline(file, currLine);          // Ignore produced error msg
+                        getline(file, currLine);         // Ignore produced error msg
                     } break;
                     case ResultType::ERROR_REGEX: {
                         newFile += statement->newOutput;
