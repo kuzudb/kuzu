@@ -580,13 +580,33 @@ Binder exception: Expression ABC has data type STRING but expected INT64[3]. Imp
 ---- 2
 0|Alice
 2|Bob
+-STATEMENT CREATE NODE TABLE Person AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" RETURN *;
+---- ok
+-STATEMENT COPY Person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
+---- ok
+-STATEMENT CREATE REL TABLE Knows (FROM Person TO Person) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
+---- ok
+-STATEMENT MATCH (a:Person)-[k:Knows]->(b:Person) RETURN a.fname, b.fname;
+---- 6
+Alice|Dan
+Alice|Carol
+Alice|Bob
+Bob|Dan
+Bob|Carol
+Bob|Alice
+-STATEMENT CREATE REL TABLE Knows (FROM Person TO Person) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
+---- error
+Binder exception: Knows already exists in catalog.
+-STATEMENT CREATE REL TABLE Failure (FROM Person TO Person, FROM Person TO Test2) AS RETURN *;
+---- error
+Parser exception: Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.
 
--CASE CreateTableAsDuplicateIntIDs
+-CASE CreateNodeTableAsDuplicateIntIDs
 -STATEMENT CREATE NODE TABLE Foo AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv" RETURN *;
 ---- error
 Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
 
--CASE CreateTableAsEmptyReturn
+-CASE CreateNodeTableAsEmptyReturn
 -STATEMENT CREATE NODE TABLE Bar AS RETURN *;
 ---- error
 Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.

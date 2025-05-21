@@ -98,7 +98,7 @@ kU_CreateRelTable
     : CREATE SP REL SP TABLE ( SP GROUP )? ( SP kU_IfNotExists )? SP oC_SchemaName
         SP? '(' SP?
             kU_FromToConnections SP? (
-            ( ',' SP? kU_PropertyDefinitions SP? )?
+            ',' SP? kU_PropertyDefinitions SP?
             ( ',' SP? oC_SymbolicName SP? )? // Constraints
             ')'
             | ')' SP AS SP oC_Query )
