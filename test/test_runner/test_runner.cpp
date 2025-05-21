@@ -183,38 +183,38 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
 void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size_t resultIdx) {
     TestQueryResult& testAnswer = statement->result[resultIdx];
     statement->testResultType = testAnswer.type;
-    std::string f;
+    std::string newOutput;
     switch (testAnswer.type) {
     case ResultType::OK: {
-        f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        newOutput += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
         if (!result->isSuccess())
-            f += result->getErrorMessage() + '\n';
+            newOutput += result->getErrorMessage() + '\n';
     } break;
     case ResultType::HASH: {
         std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
             statement->checkColumnNames);
-        f += resultHash;
+        newOutput += resultHash;
     } break;
     case ResultType::TUPLES: {
-        f += "---- " + std::to_string(result->getNumTuples()) + '\n';
+        newOutput += "---- " + std::to_string(result->getNumTuples()) + '\n';
         std::vector<std::string> resultTuples = convertResultToString(*result,
             statement->checkOutputOrder, statement->checkColumnNames);
         for (auto result : resultTuples) {
-            f += result + '\n';
+            newOutput += result + '\n';
         }
     } break;
     case ResultType::CSV_FILE: // not supported yet...
         return;
     case ResultType::ERROR_MSG: {
-        f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
-        f += result->getErrorMessage() + '\n';
+        newOutput += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        newOutput += result->getErrorMessage() + '\n';
     } break;
     case ResultType::ERROR_REGEX: {
-        f += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) +
+        newOutput += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) +
              '\n';
     } break;
     }
-    statement->newOutput += f;
+    statement->newOutput += newOutput;
 }
 
 void TestRunner::outputFailedPlan(Connection& conn, const TestStatement* statement) {
