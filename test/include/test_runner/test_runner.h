@@ -1,6 +1,5 @@
 #pragma once
 
-#include <fstream>
 
 #include "main/connection.h"
 #include "test_runner/test_group.h"
