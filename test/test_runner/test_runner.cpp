@@ -186,7 +186,8 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
     std::string newOutput;
     switch (testAnswer.type) {
     case ResultType::OK: {
-        newOutput += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        newOutput +=
+            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
         if (!result->isSuccess())
             newOutput += result->getErrorMessage() + '\n';
     } break;
@@ -206,12 +207,13 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
     case ResultType::CSV_FILE: // not supported yet...
         return;
     case ResultType::ERROR_MSG: {
-        newOutput += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        newOutput +=
+            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
         newOutput += result->getErrorMessage() + '\n';
     } break;
     case ResultType::ERROR_REGEX: {
-        newOutput += "---- " + (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) +
-             '\n';
+        newOutput += "---- " +
+                     (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) + '\n';
     } break;
     }
     statement->newOutput += newOutput;
