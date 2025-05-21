@@ -92,7 +92,7 @@ public:
     void checkpoint(bool forceUpdateHeader);
     void checkpointInMemory();
 
-    void reclaimStorage(PageManager& pageManager);
+    void reclaimStorage(PageManager& pageManager) const;
 
     OverflowFileHandle* addHandle() {
         KU_ASSERT(handles.size() < NUM_HASH_INDEXES);

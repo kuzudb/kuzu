@@ -231,7 +231,11 @@ void OverflowFile::rollbackInMemory() {
     }
 }
 
-void OverflowFile::reclaimStorage(PageManager& pageManager) {}
+void OverflowFile::reclaimStorage(PageManager& pageManager) const {
+    for (auto& handle : handles) {
+        handle->reclaimStorage(pageManager);
+    }
+}
 
 } // namespace storage
 } // namespace kuzu
