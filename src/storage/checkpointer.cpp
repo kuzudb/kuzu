@@ -90,9 +90,8 @@ void Checkpointer::writeDatabaseHeader(const PageRange& catalogPageRange,
     const auto storageManager = clientContext.getStorageManager();
     auto dataFH = storageManager->getDataFH();
     auto& shadowFile = storageManager->getShadowFile();
-    auto isHeaderNewlyAppendedPage = dataFH->getNumPages() == 0;
     auto shadowHeader = ShadowUtils::createShadowVersionIfNecessaryAndPinPage(0,
-        isHeaderNewlyAppendedPage, *dataFH, shadowFile);
+        true /* skipReadingOriginalPage */, *dataFH, shadowFile);
     memcpy(shadowHeader.frame, headerPage.data(), common::KUZU_PAGE_SIZE);
     shadowFile.getShadowingFH().unpinPage(shadowHeader.shadowPage);
 }
