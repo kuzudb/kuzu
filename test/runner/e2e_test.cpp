@@ -33,10 +33,10 @@ public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
         std::optional<uint64_t> bufferPoolSize, uint64_t checkpointWaitTimeout,
         const std::set<std::string>& connNames,
-        std::vector<std::unique_ptr<TestStatement>> testStatements, std::string path)
+        std::vector<std::unique_ptr<TestStatement>> testStatements, std::string testPath)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
           checkpointWaitTimeout{checkpointWaitTimeout}, testStatements{std::move(testStatements)},
-          connNames{connNames}, testPath{std::move(path)} {}
+          connNames{connNames}, testPath{std::move(testPath)} {}
 
     void SetUp() override {
         setUpDataset();
@@ -111,6 +111,16 @@ public:
                         stmt += currLine;
                     }
                 }
+                
+                // This lambda collaples multiple repeating space characters into a
+                // single space character.
+                // This was required since in parsing there were inexplicable
+                // differences in whitespace causing erroneous errors
+                // Since it is a small function and not needed else where it was
+                // implemented as a lambda.
+                // TODO BEFORE MERGING <- Check for an implementation of this
+                // functionality in StringUtil
+
                 auto normalize = [](const std::string& s) {
                     std::string result;
                     bool in_space = false;
