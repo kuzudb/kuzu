@@ -157,6 +157,7 @@ public:
                         newFile += statement->newOutput; // Add actual output
                     } break;
                     case ResultType::CSV_FILE: // not supported yet
+                        newFile += currLine + '\n';
                         break;
                     case ResultType::ERROR_MSG: {
                         newFile += statement->newOutput; // Add actual output (result and error msg)
