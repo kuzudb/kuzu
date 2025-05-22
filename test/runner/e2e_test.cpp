@@ -166,91 +166,92 @@ public:
 
                 else {
                     switch (statement->testResultType) {
-                        // Success results don't need anything after the dashes
-                        // -STATEMENT CREATE NODE TABLE  Person (ID INT64, PRIMARY KEY (ID));
-                        // ---- ok
-                        case ResultType::OK: {
-                            newFile += statement->newOutput;
-                        } break;
-                        // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
-                        // -CHECK_ORDER # order matters with hashes
-                        // ---- hash
-                        // 4 c921eb680e6d000e4b65556ae02361d2
-                        case ResultType::HASH: {
-                            // Add result specifier
-                            newFile += currLine + '\n';
-                            // Add produced hash
-                            newFile += statement->newOutput;
-                            // Ignore expected hash
-                            getline(file, currLine);
-                        } break;
-                        // -CHECK_COLUMN_NAMES
-                        // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
-                        // ---- 5
-                        // a.fName
-                        // Alice
-                        // Bob
-                        // Carol
-                        // Dan
-                        case ResultType::TUPLES: {
-                            try {
-                                // We extract the number of expected tuples from the result
-                                // specifier line and skip over as many tuples that
-                                // were specified
-                                static constexpr size_t numTuplesPrefix = std::string_view("---- ").size();
-                                int count = std::stoi(currLine.substr(numTuplesPrefix));
-                                for (int i = 0; i < count; ++i) {
-                                    getline(file, currLine);
-                                }
-                                // Add the produced output, which contains the
-                                // updated count of tuples
-                                newFile += statement->newOutput;
-                            } catch (...) {
-                                // Could not overwrite expected result
-                                // error in parsing expected tuples
-                                newFile += currLine + '\n';
-                            }
-                        } break;
-                        // -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) RETURN ID(r)
-                        // ---- 5001
-                        // <FILE>:file_with_answers.txt
-                        case ResultType::CSV_FILE:
-                            // not supported yet
-                            { newFile += currLine + '\n'; }
-                            break;
-                        // # Expects error message
-                        // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
-                        // ---- error
-                        // Error: Binder exception: Variable intended is not in scope.
-                        case ResultType::ERROR_MSG: {
-                            // add the actual ouput (result and error message)
-                            newFile += statement->newOutput;
-                            int tmp = -1;
-                            for (auto c : statement->newOutput) {
-                                if (c == '\n') {
-                                    tmp++;
-                                }
-                            }
-                            // ignore the expected error message
-                            for (int i = 0; i < tmp; ++i) {
+                    // Success results don't need anything after the dashes
+                    // -STATEMENT CREATE NODE TABLE  Person (ID INT64, PRIMARY KEY (ID));
+                    // ---- ok
+                    case ResultType::OK: {
+                        newFile += statement->newOutput;
+                    } break;
+                    // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
+                    // -CHECK_ORDER # order matters with hashes
+                    // ---- hash
+                    // 4 c921eb680e6d000e4b65556ae02361d2
+                    case ResultType::HASH: {
+                        // Add result specifier
+                        newFile += currLine + '\n';
+                        // Add produced hash
+                        newFile += statement->newOutput;
+                        // Ignore expected hash
+                        getline(file, currLine);
+                    } break;
+                    // -CHECK_COLUMN_NAMES
+                    // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
+                    // ---- 5
+                    // a.fName
+                    // Alice
+                    // Bob
+                    // Carol
+                    // Dan
+                    case ResultType::TUPLES: {
+                        try {
+                            // We extract the number of expected tuples from the result
+                            // specifier line and skip over as many tuples that
+                            // were specified
+                            static constexpr size_t numTuplesPrefix =
+                                std::string_view("---- ").size();
+                            int count = std::stoi(currLine.substr(numTuplesPrefix));
+                            for (int i = 0; i < count; ++i) {
                                 getline(file, currLine);
                             }
-                        } break;
-                        // # Expects regex-matching error message
-                        // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
-                        // ---- error(regex)
-                        // ^Error: Binder exception: Variable .* is not in scope\.$
-                        case ResultType::ERROR_REGEX: {
-                            // add the produced output (i.e the result specifier line)
+                            // Add the produced output, which contains the
+                            // updated count of tuples
                             newFile += statement->newOutput;
-                            // get the nextline which specifies the regex
-                            // pattern the error should match
+                        } catch (...) {
+                            // Could not overwrite expected result
+                            // error in parsing expected tuples
+                            newFile += currLine + '\n';
+                        }
+                    } break;
+                    // -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) RETURN ID(r)
+                    // ---- 5001
+                    // <FILE>:file_with_answers.txt
+                    case ResultType::CSV_FILE:
+                        // not supported yet
+                        { newFile += currLine + '\n'; }
+                        break;
+                    // # Expects error message
+                    // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
+                    // ---- error
+                    // Error: Binder exception: Variable intended is not in scope.
+                    case ResultType::ERROR_MSG: {
+                        // add the actual ouput (result and error message)
+                        newFile += statement->newOutput;
+                        int tmp = -1;
+                        for (auto c : statement->newOutput) {
+                            if (c == '\n') {
+                                tmp++;
+                            }
+                        }
+                        // ignore the expected error message
+                        for (int i = 0; i < tmp; ++i) {
                             getline(file, currLine);
-                            // if the query still results in an error, put the
-                            // existing regex expression back
-                            if (statement->newOutput != "ok\n")
-                                newFile += currLine + '\n';
-                        } break;
+                        }
+                    } break;
+                    // # Expects regex-matching error message
+                    // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
+                    // ---- error(regex)
+                    // ^Error: Binder exception: Variable .* is not in scope\.$
+                    case ResultType::ERROR_REGEX: {
+                        // add the produced output (i.e the result specifier line)
+                        newFile += statement->newOutput;
+                        // get the nextline which specifies the regex
+                        // pattern the error should match
+                        getline(file, currLine);
+                        // if the query still results in an error, put the
+                        // existing regex expression back
+                        if (statement->newOutput != "ok\n")
+                            newFile += currLine + '\n';
+                    } break;
                     }
                     break;
                 }
