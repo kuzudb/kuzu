@@ -151,10 +151,21 @@ public:
                         getline(file, currLine);         // Ignore expected hash
                     } break;
                     case ResultType::TUPLES: {
-                        int skip = std::stoi(currLine.substr(5)); // Ignore expected tuples
-                        for (int i = 0; i < skip; ++i)
-                            getline(file, currLine);
-                        newFile += statement->newOutput; // Add actual output
+                        try
+                        {
+                            int skip = std::stoi(currLine.substr(5)); // Ignore expected tuples
+                            for (int i = 0; i < skip; ++i)
+                            {
+                                getline(file, currLine);
+                            }
+                            newFile += statement->newOutput; // Add actual output
+                        }
+                        catch (...)
+                        {
+                            // Could not overwrite expected result
+                            // error in parsing expected tuples
+                            newFile += currLine + '\n';
+                        }
                     } break;
                     case ResultType::CSV_FILE: // not supported yet
                         newFile += currLine + '\n';
