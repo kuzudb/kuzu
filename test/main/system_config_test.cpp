@@ -77,14 +77,14 @@ TEST_F(SystemConfigTest, testMaxDBSize) {
             "Buffer manager exception: The given max db size should be at least " +
                 std::to_string(2 * KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) + " bytes.");
     }
-    systemConfig->maxDBSize = 268435457;
+    systemConfig->maxDBSize = 2 * KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE + 1;
     try {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
     } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given max db size should be a power of 2.");
     }
-    systemConfig->maxDBSize = 268435456;
+    systemConfig->maxDBSize = 2 * KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE;
     try {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
     } catch (const BufferManagerException& e) {
