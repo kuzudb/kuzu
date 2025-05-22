@@ -60,8 +60,16 @@ void TestParser::extractDataset() {
             testGroup->dataset = currentToken.params[2];
         }
     } else if (datasetType == "CSV") {
-        testGroup->datasetType = TestGroup::DatasetType::CSV;
-        testGroup->dataset = currentToken.params[2];
+        if (TestHelper::E2E_IMPORT_TEST_DIR != "dataset/")
+        {
+            testGroup->datasetType = TestGroup::DatasetType::CSV;
+            testGroup->dataset = currentToken.params[2];
+        }
+        else
+        {
+            testGroup->datasetType = TestGroup::DatasetType::KUZU;
+            testGroup->dataset = currentToken.params[2];
+        }
     } else if (datasetType == "NPY") {
         testGroup->datasetType = TestGroup::DatasetType::NPY;
         testGroup->dataset = currentToken.params[2];
