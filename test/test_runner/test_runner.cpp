@@ -69,16 +69,13 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     QueryResult* currentQueryResult = actualResult.get();
     idx_t resultIdx = 0u;
     do {
-        if (TestHelper::REWRITE_TESTS)
-        {
+        if (TestHelper::REWRITE_TESTS) {
             writeOutput(currentQueryResult, statement, resultIdx);
-        }
-        else
-        {
+        } else {
             checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
         }
-            currentQueryResult = currentQueryResult->getNextQueryResult();
-            resultIdx++;
+        currentQueryResult = currentQueryResult->getNextQueryResult();
+        resultIdx++;
     } while (currentQueryResult);
 }
 
