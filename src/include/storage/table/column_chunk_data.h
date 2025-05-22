@@ -12,10 +12,10 @@
 #include "common/vector/value_vector.h"
 #include "storage/compression/compression.h"
 #include "storage/enums/residency_state.h"
-#include "storage/store/column_chunk_metadata.h"
-#include "storage/store/column_chunk_stats.h"
-#include "storage/store/column_reader_writer.h"
-#include "storage/store/in_memory_exception_chunk.h"
+#include "storage/table/column_chunk_metadata.h"
+#include "storage/table/column_chunk_stats.h"
+#include "storage/table/column_reader_writer.h"
+#include "storage/table/in_memory_exception_chunk.h"
 
 namespace kuzu {
 namespace evaluator {

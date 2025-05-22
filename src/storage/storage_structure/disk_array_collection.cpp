@@ -1,4 +1,4 @@
-#include "storage/storage_structure/disk_array_collection.h"
+#include "../../include/storage/disk_array_collection.h"
 
 #include "common/types/types.h"
 #include "storage//file_handle.h"

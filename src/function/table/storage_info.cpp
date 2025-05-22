@@ -9,14 +9,14 @@
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
 #include "storage/storage_manager.h"
-#include "storage/store/list_chunk_data.h"
-#include "storage/store/list_column.h"
-#include "storage/store/node_table.h"
-#include "storage/store/rel_table.h"
-#include "storage/store/string_chunk_data.h"
-#include "storage/store/string_column.h"
-#include "storage/store/struct_chunk_data.h"
-#include "storage/store/struct_column.h"
+#include "storage/table/list_chunk_data.h"
+#include "storage/table/list_column.h"
+#include "storage/table/node_table.h"
+#include "storage/table/rel_table.h"
+#include "storage/table/string_chunk_data.h"
+#include "storage/table/string_column.h"
+#include "storage/table/struct_chunk_data.h"
+#include "storage/table/struct_column.h"
 #include <concepts>
 
 using namespace kuzu::common;

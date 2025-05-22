@@ -3,7 +3,7 @@
 #include "common/enums/column_evaluate_type.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/sink.h"
-#include "storage/store/in_mem_chunked_node_group_collection.h"
+#include "storage/table/in_mem_chunked_node_group_collection.h"
 
 namespace kuzu {
 namespace storage {

@@ -1,4 +1,4 @@
-#include "storage/store/column_chunk.h"
+#include "storage/table/column_chunk.h"
 
 #include <algorithm>
 
@@ -6,7 +6,7 @@
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
 #include "storage/storage_utils.h"
-#include "storage/store/column.h"
+#include "storage/table/column.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;

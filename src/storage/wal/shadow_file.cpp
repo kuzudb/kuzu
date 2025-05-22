@@ -1,4 +1,4 @@
-#include "storage/wal/shadow_file.h"
+#include "../../include/storage/shadow_file.h"
 
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"

@@ -1,15 +1,15 @@
-#include "storage/store/list_column.h"
+#include "storage/table/list_column.h"
 
 #include <algorithm>
 
 #include "common/assert.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/store/column.h"
-#include "storage/store/column_chunk.h"
-#include "storage/store/column_chunk_data.h"
-#include "storage/store/list_chunk_data.h"
-#include "storage/store/null_column.h"
+#include "storage/table/column.h"
+#include "storage/table/column_chunk.h"
+#include "storage/table/column_chunk_data.h"
+#include "storage/table/list_chunk_data.h"
+#include "storage/table/null_column.h"
 #include <bit>
 
 using namespace kuzu::common;

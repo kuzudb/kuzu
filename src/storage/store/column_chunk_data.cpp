@@ -1,4 +1,4 @@
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 
 #include <algorithm>
 #include <cstring>
@@ -20,12 +20,12 @@
 #include "storage/compression/float_compression.h"
 #include "storage/page_manager.h"
 #include "storage/stats/column_stats.h"
-#include "storage/store/column.h"
-#include "storage/store/column_chunk_metadata.h"
-#include "storage/store/compression_flush_buffer.h"
-#include "storage/store/list_chunk_data.h"
-#include "storage/store/string_chunk_data.h"
-#include "storage/store/struct_chunk_data.h"
+#include "storage/table/column.h"
+#include "storage/table/column_chunk_metadata.h"
+#include "storage/table/compression_flush_buffer.h"
+#include "storage/table/list_chunk_data.h"
+#include "storage/table/string_chunk_data.h"
+#include "storage/table/struct_chunk_data.h"
 
 using namespace kuzu::common;
 using namespace kuzu::evaluator;

@@ -1,4 +1,4 @@
-#include "storage/store/dictionary_column.h"
+#include "storage/table/dictionary_column.h"
 
 #include <algorithm>
 
@@ -6,7 +6,7 @@
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
-#include "storage/store/string_column.h"
+#include "storage/table/string_column.h"
 #include <bit>
 
 using namespace kuzu::common;

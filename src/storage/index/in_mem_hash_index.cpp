@@ -3,14 +3,14 @@
 #include <cstdint>
 #include <cstring>
 
+#include "../../include/storage/disk_array.h"
+#include "../../include/storage/overflow_file.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
-#include "storage/storage_structure/disk_array.h"
-#include "storage/storage_structure/overflow_file.h"
 
 using namespace kuzu::common;
 

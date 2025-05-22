@@ -4,8 +4,8 @@
 
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
-#include "storage/store/node_group_collection.h"
-#include "storage/store/table.h"
+#include "storage/table/node_group_collection.h"
+#include "storage/table/table.h"
 
 namespace kuzu {
 namespace evaluator {

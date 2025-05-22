@@ -4,7 +4,7 @@
 #include "common/enums/extend_direction.h"
 #include "processor/operator/scan/scan_table.h"
 #include "storage/predicate/column_predicate.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/rel_table.h"
 
 namespace kuzu {
 namespace storage {

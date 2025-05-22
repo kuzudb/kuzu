@@ -1,8 +1,8 @@
 #pragma once
 
 #include "storage/stats/table_stats.h"
-#include "storage/store/group_collection.h"
-#include "storage/store/node_group.h"
+#include "storage/table/group_collection.h"
+#include "storage/table/node_group.h"
 
 namespace kuzu {
 namespace transaction {

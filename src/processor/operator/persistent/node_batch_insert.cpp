@@ -8,8 +8,8 @@
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
-#include "storage/store/chunked_node_group.h"
-#include "storage/store/node_table.h"
+#include "storage/table/chunked_node_group.h"
+#include "storage/table/node_table.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

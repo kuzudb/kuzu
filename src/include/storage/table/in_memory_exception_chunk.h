@@ -1,7 +1,7 @@
 #pragma once
 
 #include "storage/compression/float_compression.h"
-#include "storage/store/column_reader_writer.h"
+#include "storage/table/column_reader_writer.h"
 
 namespace kuzu {
 namespace transaction {

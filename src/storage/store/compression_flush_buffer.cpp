@@ -1,8 +1,8 @@
-#include "storage/store/compression_flush_buffer.h"
+#include "storage/table/compression_flush_buffer.h"
 
 #include "storage/file_handle.h"
 #include "storage/page_manager.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 
 namespace kuzu::storage {
 using namespace common;

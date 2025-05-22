@@ -1,7 +1,7 @@
 #include "storage/shadow_utils.h"
 
+#include "../include/storage/shadow_file.h"
 #include "storage/file_handle.h"
-#include "storage/wal/shadow_file.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;

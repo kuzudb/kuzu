@@ -8,7 +8,7 @@
 #include "common/exception/binder.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
-#include "storage/store/table.h"
+#include "storage/table/table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

@@ -1,4 +1,4 @@
-#include "storage/store/rel_table_data.h"
+#include "storage/table/rel_table_data.h"
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
@@ -6,8 +6,8 @@
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
-#include "storage/store/node_group.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/node_group.h"
+#include "storage/table/rel_table.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;

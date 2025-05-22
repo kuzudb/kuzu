@@ -1,9 +1,9 @@
-#include "storage/store/csr_node_group.h"
+#include "storage/table/csr_node_group.h"
 
 #include "common/constants.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/rel_table.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;

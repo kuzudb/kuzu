@@ -1,4 +1,4 @@
-#include "storage/store/string_column.h"
+#include "storage/table/string_column.h"
 
 #include <algorithm>
 
@@ -6,10 +6,10 @@
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
-#include "storage/store/column.h"
-#include "storage/store/column_chunk.h"
-#include "storage/store/null_column.h"
-#include "storage/store/string_chunk_data.h"
+#include "storage/table/column.h"
+#include "storage/table/column_chunk.h"
+#include "storage/table/null_column.h"
+#include "storage/table/string_chunk_data.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;

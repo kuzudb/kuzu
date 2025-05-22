@@ -4,9 +4,9 @@
 
 #include "common/uniq_lock.h"
 #include "storage/enums/residency_state.h"
-#include "storage/store/chunked_node_group.h"
-#include "storage/store/group_collection.h"
-#include "storage/store/version_record_handler.h"
+#include "storage/table/chunked_node_group.h"
+#include "storage/table/group_collection.h"
+#include "storage/table/version_record_handler.h"
 
 namespace kuzu {
 namespace transaction {

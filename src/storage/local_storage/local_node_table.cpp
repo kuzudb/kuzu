@@ -6,7 +6,7 @@
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
 #include "storage/storage_utils.h"
-#include "storage/store/node_table.h"
+#include "storage/table/node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

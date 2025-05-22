@@ -1,4 +1,4 @@
-#include "storage/store/dictionary_chunk.h"
+#include "storage/table/dictionary_chunk.h"
 
 #include "common/constants.h"
 #include "common/serializer/deserializer.h"

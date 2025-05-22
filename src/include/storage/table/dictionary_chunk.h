@@ -1,7 +1,7 @@
 #pragma once
 
 #include "storage/enums/residency_state.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {

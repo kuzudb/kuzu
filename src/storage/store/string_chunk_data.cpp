@@ -1,4 +1,4 @@
-#include "storage/store/string_chunk_data.h"
+#include "storage/table/string_chunk_data.h"
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/serializer/deserializer.h"
@@ -7,9 +7,9 @@
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
-#include "storage/store/column_chunk_data.h"
-#include "storage/store/dictionary_chunk.h"
-#include "storage/store/string_column.h"
+#include "storage/table/column_chunk_data.h"
+#include "storage/table/dictionary_chunk.h"
+#include "storage/table/string_column.h"
 
 using namespace kuzu::common;
 

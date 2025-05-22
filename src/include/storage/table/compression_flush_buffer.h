@@ -1,7 +1,7 @@
 #pragma once
 
 #include "storage/compression/compression.h"
-#include "storage/store/column_chunk_metadata.h"
+#include "storage/table/column_chunk_metadata.h"
 
 namespace kuzu::storage {
 class FileHandle;

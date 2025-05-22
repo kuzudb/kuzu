@@ -6,9 +6,9 @@
 
 #include "common/enums/rel_multiplicity.h"
 #include "storage/enums/residency_state.h"
-#include "storage/store/column_chunk.h"
-#include "storage/store/column_chunk_data.h"
-#include "storage/store/version_info.h"
+#include "storage/table/column_chunk.h"
+#include "storage/table/column_chunk_data.h"
+#include "storage/table/version_info.h"
 
 namespace kuzu {
 namespace common {

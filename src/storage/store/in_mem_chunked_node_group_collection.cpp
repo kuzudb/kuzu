@@ -1,4 +1,4 @@
-#include "storage/store/in_mem_chunked_node_group_collection.h"
+#include "storage/table/in_mem_chunked_node_group_collection.h"
 
 #include "storage/buffer_manager/memory_manager.h"
 #include "transaction/transaction.h"

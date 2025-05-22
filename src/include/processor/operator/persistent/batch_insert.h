@@ -2,7 +2,7 @@
 
 #include "processor/operator/sink.h"
 #include "processor/result/factorized_table.h"
-#include "storage/store/table.h"
+#include "storage/table/table.h"
 
 namespace kuzu {
 namespace storage {

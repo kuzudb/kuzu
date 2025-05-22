@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "storage/store/chunked_node_group.h"
+#include "storage/table/chunked_node_group.h"
 
 namespace kuzu {
 namespace storage {

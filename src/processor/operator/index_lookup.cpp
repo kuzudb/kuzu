@@ -7,7 +7,7 @@
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "storage/index/hash_index.h"
-#include "storage/store/node_table.h"
+#include "storage/table/node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

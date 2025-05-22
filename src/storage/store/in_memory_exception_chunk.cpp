@@ -1,4 +1,4 @@
-#include "storage/store/in_memory_exception_chunk.h"
+#include "storage/table/in_memory_exception_chunk.h"
 
 #include <algorithm>
 
@@ -6,8 +6,8 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/float_compression.h"
 #include "storage/storage_utils.h"
-#include "storage/store/column.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column.h"
+#include "storage/table/column_chunk_data.h"
 #include "transaction/transaction.h"
 #include <concepts>
 

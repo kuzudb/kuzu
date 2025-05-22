@@ -1,4 +1,4 @@
-#include "storage/store/column_reader_writer.h"
+#include "storage/table/column_reader_writer.h"
 
 #include "alp/encode.hpp"
 #include "common/utils.h"
@@ -7,8 +7,8 @@
 #include "storage/file_handle.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
-#include "storage/store/column_chunk_data.h"
-#include "storage/store/column_chunk_metadata.h"
+#include "storage/table/column_chunk_data.h"
+#include "storage/table/column_chunk_metadata.h"
 #include "transaction/transaction.h"
 #include <concepts>
 

@@ -1,4 +1,4 @@
-#include "storage/store/column.h"
+#include "storage/table/column.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -12,12 +12,12 @@
 #include "storage/file_handle.h"
 #include "storage/page_manager.h"
 #include "storage/storage_utils.h"
-#include "storage/store/column_chunk.h"
-#include "storage/store/column_chunk_data.h"
-#include "storage/store/list_column.h"
-#include "storage/store/null_column.h"
-#include "storage/store/string_column.h"
-#include "storage/store/struct_column.h"
+#include "storage/table/column_chunk.h"
+#include "storage/table/column_chunk_data.h"
+#include "storage/table/list_column.h"
+#include "storage/table/null_column.h"
+#include "storage/table/string_column.h"
+#include "storage/table/struct_column.h"
 #include "transaction/transaction.h"
 #include <bit>
 

@@ -7,9 +7,9 @@
 #include "processor/execution_context.h"
 #include "storage/local_cached_column.h"
 #include "storage/storage_manager.h"
-#include "storage/store/list_chunk_data.h"
-#include "storage/store/node_table.h"
-#include "storage/store/table.h"
+#include "storage/table/list_chunk_data.h"
+#include "storage/table/node_table.h"
+#include "storage/table/table.h"
 #include "transaction/transaction.h"
 
 namespace kuzu::catalog {

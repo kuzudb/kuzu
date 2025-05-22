@@ -1,4 +1,4 @@
-#include "storage/store/chunked_node_group.h"
+#include "storage/table/chunked_node_group.h"
 
 #include "common/assert.h"
 #include "common/types/types.h"
@@ -6,9 +6,9 @@
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/buffer_manager/spiller.h"
-#include "storage/store/column.h"
-#include "storage/store/column_chunk.h"
-#include "storage/store/node_table.h"
+#include "storage/table/column.h"
+#include "storage/table/column_chunk.h"
+#include "storage/table/node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

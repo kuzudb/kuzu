@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "../disk_array.h"
+#include "../overflow_file.h"
 #include "common/static_vector.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
@@ -9,8 +11,6 @@
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
-#include "storage/storage_structure/disk_array.h"
-#include "storage/storage_structure/overflow_file.h"
 
 namespace kuzu {
 namespace storage {

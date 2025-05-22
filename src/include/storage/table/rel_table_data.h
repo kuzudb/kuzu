@@ -4,9 +4,9 @@
 
 #include "common/enums/rel_direction.h"
 #include "common/enums/rel_multiplicity.h"
-#include "storage/store/column.h"
-#include "storage/store/csr_node_group.h"
-#include "storage/store/node_group_collection.h"
+#include "storage/table/column.h"
+#include "storage/table/csr_node_group.h"
+#include "storage/table/node_group_collection.h"
 
 namespace kuzu {
 namespace transaction {

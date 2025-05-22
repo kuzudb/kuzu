@@ -12,8 +12,8 @@
 #include "processor/expression_mapper.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/storage_manager.h"
-#include "storage/store/node_table.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/node_table.h"
+#include "storage/table/rel_table.h"
 #include "storage/wal/wal_record.h"
 
 using namespace kuzu::binder;

@@ -1,11 +1,11 @@
-#include "storage/store/update_info.h"
+#include "storage/table/update_info.h"
 
 #include <algorithm>
 
 #include "common/exception/runtime.h"
 #include "common/vector/value_vector.h"
 #include "storage/storage_utils.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::transaction;

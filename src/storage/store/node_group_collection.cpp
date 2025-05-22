@@ -1,8 +1,8 @@
-#include "storage/store/node_group_collection.h"
+#include "storage/table/node_group_collection.h"
 
 #include "common/vector/value_vector.h"
-#include "storage/store/csr_node_group.h"
-#include "storage/store/table.h"
+#include "storage/table/csr_node_group.h"
+#include "storage/table/table.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;

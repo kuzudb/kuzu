@@ -1,4 +1,4 @@
-#include "storage/store/version_info.h"
+#include "storage/table/version_info.h"
 
 #include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"

@@ -3,7 +3,7 @@
 #include <cstdint>
 
 #include "common/types/types.h"
-#include "storage/storage_structure/disk_array.h"
+#include "disk_array.h"
 
 namespace kuzu {
 namespace storage {

@@ -1,6 +1,6 @@
-#include "storage/store/version_record_handler.h"
+#include "storage/table/version_record_handler.h"
 
-#include "storage/store/chunked_node_group.h"
+#include "storage/table/chunked_node_group.h"
 
 namespace kuzu::storage {
 void VersionRecordHandler::rollbackInsert(const transaction::Transaction* transaction,

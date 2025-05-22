@@ -1,4 +1,4 @@
-#include "storage/store/column_chunk_metadata.h"
+#include "storage/table/column_chunk_metadata.h"
 
 #include "alp/decode.hpp"
 #include "alp/encode.hpp"
@@ -7,7 +7,7 @@
 #include "common/type_utils.h"
 #include "common/utils.h"
 #include "storage/compression/float_compression.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 
 namespace kuzu::storage {
 using namespace common;

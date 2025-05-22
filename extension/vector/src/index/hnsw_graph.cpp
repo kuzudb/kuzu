@@ -2,9 +2,9 @@
 
 #include "index/hnsw_index_utils.h"
 #include "storage/local_cached_column.h"
-#include "storage/store/list_chunk_data.h"
-#include "storage/store/node_table.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/list_chunk_data.h"
+#include "storage/table/node_table.h"
+#include "storage/table/rel_table.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::storage;

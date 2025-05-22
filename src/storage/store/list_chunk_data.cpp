@@ -1,4 +1,4 @@
-#include "storage/store/list_chunk_data.h"
+#include "storage/table/list_chunk_data.h"
 
 #include <cmath>
 
@@ -9,8 +9,8 @@
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/store/column_chunk_data.h"
-#include "storage/store/list_column.h"
+#include "storage/table/column_chunk_data.h"
+#include "storage/table/list_column.h"
 
 using namespace kuzu::common;
 

@@ -1,4 +1,4 @@
-#include "storage/store/column_chunk_stats.h"
+#include "storage/table/column_chunk_stats.h"
 
 #include "common/type_utils.h"
 

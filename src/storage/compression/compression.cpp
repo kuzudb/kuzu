@@ -21,7 +21,7 @@
 #include "storage/compression/float_compression.h"
 #include "storage/compression/sign_extend.h"
 #include "storage/storage_utils.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 #include <ranges>
 
 using namespace kuzu::common;

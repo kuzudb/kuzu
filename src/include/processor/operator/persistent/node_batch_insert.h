@@ -6,7 +6,7 @@
 #include "processor/operator/persistent/batch_insert.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "storage/stats/table_stats.h"
-#include "storage/store/chunked_node_group.h"
+#include "storage/table/chunked_node_group.h"
 
 namespace kuzu {
 namespace storage {

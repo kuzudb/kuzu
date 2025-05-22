@@ -7,8 +7,8 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/buffer_manager/spiller.h"
 #include "storage/enums/residency_state.h"
-#include "storage/store/chunked_node_group.h"
-#include "storage/store/column_chunk.h"
+#include "storage/table/chunked_node_group.h"
+#include "storage/table/column_chunk.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

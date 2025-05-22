@@ -1,4 +1,4 @@
-#include "storage/store/null_column.h"
+#include "storage/table/null_column.h"
 
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"

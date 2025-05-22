@@ -1,9 +1,9 @@
-#include "storage/store/table.h"
+#include "storage/table/table.h"
 
 #include "common/serializer/deserializer.h"
 #include "storage/storage_manager.h"
-#include "storage/store/node_table.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/node_table.h"
+#include "storage/table/rel_table.h"
 
 using namespace kuzu::common;
 

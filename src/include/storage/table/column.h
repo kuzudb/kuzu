@@ -3,8 +3,8 @@
 #include "catalog/catalog.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "storage/store/column_chunk_data.h"
-#include "storage/store/column_reader_writer.h"
+#include "storage/table/column_chunk_data.h"
+#include "storage/table/column_reader_writer.h"
 
 namespace kuzu {
 namespace evaluator {

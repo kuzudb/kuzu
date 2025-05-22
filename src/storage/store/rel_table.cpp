@@ -1,4 +1,4 @@
-#include "storage/store/rel_table.h"
+#include "storage/table/rel_table.h"
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/message.h"
@@ -8,7 +8,7 @@
 #include "storage/local_storage/local_storage.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
-#include "storage/store/rel_table_data.h"
+#include "storage/table/rel_table_data.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;

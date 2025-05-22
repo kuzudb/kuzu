@@ -1,12 +1,12 @@
-#include "storage/storage_structure/disk_array.h"
+#include "../../include/storage/disk_array.h"
 
+#include "../../include/storage/shadow_file.h"
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "storage/file_handle.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
-#include "storage/wal/shadow_file.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;

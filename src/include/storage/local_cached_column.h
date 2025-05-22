@@ -1,6 +1,6 @@
 #pragma once
 
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 #include "transaction/transaction.h"
 
 namespace kuzu {
