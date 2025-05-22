@@ -86,16 +86,8 @@ public:
         }
     }
 
-    void TearDown() override {
-        DBTest::TearDown();
-        removeIEDBPath();
-        if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET ||
-            datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
-            std::filesystem::remove_all(tempDatasetPath);
-        }
-
-        if (!TestHelper::REWRITE_TESTS)
-            return;
+    void reWriteTests()
+    {
         std::fstream file;
         std::string newFile;
         std::string currLine;
@@ -111,13 +103,14 @@ public:
                 newFile += currLine + '\n';
                 std::string stmt = currLine;
                 while (getline(file, currLine))
+                {
                     if (currLine.starts_with("----"))
                         break;
                     else {
                         newFile += currLine + '\n';
                         stmt += currLine;
                     }
-
+                }
                 auto normalize = [](const std::string& s) {
                     std::string result;
                     bool in_space = false;
@@ -164,8 +157,10 @@ public:
                         }
                     } break;
                     case ResultType::CSV_FILE: // not supported yet
+                    {
                         newFile += currLine + '\n';
-                        break;
+                    }
+                            break;
                     case ResultType::ERROR_MSG: {
                         newFile += statement->newOutput; // Add actual output (result and error msg)
                         int tmp = -1;
@@ -174,7 +169,7 @@ public:
                                 tmp++;
                             }
                         }
-                        for (int i = 0; i < tmp; ++i) {
+                        for (int i = 0; i < tmp; ++i) { // TODO BEFORE MERGING <- This is wrong, and needs to change
                             getline(file, currLine); // Ignore produced error msg
                         }
                     } break;
@@ -190,12 +185,27 @@ public:
             }
         }
 
-        while (getline(file,
-            currLine)) // get any remaining lines in the file such as comments
+        while (getline(file, currLine)) // get any remaining lines in the file such as comments
+        {
             newFile += currLine + '\n';
+        }
         file.close();
         file.open(testPath, std::ios::trunc | std::ios::out);
         file << newFile;
+    }
+
+    void TearDown() override {
+        DBTest::TearDown();
+        removeIEDBPath();
+        if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET ||
+            datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
+            std::filesystem::remove_all(tempDatasetPath);
+        }
+
+        if (TestHelper::REWRITE_TESTS)
+        {
+            reWriteTests();
+        }
     }
 
     void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }
