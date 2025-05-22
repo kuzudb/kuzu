@@ -5,6 +5,7 @@
 #include "common/assert.h"
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
+#include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
 #include "test_runner/csv_converter.h"
 #include "test_runner/test_parser.h"
@@ -419,6 +420,7 @@ int main(int argc, char** argv) {
         if (env_rewrite_tests != nullptr && std::string(env_rewrite_tests) != "FALSE" &&
             std::string(env_rewrite_tests) != "OFF") {
             rewrite_tests = true;
+            spdlog::info("Starting runner in Rewrite Mode");
         }
         TestHelper::setRewriteTests(rewrite_tests);
 
