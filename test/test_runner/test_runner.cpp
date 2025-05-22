@@ -191,7 +191,7 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
     case ResultType::HASH: {
         std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
             statement->checkColumnNames);
-        newOutput += resultHash;
+        newOutput += std::to_string(result->getNumTuples()) + " tuples hashed to " + resultHash + '\n';
     } break;
     case ResultType::TUPLES: {
         newOutput +=
