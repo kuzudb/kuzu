@@ -217,18 +217,17 @@ public:
             // -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) RETURN ID(r)
             // ---- 5001
             // <FILE>:file_with_answers.txt
-            case ResultType::CSV_FILE: 
-            // not supported yet
-            {
-                newFile += currLine + '\n';
-            } break;
+            case ResultType::CSV_FILE:
+                // not supported yet
+                { newFile += currLine + '\n'; }
+                break;
             // # Expects error message
             // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
             // ---- error
             // Error: Binder exception: Variable intended is not in scope.
             case ResultType::ERROR_MSG: {
                 // add the actual ouput (result and error message)
-                newFile += statement->newOutput; 
+                newFile += statement->newOutput;
                 int tmp = -1;
                 for (auto c : statement->newOutput) {
                     if (c == '\n') {
@@ -236,8 +235,8 @@ public:
                     }
                 }
                 // ignore the expected error message
-                for (int i = 0; i < tmp; ++i) { 
-                    getline(file, currLine); 
+                for (int i = 0; i < tmp; ++i) {
+                    getline(file, currLine);
                 }
             } break;
             // # Expects regex-matching error message

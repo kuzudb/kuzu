@@ -202,7 +202,7 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
             newOutput += res + '\n';
         }
     } break;
-    case ResultType::CSV_FILE: 
+    case ResultType::CSV_FILE:
         // not supported yet
         return;
     case ResultType::ERROR_MSG: {
