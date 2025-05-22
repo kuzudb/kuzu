@@ -308,7 +308,7 @@ class PrimaryKeyIndex {
 public:
     PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, common::PhysicalTypeID keyDataType,
         MemoryManager& memoryManager, ShadowFile* shadowFile, common::page_idx_t firstHeaderPage,
-        common::page_idx_t overflowHeaderPage);
+        common::page_idx_t overflowHeaderPage, bool readOnly);
 
     ~PrimaryKeyIndex();
 

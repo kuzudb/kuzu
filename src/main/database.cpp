@@ -15,6 +15,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "main/db_config.h"
 #include "processor/processor.h"
+#include "storage/checkpointer.h"
 #include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_manager.h"
@@ -86,7 +87,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig,
     initMembers(databasePath, constructBMFunc);
 }
 
-std::unique_ptr<storage::BufferManager> Database::initBufferManager(const Database& db) {
+std::unique_ptr<BufferManager> Database::initBufferManager(const Database& db) {
     return std::make_unique<BufferManager>(db.databasePath,
         db.vfs->joinPath(db.databasePath, StorageConstants::TEMP_SPILLING_FILE_NAME),
         db.dbConfig.bufferPoolSize, db.dbConfig.maxDBSize, db.vfs.get(), db.dbConfig.readOnly);
@@ -100,19 +101,22 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     databasePath = StorageUtils::expandPath(&clientContext, dbPathStr);
 
     vfs = std::make_unique<VirtualFileSystem>(databasePath);
-
     initAndLockDBDir();
+
     bufferManager = initBmFunc(*this);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads);
-    catalog = std::make_unique<Catalog>(this->databasePath, vfs.get());
-    storageManager = std::make_unique<StorageManager>(dbPathStr, dbConfig.readOnly, *catalog,
-        *memoryManager, dbConfig.enableCompression, vfs.get(), &clientContext);
+    catalog = std::make_unique<Catalog>();
+    storageManager = std::make_unique<StorageManager>(dbPathStr, dbConfig.readOnly, *memoryManager,
+        dbConfig.enableCompression, vfs.get(), &clientContext);
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
-    StorageManager::recover(clientContext);
     databaseManager = std::make_unique<DatabaseManager>();
     extensionManager = std::make_unique<extension::ExtensionManager>();
     extensionManager->autoLoadLinkedExtensions(&clientContext);
+
+    Checkpointer checkpointer(clientContext);
+    checkpointer.readCheckpoint();
+    StorageManager::recover(clientContext);
 }
 
 Database::~Database() {
@@ -173,7 +177,7 @@ void Database::initAndLockDBDir() {
 }
 
 uint64_t Database::getNextQueryID() {
-    std::lock_guard<std::mutex> lock(queryIDGenerator.queryIDLock);
+    std::unique_lock lock(queryIDGenerator.queryIDLock);
     return queryIDGenerator.queryID++;
 }
 

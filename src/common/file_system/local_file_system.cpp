@@ -347,6 +347,7 @@ bool LocalFileSystem::isLocalPath(const std::string& path) {
 void LocalFileSystem::readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
     uint64_t position) const {
     auto localFileInfo = fileInfo.constPtrCast<LocalFileInfo>();
+    KU_ASSERT(localFileInfo->getFileSize() >= position + numBytes);
 #if defined(_WIN32)
     DWORD numBytesRead;
     OVERLAPPED overlapped{0, 0, 0, 0};
@@ -367,7 +368,7 @@ void LocalFileSystem::readFromFile(FileInfo& fileInfo, void* buffer, uint64_t nu
     }
 #else
     auto numBytesRead = pread(localFileInfo->fd, buffer, numBytes, position);
-    if ((uint64_t)numBytesRead != numBytes &&
+    if (static_cast<uint64_t>(numBytesRead) != numBytes &&
         localFileInfo->getFileSize() != position + numBytesRead) {
         // LCOV_EXCL_START
         throw IOException(stringFormat("Cannot read from file: {} fileDescriptor: {} "
@@ -416,7 +417,7 @@ void LocalFileSystem::writeFile(FileInfo& fileInfo, const uint8_t* buffer, uint6
 #else
         auto numBytesWritten =
             pwrite(localFileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
-        if (numBytesWritten != (int64_t)numBytesToWrite) {
+        if (numBytesWritten != static_cast<int64_t>(numBytesToWrite)) {
             // LCOV_EXCL_START
             throw IOException(
                 stringFormat("Cannot write to file. path: {} fileDescriptor: {} offsetToWrite: {} "

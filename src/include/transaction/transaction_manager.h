@@ -39,11 +39,8 @@ public:
     void checkpoint(main::ClientContext& clientContext);
 
 private:
-    bool canAutoCheckpoint(const main::ClientContext& clientContext) const;
-    bool canCheckpointNoLock() const;
+    bool hasNoActiveTransactions() const;
     void checkpointNoLock(main::ClientContext& clientContext);
-    void finalizeCheckpointNoLock(main::ClientContext& clientContext);
-    void rollbackCheckpoint(main::ClientContext& clientContext);
 
     // This functions locks the mutex to start new transactions.
     common::UniqLock stopNewTransactionsAndWaitUntilAllTransactionsLeave();

@@ -1,11 +1,10 @@
 #include "main/attached_database.h"
 
 #include "common/exception/runtime.h"
-#include "common/types/types.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
+#include "storage/checkpointer.h"
 #include "storage/storage_manager.h"
-#include "storage/storage_utils.h"
 #include "transaction/transaction_manager.h"
 
 namespace kuzu {
@@ -16,19 +15,6 @@ void AttachedDatabase::invalidateCache() {
         auto catalogExtension = catalog->ptrCast<extension::CatalogExtension>();
         catalogExtension->invalidateCache();
     }
-}
-
-void AttachedKuzuDatabase::initCatalog(const std::string& path, ClientContext* context) {
-    auto vfs = context->getVFSUnsafe();
-    auto catalogFilePath =
-        storage::StorageUtils::getCatalogFilePath(vfs, path, common::FileVersionType::ORIGINAL);
-    if (!vfs->fileOrPathExists(catalogFilePath, context)) {
-        throw common::RuntimeException(common::stringFormat(
-            "Cannot attach a remote kuzu database due to invalid path: {}.", path));
-    }
-    catalog = std::make_unique<catalog::Catalog>();
-    catalog->readFromFile(path, vfs, common::FileVersionType::ORIGINAL, context);
-    catalog->registerBuiltInFunctions();
 }
 
 static void validateEmptyWAL(const std::string& path, ClientContext* context) {
@@ -55,13 +41,24 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
     if (path.ends_with('/')) {
         path = path.substr(0, path.size() - 1);
     }
-    initCatalog(path, clientContext);
+    auto dataFilePath = storage::StorageUtils::getDataFName(vfs, path);
+    if (!vfs->fileOrPathExists(dataFilePath, clientContext)) {
+        throw common::RuntimeException(common::stringFormat(
+            "Cannot attach a remote Kuzu database due to invalid path: {}.", path));
+    }
+    catalog = std::make_unique<catalog::Catalog>();
     validateEmptyWAL(path, clientContext);
     storageManager = std::make_unique<storage::StorageManager>(path, true /* isReadOnly */,
-        *catalog, *clientContext->getMemoryManager(),
-        clientContext->getDBConfig()->enableCompression, vfs, clientContext);
+        *clientContext->getMemoryManager(), clientContext->getDBConfig()->enableCompression, vfs,
+        clientContext);
     transactionManager =
         std::make_unique<transaction::TransactionManager>(storageManager->getWAL());
+
+    if (storageManager->getDataFH()->getNumPages() <= 1) {
+        return;
+    }
+    storage::Checkpointer::readCheckpoint(path, clientContext, vfs, catalog.get(),
+        storageManager.get());
 }
 
 } // namespace main

@@ -95,20 +95,6 @@ public:
         return vfs->joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
     }
 
-    static std::string getMetadataFName(common::VirtualFileSystem* vfs,
-        const std::string& directory, common::FileVersionType dbFileType) {
-        return vfs->joinPath(directory, dbFileType == common::FileVersionType::ORIGINAL ?
-                                            common::StorageConstants::METADATA_FILE_NAME :
-                                            common::StorageConstants::METADATA_FILE_NAME_FOR_WAL);
-    }
-
-    static std::string getCatalogFilePath(common::VirtualFileSystem* vfs,
-        const std::string& directory, common::FileVersionType dbFileType) {
-        return vfs->joinPath(directory, dbFileType == common::FileVersionType::ORIGINAL ?
-                                            common::StorageConstants::CATALOG_FILE_NAME :
-                                            common::StorageConstants::CATALOG_FILE_NAME_FOR_WAL);
-    }
-
     static std::string getLockFilePath(common::VirtualFileSystem* vfs,
         const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
@@ -138,39 +124,8 @@ public:
     }
     static uint64_t getQuotient(uint64_t i, uint64_t divisor) { return i / divisor; }
 
-    static void overwriteWALVersionFiles(const std::string& directory,
-        common::VirtualFileSystem* vfs) {
-        vfs->overwriteFile(getCatalogFilePath(vfs, directory, common::FileVersionType::WAL_VERSION),
-            getCatalogFilePath(vfs, directory, common::FileVersionType::ORIGINAL));
-        vfs->overwriteFile(getMetadataFName(vfs, directory, common::FileVersionType::WAL_VERSION),
-            getMetadataFName(vfs, directory, common::FileVersionType::ORIGINAL));
-    }
-    static void removeWALVersionFiles(const std::string& directory,
-        common::VirtualFileSystem* vfs) {
-        vfs->removeFileIfExists(
-            getCatalogFilePath(vfs, directory, common::FileVersionType::WAL_VERSION));
-        vfs->removeFileIfExists(
-            getMetadataFName(vfs, directory, common::FileVersionType::WAL_VERSION));
-    }
-
-    static std::string appendWALFileSuffixIfNecessary(const std::string& fileName,
-        common::FileVersionType fileVersionType) {
-        return fileVersionType == common::FileVersionType::WAL_VERSION ?
-                   appendWALFileSuffix(fileName) :
-                   fileName;
-    }
-
-    static std::string appendWALFileSuffix(const std::string& fileName) {
-        KU_ASSERT(fileName.find(common::StorageConstants::WAL_FILE_SUFFIX) == std::string::npos);
-        return fileName + common::StorageConstants::WAL_FILE_SUFFIX;
-    }
-
     static uint32_t getDataTypeSize(const common::LogicalType& type);
     static uint32_t getDataTypeSize(common::PhysicalTypeID type);
-
-private:
-    static std::string appendSuffixOrInsertBeforeWALSuffix(const std::string& fileName,
-        const std::string& suffix);
 };
 
 } // namespace storage

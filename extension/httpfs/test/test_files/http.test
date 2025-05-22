@@ -146,7 +146,7 @@ tinysnb1|KUZU
 ---- ok
 -STATEMENT attach 'http://localhost/dataset/databases/tinysnb1' as test (dbtype kuzu)
 ---- error
-Runtime exception: Cannot attach a remote kuzu database due to invalid path: http://localhost/dataset/databases/tinysnb1.
+Runtime exception: Cannot attach a remote Kuzu database due to invalid path: http://localhost/dataset/databases/tinysnb1.
 
 #TODO(Ziyi): figure out a way to automate upload if storage has changed.
 -CASE AttachDBWithNonEmptyWAL

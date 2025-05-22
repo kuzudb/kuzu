@@ -13,9 +13,8 @@ class MemoryManager;
 
 class NodeGroupCollection {
 public:
-    NodeGroupCollection(MemoryManager& memoryManager, const std::vector<common::LogicalType>& types,
-        bool enableCompression, FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr,
-        const VersionRecordHandler* versionRecordHandler = nullptr);
+    NodeGroupCollection(const std::vector<common::LogicalType>& types, bool enableCompression,
+        FileHandle* dataFH = nullptr, const VersionRecordHandler* versionRecordHandler = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);

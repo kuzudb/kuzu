@@ -165,7 +165,7 @@ protected:
     double getExecutionTime(common::Profiler& profiler) const;
     uint64_t getNumOutputTuples(common::Profiler& profiler) const;
 
-    virtual void finalizeInternal(ExecutionContext* /*context*/) {};
+    virtual void finalizeInternal(ExecutionContext* /*context*/) {}
 
 protected:
     physical_op_id id;

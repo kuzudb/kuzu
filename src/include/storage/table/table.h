@@ -75,9 +75,9 @@ struct KUZU_API TableScanState {
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
-    template<class TARGETT>
-    const TARGETT& cast() const {
-        return common::ku_dynamic_cast<const TARGETT&>(*this);
+    template<class TARGET>
+    const TARGET& cast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 };
 
@@ -147,10 +147,6 @@ public:
         MemoryManager* memoryManager);
     virtual ~Table() = default;
 
-    static std::unique_ptr<Table> loadTable(common::Deserializer& deSer,
-        const catalog::Catalog& catalog, StorageManager* storageManager,
-        MemoryManager* memoryManager);
-
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
     std::string getTableName() const { return tableName; }
@@ -171,7 +167,7 @@ public:
 
     virtual void commit(transaction::Transaction* transaction,
         catalog::TableCatalogEntry* tableEntry, LocalTable* localTable) = 0;
-    virtual void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) = 0;
+    virtual void checkpoint(catalog::TableCatalogEntry* tableEntry) = 0;
     virtual void rollbackCheckpoint() = 0;
     virtual void reclaimStorage(FileHandle& dataFH) = 0;
 
@@ -197,10 +193,11 @@ public:
     static common::DataChunk constructDataChunk(MemoryManager* mm,
         std::vector<common::LogicalType> types);
 
+    virtual void serialize(common::Serializer& serializer) const = 0;
+    virtual void deserialize(catalog::TableCatalogEntry* entry, common::Deserializer& deSer) = 0;
+
 protected:
     virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;
-
-    virtual void serialize(common::Serializer& serializer) const;
 
 protected:
     common::TableType tableType;
@@ -211,6 +208,8 @@ protected:
     MemoryManager* memoryManager;
     ShadowFile* shadowFile;
     bool hasChanges;
+    bool inMemory;
+    bool readOnly;
 };
 
 } // namespace storage

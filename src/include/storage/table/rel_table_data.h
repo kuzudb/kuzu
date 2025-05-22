@@ -55,7 +55,7 @@ class RelTableData {
 public:
     RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
         const catalog::TableCatalogEntry* tableEntry, common::RelDataDirection direction,
-        bool enableCompression, common::Deserializer* deSer);
+        bool enableCompression);
 
     bool update(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
         const common::ValueVector& relIDVector, common::column_id_t columnID,
@@ -101,6 +101,7 @@ public:
         common::row_idx_t numRows_, CSRNodeGroupScanSource source);
 
     void serialize(common::Serializer& serializer) const;
+    void deserialize(common::Deserializer& deSerializer, MemoryManager& memoryManager);
 
     NodeGroup* getNodeGroupNoLock(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroupNoLock(nodeGroupIdx);

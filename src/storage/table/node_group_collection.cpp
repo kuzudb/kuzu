@@ -11,14 +11,11 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
-    const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
-    Deserializer* deSer, const VersionRecordHandler* versionRecordHandler)
+NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
+    const bool enableCompression, FileHandle* dataFH,
+    const VersionRecordHandler* versionRecordHandler)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
       dataFH{dataFH}, stats{std::span{types}}, versionRecordHandler(versionRecordHandler) {
-    if (deSer) {
-        deserialize(*deSer, memoryManager);
-    }
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         numTotalRows += nodeGroup->getNumRows();
@@ -134,7 +131,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         pushInsertInfo(transaction, lastNodeGroup, numToAppend);
         numTotalRows += numToAppend;
         if (!directFlushWhenAppend) {
-            // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
+            // TODO(Guodong): Further optimize on this. Should directly figure out startRowIdx to
             // start appending into the node group and pass in as param.
             lastNodeGroup->append(transaction, columnIDs, chunkedGroup, 0, numToAppend);
         }
@@ -263,6 +260,11 @@ void NodeGroupCollection::deserialize(Deserializer& deSer, MemoryManager& memory
     nodeGroups.deserializeGroups(memoryManager, deSer, types);
     deSer.validateDebuggingInfo(key, "stats");
     stats.deserialize(deSer);
+    numTotalRows = 0;
+    const auto lock = nodeGroups.lock();
+    for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
+        numTotalRows += nodeGroup->getNumRows();
+    }
 }
 
 } // namespace storage

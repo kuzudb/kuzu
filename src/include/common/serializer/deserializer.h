@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "common/assert.h"
-#include "common/case_insensitive_map.h"
 #include "common/serializer/reader.h"
 
 namespace kuzu {
@@ -27,7 +26,9 @@ public:
         reader->read(reinterpret_cast<uint8_t*>(&value), sizeof(T));
     }
 
-    void read(uint8_t* data, uint64_t size) { reader->read(data, size); }
+    void read(uint8_t* data, uint64_t size) const { reader->read(data, size); }
+
+    Reader* getReader() const { return reader.get(); }
 
     void validateDebuggingInfo(std::string& value, const std::string& expectedVal);
 
@@ -135,8 +136,6 @@ public:
             values.insert(value);
         }
     }
-
-    void deserializeCaseInsensitiveSet(common::case_insensitve_set_t& values);
 
 private:
     std::unique_ptr<Reader> reader;

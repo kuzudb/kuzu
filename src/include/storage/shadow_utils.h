@@ -35,7 +35,7 @@ public:
 
     // Where possible, updatePage/insertNewPage should be used instead
     static ShadowPageAndFrame createShadowVersionIfNecessaryAndPinPage(
-        common::page_idx_t originalPage, bool insertingNewPage, FileHandle& fileHandle,
+        common::page_idx_t originalPage, bool skipReadingOriginalPage, FileHandle& fileHandle,
         ShadowFile& shadowFile);
 
     static std::pair<FileHandle*, common::page_idx_t> getFileHandleAndPhysicalPageIdxToPin(
@@ -56,7 +56,7 @@ public:
     // page if it doesn't exist. For the original page to be updated, the current WRITE trx needs to
     // commit and checkpoint.
     static void updatePage(FileHandle& fileHandle, common::page_idx_t originalPageIdx,
-        bool isInsertingNewPage, ShadowFile& shadowFile,
+        bool skipReadingOriginalPage, ShadowFile& shadowFile,
         const std::function<void(uint8_t*)>& updateOp);
 };
 } // namespace storage

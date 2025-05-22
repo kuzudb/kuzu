@@ -46,7 +46,7 @@ protected:
     std::unique_ptr<catalog::Catalog> catalog;
 };
 
-class AttachedKuzuDatabase : public AttachedDatabase {
+class AttachedKuzuDatabase final : public AttachedDatabase {
 public:
     AttachedKuzuDatabase(std::string dbPath, std::string dbName, std::string dbType,
         ClientContext* clientContext);
@@ -54,9 +54,6 @@ public:
     storage::StorageManager* getStorageManager() { return storageManager.get(); }
 
     transaction::TransactionManager* getTransactionManager() { return transactionManager.get(); }
-
-private:
-    void initCatalog(const std::string& path, ClientContext* context);
 
 private:
     std::unique_ptr<storage::StorageManager> storageManager;

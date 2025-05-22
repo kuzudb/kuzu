@@ -10,7 +10,7 @@ namespace kuzu {
 namespace storage {
 
 ShadowPageAndFrame ShadowUtils::createShadowVersionIfNecessaryAndPinPage(page_idx_t originalPage,
-    bool insertingNewPage, FileHandle& fileHandle, ShadowFile& shadowFile) {
+    bool skipReadingOriginalPage, FileHandle& fileHandle, ShadowFile& shadowFile) {
     KU_ASSERT(!fileHandle.isInMemoryMode());
     const auto hasShadowPage = shadowFile.hasShadowPage(fileHandle.getFileIndex(), originalPage);
     auto shadowPage = shadowFile.getOrCreateShadowPage(fileHandle.getFileIndex(), originalPage);
@@ -22,7 +22,7 @@ ShadowPageAndFrame ShadowUtils::createShadowVersionIfNecessaryAndPinPage(page_id
         } else {
             shadowFrame =
                 shadowFile.getShadowingFH().pinPage(shadowPage, PageReadPolicy::DONT_READ_PAGE);
-            if (!insertingNewPage) {
+            if (!skipReadingOriginalPage) {
                 fileHandle.optimisticReadPage(originalPage, [&](const uint8_t* frame) -> void {
                     memcpy(shadowFrame, frame, KUZU_PAGE_SIZE);
                 });
@@ -65,17 +65,17 @@ page_idx_t ShadowUtils::insertNewPage(FileHandle& fileHandle, ShadowFile& shadow
 
 void unpinShadowPage(page_idx_t originalPageIdx, page_idx_t shadowPageIdx,
     const ShadowFile& shadowFile) {
-    if (originalPageIdx != INVALID_PAGE_IDX) {
-        shadowFile.getShadowingFH().unpinPage(shadowPageIdx);
-    }
+    KU_ASSERT(originalPageIdx != INVALID_PAGE_IDX && shadowPageIdx != INVALID_PAGE_IDX);
+    KU_UNUSED(originalPageIdx);
+    shadowFile.getShadowingFH().unpinPage(shadowPageIdx);
 }
 
 void ShadowUtils::updatePage(FileHandle& fileHandle, page_idx_t originalPageIdx,
-    bool isInsertingNewPage, ShadowFile& shadowFile,
+    bool skipReadingOriginalPage, ShadowFile& shadowFile,
     const std::function<void(uint8_t*)>& updateOp) {
     KU_ASSERT(!fileHandle.isInMemoryMode());
     const auto shadowPageIdxAndFrame = createShadowVersionIfNecessaryAndPinPage(originalPageIdx,
-        isInsertingNewPage, fileHandle, shadowFile);
+        skipReadingOriginalPage, fileHandle, shadowFile);
     try {
         updateOp(shadowPageIdxAndFrame.frame);
     } catch (Exception&) {
