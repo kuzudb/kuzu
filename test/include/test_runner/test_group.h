@@ -64,7 +64,7 @@ struct TestStatement {
     std::string importFilePath;
     bool removeFileFlag = false;
     std::string removeFilePath;
-    // For rewriteTests
+    // Used in REWRITE_TESTS mode.
     std::string newOutput;
     ResultType testResultType;
 };
