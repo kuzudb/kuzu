@@ -217,7 +217,8 @@ public:
             // -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) RETURN ID(r)
             // ---- 5001
             // <FILE>:file_with_answers.txt
-            case ResultType::CSV_FILE: // not supported yet
+            case ResultType::CSV_FILE: 
+            // not supported yet
             {
                 newFile += currLine + '\n';
             } break;
@@ -226,16 +227,17 @@ public:
             // ---- error
             // Error: Binder exception: Variable intended is not in scope.
             case ResultType::ERROR_MSG: {
-                newFile += statement->newOutput; // Add actual output (result and error msg)
+                // add the actual ouput (result and error message)
+                newFile += statement->newOutput; 
                 int tmp = -1;
                 for (auto c : statement->newOutput) {
                     if (c == '\n') {
                         tmp++;
                     }
                 }
-                for (int i = 0; i < tmp;
-                     ++i) { // TODO BEFORE MERGING <- This is wrong, and needs to change
-                    getline(file, currLine); // Ignore produced error msg
+                // ignore the expected error message
+                for (int i = 0; i < tmp; ++i) { 
+                    getline(file, currLine); 
                 }
             } break;
             // # Expects regex-matching error message
