@@ -201,8 +201,8 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
             "---- " + std::to_string(result->getNumTuples() + statement->checkColumnNames) + '\n';
         std::vector<std::string> resultTuples = convertResultToString(*result,
             statement->checkOutputOrder, statement->checkColumnNames);
-        for (auto result : resultTuples) {
-            newOutput += result + '\n';
+        for (auto res : resultTuples) {
+            newOutput += res + '\n';
         }
     } break;
     case ResultType::CSV_FILE: // not supported yet...
