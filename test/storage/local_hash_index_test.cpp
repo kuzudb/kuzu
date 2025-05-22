@@ -1,8 +1,8 @@
-#include "../../src/include/storage/overflow_file.h"
 #include "gtest/gtest.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_hash_index.h"
+#include "storage/overflow_file.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
