@@ -202,7 +202,7 @@ public:
                     // We extract the number of expected tuples from the result
                     // specifier line and skip over as many tuples that
                     // were specified
-                    size_t static constexpr numTuplesPrefix = std::string("---- ").size();
+                    static constexpr size_t numTuplesPrefix = std::string_view("---- ").size();
                     int count = std::stoi(currLine.substr(numTuplesPrefix));
                     for (int i = 0; i < count; ++i) {
                         getline(file, currLine);
