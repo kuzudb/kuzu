@@ -197,7 +197,7 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
         newOutput += resultHash;
     } break;
     case ResultType::TUPLES: {
-        newOutput += "---- " + std::to_string(result->getNumTuples()) + '\n';
+        newOutput += "---- " + std::to_string(result->getNumTuples() + statement->checkColumnNames) + '\n';
         std::vector<std::string> resultTuples = convertResultToString(*result,
             statement->checkOutputOrder, statement->checkColumnNames);
         for (auto result : resultTuples) {
