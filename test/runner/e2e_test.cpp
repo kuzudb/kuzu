@@ -1,5 +1,6 @@
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
+#include "test_helper/test_helper.h"
 #include "test_runner/csv_converter.h"
 #include "test_runner/test_parser.h"
 
@@ -71,7 +72,7 @@ public:
             dataset = tempDatasetPath;
         } break;
         default: {
-            dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+            dataset = TestHelper::appendKuzuRootPath(TestHelper::E2E_IMPORT_TEST_DIR + dataset);
         }
         }
     }
