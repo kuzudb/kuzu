@@ -151,17 +151,13 @@ public:
                         getline(file, currLine);         // Ignore expected hash
                     } break;
                     case ResultType::TUPLES: {
-                        try
-                        {
+                        try {
                             int skip = std::stoi(currLine.substr(5)); // Ignore expected tuples
-                            for (int i = 0; i < skip; ++i)
-                            {
+                            for (int i = 0; i < skip; ++i) {
                                 getline(file, currLine);
                             }
                             newFile += statement->newOutput; // Add actual output
-                        }
-                        catch (...)
-                        {
+                        } catch (...) {
                             // Could not overwrite expected result
                             // error in parsing expected tuples
                             newFile += currLine + '\n';
@@ -173,16 +169,13 @@ public:
                     case ResultType::ERROR_MSG: {
                         newFile += statement->newOutput; // Add actual output (result and error msg)
                         int tmp = -1;
-                        for(auto c : statement->newOutput)
-                        {
-                            if (c == '\n')
-                            {
+                        for (auto c : statement->newOutput) {
+                            if (c == '\n') {
                                 tmp++;
                             }
                         }
-                        for(int i = 0; i < tmp; ++i)
-                        {
-                            getline(file, currLine);         // Ignore produced error msg
+                        for (int i = 0; i < tmp; ++i) {
+                            getline(file, currLine); // Ignore produced error msg
                         }
                     } break;
                     case ResultType::ERROR_REGEX: {
