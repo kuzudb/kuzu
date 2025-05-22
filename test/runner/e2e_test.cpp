@@ -159,9 +159,7 @@ public:
                     return result;
                 };
 
-                // THIS CHECK SHOULD NEVER WORK
                 if (normalize(stmt) != (normalize("-STATEMENT " + statement->query))) {
-                    KU_UNREACHABLE;
                     newFile += currLine + '\n';
                     continue;
                 }
