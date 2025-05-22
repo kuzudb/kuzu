@@ -17,7 +17,7 @@
 
 namespace kuzu {
 namespace storage {
-
+class PageManager;
 class FileHandle;
 class BufferManager;
 
@@ -46,7 +46,11 @@ struct PageStorageInfo {
 
 // TODO(bmwinger): this should use the memoryManager
 struct PIP {
-    PIP() : nextPipPageIdx{ShadowUtils::NULL_PAGE_IDX}, pageIdxs{} {}
+    PIP() : nextPipPageIdx{ShadowUtils::NULL_PAGE_IDX}, pageIdxs{} {
+        for (auto& pageIdx : pageIdxs) {
+            pageIdx = ShadowUtils::NULL_PAGE_IDX;
+        }
+    }
 
     common::page_idx_t nextPipPageIdx;
     common::page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
@@ -132,6 +136,8 @@ public:
     }
 
     void checkpoint();
+
+    void reclaimStorage(PageManager& pageManager) const;
 
     // Write WriteIterator for making fast bulk changes to the disk array
     // The pages are cached while the elements are stored on the same page
@@ -298,6 +304,9 @@ public:
     inline void checkpointInMemoryIfNecessary() { diskArray.checkpointInMemoryIfNecessary(); }
     inline void rollbackInMemoryIfNecessary() { diskArray.rollbackInMemoryIfNecessary(); }
     inline void checkpoint() { diskArray.checkpoint(); }
+    inline void reclaimStorage(PageManager& pageManager) const {
+        diskArray.reclaimStorage(pageManager);
+    }
 
     class WriteIterator {
     public:

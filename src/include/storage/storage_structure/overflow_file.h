@@ -42,6 +42,7 @@ public:
         pageWriteCache.clear();
         this->nextPosToWriteTo = nextPosToWriteTo_;
     }
+    void reclaimStorage(PageManager& pageManager);
 
 private:
     uint8_t* addANewPage();
@@ -90,6 +91,8 @@ public:
     void rollbackInMemory();
     void checkpoint(bool forceUpdateHeader);
     void checkpointInMemory();
+
+    void reclaimStorage(PageManager& pageManager) const;
 
     OverflowFileHandle* addHandle() {
         KU_ASSERT(handles.size() < NUM_HASH_INDEXES);

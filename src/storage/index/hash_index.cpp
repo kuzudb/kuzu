@@ -126,6 +126,12 @@ void HashIndex<T>::rollbackCheckpoint() {
 }
 
 template<typename T>
+void HashIndex<T>::reclaimStorage(PageManager& pageManager) {
+    pSlots->reclaimStorage(pageManager);
+    oSlots->reclaimStorage(pageManager);
+}
+
+template<typename T>
 void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& header,
     slot_id_t numSlotsToSplit) {
     auto originalSlotIterator = pSlots->iter_mut();
@@ -606,14 +612,22 @@ void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
     checkpointInMemory();
 }
 
+void PrimaryKeyIndex::reclaimStorage(PageManager& pageManager) const {
+    for (auto& hashIndex : hashIndices) {
+        hashIndex->reclaimStorage(pageManager);
+    }
+    hashIndexDiskArrays->reclaimStorage(pageManager);
+    if (overflowFile) {
+        overflowFile->reclaimStorage(pageManager);
+    }
+}
+
 void PrimaryKeyIndex::serialize(Serializer& serializer) const {
     serializer.writeDebuggingInfo("firstHeaderPage");
     serializer.write(firstHeaderPage);
     serializer.writeDebuggingInfo("overflowHeaderPage");
     serializer.write(overflowHeaderPage);
 }
-
-PrimaryKeyIndex::~PrimaryKeyIndex() = default;
 
 } // namespace storage
 } // namespace kuzu

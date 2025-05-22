@@ -87,5 +87,12 @@ size_t DiskArrayCollection::addDiskArray() {
     return oldSize;
 }
 
+void DiskArrayCollection::reclaimStorage(PageManager& pageManager) const {
+    for (auto pageIdx : headerPageIndices) {
+        KU_ASSERT(pageIdx != INVALID_PAGE_IDX);
+        pageManager.freePage(pageIdx);
+    }
+}
+
 } // namespace storage
 } // namespace kuzu
