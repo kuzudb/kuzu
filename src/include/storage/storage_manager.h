@@ -6,7 +6,6 @@
 #include "shadow_file.h"
 #include "storage/index/hash_index.h"
 #include "storage/wal/wal.h"
-#include "store/table.h"
 
 namespace kuzu {
 namespace main {
@@ -19,11 +18,13 @@ class CatalogEntry;
 
 namespace storage {
 class DiskArrayCollection;
+class Table;
 
 class KUZU_API StorageManager {
 public:
     StorageManager(const std::string& databasePath, bool readOnly, MemoryManager& memoryManager,
         bool enableCompression, common::VirtualFileSystem* vfs, main::ClientContext* context);
+    ~StorageManager();
 
     static void recover(main::ClientContext& clientContext);
 

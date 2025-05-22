@@ -1,8 +1,8 @@
 #include "common/serializer/metadata_writer.h"
 
 #include "storage/file_handle.h"
+#include "storage/shadow_file.h"
 #include "storage/shadow_utils.h"
-#include "storage/wal/shadow_file.h"
 
 namespace kuzu {
 namespace common {

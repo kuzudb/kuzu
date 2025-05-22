@@ -19,7 +19,6 @@ void FileInfo::readFromFile(void* buffer, uint64_t numBytes, uint64_t position) 
     fileSystem->readFromFile(*this, buffer, numBytes, position);
 }
 
-// TODO(Ziyi): What's the difference between readFile and readFromFile?
 int64_t FileInfo::readFile(void* buf, size_t nbyte) {
     return fileSystem->readFile(*this, buf, nbyte);
 }
