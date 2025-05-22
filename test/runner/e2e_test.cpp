@@ -2,6 +2,7 @@
 #include <string>
 #include <utility>
 
+#include "common/assert.h"
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "test_helper/test_helper.h"
@@ -93,6 +94,24 @@ public:
         std::string currLine;
         file.open(testPath);
 
+        const ::testing::TestInfo* const testInfo =
+            ::testing::UnitTest::GetInstance()->current_test_info();
+
+        // testStatements is NOT all tests specified in the file
+        // Rather, it is all tests under the CASE 
+        // testInfo->name()
+        // We must find this case before we start replacing outputs
+        // TODO <- This is inefficient (and likely not thread safe). 
+        // Discuss an alternative implementation
+        while(getline(file, currLine))
+        {
+            newFile += currLine + '\n';
+            if (currLine == "-CASE " + std::string(testInfo->name()))
+            {
+                break;
+            }
+        }
+
         for (auto& statement : testStatements) {
             while (getline(file, currLine)) {
                 if (!currLine.starts_with("-STATEMENT")) {
@@ -105,11 +124,11 @@ public:
                 while (getline(file, currLine))
                 {
                     if (currLine.starts_with("----"))
+                    {
                         break;
-                    else {
+                    }
                         newFile += currLine + '\n';
                         stmt += currLine;
-                    }
                 }
                 
                 // This lambda collaples multiple repeating space characters into a
@@ -120,6 +139,7 @@ public:
                 // implemented as a lambda.
                 // TODO BEFORE MERGING <- Check for an implementation of this
                 // functionality in StringUtil
+
 
                 auto normalize = [](const std::string& s) {
                     std::string result;
@@ -138,57 +158,79 @@ public:
                     return result;
                 };
 
+                // THIS CHECK SHOULD NEVER WORK 
                 if (normalize(stmt) != (normalize("-STATEMENT " + statement->query))) {
+                    KU_UNREACHABLE;
                     newFile += currLine + '\n';
                     continue;
                 }
 
                 else {
                     switch (statement->testResultType) {
-                    case ResultType::OK: {
-                        newFile += statement->newOutput;
-                    } break;
-                    case ResultType::HASH: {
-                        newFile += currLine + '\n';      // Add result specifier
-                        newFile += statement->newOutput; // Add produced hash
-                        getline(file, currLine);         // Ignore expected hash
-                    } break;
-                    case ResultType::TUPLES: {
-                        try {
-                            int skip = std::stoi(currLine.substr(5)); // Ignore expected tuples
-                            for (int i = 0; i < skip; ++i) {
-                                getline(file, currLine);
+                        // Success results don't need anything after the dashes 
+                        // -STATEMENT CREATE NODE TABLE  Person (ID INT64, PRIMARY KEY (ID)); 
+                        // ---- ok
+                        case ResultType::OK: {
+                            newFile += statement->newOutput;
+                        } break;
+                        case ResultType::HASH: {
+                            // Add result specifier
+                            newFile += currLine + '\n';     
+                            // Add produced hash
+                            newFile += statement->newOutput; 
+                            // Ignore expected hash
+                            getline(file, currLine);         
+                        } break;
+                        // -CHECK_COLUMN_NAMES
+                        // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
+                        // ---- 5
+                        // a.fName
+                        // Alice
+                        // Bob
+                        // Carol
+                        // Dan
+                        case ResultType::TUPLES: {
+                            try {
+                                // We extract the number of expected tuples from the result
+                                // specifier line and skip over as many tuples that
+                                // were specified
+                                size_t static constexpr numTuplesPrefix = std::string("---- ").size();
+                                int count = std::stoi(currLine.substr(numTuplesPrefix)); 
+                                for (int i = 0; i < count; ++i) {
+                                    getline(file, currLine);
+                                }
+                                // Add the produced output, which contains the
+                                // updated count of tuples
+                                newFile += statement->newOutput; 
+                            } catch (...) {
+                                // Could not overwrite expected result
+                                // error in parsing expected tuples
+                                newFile += currLine + '\n';
                             }
-                            newFile += statement->newOutput; // Add actual output
-                        } catch (...) {
-                            // Could not overwrite expected result
-                            // error in parsing expected tuples
+                        } break;
+                        case ResultType::CSV_FILE: // not supported yet
+                        {
                             newFile += currLine + '\n';
                         }
-                    } break;
-                    case ResultType::CSV_FILE: // not supported yet
-                    {
-                        newFile += currLine + '\n';
-                    }
-                            break;
-                    case ResultType::ERROR_MSG: {
-                        newFile += statement->newOutput; // Add actual output (result and error msg)
-                        int tmp = -1;
-                        for (auto c : statement->newOutput) {
-                            if (c == '\n') {
-                                tmp++;
+                                break;
+                        case ResultType::ERROR_MSG: {
+                            newFile += statement->newOutput; // Add actual output (result and error msg)
+                            int tmp = -1;
+                            for (auto c : statement->newOutput) {
+                                if (c == '\n') {
+                                    tmp++;
+                                }
                             }
-                        }
-                        for (int i = 0; i < tmp; ++i) { // TODO BEFORE MERGING <- This is wrong, and needs to change
-                            getline(file, currLine); // Ignore produced error msg
-                        }
-                    } break;
-                    case ResultType::ERROR_REGEX: {
-                        newFile += statement->newOutput;
-                        getline(file, currLine);
-                        if (statement->newOutput != "ok\n")
-                            newFile += currLine + '\n';
-                    } break;
+                            for (int i = 0; i < tmp; ++i) { // TODO BEFORE MERGING <- This is wrong, and needs to change
+                                getline(file, currLine); // Ignore produced error msg
+                            }
+                        } break;
+                        case ResultType::ERROR_REGEX: {
+                            newFile += statement->newOutput;
+                            getline(file, currLine);
+                            if (statement->newOutput != "ok\n")
+                                newFile += currLine + '\n';
+                        } break;
                     }
                     break; // goto next statement
                 }
