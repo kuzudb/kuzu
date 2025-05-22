@@ -173,6 +173,10 @@ public:
                         case ResultType::OK: {
                             newFile += statement->newOutput;
                         } break;
+                        // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
+                        // -CHECK_ORDER # order matters with hashes
+                        // ---- hash
+                        // 4 c921eb680e6d000e4b65556ae02361d2
                         case ResultType::HASH: {
                             // Add result specifier
                             newFile += currLine + '\n';     
@@ -208,11 +212,18 @@ public:
                                 newFile += currLine + '\n';
                             }
                         } break;
+                        // -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) RETURN ID(r)
+                        // ---- 5001
+                        // <FILE>:file_with_answers.txt
                         case ResultType::CSV_FILE: // not supported yet
                         {
                             newFile += currLine + '\n';
                         }
                                 break;
+                        // # Expects error message
+                        // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
+                        // ---- error
+                        // Error: Binder exception: Variable intended is not in scope.
                         case ResultType::ERROR_MSG: {
                             newFile += statement->newOutput; // Add actual output (result and error msg)
                             int tmp = -1;
@@ -225,6 +236,10 @@ public:
                                 getline(file, currLine); // Ignore produced error msg
                             }
                         } break;
+                        // # Expects regex-matching error message
+                        // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
+                        // ---- error(regex)
+                        // ^Error: Binder exception: Variable .* is not in scope\.$
                         case ResultType::ERROR_REGEX: {
                             newFile += statement->newOutput;
                             getline(file, currLine);
