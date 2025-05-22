@@ -1,4 +1,4 @@
-#include "storage/wal_replayer.h"
+#include "../../include/storage/wal/wal_replayer.h"
 
 #include "binder/binder.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"

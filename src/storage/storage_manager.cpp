@@ -1,5 +1,6 @@
 #include "storage/storage_manager.h"
 
+#include "../include/storage/wal/wal_replayer.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
@@ -10,7 +11,6 @@
 #include "storage/page_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
-#include "storage/wal_replayer.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -107,8 +107,8 @@ void StorageManager::createRelTableGroup(const RelGroupCatalogEntry* entry,
     const main::ClientContext* context) {
     for (const auto id : entry->getRelTableIDs()) {
         createRelTable(context->getCatalog()
-                           ->getTableCatalogEntry(context->getTransaction(), id)
-                           ->ptrCast<RelTableCatalogEntry>());
+                ->getTableCatalogEntry(context->getTransaction(), id)
+                ->ptrCast<RelTableCatalogEntry>());
     }
 }
 
