@@ -88,6 +88,19 @@ public:
         }
     }
 
+
+    // This routine is called when E2E_REWRITE_TESTS=1 (or equivalent)
+    // Note that this is a very inefficient implementation of the rewrite
+    // functionality we want the runner to have
+    // 1) the testStatements vector container does not contain ALL 
+        // tests specified in the file
+        // Rather, it is all tests under the CASE testInfo->name() 
+        // We must find this case before we start replacing outputs
+        // See parseAndRegisterFileGroup()
+    // 2) The TearDown function which invokes this routine is called after every 
+        // case has completed running. i.e for every case in a test file the same
+        // test file is written. This is inefficient and NOT thread safe
+    
     void reWriteTests()
     {
         std::fstream file;
@@ -98,12 +111,6 @@ public:
         const ::testing::TestInfo* const testInfo =
             ::testing::UnitTest::GetInstance()->current_test_info();
 
-        // testStatements is NOT all tests specified in the file
-        // Rather, it is all tests under the CASE 
-        // testInfo->name()
-        // We must find this case before we start replacing outputs
-        // TODO <- This is inefficient (and likely not thread safe). 
-        // Discuss an alternative implementation
         while(getline(file, currLine))
         {
             newFile += currLine + '\n';
