@@ -160,7 +160,18 @@ public:
                         break;
                     case ResultType::ERROR_MSG: {
                         newFile += statement->newOutput; // Add actual output (result and error msg)
-                        getline(file, currLine);         // Ignore produced error msg
+                        int tmp = -1;
+                        for(auto c : statement->newOutput)
+                        {
+                            if (c == '\n')
+                            {
+                                tmp++;
+                            }
+                        }
+                        for(int i = 0; i < tmp; ++i)
+                        {
+                            getline(file, currLine);         // Ignore produced error msg
+                        }
                     } break;
                     case ResultType::ERROR_REGEX: {
                         newFile += statement->newOutput;
