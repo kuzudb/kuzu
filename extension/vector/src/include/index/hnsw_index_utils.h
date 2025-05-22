@@ -1,7 +1,7 @@
 #pragma once
 
 #include "hnsw_config.h"
-#include "storage/store/list_chunk_data.h"
+#include "storage/table/list_chunk_data.h"
 
 namespace kuzu {
 namespace catalog {

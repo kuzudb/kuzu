@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/enums/table_type.h"
-#include "storage/store/table.h"
+#include "storage/table/table.h"
 
 namespace kuzu {
 namespace transaction {

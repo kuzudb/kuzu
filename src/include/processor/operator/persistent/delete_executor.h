@@ -6,8 +6,8 @@
 #include "common/enums/delete_type.h"
 #include "common/vector/value_vector.h"
 #include "processor/result/result_set.h"
-#include "storage/store/node_table.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/node_table.h"
+#include "storage/table/rel_table.h"
 
 namespace kuzu {
 namespace processor {

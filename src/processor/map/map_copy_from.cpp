@@ -10,8 +10,8 @@
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/storage_manager.h"
-#include "storage/store/node_table.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/node_table.h"
+#include "storage/table/rel_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

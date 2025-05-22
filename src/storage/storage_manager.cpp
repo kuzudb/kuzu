@@ -1,5 +1,6 @@
 #include "storage/storage_manager.h"
 
+#include "../include/storage/wal/wal_replayer.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
@@ -8,9 +9,8 @@
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/page_manager.h"
-#include "storage/store/node_table.h"
-#include "storage/store/rel_table.h"
-#include "storage/wal_replayer.h"
+#include "storage/table/node_table.h"
+#include "storage/table/rel_table.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;

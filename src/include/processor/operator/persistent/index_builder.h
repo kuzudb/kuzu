@@ -12,7 +12,7 @@
 #include "processor/operator/persistent/node_batch_insert_error_handler.h"
 #include "storage/index/hash_index.h"
 #include "storage/index/hash_index_utils.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 
 namespace kuzu {
 namespace transaction {

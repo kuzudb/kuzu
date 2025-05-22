@@ -3,7 +3,7 @@
 #include "common/copy_constructors.h"
 #include "storage/local_storage/local_hash_index.h"
 #include "storage/local_storage/local_table.h"
-#include "storage/store/node_group_collection.h"
+#include "storage/table/node_group_collection.h"
 
 namespace kuzu {
 namespace storage {

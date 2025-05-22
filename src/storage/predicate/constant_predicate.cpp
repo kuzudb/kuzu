@@ -3,7 +3,7 @@
 #include "common/type_utils.h"
 #include "function/comparison/comparison_functions.h"
 #include "storage/compression/compression.h"
-#include "storage/store/column_chunk_stats.h"
+#include "storage/table/column_chunk_stats.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

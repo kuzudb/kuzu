@@ -4,7 +4,7 @@
 #include <numeric>
 
 #include "common/enums/rel_direction.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/rel_table.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;

@@ -13,8 +13,8 @@
 #include "graph_entry.h"
 #include "main/client_context.h"
 #include "processor/operator/filtering_operator.h"
-#include "storage/store/node_table.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/node_table.h"
+#include "storage/table/rel_table.h"
 
 namespace kuzu {
 namespace storage {

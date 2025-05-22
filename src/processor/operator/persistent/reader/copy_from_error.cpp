@@ -1,7 +1,7 @@
 #include "processor/operator/persistent/reader/copy_from_error.h"
 
 #include "common/vector/value_vector.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 
 using namespace kuzu::common;
 

@@ -6,7 +6,7 @@
 #include "common/exception/message.h"
 #include "common/vector/value_vector.h"
 #include "processor/execution_context.h"
-#include "storage/store/rel_table.h"
+#include "storage/table/rel_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

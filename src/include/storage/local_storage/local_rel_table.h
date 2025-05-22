@@ -4,7 +4,7 @@
 
 #include "common/enums/rel_direction.h"
 #include "storage/local_storage/local_table.h"
-#include "storage/store/csr_node_group.h"
+#include "storage/table/csr_node_group.h"
 
 namespace kuzu {
 namespace storage {

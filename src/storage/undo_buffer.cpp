@@ -4,9 +4,9 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
-#include "storage/store/chunked_node_group.h"
-#include "storage/store/update_info.h"
-#include "storage/store/version_record_handler.h"
+#include "storage/table/chunked_node_group.h"
+#include "storage/table/update_info.h"
+#include "storage/table/version_record_handler.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;

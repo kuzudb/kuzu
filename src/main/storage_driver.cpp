@@ -5,7 +5,7 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
-#include "storage/store/node_table.h"
+#include "storage/table/node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

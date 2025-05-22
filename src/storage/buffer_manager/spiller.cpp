@@ -10,8 +10,8 @@
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
-#include "storage/store/chunked_node_group.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/chunked_node_group.h"
+#include "storage/table/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {

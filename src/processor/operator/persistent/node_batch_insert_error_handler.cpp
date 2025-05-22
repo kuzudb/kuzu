@@ -1,7 +1,7 @@
 #include "processor/operator/persistent/node_batch_insert_error_handler.h"
 
 #include "processor/execution_context.h"
-#include "storage/store/node_table.h"
+#include "storage/table/node_table.h"
 
 using namespace kuzu::common;
 

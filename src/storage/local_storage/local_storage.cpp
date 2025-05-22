@@ -5,7 +5,7 @@
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
-#include "storage/store/table.h"
+#include "storage/table/table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

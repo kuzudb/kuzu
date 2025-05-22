@@ -1,0 +1,217 @@
+#pragma once
+
+#include "catalog/catalog_entry/table_catalog_entry.h"
+#include "common/enums/rel_direction.h"
+#include "common/mask.h"
+#include "storage/predicate/column_predicate.h"
+#include "storage/table/column.h"
+#include "storage/table/column_chunk_data.h"
+#include "storage/table/node_group.h"
+
+namespace kuzu {
+namespace evaluator {
+class ExpressionEvaluator;
+} // namespace evaluator
+namespace storage {
+class MemoryManager;
+class Table;
+
+enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = UINT8_MAX };
+
+struct KUZU_API TableScanState {
+    Table* table;
+    std::unique_ptr<common::ValueVector> rowIdxVector;
+    // Node/Rel ID vector. We assume all output vectors are within the same DataChunk as this one.
+    common::ValueVector* nodeIDVector;
+    std::vector<common::ValueVector*> outputVectors;
+    std::shared_ptr<common::DataChunkState> outState;
+    std::vector<common::column_id_t> columnIDs;
+    common::SemiMask* semiMask;
+
+    // Only used when scan from persistent data.
+    std::vector<const Column*> columns;
+
+    TableScanSource source = TableScanSource::NONE;
+    common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    NodeGroup* nodeGroup = nullptr;
+    std::unique_ptr<NodeGroupScanState> nodeGroupScanState;
+
+    std::vector<ColumnPredicateSet> columnPredicateSets;
+
+    TableScanState(common::ValueVector* nodeIDVector,
+        std::vector<common::ValueVector*> outputVectors,
+        std::shared_ptr<common::DataChunkState> outChunkState)
+        : table{nullptr}, nodeIDVector(nodeIDVector), outputVectors{std::move(outputVectors)},
+          outState{std::move(outChunkState)}, semiMask{nullptr} {
+        rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
+        rowIdxVector->state = outState;
+    }
+
+    TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<const Column*> columns)
+        : table{nullptr}, nodeIDVector(nullptr), outState{nullptr}, columnIDs{std::move(columnIDs)},
+          semiMask{nullptr}, columns{std::move(columns)} {}
+
+    virtual ~TableScanState() = default;
+    DELETE_COPY_DEFAULT_MOVE(TableScanState);
+
+    virtual void setToTable(const transaction::Transaction* transaction, Table* table_,
+        std::vector<common::column_id_t> columnIDs_,
+        std::vector<ColumnPredicateSet> columnPredicateSets_,
+        common::RelDataDirection direction = common::RelDataDirection::INVALID);
+
+    // Note that `resetCachedBoundNodeSelVec` is only applicable to RelTable for now.
+    virtual void initState(transaction::Transaction* transaction, NodeGroup* nodeGroup,
+        bool /*resetCachedBoundNodeSelVev*/ = true) {
+        KU_ASSERT(nodeGroup);
+        this->nodeGroup = nodeGroup;
+        this->nodeGroup->initializeScanState(transaction, *this);
+    }
+
+    virtual bool scanNext(transaction::Transaction*) { KU_UNREACHABLE; }
+
+    void resetOutVectors();
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<TARGET&>(*this);
+    }
+    template<class TARGETT>
+    const TARGETT& cast() const {
+        return common::ku_dynamic_cast<const TARGETT&>(*this);
+    }
+};
+
+struct TableInsertState {
+    std::vector<common::ValueVector*> propertyVectors;
+
+    explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors)
+        : propertyVectors{std::move(propertyVectors)} {}
+    virtual ~TableInsertState() = default;
+
+    template<typename T>
+    const T& constCast() const {
+        return common::ku_dynamic_cast<const T&>(*this);
+    }
+    template<typename T>
+    T& cast() {
+        return common::ku_dynamic_cast<T&>(*this);
+    }
+};
+
+struct TableUpdateState {
+    common::column_id_t columnID;
+    common::ValueVector& propertyVector;
+
+    TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector)
+        : columnID{columnID}, propertyVector{propertyVector} {}
+    virtual ~TableUpdateState() = default;
+
+    template<typename T>
+    const T& constCast() const {
+        return common::ku_dynamic_cast<const T&>(*this);
+    }
+    template<typename T>
+    T& cast() {
+        return common::ku_dynamic_cast<T&>(*this);
+    }
+};
+
+struct TableDeleteState {
+    virtual ~TableDeleteState() = default;
+
+    template<typename T>
+    const T& constCast() const {
+        return common::ku_dynamic_cast<const T&>(*this);
+    }
+    template<typename T>
+    T& cast() {
+        return common::ku_dynamic_cast<T&>(*this);
+    }
+};
+
+struct TableAddColumnState final {
+    const binder::PropertyDefinition& propertyDefinition;
+    evaluator::ExpressionEvaluator& defaultEvaluator;
+
+    TableAddColumnState(const binder::PropertyDefinition& propertyDefinition,
+        evaluator::ExpressionEvaluator& defaultEvaluator)
+        : propertyDefinition{propertyDefinition}, defaultEvaluator{defaultEvaluator} {}
+    ~TableAddColumnState() = default;
+};
+
+class LocalTable;
+class StorageManager;
+class KUZU_API Table {
+public:
+    Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
+        MemoryManager* memoryManager);
+    virtual ~Table() = default;
+
+    static std::unique_ptr<Table> loadTable(common::Deserializer& deSer,
+        const catalog::Catalog& catalog, StorageManager* storageManager,
+        MemoryManager* memoryManager);
+
+    common::TableType getTableType() const { return tableType; }
+    common::table_id_t getTableID() const { return tableID; }
+    std::string getTableName() const { return tableName; }
+    FileHandle* getDataFH() const { return dataFH; }
+
+    // Note that `resetCachedBoundNodeIDs` is only applicable to RelTable for now.
+    virtual void initScanState(transaction::Transaction* transaction, TableScanState& readState,
+        bool resetCachedBoundNodeSelVec = true) const = 0;
+    bool scan(transaction::Transaction* transaction, TableScanState& scanState);
+
+    virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
+    virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
+    virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
+
+    virtual void addColumn(transaction::Transaction* transaction,
+        TableAddColumnState& addColumnState) = 0;
+    void dropColumn() { setHasChanges(); }
+
+    virtual void commit(transaction::Transaction* transaction,
+        catalog::TableCatalogEntry* tableEntry, LocalTable* localTable) = 0;
+    virtual void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) = 0;
+    virtual void rollbackCheckpoint() = 0;
+    virtual void reclaimStorage(FileHandle& dataFH) = 0;
+
+    virtual common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) = 0;
+
+    void setHasChanges() { hasChanges = true; }
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<TARGET&>(*this);
+    }
+    template<class TARGET>
+    const TARGET& cast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
+    }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<TARGET*>(this);
+    }
+
+    MemoryManager& getMemoryManager() const { return *memoryManager; }
+
+    static common::DataChunk constructDataChunk(MemoryManager* mm,
+        std::vector<common::LogicalType> types);
+
+protected:
+    virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;
+
+    virtual void serialize(common::Serializer& serializer) const;
+
+protected:
+    common::TableType tableType;
+    common::table_id_t tableID;
+    std::string tableName;
+    bool enableCompression;
+    FileHandle* dataFH;
+    MemoryManager* memoryManager;
+    ShadowFile* shadowFile;
+    bool hasChanges;
+};
+
+} // namespace storage
+} // namespace kuzu

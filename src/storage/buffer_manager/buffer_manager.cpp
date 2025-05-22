@@ -16,7 +16,7 @@
 #include "main/db_config.h"
 #include "storage/buffer_manager/spiller.h"
 #include "storage/file_handle.h"
-#include "storage/store/column_chunk_data.h"
+#include "storage/table/column_chunk_data.h"
 #include <span>
 
 #if defined(_WIN32)

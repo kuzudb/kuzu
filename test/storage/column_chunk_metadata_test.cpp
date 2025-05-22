@@ -3,7 +3,7 @@
 #include "common/serializer/serializer.h"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
-#include "storage/store/column_chunk_metadata.h"
+#include "storage/table/column_chunk_metadata.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
