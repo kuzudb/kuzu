@@ -1,5 +1,6 @@
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
+#include "test_helper/test_helper.h"
 #include "test_runner/csv_converter.h"
 #include "test_runner/test_parser.h"
 
@@ -71,7 +72,12 @@ public:
             dataset = tempDatasetPath;
         } break;
         default: {
-            dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+            // Determine the dataset root path. Uses `E2E_OVERRIDE_IMPORT_DIR` if set to test
+            // datasets exported from earlier Kuzu versions, otherwise the default path.
+            std::string rootDir = TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty() ?
+                                      "dataset/" :
+                                      TestHelper::E2E_OVERRIDE_IMPORT_DIR;
+            dataset = TestHelper::appendKuzuRootPath(rootDir + dataset);
         }
         }
     }
@@ -195,13 +201,26 @@ int main(int argc, char** argv) {
     try {
         // Main logic
         std::string test_dir;
+        std::string import_data_dir;
         char* env_test_dir = std::getenv("E2E_TEST_FILES_DIRECTORY");
+        char* env_import_data_dir = std::getenv("E2E_IMPORT_DB_DIR");
         if (env_test_dir != nullptr) {
             test_dir = env_test_dir;
         } else {
             test_dir = "test/test_files";
         }
+
+        if (env_import_data_dir != nullptr) {
+            auto path =
+                TestHelper::appendKuzuRootPath(std::filesystem::path(env_import_data_dir).string());
+            if (!std::filesystem::exists(path)) {
+                throw TestException("IMPORT DATABASE path does not exist: " + path);
+            }
+            import_data_dir = env_import_data_dir;
+        }
+
         TestHelper::setE2ETestFilesDirectory(test_dir);
+        TestHelper::setE2EImportDataDirectory(import_data_dir);
 
         checkGtestParams(argc, argv);
         testing::InitGoogleTest(&argc, argv);

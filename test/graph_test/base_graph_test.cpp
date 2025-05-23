@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "spdlog/spdlog.h"
@@ -96,15 +97,24 @@ void BaseGraphTest::createDBAndConn() {
 }
 
 void BaseGraphTest::initGraph(const std::string& datasetDir) const {
-    if (conn) { // normal conn
-        TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *conn);
-        TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME, *conn);
-    } else {
-        // choose a conn from connMap
-        TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME,
-            *(connMap.begin()->second));
-        TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME,
-            *(connMap.begin()->second));
+    Connection* connection = conn ? conn.get() : (connMap.begin()->second).get();
+    KU_ASSERT_UNCONDITIONAL(connection != nullptr);
+
+    if (TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty()) {
+        TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *connection);
+        TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME, *connection);
+        return;
+    }
+
+    // Run tests on datasets exported from a previous Kuzu version. Used to verify that exports and
+    // imports across versions work correctly.
+    std::string query = "IMPORT DATABASE '" + datasetDir + "';";
+    std::cout << "Loading database as: " << query << std::endl;
+    auto result = connection->query(query);
+    std::cout << "Executed query: " << query << std::endl;
+    if (!result->isSuccess()) {
+        throw Exception(stringFormat("Failed to execute statement: {}.\nError: {}", query,
+            result->getErrorMessage()));
     }
 }
 
