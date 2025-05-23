@@ -96,10 +96,10 @@ void BaseGraphTest::createDBAndConn() {
 }
 
 void BaseGraphTest::initGraph(const std::string& datasetDir) const {
-    // if we are importing from a previous kuzu version 
+    // if we are importing from a previous kuzu version
     // such as dataset/tmp/0.9.0_prev_exported_dbs/tinysnb
     if (TestHelper::E2E_IMPORT_TEST_DIR != "dataset/") {
-        // falls out of the remaining conditionals 
+        // falls out of the remaining conditionals
         // i.e if conn is null we need to use the connMap
         // as per the conn documentation
         Connection* connection = conn ? conn.get() : (connMap.begin()->second).get();
