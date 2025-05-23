@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "spdlog/spdlog.h"
@@ -95,15 +96,17 @@ void BaseGraphTest::createDBAndConn() {
     spdlog::set_level(spdlog::level::info);
 }
 
+
 void BaseGraphTest::initGraph(const std::string& datasetDir) const {
+    // if conn is null we need to use the connMap
+    // as per the conn documentation
+    Connection* connection = conn ? conn.get() : (connMap.begin()->second).get();
+    KU_ASSERT(connection != nullptr);
+
     // if we are importing from a previous kuzu version
     // such as dataset/tmp/0.9.0_prev_exported_dbs/tinysnb
+    // see migration related documentation
     if (TestHelper::E2E_IMPORT_TEST_DIR != "dataset/") {
-        // falls out of the remaining conditionals
-        // i.e if conn is null we need to use the connMap
-        // as per the conn documentation
-        Connection* connection = conn ? conn.get() : (connMap.begin()->second).get();
-        // see migration related documentation
         std::string query = "IMPORT DATABASE '" + datasetDir + "';";
         std::cout << "Loading database as: " << query << std::endl;
         auto result = connection->query(query);
@@ -112,17 +115,13 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
             throw Exception(stringFormat("Failed to execute statement: {}.\nError: {}", query,
                 result->getErrorMessage()));
         }
-    } else if (conn) { // normal conn
-        TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *conn);
-        TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME, *conn);
-    } else {
-        // choose a conn from connMap
-        TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME,
-            *(connMap.begin()->second));
-        TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME,
-            *(connMap.begin()->second));
+    }
+    else {
+        TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *connection);
+        TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME, *connection);
     }
 }
+
 
 } // namespace testing
 } // namespace kuzu
