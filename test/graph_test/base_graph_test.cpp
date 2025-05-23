@@ -97,7 +97,6 @@ void BaseGraphTest::createDBAndConn() {
 }
 
 void BaseGraphTest::initGraph(const std::string& datasetDir) const {
-    // If conn is null we need to use the connMap as per the conn documentation.
     Connection* connection = conn ? conn.get() : (connMap.begin()->second).get();
     KU_ASSERT_UNCONDITIONAL(connection != nullptr);
 
