@@ -1,0 +1,15 @@
+a.ID,b.ID,r.date,r.meetTime,r.validInterval,r.comments,r.summary,r.notes,r.someMap
+0,2,2021-06-30,1986-10-21 21:08:31.521,10 years 5 months 13:00:00.000024,"[rnme,m8sihsdnf2990nfiwf]","{locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}",1,{a=b}
+0,3,2021-06-30,1946-08-25 19:07:22,20 years 30 days 48:00:00,"[njnojppo9u0jkmf,fjiojioh9h9h89hph]","{locations: , transfer: }",2020-10-10,"{c=d, e=f, 1=2}"
+0,5,2021-06-30,2012-12-11 20:07:22,10 days,"[ioji232,jifhe8w99u43434]","{locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}",nice weather,
+2,0,2021-06-30,1946-08-25 19:07:22,10 years 5 months 13:00:00.000024,"[2huh9y89fsfw23,23nsihufhw723]","{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}",4,
+2,3,1950-05-14,1946-08-25 19:07:22,00:23:00,"[fwehu9h9832wewew,23u9h989sdfsss]","{locations: ['paris'], transfer: {day: 2011-05-01, amount: [2000,5340]}}",cool stuff found,
+2,5,1950-05-14,2012-12-11 20:07:22,20 years 30 days 48:00:00,"[fwh9y81232uisuiehuf,ewnuihxy8dyf232]","{locations: ['vancouver'], transfer: {day: 2020-01-01, amount: [120,50]}}",matthew perry,
+3,0,2021-06-30,2002-07-31 11:42:53.12342,40 days 30:00:00,"[fnioh8323aeweae34d,osd89e2ejshuih12]","{locations: ['london','toronto'], transfer: {day: 2012-11-21, amount: [223,5230]}}",10,
+3,2,1950-05-14,2007-02-12 12:11:42.123,00:28:00.03,"[fwh983-sdjisdfji,ioh89y32r2huir]","{locations: ['paris','beijing'], transfer: {day: 2011-03-11, amount: [2323,50]}}",1,
+3,5,2000-01-01,1998-10-02 13:09:22.423,00:00:00.3,"[psh989823oaaioe,nuiuah1nosndfisf]","{locations: [], transfer: {day: 1980-11-21, amount: [20,5]}}",2,
+5,0,2021-06-30,1936-11-02 11:02:01,00:00:00.00048,"[fwewe]","{locations: ['shanghai','nanjing'], transfer: {day: 1998-11-12, amount: [22,53240]}}",15,
+5,2,1950-05-14,1982-11-11 13:12:05.123,00:23:00,"[fewh9182912e3,h9y8y89soidfsf,nuhudf78w78efw,hioshe0f9023sdsd]","{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}",happy new year,
+5,3,2000-01-01,1999-04-21 15:12:11.42,48:00:00.052,"[23h9sdslnfowhu2932,shuhf98922323sf]","{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}",4,
+7,8,1905-12-12,2025-01-01 11:22:33.52,00:47:58,"[ahu2333333333333,12weeeeeeeeeeeeeeeeee]","{locations: ['toronto','thisisalongcityname'], transfer: {day: 1930-11-22, amount: [18,323]}}",8,
+7,9,1905-12-12,2020-03-01 12:11:41.6552,00:47:58,"[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]","{locations: ['waterloo'], transfer: {day: 2000-01-01, amount: [1000,5000]}}",10,

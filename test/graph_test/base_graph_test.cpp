@@ -96,7 +96,19 @@ void BaseGraphTest::createDBAndConn() {
 }
 
 void BaseGraphTest::initGraph(const std::string& datasetDir) const {
-    if (conn) { // normal conn
+    if (TestHelper::E2E_IMPORT_TEST_DIR != "dataset/")
+    {
+        Connection* connection = conn ? conn.get() : (connMap.begin()->second).get();
+        std::string query = "IMPORT DATABASE '" + datasetDir + "';";
+        std::cout << "Starting to execute query: " << query << std::endl;
+        auto result = connection->query(query);
+        std::cout << "Executed query: " << query << std::endl;
+        if (!result->isSuccess()) {
+            throw Exception(stringFormat("Failed to execute statement: {}.\nError: {}", query,
+                result->getErrorMessage()));
+        }
+    }
+    else if (conn) { // normal conn
         TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *conn);
         TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME, *conn);
     } else {
