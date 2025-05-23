@@ -72,10 +72,7 @@ public:
             dataset = tempDatasetPath;
         } break;
         default: {
-            // Determine the dataset path:
-            // Use the default dataset directory if no override is provided.
-            // Otherwise, use the custom import path for datasets exported from earlier Kuzu
-            // versions.
+            // Determine the dataset root path. Uses `E2E_OVERRIDE_IMPORT_DIR` if set to test datasets exported from earlier Kuzu versions, otherwise the default path.
             dataset =
                 TestHelper::appendKuzuRootPath(TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty() ?
                                                    "dataset/" :
