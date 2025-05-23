@@ -74,8 +74,12 @@ public:
         default: {
             // Determine the dataset path:
             // Use the default dataset directory if no override is provided.
-            // Otherwise, use the custom import path for datasets exported from earlier Kuzu versions.
-            dataset = TestHelper::appendKuzuRootPath(TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty() ? "dataset/" : TestHelper::E2E_OVERRIDE_IMPORT_DIR + dataset);
+            // Otherwise, use the custom import path for datasets exported from earlier Kuzu
+            // versions.
+            dataset =
+                TestHelper::appendKuzuRootPath(TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty() ?
+                                                   "dataset/" :
+                                                   TestHelper::E2E_OVERRIDE_IMPORT_DIR + dataset);
         }
         }
     }
@@ -211,7 +215,7 @@ int main(int argc, char** argv) {
         if (env_import_data_dir != nullptr) {
             import_data_dir = env_import_data_dir;
         }
- 
+
         TestHelper::setE2ETestFilesDirectory(test_dir);
         TestHelper::setE2EImportDataDirectory(import_data_dir);
 
