@@ -211,7 +211,8 @@ int main(int argc, char** argv) {
         }
 
         if (env_import_data_dir != nullptr) {
-            auto path = TestHelper::appendKuzuRootPath(std::filesystem::path(env_import_data_dir).string());
+            auto path =
+                TestHelper::appendKuzuRootPath(std::filesystem::path(env_import_data_dir).string());
             if (!std::filesystem::exists(path)) {
                 throw TestException("IMPORT DATABASE path does not exist: " + path);
             }
