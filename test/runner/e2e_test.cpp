@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
         std::string test_dir;
         std::string import_data_dir;
         char* env_test_dir = std::getenv("E2E_TEST_FILES_DIRECTORY");
-        char* env_import_data_dir = std::getenv("E2E_IMPORT_TEST_DIR");
+        char* env_import_data_dir = std::getenv("E2E_IMPORT_DB_DIR");
         if (env_test_dir != nullptr) {
             test_dir = env_test_dir;
         } else {
