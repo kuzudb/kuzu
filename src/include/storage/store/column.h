@@ -106,8 +106,8 @@ protected:
         const ChunkState& state, common::offset_t nodeOffset, common::ValueVector* resultVector,
         uint32_t posInVector) const;
 
-    common::page_idx_t writeValues(ChunkState& state, common::offset_t dstOffset,
-        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
+    void writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
+        const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
         common::offset_t numValues = 1) const;
 
     // Produces a page cursor for the offset relative to the given node group

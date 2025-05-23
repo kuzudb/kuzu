@@ -342,10 +342,10 @@ void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t
     }
 }
 
-page_idx_t Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* data,
+void Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* data,
     const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues) const {
-    return columnReadWriter->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData,
-        srcOffset, numValues, writeFunc);
+    columnReadWriter->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData, srcOffset,
+        numValues, writeFunc);
 }
 
 // Append to the end of the chunk.
@@ -353,9 +353,7 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
     const uint8_t* data, const NullMask* nullChunkData, offset_t numValues) const {
     auto& metadata = persistentChunk.getMetadata();
     const auto startOffset = metadata.numValues;
-    const auto numNewPages =
-        writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
-    metadata.pageRange.numPages += numNewPages;
+    writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
 
     auto [minWritten, maxWritten] = getMinMaxStorageValue(data, 0 /*offset*/, numValues,
         dataType.getPhysicalType(), nullChunkData);

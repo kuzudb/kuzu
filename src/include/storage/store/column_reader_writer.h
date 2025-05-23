@@ -72,16 +72,14 @@ public:
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom,
         const write_values_from_vector_func_t& writeFromVectorFunc) = 0;
 
-    virtual common::page_idx_t writeValuesToPageFromBuffer(ChunkState& state,
-        common::offset_t dstOffset, const uint8_t* data, const common::NullMask* nullChunkData,
-        common::offset_t srcOffset, common::offset_t numValues,
-        const write_values_func_t& writeFunc) = 0;
+    virtual void writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
+        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
+        common::offset_t numValues, const write_values_func_t& writeFunc) = 0;
 
     void readFromPage(const transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& readFunc);
 
-    // returns true if a new page was appended to the shadow file
-    bool updatePageWithCursor(PageCursor cursor,
+    void updatePageWithCursor(PageCursor cursor,
         const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
 
     PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
