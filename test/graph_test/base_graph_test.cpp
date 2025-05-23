@@ -96,7 +96,6 @@ void BaseGraphTest::createDBAndConn() {
     spdlog::set_level(spdlog::level::info);
 }
 
-
 void BaseGraphTest::initGraph(const std::string& datasetDir) const {
     // if conn is null we need to use the connMap
     // as per the conn documentation
@@ -115,13 +114,11 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
             throw Exception(stringFormat("Failed to execute statement: {}.\nError: {}", query,
                 result->getErrorMessage()));
         }
-    }
-    else {
+    } else {
         TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *connection);
         TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME, *connection);
     }
 }
-
 
 } // namespace testing
 } // namespace kuzu
