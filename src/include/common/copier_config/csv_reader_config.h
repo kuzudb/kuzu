@@ -44,35 +44,34 @@ struct CSVOption {
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.
-    std::string toCypher() const {
-        std::string result;
-
-        // Add the option IFF option is set by user.
+    std::unordered_map<std::string, std::string> toOptionsMap() const {
+        std::unordered_map<std::string, std::string> result;
         if (setHeader) {
-            std::string header = hasHeader ? "true" : "false";
-            result += "header=" + header;
+            result["header"] = hasHeader ? "true" : "false";
         }
         if (setEscape) {
-            if (!result.empty())
-                result += ", "; // Add separator if not the first option
-            result += stringFormat("escape='\\{}'", escapeChar);
+            result["escape"] = stringFormat("escape='\\{}'", escapeChar);
         }
         if (setDelim) {
-            if (!result.empty())
-                result += ", ";
-            result += stringFormat("delim='{}'", delimiter);
+            result["delim"] = stringFormat("delim='{}'", delimiter);
         }
         if (setQuote) {
-            if (!result.empty())
-                result += ", ";
-            result += stringFormat("quote='\\{}'", quoteChar);
+            result["quote"] = stringFormat("quote='\\{}'", quoteChar);
         }
+        return result;
+    }
 
-        // If no options, return empty string.
-        if (result.empty()) {
+    static std::string toCypher(const std::unordered_map<std::string, std::string>& options) {
+        if (options.empty()) {
             return "";
         }
-
+        std::string result = "";
+        for (const auto& [key, value] : options) {
+            if (!result.empty()) {
+                result += ", ";
+            }
+            result += key + "=" + value;
+        }
         return "(" + result + ")";
     }
 
@@ -96,7 +95,7 @@ struct CSVReaderConfig {
     CSVReaderConfig() : option{}, parallel{CopyConstants::DEFAULT_CSV_PARALLEL} {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVReaderConfig);
 
-    static CSVReaderConfig construct(const case_insensitive_map_t<common::Value>& options);
+    static CSVReaderConfig construct(const case_insensitive_map_t<Value>& options);
 
 private:
     CSVReaderConfig(const CSVReaderConfig& other)
