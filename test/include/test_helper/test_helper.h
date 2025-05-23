@@ -44,12 +44,9 @@ public:
         E2E_TEST_FILES_DIRECTORY = directory;
     }
 
-   static void setE2EImportDataDirectory(const std::string& directory)
-    {
+    static void setE2EImportDataDirectory(const std::string& directory) {
         E2E_IMPORT_TEST_DIR = directory;
     }
-
-
 
     static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
         bool checkOutputOrder = false);
