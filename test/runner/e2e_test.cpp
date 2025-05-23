@@ -213,6 +213,10 @@ int main(int argc, char** argv) {
         }
 
         if (env_import_data_dir != nullptr) {
+            auto path = TestHelper::appendKuzuRootPath(std::filesystem::path(env_import_data_dir));
+            if (!std::filesystem::exists(path)) {
+                throw TestException("Dataset import path does not exist [" + path + "].");
+            }
             import_data_dir = env_import_data_dir;
         }
 
