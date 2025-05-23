@@ -25,7 +25,7 @@ struct TestQueryConfig {
 class TestHelper {
 public:
     inline static std::string E2E_TEST_FILES_DIRECTORY = "test/test_files";
-    inline static std::string E2E_IMPORT_TEST_DIR = "dataset/";
+    inline static std::string E2E_OVERRIDE_IMPORT_DIR;
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
     static constexpr char TEST_ANSWERS_PATH[] = "test/answers";
@@ -45,7 +45,7 @@ public:
     }
 
     static void setE2EImportDataDirectory(const std::string& directory) {
-        E2E_IMPORT_TEST_DIR = directory;
+        E2E_OVERRIDE_IMPORT_DIR = directory;
     }
 
     static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,

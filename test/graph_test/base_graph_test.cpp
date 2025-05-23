@@ -102,21 +102,22 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
     Connection* connection = conn ? conn.get() : (connMap.begin()->second).get();
     KU_ASSERT(connection != nullptr);
 
-    // if we are importing from a previous kuzu version
-    // such as dataset/tmp/0.9.0_prev_exported_dbs/tinysnb
-    // see migration related documentation
-    if (TestHelper::E2E_IMPORT_TEST_DIR != "dataset/") {
-        std::string query = "IMPORT DATABASE '" + datasetDir + "';";
-        std::cout << "Loading database as: " << query << std::endl;
-        auto result = connection->query(query);
-        std::cout << "Executed query: " << query << std::endl;
-        if (!result->isSuccess()) {
-            throw Exception(stringFormat("Failed to execute statement: {}.\nError: {}", query,
-                result->getErrorMessage()));
-        }
-    } else {
+    if (TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty()) {
         TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *connection);
         TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME, *connection);
+        return;
+    }
+
+    // we are importing from a previous kuzu version
+    // such as dataset/tmp/0.9.0_prev_exported_dbs/tinysnb
+    // see migration related documentation
+    std::string query = "IMPORT DATABASE '" + datasetDir + "';";
+    std::cout << "Loading database as: " << query << std::endl;
+    auto result = connection->query(query);
+    std::cout << "Executed query: " << query << std::endl;
+    if (!result->isSuccess()) {
+        throw Exception(stringFormat("Failed to execute statement: {}.\nError: {}", query,
+            result->getErrorMessage()));
     }
 }
 
