@@ -249,7 +249,7 @@ public:
                         getline(file, currLine);
                         // if the query still results in an error, put the
                         // existing regex expression back
-                        if (statement->newOutput != "ok\n")
+                        if (statement->newOutput != "---- ok\n")
                             newFile += currLine + '\n';
                     } break;
                     }
