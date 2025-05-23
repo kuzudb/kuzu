@@ -88,8 +88,8 @@
 ---- ok
 -STATEMENT CALL show_tables() return *;
 ---- 2
-1|knows|REL|local(kuzu)|
 0|person|NODE|local(kuzu)|
+2|knows|REL|local(kuzu)|
 -STATEMENT MATCH (:person)-[k:knows]->(:person) RETURN COUNT(*);
 ---- 1
 14
@@ -107,7 +107,7 @@
 -STATEMENT CALL show_tables() return *;
 ---- 2
 0|person|NODE|local(kuzu)|
-1|knows|REL|local(kuzu)|
+2|knows|REL|local(kuzu)|
 -STATEMENT MATCH (:person)-[k:knows]->(:person) RETURN COUNT(*);
 ---- 1
 14

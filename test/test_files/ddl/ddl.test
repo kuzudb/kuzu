@@ -73,12 +73,6 @@ Table knows altered.
 -STATEMENT CREATE REL TABLE likes (FROM person TO person, FROM person TO organisation, since INT64);
 ---- 1
 Table likes has been created.
--STATEMENT Call table_info('likes_person_person') RETURN *;
----- 1
-1|since|INT64|NULL|both
--STATEMENT Call table_info('likes_person_organisation') RETURN *;
----- 1
-1|since|INT64|NULL|both
 -STATEMENT CREATE REL TABLE likes (FROM person TO person, FROM person TO organisation);
 ---- error
 Binder exception: likes already exists in catalog.
@@ -88,8 +82,7 @@ Binder exception: knows already exists in catalog.
 -STATEMENT CREATE REL TABLE test_person_person (FROM person TO person);
 ---- ok
 -STATEMENT CREATE REL TABLE test (FROM person TO person, FROM person TO organisation);
----- error
-Catalog exception: test_person_person already exists in catalog.
+---- ok
 -STATEMENT CREATE REL TABLE test2 (FROM person TO person, FROM person TO person);
 ---- error
 Binder exception: Found duplicate FROM-TO person-person pairs.
@@ -212,7 +205,7 @@ Binder exception: Table knows does not exist.
 ---- ok
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
 ---- 1
-(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
+(0:0)-{_LABEL: studyAt, _ID: 5:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -DEFINE_STATEMENT_BLOCK PERSON_TABLE_NULL_CHECK [
 -STATEMENT MATCH (p:person) return p.random

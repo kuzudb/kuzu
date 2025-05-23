@@ -198,11 +198,15 @@ static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel, table_i
             candidates.push_back(entry);
         }
     }
-    if (candidates.size() != 1) {
+    if (candidates.size() > 1) {
         throw BinderException(stringFormat(
             "Create rel {} with multiple rel labels is not supported.", rel.toString()));
     }
-    return nullptr;
+    if (candidates.size() == 0) {
+        throw BinderException(stringFormat(
+            "Cannot find a valid label in {} to create. This should not happen.", rel.toString()));
+    }
+    return candidates[0];
 }
 
 void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
@@ -226,15 +230,8 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
         auto srcTableID = rel->getSrcNode()->getEntry(0)->getTableID();
         auto dstTableID = rel->getDstNode()->getEntry(0)->getTableID();
         entry = tryPruneMultiLabeled(*rel, srcTableID, dstTableID);
-        // LCOV_EXCL_START
-        if (entry == nullptr) {
-            throw BinderException(
-                stringFormat("Cannot find a valid label in {} to create. This should not happen.",
-                    rel->toString()));
-        }
-        // LCOV_EXCL_STOP
     }
-    rel->setEntries(std::vector<TableCatalogEntry*>{entry});
+    rel->setEntries(std::vector{entry});
     auto insertInfo = BoundInsertInfo(TableType::REL, rel);
     // Because we might prune entries, some property exprs may belong to pruned entry
     for (auto& p : entry->getProperties()) {

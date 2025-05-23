@@ -130,8 +130,6 @@ RelTable::RelTable(RelGroupCatalogEntry* relGroupEntry, table_id_t fromTableID,
       toNodeTableID{toTableID}, nextRelOffset{0} {
     auto relEntryInfo = relGroupEntry->getRelEntryInfo(fromNodeTableID, toNodeTableID);
     tableID = relEntryInfo->oid;
-    tableName = relGroupEntry->getName() + "_" + std::to_string(fromTableID) + "_" +
-                std::to_string(toTableID);
     relGroupID = relGroupEntry->getTableID();
     for (auto direction : relGroupEntry->getRelDataDirections()) {
         auto nbrTableID = RelDirectionUtils::getNbrTableID(direction, fromTableID, toTableID);
