@@ -262,6 +262,7 @@ void StorageManager::deserialize(const Catalog& catalog, Deserializer& deSer) {
             KU_ASSERT(!tables.contains(info.oid));
             tables[info.oid] = std::make_unique<RelTable>(relGroupEntry, info.nodePair.srcTableID,
                 info.nodePair.dstTableID, this, &memoryManager);
+            tables.at(info.oid)->deserialize(relGroupEntry, deSer);
         }
     }
     deSer.validateDebuggingInfo(key, "page_manager");
