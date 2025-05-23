@@ -105,7 +105,7 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
         Connection* connection = conn ? conn.get() : (connMap.begin()->second).get();
         // see migration related documentation
         std::string query = "IMPORT DATABASE '" + datasetDir + "';";
-        std::cout << "Starting to execute query: " << query << std::endl;
+        std::cout << "Loading database as: " << query << std::endl;
         auto result = connection->query(query);
         std::cout << "Executed query: " << query << std::endl;
         if (!result->isSuccess()) {
