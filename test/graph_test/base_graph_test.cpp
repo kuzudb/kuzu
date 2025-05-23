@@ -97,10 +97,9 @@ void BaseGraphTest::createDBAndConn() {
 }
 
 void BaseGraphTest::initGraph(const std::string& datasetDir) const {
-    // if conn is null we need to use the connMap
-    // as per the conn documentation
+    // If conn is null we need to use the connMap as per the conn documentation.
     Connection* connection = conn ? conn.get() : (connMap.begin()->second).get();
-    KU_ASSERT(connection != nullptr);
+    KU_ASSERT_UNCONDITIONAL(connection != nullptr);
 
     if (TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty()) {
         TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *connection);
@@ -108,9 +107,8 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
         return;
     }
 
-    // we are importing from a previous kuzu version
-    // such as dataset/tmp/0.9.0_prev_exported_dbs/tinysnb
-    // see migration related documentation
+    // We are importing from a previous kuzu version such as 
+    // dataset/tmp/0.9.0_prev_exported_dbs/tinysnb. See migration related documentation.
     std::string query = "IMPORT DATABASE '" + datasetDir + "';";
     std::cout << "Loading database as: " << query << std::endl;
     auto result = connection->query(query);
