@@ -107,8 +107,7 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
         return;
     }
 
-    // We are importing from a previous kuzu version such as
-    // dataset/tmp/0.9.0_prev_exported_dbs/tinysnb. See migration related documentation.
+    // Run tests on datasets exported from a previous Kuzu version. Used to verify that exports and imports across versions work correctly.
     std::string query = "IMPORT DATABASE '" + datasetDir + "';";
     std::cout << "Loading database as: " << query << std::endl;
     auto result = connection->query(query);
