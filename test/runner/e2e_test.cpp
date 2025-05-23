@@ -104,26 +104,29 @@ public:
         std::fstream file;
         std::string newFile;
         std::string currLine;
+        std::string testCaseName;
         file.open(testPath);
 
-        const ::testing::TestInfo* const testInfo =
-            ::testing::UnitTest::GetInstance()->current_test_info();
 
-        while (getline(file, currLine)) {
-            newFile += currLine + '\n';
-            if (currLine == "-CASE " + std::string(testInfo->name())) {
-                break;
-            }
-        }
 
         for (auto& statement : testStatements) {
             while (getline(file, currLine)) {
                 if (!currLine.starts_with("-STATEMENT")) {
                     newFile += currLine + '\n';
+                    if (currLine.starts_with("-CASE"))
+                    {
+                        testCaseName = currLine.substr(std::string("-CASE ").size());
+                    }
                     continue;
                 }
 
                 newFile += currLine + '\n';
+
+                if (testCaseName != statement->testCase)
+                {
+                    continue;
+                }
+
                 std::string stmt = currLine;
                 while (getline(file, currLine)) {
                     if (currLine.starts_with("----")) {
@@ -330,11 +333,11 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
             testing::RegisterTest(testGroup->group.c_str(), testCaseName.c_str(), nullptr, nullptr,
                 __FILE__, __LINE__,
                 [path, datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
-                    testStatements = std::move(testStatements)]() mutable -> DBTest* {
+                    testStatements = std::move(testStatements), testCaseName]() mutable -> DBTest* {
                     decltype(testStatements) testStatementsCopy;
                     for (const auto& testStatement : testStatements) {
                         testStatementsCopy.emplace_back(
-                            std::make_unique<TestStatement>(*testStatement));
+                            std::make_unique<TestStatement>(*testStatement))->testCase = testCaseName;
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
                         checkpointWaitTimeout, connNames, std::move(testStatementsCopy), path);
