@@ -107,7 +107,8 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
         return;
     }
 
-    // Run tests on datasets exported from a previous Kuzu version. Used to verify that exports and imports across versions work correctly.
+    // Run tests on datasets exported from a previous Kuzu version. Used to verify that exports and
+    // imports across versions work correctly.
     std::string query = "IMPORT DATABASE '" + datasetDir + "';";
     std::cout << "Loading database as: " << query << std::endl;
     auto result = connection->query(query);
