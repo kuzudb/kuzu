@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/table/column_reader_writer.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "storage/table/column_chunk.h"
@@ -91,10 +90,9 @@ protected:
     virtual void lookupInternal(const ChunkState& state, common::offset_t nodeOffset,
         common::ValueVector* resultVector, uint32_t posInVector) const;
 
-    void writeValues(ChunkState& state, common::offset_t dstOffset,
-        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
+    void writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
+        const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
         common::offset_t numValues = 1) const;
-
 
     void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
         const std::optional<StorageValue>& min, const std::optional<StorageValue>& max) const;

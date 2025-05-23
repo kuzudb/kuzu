@@ -338,8 +338,8 @@ void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t
 
 void Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* data,
     const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues) const {
-    columnReadWriter->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData,
-        srcOffset, numValues, writeFunc);
+    columnReadWriter->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData, srcOffset,
+        numValues, writeFunc);
 }
 
 // Append to the end of the chunk.
