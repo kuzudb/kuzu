@@ -107,14 +107,11 @@ public:
         std::string testCaseName;
         file.open(testPath);
 
-
-
         for (auto& statement : testStatements) {
             while (getline(file, currLine)) {
                 if (!currLine.starts_with("-STATEMENT")) {
                     newFile += currLine + '\n';
-                    if (currLine.starts_with("-CASE"))
-                    {
+                    if (currLine.starts_with("-CASE")) {
                         testCaseName = currLine.substr(std::string("-CASE ").size());
                     }
                     continue;
@@ -122,8 +119,7 @@ public:
 
                 newFile += currLine + '\n';
 
-                if (testCaseName != statement->testCase)
-                {
+                if (testCaseName != statement->testCase) {
                     continue;
                 }
 
@@ -336,8 +332,9 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
                     testStatements = std::move(testStatements), testCaseName]() mutable -> DBTest* {
                     decltype(testStatements) testStatementsCopy;
                     for (const auto& testStatement : testStatements) {
-                        testStatementsCopy.emplace_back(
-                            std::make_unique<TestStatement>(*testStatement))->testCase = testCaseName;
+                        testStatementsCopy
+                            .emplace_back(std::make_unique<TestStatement>(*testStatement))
+                            ->testCase = testCaseName;
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
                         checkpointWaitTimeout, connNames, std::move(testStatementsCopy), path);
