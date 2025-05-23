@@ -75,8 +75,8 @@ public:
             // Determine the dataset root path. Uses `E2E_OVERRIDE_IMPORT_DIR` if set to test
             // datasets exported from earlier Kuzu versions, otherwise the default path.
             std::string rootDir = TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty() ?
-                    "dataset/" : 
-                    TestHelper::E2E_OVERRIDE_IMPORT_DIR;
+                                      "dataset/" :
+                                      TestHelper::E2E_OVERRIDE_IMPORT_DIR;
             dataset = TestHelper::appendKuzuRootPath(rootDir + dataset);
         }
         }
