@@ -95,7 +95,7 @@ TableCatalogEntry* Catalog::getTableCatalogEntry(const Transaction* transaction,
     return result->ptrCast<TableCatalogEntry>();
 }
 
-template<typename T>
+template<TableCatalogEntryType T>
 std::vector<T*> Catalog::getTableEntries(const Transaction* transaction, bool useInternal,
     CatalogEntryType entryType) const {
     std::vector<T*> result;
@@ -103,14 +103,14 @@ std::vector<T*> Catalog::getTableEntries(const Transaction* transaction, bool us
         if (entry->getType() != entryType) {
             continue;
         }
-        result.push_back(entry->ptrCast<T>());
+        result.push_back(entry->template ptrCast<T>());
     }
     if (useInternal) {
         for (auto& [_, entry] : internalTables->getEntries(transaction)) {
             if (entry->getType() != entryType) {
                 continue;
             }
-            result.push_back(entry->ptrCast<T>());
+            result.push_back(entry->template ptrCast<T>());
         }
     }
     return result;
