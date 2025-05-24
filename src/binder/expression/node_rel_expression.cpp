@@ -1,7 +1,6 @@
 #include "binder/expression/node_rel_expression.h"
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "common/exception/runtime.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

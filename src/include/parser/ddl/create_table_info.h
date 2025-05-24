@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/enums/conflict_action.h"
 #include "common/enums/table_type.h"
 #include "parsed_property_definition.h"
@@ -35,13 +34,13 @@ struct CreateTableInfo {
     DELETE_COPY_DEFAULT_MOVE(CreateTableInfo);
 };
 
-struct ExtraCreateNodeTableInfo : public ExtraCreateTableInfo {
+struct ExtraCreateNodeTableInfo final : ExtraCreateTableInfo {
     std::string pKName;
 
     explicit ExtraCreateNodeTableInfo(std::string pKName) : pKName{std::move(pKName)} {}
 };
 
-struct ExtraCreateRelTableGroupInfo : public ExtraCreateTableInfo {
+struct ExtraCreateRelTableGroupInfo final : ExtraCreateTableInfo {
     std::string relMultiplicity;
     std::vector<std::pair<std::string, std::string>> srcDstTablePairs;
     options_t options;

@@ -1,9 +1,7 @@
 #include "binder/ddl/bound_create_table_info.h"
 
-#include "catalog/catalog.h"
 #include "catalog/catalog_entry/catalog_entry_type.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "main/client_context.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::common;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <shared_mutex>
 
 #include "catalog_entry/catalog_entry.h"

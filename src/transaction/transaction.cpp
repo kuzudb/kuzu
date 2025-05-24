@@ -1,7 +1,6 @@
 #include "transaction/transaction.h"
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
 #include "main/db_config.h"

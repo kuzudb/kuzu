@@ -3,7 +3,6 @@
 #include "binder/expression/scalar_function_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/vector_cast_functions.h"
@@ -83,7 +82,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         bindLambdaExpression(*children[0], *children[1]);
     }
     expression_vector childrenAfterCast;
-    std::unique_ptr<function::FunctionBindData> bindData;
+    std::unique_ptr<FunctionBindData> bindData;
     auto bindInput =
         ScalarBindFuncInput{children, function.get(), context, std::move(optionalArguments)};
     if (functionName == CastAnyFunction::name) {
@@ -126,7 +125,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindRewriteFunctionExpression(
-    const parser::ParsedExpression& expr) {
+    const ParsedExpression& expr) {
     auto& funcExpr = expr.constCast<ParsedFunctionExpression>();
     expression_vector children;
     for (auto i = 0u; i < expr.getNumChildren(); ++i) {
@@ -175,7 +174,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
             std::vector<std::string>{} /* optionalParams */};
         bindData = function.bindFunc(bindInput);
     } else {
-        bindData = std::make_unique<function::FunctionBindData>(LogicalType(function.returnTypeID));
+        bindData = std::make_unique<FunctionBindData>(LogicalType(function.returnTypeID));
     }
     return std::make_shared<AggregateFunctionExpression>(std::move(function), std::move(bindData),
         std::move(children), uniqueExpressionName);

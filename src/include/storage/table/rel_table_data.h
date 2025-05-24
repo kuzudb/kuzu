@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 #include "common/enums/rel_direction.h"
 #include "common/enums/rel_multiplicity.h"
 #include "storage/table/column.h"

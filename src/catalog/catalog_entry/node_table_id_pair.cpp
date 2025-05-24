@@ -17,8 +17,8 @@ void NodeTableIDPair::serialize(Serializer& serializer) const {
 
 NodeTableIDPair NodeTableIDPair::deserialize(Deserializer& deser) {
     std::string debuggingInfo;
-    table_id_t srcTableID;
-    table_id_t dstTableID;
+    table_id_t srcTableID = INVALID_TABLE_ID;
+    table_id_t dstTableID = INVALID_TABLE_ID;
     deser.validateDebuggingInfo(debuggingInfo, "srcTableID");
     deser.deserializeValue(srcTableID);
     deser.validateDebuggingInfo(debuggingInfo, "dstTableID");

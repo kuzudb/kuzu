@@ -5,7 +5,6 @@
 #include "common/enums/conflict_action.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/rel_multiplicity.h"
-#include "common/types/types.h"
 #include "property_definition.h"
 
 namespace kuzu {
@@ -55,7 +54,7 @@ private:
           hasParent{other.hasParent} {}
 };
 
-struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {
+struct KUZU_API BoundExtraCreateTableInfo : BoundExtraCreateCatalogEntryInfo {
     std::vector<PropertyDefinition> propertyDefinitions;
 
     explicit BoundExtraCreateTableInfo(std::vector<PropertyDefinition> propertyDefinitions)

@@ -7,7 +7,6 @@
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/extend_direction_util.h"
 #include "common/exception/binder.h"
