@@ -35,6 +35,7 @@ struct KUZU_API BoundCopyFromInfo {
     std::vector<common::ColumnEvaluateType> columnEvaluateTypes;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
+    // TODO: remove me
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         expression_vector columnExprs, std::vector<common::ColumnEvaluateType> columnEvaluateTypes,
@@ -57,8 +58,8 @@ struct KUZU_API BoundCopyFromInfo {
     expression_vector getSourceColumns() const {
         return source ? source->getColumns() : expression_vector{};
     }
-    common::column_id_t getNumWarningColumns() const {
-        return source ? source->getNumWarningDataColumns() : 0;
+    expression_vector getWarningColumns() const {
+        return source ? source->getWarningColumns() : expression_vector{};
     }
     bool getIgnoreErrorsOption() const { return source ? source->getIgnoreErrorsOption() : false; }
 
