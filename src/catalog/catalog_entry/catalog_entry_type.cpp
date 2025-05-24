@@ -9,8 +9,6 @@ std::string CatalogEntryTypeUtils::toString(CatalogEntryType type) {
     switch (type) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
         return "NODE_TABLE_ENTRY";
-    case CatalogEntryType::REL_TABLE_ENTRY:
-        return "REL_TABLE_ENTRY";
     case CatalogEntryType::REL_GROUP_ENTRY:
         return "REL_GROUP_ENTRY";
     case CatalogEntryType::FOREIGN_TABLE_ENTRY:

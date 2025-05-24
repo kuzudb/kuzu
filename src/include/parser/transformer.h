@@ -197,7 +197,7 @@ private:
     std::unique_ptr<Statement> transformAlterTable(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformCreateNodeTable(
         CypherParser::KU_CreateNodeTableContext& ctx);
-    std::unique_ptr<Statement> transformCreateRelTable(CypherParser::KU_CreateRelTableContext& ctx);
+    std::unique_ptr<Statement> transformCreateRelGroup(CypherParser::KU_CreateRelTableContext& ctx);
     std::unique_ptr<Statement> transformCreateSequence(CypherParser::KU_CreateSequenceContext& ctx);
     std::unique_ptr<Statement> transformCreateType(CypherParser::KU_CreateTypeContext& ctx);
     std::unique_ptr<Statement> transformDrop(CypherParser::KU_DropContext& ctx);

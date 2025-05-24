@@ -11,6 +11,7 @@
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/struct/vector_struct_functions.h"
 #include "main/client_context.h"
+#include <catalog/catalog_entry/rel_group_catalog_entry.h>
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -38,15 +39,12 @@ static void execFunction(const std::vector<std::shared_ptr<ValueVector>>& params
         paramSelVectors[1], result, resultSelVector, dataPtr);
 }
 
-static std::shared_ptr<binder::Expression> getLabelsAsLiteral(main::ClientContext* context,
-    std::vector<TableCatalogEntry*> entries, binder::ExpressionBinder* expressionBinder) {
-    std::unordered_map<table_id_t, std::string> map;
+static std::shared_ptr<Expression> getLabelsAsLiteral(
+    std::unordered_map<table_id_t, std::string> map, ExpressionBinder* expressionBinder) {
     table_id_t maxTableID = 0;
-    for (auto& entry : entries) {
-        map.insert({entry->getTableID(),
-            entry->getLabel(context->getCatalog(), context->getTransaction())});
-        if (entry->getTableID() > maxTableID) {
-            maxTableID = entry->getTableID();
+    for (auto [id, name] : map) {
+        if (id > maxTableID) {
+            maxTableID = id;
         }
     }
     std::vector<std::unique_ptr<Value>> labels;
@@ -62,11 +60,31 @@ static std::shared_ptr<binder::Expression> getLabelsAsLiteral(main::ClientContex
     return expressionBinder->createLiteralExpression(labelsValue);
 }
 
+static std::unordered_map<table_id_t, std::string> getNodeTableIDToLabel(
+    std::vector<TableCatalogEntry*> entries) {
+    std::unordered_map<table_id_t, std::string> map;
+    for (auto& entry : entries) {
+        map.insert({entry->getTableID(), entry->getName()});
+    }
+    return map;
+}
+
+static std::unordered_map<table_id_t, std::string> getRelTableIDToLabel(
+    std::vector<TableCatalogEntry*> entries) {
+    std::unordered_map<table_id_t, std::string> map;
+    for (auto& entry : entries) {
+        auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
+        for (auto& relEntryInfo : relGroupEntry.getRelEntryInfos()) {
+            map.insert({relEntryInfo.oid, entry->getName()});
+        }
+    }
+    return map;
+}
+
 std::shared_ptr<Expression> LabelFunction::rewriteFunc(const RewriteFunctionBindInput& input) {
     KU_ASSERT(input.arguments.size() == 1);
     auto argument = input.arguments[0].get();
     auto expressionBinder = input.expressionBinder;
-    auto context = input.context;
     expression_vector children;
     if (argument->expressionType == ExpressionType::VARIABLE) {
         children.push_back(input.arguments[0]);
@@ -82,13 +100,13 @@ std::shared_ptr<Expression> LabelFunction::rewriteFunc(const RewriteFunctionBind
                 return expressionBinder->createLiteralExpression("");
             }
             if (!node.isMultiLabeled()) {
-                auto label = node.getSingleEntry()->getLabel(context->getCatalog(),
-                    context->getTransaction());
+                auto label = node.getEntry(0)->getName();
                 return expressionBinder->createLiteralExpression(label);
             }
         }
         children.push_back(node.getInternalID());
-        children.push_back(getLabelsAsLiteral(context, node.getEntries(), expressionBinder));
+        auto map = getNodeTableIDToLabel(node.getEntries());
+        children.push_back(getLabelsAsLiteral(map, expressionBinder));
     } else if (ExpressionUtil::isRelPattern(*argument)) {
         auto& rel = argument->constCast<RelExpression>();
         if (!disableLiteralRewrite) {
@@ -96,13 +114,13 @@ std::shared_ptr<Expression> LabelFunction::rewriteFunc(const RewriteFunctionBind
                 return expressionBinder->createLiteralExpression("");
             }
             if (!rel.isMultiLabeled()) {
-                auto label = rel.getSingleEntry()->getLabel(context->getCatalog(),
-                    context->getTransaction());
+                auto label = rel.getEntry(0)->getName();
                 return expressionBinder->createLiteralExpression(label);
             }
         }
         children.push_back(rel.getInternalIDProperty());
-        children.push_back(getLabelsAsLiteral(context, rel.getEntries(), expressionBinder));
+        auto map = getRelTableIDToLabel(rel.getEntries());
+        children.push_back(getLabelsAsLiteral(map, expressionBinder));
     }
     KU_ASSERT(children.size() == 2);
     auto function = std::make_unique<ScalarFunction>(LabelFunction::name,

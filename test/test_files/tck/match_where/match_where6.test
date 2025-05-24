@@ -15,9 +15,9 @@
 -STATEMENT CREATE REL TABLE T(FROM A TO B, FROM A TO C, FROM A TO D);
 ---- ok
 -STATEMENT CREATE (a:A {name: 'A'}), (b:B {name: 'B'}), (c:C {name: 'C'}), (d:D {name: 'C'})
-           CREATE (a)-[:T_A_B]->(b),
-                  (a)-[:T_A_C]->(c),
-                  (a)-[:T_A_D]->(d);
+           CREATE (a)-[:T]->(b),
+                  (a)-[:T]->(c),
+                  (a)-[:T]->(d);
 ---- ok
 -STATEMENT MATCH (a)-->(b)
            WHERE LABEL(b) = 'B'
@@ -43,9 +43,9 @@ A
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (n:`Single`)
@@ -71,9 +71,9 @@ A
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (n:`Single`)

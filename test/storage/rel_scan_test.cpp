@@ -3,7 +3,6 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/types/date_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
@@ -33,7 +32,7 @@ public:
             nodeEntries.push_back(entry);
         }
         std::vector<catalog::TableCatalogEntry*> relEntries;
-        for (auto& entry : catalog->getRelTableEntries(transaction)) {
+        for (auto& entry : catalog->getRelGroupEntries(transaction)) {
             relEntries.push_back(entry);
         }
         auto entry = graph::GraphEntry(nodeEntries, relEntries);

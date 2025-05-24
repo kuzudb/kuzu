@@ -27,16 +27,18 @@ public:
     std::string getVariableName() const { return variableName; }
 
     bool isEmpty() const { return entries.empty(); }
-    bool isMultiLabeled() const { return entries.size() > 1; }
-    common::idx_t getNumEntries() const { return entries.size(); }
+    virtual bool isMultiLabeled() const = 0;
+
     common::table_id_vector_t getTableIDs() const;
     common::table_id_set_t getTableIDsSet() const;
+
+    common::idx_t getNumEntries() const { return entries.size(); }
     const std::vector<catalog::TableCatalogEntry*>& getEntries() const { return entries; }
+    catalog::TableCatalogEntry* getEntry(common::idx_t idx) const { return entries[idx]; }
     void setEntries(std::vector<catalog::TableCatalogEntry*> entries_) {
         entries = std::move(entries_);
     }
     void addEntries(const std::vector<catalog::TableCatalogEntry*>& entries_);
-    catalog::TableCatalogEntry* getSingleEntry() const;
 
     void addPropertyExpression(const std::string& propertyName,
         std::unique_ptr<Expression> property);

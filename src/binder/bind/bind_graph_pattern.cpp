@@ -6,7 +6,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/enums/rel_direction.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/utils.h"
@@ -215,7 +215,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
         throw BinderException("Bind relationship " + parsedName +
                               " to relationship with same name is not supported.");
     }
-    auto entries = bindRelTableEntries(relPattern.getTableNames());
+    auto entries = bindRelGroupEntries(relPattern.getTableNames());
     // bind src & dst node
     RelDirectionType directionType = RelDirectionType::UNKNOWN;
     std::shared_ptr<NodeExpression> srcNode;
@@ -345,25 +345,29 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
-    table_catalog_entry_set_t entrySet;
+    table_catalog_entry_set_t nodeEntrySet;
     for (auto entry : entries) {
-        auto& relTableEntry = entry->constCast<RelTableCatalogEntry>();
-        entrySet.insert(catalog->getTableCatalogEntry(transaction, relTableEntry.getSrcTableID()));
-        entrySet.insert(catalog->getTableCatalogEntry(transaction, relTableEntry.getDstTableID()));
+        auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
+        for (auto id : relGroupEntry.getSrcNodeTableIDSet()) {
+            nodeEntrySet.insert(catalog->getTableCatalogEntry(transaction, id));
+        }
+        for (auto id : relGroupEntry.getDstNodeTableIDSet()) {
+            nodeEntrySet.insert(catalog->getTableCatalogEntry(transaction, id));
+        }
     }
     auto recursivePatternInfo = relPattern.getRecursiveInfo();
     auto prevScope = saveScope();
     scope.clear();
     // Bind intermediate node.
     auto node = createQueryNode(recursivePatternInfo->nodeName,
-        std::vector<TableCatalogEntry*>{entrySet.begin(), entrySet.end()});
+        std::vector<TableCatalogEntry*>{nodeEntrySet.begin(), nodeEntrySet.end()});
     addToScope(node->toString(), node);
     auto nodeFields = getBaseNodeStructFields();
     auto nodeProjectionList = bindRecursivePatternNodeProjectionList(*recursivePatternInfo, *node);
     bindProjectionListAsStructField(nodeProjectionList, nodeFields);
     node->setExtraTypeInfo(std::make_unique<StructTypeInfo>(std::move(nodeFields)));
     auto nodeCopy = createQueryNode(recursivePatternInfo->nodeName,
-        std::vector<TableCatalogEntry*>{entrySet.begin(), entrySet.end()});
+        std::vector<TableCatalogEntry*>{nodeEntrySet.begin(), nodeEntrySet.end()});
     // Bind intermediate rel
     auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, entries,
         nullptr /* srcNode */, nullptr /* dstNode */, directionType);
@@ -648,7 +652,7 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
     auto catalog = clientContext->getCatalog();
     auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
-    if (tableNames.empty()) {
+    if (tableNames.empty()) { // Rewrite as all node tables in database.
         for (auto entry : catalog->getNodeTableEntries(transaction, useInternal)) {
             entrySet.insert(entry);
         }
@@ -675,27 +679,21 @@ TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
     return catalog->getTableCatalogEntry(transaction, name, useInternal);
 }
 
-std::vector<TableCatalogEntry*> Binder::bindRelTableEntries(
+std::vector<TableCatalogEntry*> Binder::bindRelGroupEntries(
     const std::vector<std::string>& tableNames) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
     auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
-    if (tableNames.empty()) {
-        for (auto& entry : catalog->getRelTableEntries(transaction, useInternal)) {
+    if (tableNames.empty()) { // Rewrite as all rel groups in database.
+        for (auto entry : catalog->getRelGroupEntries(transaction, useInternal)) {
             entrySet.insert(entry);
         }
     } else {
         for (auto& name : tableNames) {
-            if (catalog->containsRelGroup(transaction, name)) {
-                auto groupEntry = catalog->getRelGroupEntry(transaction, name);
-                for (auto& id : groupEntry->getRelTableIDs()) {
-                    auto relEntry = catalog->getTableCatalogEntry(transaction, id);
-                    entrySet.insert(relEntry);
-                }
-            } else if (catalog->containsTable(transaction, name)) {
+            if (catalog->containsTable(transaction, name)) {
                 auto entry = catalog->getTableCatalogEntry(transaction, name, useInternal);
-                if (entry->getType() != CatalogEntryType::REL_TABLE_ENTRY) {
+                if (entry->getType() != CatalogEntryType::REL_GROUP_ENTRY) {
                     throw BinderException(stringFormat(
                         "Cannot bind {} as a relationship pattern label.", entry->getName()));
                 }

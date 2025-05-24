@@ -1,7 +1,6 @@
 #include "binder/expression/node_rel_expression.h"
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "common/exception/runtime.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -32,16 +31,6 @@ void NodeOrRelExpression::addEntries(const std::vector<TableCatalogEntry*>& entr
             entries.push_back(entry);
         }
     }
-}
-
-TableCatalogEntry* NodeOrRelExpression::getSingleEntry() const {
-    // LCOV_EXCL_START
-    if (entries.empty()) {
-        throw RuntimeException(
-            "Trying to access table id in an empty node. This should never happen");
-    }
-    // LCOV_EXCL_STOP
-    return entries[0];
 }
 
 void NodeOrRelExpression::addPropertyExpression(const std::string& propertyName,

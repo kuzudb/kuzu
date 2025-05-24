@@ -1,10 +1,10 @@
 #pragma once
 
 #include "catalog/catalog_entry/catalog_entry_type.h"
+#include "catalog/catalog_entry/node_table_id_pair.h"
 #include "common/enums/conflict_action.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/rel_multiplicity.h"
-#include "common/types/types.h"
 #include "property_definition.h"
 
 namespace kuzu {
@@ -54,7 +54,7 @@ private:
           hasParent{other.hasParent} {}
 };
 
-struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {
+struct KUZU_API BoundExtraCreateTableInfo : BoundExtraCreateCatalogEntryInfo {
     std::vector<PropertyDefinition> propertyDefinitions;
 
     explicit BoundExtraCreateTableInfo(std::vector<PropertyDefinition> propertyDefinitions)
@@ -85,33 +85,23 @@ struct BoundExtraCreateNodeTableInfo final : BoundExtraCreateTableInfo {
     }
 };
 
-struct BoundExtraCreateRelTableInfo final : BoundExtraCreateTableInfo {
+struct BoundExtraCreateRelTableGroupInfo final : BoundExtraCreateTableInfo {
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
     common::ExtendDirection storageDirection;
-    common::table_id_t srcTableID;
-    common::table_id_t dstTableID;
+    std::vector<catalog::NodeTableIDPair> nodePairs;
 
-    BoundExtraCreateRelTableInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
-        std::vector<PropertyDefinition> definitions);
-    BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
-        common::RelMultiplicity dstMultiplicity, common::ExtendDirection storageDirection,
-        common::table_id_t srcTableID, common::table_id_t dstTableID,
-        std::vector<PropertyDefinition> definitions);
-    BoundExtraCreateRelTableInfo(const BoundExtraCreateRelTableInfo& other);
+    explicit BoundExtraCreateRelTableGroupInfo(std::vector<PropertyDefinition> definitions,
+        common::RelMultiplicity srcMultiplicity, common::RelMultiplicity dstMultiplicity,
+        common::ExtendDirection storageDirection, std::vector<catalog::NodeTableIDPair> nodePairs)
+        : BoundExtraCreateTableInfo{std::move(definitions)}, srcMultiplicity{srcMultiplicity},
+          dstMultiplicity{dstMultiplicity}, storageDirection{storageDirection},
+          nodePairs{std::move(nodePairs)} {}
 
-    std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
-        return std::make_unique<BoundExtraCreateRelTableInfo>(*this);
-    }
-};
-
-struct BoundExtraCreateRelTableGroupInfo final : BoundExtraCreateCatalogEntryInfo {
-    std::vector<BoundCreateTableInfo> infos;
-
-    explicit BoundExtraCreateRelTableGroupInfo(std::vector<BoundCreateTableInfo> infos)
-        : infos{std::move(infos)} {}
     BoundExtraCreateRelTableGroupInfo(const BoundExtraCreateRelTableGroupInfo& other)
-        : infos{copyVector(other.infos)} {}
+        : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)},
+          srcMultiplicity{other.srcMultiplicity}, dstMultiplicity{other.dstMultiplicity},
+          storageDirection{other.storageDirection}, nodePairs{other.nodePairs} {}
 
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateRelTableGroupInfo>(*this);

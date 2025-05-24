@@ -4,9 +4,9 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "main/client_context.h"
+#include <common/exception/binder.h>
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -14,85 +14,102 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace catalog {
 
-std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::alter(transaction_t timestamp,
-    const binder::BoundAlterInfo& alterInfo) const {
-    std::unique_ptr<RelGroupCatalogEntry> newEntry;
-    switch (alterInfo.alterType) {
-    case AlterType::RENAME: {
-        newEntry = copy();
-        auto& renameTableInfo =
-            *alterInfo.extraInfo->constPtrCast<binder::BoundExtraRenameTableInfo>();
-        newEntry->rename(renameTableInfo.newName);
-        newEntry->setTimestamp(timestamp);
-        newEntry->setOID(oid);
-    } break;
-    case AlterType::COMMENT: {
-        newEntry = copy();
-        auto& commentInfo = *alterInfo.extraInfo->constPtrCast<binder::BoundExtraCommentInfo>();
-        newEntry->setComment(commentInfo.comment);
-        newEntry->setTimestamp(timestamp);
-        newEntry->setOID(oid);
-    } break;
-    default: {
-        // the only alter types needed to be handled in the rel group are rename and comment.
-        // the rest is handled in the child member tables.
-    }
-    }
-    return newEntry;
+void RelTableCatalogInfo::serialize(Serializer& ser) const {
+    ser.writeDebuggingInfo("nodePair");
+    ser.serializeValue(nodePair);
+    ser.writeDebuggingInfo("oid");
+    ser.serializeValue(oid);
 }
 
-bool RelGroupCatalogEntry::isParent(table_id_t tableID) const {
-    const auto it = find_if(relTableIDs.begin(), relTableIDs.end(),
-        [&](table_id_t relTableID) { return relTableID == tableID; });
-    return it != relTableIDs.end();
+RelTableCatalogInfo RelTableCatalogInfo::deserialize(Deserializer& deser) {
+    std::string debuggingInfo;
+    oid_t oid = INVALID_OID;
+    deser.validateDebuggingInfo(debuggingInfo, "nodePair");
+    auto nodePair = NodeTableIDPair::deserialize(deser);
+    deser.validateDebuggingInfo(debuggingInfo, "oid");
+    deser.deserializeValue(oid);
+    return RelTableCatalogInfo{nodePair, oid};
+}
+
+bool RelGroupCatalogEntry::isParent(table_id_t tableID) {
+    for (auto& info : relTableInfos) {
+        if (info.nodePair.srcTableID == tableID || info.nodePair.dstTableID == tableID) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const RelTableCatalogInfo& RelGroupCatalogEntry::getSingleRelEntryInfo() const {
+    KU_ASSERT(relTableInfos.size() == 1);
+    return relTableInfos[0];
+}
+
+const RelTableCatalogInfo* RelGroupCatalogEntry::getRelEntryInfo(table_id_t srcTableID,
+    table_id_t dstTableID) const {
+    for (auto& info : relTableInfos) {
+        if (info.nodePair.srcTableID == srcTableID && info.nodePair.dstTableID == dstTableID) {
+            return &info;
+        }
+    }
+    return nullptr;
+}
+
+std::unordered_set<table_id_t> RelGroupCatalogEntry::getSrcNodeTableIDSet() const {
+    std::unordered_set<table_id_t> result;
+    for (auto& info : relTableInfos) {
+        result.insert(info.nodePair.srcTableID);
+    }
+    return result;
+}
+
+std::unordered_set<table_id_t> RelGroupCatalogEntry::getDstNodeTableIDSet() const {
+    std::unordered_set<table_id_t> result;
+    for (auto& info : relTableInfos) {
+        result.insert(info.nodePair.dstTableID);
+    }
+    return result;
 }
 
 void RelGroupCatalogEntry::serialize(Serializer& serializer) const {
-    CatalogEntry::serialize(serializer);
-    serializer.writeDebuggingInfo("relTableIDs");
-    serializer.serializeVector(relTableIDs);
-    serializer.writeDebuggingInfo("comment");
-    serializer.serializeValue(comment);
+    TableCatalogEntry::serialize(serializer);
+    serializer.writeDebuggingInfo("srcMultiplicity");
+    serializer.serializeValue(srcMultiplicity);
+    serializer.writeDebuggingInfo("dstMultiplicity");
+    serializer.serializeValue(dstMultiplicity);
+    serializer.writeDebuggingInfo("storageDirection");
+    serializer.serializeValue(storageDirection);
+    serializer.writeDebuggingInfo("relTableInfos");
+    serializer.serializeVector(relTableInfos);
 }
 
 std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
     Deserializer& deserializer) {
     std::string debuggingInfo;
-    std::vector<table_id_t> relTableIDs;
-    std::string comment;
-    deserializer.validateDebuggingInfo(debuggingInfo, "relTableIDs");
-    deserializer.deserializeVector(relTableIDs);
-    deserializer.validateDebuggingInfo(debuggingInfo, "comment");
-    deserializer.deserializeValue(comment);
+    auto srcMultiplicity = RelMultiplicity::MANY;
+    auto dstMultiplicity = RelMultiplicity::MANY;
+    auto storageDirection = ExtendDirection::BOTH;
+    std::vector<RelTableCatalogInfo> relTableInfos;
+    deserializer.validateDebuggingInfo(debuggingInfo, "srcMultiplicity");
+    deserializer.deserializeValue(srcMultiplicity);
+    deserializer.validateDebuggingInfo(debuggingInfo, "dstMultiplicity");
+    deserializer.deserializeValue(dstMultiplicity);
+    deserializer.validateDebuggingInfo(debuggingInfo, "storageDirection");
+    deserializer.deserializeValue(storageDirection);
+    deserializer.validateDebuggingInfo(debuggingInfo, "relTableInfos");
+    deserializer.deserializeVector(relTableInfos);
     auto relGroupEntry = std::make_unique<RelGroupCatalogEntry>();
-    relGroupEntry->relTableIDs = std::move(relTableIDs);
-    relGroupEntry->comment = comment;
+    relGroupEntry->srcMultiplicity = srcMultiplicity;
+    relGroupEntry->dstMultiplicity = dstMultiplicity;
+    relGroupEntry->storageDirection = storageDirection;
+    relGroupEntry->relTableInfos = relTableInfos;
     return relGroupEntry;
 }
 
-binder::BoundCreateTableInfo RelGroupCatalogEntry::getBoundCreateTableInfo(
-    transaction::Transaction* transaction, const Catalog* catalog, bool isInternal) const {
-    std::vector<binder::BoundCreateTableInfo> infos;
-    for (auto relTableID : relTableIDs) {
-        auto relEntry = catalog->getTableCatalogEntry(transaction, relTableID);
-        KU_ASSERT(relEntry != nullptr);
-        auto boundInfo = relEntry->getBoundCreateTableInfo(transaction, false);
-        boundInfo.hasParent = true;
-        infos.push_back(std::move(boundInfo));
-    }
-    auto extraInfo = std::make_unique<binder::BoundExtraCreateRelTableGroupInfo>(std::move(infos));
-    return binder::BoundCreateTableInfo(type, name, ConflictAction::ON_CONFLICT_THROW,
-        std::move(extraInfo), isInternal);
-}
-
-static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
+static std::string getFromToStr(const NodeTableIDPair& pair, const Catalog* catalog,
     const transaction::Transaction* transaction) {
-    auto& entry =
-        catalog->getTableCatalogEntry(transaction, tableID)->constCast<RelTableCatalogEntry>();
-    auto srcTableName =
-        catalog->getTableCatalogEntry(transaction, entry.getSrcTableID())->getName();
-    auto dstTableName =
-        catalog->getTableCatalogEntry(transaction, entry.getDstTableID())->getName();
+    auto srcTableName = catalog->getTableCatalogEntry(transaction, pair.srcTableID)->getName();
+    auto dstTableName = catalog->getTableCatalogEntry(transaction, pair.dstTableID)->getName();
     return stringFormat("FROM `{}` TO `{}`", srcTableName, dstTableName);
 }
 
@@ -102,15 +119,52 @@ std::string RelGroupCatalogEntry::toCypher(const ToCypherInfo& info) const {
     auto transaction = relGroupInfo.context->getTransaction();
     std::stringstream ss;
     ss << stringFormat("CREATE REL TABLE `{}` (", getName());
-    KU_ASSERT(!relTableIDs.empty());
-    ss << getFromToStr(relTableIDs[0], catalog, transaction);
-    for (auto i = 1u; i < relTableIDs.size(); ++i) {
-        ss << stringFormat(", {}", getFromToStr(relTableIDs[i], catalog, transaction));
+    KU_ASSERT(!relTableInfos.empty());
+    ss << getFromToStr(relTableInfos[0].nodePair, catalog, transaction);
+    for (auto i = 1u; i < relTableInfos.size(); ++i) {
+        ss << stringFormat(", {}", getFromToStr(relTableInfos[i].nodePair, catalog, transaction));
     }
-    auto childEntry =
-        catalog->getTableCatalogEntry(transaction, relTableIDs[0])->ptrCast<RelTableCatalogEntry>();
-    ss << ", " << childEntry->propertiesToCypher() << childEntry->getMultiplicityStr() << ");";
+    ss << ", " << propertyCollection.toCypher() << RelMultiplicityUtils::toString(srcMultiplicity)
+       << "_" << RelMultiplicityUtils::toString(dstMultiplicity) << ");";
     return ss.str();
+}
+
+std::vector<RelDataDirection> RelGroupCatalogEntry::getRelDataDirections() const {
+    switch (storageDirection) {
+    case ExtendDirection::FWD: {
+        return {RelDataDirection::FWD};
+    }
+    case ExtendDirection::BWD: {
+        return {RelDataDirection::BWD};
+    }
+    case ExtendDirection::BOTH: {
+        return {RelDataDirection::FWD, RelDataDirection::BWD};
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
+std::unique_ptr<TableCatalogEntry> RelGroupCatalogEntry::copy() const {
+    auto other = std::make_unique<RelGroupCatalogEntry>();
+    other->srcMultiplicity = srcMultiplicity;
+    other->dstMultiplicity = dstMultiplicity;
+    other->storageDirection = storageDirection;
+    other->relTableInfos = relTableInfos;
+    other->copyFrom(*this);
+    return other;
+}
+
+std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo>
+RelGroupCatalogEntry::getBoundExtraCreateInfo(transaction::Transaction*) const {
+    std::vector<NodeTableIDPair> nodePairs;
+    for (auto& relTableInfo : relTableInfos) {
+        nodePairs.push_back(relTableInfo.nodePair);
+    }
+    return std::make_unique<binder::BoundExtraCreateRelTableGroupInfo>(
+        copyVector(propertyCollection.getDefinitions()), srcMultiplicity, dstMultiplicity,
+        storageDirection, std::move(nodePairs));
 }
 
 } // namespace catalog

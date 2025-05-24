@@ -52,7 +52,7 @@ Guelph|0
 ---- 3
 (0:0)-{_LABEL: Follows, _ID: 2:0, since: 1999}->(0:1)
 (0:0)-{_LABEL: Follows, _ID: 2:1, since: 1999}->(0:2)
-(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)
+(0:0)-{_LABEL: LivesIn, _ID: 4:0}->(1:0)
 -LOG CheckRelSince
 -STATEMENT MATCH (u0)-[f:Follows]->() WHERE u0.name='Adam' RETURN f.since
 ---- 2

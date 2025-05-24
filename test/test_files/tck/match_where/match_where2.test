@@ -16,12 +16,12 @@
 -STATEMENT CREATE REL TABLE T(FROM A TO B, FROM A TO C, FROM A TO D, FROM B TO C, FROM B TO D, FROM C TO D);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B {idx: 1}), (c:C {idx: 2}), (d:D)
-           CREATE (a)-[:T_A_B]->(b),
-                  (a)-[:T_A_C]->(c),
-                  (a)-[:T_A_D]->(d),
-                  (b)-[:T_B_C]->(c),
-                  (b)-[:T_B_D]->(d),
-                  (c)-[:T_C_D]->(d);
+           CREATE (a)-[:T]->(b),
+                  (a)-[:T]->(c),
+                  (a)-[:T]->(d),
+                  (b)-[:T]->(c),
+                  (b)-[:T]->(d),
+                  (c)-[:T]->(d);
 ---- ok
 -STATEMENT MATCH (a)--(b)--(c)--(d)--(a), (b)--(d)
            WHERE a.idx = 1

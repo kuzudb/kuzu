@@ -51,10 +51,10 @@
                   (b:B {animal: 'cow'}),
                   (c:C {animal: 'monkey'}),
                   (d:D {animal: 'cow'}),
-                  (a)-[:KNOWS_A_B]->(b),
-                  (a)-[:KNOWS_A_C]->(c),
-                  (d)-[:KNOWS_D_B]->(b),
-                  (d)-[:KNOWS_D_C]->(c);
+                  (a)-[:KNOWS]->(b),
+                  (a)-[:KNOWS]->(c),
+                  (d)-[:KNOWS]->(b),
+                  (d)-[:KNOWS]->(c);
 ---- ok
 -STATEMENT MATCH (n)-[rel]->(x)
            WHERE n.animal = x.animal

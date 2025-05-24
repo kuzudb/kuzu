@@ -189,20 +189,20 @@ Binder exception: rs has data type REL[] but RECURSIVE_REL was expected.
                   (n0101:D {name: 'n0101'}),
                   (n0110:D {name: 'n0110'}),
                   (n0111:D {name: 'n0111'})
-           CREATE (n0)-[:LIKES_A_B]->(n00),
-                  (n0)-[:LIKES_A_B]->(n01),
-                  (n00)-[:LIKES_B_C]->(n000),
-                  (n00)-[:LIKES_B_C]->(n001),
-                  (n01)-[:LIKES_B_C]->(n010),
-                  (n01)-[:LIKES_B_C]->(n011),
-                  (n000)-[:LIKES_C_D]->(n0000),
-                  (n000)-[:LIKES_C_D]->(n0001),
-                  (n001)-[:LIKES_C_D]->(n0010),
-                  (n001)-[:LIKES_C_D]->(n0011),
-                  (n010)-[:LIKES_C_D]->(n0100),
-                  (n010)-[:LIKES_C_D]->(n0101),
-                  (n011)-[:LIKES_C_D]->(n0110),
-                  (n011)-[:LIKES_C_D]->(n0111);
+           CREATE (n0)-[:LIKES]->(n00),
+                  (n0)-[:LIKES]->(n01),
+                  (n00)-[:LIKES]->(n000),
+                  (n00)-[:LIKES]->(n001),
+                  (n01)-[:LIKES]->(n010),
+                  (n01)-[:LIKES]->(n011),
+                  (n000)-[:LIKES]->(n0000),
+                  (n000)-[:LIKES]->(n0001),
+                  (n001)-[:LIKES]->(n0010),
+                  (n001)-[:LIKES]->(n0011),
+                  (n010)-[:LIKES]->(n0100),
+                  (n010)-[:LIKES]->(n0101),
+                  (n011)-[:LIKES]->(n0110),
+                  (n011)-[:LIKES]->(n0111);
 ---- ok
 -STATEMENT  MATCH (a:A)
             MATCH (a)-[:LIKES..]->(c)

@@ -13,10 +13,7 @@ class MemoryManager;
 
 class LocalNodeTable final : public LocalTable {
 public:
-    static std::vector<common::LogicalType> getNodeTableColumnTypes(
-        const catalog::TableCatalogEntry& table);
-
-    LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, Table& table);
+    LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, const Table& table);
     DELETE_COPY_AND_MOVE(LocalNodeTable);
 
     bool insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
@@ -45,6 +42,9 @@ public:
         common::sel_t pos, common::offset_t& result) const;
 
     TableStats getStats() const { return nodeGroups.getStats(); }
+
+    static std::vector<common::LogicalType> getNodeTableColumnTypes(
+        const catalog::TableCatalogEntry& table);
 
 private:
     void initLocalHashIndex();

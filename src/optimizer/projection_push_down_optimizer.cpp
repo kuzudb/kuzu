@@ -288,7 +288,7 @@ void ProjectionPushDownOptimizer::visitSetInfo(const binder::BoundSetPropertyInf
 }
 
 void ProjectionPushDownOptimizer::visitInsertInfo(const LogicalInsertInfo& info) {
-    if (info.tableType == common::TableType::REL) {
+    if (info.tableType == TableType::REL) {
         auto& rel = info.pattern->constCast<RelExpression>();
         collectExpressionsInUse(rel.getSrcNode()->getInternalID());
         collectExpressionsInUse(rel.getDstNode()->getInternalID());

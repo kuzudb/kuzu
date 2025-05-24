@@ -49,17 +49,17 @@
 -CASE DeleteRelMultiLabel2
 -STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 RETURN a.ID, b.ID, id(e)
 ---- 6
-0|1|4:0
+0|1|5:0
 0|2|3:0
-0|2|6:0
-0|2|7:0
+0|2|11:0
+0|2|9:0
 0|3|3:1
 0|5|3:2
 -STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 AND b.ID = 2 DELETE e
 ---- ok
 -STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 RETURN a.ID, b.ID, id(e)
 ---- 3
-0|1|4:0
+0|1|5:0
 0|3|3:1
 0|5|3:2
 

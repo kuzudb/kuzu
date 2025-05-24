@@ -29,8 +29,11 @@ struct QueryFTSBindData final : function::GDSBindData {
         const catalog::IndexCatalogEntry& entry, QueryFTSOptionalParams optionalParams)
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(docs)},
           query{std::move(query)}, entry{entry}, optionalParams{std::move(optionalParams)},
-          outputTableID{
-              nodeOutput->constCast<binder::NodeExpression>().getSingleEntry()->getTableID()} {}
+          outputTableID{nodeOutput->constCast<binder::NodeExpression>().getTableIDs()[0]} {
+        auto& nodeExpr = nodeOutput->constCast<binder::NodeExpression>();
+        KU_ASSERT(nodeExpr.getNumEntries() == 1);
+        outputTableID = nodeExpr.getEntry(0)->getTableID();
+    }
     QueryFTSBindData(const QueryFTSBindData& other)
         : GDSBindData{other}, query{other.query}, entry{other.entry},
           optionalParams{other.optionalParams}, outputTableID{other.outputTableID} {}
@@ -39,7 +42,7 @@ struct QueryFTSBindData final : function::GDSBindData {
 
     QueryFTSConfig getConfig() const { return optionalParams.getConfig(); }
 
-    std::unique_ptr<function::TableFuncBindData> copy() const override {
+    std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<QueryFTSBindData>(*this);
     }
 };

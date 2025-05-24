@@ -313,8 +313,8 @@ n0111
 -STATEMENT  MATCH (d:D)
             CREATE (e1:E {name: concat(d.name, '0')}),
                    (e2:E {name: concat(d.name, '1')})
-            CREATE (d)-[:LIKES_D_E]->(e1),
-                   (d)-[:LIKES_D_E]->(e2);
+            CREATE (d)-[:LIKES]->(e1),
+                   (d)-[:LIKES]->(e2);
 ---- ok
 -STATEMENT MATCH (a:A)
            MATCH (a)-[:LIKES]->()-[:LIKES*3]->(c)
@@ -342,13 +342,13 @@ n01111
 -SKIP_WASM
 -STATEMENT MATCH (a:A)-[r]->(b:B)
            DELETE r
-           CREATE (b)-[:LIKES_B_A]->(a);
+           CREATE (b)-[:LIKES]->(a);
 ---- ok
 -STATEMENT MATCH (d:D)
            CREATE (e1:E {name: concat(d.name, '0')}),
                   (e2:E {name: concat(d.name, '1')})
-           CREATE (d)-[:LIKES_D_E]->(e1),
-                  (d)-[:LIKES_D_E]->(e2);
+           CREATE (d)-[:LIKES]->(e1),
+                  (d)-[:LIKES]->(e2);
 ---- ok
 -STATEMENT MATCH (a:A)
            MATCH (a)<-[:LIKES]-()-[:LIKES*3]->(c)
@@ -382,8 +382,8 @@ n01111
 -STATEMENT MATCH (d:D)
            CREATE (e1:E {name: concat(d.name, '0')}),
                   (e2:E {name: concat(d.name, '1')})
-           CREATE (d)-[:LIKES_D_E]->(e1),
-                  (d)-[:LIKES_D_E]->(e2);
+           CREATE (d)-[:LIKES]->(e1),
+                  (d)-[:LIKES]->(e2);
 ---- ok
 -STATEMENT MATCH (a:A)
            MATCH (a)-[:LIKES]->()-[:LIKES*3]-(c)
@@ -412,8 +412,8 @@ n01111
 -STATEMENT  MATCH (d:D)
             CREATE (e1:E {name: concat(d.name, '0')}),
                    (e2:E {name: concat(d.name, '1')})
-            CREATE (d)-[:LIKES_D_E]->(e1),
-                   (d)-[:LIKES_D_E]->(e2);
+            CREATE (d)-[:LIKES]->(e1),
+                   (d)-[:LIKES]->(e2);
 ---- ok
 -STATEMENT MATCH (a:A)
            MATCH (p)-[:LIKES*1]->()-[:LIKES]->()-[r:LIKES*2]->(c)
@@ -442,8 +442,8 @@ n01111
 -STATEMENT  MATCH (d:D)
             CREATE (e1:E {name: concat(d.name, '0')}),
                    (e2:E {name: concat(d.name, '1')})
-            CREATE (d)-[:LIKES_D_E]->(e1),
-                   (d)-[:LIKES_D_E]->(e2);
+            CREATE (d)-[:LIKES]->(e1),
+                   (d)-[:LIKES]->(e2);
 ---- ok
 -STATEMENT MATCH (a:A)
            MATCH (p)-[:LIKES]->()-[:LIKES*2]->()-[r:LIKES]->(c)

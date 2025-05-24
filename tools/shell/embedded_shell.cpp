@@ -10,7 +10,6 @@
 #endif
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <csignal>
 #include <iomanip>
 #include <regex>
@@ -18,14 +17,11 @@
 
 #include "binder/binder.h"
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/parser.h"
 #include "keywords.h"
 #include "parser/parser.h"
 #include "printer/json_printer.h"
 #include "printer/printer_factory.h"
-#include "processor/result/factorized_table.h"
 #include "transaction/transaction.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
@@ -117,7 +113,7 @@ void EmbeddedShell::updateTableNames() {
              false /*useInternal*/)) {
         if (tableEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
             nodeTableNames.push_back(tableEntry->getName());
-        } else if (tableEntry->getType() == catalog::CatalogEntryType::REL_TABLE_ENTRY) {
+        } else if (tableEntry->getType() == catalog::CatalogEntryType::REL_GROUP_ENTRY) {
             relTableNames.push_back(tableEntry->getName());
         } else {
             continue;

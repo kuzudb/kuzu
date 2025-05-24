@@ -99,8 +99,8 @@ Bob
 -LOG UndirectedEdgeSrcDstOrder
 -STATEMENT MATCH (b)-[r]-(a) WHERE a.ID = 3 AND b.ID = 4 HINT (a JOIN r) JOIN b RETURN r
 ---- 1
-(0:2)-{_LABEL: workAt, _ID: 5:0, year: 2015, grading: [3.800000,2.500000], rating: 8.200000}->(1:1)
+(0:2)-{_LABEL: workAt, _ID: 7:0, year: 2015, grading: [3.800000,2.500000], rating: 8.200000}->(1:1)
 -STATEMENT MATCH (b)-[r]-(a) WHERE a.ID = 3 AND b.ID = 4 HINT a JOIN (r JOIN b) RETURN r
 ---- 1
-(0:2)-{_LABEL: workAt, _ID: 5:0, year: 2015, grading: [3.800000,2.500000], rating: 8.200000}->(1:1)
+(0:2)-{_LABEL: workAt, _ID: 7:0, year: 2015, grading: [3.800000,2.500000], rating: 8.200000}->(1:1)
 

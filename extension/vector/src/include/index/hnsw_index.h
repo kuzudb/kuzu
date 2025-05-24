@@ -208,8 +208,8 @@ struct HNSWSearchState {
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
     OnDiskHNSWIndex(main::ClientContext* context, catalog::NodeTableCatalogEntry* nodeTableEntry,
-        common::column_id_t columnID, catalog::RelTableCatalogEntry* upperRelTableEntry,
-        catalog::RelTableCatalogEntry* lowerRelTableEntry, HNSWIndexConfig config);
+        common::column_id_t columnID, catalog::RelGroupCatalogEntry* upperRelTableEntry,
+        catalog::RelGroupCatalogEntry* lowerRelTableEntry, HNSWIndexConfig config);
 
     void setDefaultUpperEntryPoint(common::offset_t offset) {
         defaultUpperEntryPoint.store(offset);
@@ -273,8 +273,8 @@ private:
     static constexpr uint64_t FILTERED_SEARCH_INITIAL_CANDIDATES = 10;
 
     common::table_id_t nodeTableID;
-    catalog::RelTableCatalogEntry* upperRelTableEntry;
-    catalog::RelTableCatalogEntry* lowerRelTableEntry;
+    catalog::RelGroupCatalogEntry* upperRelTableEntry;
+    catalog::RelGroupCatalogEntry* lowerRelTableEntry;
 
     // The search starts in the upper layer to find the closest node, which serves as the entry
     // point for the lower layer search. If the upper layer does not return a valid entry point,

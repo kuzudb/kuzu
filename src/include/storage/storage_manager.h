@@ -14,11 +14,15 @@ class Database;
 
 namespace catalog {
 class CatalogEntry;
-}
+class NodeTableCatalogEntry;
+class RelGroupCatalogEntry;
+} // namespace catalog
 
 namespace storage {
-class DiskArrayCollection;
 class Table;
+class NodeTable;
+class RelTable;
+class DiskArrayCollection;
 
 class KUZU_API StorageManager {
 public:
@@ -26,19 +30,15 @@ public:
         bool enableCompression, common::VirtualFileSystem* vfs, main::ClientContext* context);
     ~StorageManager();
 
+    Table* getTable(common::table_id_t tableID);
+
     static void recover(main::ClientContext& clientContext);
 
-    void createTable(catalog::CatalogEntry* entry, const main::ClientContext* context);
+    void createTable(catalog::TableCatalogEntry* entry);
 
     void checkpoint(const catalog::Catalog& catalog);
     void finalizeCheckpoint();
     void rollbackCheckpoint(const catalog::Catalog& catalog);
-
-    Table* getTable(common::table_id_t tableID) {
-        std::lock_guard lck{mtx};
-        KU_ASSERT(tables.contains(tableID));
-        return tables.at(tableID).get();
-    }
 
     WAL& getWAL() const;
     ShadowFile& getShadowFile() const;
@@ -55,9 +55,7 @@ private:
     void initDataFileHandle(common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     void createNodeTable(catalog::NodeTableCatalogEntry* entry);
-    void createRelTable(catalog::RelTableCatalogEntry* entry);
-    void createRelTableGroup(const catalog::RelGroupCatalogEntry* entry,
-        const main::ClientContext* context);
+    void createRelTableGroup(catalog::RelGroupCatalogEntry* entry);
 
     void reclaimDroppedTables(const catalog::Catalog& catalog);
 

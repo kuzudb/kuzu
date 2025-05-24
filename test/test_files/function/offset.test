@@ -31,6 +31,6 @@ Alice
 -LOG RelOffsetTest2
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN id(e), offset(id(e))
 ---- 3
-4:0|0
-4:1|1
-4:2|2
+5:0|0
+5:1|1
+5:2|2

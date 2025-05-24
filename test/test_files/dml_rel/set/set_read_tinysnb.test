@@ -36,9 +36,9 @@
 -STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 AND b.ID=2 RETURN id(e), e.date, e.year;
 ---- 4
 3:0|2021-06-30|
-6:0||
-7:0||
-8:0|2023-01-01|2023
+9:0||
+11:0||
+13:0|2023-01-01|2023
 -STATEMENT MATCH (a:person)-[e:knows|:play]->(b:person) WHERE a.ID = 0 AND b.ID = 2 SET e.date=date('2023-10-10'), e.year=2024 RETURN e.date, e.year;
 ---- 2
 2023-10-10|

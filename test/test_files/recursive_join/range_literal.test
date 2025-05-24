@@ -153,8 +153,8 @@ Bob|1
 -STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*0..3]->(b:person) RETURN e;
 ---- 3
 {_NODES: [], _RELS: []}
-{_NODES: [], _RELS: [(0:0)-{_LABEL: meets, _ID: 6:0, location: [7.820000,3.540000], times: 5, data: \xAA\xBB\xCC\xDD}->(0:1)]}
-{_NODES: [{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12}], _RELS: [(0:0)-{_LABEL: meets, _ID: 6:0, location: [7.820000,3.540000], times: 5, data: \xAA\xBB\xCC\xDD}->(0:1),(0:1)-{_LABEL: meets, _ID: 6:1, location: [2.870000,4.230000], times: 2, data: NO hex code}->(0:3)]}
+{_NODES: [], _RELS: [(0:0)-{_LABEL: meets, _ID: 9:0, location: [7.820000,3.540000], times: 5, data: \xAA\xBB\xCC\xDD}->(0:1)]}
+{_NODES: [{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12}], _RELS: [(0:0)-{_LABEL: meets, _ID: 9:0, location: [7.820000,3.540000], times: 5, data: \xAA\xBB\xCC\xDD}->(0:1),(0:1)-{_LABEL: meets, _ID: 9:1, location: [2.870000,4.230000], times: 2, data: NO hex code}->(0:3)]}
 -STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*..0]->(b:person) RETURN b.fName;
 ---- error
 Binder exception: Lower bound of rel e is greater than upperBound.

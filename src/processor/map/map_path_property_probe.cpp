@@ -1,5 +1,6 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/string_utils.h"
 #include "main/client_context.h"
@@ -121,8 +122,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     auto pathProbeInfo = PathPropertyProbeInfo();
     auto schema = logicalProbe.getSchema();
     pathProbeInfo.pathPos = getDataPos(*rel, *schema);
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
     if (logicalProbe.getPathEdgeIDs() != nullptr) {
         pathProbeInfo.leftNodeIDPos = getDataPos(*rel->getLeftNode()->getInternalID(), *schema);
         pathProbeInfo.rightNodeIDPos = getDataPos(*rel->getRightNode()->getInternalID(), *schema);
@@ -135,12 +134,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
                 getDataPos(*recursiveInfo->bindData->directionExpr, *schema);
         }
         for (auto entry : recursiveInfo->node->getEntries()) {
-            pathProbeInfo.tableIDToName.insert(
-                {entry->getTableID(), entry->getLabel(catalog, transaction)});
+            pathProbeInfo.tableIDToName.insert({entry->getTableID(), entry->getName()});
         }
         for (auto& entry : recursiveInfo->rel->getEntries()) {
-            pathProbeInfo.tableIDToName.insert(
-                {entry->getTableID(), entry->getLabel(catalog, transaction)});
+            auto& relGroupEntry = entry->constCast<catalog::RelGroupCatalogEntry>();
+            for (auto& relEntryInfo : relGroupEntry.getRelEntryInfos()) {
+                pathProbeInfo.tableIDToName.insert({relEntryInfo.oid, entry->getName()});
+            }
         }
     }
     pathProbeInfo.nodeFieldIndices = nodeFieldIndices;

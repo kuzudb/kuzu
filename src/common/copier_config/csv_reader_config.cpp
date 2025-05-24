@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace common {
 
-static char bindParsingOptionValue(std::string value) {
+static char bindParsingOptionValue(const std::string& value) {
     if (value == "\\t") {
         return '\t';
     }
@@ -92,7 +92,6 @@ static bool validateIntParsingOptionName(const std::string& parsingOptionName) {
 }
 
 static bool isValidBooleanOptionValue(const Value& value, const std::string& name) {
-
     // Normalize and check if the string is a valid Boolean representation
     auto strValue = value.toString();
     StringUtils::toUpper(strValue);
@@ -109,8 +108,7 @@ static bool isValidBooleanOptionValue(const Value& value, const std::string& nam
     }
 }
 
-CSVReaderConfig CSVReaderConfig::construct(
-    const common::case_insensitive_map_t<common::Value>& options) {
+CSVReaderConfig CSVReaderConfig::construct(const case_insensitive_map_t<Value>& options) {
     auto config = CSVReaderConfig();
     for (auto& op : options) {
         auto name = op.first;
@@ -136,7 +134,7 @@ CSVReaderConfig CSVReaderConfig::construct(
         }
     }
     if (config.option.skipNum > 0) {
-        // If the user sets the number of rows to skip, we can not read in parallel mode.
+        // If the user sets the number of rows to skip, we cannot read in parallel mode.
         config.parallel = false;
     }
     return config;

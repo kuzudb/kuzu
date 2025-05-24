@@ -1,6 +1,6 @@
 #include "binder/expression/rel_expression.h"
 
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/extend_direction_util.h"
 #include "common/exception/binder.h"
@@ -10,6 +10,19 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace binder {
+
+bool RelExpression::isMultiLabeled() const {
+    if (entries.size() > 1) {
+        return true;
+    }
+    for (auto& entry : entries) {
+        auto relGroupEntry = entry->ptrCast<catalog::RelGroupCatalogEntry>();
+        if (relGroupEntry->getNumRelTables() > 1) {
+            return true;
+        }
+    }
+    return false;
+}
 
 std::string RelExpression::detailsToString() const {
     std::string result = toString();
@@ -37,14 +50,13 @@ std::string RelExpression::detailsToString() const {
     return result;
 }
 
-std::vector<common::ExtendDirection> RelExpression::getExtendDirections() const {
+std::vector<ExtendDirection> RelExpression::getExtendDirections() const {
     std::vector<ExtendDirection> ret;
     for (const auto direction : {ExtendDirection::FWD, ExtendDirection::BWD}) {
         const bool addDirection = std::all_of(entries.begin(), entries.end(),
             [direction](const catalog::TableCatalogEntry* tableEntry) {
-                const auto* relTableEntry =
-                    tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
-                return common::containsValue(relTableEntry->getRelDataDirections(),
+                const auto* entry = tableEntry->constPtrCast<catalog::RelGroupCatalogEntry>();
+                return common::containsValue(entry->getRelDataDirections(),
                     ExtendDirectionUtil::getRelDataDirection(direction));
             });
         if (addDirection) {
@@ -60,6 +72,16 @@ std::vector<common::ExtendDirection> RelExpression::getExtendDirections() const 
             toString()));
     }
     return ret;
+}
+
+std::vector<table_id_t> RelExpression::getInnerRelTableIDs() const {
+    std::vector<table_id_t> innerTableIDs;
+    for (auto& entry : entries) {
+        for (auto& info : entry->cast<catalog::RelGroupCatalogEntry>().getRelEntryInfos()) {
+            innerTableIDs.push_back(info.oid);
+        }
+    }
+    return innerTableIDs;
 }
 
 } // namespace binder

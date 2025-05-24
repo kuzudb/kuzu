@@ -75,15 +75,20 @@ private:
 };
 
 struct ExtraBoundCopyRelInfo final : ExtraBoundCopyFromInfo {
+    std::string fromTableName;
+    std::string toTableName;
     // We process internal ID column as offset (INT64) column until partitioner. In partitioner,
     // we need to manually change offset(INT64) type to internal ID type.
     std::vector<common::idx_t> internalIDColumnIndices;
     std::vector<IndexLookupInfo> infos;
 
-    ExtraBoundCopyRelInfo(std::vector<common::idx_t> internalIDColumnIndices,
-        std::vector<IndexLookupInfo> infos)
-        : internalIDColumnIndices{std::move(internalIDColumnIndices)}, infos{std::move(infos)} {}
-    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other) = default;
+    ExtraBoundCopyRelInfo(std::string fromTableName, std::string toTableName,
+        std::vector<common::idx_t> internalIDColumnIndices, std::vector<IndexLookupInfo> infos)
+        : fromTableName{std::move(fromTableName)}, toTableName{std::move(toTableName)},
+          internalIDColumnIndices{std::move(internalIDColumnIndices)}, infos{std::move(infos)} {}
+    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other)
+        : fromTableName{other.fromTableName}, toTableName{other.toTableName},
+          internalIDColumnIndices{other.internalIDColumnIndices}, infos{other.infos} {}
 
     std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
         return std::make_unique<ExtraBoundCopyRelInfo>(*this);

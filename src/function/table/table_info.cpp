@@ -2,7 +2,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/extend_direction_util.h"
 #include "common/exception/catalog.h"
 #include "common/string_utils.h"
@@ -51,7 +50,7 @@ struct ExtraRelPropertyInfo : ExtraPropertyInfo {
 };
 
 struct PropertyInfo {
-    common::column_id_t propertyID = INVALID_COLUMN_ID;
+    column_id_t propertyID = INVALID_COLUMN_ID;
     std::string name;
     std::string type;
     std::string defaultVal;
@@ -100,7 +99,7 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
             auto extraInfo = info.extraInfo->ptrCast<ExtraNodePropertyInfo>();
             output.getValueVectorMutable(4).setValue(i, extraInfo->isPrimaryKey);
         } break;
-        case CatalogEntryType::REL_TABLE_ENTRY: {
+        case CatalogEntryType::REL_GROUP_ENTRY: {
             auto extraInfo = info.extraInfo->ptrCast<ExtraRelPropertyInfo>();
             output.getValueVectorMutable(4).setValue(i, extraInfo->storageDirection);
         } break;
@@ -141,7 +140,7 @@ static std::vector<PropertyInfo> getNodePropertyInfos(NodeTableCatalogEntry* ent
     return infos;
 }
 
-static std::vector<PropertyInfo> getRelPropertyInfos(RelTableCatalogEntry* entry) {
+static std::vector<PropertyInfo> getRelPropertyInfos(RelGroupCatalogEntry* entry) {
     std::vector<PropertyInfo> infos;
     for (auto& def : entry->getProperties()) {
         if (def.getName() == InternalKeyword::ID) {
@@ -185,25 +184,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
                 infos = getNodePropertyInfos(entry->ptrCast<NodeTableCatalogEntry>());
                 type = CatalogEntryType::NODE_TABLE_ENTRY;
             } break;
-            case CatalogEntryType::REL_TABLE_ENTRY: {
+            case CatalogEntryType::REL_GROUP_ENTRY: {
                 columnNames.emplace_back("storage_direction");
                 columnTypes.push_back(LogicalType::STRING());
-                infos = getRelPropertyInfos(entry->ptrCast<RelTableCatalogEntry>());
-                type = CatalogEntryType::REL_TABLE_ENTRY;
+                infos = getRelPropertyInfos(entry->ptrCast<RelGroupCatalogEntry>());
+                type = CatalogEntryType::REL_GROUP_ENTRY;
             } break;
             default:
                 KU_UNREACHABLE;
             }
-        } else if (catalog->containsRelGroup(transaction, tableName)) {
-            auto entry = catalog->getRelGroupEntry(transaction, tableName);
-            KU_ASSERT(entry->getNumRelTables() > 0);
-            auto id = entry->getRelTableIDs()[0];
-            auto relEntry =
-                catalog->getTableCatalogEntry(transaction, id)->ptrCast<RelTableCatalogEntry>();
-            columnNames.emplace_back("storage_direction");
-            columnTypes.push_back(LogicalType::STRING());
-            infos = getRelPropertyInfos(relEntry->ptrCast<RelTableCatalogEntry>());
-            type = CatalogEntryType::REL_TABLE_ENTRY;
         } else {
             throw CatalogException(stringFormat("{} does not exist in catalog.", tableName));
         }

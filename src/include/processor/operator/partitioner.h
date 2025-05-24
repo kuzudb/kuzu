@@ -108,20 +108,25 @@ private:
 
 struct PartitionerDataInfo {
     std::string tableName;
+    std::string fromTableName;
+    std::string toTableName;
     std::vector<common::LogicalType> columnTypes;
     evaluator::evaluator_vector_t columnEvaluators;
     std::vector<common::ColumnEvaluateType> evaluateTypes;
 
-    PartitionerDataInfo(std::string tableName, std::vector<common::LogicalType> columnTypes,
+    PartitionerDataInfo(std::string tableName, std::string fromTableName, std::string toTableName,
+        std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<common::ColumnEvaluateType> evaluateTypes)
-        : tableName{std::move(tableName)}, columnTypes{std::move(columnTypes)},
+        : tableName{std::move(tableName)}, fromTableName{std::move(fromTableName)},
+          toTableName{std::move(toTableName)}, columnTypes{std::move(columnTypes)},
           columnEvaluators{std::move(columnEvaluators)}, evaluateTypes{std::move(evaluateTypes)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PartitionerDataInfo);
 
 private:
     PartitionerDataInfo(const PartitionerDataInfo& other)
-        : tableName{other.tableName}, columnTypes{common::LogicalType::copy(other.columnTypes)},
+        : tableName{other.tableName}, fromTableName{other.fromTableName},
+          toTableName{other.toTableName}, columnTypes{common::LogicalType::copy(other.columnTypes)},
           columnEvaluators{copyVector(other.columnEvaluators)}, evaluateTypes{other.evaluateTypes} {
     }
 };
