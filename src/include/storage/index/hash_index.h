@@ -306,6 +306,10 @@ inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transactio
 
 class PrimaryKeyIndex {
 public:
+    // Construct a new index
+    PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, common::PhysicalTypeID keyDataType,
+        MemoryManager& memoryManager, ShadowFile* shadowFile);
+    // Construct an existing index
     PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, common::PhysicalTypeID keyDataType,
         MemoryManager& memoryManager, ShadowFile* shadowFile, common::page_idx_t firstHeaderPage,
         common::page_idx_t overflowHeaderPage);
@@ -322,7 +326,7 @@ public:
         return common::ku_dynamic_cast<HashIndex<HashIndexType<T>>*>(hashIndices[indexPos].get());
     }
 
-    inline bool lookup(const transaction::Transaction* trx, common::ku_string_t key,
+    bool lookup(const transaction::Transaction* trx, common::ku_string_t key,
         common::offset_t& result, visible_func isVisible) {
         return lookup(trx, key.getAsStringView(), result, isVisible);
     }
@@ -336,7 +340,7 @@ public:
     bool lookup(const transaction::Transaction* trx, common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t& result, visible_func isVisible);
 
-    inline bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
+    bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
         common::offset_t value, visible_func isVisible) {
         return insert(transaction, key.getAsStringView(), value, isVisible);
     }
@@ -371,7 +375,7 @@ public:
         }
     }
 
-    inline void delete_(common::ku_string_t key) { return delete_(key.getAsStringView()); }
+    void delete_(common::ku_string_t key) { return delete_(key.getAsStringView()); }
     template<common::IndexHashable T>
     inline void delete_(T key) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
@@ -392,6 +396,9 @@ public:
     void writeHeaders();
 
     void serialize(common::Serializer& serializer) const;
+
+private:
+    void initOverflowAndSubIndices(bool inMemMode, MemoryManager& mm);
 
 private:
     common::PhysicalTypeID keyDataTypeID;

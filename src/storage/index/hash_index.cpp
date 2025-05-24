@@ -422,68 +422,68 @@ template class HashIndex<int128_t>;
 template class HashIndex<ku_string_t>;
 
 PrimaryKeyIndex::PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, PhysicalTypeID keyDataType,
+    MemoryManager& memoryManager, ShadowFile* shadowFile)
+    : keyDataTypeID(keyDataType), fileHandle{dataFH}, shadowFile{*shadowFile},
+      firstHeaderPage{INVALID_PAGE_IDX}, overflowHeaderPage{INVALID_PAGE_IDX} {
+    hashIndexHeadersForReadTrx.resize(NUM_HASH_INDEXES);
+    hashIndexHeadersForWriteTrx.resize(NUM_HASH_INDEXES);
+    hashIndexDiskArrays =
+        std::make_unique<DiskArrayCollection>(*fileHandle, *shadowFile, true /*bypassShadowing*/);
+    // Each index has a primary slot array and an overflow slot array
+    for (size_t i = 0; i < NUM_HASH_INDEXES * 2; i++) {
+        hashIndexDiskArrays->addDiskArray();
+    }
+    initOverflowAndSubIndices(inMemMode, memoryManager);
+}
+
+PrimaryKeyIndex::PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, PhysicalTypeID keyDataType,
     MemoryManager& memoryManager, ShadowFile* shadowFile, page_idx_t firstHeaderPage,
     page_idx_t overflowHeaderPage)
     : keyDataTypeID(keyDataType), fileHandle{dataFH}, shadowFile{*shadowFile},
       firstHeaderPage{firstHeaderPage}, overflowHeaderPage{overflowHeaderPage} {
-    bool newIndex = this->firstHeaderPage == INVALID_PAGE_IDX;
-
-    if (newIndex) {
-        hashIndexHeadersForReadTrx.resize(NUM_HASH_INDEXES);
-        hashIndexHeadersForWriteTrx.resize(NUM_HASH_INDEXES);
-
-        hashIndexDiskArrays = std::make_unique<DiskArrayCollection>(*fileHandle, *shadowFile,
-            true /*bypassShadowing*/);
-    } else {
-        size_t headerIdx = 0;
-        for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
-            fileHandle->optimisticReadPage(this->firstHeaderPage + headerPageIdx, [&](auto* frame) {
-                const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
-                for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
-                    hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
-                    headerIdx++;
-                }
-            });
-        }
-        hashIndexHeadersForWriteTrx.assign(hashIndexHeadersForReadTrx.begin(),
-            hashIndexHeadersForReadTrx.end());
-        KU_ASSERT(headerIdx == NUM_HASH_INDEXES);
-        hashIndexDiskArrays = std::make_unique<DiskArrayCollection>(*fileHandle, *shadowFile,
-            firstHeaderPage +
-                INDEX_HEADER_PAGES /*firstHeaderPage for the DAC follows the index header pages*/,
-            true /*bypassShadowing*/);
+    size_t headerIdx = 0;
+    for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
+        fileHandle->optimisticReadPage(this->firstHeaderPage + headerPageIdx, [&](auto* frame) {
+            const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
+            for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES; i++) {
+                hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
+                headerIdx++;
+            }
+        });
     }
+    hashIndexHeadersForWriteTrx.assign(hashIndexHeadersForReadTrx.begin(),
+        hashIndexHeadersForReadTrx.end());
+    KU_ASSERT(headerIdx == NUM_HASH_INDEXES);
+    hashIndexDiskArrays = std::make_unique<DiskArrayCollection>(*fileHandle, *shadowFile,
+        firstHeaderPage +
+            INDEX_HEADER_PAGES /*firstHeaderPage for the DAC follows the index header pages*/,
+        true /*bypassShadowing*/);
+    initOverflowAndSubIndices(inMemMode, memoryManager);
+}
 
+void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& memoryManager) {
     if (keyDataTypeID == PhysicalTypeID::STRING) {
         if (inMemMode) {
             overflowFile = std::make_unique<InMemOverflowFile>(memoryManager);
         } else {
-            overflowFile = std::make_unique<OverflowFile>(fileHandle, memoryManager, shadowFile,
+            overflowFile = std::make_unique<OverflowFile>(fileHandle, memoryManager, &shadowFile,
                 this->overflowHeaderPage);
         }
     }
-    if (newIndex) {
-        // Each index has a primary slot array and an overflow slot array
-        for (size_t i = 0; i < NUM_HASH_INDEXES * 2; i++) {
-            hashIndexDiskArrays->addDiskArray();
-        }
-    }
-
     hashIndices.reserve(NUM_HASH_INDEXES);
     TypeUtils::visit(
         keyDataTypeID,
         [&](ku_string_t) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                 hashIndices.push_back(std::make_unique<HashIndex<ku_string_t>>(memoryManager,
-                    fileHandle, overflowFile->addHandle(), *hashIndexDiskArrays, i, shadowFile,
+                    fileHandle, overflowFile->addHandle(), *hashIndexDiskArrays, i, &shadowFile,
                     hashIndexHeadersForReadTrx[i], hashIndexHeadersForWriteTrx[i]));
             }
         },
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                 hashIndices.push_back(std::make_unique<HashIndex<T>>(memoryManager, fileHandle,
-                    nullptr, *hashIndexDiskArrays, i, shadowFile, hashIndexHeadersForReadTrx[i],
+                    nullptr, *hashIndexDiskArrays, i, &shadowFile, hashIndexHeadersForReadTrx[i],
                     hashIndexHeadersForWriteTrx[i]));
             }
         },
