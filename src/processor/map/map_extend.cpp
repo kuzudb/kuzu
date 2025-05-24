@@ -53,7 +53,7 @@ static bool isRelTableQualifies(ExtendDirection direction, table_id_t srcTableID
     }
 }
 
-static RelTableCollectionScanner populateRelTableCollectionScanner(table_id_t boundNodeTableID,
+static std::vector<ScanRelTableInfo> populateRelTableCollectionScanner(table_id_t boundNodeTableID,
     const table_id_set_t& nbrTableISet, const RelGroupCatalogEntry& entry,
     ExtendDirection extendDirection, bool shouldScanNbrID, const expression_vector& properties,
     const std::vector<ColumnPredicateSet>& columnPredicates,
@@ -95,7 +95,7 @@ static RelTableCollectionScanner populateRelTableCollectionScanner(table_id_t bo
             KU_UNREACHABLE;
         }
     }
-    return RelTableCollectionScanner(std::move(scanInfos));
+    return scanInfos;
 }
 
 static bool scanSingleRelTable(const RelExpression& rel, const NodeExpression& boundNode,
@@ -149,12 +149,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
     for (auto boundNodeTableID : boundNode->getTableIDs()) {
         for (auto entry : rel->getEntries()) {
             auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
-            auto scanner =
+            auto scanInfos =
                 populateRelTableCollectionScanner(boundNodeTableID, nbrNode->getTableIDsSet(),
                     relGroupEntry, extendDirection, extend->shouldScanNbrID(),
                     extend->getProperties(), extend->getPropertyPredicates(), *clientContext);
-            if (!scanner.empty()) {
-                scanners.insert({boundNodeTableID, std::move(scanner)});
+            if (scanInfos.empty()) {
+                continue;
+            }
+            if (scanners.contains(boundNodeTableID)) {
+                scanners.at(boundNodeTableID).addRelInfos(std::move(scanInfos));
+            } else {
+                scanners.insert(
+                    {boundNodeTableID, RelTableCollectionScanner(std::move(scanInfos))});
             }
         }
     }

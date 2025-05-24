@@ -42,9 +42,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:A), (b:C)
@@ -142,9 +142,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:A), (c:C)
@@ -169,9 +169,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:`Single`), (c:C)
@@ -231,9 +231,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:`Single`)
@@ -261,9 +261,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:`Single`), (x:C)
@@ -289,9 +289,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:Single)
@@ -336,9 +336,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:A)
@@ -381,9 +381,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:A), (b:B)
@@ -423,9 +423,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:A), (b:B)
@@ -454,9 +454,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT OPTIONAL MATCH (a:NotThere)
@@ -486,9 +486,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:Single)
@@ -520,9 +520,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:B)
@@ -547,9 +547,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a)
@@ -577,9 +577,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (a:A), (b:B)
@@ -609,9 +609,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT OPTIONAL MATCH (a:NotThere)
@@ -641,9 +641,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT MATCH (n:`Single`)

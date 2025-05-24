@@ -34,14 +34,14 @@
                   (b:A {name: 'Other'}),
                   (c:A {name: 'NotOther'}),
                   (d:A {name: 'NotOther2'}),
-                  (a)-[:REL_A_A]->(b),
-                  (a)-[:REL_A_A]->(c),
-                  (a)-[:REL_A_A]->(d),
-                  (b)-[:REL_A_B]->(:B),
-                  (b)-[:REL_A_B]->(:B),
-                  (c)-[:REL_A_B]->(:B),
-                  (c)-[:REL_A_B]->(:B),
-                  (d)-[:REL_A_B]->(:B);
+                  (a)-[:REL]->(b),
+                  (a)-[:REL]->(c),
+                  (a)-[:REL]->(d),
+                  (b)-[:REL]->(:B),
+                  (b)-[:REL]->(:B),
+                  (c)-[:REL]->(:B),
+                  (c)-[:REL]->(:B),
+                  (d)-[:REL]->(:B);
 ---- ok
 -STATEMENT MATCH (david {name: 'David'})--(otherPerson)-->()
            WITH otherPerson, count(*) AS foaf

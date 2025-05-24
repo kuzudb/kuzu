@@ -12,7 +12,7 @@
 ---- ok
 -STATEMENT CREATE REL TABLE ADMIN(FROM B TO A, FROM B TO C);
 ---- ok
--STATEMENT CREATE (:A {id: 0})<-[:ADMIN_B_A]-(:B {id: 1})-[:ADMIN_B_C]->(:C {id: 2, a: 'A'});
+-STATEMENT CREATE (:A {id: 0})<-[:ADMIN]-(:B {id: 1})-[:ADMIN]->(:C {id: 2, a: 'A'});
 ---- ok
 -STATEMENT MATCH (a)-[:ADMIN]-(b)
            WHERE LABEL(a) = 'A'
@@ -136,7 +136,7 @@
 ---- ok
 -STATEMENT CREATE REL TABLE KNOWS(FROM C TO A, FROM C TO B, name STRING);
 ---- ok
--STATEMENT CREATE (:A)<-[:KNOWS_C_A {name: 'monkey'}]-(:C)-[:KNOWS_C_B {name: 'woot'}]->(:B);
+-STATEMENT CREATE (:A)<-[:KNOWS {name: 'monkey'}]-(:C)-[:KNOWS {name: 'woot'}]->(:B);
 ---- ok
 -STATEMENT MATCH (node)-[r:KNOWS]->(a)
            WHERE r.name = 'monkey'
@@ -206,7 +206,7 @@
            RETURN r;
 ---- 2
 (0:0)-{_LABEL: KNOWS, _ID: 3:0}->(1:0)
-(0:0)-{_LABEL: HATES, _ID: 4:0}->(2:0)
+(0:0)-{_LABEL: HATES, _ID: 5:0}->(2:0)
 
 # Filter path with path length predicate on multi variables with one binding
 -CASE Scenario12

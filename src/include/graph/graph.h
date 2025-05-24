@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <iterator>
 #include <memory>
 
@@ -8,18 +7,18 @@
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "transaction/transaction.h"
 #include <span>
 
 namespace kuzu {
 namespace catalog {
 class TableCatalogEntry;
-}
+} // namespace catalog
+namespace transaction {
+class Transaction;
+} // namespace transaction
 
 namespace graph {
-
 struct GraphEntry;
-
 struct NbrTableInfo {
     catalog::TableCatalogEntry* nodeEntry;
     catalog::TableCatalogEntry* relEntry;

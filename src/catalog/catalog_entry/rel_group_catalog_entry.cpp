@@ -23,7 +23,7 @@ void RelTableCatalogInfo::serialize(Serializer& ser) const {
 
 RelTableCatalogInfo RelTableCatalogInfo::deserialize(Deserializer& deser) {
     std::string debuggingInfo;
-    oid_t oid;
+    oid_t oid = INVALID_OID;
     deser.validateDebuggingInfo(debuggingInfo, "nodePair");
     auto nodePair = NodeTableIDPair::deserialize(deser);
     deser.validateDebuggingInfo(debuggingInfo, "oid");
@@ -86,9 +86,9 @@ void RelGroupCatalogEntry::serialize(Serializer& serializer) const {
 std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
     Deserializer& deserializer) {
     std::string debuggingInfo;
-    RelMultiplicity srcMultiplicity;
-    RelMultiplicity dstMultiplicity;
-    ExtendDirection storageDirection;
+    auto srcMultiplicity = RelMultiplicity::MANY;
+    auto dstMultiplicity = RelMultiplicity::MANY;
+    auto storageDirection = ExtendDirection::BOTH;
     std::vector<RelTableCatalogInfo> relTableInfos;
     deserializer.validateDebuggingInfo(debuggingInfo, "srcMultiplicity");
     deserializer.deserializeValue(srcMultiplicity);
@@ -106,7 +106,7 @@ std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
     return relGroupEntry;
 }
 
-static std::string getFromToStr(const NodeTableIDPair& pair, Catalog* catalog,
+static std::string getFromToStr(const NodeTableIDPair& pair, const Catalog* catalog,
     const transaction::Transaction* transaction) {
     auto srcTableName = catalog->getTableCatalogEntry(transaction, pair.srcTableID)->getName();
     auto dstTableName = catalog->getTableCatalogEntry(transaction, pair.dstTableID)->getName();

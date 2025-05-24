@@ -88,8 +88,8 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
 ---- ok
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 RETURN a.ID, b.orgCode, e, ID(e)
 ---- 2
-8|325|(0:5)-{_LABEL: studyAt, _ID: 4:2, year: 2020, places: [awndsnjwejwen,isuhuwennjnuhuhuwewe], length: 22, level: 2, code: 23, temperature: 20, ulength: 180, ulevel: 12, hugedata: -15}->(1:0)|4:2
-9|934|(0:6)-{_LABEL: studyAt, _ID: 4:3, year: 2022}->(1:1)|4:3
+8|325|(0:5)-{_LABEL: studyAt, _ID: 5:2, year: 2020, places: [awndsnjwejwen,isuhuwennjnuhuhuwewe], length: 22, level: 2, code: 23, temperature: 20, ulength: 180, ulevel: 12, hugedata: -15}->(1:0)|5:2
+9|934|(0:6)-{_LABEL: studyAt, _ID: 5:3, year: 2022}->(1:1)|5:3
 
 -CASE InsertRepeatedNToNRelTest
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 7 AND b.ID = 8 CREATE (a)-[:knows {validInterval:interval('3 years')}]->(b)
@@ -129,7 +129,7 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
 ---- ok
 -STATEMENT MATCH (a:person)-[e1:studyAt]->(b:organisation), (a)-[e2:workAt]->(b) RETURN a.ID, b.ID, ID(e1), ID(e2)
 ---- 1
-100|50|4:3|5:3
+100|50|5:3|7:3
 
 -CASE InsertNodeWithListTest
 -STATEMENT BEGIN TRANSACTION

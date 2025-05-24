@@ -54,24 +54,24 @@ Zhang|(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)|Noura
 ---- 8
 Adam|(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)|Karissa
 Adam|(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)|Zhang
-Adam|(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)|Waterloo
+Adam|(0:0)-{_LABEL: LivesIn, _ID: 4:0}->(1:0)|Waterloo
 Karissa|(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)|Zhang
-Karissa|(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0)|Waterloo
-Noura|(0:3)-{_LABEL: LivesIn, _ID: 3:3}->(1:2)|Guelph
+Karissa|(0:1)-{_LABEL: LivesIn, _ID: 4:1}->(1:0)|Waterloo
+Noura|(0:3)-{_LABEL: LivesIn, _ID: 4:3}->(1:2)|Guelph
 Zhang|(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)|Noura
-Zhang|(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)|Kitchener
+Zhang|(0:2)-{_LABEL: LivesIn, _ID: 4:2}->(1:1)|Kitchener
 
 -LOG MatchAnyRelLabel
 -STATEMENT MATCH ()-[e]->() RETURN e;
 ---- 8
 (0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)
 (0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)
-(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)
+(0:0)-{_LABEL: LivesIn, _ID: 4:0}->(1:0)
 (0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)
-(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0)
+(0:1)-{_LABEL: LivesIn, _ID: 4:1}->(1:0)
 (0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)
-(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)
-(0:3)-{_LABEL: LivesIn, _ID: 3:3}->(1:2)
+(0:2)-{_LABEL: LivesIn, _ID: 4:2}->(1:1)
+(0:3)-{_LABEL: LivesIn, _ID: 4:3}->(1:2)
 
 -LOG MatchTwoHop
 -STATEMENT MATCH (a:User)-[:Follows]->(:User)-[:LivesIn]->(c:City) WHERE a.name = "Adam" RETURN a, c.name, c.population;

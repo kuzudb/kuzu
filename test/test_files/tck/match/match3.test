@@ -308,8 +308,8 @@ x2
 -STATEMENT CREATE REL TABLE T(FROM A TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B), (c:C)
-           CREATE (a)-[:T_A_B]->(b),
-                  (a)-[:T_A_C]->(c);
+           CREATE (a)-[:T]->(b),
+                  (a)-[:T]->(c);
 ---- ok
 -STATEMENT MATCH (a)-->(b)
            MATCH (c)-->(d)
