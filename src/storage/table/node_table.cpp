@@ -230,7 +230,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     }
     pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH, inMemory,
         nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *memoryManager,
-        shadowFile, INVALID_PAGE_IDX, INVALID_PAGE_IDX, readOnly);
+        shadowFile, INVALID_PAGE_IDX, INVALID_PAGE_IDX);
     nodeGroups = std::make_unique<NodeGroupCollection>(
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
         storageManager->getDataFH(), &versionRecordHandler);
@@ -655,7 +655,7 @@ void NodeTable::deserialize(TableCatalogEntry* entry, Deserializer& deSer) {
     auto pkType =
         entry->cast<NodeTableCatalogEntry>().getPrimaryKeyDefinition().getType().getPhysicalType();
     pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH, inMemory, pkType, *memoryManager,
-        shadowFile, firstHeaderPage, overflowHeaderPage, readOnly);
+        shadowFile, firstHeaderPage, overflowHeaderPage);
     nodeGroups->deserialize(deSer, *memoryManager);
 }
 
