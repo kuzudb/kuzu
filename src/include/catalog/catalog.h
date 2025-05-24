@@ -199,7 +199,7 @@ private:
         bool isInternal);
     void dropSerialSequence(transaction::Transaction* transaction, const TableCatalogEntry* entry);
 
-    template<TableCatalogEntryType T>
+    template<typename T>
     std::vector<T*> getTableEntries(const transaction::Transaction* transaction, bool useInternal,
         CatalogEntryType entryType) const;
 

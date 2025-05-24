@@ -95,7 +95,7 @@ TableCatalogEntry* Catalog::getTableCatalogEntry(const Transaction* transaction,
     return result->ptrCast<TableCatalogEntry>();
 }
 
-template<TableCatalogEntryType T>
+template<typename T>
 std::vector<T*> Catalog::getTableEntries(const Transaction* transaction, bool useInternal,
     CatalogEntryType entryType) const {
     std::vector<T*> result;

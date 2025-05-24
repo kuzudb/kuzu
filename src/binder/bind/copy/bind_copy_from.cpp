@@ -162,7 +162,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     auto relInfo = relGroupEntry.getRelEntryInfo(fromTable->getTableID(), toTable->getTableID());
     if (relInfo == nullptr) {
         throw BinderException(stringFormat("Rel table {} does not contain {}-{} from-to pair.",
-            fromTable->getName(), toTable->getName()));
+            relGroupEntry.getName(), fromTable->getName(), toTable->getName()));
     }
     // Bind expected columns based on catalog information.
     std::vector<std::string> expectedColumnNames;
