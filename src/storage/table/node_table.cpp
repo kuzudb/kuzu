@@ -230,7 +230,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     }
     pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH, inMemory,
         nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *memoryManager,
-        shadowFile, INVALID_PAGE_IDX, INVALID_PAGE_IDX);
+        shadowFile);
     nodeGroups = std::make_unique<NodeGroupCollection>(
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
         storageManager->getDataFH(), &versionRecordHandler);
@@ -485,7 +485,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -619,7 +619,7 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to
@@ -654,8 +654,14 @@ void NodeTable::deserialize(TableCatalogEntry* entry, Deserializer& deSer) {
     deSer.deserializeValue<page_idx_t>(overflowHeaderPage);
     auto pkType =
         entry->cast<NodeTableCatalogEntry>().getPrimaryKeyDefinition().getType().getPhysicalType();
-    pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH, inMemory, pkType, *memoryManager,
-        shadowFile, firstHeaderPage, overflowHeaderPage);
+    if (firstHeaderPage == INVALID_PAGE_IDX && overflowHeaderPage == INVALID_PAGE_IDX) {
+        // This means that the pk index is empty.
+        pkIndex =
+            std::make_unique<PrimaryKeyIndex>(dataFH, inMemory, pkType, *memoryManager, shadowFile);
+    } else {
+        pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH, inMemory, pkType, *memoryManager,
+            shadowFile, firstHeaderPage, overflowHeaderPage);
+    }
     nodeGroups->deserialize(deSer, *memoryManager);
 }
 
