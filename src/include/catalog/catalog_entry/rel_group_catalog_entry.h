@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace catalog {
 
-struct RelGroupToCypherInfo : ToCypherInfo {
+struct RelGroupToCypherInfo final : ToCypherInfo {
     const main::ClientContext* context;
 
     explicit RelGroupToCypherInfo(const main::ClientContext* context) : context{context} {}
@@ -27,7 +27,7 @@ struct RelTableCatalogInfo {
     static RelTableCatalogInfo deserialize(common::Deserializer& deser);
 };
 
-class RelGroupCatalogEntry final : public TableCatalogEntry {
+class KUZU_API RelGroupCatalogEntry final : public TableCatalogEntry {
     static constexpr CatalogEntryType type_ = CatalogEntryType::REL_GROUP_ENTRY;
 
 public:
