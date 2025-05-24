@@ -21,14 +21,12 @@ public:
             [](const BoundDeleteInfo& info) { return info.tableType == common::TableType::NODE; });
     }
     bool hasRelInfo() const {
-        return hasInfo([](const BoundDeleteInfo& info) {
-            return info.tableType == common::TableType::REL;
-        });
+        return hasInfo(
+            [](const BoundDeleteInfo& info) { return info.tableType == common::TableType::REL; });
     }
     std::vector<BoundDeleteInfo> getRelInfos() const {
-        return getInfos([](const BoundDeleteInfo& info) {
-            return info.tableType == common::TableType::REL;
-        });
+        return getInfos(
+            [](const BoundDeleteInfo& info) { return info.tableType == common::TableType::REL; });
     }
 
 private:

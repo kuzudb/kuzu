@@ -22,14 +22,12 @@ public:
             [](const BoundInsertInfo& info) { return info.tableType == common::TableType::NODE; });
     }
     bool hasRelInfo() const {
-        return hasInfo([](const BoundInsertInfo& info) {
-            return info.tableType == common::TableType::REL;
-        });
+        return hasInfo(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
     }
     std::vector<const BoundInsertInfo*> getRelInfos() const {
-        return getInfos([](const BoundInsertInfo& info) {
-            return info.tableType == common::TableType::REL;
-        });
+        return getInfos(
+            [](const BoundInsertInfo& info) { return info.tableType == common::TableType::REL; });
     }
 
 private:
