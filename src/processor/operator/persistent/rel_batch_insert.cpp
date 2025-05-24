@@ -57,7 +57,7 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         const auto transaction = clientContext->getTransaction();
         const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
         const auto& relTableEntry = tableEntry->constCast<RelTableCatalogEntry>();
-
+        relBatchInsertInfo->tableEntry = tableEntry;
         sharedState->table = partitionerSharedState->relTable;
         logical_type_vec_t newColumnTypes;
         newColumnTypes.push_back(LogicalType::INTERNAL_ID());
