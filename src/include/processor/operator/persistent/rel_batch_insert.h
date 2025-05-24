@@ -42,8 +42,7 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
 
     RelBatchInsertInfo(std::string tableName, std::vector<common::LogicalType> warningColumnTypes,
         common::RelDataDirection direction)
-        : BatchInsertInfo{tableName, std::move(warningColumnTypes)},
-          direction{direction} {}
+        : BatchInsertInfo{tableName, std::move(warningColumnTypes)}, direction{direction} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
         : BatchInsertInfo{other}, direction{other.direction},
           partitioningIdx{other.partitioningIdx},
@@ -66,8 +65,7 @@ public:
         std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
-        : BatchInsert{std::move(info), std::move(sharedState), id,
-              std::move(printInfo)},
+        : BatchInsert{std::move(info), std::move(sharedState), id, std::move(printInfo)},
           partitionerSharedState{std::move(partitionerSharedState)},
           progressSharedState{std::move(progressSharedState)} {}
 
@@ -80,8 +78,8 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState,
-            sharedState, id, printInfo->copy(), progressSharedState);
+        return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState, sharedState,
+            id, printInfo->copy(), progressSharedState);
     }
 
     void updateProgress(const ExecutionContext* context) const;

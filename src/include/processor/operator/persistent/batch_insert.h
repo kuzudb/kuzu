@@ -93,8 +93,8 @@ public:
     BatchInsert(std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<BatchInsertSharedState> sharedState, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{type_, id, std::move(printInfo)},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+        : Sink{type_, id, std::move(printInfo)}, info{std::move(info)},
+          sharedState{std::move(sharedState)} {}
 
     ~BatchInsert() override = default;
 

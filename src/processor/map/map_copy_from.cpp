@@ -74,12 +74,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
         warningColumnTypes.push_back(column->getDataType().copy());
     }
     auto info = std::make_unique<NodeBatchInsertInfo>(copyFromInfo->tableName,
-         std::move(warningColumnTypes), std::move(columnEvaluators), copyFromInfo->columnEvaluateTypes);
+        std::move(warningColumnTypes), std::move(columnEvaluators),
+        copyFromInfo->columnEvaluateTypes);
 
     auto tableName = copyFromInfo->tableName;
     auto printInfo = std::make_unique<NodeBatchInsertPrintInfo>(tableName);
-    auto batchInsert = std::make_unique<NodeBatchInsert>(std::move(info),
-        std::move(sharedState), std::move(prevOperator), getOperatorID(), std::move(printInfo));
+    auto batchInsert = std::make_unique<NodeBatchInsert>(std::move(info), std::move(sharedState),
+        std::move(prevOperator), getOperatorID(), std::move(printInfo));
     batchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(copyFrom.getSchema()));
     return batchInsert;
 }
@@ -132,7 +133,8 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
     const auto storageManager = clientContext->getStorageManager();
     std::vector<RelDataDirection> directions = {RelDataDirection::FWD, RelDataDirection::BWD};
     if (copyFromInfo->tableEntry) {
-        directions = copyFromInfo->tableEntry->constCast<RelTableCatalogEntry>().getRelDataDirections();
+        directions =
+            copyFromInfo->tableEntry->constCast<RelTableCatalogEntry>().getRelDataDirections();
     }
     std::vector<LogicalType> warningColumnTypes;
     for (auto& column : copyFromInfo->getWarningColumns()) {
@@ -144,12 +146,13 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
     const auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(std::move(fTable));
     physical_op_vector_t result;
     for (auto direction : directions) {
-        auto insertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableName, copyVector(warningColumnTypes), direction);
+        auto insertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableName,
+            copyVector(warningColumnTypes), direction);
         auto printInfo = std::make_unique<RelBatchInsertPrintInfo>(copyFromInfo->tableName);
         auto progress = std::make_shared<RelBatchInsertProgressSharedState>();
-        auto batchInsert = std::make_unique<RelBatchInsert>(
-            std::move(insertInfo), partitionerSharedState, batchInsertSharedState,
-            getOperatorID(), std::move(printInfo), progress);
+        auto batchInsert =
+            std::make_unique<RelBatchInsert>(std::move(insertInfo), partitionerSharedState,
+                batchInsertSharedState, getOperatorID(), std::move(printInfo), progress);
         batchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(copyFrom.getSchema()));
         result.push_back(std::move(batchInsert));
     }
