@@ -105,7 +105,7 @@ public:
 
     static std::string getTempSuffix();
 
-    static std::filesystem::path getTempDir() {
+    static std::filesystem::path getRootTempDir() {
         auto tempDir = std::getenv("RUNNER_TEMP");
         if (tempDir != nullptr) {
             return std::filesystem::path(tempDir) / "kuzu";
@@ -114,9 +114,16 @@ public:
         }
     }
 
-    static std::string getTempDir(const std::string& name) {
-        const auto path = getTempDir() / (name + getTempSuffix());
+    static std::filesystem::path getTempDir(const std::string& name) {
+        auto path = getRootTempDir() / (name + getTempSuffix());
         std::filesystem::create_directories(path);
+        return path;
+    }
+
+    static std::string getTempDBPathStr(const std::string& name) {
+        auto path = getRootTempDir() / (name + getTempSuffix());
+        std::filesystem::create_directories(path);
+        path = path / "db.kz";
         auto pathStr = path.string();
 #ifdef _WIN32
         // kuzu still doesn't support backslashes in paths on windows
@@ -126,6 +133,7 @@ public:
     }
 
     static bool isSystemEnvValid(const char* env) { return env != nullptr && strlen(env) > 0; }
+
     static std::string getSystemEnv(const char* key) {
         const auto env = std::getenv(key);
         if (isSystemEnvValid(env)) {
@@ -136,7 +144,7 @@ public:
         return "";
     }
 
-    inline static std::string joinPath(const std::string& base, const std::string& part) {
+    static std::string joinPath(const std::string& base, const std::string& part) {
         auto pathStr = common::FileSystem::joinPath(base, part);
 #ifdef _WIN32
         // kuzu still doesn't support backslashes in paths on windows

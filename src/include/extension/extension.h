@@ -65,12 +65,13 @@ void addFunc(transaction::Transaction* transaction, main::Database& database, st
 
 struct KUZU_API ExtensionUtils {
     static constexpr const char* OFFICIAL_EXTENSION_REPO = "http://extension.kuzudb.com/";
+    static constexpr const char* EXTENSION_FILE_SUFFIX = "kuzu_extension";
 
     static constexpr const char* EXTENSION_FILE_REPO_PATH = "{}v{}/{}/{}/{}";
 
     static constexpr const char* SHARED_LIB_REPO = "{}v{}/{}/common/{}";
 
-    static constexpr const char* EXTENSION_FILE_NAME = "lib{}.kuzu_extension";
+    static constexpr const char* EXTENSION_FILE_NAME = "lib{}.{}";
 
     static constexpr const char* OFFICIAL_EXTENSION[] = {"HTTPFS", "POSTGRES", "DUCKDB", "JSON",
         "SQLITE", "FTS", "DELTA", "ICEBERG", "AZURE", "UNITY_CATALOG", "VECTOR", "NEO4J", "ALGO",

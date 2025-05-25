@@ -48,7 +48,7 @@ class KUZU_API FileSystem {
 public:
     FileSystem() = default;
 
-    explicit FileSystem(std::string homeDir) : homeDir(std::move(homeDir)) {}
+    explicit FileSystem(std::string homeDir) : dbPath(std::move(homeDir)) {}
 
     virtual ~FileSystem() = default;
 
@@ -119,7 +119,7 @@ protected:
 
     static bool isGZIPCompressed(const std::filesystem::path& path);
 
-    std::string homeDir;
+    std::string dbPath;
 };
 
 } // namespace common
