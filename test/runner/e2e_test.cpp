@@ -8,7 +8,7 @@ using ::testing::Test;
 using namespace kuzu::testing;
 using namespace kuzu::common;
 
-static void copyDir(const std::string& from, const std::string& to) {
+static void copyDir(const std::string &from, const std::string &to) {
     if (!std::filesystem::exists(from)) {
         throw TestException(stringFormat("Error copying nonexistent directory {}.", from));
     }
@@ -20,19 +20,20 @@ static void copyDir(const std::string& from, const std::string& to) {
     std::filesystem::copy(from, to, std::filesystem::copy_options::recursive, copyErrorCode);
     if (copyErrorCode) {
         throw TestException(stringFormat("Error copying directory {} to {}.  Error Message: {}",
-            from, to, copyErrorCode.message()));
+                                         from, to, copyErrorCode.message()));
     }
 }
 
 class EndToEndTest : public DBTest {
 public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
-        std::optional<uint64_t> bufferPoolSize, uint64_t checkpointWaitTimeout,
-        const std::set<std::string>& connNames,
-        std::vector<std::unique_ptr<TestStatement>> testStatements)
+                          std::optional<uint64_t> bufferPoolSize, uint64_t checkpointWaitTimeout,
+                          const std::set<std::string> &connNames,
+                          std::vector<std::unique_ptr<TestStatement> > testStatements)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
           checkpointWaitTimeout{checkpointWaitTimeout}, testStatements{std::move(testStatements)},
-          connNames{connNames} {}
+          connNames{connNames} {
+    }
 
     void SetUp() override {
         setUpDataset();
@@ -41,7 +42,7 @@ public:
             systemConfig->bufferPoolSize = *bufferPoolSize;
         }
         bool generateBinaryDemo =
-            !std::getenv("USE_EXISTING_BINARY_DATASET") && dataset.ends_with("binary-demo");
+                !std::getenv("USE_EXISTING_BINARY_DATASET") && dataset.ends_with("binary-demo");
         if (datasetType == TestGroup::DatasetType::KUZU && dataset != "empty" &&
             !generateBinaryDemo) {
             copyDir(dataset, databasePath);
@@ -57,37 +58,39 @@ public:
 
     void setUpDataset() {
         switch (datasetType) {
-        case TestGroup::DatasetType::CSV_TO_PARQUET: {
-            auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
-            tempDatasetPath = generateTempDatasetPath();
-            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize, ".parquet");
-            converter.convertCSVDataset();
-            dataset = tempDatasetPath;
-        } break;
-        case TestGroup::DatasetType::CSV_TO_JSON: {
-            auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
-            tempDatasetPath = generateTempDatasetPath();
-            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize, ".json");
-            converter.convertCSVDataset();
-            dataset = tempDatasetPath;
-        } break;
-        default: {
-            // Determine the dataset root path. Uses `E2E_OVERRIDE_IMPORT_DIR` if set to test
-            // datasets exported from earlier Kuzu versions, otherwise the default path.
-            std::string rootDir = TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty() ?
-                                      "dataset/" :
-                                      TestHelper::E2E_OVERRIDE_IMPORT_DIR;
-            dataset = TestHelper::appendKuzuRootPath(rootDir + dataset);
-        }
+            case TestGroup::DatasetType::CSV_TO_PARQUET: {
+                auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+                tempDatasetPath = generateTempDatasetPath();
+                CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize, ".parquet");
+                converter.convertCSVDataset();
+                dataset = tempDatasetPath;
+            }
+            break;
+            case TestGroup::DatasetType::CSV_TO_JSON: {
+                auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+                tempDatasetPath = generateTempDatasetPath();
+                CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize, ".json");
+                converter.convertCSVDataset();
+                dataset = tempDatasetPath;
+            }
+            break;
+            default: {
+                // Determine the dataset root path. Uses `E2E_OVERRIDE_IMPORT_DIR` if set to test
+                // datasets exported from earlier Kuzu versions, otherwise the default path.
+                std::string rootDir = TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty()
+                                          ? "dataset/"
+                                          : TestHelper::E2E_OVERRIDE_IMPORT_DIR;
+                dataset = TestHelper::appendKuzuRootPath(rootDir + dataset);
+            }
         }
     }
 
     void TearDown() override {
         DBTest::TearDown();
-        // removeIEDBPath();
+        removeIEDBPath();
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET ||
             datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
-            // std::filesystem::remove_all(tempDatasetPath);
+            std::filesystem::remove_all(tempDatasetPath);
         }
     }
 
@@ -100,7 +103,7 @@ private:
     std::string tempDatasetPath;
     std::optional<uint64_t> bufferPoolSize;
     uint64_t checkpointWaitTimeout;
-    std::vector<std::unique_ptr<TestStatement>> testStatements;
+    std::vector<std::unique_ptr<TestStatement> > testStatements;
     std::set<std::string> connNames;
 
     std::string generateTempDatasetPath() {
@@ -110,7 +113,7 @@ private:
     }
 };
 
-void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = false) {
+void parseAndRegisterTestGroup(const std::string &path, bool generateTestList = false) {
     // Check for invalid characters in the file name (see ISSUE 4510)
     auto filename = std::filesystem::path(path).filename().string();
     if (filename.find('-') != std::string::npos) {
@@ -124,7 +127,7 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
         auto testCases = std::move(testGroup->testCases);
         auto bufferPoolSize = testGroup->bufferPoolSize;
         auto checkpointWaitTimeout = testGroup->checkpointWaitTimeout;
-        for (auto& [testCaseName, testStatements] : testCases) {
+        for (auto &[testCaseName, testStatements]: testCases) {
             // Check for invalid characters in the case name (see ISSUE 4510)
             if (testCaseName.find('-') != std::string::npos) {
                 throw TestException("Invalid test case name containing '-': " + testCaseName);
@@ -138,36 +141,37 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
             }
             auto connNames = testGroup->testCasesConnNames[testCaseName];
             testing::RegisterTest(testGroup->group.c_str(), testCaseName.c_str(), nullptr, nullptr,
-                __FILE__, __LINE__,
-                [datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
-                    testStatements = std::move(testStatements)]() mutable -> DBTest* {
-                    decltype(testStatements) testStatementsCopy;
-                    for (const auto& testStatement : testStatements) {
-                        testStatementsCopy.emplace_back(
-                            std::make_unique<TestStatement>(*testStatement));
-                    }
-                    return new EndToEndTest(datasetType, dataset, bufferPoolSize,
-                        checkpointWaitTimeout, connNames, std::move(testStatementsCopy));
-                });
+                                  __FILE__, __LINE__,
+                                  [datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
+                                      testStatements = std::move(testStatements)]() mutable -> DBTest * {
+                                      decltype(testStatements) testStatementsCopy;
+                                      for (const auto &testStatement: testStatements) {
+                                          testStatementsCopy.emplace_back(
+                                              std::make_unique<TestStatement>(*testStatement));
+                                      }
+                                      return new EndToEndTest(datasetType, dataset, bufferPoolSize,
+                                                              checkpointWaitTimeout, connNames,
+                                                              std::move(testStatementsCopy));
+                                  });
         }
     } else {
         throw TestException("Invalid test file [" + path + "].");
     }
 }
 
-void scanTestFiles(const std::string& path) {
+void scanTestFiles(const std::string &path) {
     if (std::filesystem::is_regular_file(path)) {
         parseAndRegisterTestGroup(path);
         return;
     }
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+    for (const auto &entry: std::filesystem::recursive_directory_iterator(path)) {
         if (!entry.is_regular_file() || std::filesystem::path(entry).extension() != ".test")
             continue;
         parseAndRegisterTestGroup(entry.path().string(), true);
     }
 }
 
-std::string findTestFile(const std::string& testCase) {
+std::string findTestFile(const std::string &testCase) {
     std::ifstream infile(TestHelper::getTestListFile());
     std::string line;
     while (std::getline(infile, line)) {
@@ -179,7 +183,7 @@ std::string findTestFile(const std::string& testCase) {
     return "";
 }
 
-void checkGtestParams(int argc, char** argv) {
+void checkGtestParams(int argc, char **argv) {
     if (argc > 1) {
         std::string argument = argv[1];
         if (argument == "--gtest_list_tests") {
@@ -197,13 +201,13 @@ void checkGtestParams(int argc, char** argv) {
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     try {
         // Main logic
         std::string test_dir;
         std::string import_data_dir;
-        char* env_test_dir = std::getenv("E2E_TEST_FILES_DIRECTORY");
-        char* env_import_data_dir = std::getenv("E2E_IMPORT_DB_DIR");
+        char *env_test_dir = std::getenv("E2E_TEST_FILES_DIRECTORY");
+        char *env_import_data_dir = std::getenv("E2E_IMPORT_DB_DIR");
         if (env_test_dir != nullptr) {
             test_dir = env_test_dir;
         } else {
@@ -212,7 +216,7 @@ int main(int argc, char** argv) {
 
         if (env_import_data_dir != nullptr) {
             auto path =
-                TestHelper::appendKuzuRootPath(std::filesystem::path(env_import_data_dir).string());
+                    TestHelper::appendKuzuRootPath(std::filesystem::path(env_import_data_dir).string());
             if (!std::filesystem::exists(path)) {
                 throw TestException("IMPORT DATABASE path does not exist: " + path);
             }
@@ -234,7 +238,7 @@ int main(int argc, char** argv) {
         }
 
         return RUN_ALL_TESTS();
-    } catch (const std::exception& ex) {
+    } catch (const std::exception &ex) {
         std::cerr << "Error: " << ex.what() << std::endl;
         return EXIT_FAILURE;
     }

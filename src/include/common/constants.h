@@ -64,10 +64,10 @@ struct BufferPoolConstants {
 };
 
 struct StorageConstants {
-    static constexpr char WAL_FILE_SUFFIX[] = ".wal";
-    static constexpr char SHADOWING_SUFFIX[] = ".shadow";
-    static constexpr char LOCK_FILE_SUFFIX[] = ".lock";
-    static constexpr char TEMP_FILE_SUFFIX[] = ".tmp";
+    static constexpr char WAL_FILE_SUFFIX[] = "wal";
+    static constexpr char SHADOWING_SUFFIX[] = "shadow";
+    static constexpr char LOCK_FILE_SUFFIX[] = "lock";
+    static constexpr char TEMP_FILE_SUFFIX[] = "tmp";
 
     // The number of pages that we add at one time when we need to grow a file.
     static constexpr uint64_t PAGE_GROUP_SIZE_LOG2 = 10;
