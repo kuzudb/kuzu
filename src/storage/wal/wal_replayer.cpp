@@ -6,6 +6,8 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/file_system/file_info.h"
+#include "common/file_system/file_system.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "extension/extension_manager.h"
 #include "main/client_context.h"
@@ -27,8 +29,7 @@ namespace kuzu {
 namespace storage {
 
 WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{clientContext} {
-    walFilePath = clientContext.getVFSUnsafe()->joinPath(clientContext.getDatabasePath(),
-        StorageConstants::WAL_FILE_SUFFIX);
+    walFilePath = StorageUtils::getWALFilePath(clientContext.getDatabasePath());
     pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
 }
 

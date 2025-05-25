@@ -66,7 +66,7 @@ protected:
 private:
     FileSystem* findFileSystem(const std::string& path) const;
 
-    FileCompressionType autoDetectCompressionType(const std::string& path) const;
+    static FileCompressionType autoDetectCompressionType(const std::string& path);
 
 private:
     std::vector<std::unique_ptr<FileSystem>> subSystems;
