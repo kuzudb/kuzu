@@ -1,11 +1,13 @@
 #include "storage/storage_utils.h"
 
-#include "common/assert.h"
+#include <filesystem>
+
 #include "common/null_buffer.h"
 #include "common/string_format.h"
 #include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "main/settings.h"
 
 using namespace kuzu::common;
 
@@ -45,23 +47,20 @@ std::string StorageUtils::getColumnName(const std::string& propertyName, ColumnT
     }
 }
 
-uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {
-    switch (type) {
-    case PhysicalTypeID::STRING: {
-        return sizeof(ku_string_t);
+std::string StorageUtils::expandPath(const main::ClientContext* context, const std::string& path) {
+    if (main::DBConfig::isDBPathInMemory(path)) {
+        return path;
     }
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST: {
-        return sizeof(ku_list_t);
+    auto fullPath = path;
+    // Handle '~' for home directory expansion
+    if (path.starts_with('~')) {
+        fullPath =
+            context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>() +
+            fullPath.substr(1);
     }
-    case PhysicalTypeID::STRUCT: {
-        // Not calculable using this interface!
-        KU_UNREACHABLE;
-    }
-    default: {
-        return PhysicalTypeUtils::getFixedTypeSize(type);
-    }
-    }
+    // Normalize the path to resolve '.' and '..'
+    std::filesystem::path normalizedPath = std::filesystem::absolute(fullPath).lexically_normal();
+    return normalizedPath.string();
 }
 
 uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {

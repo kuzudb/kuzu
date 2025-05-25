@@ -124,7 +124,7 @@ public:
         return "";
     }
 
-    inline static std::string joinPath(const std::string& base, const std::string& part) {
+    static std::string joinPath(const std::string& base, const std::string& part) {
         auto pathStr = common::FileSystem::joinPath(base, part);
 #ifdef _WIN32
         // kuzu still doesn't support backslashes in paths on windows

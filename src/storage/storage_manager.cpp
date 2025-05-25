@@ -41,8 +41,7 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
     } else {
         const auto flag = readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                                      FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS;
-        const auto dataFilePath = StorageUtils::getDataFName(vfs, databasePath);
-        dataFH = memoryManager.getBufferManager()->getFileHandle(dataFilePath, flag, vfs, context);
+        dataFH = memoryManager.getBufferManager()->getFileHandle(databasePath, flag, vfs, context);
     }
     if (dataFH->getNumPages() == 0) {
         // Reserve the first page for the database header.
@@ -56,8 +55,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
         return;
     }
     const auto vfs = clientContext.getVFSUnsafe();
-    const auto walFilePath =
-        vfs->joinPath(clientContext.getDatabasePath(), StorageConstants::WAL_FILE_SUFFIX);
+    const auto walFilePath = StorageUtils::getWALFilePath(clientContext.getDatabasePath());
     if (!vfs->fileOrPathExists(walFilePath, &clientContext)) {
         return;
     }
@@ -83,8 +81,8 @@ void StorageManager::createRelTableGroup(const RelGroupCatalogEntry* entry,
     const main::ClientContext* context) {
     for (const auto id : entry->getRelTableIDs()) {
         createRelTable(context->getCatalog()
-                           ->getTableCatalogEntry(context->getTransaction(), id)
-                           ->ptrCast<RelTableCatalogEntry>());
+                ->getTableCatalogEntry(context->getTransaction(), id)
+                ->ptrCast<RelTableCatalogEntry>());
     }
 }
 

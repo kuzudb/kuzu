@@ -89,8 +89,8 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig,
 
 std::unique_ptr<BufferManager> Database::initBufferManager(const Database& db) {
     return std::make_unique<BufferManager>(db.databasePath,
-        db.vfs->joinPath(db.databasePath, StorageConstants::TEMP_SPILLING_FILE_NAME),
-        db.dbConfig.bufferPoolSize, db.dbConfig.maxDBSize, db.vfs.get(), db.dbConfig.readOnly);
+        StorageUtils::getTmpFilePath(db.databasePath), db.dbConfig.bufferPoolSize,
+        db.dbConfig.maxDBSize, db.vfs.get(), db.dbConfig.readOnly);
 }
 
 void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFunc) {
@@ -149,7 +149,7 @@ std::vector<StorageExtension*> Database::getStorageExtensions() {
 void Database::openLockFile() {
     int flags = 0;
     FileLockType lock{};
-    auto lockFilePath = StorageUtils::getLockFilePath(vfs.get(), databasePath);
+    auto lockFilePath = StorageUtils::getLockFilePath(databasePath);
     if (!vfs->fileOrPathExists(lockFilePath)) {
         getLockFileFlagsAndType(dbConfig.readOnly, true, flags, lock);
     } else {
@@ -171,7 +171,6 @@ void Database::initAndLockDBDir() {
         if (dbConfig.readOnly) {
             throw Exception("Cannot create an empty database under READ ONLY mode.");
         }
-        vfs->createDir(databasePath);
     }
     openLockFile();
 }

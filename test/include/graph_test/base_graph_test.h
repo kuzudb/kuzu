@@ -13,13 +13,13 @@ namespace kuzu {
 namespace testing {
 
 static void removeDir(const std::string& dir) {
-    if (std::filesystem::exists(dir)) {
-        std::error_code removeErrorCode;
-        if (!std::filesystem::remove_all(dir, removeErrorCode)) {
-            throw common::Exception(common::stringFormat(
-                "Error removing directory {}.  Error Message: {}", dir, removeErrorCode.message()));
-        }
-    }
+    // if (std::filesystem::exists(dir)) {
+    //     std::error_code removeErrorCode;
+    //     if (!std::filesystem::remove_all(dir, removeErrorCode)) {
+    //         throw common::Exception(common::stringFormat(
+    //             "Error removing directory {}.  Error Message: {}", dir, removeErrorCode.message()));
+    //     }
+    // }
 }
 
 class BaseGraphTest : public Test {
@@ -27,7 +27,7 @@ public:
     void SetUp() override {
         systemConfig = TestHelper::getSystemConfigFromEnv();
         setDatabasePath();
-        removeDir(databasePath);
+        // removeDir(databasePath);
 
         ieDBPath = "";
     }
@@ -38,9 +38,9 @@ public:
         conn.reset();
         connMap.clear();
         database.reset();
-        if (!inMemMode) {
-            std::filesystem::remove_all(databasePath);
-        }
+        // if (!inMemMode) {
+            // std::filesystem::remove_all(databasePath);
+        // }
     }
 
     void createDBAndConn();
@@ -55,7 +55,7 @@ public:
         if (ieDBPath != "") {
             const auto lastSlashPos = ieDBPath.rfind('/');
             const auto deletePath = ieDBPath.substr(0, lastSlashPos);
-            removeDir(deletePath);
+            // removeDir(deletePath);
         }
     }
 

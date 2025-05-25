@@ -29,7 +29,7 @@ class WAL {
     friend class WALReplayer;
 
 public:
-    WAL(const std::string& directory, bool readOnly, common::VirtualFileSystem* vfs,
+    WAL(const std::string& dbPath, bool readOnly, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
 
     ~WAL();
@@ -86,9 +86,7 @@ private:
     std::unordered_set<common::table_id_t> updatedTables;
     std::unique_ptr<common::FileInfo> fileInfo;
     std::shared_ptr<common::BufferedFileWriter> bufferedWriter;
-    std::string directory;
     std::mutex mtx;
-    common::VirtualFileSystem* vfs;
 };
 
 } // namespace storage

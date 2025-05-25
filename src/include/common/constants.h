@@ -64,16 +64,10 @@ struct BufferPoolConstants {
 };
 
 struct StorageConstants {
-    static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     static constexpr char SHADOWING_SUFFIX[] = ".shadow";
-    static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
-    static constexpr char CATALOG_FILE_NAME[] = "catalog.kz";
-    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.shadow";
-    static constexpr char DATA_FILE_NAME[] = "data.kz";
-    static constexpr char METADATA_FILE_NAME[] = "metadata.kz";
-    static constexpr char METADATA_FILE_NAME_FOR_WAL[] = "metadata.shadow";
-    static constexpr char LOCK_FILE_NAME[] = ".lock";
+    static constexpr char LOCK_FILE_SUFFIX[] = ".lock";
+    static constexpr char TEMP_FILE_SUFFIX[] = ".tmp";
 
     // The number of pages that we add at one time when we need to grow a file.
     static constexpr uint64_t PAGE_GROUP_SIZE_LOG2 = 10;
@@ -85,8 +79,6 @@ struct StorageConstants {
     static constexpr double LEAF_HIGH_CSR_DENSITY = 1.0;
 
     static constexpr uint64_t MAX_NUM_ROWS_IN_TABLE = static_cast<uint64_t>(1) << 62;
-
-    static constexpr char TEMP_SPILLING_FILE_NAME[] = ".tmp";
 };
 
 struct TableOptionConstants {
