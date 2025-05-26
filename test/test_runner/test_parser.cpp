@@ -176,11 +176,11 @@ void TestParser::extractExpectedResults(TestStatement* statement) {
             setCursorToPreviousLine();
             return;
         }
-        statement->result.push_back(extractExpectedResultFromToken(statement->checkOutputOrder));
+        statement->result.push_back(extractExpectedResultFromToken());
     } while (nextLine());
 }
 
-TestQueryResult TestParser::extractExpectedResultFromToken(bool checkOutputOrder) {
+TestQueryResult TestParser::extractExpectedResultFromToken() {
     checkMinimumParams(1);
     const std::string result = currentToken.params[1];
     TestQueryResult queryResult;
@@ -216,9 +216,6 @@ TestQueryResult TestParser::extractExpectedResultFromToken(bool checkOutputOrder
                 nextLine();
                 replaceVariables(line);
                 queryResult.expectedResult.push_back(line);
-            }
-            if (!checkOutputOrder) { // order is not important for result
-                sort(queryResult.expectedResult.begin(), queryResult.expectedResult.end());
             }
         }
     }

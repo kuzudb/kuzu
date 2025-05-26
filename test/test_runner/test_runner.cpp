@@ -130,9 +130,6 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
             spdlog::info("    FOUND {} TUPLES IN ANSWER FILE.", testAnswer.expectedResult.size());
             return;
         }
-        if (!statement->checkOutputOrder) {
-            std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
-        }
     }
     std::vector<std::string> resultTuples =
         convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
@@ -158,21 +155,26 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
             << "CHECK_ORDER MUST BE ENABLED FOR CHECK_PRECISION";
         EXPECT_TRUE(resultTuples.size() == testAnswer.numTuples);
         ASSERT_TRUE(TestRunner::checkResultNumeric(*result, statement, resultIdx));
-    } else if (resultTuples == testAnswer.expectedResult) {
-        spdlog::info("QUERY PASSED.");
     } else {
-        outputFailedPlan(conn, statement);
-        if (resultTuples.size() == testAnswer.numTuples) {
-            for (auto& tuple : resultTuples) {
-                spdlog::info(tuple);
-            }
-            for (auto i = 0u; i < resultTuples.size(); i++) {
-                EXPECT_EQ(resultTuples[i], testAnswer.expectedResult[i])
-                    << "Result tuple at index " << i << " did not match the expected value";
-            }
+        if (!statement->checkOutputOrder) {
+            std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
+        }
+        if (resultTuples == testAnswer.expectedResult) {
+            spdlog::info("QUERY PASSED.");
         } else {
-            EXPECT_EQ(resultTuples.size(), actualNumTuples);
-            ASSERT_EQ(resultTuples, testAnswer.expectedResult);
+            outputFailedPlan(conn, statement);
+            if (resultTuples.size() == testAnswer.numTuples) {
+                for (auto& tuple : resultTuples) {
+                    spdlog::info(tuple);
+                }
+                for (auto i = 0u; i < resultTuples.size(); i++) {
+                    EXPECT_EQ(resultTuples[i], testAnswer.expectedResult[i])
+                        << "Result tuple at index " << i << " did not match the expected value";
+                }
+            } else {
+                EXPECT_EQ(resultTuples.size(), actualNumTuples);
+                ASSERT_EQ(resultTuples, testAnswer.expectedResult);
+            }
         }
     }
 }
@@ -202,7 +204,13 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
             std::vector<std::string> resultTuples = convertResultToString(*result,
                 statement->checkOutputOrder, statement->checkColumnNames);
 
-            for (auto res : resultTuples) {
+            auto expectedResultUnordered = testAnswer.expectedResult;
+            if (!statement->checkOutputOrder) {
+                std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
+            }
+            auto& output  = resultTuples == testAnswer.expectedResult ? expectedResultUnordered : resultTuples;
+
+            for (auto& res : output) {
                 statement->newOutput += res + '\n';
             }
         } break;

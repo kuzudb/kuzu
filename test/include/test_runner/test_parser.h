@@ -119,7 +119,7 @@ private:
     void parseHeader();
     void parseBody();
     void extractExpectedResults(TestStatement* statement);
-    TestQueryResult extractExpectedResultFromToken(bool checkOutputOrder);
+    TestQueryResult extractExpectedResultFromToken();
     void extractStatementBlock();
     void extractDataset();
     void addStatementBlock(const std::string& blockName, const std::string& testCaseName) const;
