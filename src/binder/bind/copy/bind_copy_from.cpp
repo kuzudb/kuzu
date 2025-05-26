@@ -115,7 +115,7 @@ BoundCopyFromInfo Binder::bindCopyNodeFromInfo(std::string tableName,
     columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    return BoundCopyFromInfo(tableName, std::move(boundSource), std::move(offset),
+    return BoundCopyFromInfo(tableName, TableType::NODE, std::move(boundSource), std::move(offset),
         std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
 }
 
@@ -133,6 +133,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         bindCopyNodeFromInfo(nodeTableEntry->getName(), nodeTableEntry->getProperties(),
             copyStatement.getSource(), copyStatement.getParsingOptions(), expectedColumnNames,
             expectedColumnTypes, copyStatement.byColumn());
+    boundCopyFromInfo.tableEntry = nodeTableEntry;
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -149,33 +150,21 @@ static options_t getScanSourceOptions(const CopyFrom& copyFrom) {
     return options;
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& statement,
-    RelTableCatalogEntry* relTableEntry) {
-    auto& copyStatement = statement.constCast<CopyFrom>();
-    if (copyStatement.byColumn()) {
-        throw BinderException(
-            stringFormat("Copy by column is not supported for relationship table."));
-    }
-    // Bind expected columns based on catalog information.
-    std::vector<std::string> expectedColumnNames;
-    std::vector<LogicalType> expectedColumnTypes;
-    bindExpectedRelColumns(relTableEntry, copyStatement.getCopyColumnInfo(), expectedColumnNames,
-        expectedColumnTypes, clientContext);
-    auto boundSource = bindScanSource(copyStatement.getSource(),
-        getScanSourceOptions(copyStatement), expectedColumnNames, expectedColumnTypes);
+BoundCopyFromInfo Binder::bindCopyRelFromInfo(std::string tableName,
+    const std::vector<PropertyDefinition>& properties, const BaseScanSource* source,
+    const options_t& options, const std::vector<std::string>& expectedColumnNames,
+    const std::vector<LogicalType>& expectedColumnTypes, table_id_t srcTableID,
+    table_id_t dstTableID) {
+    auto boundSource = bindScanSource(source, options, expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     auto columns = boundSource->getColumns();
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    auto srcTableID = relTableEntry->getSrcTableID();
-    auto dstTableID = relTableEntry->getDstTableID();
-
     auto srcOffset = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalType::INT64());
     auto dstOffset = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalType::INT64());
     expression_vector columnExprs{srcOffset, dstOffset, offset};
     std::vector<ColumnEvaluateType> evaluateTypes{ColumnEvaluateType::REFERENCE,
         ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE};
-    auto properties = relTableEntry->getProperties();
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         auto& property = properties[i];
         auto [evaluateType, column] =
@@ -201,8 +190,29 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     auto internalIDColumnIndices = std::vector<idx_t>{0, 1, 2};
     auto extraCopyRelInfo =
         std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
-    auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset,
+    return BoundCopyFromInfo(tableName, TableType::REL, boundSource->copy(), offset,
         std::move(columnExprs), std::move(evaluateTypes), std::move(extraCopyRelInfo));
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& statement,
+    RelTableCatalogEntry* relTableEntry) {
+    auto& copyStatement = statement.constCast<CopyFrom>();
+    if (copyStatement.byColumn()) {
+        throw BinderException(
+            stringFormat("Copy by column is not supported for relationship table."));
+    }
+    // Bind expected columns based on catalog information.
+    std::vector<std::string> expectedColumnNames;
+    std::vector<LogicalType> expectedColumnTypes;
+    bindExpectedRelColumns(relTableEntry, copyStatement.getCopyColumnInfo(), expectedColumnNames,
+        expectedColumnTypes, clientContext);
+    auto srcTableID = relTableEntry->getSrcTableID();
+    auto dstTableID = relTableEntry->getDstTableID();
+    auto boundCopyFromInfo =
+        bindCopyRelFromInfo(relTableEntry->getName(), relTableEntry->getProperties(),
+            copyStatement.getSource(), getScanSourceOptions(copyStatement), expectedColumnNames,
+            expectedColumnTypes, srcTableID, dstTableID);
+    boundCopyFromInfo.tableEntry = relTableEntry;
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
