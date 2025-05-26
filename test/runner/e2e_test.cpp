@@ -186,7 +186,7 @@ public:
                         newFile += statement->newOutput;
                         std::streampos lastPos;
                         while(lastPos = file.tellg(), getline(file, currLine)) {
-                            if (currLine.empty() || (!currLine.starts_with("--") && currLine.starts_with("-")) || currLine.starts_with("#"))
+                            if (currLine.empty() || (currLine.starts_with("-") && !currLine.starts_with("--")) || currLine.starts_with("#"))
                             {
                                 file.seekg(lastPos);
                                 break;
@@ -254,7 +254,7 @@ public:
                         // start of statement/case, or comment is found
                         std::streampos lastPos;
                         while(lastPos = file.tellg(), getline(file, currLine)) {
-                            if (currLine.empty() || (!currLine.starts_with("--") && currLine.starts_with("-")) || currLine.starts_with("#"))
+                            if (currLine.empty() || (currLine.starts_with("-") && !currLine.starts_with("--")) || currLine.starts_with("#"))
                             {
                                 file.seekg(lastPos);
                                 break;
