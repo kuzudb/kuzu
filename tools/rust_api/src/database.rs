@@ -176,7 +176,10 @@ mod tests {
         {
             Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         }
-        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS.read_only(true))?;
+        let db = Database::new(
+            temp_dir.path().join("test"),
+            SYSTEM_CONFIG_FOR_TESTS.read_only(true),
+        )?;
         let conn = Connection::new(&db)?;
         let result: Error = conn
             .query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
@@ -201,8 +204,11 @@ mod tests {
             )?;
         }
         {
-            Database::new(temp_dir.path().join("test"), SystemConfig::default().max_db_size(0))
-                .expect_err("0 is not a valid max DB size");
+            Database::new(
+                temp_dir.path().join("test"),
+                SystemConfig::default().max_db_size(0),
+            )
+            .expect_err("0 is not a valid max DB size");
         }
         Ok(())
     }
