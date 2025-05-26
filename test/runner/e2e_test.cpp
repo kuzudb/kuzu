@@ -240,11 +240,11 @@ public:
                         newFile += statement->newOutput;
 
                         // Ignore the expected error message. 
-                        // That is, continue reading lines until one with a '-'
-                        // prefix is found.
+                        // That is, continue reading lines until the empty line
+                        // or one with a '-' prefix is found.
                         std::streampos lastPos;
                         while(lastPos = file.tellg(), getline(file, currLine)) {
-                            if (currLine.starts_with("-"))
+                            if (currLine.empty() || currLine.starts_with("-"))
                             {
                                 file.seekg(lastPos);
                                 break;
