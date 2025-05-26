@@ -12,7 +12,7 @@ struct ChunkedCSRHeader;
 
 namespace processor {
 
-struct RelBatchInsertPrintInfo final : OPPrintInfo {
+struct KUZU_API RelBatchInsertPrintInfo final : OPPrintInfo {
     std::string tableName;
 
     explicit RelBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
@@ -28,26 +28,21 @@ private:
         : OPPrintInfo(other), tableName(other.tableName) {}
 };
 
-struct RelBatchInsertProgressSharedState {
+struct KUZU_API RelBatchInsertProgressSharedState {
     std::atomic<uint64_t> partitionsDone;
     uint64_t partitionsTotal;
 
     RelBatchInsertProgressSharedState() : partitionsDone{0}, partitionsTotal{0} {};
 };
 
-struct RelBatchInsertInfo final : BatchInsertInfo {
+struct KUZU_API RelBatchInsertInfo final : BatchInsertInfo {
     common::RelDataDirection direction;
-    uint64_t partitioningIdx;
-    common::column_id_t boundNodeOffsetColumnID;
+    uint64_t partitioningIdx = UINT64_MAX;
+    common::column_id_t boundNodeOffsetColumnID = common::INVALID_COLUMN_ID;
 
-    RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        common::RelDataDirection direction, uint64_t partitioningIdx,
-        common::column_id_t offsetColumnID, std::vector<common::column_id_t> columnIDs,
-        std::vector<common::LogicalType> columnTypes, common::column_id_t numWarningDataColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled, std::move(columnIDs),
-              std::move(columnTypes), numWarningDataColumns},
-          direction{direction}, partitioningIdx{partitioningIdx},
-          boundNodeOffsetColumnID{offsetColumnID} {}
+    RelBatchInsertInfo(std::string tableName, std::vector<common::LogicalType> warningColumnTypes,
+        common::RelDataDirection direction)
+        : BatchInsertInfo{tableName, std::move(warningColumnTypes)}, direction{direction} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
         : BatchInsertInfo{other}, direction{other.direction},
           partitioningIdx{other.partitioningIdx},
@@ -63,15 +58,14 @@ struct RelBatchInsertLocalState final : BatchInsertLocalState {
     std::unique_ptr<common::DataChunk> dummyAllNullDataChunk;
 };
 
-class RelBatchInsert final : public BatchInsert {
+class KUZU_API RelBatchInsert final : public BatchInsert {
 public:
-    RelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
+    RelBatchInsert(std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
-        : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState), id,
-              std::move(printInfo)},
+        : BatchInsert{std::move(info), std::move(sharedState), id, std::move(printInfo)},
           partitionerSharedState{std::move(partitionerSharedState)},
           progressSharedState{std::move(progressSharedState)} {}
 
@@ -84,8 +78,8 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<RelBatchInsert>(tableName, info->copy(), partitionerSharedState,
-            sharedState, id, printInfo->copy(), progressSharedState);
+        return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState, sharedState,
+            id, printInfo->copy(), progressSharedState);
     }
 
     void updateProgress(const ExecutionContext* context) const;

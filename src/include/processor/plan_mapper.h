@@ -70,14 +70,6 @@ public:
         std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
         physical_op_vector_t children);
 
-    static KUZU_API std::unique_ptr<PhysicalOperator> createRelBatchInsertOp(
-        const main::ClientContext* clientContext,
-        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
-        std::shared_ptr<BatchInsertSharedState> sharedState,
-        const binder::BoundCopyFromInfo& copyFromInfo, planner::Schema* outFSchema,
-        common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
-        std::vector<common::LogicalType> columnTypes, uint32_t operatorID);
-
     KUZU_API std::unique_ptr<PhysicalOperator> mapOperator(
         const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAccumulate(
