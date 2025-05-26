@@ -89,17 +89,41 @@ public:
         }
     }
 
-    // This routine is called when E2E_REWRITE_TESTS=1 (or equivalent)
+    // This function collaples multiple repeating space characters into a
+    // single space character.
+    // This was required since in parsing for reWriteTests there were inexplicable
+    // differences in whitespace causing erroneous errors
+
+    std::string normalize(const std::string& s) {
+        std::string result;
+        bool in_space = false;
+        for (char c : s) {
+            if (std::isspace(static_cast<unsigned char>(c))) {
+                if (!in_space) {
+                    result += ' ';
+                    in_space = true;
+                }
+            } else {
+                result += c;
+                in_space = false;
+            }
+        }
+        return result;
+    }
+
+
+    // This routine is called when E2E_REWRITE_TESTS=1 (or equivalent).
     // Note that this is a very inefficient implementation of the rewrite
-    // functionality we want the runner to have
+    // functionality we want the runner to have.
     // 1) the testStatements vector container does not contain ALL
     // tests specified in the file
     // Rather, it is all tests under the CASE testInfo->name()
     // We must find this case before we start replacing outputs
-    // See parseAndRegisterFileGroup()
-    // 2) The TearDown function which invokes this routine is called after every
+    // See parseAndRegisterFileGroup().
+    // 2) The TearDown function which invokes this routine is called every time
     // case has completed running. i.e for every case in a test file the same
-    // test file is written. This is inefficient and NOT thread safe
+    // test file is rewritten to. This is inefficient and NOT thread safe (we
+    // must pass the flag TEST_JOBS=1).
 
     void reWriteTests() {
         std::fstream file;
@@ -126,6 +150,9 @@ public:
                 }
 
                 std::string stmt = currLine;
+
+                // "----" is the prefix to a result specifer, it also indicates
+                // the end of a statement
                 while (getline(file, currLine)) {
                     if (currLine.starts_with("----")) {
                         break;
@@ -134,33 +161,12 @@ public:
                     stmt += currLine;
                 }
 
-                // This lambda collaples multiple repeating space characters into a
-                // single space character.
-                // This was required since in parsing there were inexplicable
-                // differences in whitespace causing erroneous errors
-                // Since it is a small function and not needed else where it was
-                // implemented as a lambda.
 
-                auto normalize = [](const std::string& s) {
-                    std::string result;
-                    bool in_space = false;
-                    for (char c : s) {
-                        if (std::isspace(static_cast<unsigned char>(c))) {
-                            if (!in_space) {
-                                result += ' ';
-                                in_space = true;
-                            }
-                        } else {
-                            result += c;
-                            in_space = false;
-                        }
-                    }
-                    return result;
-                };
-
+                // for the case of multiple connections
+                // statement->query does not indicate the connName, we must add
+                // it if need be
                 std::string connName;
-                if (statement->connName.has_value() && statement->connName.value() != "conn_default")
-                {
+                if (statement->connName.has_value() && statement->connName.value() != "conn_default") {
                     connName = "[" + statement->connName.value() + "] ";
                 }
 
@@ -171,6 +177,10 @@ public:
                 }
 
                 else {
+                    // This switch statement contains examples on the different
+                    // types of testResultTypes. All cases are handled in a
+                    // similar manner; we ignore the expected output and add the
+                    // produced output instead.
                     switch (statement->testResultType) {
                     // Success results don't need anything after the dashes
                     // -STATEMENT CREATE NODE TABLE  Person (ID INT64, PRIMARY KEY (ID));
@@ -213,8 +223,9 @@ public:
                             // updated count of tuples
                             newFile += statement->newOutput;
                         } catch (...) {
-                            // Could not overwrite expected result
-                            // error in parsing expected tuples
+                            // Could not overwrite the expected result.
+                            // There was an error in parsing expected tuples.
+                            // We are keeping the expected result as is.
                             newFile += currLine + '\n';
                         }
                     } break;
@@ -222,25 +233,26 @@ public:
                     // ---- 5001
                     // <FILE>:file_with_answers.txt
                     case ResultType::CSV_FILE:
-                        // not supported yet
+                        // Not supported yet
                         { newFile += currLine + '\n'; }
                         break;
-                    // # Expects error message
+                    // Expects error message
                     // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
                     // ---- error
                     // Error: Binder exception: Variable intended is not in scope.
                     case ResultType::ERROR_MSG: {
                         // add the actual ouput (result and error message)
+                        
                         newFile += statement->newOutput;
-                        int tmp = -1;
-                        for (auto c : statement->newOutput) {
-                            if (c == '\n') {
-                                tmp++;
-                            }
-                        }
+
                         // ignore the expected error message
-                        for (int i = 0; i < tmp; ++i) {
-                            getline(file, currLine);
+                        std::streampos lastPos;
+                        while(lastPos = file.tellg(), getline(file, currLine)) {
+                            if (currLine.starts_with("-"))
+                            {
+                                file.seekg(lastPos);
+                                break;
+                            }
                         }
                     } break;
                     // # Expects regex-matching error message
@@ -339,9 +351,8 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
                     testStatements = std::move(testStatements), testCaseName]() mutable -> DBTest* {
                     decltype(testStatements) testStatementsCopy;
                     for (const auto& testStatement : testStatements) {
-                        testStatementsCopy
-                            .emplace_back(std::make_unique<TestStatement>(*testStatement))
-                            ->testCase = testCaseName;
+                        testStatementsCopy .emplace_back(std::make_unique<TestStatement>(*testStatement));
+                        testStatementsCopy.back()->testCase = testCaseName;
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
                         checkpointWaitTimeout, connNames, std::move(testStatementsCopy), path);
