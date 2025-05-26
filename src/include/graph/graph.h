@@ -19,12 +19,16 @@ class Transaction;
 
 namespace graph {
 struct GraphEntry;
-struct NbrTableInfo {
-    catalog::TableCatalogEntry* nodeEntry;
-    catalog::TableCatalogEntry* relEntry;
 
-    NbrTableInfo(catalog::TableCatalogEntry* nodeEntry, catalog::TableCatalogEntry* relEntry)
-        : nodeEntry{nodeEntry}, relEntry{relEntry} {}
+struct GraphRelInfo {
+    common::table_id_t srcTableID;
+    common::table_id_t dstTableID;
+    catalog::TableCatalogEntry* relGroupEntry;
+    common::oid_t relTableID;
+
+    GraphRelInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
+        catalog::TableCatalogEntry* relGroupEntry, common::oid_t relTableID)
+        : srcTableID{srcTableID}, dstTableID{dstTableID}, relGroupEntry {relGroupEntry}, relTableID{relTableID} {}
 };
 
 class KUZU_API NbrScanState {
@@ -192,13 +196,12 @@ public:
     // Get num nodes for all node tables.
     virtual common::offset_t getNumNodes(transaction::Transaction* transaction) const = 0;
 
-    // Get all possible forward (toNodeTable, relTable)s.
-    virtual std::vector<NbrTableInfo> getForwardNbrTableInfos(
-        common::table_id_t srcNodeTableID) = 0;
+    // Get all possible (srcTable, dstTable, relTable)s.
+    virtual std::vector<GraphRelInfo> getRelInfos(common::table_id_t srcTableID) = 0;
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
-    virtual std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* relEntry,
-        catalog::TableCatalogEntry* nbrNodeEntry, std::vector<std::string> relProperties) = 0;
+    virtual std::unique_ptr<NbrScanState> prepareRelScan(const catalog::TableCatalogEntry& entry,
+        common::oid_t relTableID, common::table_id_t nbrTableID, std::vector<std::string> relProperties) = 0;
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
     virtual EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) = 0;

@@ -27,9 +27,9 @@ class OnDiskGraphNbrScanState : public NbrScanState {
     friend class OnDiskGraph;
 
 public:
-    OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+    OnDiskGraphNbrScanState(main::ClientContext* context, const catalog::TableCatalogEntry& entry, common::oid_t relTableID,
         std::shared_ptr<binder::Expression> predicate);
-    OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+    OnDiskGraphNbrScanState(main::ClientContext* context, const catalog::TableCatalogEntry& entry, common::oid_t relTableID,
         std::shared_ptr<binder::Expression> predicate, std::vector<std::string> relProperties,
         bool randomLookup = false);
 
@@ -143,13 +143,10 @@ public:
 
     common::offset_t getNumNodes(transaction::Transaction* transaction) const override;
 
-    std::vector<NbrTableInfo> getForwardNbrTableInfos(common::table_id_t srcNodeTableID) override;
+    std::vector<GraphRelInfo> getRelInfos(common::table_id_t srcTableID) override;
 
-    std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,
-        catalog::TableCatalogEntry* nbrNodeEntry, std::vector<std::string> relProperties) override;
-    // This is used for few random lookups in the relationship table. Internally we skip caching the
-    // CSR header during scan.
-    std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry) const;
+    std::unique_ptr<NbrScanState> prepareRelScan(const catalog::TableCatalogEntry& entry,
+        common::oid_t relTableID, common::table_id_t nbrTableID, std::vector<std::string> relProperties) override;
 
     EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) override;
     EdgeIterator scanBwd(common::nodeID_t nodeID, NbrScanState& state) override;
@@ -164,7 +161,7 @@ private:
     GraphEntry graphEntry;
     common::NodeOffsetMaskMap* nodeOffsetMaskMap = nullptr;
     common::table_id_map_t<storage::NodeTable*> nodeIDToNodeTable;
-    common::table_id_map_t<std::vector<NbrTableInfo>> nodeIDToNbrTableInfos;
+    std::vector<GraphRelInfo> relInfos;
 };
 
 } // namespace graph

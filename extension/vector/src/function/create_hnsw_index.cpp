@@ -146,14 +146,14 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     auto nodeTableID = nodeTable->getTableID();
     auto upperRelTableEntry =
         clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
-            HNSWIndexUtils::getUpperGraphTableName(nodeTableID, indexName));
+            HNSWIndexUtils::getUpperGraphTableName(nodeTableID, indexName))->ptrCast<catalog::RelGroupCatalogEntry>();
     auto upperRelTable =
-        storageManager->getTable(upperRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
+        storageManager->getTable(upperRelTableEntry->getSingleRelEntryInfo().oid)->ptrCast<storage::RelTable>();
     auto lowerRelTableEntry =
         clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
-            HNSWIndexUtils::getLowerGraphTableName(nodeTableID, indexName));
+            HNSWIndexUtils::getLowerGraphTableName(nodeTableID, indexName))->ptrCast<catalog::RelGroupCatalogEntry>();
     auto lowerRelTable =
-        storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
+        storageManager->getTable(lowerRelTableEntry->getSingleRelEntryInfo().oid)->ptrCast<storage::RelTable>();
     // Initialize partitioner shared state.
     const auto partitionerSharedState = finalizeFuncSharedState->partitionerSharedState;
     partitionerSharedState->setTables(nodeTable, upperRelTable);
