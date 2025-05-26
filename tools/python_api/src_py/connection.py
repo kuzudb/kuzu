@@ -179,12 +179,12 @@ class Connection:
 
         """
         warnings.warn(
-            "Separate prepare + execute of queries is deprecated. "
+            "The use of separate prepare + execute of queries is deprecated. "
             "Please using a single call to the execute() API instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self._prepare(self, query, parameters)
+        return self._prepare(query, parameters)
 
     def _get_node_property_names(self, table_name: str) -> dict[str, Any]:
         LIST_START_SYMBOL = "["

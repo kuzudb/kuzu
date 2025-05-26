@@ -206,12 +206,12 @@ class AsyncConnection:
 
         """
         warnings.warn(
-            "Separate prepare + execute of queries is deprecated. "
+            "The use of separate prepare + execute of queries is deprecated. "
             "Please using a single call to the execute() API instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self._prepare(query, parameters)
+        return await self._prepare(query, parameters)
 
     def close(self) -> None:
         """
