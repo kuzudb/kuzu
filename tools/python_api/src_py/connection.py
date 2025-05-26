@@ -129,7 +129,7 @@ class Connection:
         if len(parameters) == 0 and isinstance(query, str):
             _query_result = self._connection.query(query)
         else:
-            prepared_statement = self.prepare(query, parameters) if isinstance(query, str) else query
+            prepared_statement = self._prepare(query, parameters) if isinstance(query, str) else query
             _query_result = self._connection.execute(prepared_statement._prepared_statement, parameters)
         if not _query_result.isSuccess():
             raise RuntimeError(_query_result.getErrorMessage())
@@ -144,6 +144,20 @@ class Connection:
             all_query_results.append(QueryResult(self, _query_result))
         return all_query_results
 
+    def _prepare(
+        self,
+        query: str,
+        parameters: dict[str, Any] | None = None,
+    ) -> PreparedStatement:
+        """
+        The only parameters supported during prepare are dataframes.
+        Any remaining parameters will be ignored and should be passed to execute().
+        """
+        return PreparedStatement(self, query, parameters)
+
+    @DeprecationWarning(
+        "Separate prepare + execute of queries is deprecate. Please using a single call to the execute() API instead."
+    )
     def prepare(
         self,
         query: str,
@@ -166,7 +180,7 @@ class Connection:
             Prepared statement.
 
         """
-        return PreparedStatement(self, query, parameters)
+        return _prepare(self, query, parameters)
 
     def _get_node_property_names(self, table_name: str) -> dict[str, Any]:
         LIST_START_SYMBOL = "["
