@@ -1,8 +1,8 @@
 #pragma once
 
 #include "binder/binder.h"
-#include "connector/connector_factory.h"
 #include "connector/azure_connector.h"
+#include "connector/connector_factory.h"
 #include "connector/duckdb_result_converter.h"
 #include "connector/duckdb_type_converter.h"
 #include "function/table/table_function.h"

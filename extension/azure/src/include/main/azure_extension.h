@@ -15,4 +15,3 @@ public:
 
 } // namespace azure_extension
 } // namespace kuzu
-
