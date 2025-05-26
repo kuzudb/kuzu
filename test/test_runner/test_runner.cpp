@@ -180,43 +180,41 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
 void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size_t resultIdx) {
     TestQueryResult& testAnswer = statement->result[resultIdx];
     statement->testResultType = testAnswer.type;
-    std::string newOutput;
     switch (testAnswer.type) {
-    case ResultType::OK: {
-        newOutput +=
-            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
-        if (!result->isSuccess())
-            newOutput += result->getErrorMessage() + '\n';
-    } break;
-    case ResultType::HASH: {
-        std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
-            statement->checkColumnNames);
-        newOutput +=
-            std::to_string(result->getNumTuples()) + " tuples hashed to " + resultHash + '\n';
-    } break;
-    case ResultType::TUPLES: {
-        newOutput +=
-            "---- " + std::to_string(result->getNumTuples() + statement->checkColumnNames) + '\n';
-        std::vector<std::string> resultTuples = convertResultToString(*result,
-            statement->checkOutputOrder, statement->checkColumnNames);
-        for (auto res : resultTuples) {
-            newOutput += res + '\n';
-        }
-    } break;
-    case ResultType::CSV_FILE:
-        // not supported yet
-        return;
-    case ResultType::ERROR_MSG: {
-        newOutput +=
-            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
-        newOutput += result->getErrorMessage() + '\n';
-    } break;
-    case ResultType::ERROR_REGEX: {
-        newOutput += "---- " +
-                     (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) + '\n';
-    } break;
+        case ResultType::OK: {
+            statement->newOutput +=
+                "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+            if (!result->isSuccess())
+                statement->newOutput += result->getErrorMessage() + '\n';
+        } break;
+        case ResultType::HASH: {
+            std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
+                statement->checkColumnNames);
+            statement->newOutput +=
+                std::to_string(result->getNumTuples()) + " tuples hashed to " + resultHash + '\n';
+        } break;
+        case ResultType::TUPLES: {
+            statement->newOutput +=
+                "---- " + std::to_string(result->getNumTuples() + statement->checkColumnNames) + '\n';
+            std::vector<std::string> resultTuples = convertResultToString(*result,
+                statement->checkOutputOrder, statement->checkColumnNames);
+            for (auto res : resultTuples) {
+                statement->newOutput += res + '\n';
+            }
+        } break;
+        case ResultType::CSV_FILE:
+            // not supported yet
+            return;
+        case ResultType::ERROR_MSG: {
+            statement->newOutput +=
+                "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+            statement->newOutput += result->getErrorMessage() + '\n';
+        } break;
+        case ResultType::ERROR_REGEX: {
+            statement->newOutput += "---- " +
+                         (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) + '\n';
+        } break;
     }
-    statement->newOutput += newOutput;
 }
 
 void TestRunner::outputFailedPlan(Connection& conn, const TestStatement* statement) {
