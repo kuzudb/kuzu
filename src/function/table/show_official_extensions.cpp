@@ -17,6 +17,7 @@ static constexpr std::pair<std::string_view, std::string_view> extensions[] = {
     {"DUCKDB", "Adds support for reading from duckdb tables"},
     {"FTS", "Adds support for full-text search indexes"},
     {"ICEBERG", "Adds support for reading from iceberg tables"},
+    {"AZURE", "Adds support for reading from azure blob storage"},
     {"JSON", "Adds support for JSON operations"},
     {"POSTGRES", "Adds support for reading from POSTGRES tables"},
     {"SQLITE", "Adds support for reading from SQLITE tables"},
