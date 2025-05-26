@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import threading
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 
@@ -187,9 +188,6 @@ class AsyncConnection:
         finally:
             self.__decrement_connection_counter(conn_index)
 
-    @DeprecationWarning(
-        "Separate prepare + execute of queries is deprecate. Please using a single call to the execute() API instead."
-    )
     async def prepare(self, query: str, parameters: dict[str, Any] | None = None) -> PreparedStatement:
         """
         Create a prepared statement for a query asynchronously.
@@ -207,6 +205,12 @@ class AsyncConnection:
             Prepared statement.
 
         """
+        warnings.warn(
+            "Separate prepare + execute of queries is deprecated. "
+            "Please using a single call to the execute() API instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._prepare(query, parameters)
 
     def close(self) -> None:

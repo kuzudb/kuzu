@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Any, Callable
 
 from . import _kuzu
@@ -155,9 +156,6 @@ class Connection:
         """
         return PreparedStatement(self, query, parameters)
 
-    @DeprecationWarning(
-        "Separate prepare + execute of queries is deprecate. Please using a single call to the execute() API instead."
-    )
     def prepare(
         self,
         query: str,
@@ -180,7 +178,13 @@ class Connection:
             Prepared statement.
 
         """
-        return _prepare(self, query, parameters)
+        warnings.warn(
+            "Separate prepare + execute of queries is deprecated. "
+            "Please using a single call to the execute() API instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._prepare(self, query, parameters)
 
     def _get_node_property_names(self, table_name: str) -> dict[str, Any]:
         LIST_START_SYMBOL = "["
