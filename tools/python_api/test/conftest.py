@@ -191,7 +191,7 @@ def async_connection_readonly(tmp_path: Path) -> kuzu.AsyncConnection:
     if _READONLY_ASYNC_CONNECTION_ is None:
         conn, db = create_conn_db(init_db(tmp_path), read_only=True)
         conn.close()
-        _READONLY_ASYNC_CONNECTION_ = kuzu.AsyncConnection(db)
+        _READONLY_ASYNC_CONNECTION_ = kuzu.AsyncConnection(db, max_threads_per_query=4)
     return _READONLY_ASYNC_CONNECTION_
 
 
@@ -200,7 +200,7 @@ def async_connection_readwrite(tmp_path: Path) -> kuzu.AsyncConnection:
     """Return a writeable async connection."""
     conn, db = create_conn_db(init_db(tmp_path), read_only=False)
     conn.close()
-    return kuzu.AsyncConnection(db)
+    return kuzu.AsyncConnection(db, max_threads_per_query=4)
 
 
 @pytest.fixture
