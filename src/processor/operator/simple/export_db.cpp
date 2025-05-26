@@ -57,6 +57,7 @@ static void writeStringStreamToFile(ClientContext* context, const std::string& s
 static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* entry,
     const FileScanInfo* info) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
+    // TODO(Ziyi): We should pass fileName from binder phase to here.
     auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns;
     const auto numProperties = entry->getNumProperties();
@@ -81,7 +82,6 @@ static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* en
 static void writeCopyRelStatement(stringstream& ss, const ClientContext* context,
     const TableCatalogEntry* entry, const FileScanInfo* info) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
-    auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns;
     const auto numProperties = entry->getNumProperties();
     for (auto i = 0u; i < numProperties; i++) {
@@ -100,6 +100,9 @@ static void writeCopyRelStatement(stringstream& ss, const ClientContext* context
             catalog->getTableCatalogEntry(transaction, entryInfo.nodePair.srcTableID)->getName();
         auto toTableName =
             catalog->getTableCatalogEntry(transaction, entryInfo.nodePair.dstTableID)->getName();
+        // TODO(Ziyi): We should pass fileName from binder phase to here.
+        auto fileName = stringFormat("{}_{}_{}.{}", entry->getName(), fromTableName, toTableName,
+            StringUtils::getLower(info->fileTypeInfo.fileTypeStr));
         auto copyOptionsMap = optionsMap;
         copyOptionsMap["from"] = stringFormat("'{}'", fromTableName);
         copyOptionsMap["to"] = stringFormat("'{}'", toTableName);

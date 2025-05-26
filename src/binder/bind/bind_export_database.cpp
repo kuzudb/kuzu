@@ -66,12 +66,14 @@ static std::string getExportRelTableDataQuery(const TableCatalogEntry& relGroupE
 }
 
 static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
-    main::ClientContext* context, Binder* binder) {
+    main::ClientContext* context, Binder* binder, FileTypeInfo& fileTypeInfo) {
     auto transaction = context->getTransaction();
     std::vector<ExportedTableData> exportData;
     for (auto entry : catalog.getNodeTableEntries(transaction, false /*useInternal*/)) {
         ExportedTableData tableData;
         tableData.tableName = entry->getName();
+        tableData.fileName =
+            entry->getName() + "." + StringUtils::getLower(fileTypeInfo.fileTypeStr);
         auto query = getExportNodeTableDataQuery(*entry);
         bindExportTableData(tableData, query, context, binder);
         exportData.push_back(std::move(tableData));
@@ -80,13 +82,16 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
         for (auto& info : relGroupEntry.getRelEntryInfos()) {
             ExportedTableData tableData;
-            tableData.tableName = entry->getName();
             auto srcTableID = info.nodePair.srcTableID;
             auto dstTableID = info.nodePair.dstTableID;
             auto& srcEntry = catalog.getTableCatalogEntry(transaction, srcTableID)
                                  ->constCast<NodeTableCatalogEntry>();
             auto& dstEntry = catalog.getTableCatalogEntry(transaction, dstTableID)
                                  ->constCast<NodeTableCatalogEntry>();
+            tableData.tableName = entry->getName();
+            tableData.fileName =
+                stringFormat("{}_{}_{}.{}", relGroupEntry.getName(), srcEntry.getName(),
+                    dstEntry.getName(), StringUtils::getLower(fileTypeInfo.fileTypeStr));
             auto query = getExportRelTableDataQuery(relGroupEntry, srcEntry, dstEntry);
             bindExportTableData(tableData, query, context, binder);
             exportData.push_back(std::move(tableData));
@@ -111,9 +116,6 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
 
 std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement& statement) {
     auto& exportDB = statement.constCast<ExportDB>();
-    auto boundFilePath =
-        clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
-    auto exportData = getExportInfo(*clientContext->getCatalog(), clientContext, this);
     auto parsedOptions = bindParsingOptions(exportDB.getParsingOptionsRef());
     auto fileTypeInfo = getFileType(parsedOptions);
     switch (fileTypeInfo.fileType) {
@@ -126,6 +128,10 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     if (fileTypeInfo.fileType != FileType::CSV && parsedOptions.size() != 0) {
         throw BinderException{"Only export to csv can have options."};
     }
+    auto exportData =
+        getExportInfo(*clientContext->getCatalog(), clientContext, this, fileTypeInfo);
+    auto boundFilePath =
+        clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
     return std::make_unique<BoundExportDatabase>(boundFilePath, fileTypeInfo, std::move(exportData),
         std::move(parsedOptions));
 }

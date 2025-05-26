@@ -1,6 +1,7 @@
 #include "binder/bound_export_database.h"
 #include "binder/bound_import_database.h"
 #include "catalog/catalog.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "function/built_in_function_utils.h"
 #include "main/client_context.h"
@@ -27,8 +28,8 @@ LogicalPlan Planner::planExportDatabase(const BoundStatement& statement) {
     auto plan = LogicalPlan();
     auto fileTypeStr = FileTypeUtils::toString(fileType);
     StringUtils::toLower(fileTypeStr);
-    auto copyToSuffix = "." + fileTypeStr;
-    std::string name = common::stringFormat("COPY_{}", FileTypeUtils::toString(fileType));
+    // TODO(Ziyi): Shouldn't these be done in Binder?
+    std::string name = stringFormat("COPY_{}", FileTypeUtils::toString(fileType));
     auto entry =
         clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
     auto func = function::BuiltInFunctionsUtils::matchFunction(name,
@@ -39,7 +40,7 @@ LogicalPlan Planner::planExportDatabase(const BoundStatement& statement) {
         auto regularQuery = exportTableData.getRegularQuery();
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = planStatement(*regularQuery);
-        auto path = filePath + "/" + exportTableData.tableName + copyToSuffix;
+        auto path = clientContext->getVFSUnsafe()->joinPath(filePath, exportTableData.fileName);
         function::ExportFuncBindInput bindInput{exportTableData.columnNames, std::move(path),
             boundExportDatabase.getExportOptions()};
         auto copyTo = std::make_shared<LogicalCopyTo>(exportFunc.bind(bindInput), exportFunc,

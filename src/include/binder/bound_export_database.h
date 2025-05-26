@@ -9,6 +9,7 @@ namespace binder {
 
 struct ExportedTableData {
     std::string tableName;
+    std::string fileName;
     std::unique_ptr<BoundRegularQuery> regularQuery;
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> columnTypes;

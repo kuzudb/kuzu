@@ -2100,7 +2100,7 @@ TEST_F(CApiValueTest, RelValToString) {
     ASSERT_TRUE(rel._is_owned_by_cpp);
     char* str;
     ASSERT_EQ(kuzu_rel_val_to_string(&rel, &str), KuzuSuccess);
-    ASSERT_STREQ(str, "(0:2)-{_LABEL: workAt, _ID: 5:0, year: 2015, grading: [3.800000,2.500000], "
+    ASSERT_STREQ(str, "(0:2)-{_LABEL: workAt, _ID: 7:0, year: 2015, grading: [3.800000,2.500000], "
                       "rating: 8.200000}->(1:1)");
     kuzu_destroy_string(str);
     kuzu_value_destroy(&rel);

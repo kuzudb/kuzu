@@ -97,7 +97,7 @@ TEST_F(RelScanTest, ScanFwd) {
                 EXPECT_EQ(nbr.tableID, tableID);
                 auto edgeID = propertyVectors[0]->template getValue<nodeID_t>(i);
                 resultNodeOffsets.push_back(nbr.offset);
-                EXPECT_EQ(edgeID.tableID, relEntry->getTableID());
+                EXPECT_EQ(edgeID.tableID, relTableID);
                 resultRelOffsets.push_back(edgeID.offset);
                 auto date = propertyVectors[1]->template getValue<date_t>(i);
                 resultDates.push_back(date);
@@ -126,7 +126,7 @@ TEST_F(RelScanTest, ScanFwd) {
                     auto date = propertyVectors[1]->template getValue<date_t>(i);
                     EXPECT_EQ(nbr.tableID, tableID);
                     resultNodeOffsets.push_back(nbr.offset);
-                    EXPECT_EQ(edgeID.tableID, relEntry->getTableID());
+                    EXPECT_EQ(edgeID.tableID, relTableID);
                     resultRelOffsets.push_back(edgeID.offset);
                     resultDates.push_back(date);
                 });
