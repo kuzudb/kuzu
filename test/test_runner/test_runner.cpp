@@ -189,7 +189,7 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
                 "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
             if (!result->isSuccess())
             {
-                statement->newOutput = result->getErrorMessage() + '\n';
+                statement->newOutput += result->getErrorMessage() + '\n';
             }
         } break;
         case ResultType::HASH: {
@@ -203,6 +203,19 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
                 "---- " + std::to_string(result->getNumTuples() + statement->checkColumnNames) + '\n';
             std::vector<std::string> resultTuples = convertResultToString(*result,
                 statement->checkOutputOrder, statement->checkColumnNames);
+
+            if (!statement->checkOutputOrder) {
+                auto expectedCopy = testAnswer.expectedResult;
+                std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
+                std::cout << "GOT HERE " << std::endl;
+                if (resultTuples == testAnswer.expectedResult)
+                {
+                    std::cout << "GOT HERE 222" << std::endl;
+                    resultTuples = expectedCopy;
+                }
+            }
+
+
             for (auto res : resultTuples) {
                 statement->newOutput += res + '\n';
             }
