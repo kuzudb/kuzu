@@ -18,10 +18,10 @@ namespace kuzu {
 namespace function {
 
 static std::shared_ptr<FrontierTask> getFrontierTask(const main::ClientContext* context,
-    const GraphRelInfo& relInfo, Graph* graph, ExtendDirection extendDirection, const GDSComputeState& computeState,
-    std::vector<std::string> propertiesToScan) {
-    auto info = FrontierTaskInfo(relInfo.srcTableID, relInfo.dstTableID, relInfo.relGroupEntry, graph, extendDirection,
-        *computeState.edgeCompute, std::move(propertiesToScan));
+    const GraphRelInfo& relInfo, Graph* graph, ExtendDirection extendDirection,
+    const GDSComputeState& computeState, std::vector<std::string> propertiesToScan) {
+    auto info = FrontierTaskInfo(relInfo.srcTableID, relInfo.dstTableID, relInfo.relGroupEntry,
+        graph, extendDirection, *computeState.edgeCompute, std::move(propertiesToScan));
     computeState.beginFrontierCompute(info.getBoundTableID(), info.getNbrTableID());
     auto numThreads = context->getMaxNumThreadForExec();
     auto sharedState =
@@ -31,12 +31,12 @@ static std::shared_ptr<FrontierTask> getFrontierTask(const main::ClientContext* 
     return std::make_shared<FrontierTask>(numThreads, info, sharedState);
 }
 
-static void scheduleFrontierTask(ExecutionContext* context, const GraphRelInfo& relInfo, Graph* graph,
-    ExtendDirection extendDirection, const GDSComputeState& computeState,
+static void scheduleFrontierTask(ExecutionContext* context, const GraphRelInfo& relInfo,
+    Graph* graph, ExtendDirection extendDirection, const GDSComputeState& computeState,
     std::vector<std::string> propertiesToScan) {
     auto clientContext = context->clientContext;
-    auto task = getFrontierTask(clientContext, relInfo, graph, extendDirection,
-        computeState, std::move(propertiesToScan));
+    auto task = getFrontierTask(clientContext, relInfo, graph, extendDirection, computeState,
+        std::move(propertiesToScan));
     if (computeState.frontierPair->getState() == GDSDensityState::SPARSE) {
         task->runSparse();
         return;
@@ -64,14 +64,18 @@ static void runOneIteration(ExecutionContext* context, Graph* graph,
             }
             switch (extendDirection) {
             case ExtendDirection::FWD: {
-                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::FWD, compState, propertiesToScan);
+                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::FWD, compState,
+                    propertiesToScan);
             } break;
             case ExtendDirection::BWD: {
-                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::BWD, compState, propertiesToScan);
+                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::BWD, compState,
+                    propertiesToScan);
             } break;
             case ExtendDirection::BOTH: {
-                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::FWD, compState, propertiesToScan);
-                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::BWD, compState, propertiesToScan);
+                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::FWD, compState,
+                    propertiesToScan);
+                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::BWD, compState,
+                    propertiesToScan);
             } break;
             default:
                 KU_UNREACHABLE;

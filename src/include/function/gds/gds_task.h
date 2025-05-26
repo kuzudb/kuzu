@@ -24,13 +24,13 @@ struct FrontierTaskInfo {
         catalog::TableCatalogEntry* relGroupEntry, graph::Graph* graph,
         common::ExtendDirection direction, EdgeCompute& edgeCompute,
         std::vector<std::string> propertiesToScan)
-        : srcTableID{srcTableID}, dstTableID{dstTableID}, relGroupEntry{relGroupEntry}, graph{graph},
-          direction{direction}, edgeCompute{edgeCompute},
+        : srcTableID{srcTableID}, dstTableID{dstTableID}, relGroupEntry{relGroupEntry},
+          graph{graph}, direction{direction}, edgeCompute{edgeCompute},
           propertiesToScan{std::move(propertiesToScan)} {}
     FrontierTaskInfo(const FrontierTaskInfo& other)
-        : srcTableID{other.srcTableID}, dstTableID{other.dstTableID}, relGroupEntry{other.relGroupEntry},
-          graph{other.graph}, direction{other.direction}, edgeCompute{other.edgeCompute},
-          propertiesToScan{other.propertiesToScan} {}
+        : srcTableID{other.srcTableID}, dstTableID{other.dstTableID},
+          relGroupEntry{other.relGroupEntry}, graph{other.graph}, direction{other.direction},
+          edgeCompute{other.edgeCompute}, propertiesToScan{other.propertiesToScan} {}
 
     common::table_id_t getBoundTableID() const;
     common::table_id_t getNbrTableID() const;

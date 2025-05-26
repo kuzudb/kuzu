@@ -192,8 +192,8 @@ std::vector<GraphRelInfo> OnDiskGraph::getRelInfos(table_id_t srcTableID) {
 std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(const TableCatalogEntry& entry,
     oid_t relTableID, table_id_t nbrTableID, std::vector<std::string> relProperties) {
     auto& info = graphEntry.getRelInfo(entry.getTableID());
-    auto state = std::make_unique<OnDiskGraphNbrScanState>(context, entry, relTableID, info.predicate,
-        relProperties, true /*randomLookup*/);
+    auto state = std::make_unique<OnDiskGraphNbrScanState>(context, entry, relTableID,
+        info.predicate, relProperties, true /*randomLookup*/);
     if (nodeOffsetMaskMap != nullptr && nodeOffsetMaskMap->containsTableID(nbrTableID)) {
         state->nbrNodeMask = nodeOffsetMaskMap->getOffsetMask(nbrTableID);
     }

@@ -28,7 +28,8 @@ struct GraphRelInfo {
 
     GraphRelInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
         catalog::TableCatalogEntry* relGroupEntry, common::oid_t relTableID)
-        : srcTableID{srcTableID}, dstTableID{dstTableID}, relGroupEntry {relGroupEntry}, relTableID{relTableID} {}
+        : srcTableID{srcTableID}, dstTableID{dstTableID}, relGroupEntry{relGroupEntry},
+          relTableID{relTableID} {}
 };
 
 class KUZU_API NbrScanState {
@@ -201,7 +202,8 @@ public:
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
     virtual std::unique_ptr<NbrScanState> prepareRelScan(const catalog::TableCatalogEntry& entry,
-        common::oid_t relTableID, common::table_id_t nbrTableID, std::vector<std::string> relProperties) = 0;
+        common::oid_t relTableID, common::table_id_t nbrTableID,
+        std::vector<std::string> relProperties) = 0;
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
     virtual EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) = 0;

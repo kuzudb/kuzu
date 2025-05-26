@@ -27,11 +27,11 @@ class OnDiskGraphNbrScanState : public NbrScanState {
     friend class OnDiskGraph;
 
 public:
-    OnDiskGraphNbrScanState(main::ClientContext* context, const catalog::TableCatalogEntry& entry, common::oid_t relTableID,
-        std::shared_ptr<binder::Expression> predicate);
-    OnDiskGraphNbrScanState(main::ClientContext* context, const catalog::TableCatalogEntry& entry, common::oid_t relTableID,
-        std::shared_ptr<binder::Expression> predicate, std::vector<std::string> relProperties,
-        bool randomLookup = false);
+    OnDiskGraphNbrScanState(main::ClientContext* context, const catalog::TableCatalogEntry& entry,
+        common::oid_t relTableID, std::shared_ptr<binder::Expression> predicate);
+    OnDiskGraphNbrScanState(main::ClientContext* context, const catalog::TableCatalogEntry& entry,
+        common::oid_t relTableID, std::shared_ptr<binder::Expression> predicate,
+        std::vector<std::string> relProperties, bool randomLookup = false);
 
     Chunk getChunk() override {
         std::vector<common::ValueVector*> vectors;
@@ -146,7 +146,8 @@ public:
     std::vector<GraphRelInfo> getRelInfos(common::table_id_t srcTableID) override;
 
     std::unique_ptr<NbrScanState> prepareRelScan(const catalog::TableCatalogEntry& entry,
-        common::oid_t relTableID, common::table_id_t nbrTableID, std::vector<std::string> relProperties) override;
+        common::oid_t relTableID, common::table_id_t nbrTableID,
+        std::vector<std::string> relProperties) override;
 
     EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) override;
     EdgeIterator scanBwd(common::nodeID_t nodeID, NbrScanState& state) override;

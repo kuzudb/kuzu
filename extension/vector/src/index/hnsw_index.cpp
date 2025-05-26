@@ -315,7 +315,8 @@ common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction*
     KU_ASSERT(lastMinDist >= 0);
     KU_ASSERT(minDist >= 0);
     auto relEntryInfo = upperRelTableEntry->getSingleRelEntryInfo();
-    auto scanState = upperGraph->prepareRelScan(*upperRelTableEntry, relEntryInfo.oid, relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
+    auto scanState = upperGraph->prepareRelScan(*upperRelTableEntry, relEntryInfo.oid,
+        relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
     while (minDist < lastMinDist) {
         lastMinDist = minDist;
         auto neighborItr =
@@ -340,11 +341,13 @@ void OnDiskHNSWIndex::initLowerLayerSearchState(transaction::Transaction* transa
     HNSWSearchState& searchState) const {
     searchState.visited.reset();
     auto relEntryInfo = lowerRelTableEntry->getSingleRelEntryInfo();
-    searchState.nbrScanState = lowerGraph->prepareRelScan(*lowerRelTableEntry, relEntryInfo.oid, relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
+    searchState.nbrScanState = lowerGraph->prepareRelScan(*lowerRelTableEntry, relEntryInfo.oid,
+        relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
     searchState.searchType = getFilteredSearchType(transaction, searchState);
     if (searchState.searchType == SearchType::BLIND_TWO_HOP ||
         searchState.searchType == SearchType::DIRECTED_TWO_HOP) {
-        searchState.secondHopNbrScanState = lowerGraph->prepareRelScan(*lowerRelTableEntry, relEntryInfo.oid, relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
+        searchState.secondHopNbrScanState = lowerGraph->prepareRelScan(*lowerRelTableEntry,
+            relEntryInfo.oid, relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
     }
 }
 

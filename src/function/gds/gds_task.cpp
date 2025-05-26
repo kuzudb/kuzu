@@ -1,9 +1,9 @@
 #include "function/gds/gds_task.h"
 
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "function/gds/frontier_morsel.h"
 #include "graph/graph.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 
 using namespace kuzu::common;
 
@@ -33,14 +33,17 @@ table_id_t FrontierTaskInfo::getNbrTableID() const {
 }
 
 oid_t FrontierTaskInfo::getRelTableID() const {
-    return relGroupEntry->constCast<catalog::RelGroupCatalogEntry>().getRelEntryInfo(srcTableID, dstTableID)->oid;
+    return relGroupEntry->constCast<catalog::RelGroupCatalogEntry>()
+        .getRelEntryInfo(srcTableID, dstTableID)
+        ->oid;
 }
 
 void FrontierTask::run() {
     FrontierMorsel morsel;
     auto numActiveNodes = 0u;
     auto graph = info.graph;
-    auto scanState = graph->prepareRelScan(*info.relGroupEntry, info.getRelTableID(), info.getNbrTableID(), info.propertiesToScan);
+    auto scanState = graph->prepareRelScan(*info.relGroupEntry, info.getRelTableID(),
+        info.getNbrTableID(), info.propertiesToScan);
     auto ec = info.edgeCompute.copy();
     auto boundTableID = info.getBoundTableID();
     switch (info.direction) {
@@ -85,7 +88,8 @@ void FrontierTask::run() {
 void FrontierTask::runSparse() {
     auto numActiveNodes = 0u;
     auto graph = info.graph;
-    auto scanState = graph->prepareRelScan(*info.relGroupEntry, info.getRelTableID(), info.getNbrTableID(), info.propertiesToScan);
+    auto scanState = graph->prepareRelScan(*info.relGroupEntry, info.getRelTableID(),
+        info.getNbrTableID(), info.propertiesToScan);
     auto ec = info.edgeCompute.copy();
     auto boundTableID = info.getBoundTableID();
     switch (info.direction) {
