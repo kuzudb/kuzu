@@ -189,7 +189,7 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
                 "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
             if (!result->isSuccess())
             {
-                statement->newOutput += result->getErrorMessage() + '\n';
+                statement->newOutput = result->getErrorMessage() + '\n';
             }
         } break;
         case ResultType::HASH: {

@@ -182,7 +182,17 @@ public:
                     // -STATEMENT CREATE NODE TABLE  Person (ID INT64, PRIMARY KEY (ID));
                     // ---- ok
                     case ResultType::OK: {
+
                         newFile += statement->newOutput;
+                        std::streampos lastPos;
+                        while(lastPos = file.tellg(), getline(file, currLine)) {
+                            if (currLine.empty() || (!currLine.starts_with("--") && currLine.starts_with("-")) || currLine.starts_with("#"))
+                            {
+                                file.seekg(lastPos);
+                                break;
+                            }
+                        }
+
                     } break;
                     // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
                     // -CHECK_ORDER # order matters with hashes
@@ -240,11 +250,11 @@ public:
                         newFile += statement->newOutput;
 
                         // Ignore the expected error message. 
-                        // That is, continue reading lines until the empty line
-                        // or one with a '-' prefix is found.
+                        // That is, continue reading lines until the empty line, 
+                        // start of statement/case, or comment is found
                         std::streampos lastPos;
                         while(lastPos = file.tellg(), getline(file, currLine)) {
-                            if (currLine.empty() || currLine.starts_with("-"))
+                            if (currLine.empty() || (!currLine.starts_with("--") && currLine.starts_with("-")) || currLine.starts_with("#"))
                             {
                                 file.seekg(lastPos);
                                 break;
