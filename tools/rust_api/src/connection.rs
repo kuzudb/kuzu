@@ -217,7 +217,7 @@ mod tests {
     #[test]
     fn test_connection_threads() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         let mut conn = Connection::new(&db)?;
         conn.set_max_num_threads_for_exec(5);
         assert_eq!(conn.get_max_num_threads_for_exec(), 5);
@@ -228,7 +228,7 @@ mod tests {
     #[test]
     fn test_invalid_query() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
@@ -251,7 +251,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_multiple_statement_query() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
         conn.query(
@@ -264,7 +264,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_query_result() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
@@ -281,7 +281,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_params() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
@@ -299,7 +299,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_multithreaded_single_conn() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
 
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT32, PRIMARY KEY(name));")?;
@@ -331,7 +331,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_multithreaded_multiple_conn() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
 
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT32, PRIMARY KEY(name));")?;
@@ -369,7 +369,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
             #[cfg(feature = "extension_tests")]
             fn $name() -> Result<()> {
                 let temp_dir = tempfile::tempdir()?;
-                let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+                let db = Database::new(temp_dir.path().join("testdb"), SYSTEM_CONFIG_FOR_TESTS)?;
                 let conn = Connection::new(&db)?;
                 let directory: String = if cfg!(windows) {
                     std::env::var("KUZU_LOCAL_EXTENSIONS")?.replace("\\", "/")

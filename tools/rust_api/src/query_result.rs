@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn test_query_result_metadata() -> anyhow::Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         let connection = Connection::new(&db)?;
 
         // Create schema.
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn test_query_result_move() -> anyhow::Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         let result = {
             let connection = Connection::new(&db)?;
 
@@ -259,7 +259,7 @@ mod tests {
     fn test_arrow() -> anyhow::Result<()> {
         use arrow::array::{Int64Array, StringArray};
         let temp_dir = tempfile::tempdir()?;
-        let path = temp_dir.path();
+        let path = temp_dir.path().join("test");
         let db = Database::new(path, SYSTEM_CONFIG_FOR_TESTS)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;

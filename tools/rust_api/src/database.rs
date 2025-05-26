@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn create_database() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let _db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+        let _db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         temp_dir.close()?;
         Ok(())
     }
@@ -162,7 +162,7 @@ mod tests {
     fn create_database_no_compression() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
         let _ = Database::new(
-            temp_dir.path(),
+            temp_dir.path().join("test"),
             SYSTEM_CONFIG_FOR_TESTS.enable_compression(false),
         )?;
         temp_dir.close()?;
@@ -174,9 +174,9 @@ mod tests {
         let temp_dir = tempfile::tempdir()?;
         // Create database first so that it can be opened read-only
         {
-            Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS)?;
+            Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS)?;
         }
-        let db = Database::new(temp_dir.path(), SYSTEM_CONFIG_FOR_TESTS.read_only(true))?;
+        let db = Database::new(temp_dir.path().join("test"), SYSTEM_CONFIG_FOR_TESTS.read_only(true))?;
         let conn = Connection::new(&db)?;
         let result: Error = conn
             .query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
@@ -196,12 +196,12 @@ mod tests {
         {
             // Max DB size of 4GB should be fine
             Database::new(
-                temp_dir.path(),
+                temp_dir.path().join("test"),
                 SystemConfig::default().max_db_size(1 << 32),
             )?;
         }
         {
-            Database::new(temp_dir.path(), SystemConfig::default().max_db_size(0))
+            Database::new(temp_dir.path().join("test"), SystemConfig::default().max_db_size(0))
                 .expect_err("0 is not a valid max DB size");
         }
         Ok(())
@@ -211,7 +211,7 @@ mod tests {
     fn test_database_auto_checkpoint() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
         let db = Database::new(
-            temp_dir.path(),
+            temp_dir.path().join("test"),
             SYSTEM_CONFIG_FOR_TESTS.auto_checkpoint(false),
         )?;
         let conn = Connection::new(&db)?;
@@ -233,7 +233,7 @@ mod tests {
     fn test_database_checkpoint_threshold() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
         let db = Database::new(
-            temp_dir.path(),
+            temp_dir.path().join("test"),
             SYSTEM_CONFIG_FOR_TESTS.checkpoint_threshold(1234),
         )?;
         let conn = Connection::new(&db)?;

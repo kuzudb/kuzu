@@ -78,12 +78,12 @@ datasets_path = {
 }
 
 serialized_graphs_path = {
-    'ldbc-sf10-ku': os.path.join(serialized_base_dir, 'ldbc-sf10-serialized'),
-    'ldbc-sf100-ku': os.path.join(serialized_base_dir, 'ldbc-sf100-serialized'),
-    'click-ku': os.path.join(serialized_base_dir, 'click-serialized'),
-    'graph500-27-ku': os.path.join(serialized_base_dir, 'graph500-27-serialized'),
-    'soc-livejournal-ku': os.path.join(serialized_base_dir, 'soc-livejournal-serialized'),
-    'datagen-sf10k-ku': os.path.join(serialized_base_dir, 'datagen-sf10k-serialized'),
+    'ldbc-sf10-ku': os.path.join(serialized_base_dir, 'ldbc-sf10-serialized', 'db'),
+    'ldbc-sf100-ku': os.path.join(serialized_base_dir, 'ldbc-sf100-serialized', 'db'),
+    'click-ku': os.path.join(serialized_base_dir, 'click-serialized', 'db'),
+    'graph500-27-ku': os.path.join(serialized_base_dir, 'graph500-27-serialized', 'db'),
+    'soc-livejournal-ku': os.path.join(serialized_base_dir, 'soc-livejournal-serialized', 'db'),
+    'datagen-sf10k-ku': os.path.join(serialized_base_dir, 'datagen-sf10k-serialized', 'db'),
 }
 
 benchmark_copy_log_dir = os.path.join("/tmp", 'benchmark_copy_logs')
