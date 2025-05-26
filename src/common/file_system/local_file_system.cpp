@@ -274,7 +274,7 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path)) {
         return;
     }
-    if (!getDatabaseFileSet(path).contains(path) && !isExtensionFile(path)) {
+    if (!getDatabaseFileSet(dbPath).contains(path) && !isExtensionFile(path)) {
         throw IOException(stringFormat(
             "Error: Path {} is not within the allowed list of files to be removed.", path));
     }

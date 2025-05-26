@@ -38,6 +38,20 @@ void DBTest::createNewDB() {
     createDBAndConn();
 }
 
+static void removeFile(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        return;
+    }
+    std::error_code removeErrorCode;
+    if (std::filesystem::is_directory(path)) {
+        return;
+    }
+    if (!std::filesystem::remove(path, removeErrorCode)) {
+        throw Exception(stringFormat("Error removing directory {}.  Error Message: {}", path,
+            removeErrorCode.message()));
+    }
+}
+
 void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
     uint64_t checkpointWaitTimeout, std::set<std::string> connNames) {
     for (const auto& connName : connNames) {

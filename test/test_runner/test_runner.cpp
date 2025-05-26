@@ -5,6 +5,7 @@
 #include "common/exception/test.h"
 #include "common/md5.h"
 #include "common/string_utils.h"
+#include "graph_test/base_graph_test.h"
 #include "gtest/gtest.h"
 #include "planner/operator/logical_plan.h"
 #include "spdlog/spdlog.h"
@@ -53,9 +54,13 @@ void replaceEnv(std::string& queryToReplace, const std::string& env) {
     }
 }
 
+static std::string getParentPath(const std::string& dbPath) {
+    return std::filesystem::path(dbPath).parent_path().string();
+}
+
 void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     const std::string& databasePath) {
-    StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
+    StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", getParentPath(databasePath));
     StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
     replaceEnv(statement->query, "UW_S3_ACCESS_KEY_ID");
     replaceEnv(statement->query, "UW_S3_SECRET_ACCESS_KEY");

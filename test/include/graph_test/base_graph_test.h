@@ -26,24 +26,6 @@ static void removeDir(const std::string& dbPath) {
     }
 }
 
-static void removeFile(const std::string& path) {
-    if (!std::filesystem::exists(path)) {
-        return;
-    }
-    std::error_code removeErrorCode;
-    if (std::filesystem::is_directory(path)) {
-        return;
-    }
-    if (!std::filesystem::remove(path, removeErrorCode)) {
-        throw common::Exception(common::stringFormat(
-            "Error removing directory {}.  Error Message: {}", path, removeErrorCode.message()));
-    }
-}
-
-static std::string getParentDirectory(const std::string& dbPath) {
-    return std::filesystem::path(dbPath).parent_path().string();
-}
-
 static void removeParentDirectoryOfDBPath(const std::string& dbPath) {
     if (!std::filesystem::exists(dbPath)) {
         return;
