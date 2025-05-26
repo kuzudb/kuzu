@@ -1,5 +1,6 @@
 #include <fstream>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "common/assert.h"
@@ -112,7 +113,8 @@ public:
                 if (!currLine.starts_with("-STATEMENT")) {
                     newFile += currLine + '\n';
                     if (currLine.starts_with("-CASE")) {
-                        testCaseName = currLine.substr(std::string("-CASE ").size());
+                        static constexpr size_t caseNameOffset = std::string_view("-CASE ").size();
+                        testCaseName = currLine.substr(caseNameOffset);
                     }
                     continue;
                 }
