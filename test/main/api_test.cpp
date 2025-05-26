@@ -294,11 +294,10 @@ TEST_F(ApiTest, CopyFromInvalidParam) {
         prep->getErrorMessage().c_str());
 }
 
-// TODO: FIX-ME
-// TEST_F(ApiTest, MissingParam) {
-//     std::unordered_map<std::string, std::unique_ptr<Value>> params;
-//     params["val1"] = std::make_unique<Value>(Value::createValue(3));
-//     auto prep = conn->prepareWithParams("RETURN $val1 + $val2", std::move(params));
-//     ASSERT_FALSE(prep->isSuccess());
-//     ASSERT_STREQ("Parameter val2 not found.", prep->getErrorMessage().c_str());
-// }
+TEST_F(ApiTest, MissingParam) {
+    std::unordered_map<std::string, std::unique_ptr<Value>> params;
+    params["val1"] = std::make_unique<Value>(Value::createValue(3));
+    auto prep = conn->prepareWithParams("RETURN $val1 + $val2", std::move(params));
+    ASSERT_FALSE(prep->isSuccess());
+    ASSERT_STREQ("Parameter val1 not found.", prep->getErrorMessage().c_str());
+}
