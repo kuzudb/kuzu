@@ -92,7 +92,7 @@ public:
     // This function collaples multiple repeating space characters into a
     // single space character.
     // This was required since in parsing for reWriteTests there were inexplicable
-    // differences in whitespace causing erroneous errors
+    // differences in whitespace causing errors.
 
     std::string normalize(const std::string& s) {
         std::string result;
