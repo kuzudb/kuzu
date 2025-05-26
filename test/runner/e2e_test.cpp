@@ -113,17 +113,15 @@ public:
 
 
     // This routine is called when E2E_REWRITE_TESTS=1 (or equivalent).
-    // Note that this is a very inefficient implementation of the rewrite
-    // functionality we want the runner to have.
+    // Currently, the implementation of the rewrite
+    // functionality is inefficient.
         // 1) The testStatements vector container does not contain ALL
         // tests specified in the file.
-        // Rather, it is all tests under a specified case.
-        // We must find this case before we start replacing outputs.
-        // See parseAndRegisterFileGroup().
-        // 2) The TearDown function which invokes this routine is called every time
-        // case has completed running. That is, for every case in a test file the same
-        // test file is rewritten to. This is inefficient and NOT thread safe (we
-        // must pass the flag TEST_JOBS=1).
+        // Rather, it only contains tests for a single CASE. See `parseAndRegisterFileGroup()`.
+        // When rewriting the output, we need to first find this CASE.
+        // 2) This function will be called from `TearDown` each time a
+        // CASE has completed running, including multiple calls for test files that have more than one CASE blocks. 
+        // The current code does not support such calls in parallel and rewrite mode is expected to be run in a single thread with `TEST_JOBS=1`.
 
     void reWriteTests() {
         std::fstream file;
