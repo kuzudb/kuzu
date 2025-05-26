@@ -181,6 +181,9 @@ public:
                     case ResultType::OK: {
 
                         newFile += statement->newOutput;
+                        // Continue reading lines until the empty line, 
+                        // start of statement/case, or comment is found
+
                         std::streampos lastPos;
                         while(lastPos = file.tellg(), getline(file, currLine)) {
                             if (currLine.empty() || (currLine.starts_with("-") && !currLine.starts_with("--")) || currLine.starts_with("#"))
