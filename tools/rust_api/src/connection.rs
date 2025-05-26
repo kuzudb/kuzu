@@ -33,7 +33,7 @@ pub struct PreparedStatement {
 /// # use kuzu::{Connection, Database, SystemConfig, Value, Error};
 /// # fn main() -> anyhow::Result<()> {
 /// # let temp_dir = tempfile::tempdir()?;
-/// # let db = Database::new(temp_dir.path(), SystemConfig::default())?;
+/// # let db = Database::new(temp_dir.path().join("testdb"), SystemConfig::default())?;
 /// let conn = Connection::new(&db)?;
 /// conn.query("CREATE NODE TABLE Person(name STRING, age INT32, PRIMARY KEY(name));")?;
 /// // Write queries must be done sequentially
@@ -155,7 +155,7 @@ impl<'a> Connection<'a> {
     /// #
     /// # fn main() -> Result<(), Error> {
     /// # let temp_dir = tempfile::tempdir()?;
-    /// # let path = temp_dir.path();
+    /// # let path = temp_dir.path().join("testdb");
     /// # let db = Database::new(path, SystemConfig::default())?;
     /// let conn = Connection::new(&db)?;
     /// conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
