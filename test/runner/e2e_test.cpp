@@ -234,7 +234,7 @@ int main(int argc, char** argv) {
         }
 
         return RUN_ALL_TESTS();
-    } catch (const std::exception &ex) {
+    } catch (const std::exception& ex) {
         std::cerr << "Error: " << ex.what() << std::endl;
         return EXIT_FAILURE;
     }
