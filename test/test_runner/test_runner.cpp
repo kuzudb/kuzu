@@ -202,18 +202,6 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
             std::vector<std::string> resultTuples = convertResultToString(*result,
                 statement->checkOutputOrder, statement->checkColumnNames);
 
-            if (!statement->checkOutputOrder) {
-                auto expectedCopy = testAnswer.expectedResult;
-                std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
-                std::cout << "GOT HERE " << std::endl;
-                if (resultTuples == testAnswer.expectedResult)
-                {
-                    std::cout << "GOT HERE 222" << std::endl;
-                    resultTuples = expectedCopy;
-                }
-            }
-
-
             for (auto res : resultTuples) {
                 statement->newOutput += res + '\n';
             }
