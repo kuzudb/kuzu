@@ -11,23 +11,48 @@ using ::testing::Test;
 
 namespace kuzu {
 namespace testing {
+
 static void removeDir(const std::string& dbPath) {
     if (!std::filesystem::exists(dbPath)) {
         return;
     }
     std::error_code removeErrorCode;
-    if (std::filesystem::is_directory(dbPath)) {
-        if (!std::filesystem::remove_all(dbPath, removeErrorCode)) {
-            throw common::Exception(
-                common::stringFormat("Error removing directory {}.  Error Message: {}", dbPath,
-                    removeErrorCode.message()));
-        }
+    if (!std::filesystem::is_directory(dbPath)) {
+        return;
     }
-    const auto dir = std::filesystem::path(dbPath).parent_path().string();
-    if (!std::filesystem::remove_all(dir, removeErrorCode)) {
+    if (!std::filesystem::remove_all(dbPath, removeErrorCode)) {
         throw common::Exception(common::stringFormat(
-            "Error removing directory {}.  Error Message: {}", dir, removeErrorCode.message()));
+            "Error removing directory {}.  Error Message: {}", dbPath, removeErrorCode.message()));
     }
+}
+
+static void removeFile(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        return;
+    }
+    std::error_code removeErrorCode;
+    if (std::filesystem::is_directory(path)) {
+        return;
+    }
+    if (!std::filesystem::remove(path, removeErrorCode)) {
+        throw common::Exception(common::stringFormat(
+            "Error removing directory {}.  Error Message: {}", path, removeErrorCode.message()));
+    }
+}
+
+static std::string getParentDirectory(const std::string& dbPath) {
+    return std::filesystem::path(dbPath).parent_path().string();
+}
+
+static void removeParentDirectoryOfDBPath(const std::string& dbPath) {
+    if (!std::filesystem::exists(dbPath)) {
+        return;
+    }
+    if (std::filesystem::is_directory(dbPath)) {
+        return;
+    }
+    const auto parentDir = std::filesystem::path(dbPath).parent_path();
+    removeDir(parentDir.string());
 }
 
 class BaseGraphTest : public Test {
@@ -35,7 +60,7 @@ public:
     void SetUp() override {
         systemConfig = TestHelper::getSystemConfigFromEnv();
         setDatabasePath();
-        removeDir(databasePath);
+        removeParentDirectoryOfDBPath(databasePath);
 
         ieDBPath = "";
     }
@@ -47,7 +72,7 @@ public:
         connMap.clear();
         database.reset();
         if (!inMemMode) {
-            removeDir(databasePath);
+            removeParentDirectoryOfDBPath(databasePath);
         }
     }
 
@@ -110,12 +135,11 @@ protected:
         return std::string(testInfo->test_case_name()) + "." + std::string(testInfo->name());
     }
 
-private:
     void setDatabasePath() {
         auto isValid = [](const char* env) { return env != nullptr && strlen(env) > 0; };
         const auto inMemModeEnv = std::getenv("IN_MEM_MODE");
         inMemMode = isValid(inMemModeEnv) ? std::string(inMemModeEnv) == "true" : false;
-        databasePath = inMemMode ? "" : TestHelper::getTempDir(getTestGroupAndName());
+        databasePath = inMemMode ? "" : TestHelper::getTempDBPathStr(getTestGroupAndName());
     }
 
 public:
