@@ -177,6 +177,9 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
     }
 }
 
+// We save the produced output to the statements newOuput field and use this
+// field in EndToEndTest::reWriteTests to rewrite the outputs in the related
+// test file. 
 void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size_t resultIdx) {
     TestQueryResult& testAnswer = statement->result[resultIdx];
     statement->testResultType = testAnswer.type;

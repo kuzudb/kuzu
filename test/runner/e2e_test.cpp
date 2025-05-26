@@ -115,15 +115,15 @@ public:
     // This routine is called when E2E_REWRITE_TESTS=1 (or equivalent).
     // Note that this is a very inefficient implementation of the rewrite
     // functionality we want the runner to have.
-    // 1) the testStatements vector container does not contain ALL
-    // tests specified in the file
-    // Rather, it is all tests under the CASE testInfo->name()
-    // We must find this case before we start replacing outputs
-    // See parseAndRegisterFileGroup().
-    // 2) The TearDown function which invokes this routine is called every time
-    // case has completed running. i.e for every case in a test file the same
-    // test file is rewritten to. This is inefficient and NOT thread safe (we
-    // must pass the flag TEST_JOBS=1).
+        // 1) The testStatements vector container does not contain ALL
+        // tests specified in the file.
+        // Rather, it is all tests under a specified case.
+        // We must find this case before we start replacing outputs.
+        // See parseAndRegisterFileGroup().
+        // 2) The TearDown function which invokes this routine is called every time
+        // case has completed running. That is, for every case in a test file the same
+        // test file is rewritten to. This is inefficient and NOT thread safe (we
+        // must pass the flag TEST_JOBS=1).
 
     void reWriteTests() {
         std::fstream file;
@@ -151,8 +151,7 @@ public:
 
                 std::string stmt = currLine;
 
-                // "----" is the prefix to a result specifer, it also indicates
-                // the end of a statement
+                // "----" is the prefix to a result specifer, it also indicates the end of a statement.
                 while (getline(file, currLine)) {
                     if (currLine.starts_with("----")) {
                         break;
@@ -162,9 +161,8 @@ public:
                 }
 
 
-                // for the case of multiple connections
-                // statement->query does not indicate the connName, we must add
-                // it if need be
+                // For the case of multiple connections statement->query does not indicate the connName.
+                // We must add it if it is required.
                 std::string connName;
                 if (statement->connName.has_value() && statement->connName.value() != "conn_default") {
                     connName = "[" + statement->connName.value() + "] ";
@@ -177,12 +175,10 @@ public:
                 }
 
                 else {
-                    // This switch statement contains examples on the different
-                    // types of testResultTypes. All cases are handled in a
-                    // similar manner; we ignore the expected output and add the
-                    // produced output instead.
+                    // All cases are handled in a similar manner; we ignore the expected
+                    // output and add the produced output instead.
                     switch (statement->testResultType) {
-                    // Success results don't need anything after the dashes
+                    // Success results don't need anything after the dashes.
                     // -STATEMENT CREATE NODE TABLE  Person (ID INT64, PRIMARY KEY (ID));
                     // ---- ok
                     case ResultType::OK: {
@@ -193,11 +189,11 @@ public:
                     // ---- hash
                     // 4 c921eb680e6d000e4b65556ae02361d2
                     case ResultType::HASH: {
-                        // Add result specifier
+                        // Add result specifier.
                         newFile += currLine + '\n';
-                        // Add produced hash
+                        // Add produced hash.
                         newFile += statement->newOutput;
-                        // Ignore expected hash
+                        // Ignore expected hash.
                         getline(file, currLine);
                     } break;
                     // -CHECK_COLUMN_NAMES
@@ -212,15 +208,14 @@ public:
                         try {
                             // We extract the number of expected tuples from the result
                             // specifier line and skip over as many tuples that
-                            // were specified
-                            static constexpr size_t numTuplesPrefix =
-                                std::string_view("---- ").size();
-                            int count = std::stoi(currLine.substr(numTuplesPrefix));
-                            for (int i = 0; i < count; ++i) {
+                            // were specified.
+                            static constexpr size_t numTuplesPrefix = std::string_view("---- ").size();
+                            int tuplesToSkip = std::stoi(currLine.substr(numTuplesPrefix));
+                            for (int i = 0; i < tuplesToSkip; ++i) {
                                 getline(file, currLine);
                             }
                             // Add the produced output, which contains the
-                            // updated count of tuples
+                            // updated count of tuples.
                             newFile += statement->newOutput;
                         } catch (...) {
                             // Could not overwrite the expected result.
@@ -233,7 +228,7 @@ public:
                     // ---- 5001
                     // <FILE>:file_with_answers.txt
                     case ResultType::CSV_FILE:
-                        // Not supported yet
+                        // Not supported yet.
                         { newFile += currLine + '\n'; }
                         break;
                     // Expects error message
@@ -241,11 +236,12 @@ public:
                     // ---- error
                     // Error: Binder exception: Variable intended is not in scope.
                     case ResultType::ERROR_MSG: {
-                        // add the actual ouput (result and error message)
-                        
+                        // Add the actual ouput (result and error message).
                         newFile += statement->newOutput;
 
-                        // ignore the expected error message
+                        // Ignore the expected error message. 
+                        // That is, continue reading lines until one with a '-'
+                        // prefix is found.
                         std::streampos lastPos;
                         while(lastPos = file.tellg(), getline(file, currLine)) {
                             if (currLine.starts_with("-"))
@@ -255,18 +251,16 @@ public:
                             }
                         }
                     } break;
-                    // # Expects regex-matching error message
+                    //  Expects regex-matching error message
                     // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
                     // ---- error(regex)
                     // ^Error: Binder exception: Variable .* is not in scope\.$
                     case ResultType::ERROR_REGEX: {
-                        // add the produced output (i.e the result specifier line)
+                        // Add the produced output (i.e the result specifier line).
                         newFile += statement->newOutput;
-                        // get the nextline which specifies the regex
-                        // pattern the error should match
+                        // Get the nextline which specifies the regex pattern the error should match
                         getline(file, currLine);
-                        // if the query still results in an error, put the
-                        // existing regex expression back
+                        // If the query still results in an error, put the existing regex expression back.
                         if (statement->newOutput != "---- ok\n")
                             newFile += currLine + '\n';
                     } break;
@@ -275,8 +269,8 @@ public:
                 }
             }
         }
-        // get any remaining lines in the file such as comments or other
-        // statements not in the current case
+        // We get any remaining lines in the file such as comments or other 
+        // statements not in the current case.
         while (getline(file, currLine)) {
             newFile += currLine + '\n';
         }
