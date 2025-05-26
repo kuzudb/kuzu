@@ -185,7 +185,9 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
             statement->newOutput +=
                 "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
             if (!result->isSuccess())
+            {
                 statement->newOutput += result->getErrorMessage() + '\n';
+            }
         } break;
         case ResultType::HASH: {
             std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
