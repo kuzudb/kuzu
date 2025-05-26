@@ -345,7 +345,7 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
                     testStatements = std::move(testStatements), testCaseName]() mutable -> DBTest* {
                     decltype(testStatements) testStatementsCopy;
                     for (const auto& testStatement : testStatements) {
-                        testStatementsCopy .emplace_back(std::make_unique<TestStatement>(*testStatement));
+                        testStatementsCopy.emplace_back(std::make_unique<TestStatement>(*testStatement));
                         testStatementsCopy.back()->testCase = testCaseName;
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
