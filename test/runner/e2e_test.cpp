@@ -112,7 +112,7 @@ public:
     }
 
 
-    // This routine is called when E2E_REWRITE_TESTS=1 (or equivalent).
+    // Used when `REWRITE_TESTS` mode is enabled.
     // Currently, the implementation of the rewrite
     // functionality is inefficient.
         // 1) The testStatements vector container does not contain ALL
