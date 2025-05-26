@@ -140,8 +140,6 @@ public:
                 // differences in whitespace causing erroneous errors
                 // Since it is a small function and not needed else where it was
                 // implemented as a lambda.
-                // TODO BEFORE MERGING <- Check for an implementation of this
-                // functionality in StringUtil
 
                 auto normalize = [](const std::string& s) {
                     std::string result;
@@ -160,7 +158,14 @@ public:
                     return result;
                 };
 
-                if (normalize(stmt) != (normalize("-STATEMENT " + statement->query))) {
+                std::string connName;
+                if (statement->connName.has_value() && statement->connName.value() != "conn_default")
+                {
+                    connName = "[" + statement->connName.value() + "] ";
+                }
+
+
+                if (normalize(stmt) != (normalize("-STATEMENT " + connName + statement->query))) {
                     newFile += currLine + '\n';
                     continue;
                 }
