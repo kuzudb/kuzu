@@ -8,7 +8,6 @@
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/storage_manager.h"
-#include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
 
 namespace kuzu {

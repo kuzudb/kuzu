@@ -100,6 +100,9 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     auto clientContext = ClientContext(this);
     databasePath = StorageUtils::expandPath(&clientContext, dbPathStr);
 
+    if (std::filesystem::is_directory(databasePath)) {
+        throw RuntimeException("Database path cannot be a directory: " + databasePath);
+    }
     vfs = std::make_unique<VirtualFileSystem>(databasePath);
     initAndLockDBDir();
 

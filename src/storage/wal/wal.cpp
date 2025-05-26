@@ -2,7 +2,6 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
-#include "common/constants.h"
 #include "common/file_system/file_info.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
