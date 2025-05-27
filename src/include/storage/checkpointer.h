@@ -13,8 +13,8 @@ namespace storage {
 struct DatabaseHeader {
     PageRange catalogPageRange;
     PageRange metadataPageRange;
-    uint64_t catalogVersion;
-    uint64_t pageManagerVersion;
+    uint64_t catalogVersion{};
+    uint64_t pageManagerVersion{};
 };
 
 class Checkpointer {
