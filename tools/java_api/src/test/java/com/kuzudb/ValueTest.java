@@ -1050,7 +1050,7 @@ public class ValueTest extends TestBase {
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         String str = ValueRelUtil.toString(value);
-        assertEquals(str, "(0:2)-{_LABEL: workAt, _ID: 5:0, year: 2015, grading: [3.800000,2.500000], " +
+        assertEquals(str, "(0:2)-{_LABEL: workAt, _ID: 7:0, year: 2015, grading: [3.800000,2.500000], " +
                 "rating: 8.200000}->(1:1)");
         value.close();
         flatTuple.close();
