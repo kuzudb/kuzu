@@ -214,6 +214,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto storageDirection = getStorageDirection(boundOptions);
     // Bind from to pairs
     node_table_id_pair_set_t nodePairsSet;
+    std::vector<NodeTableIDPair> nodePairs;
     for (auto& [srcTableName, dstTableName] : extraInfo.srcDstTablePairs) {
         auto srcEntry = bindNodeTableEntry(srcTableName);
         validateNodeTableType(srcEntry);
@@ -225,9 +226,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
                 stringFormat("Found duplicate FROM-TO {}-{} pairs.", srcTableName, dstTableName));
         }
         nodePairsSet.insert(pair);
+        nodePairs.emplace_back(pair);
     }
-    std::vector<NodeTableIDPair> nodePairs;
-    nodePairs.insert(nodePairs.end(), nodePairsSet.begin(), nodePairsSet.end());
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(propertyDefinitions),
             srcMultiplicity, dstMultiplicity, storageDirection, std::move(nodePairs));

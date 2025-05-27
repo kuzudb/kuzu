@@ -43,7 +43,7 @@
 -STATEMENT MATCH p = (a {name: 'A'})-[rel1]->(b)-[rel2]->(c)
            RETURN p;
 ---- 1
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 4:0}->(1:0),(1:0)-{_LABEL: KNOWS, _ID: 3:0}->(2:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 3:0}->(1:0),(1:0)-{_LABEL: KNOWS, _ID: 4:0}->(2:0)]}
 
 # Respecting direction when matching non-existent path
 -CASE Scenario4
@@ -281,8 +281,8 @@
 -STATEMENT MATCH p = (n {name: 'A'})-[:KNOWS*1..2]->(x)
            RETURN p;
 ---- 2
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 4:0, num: 1}->(1:0),(1:0)-{_LABEL: KNOWS, _ID: 3:0, num: 2}->(2:0)]}
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 4:0, num: 1}->(1:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 3:0, num: 1}->(1:0),(1:0)-{_LABEL: KNOWS, _ID: 4:0, num: 2}->(2:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 3:0, num: 1}->(1:0)]}
 
 # Return a named var length path of length zero
 -CASE Scenario17
