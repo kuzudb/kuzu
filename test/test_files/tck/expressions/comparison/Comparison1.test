@@ -275,6 +275,7 @@ False
 -STATEMENT CREATE NODE TABLE TheLabel(ID SERIAL, name INT128, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE (:TheLabel {name: 4611686018427387905});
+---- ok
 -STATEMENT MATCH (p:TheLabel {name : 4611686018427387900})
            RETURN p.name;
 ## Outcome: the result should be, in any order:
@@ -286,6 +287,7 @@ False
 -STATEMENT CREATE NODE TABLE TheLabel(ID SERIAL, name INT128, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE (:TheLabel {name: 4611686018427387905});
+---- ok
 -STATEMENT MATCH (p:TheLabel)
            WHERE p.name = 4611686018427387900
            RETURN p.name;
@@ -301,7 +303,7 @@ False
 -STATEMENT CREATE REL TABLE R(FROM A TO A);
 ---- ok
 -STATEMENT CREATE (n:A)-[:R]->(n);
-
+---- ok
 -STATEMENT MATCH p1 = (:A)-->()
            MATCH p2 = (:A)<--()
            RETURN p1 = p2;

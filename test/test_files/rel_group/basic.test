@@ -70,7 +70,7 @@ True
 
 -CASE Alter
 -STATEMENT ALTER TABLE likes RENAME TO hates;
- ---- ok
+---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 5
 0|personA|NODE|local(kuzu)|
@@ -86,7 +86,7 @@ hates|personB|5|Dan
 -STATEMENT ALTER TABLE hates ADD age INT;
 ---- ok
 -STATEMENT MATCH (a:personA)-[e:hates]->(b:personB) WHERE a.ID = 0 RETURN e.age
----- 3 # default values are null
+---- 3
 
 
 

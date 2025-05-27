@@ -13,7 +13,7 @@
 ---- ok
 -STATEMENT MATCH (v:T) RETURN v.VAL;
 ---- hash
-1 tuples hashing to 919d117956d3135c4c683ff021352f5c
+1 tuples hashed to 919d117956d3135c4c683ff021352f5c
 
 -CASE MD5TinyTest02
 -STATEMENT CREATE NODE TABLE T(ID SERIAL, VAL INT32, PRIMARY KEY(ID));
@@ -23,7 +23,7 @@
 -STATEMENT MATCH (v:T) return v.VAL, v.ID ORDER BY v.ID;
 -CHECK_ORDER
 ---- hash
-4 tuples hashing to 0fb5957a46751ebf7ff2e38fe85179c6
+4 tuples hashed to 0fb5957a46751ebf7ff2e38fe85179c6
 
 -CASE MD5TinyTest03
 -STATEMENT CREATE NODE TABLE Person(NAME STRING, PRIMARY KEY(NAME));
@@ -40,7 +40,7 @@
 ---- ok
 -STATEMENT MATCH (p:Person)-[]->(r:Repository) RETURN p.NAME, r.NAME;
 ---- hash
-1 tuples hashing to 460ab403a6a4746e3a10027f032956ed
+1 tuples hashed to 460ab403a6a4746e3a10027f032956ed
 
 -CASE MD5NullTest
 -STATEMENT CREATE NODE TABLE Person(NAME STRING, AGE INT, PRIMARY KEY(NAME));
@@ -50,4 +50,4 @@
 -STATEMENT MATCH (p:Person) RETURN p.NAME, p.AGE ORDER BY p.AGE;
 -CHECK_ORDER
 ---- hash
-2 tuples hashing to 25116b5dae5d1e9a1a4cbd2b96bdf227
+2 tuples hashed to 25116b5dae5d1e9a1a4cbd2b96bdf227

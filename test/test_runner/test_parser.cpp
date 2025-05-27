@@ -176,11 +176,11 @@ void TestParser::extractExpectedResults(TestStatement* statement) {
             setCursorToPreviousLine();
             return;
         }
-        statement->result.push_back(extractExpectedResultFromToken(statement->checkOutputOrder));
+        statement->result.push_back(extractExpectedResultFromToken());
     } while (nextLine());
 }
 
-TestQueryResult TestParser::extractExpectedResultFromToken(bool checkOutputOrder) {
+TestQueryResult TestParser::extractExpectedResultFromToken() {
     checkMinimumParams(1);
     const std::string result = currentToken.params[1];
     TestQueryResult queryResult;
@@ -216,9 +216,6 @@ TestQueryResult TestParser::extractExpectedResultFromToken(bool checkOutputOrder
                 nextLine();
                 replaceVariables(line);
                 queryResult.expectedResult.push_back(line);
-            }
-            if (!checkOutputOrder) { // order is not important for result
-                sort(queryResult.expectedResult.begin(), queryResult.expectedResult.end());
             }
         }
     }
@@ -316,6 +313,11 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         std::string query = paramsToString(1);
         extractConnName(query, statement);
         query += extractTextBeforeNextStatement(true);
+        if (TestHelper::REWRITE_TESTS) {
+            // Save the original query string before replacing variables. Needed to match the
+            // statement in the file again.
+            statement->originalQuery = query;
+        }
         replaceVariables(query);
         statement->query = query;
         break;
@@ -379,6 +381,7 @@ void TestParser::extractStatementBlock() {
         } else {
             auto statement = std::make_unique<TestStatement>();
             extractStatement(statement.get(), blockName);
+            statement->isPartOfStatementBlock = true;
             testGroup->testCasesStatementBlocks[blockName].push_back(std::move(statement));
             testGroup->testCasesConnNames[blockName] = std::set<std::string>();
         }

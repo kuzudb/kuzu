@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "common/assert.h"
 #include "common/exception/test.h"
 #include "common/md5.h"
 #include "common/string_utils.h"
@@ -68,7 +69,11 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     QueryResult* currentQueryResult = actualResult.get();
     idx_t resultIdx = 0u;
     do {
-        checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
+        if (TestHelper::REWRITE_TESTS) {
+            generateOutput(currentQueryResult, statement, resultIdx);
+        } else {
+            checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
+        }
         currentQueryResult = currentQueryResult->getNextQueryResult();
         resultIdx++;
     } while (currentQueryResult);
@@ -125,9 +130,6 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
             spdlog::info("    FOUND {} TUPLES IN ANSWER FILE.", testAnswer.expectedResult.size());
             return;
         }
-        if (!statement->checkOutputOrder) {
-            std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
-        }
     }
     std::vector<std::string> resultTuples =
         convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
@@ -153,22 +155,80 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
             << "CHECK_ORDER MUST BE ENABLED FOR CHECK_PRECISION";
         EXPECT_TRUE(resultTuples.size() == testAnswer.numTuples);
         ASSERT_TRUE(TestRunner::checkResultNumeric(*result, statement, resultIdx));
-    } else if (resultTuples == testAnswer.expectedResult) {
-        spdlog::info("QUERY PASSED.");
     } else {
-        outputFailedPlan(conn, statement);
-        if (resultTuples.size() == testAnswer.numTuples) {
-            for (auto& tuple : resultTuples) {
-                spdlog::info(tuple);
-            }
-            for (auto i = 0u; i < resultTuples.size(); i++) {
-                EXPECT_EQ(resultTuples[i], testAnswer.expectedResult[i])
-                    << "Result tuple at index " << i << " did not match the expected value";
-            }
-        } else {
-            EXPECT_EQ(resultTuples.size(), actualNumTuples);
-            ASSERT_EQ(resultTuples, testAnswer.expectedResult);
+        if (!statement->checkOutputOrder) {
+            std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
         }
+        if (resultTuples == testAnswer.expectedResult) {
+            spdlog::info("QUERY PASSED.");
+        } else {
+            outputFailedPlan(conn, statement);
+            if (resultTuples.size() == testAnswer.numTuples) {
+                for (auto& tuple : resultTuples) {
+                    spdlog::info(tuple);
+                }
+                for (auto i = 0u; i < resultTuples.size(); i++) {
+                    EXPECT_EQ(resultTuples[i], testAnswer.expectedResult[i])
+                        << "Result tuple at index " << i << " did not match the expected value";
+                }
+            } else {
+                EXPECT_EQ(resultTuples.size(), actualNumTuples);
+                ASSERT_EQ(resultTuples, testAnswer.expectedResult);
+            }
+        }
+    }
+}
+
+// Appends `result` as the expected test output to `statement->newOuput` based on the given output
+// type. Used in `EndToEndTest::rewriteTests` to rewrite outputs in test files.
+void TestRunner::generateOutput(QueryResult* result, TestStatement* statement, size_t resultIdx) {
+    TestQueryResult& testAnswer = statement->result[resultIdx];
+    statement->testResultType = testAnswer.type;
+    switch (testAnswer.type) {
+    case ResultType::OK: {
+        statement->newOutput +=
+            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        if (!result->isSuccess()) {
+            statement->newOutput += result->getErrorMessage() + '\n';
+        }
+    } break;
+    case ResultType::HASH: {
+        std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
+            statement->checkColumnNames);
+        statement->newOutput += "---- hash\n" + std::to_string(result->getNumTuples()) +
+                                " tuples hashed to " + resultHash + '\n';
+    } break;
+    case ResultType::TUPLES: {
+        statement->newOutput +=
+            "---- " + std::to_string(result->getNumTuples() + statement->checkColumnNames) + '\n';
+        std::vector<std::string> resultTuples = convertResultToString(*result,
+            statement->checkOutputOrder, statement->checkColumnNames);
+
+        // Use the test file output if it otherwise matches the actual output. This allows
+        // preserving the existing user-written order and avoids producing unnecessary diffs.
+        auto orderedResults = testAnswer.expectedResult;
+        if (!statement->checkOutputOrder) {
+            std::sort(orderedResults.begin(), orderedResults.end());
+        }
+        auto& output = resultTuples == orderedResults ? testAnswer.expectedResult : resultTuples;
+
+        for (auto& res : output) {
+            statement->newOutput += res + '\n';
+        }
+    } break;
+    case ResultType::CSV_FILE:
+        // Not supported yet.
+        return;
+    case ResultType::ERROR_MSG: {
+        statement->newOutput +=
+            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        statement->newOutput += StringUtils::rtrim(result->getErrorMessage()) + '\n';
+    } break;
+    case ResultType::ERROR_REGEX: {
+        statement->newOutput +=
+            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) +
+            '\n';
+    } break;
     }
 }
 

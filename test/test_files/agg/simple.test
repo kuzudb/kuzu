@@ -16,7 +16,7 @@
 -CHECK_ORDER
 -STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
-37.250000|4.8625
+37.250000|4.862500
 
 -LOG SimpleAvgFloatTest
 -STATEMENT MATCH (a:person) RETURN AVG(a.height) + 5

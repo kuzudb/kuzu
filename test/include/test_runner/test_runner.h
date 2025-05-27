@@ -28,6 +28,8 @@ private:
     static std::string convertResultColumnsToString(const main::QueryResult& queryResult);
     static void checkPlanResult(main::Connection& conn, main::QueryResult* result,
         TestStatement* statement, size_t resultIdx);
+    static void generateOutput(main::QueryResult* result, TestStatement* statement,
+        size_t resultIdx);
 
     static void outputFailedPlan(main::Connection& conn, const TestStatement* statement);
 };

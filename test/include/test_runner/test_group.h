@@ -64,6 +64,13 @@ struct TestStatement {
     std::string importFilePath;
     bool removeFileFlag = false;
     std::string removeFilePath;
+
+    // Used in REWRITE_TESTS mode.
+    ResultType testResultType;
+    std::string testCaseName;
+    std::string originalQuery;
+    std::string newOutput;
+    bool isPartOfStatementBlock = false;
 };
 
 // Test group is a collection of test cases in a single file.

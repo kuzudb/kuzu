@@ -638,7 +638,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing2.csv" (auto_detect = false) RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing2.csv on line 1: Conversion exception: Cast failed. { is not in MAP(UINT8, UINT8) range. Line/record containing the error: '"{"'
- -STATEMENT LOAD WITH HEADERS (a MAP(STRING, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_quote.csv"(escape='\\', auto_detect = false)RETURN *;
+-STATEMENT LOAD WITH HEADERS (a MAP(STRING, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_quote.csv"(escape='\\', auto_detect = false)RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_quote.csv on line 1: Conversion exception: Cast failed. {324="} is not in MAP(STRING, UINT8) range. Line/record containing the error: '"{324=\"}"'
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing3.csv" (auto_detect = false)RETURN *;

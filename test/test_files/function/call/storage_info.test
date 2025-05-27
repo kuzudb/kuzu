@@ -10,6 +10,7 @@
 -STATEMENT unwind range (1, 150000) as i create (:tab)
 ---- ok
 -STATEMENT checkpoint
+---- ok
 -STATEMENT copy edge from (unwind range (0, 149998) as i return i, i + 1, 'hello')
 ---- ok
 -STATEMENT call storage_info('edge') where compression <> 'UNCOMPRESSED' and compression <> 'BOOLEAN_BITPACKING' and compression <> 'CONSTANT' with count(*) as num_compressed_cols

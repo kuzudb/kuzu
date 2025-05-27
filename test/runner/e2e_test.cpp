@@ -1,5 +1,11 @@
+#include <fstream>
+#include <string>
+#include <string_view>
+#include <utility>
+
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
+#include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
 #include "test_runner/csv_converter.h"
 #include "test_runner/test_parser.h"
@@ -29,10 +35,10 @@ public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
         std::optional<uint64_t> bufferPoolSize, uint64_t checkpointWaitTimeout,
         const std::set<std::string>& connNames,
-        std::vector<std::unique_ptr<TestStatement>> testStatements)
+        std::vector<std::unique_ptr<TestStatement>> testStatements, std::string testPath)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
           checkpointWaitTimeout{checkpointWaitTimeout}, testStatements{std::move(testStatements)},
-          connNames{connNames} {}
+          connNames{connNames}, testPath{std::move(testPath)} {}
 
     void SetUp() override {
         setUpDataset();
@@ -89,6 +95,10 @@ public:
             datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
             std::filesystem::remove_all(tempDatasetPath);
         }
+
+        if (TestHelper::REWRITE_TESTS) {
+            rewriteTestFile();
+        }
     }
 
     void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }
@@ -102,11 +112,201 @@ private:
     uint64_t checkpointWaitTimeout;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
     std::set<std::string> connNames;
+    std::string testPath;
 
     std::string generateTempDatasetPath() {
         std::string datasetName = dataset;
         std::replace(datasetName.begin(), datasetName.end(), '/', '_');
         return TestHelper::getTempDir(datasetName + "_parquet_" + getTestGroupAndName());
+    }
+
+    // Used when `REWRITE_TESTS` mode is enabled.
+    //
+    // Currently, the implementation of the rewrite functionality is inefficient.
+    // 1) The testStatements vector container does not contain all the tests specified in the file.
+    //    Rather, it only contains tests for a single CASE. See `parseAndRegisterFileGroup()`.
+    //    When rewriting the output, we need to first find this CASE.
+    // 2) This function will be called from `TearDown` each time a CASE has completed running, which
+    //    implies multiple calls for test files that have more than one CASE block, possibly in
+    //    parallel. The current code does not handle calls for the same test file in parallel, and
+    //    rewrite mode is expected to be run in single-threaded mode using `TEST_JOBS=1`.
+    void rewriteTestFile() {
+        std::fstream file;
+        std::string newFile;
+        std::string currLine;
+        std::string testCaseName;
+        file.open(testPath);
+
+        for (auto& statement : testStatements) {
+            if (statement->query.empty() || statement->isPartOfStatementBlock) {
+                continue;
+            }
+            // Find `statement` in the file.
+            while (getline(file, currLine)) {
+                if (!currLine.starts_with("-STATEMENT")) {
+                    newFile += currLine + '\n';
+                    if (currLine.starts_with("-CASE")) {
+                        static constexpr size_t caseNameOffset = std::string_view("-CASE ").size();
+                        testCaseName = currLine.substr(caseNameOffset);
+                    }
+                    continue;
+                }
+
+                newFile += currLine + '\n';
+
+                if (testCaseName != statement->testCaseName) {
+                    // Not the CASE for the current `statement`.
+                    continue;
+                }
+
+                std::string stmt = currLine;
+                while (getline(file, currLine)) {
+                    if (currLine.starts_with("----")) {
+                        // "----" indicates the end of a statement.
+                        break;
+                    }
+                    newFile += currLine + '\n';
+                    // There may be other test options before the output is specified.
+                    if (!currLine.starts_with("#") && !currLine.starts_with("-")) {
+                        stmt += currLine;
+                    }
+                }
+                // Manually add `connName` as `statement->query` does not retain it, if any.
+                std::string connName;
+                if (statement->connName.has_value() &&
+                    statement->connName.value() != "conn_default") {
+                    connName = "[" + statement->connName.value() + "] ";
+                }
+
+                if (removeAllSpaces(stmt) ==
+                    removeAllSpaces("-STATEMENT " + connName + statement->originalQuery)) {
+                    // Found the line containing `statement`.
+                    break;
+                }
+
+                newFile += currLine + '\n';
+            }
+
+            // For all cases, ignore the specified expected output in the test file and append the
+            // actual output instead.
+            switch (statement->testResultType) {
+            // `OK` results don't need anything after the dashes.
+            // -STATEMENT CREATE NODE TABLE Person (ID INT64, PRIMARY KEY (ID));
+            // ---- ok
+            case ResultType::OK: {
+                newFile += statement->newOutput;
+                skipExistingOutput(file);
+            } break;
+            // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
+            // ---- hash
+            // 4 c921eb680e6d000e4b65556ae02361d2
+            case ResultType::HASH: {
+                newFile += statement->newOutput;
+                // Skip existing output.
+                getline(file, currLine);
+            } break;
+            // -CHECK_COLUMN_NAMES
+            // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 2
+            // ---- 3
+            // a.fName
+            // Alice
+            // Bob
+            case ResultType::TUPLES: {
+                // We extract the number of expected tuples and skip over as many lines.
+                constexpr size_t numTuplesPrefix = std::string_view("---- ").size();
+                int linesToSkip = std::stoi(currLine.substr(numTuplesPrefix));
+                std::string skippedLines;
+                bool hasVariable = false;
+                for (int i = 0; i < linesToSkip; ++i) {
+                    getline(file, currLine);
+                    skippedLines += currLine + '\n';
+                    if (currLine.find("${") != std::string::npos) {
+                        hasVariable = true;
+                    }
+                }
+                // If any of the existing output tuples contain a variable, retain the output,
+                // as `statement->newOutput` will replace such variables with their actual value.
+                if (hasVariable) {
+                    newFile += stringFormat("---- {}\n", linesToSkip);
+                    newFile += skippedLines;
+                } else {
+                    newFile += statement->newOutput;
+                }
+            } break;
+            // -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) RETURN ID(r)
+            // ---- 5001
+            // <FILE>:file_with_answers.txt
+            //
+            // Not supported yet.
+            case ResultType::CSV_FILE: {
+                newFile += currLine + '\n';
+            } break;
+            // Expects an error message.
+            // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
+            // ---- error
+            // Error: Binder exception: Variable intended is not in scope.
+            case ResultType::ERROR_MSG: {
+                auto lines = skipExistingOutput(file);
+                // If the existing error message contains a variable, reuse the message,
+                // as `statement->newOutput` will replace such variables with their actual value.
+                if (lines.find("${") != std::string::npos) {
+                    newFile += currLine + '\n' + lines;
+                } else {
+                    newFile += statement->newOutput;
+                }
+            } break;
+            //  Expects a regex-matching error message.
+            // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
+            // ---- error(regex)
+            // ^Error: Binder exception: Variable .* is not in scope\.$
+            case ResultType::ERROR_REGEX: {
+                newFile += statement->newOutput;
+                // Get the nextline which specifies the regex pattern the error should match
+                getline(file, currLine);
+                // If the actual output is an error, put the existing regex expression back.
+                if (statement->newOutput != "---- ok\n") {
+                    newFile += currLine + '\n';
+                }
+            } break;
+            }
+        }
+        // Append any remaining lines in the file.
+        while (getline(file, currLine)) {
+            newFile += currLine + '\n';
+        }
+        file.close();
+        file.open(testPath, std::ios::trunc | std::ios::out);
+        file << newFile;
+    }
+
+    // This function removes all spaces from `s`. Used to normalize the search for a matching
+    // STATEMENT when rewriting output results.
+    std::string removeAllSpaces(const std::string& s) {
+        std::string result;
+        for (char c : s) {
+            if (!std::isspace(c)) {
+                result += c;
+            }
+        }
+        return result;
+    }
+
+    // Skip all lines in `file` until an empty line, start of statement/case, or comment is found.
+    std::string skipExistingOutput(std::fstream& file) {
+        std::streampos lastPos;
+        std::string currLine;
+        std::string skippedLines;
+        while (lastPos = file.tellg(), getline(file, currLine)) {
+            if (currLine.empty() ||
+                (currLine.starts_with("-") && !currLine.starts_with("--") &&
+                    !(currLine.size() > 1 && std::isdigit(currLine[1]))) ||
+                currLine.starts_with("#")) {
+                file.seekg(lastPos);
+                break;
+            }
+            skippedLines += currLine + '\n';
+        }
+        return skippedLines;
     }
 };
 
@@ -139,15 +339,16 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
             auto connNames = testGroup->testCasesConnNames[testCaseName];
             testing::RegisterTest(testGroup->group.c_str(), testCaseName.c_str(), nullptr, nullptr,
                 __FILE__, __LINE__,
-                [datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
-                    testStatements = std::move(testStatements)]() mutable -> DBTest* {
+                [path, datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
+                    testStatements = std::move(testStatements), testCaseName]() mutable -> DBTest* {
                     decltype(testStatements) testStatementsCopy;
                     for (const auto& testStatement : testStatements) {
                         testStatementsCopy.emplace_back(
                             std::make_unique<TestStatement>(*testStatement));
+                        testStatementsCopy.back()->testCaseName = testCaseName;
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
-                        checkpointWaitTimeout, connNames, std::move(testStatementsCopy));
+                        checkpointWaitTimeout, connNames, std::move(testStatementsCopy), path);
                 });
         }
     } else {
@@ -202,8 +403,10 @@ int main(int argc, char** argv) {
         // Main logic
         std::string test_dir;
         std::string import_data_dir;
+        bool rewrite_tests = false;
         char* env_test_dir = std::getenv("E2E_TEST_FILES_DIRECTORY");
         char* env_import_data_dir = std::getenv("E2E_IMPORT_DB_DIR");
+        char* env_rewrite_tests = std::getenv("E2E_REWRITE_TESTS");
         if (env_test_dir != nullptr) {
             test_dir = env_test_dir;
         } else {
@@ -221,6 +424,13 @@ int main(int argc, char** argv) {
 
         TestHelper::setE2ETestFilesDirectory(test_dir);
         TestHelper::setE2EImportDataDirectory(import_data_dir);
+
+        if (env_rewrite_tests != nullptr && std::string(env_rewrite_tests) != "FALSE" &&
+            std::string(env_rewrite_tests) != "OFF") {
+            rewrite_tests = true;
+            spdlog::info("Starting runner in Rewrite Mode");
+        }
+        TestHelper::setRewriteTests(rewrite_tests);
 
         checkGtestParams(argc, argv);
         testing::InitGoogleTest(&argc, argv);

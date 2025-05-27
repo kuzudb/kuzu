@@ -24,6 +24,7 @@
 -CASE OkWithEOFTest
 
 -STATEMENT RETURN 5
+---- ok
 
 -STATEMENT CALL show_tables() RETURN *
 ---- ok
