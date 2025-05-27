@@ -138,7 +138,7 @@ private:
         file.open(testPath);
 
         for (auto& statement : testStatements) {
-            if (statement->query.empty() || statement->isPartofStatementBlock) {
+            if (statement->query.empty() || statement->isPartOfStatementBlock) {
                 continue;
             }
             // Find `statement` in the file.
@@ -154,7 +154,7 @@ private:
 
                 newFile += currLine + '\n';
 
-                if (testCaseName != statement->testCase) {
+                if (testCaseName != statement->testCaseName) {
                     // Not the CASE for the current `statement`.
                     continue;
                 }
@@ -224,7 +224,7 @@ private:
                         hasVariable = true;
                     }
                 }
-                // If any of the existing output tuples contain a variable, retain that output,
+                // If any of the existing output tuples contain a variable, retain the output,
                 // as `statement->newOutput` will replace such variables with their actual value.
                 if (hasVariable) {
                     newFile += stringFormat("---- {}\n", linesToSkip);
@@ -345,7 +345,7 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
                     for (const auto& testStatement : testStatements) {
                         testStatementsCopy.emplace_back(
                             std::make_unique<TestStatement>(*testStatement));
-                        testStatementsCopy.back()->testCase = testCaseName;
+                        testStatementsCopy.back()->testCaseName = testCaseName;
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
                         checkpointWaitTimeout, connNames, std::move(testStatementsCopy), path);

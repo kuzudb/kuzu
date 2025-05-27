@@ -314,8 +314,8 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         extractConnName(query, statement);
         query += extractTextBeforeNextStatement(true);
         if (TestHelper::REWRITE_TESTS) {
-            // Save the original query string before replacing variables. Needed to find the
-            // statement line again.
+            // Save the original query string before replacing variables. Needed to match the
+            // statement in the file again.
             statement->originalQuery = query;
         }
         replaceVariables(query);
@@ -381,7 +381,7 @@ void TestParser::extractStatementBlock() {
         } else {
             auto statement = std::make_unique<TestStatement>();
             extractStatement(statement.get(), blockName);
-            statement->isPartofStatementBlock = true;
+            statement->isPartOfStatementBlock = true;
             testGroup->testCasesStatementBlocks[blockName].push_back(std::move(statement));
             testGroup->testCasesConnNames[blockName] = std::set<std::string>();
         }

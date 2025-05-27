@@ -43,8 +43,6 @@ struct TestQueryResult {
 struct TestStatement {
     std::string logMessage;
     std::string query;
-    // For use in REWRITE_TESTS mode.
-    std::string originalQuery;
     std::optional<uint64_t> numThreads;
     bool checkOutputOrder = false;
     bool checkColumnNames = false;
@@ -66,11 +64,13 @@ struct TestStatement {
     std::string importFilePath;
     bool removeFileFlag = false;
     std::string removeFilePath;
-    ResultType testResultType;
-    std::string testCase;
+
     // Used in REWRITE_TESTS mode.
+    ResultType testResultType;
+    std::string testCaseName;
+    std::string originalQuery;
     std::string newOutput;
-    bool isPartofStatementBlock = false;
+    bool isPartOfStatementBlock = false;
 };
 
 // Test group is a collection of test cases in a single file.
