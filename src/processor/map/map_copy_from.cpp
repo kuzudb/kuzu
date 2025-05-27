@@ -26,7 +26,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
     const main::ClientContext* clientContext,
     std::shared_ptr<PartitionerSharedState> partitionerSharedState,
     std::shared_ptr<BatchInsertSharedState> sharedState, const BoundCopyFromInfo& copyFromInfo,
-    Schema* outFSchema, RelDataDirection direction, table_id_t nbrTableID,
+    Schema* outFSchema, RelDataDirection direction, table_id_t tableID, table_id_t nbrTableID,
     std::vector<column_id_t> columnIDs, std::vector<LogicalType> columnTypes, uint32_t operatorID) {
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
     auto offsetVectorIdx = direction == RelDataDirection::FWD ? 0 : 1;
@@ -40,7 +40,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
 
     auto compressionEnabled = clientContext->getStorageManager()->compressionEnabled();
     auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo.tableEntry,
-        compressionEnabled, direction, nbrTableID, partitioningIdx, offsetVectorIdx,
+        compressionEnabled, direction, tableID, nbrTableID, partitioningIdx, offsetVectorIdx,
         std::move(columnIDs), std::move(columnTypes), numWarningDataColumns);
     auto printInfo = std::make_unique<RelBatchInsertPrintInfo>(copyFromInfo.tableName);
     auto batchInsert = std::make_unique<RelBatchInsert>(copyFromInfo.tableName,
@@ -170,20 +170,17 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
         catalog->getTableCatalogEntry(transaction, extraInfo.fromTableName)->getTableID();
     auto toTableID =
         catalog->getTableCatalogEntry(transaction, extraInfo.toTableName)->getTableID();
+    auto tableID = relGroupEntry.getRelEntryInfo(fromTableID, toTableID)->oid;
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     const auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(nullptr, fTable,
         &storageManager->getWAL(), clientContext->getMemoryManager());
-    const auto tableEntry = copyFromInfo->tableEntry;
-    std::vector directions = {RelDataDirection::FWD, RelDataDirection::BWD};
-    if (tableEntry) {
-        directions = relGroupEntry.getRelDataDirections();
-    }
+    std::vector directions = relGroupEntry.getRelDataDirections();
     physical_op_vector_t result;
     for (auto direction : directions) {
         auto nbrTableID = RelDirectionUtils::getNbrTableID(direction, fromTableID, toTableID);
         auto copyRel = createRelBatchInsertOp(clientContext, sharedState, batchInsertSharedState,
-            *copyFrom.getInfo(), copyFrom.getSchema(), direction, nbrTableID, {}, {},
+            *copyFrom.getInfo(), copyFrom.getSchema(), direction, tableID, nbrTableID, {}, {},
             getOperatorID());
         result.push_back(std::move(copyRel));
     }

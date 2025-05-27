@@ -24,18 +24,17 @@ std::string RelBatchInsertPrintInfo::toString() const {
     return result;
 }
 
-void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
+void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
     localState = std::make_unique<RelBatchInsertLocalState>();
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     localState->chunkedGroup =
         std::make_unique<ChunkedCSRNodeGroup>(*context->clientContext->getMemoryManager(),
             relInfo->columnTypes, relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
-    const auto relTableID = relInfo->tableEntry->getTableID();
     // TODO(Guodong): Get rid of the hard-coded nbr and rel column ID 0/1.
     localState->chunkedGroup->getColumnChunk(0).getData().cast<InternalIDChunkData>().setTableID(
         relInfo->nbrTableID);
     localState->chunkedGroup->getColumnChunk(1).getData().cast<InternalIDChunkData>().setTableID(
-        relTableID);
+        relInfo->tableID);
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     relLocalState->dummyAllNullDataChunk = std::make_unique<DataChunk>(relInfo->columnTypes.size());
     for (auto i = 0u; i < relInfo->columnTypes.size(); i++) {
@@ -122,7 +121,7 @@ static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* t
         auto flushedChunkedGroup =
             chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *relTable.getDataFH());
 
-        // If there are deleted columns that haven't been vaccumed yet
+        // If there are deleted columns that haven't been vacuumed yet
         // we need to add extra columns to the chunked group
         // to ensure that the number of columns is consistent with the rest of the node group
         auto persistentChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(mm,
