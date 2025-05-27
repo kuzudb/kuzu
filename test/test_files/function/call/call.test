@@ -52,6 +52,7 @@ Parser exception: Found multiple primary keys.
 -STATEMENT CREATE NODE TABLE personAlt5(id INT64 PRIMARY KEY, prop STRING, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CALL TABLE_INFO('personAlt5') RETURN *;
+---- 2
 0|id|INT64|NULL|True
 1|prop|STRING|NULL|False
 

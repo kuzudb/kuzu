@@ -40,7 +40,7 @@
 -PARALLELISM 6
 -CHECK_ORDER
 ---- hash
-25 tuples hashing to 7af1f6806cb99e2dff8578d899bf75d6
+25 tuples hashed to 7af1f6806cb99e2dff8578d899bf75d6
 # ---- 25
 # -499973
 # -499962
@@ -73,5 +73,5 @@
 -PARALLELISM 2
 -CHECK_ORDER
 ---- hash
-3000 tuples hashing to 43795e53c3e37d8457c383ee4db918af
+3000 tuples hashed to 43795e53c3e37d8457c383ee4db918af
 # the original output was all the numbers from 0 to 2999, inclusive, in ascending order

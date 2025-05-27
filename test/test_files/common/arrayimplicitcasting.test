@@ -19,6 +19,7 @@ Binder exception: Expression 1000.500000 has data type DOUBLE but expected UINT6
 ---- error
 Overflow exception: Value -3 is not within UINT64 range
 -STATEMENT call threads=CAST(127.3, "DECIMAL(5, 2)")
+---- error
 Binder exception: Expression CAST(127.300000, DECIMAL(5, 2)) has data type DECIMAL but expected UINT64. Implicit cast is not supported.
 -STATEMENT CREATE NODE TABLE tab(id SERIAL, a INT64[], PRIMARY KEY(id))
 ---- ok

@@ -21,6 +21,7 @@
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE ();
+---- ok
 -STATEMENT MATCH (a)
            RETURN count(DISTINCT a.name);
 ## Outcome: the result should be, in any order:
