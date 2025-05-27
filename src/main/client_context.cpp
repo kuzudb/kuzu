@@ -324,8 +324,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
     // Copy the params to a new map that matches the format that the binder expects
     std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParamsTmp;
     for (auto& [key, value] : inputParams) {
-        inputParamsTmp.insert(
-            std::make_pair(key, std::make_shared<common::Value>(*value)));
+        inputParamsTmp.insert(std::make_pair(key, std::make_shared<common::Value>(*value)));
     }
     auto result = prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/,
         std::move(inputParamsTmp));
