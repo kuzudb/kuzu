@@ -16,8 +16,8 @@
 -STATEMENT CALL show_tables() RETURN *;
 ---- 3
 0|N1|NODE|local(kuzu)|
-0|R|REL|local(kuzu)|
 1|N2|NODE|local(kuzu)|
+4|R|REL|local(kuzu)|
 
 -CASE CreateDropNodeTableRecovery
 -STATEMENT BEGIN TRANSACTION;
@@ -53,7 +53,7 @@
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 2
 0|base|NODE|local(kuzu)|
-1|test|REL|local(kuzu)|
+2|test|REL|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT DROP TABLE test;
@@ -81,7 +81,7 @@
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|
+4|test|REL|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT DROP TABLE test;
@@ -175,7 +175,7 @@ Binder exception: Cannot find property since for k.
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test1|REL|local(kuzu)|
+4|test1|REL|local(kuzu)|
 
 -CASE RenameRelGroupRollback
 -STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
@@ -194,7 +194,7 @@ Binder exception: Cannot find property since for k.
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|
+4|test|REL|local(kuzu)|
 
 -CASE RenameRelGroupCommitRecovery
 -STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
@@ -213,13 +213,13 @@ Binder exception: Cannot find property since for k.
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test1|REL|local(kuzu)|
+4|test1|REL|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test1|REL|local(kuzu)|
+4|test1|REL|local(kuzu)|
 
 -CASE RenameRelGroupRollbackRecovery
 -STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
@@ -238,13 +238,13 @@ Binder exception: Cannot find property since for k.
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|
+4|test|REL|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|
+4|test|REL|local(kuzu)|
 
 -CASE RenameRelGroupPropertyCommit
 -STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
@@ -483,14 +483,14 @@ Binder exception: Cannot find property since for k.
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|This is a test comment
+4|test|REL|local(kuzu)|This is a test comment
 -STATEMENT COMMIT;
 ---- ok
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|This is a test comment
+4|test|REL|local(kuzu)|This is a test comment
 
 -CASE CommentRelGroupRollback
 -STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
@@ -507,14 +507,14 @@ Binder exception: Cannot find property since for k.
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|This is a test comment
+4|test|REL|local(kuzu)|This is a test comment
 -STATEMENT ROLLBACK;
 ---- ok
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|
+4|test|REL|local(kuzu)|
 
 -CASE CommentRelGroupCommitRecovery
 -STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
@@ -533,13 +533,13 @@ Binder exception: Cannot find property since for k.
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|This is a test comment
+4|test|REL|local(kuzu)|This is a test comment
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|This is a test comment
+4|test|REL|local(kuzu)|This is a test comment
 
 -CASE CommentRelGroupRollbackRecovery
 -STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
@@ -558,13 +558,13 @@ Binder exception: Cannot find property since for k.
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|
+4|test|REL|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-0|test|REL|local(kuzu)|
+4|test|REL|local(kuzu)|
 
 -CASE DropNodeTableReclaim
 -SKIP_IN_MEM

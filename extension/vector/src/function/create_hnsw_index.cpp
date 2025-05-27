@@ -145,15 +145,19 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
                          ->ptrCast<storage::NodeTable>();
     auto nodeTableID = nodeTable->getTableID();
     auto upperRelTableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
-            HNSWIndexUtils::getUpperGraphTableName(nodeTableID, indexName));
-    auto upperRelTable =
-        storageManager->getTable(upperRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
+        clientContext->getCatalog()
+            ->getTableCatalogEntry(clientContext->getTransaction(),
+                HNSWIndexUtils::getUpperGraphTableName(nodeTableID, indexName))
+            ->ptrCast<catalog::RelGroupCatalogEntry>();
+    auto upperRelTable = storageManager->getTable(upperRelTableEntry->getSingleRelEntryInfo().oid)
+                             ->ptrCast<storage::RelTable>();
     auto lowerRelTableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
-            HNSWIndexUtils::getLowerGraphTableName(nodeTableID, indexName));
-    auto lowerRelTable =
-        storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
+        clientContext->getCatalog()
+            ->getTableCatalogEntry(clientContext->getTransaction(),
+                HNSWIndexUtils::getLowerGraphTableName(nodeTableID, indexName))
+            ->ptrCast<catalog::RelGroupCatalogEntry>();
+    auto lowerRelTable = storageManager->getTable(lowerRelTableEntry->getSingleRelEntryInfo().oid)
+                             ->ptrCast<storage::RelTable>();
     // Initialize partitioner shared state.
     const auto partitionerSharedState = finalizeFuncSharedState->partitionerSharedState;
     partitionerSharedState->setTables(nodeTable, upperRelTable);
@@ -181,8 +185,9 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
         partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
-        upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
-        LogicalType::copy(columnTypes), planMapper->getOperatorID());
+        upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD,
+        upperRelTable->getTableID(), nodeTableID, columnIDs, LogicalType::copy(columnTypes),
+        planMapper->getOperatorID());
     binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableEntry, nullptr, nullptr, {}, {},
         nullptr);
     lowerCopyFromInfo.tableEntry = lowerRelTableEntry;
@@ -190,8 +195,9 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelLower = planMapper->createRelBatchInsertOp(clientContext,
         partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
-        lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
-        LogicalType::copy(columnTypes), planMapper->getOperatorID());
+        lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD,
+        lowerRelTable->getTableID(), nodeTableID, columnIDs, LogicalType::copy(columnTypes),
+        planMapper->getOperatorID());
     physical_op_vector_t children;
     children.push_back(std::move(copyRelUpper));
     children.push_back(std::move(copyRelLower));

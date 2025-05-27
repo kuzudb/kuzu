@@ -9,6 +9,9 @@
 #include "storage/table/node_group_collection.h"
 
 namespace kuzu {
+namespace catalog {
+class RelGroupCatalogEntry;
+}
 namespace transaction {
 class Transaction;
 }
@@ -54,8 +57,8 @@ private:
 class RelTableData {
 public:
     RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
-        const catalog::TableCatalogEntry* tableEntry, common::RelDataDirection direction,
-        bool enableCompression);
+        const catalog::RelGroupCatalogEntry& relGroupEntry, common::table_id_t tableID,
+        common::RelDataDirection direction, common::table_id_t nbrTableID, bool enableCompression);
 
     bool update(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
         const common::ValueVector& relIDVector, common::column_id_t columnID,
@@ -113,7 +116,8 @@ public:
 
 private:
     void initCSRHeaderColumns();
-    void initPropertyColumns(const catalog::TableCatalogEntry* tableEntry);
+    void initPropertyColumns(const catalog::RelGroupCatalogEntry& relGroupEntry,
+        common::table_id_t nbrTableID);
 
     std::pair<CSRNodeGroupScanSource, common::row_idx_t> findMatchingRow(
         transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,

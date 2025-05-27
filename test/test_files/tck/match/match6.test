@@ -38,7 +38,7 @@
 ---- ok
 -STATEMENT CREATE REL TABLE KNOWS(FROM A TO B, FROM B TO C);
 ---- ok
--STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS_A_B]->(b:B {name: 'B'})-[:KNOWS_B_C]->(c:C {name: 'C'});
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS]->(b:B {name: 'B'})-[:KNOWS]->(c:C {name: 'C'});
 ---- ok
 -STATEMENT MATCH p = (a {name: 'A'})-[rel1]->(b)-[rel2]->(c)
            RETURN p;
@@ -112,8 +112,8 @@
 -STATEMENT CREATE REL TABLE T(FROM A TO B, FROM B TO A);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B)
-           CREATE (a)-[:T_A_B]->(b),
-                  (b)-[:T_B_A]->(a);
+           CREATE (a)-[:KNOWS]->(b),
+                  (b)-[:KNOWS]->(a);
 ---- ok
 -STATEMENT MATCH p = (n)-->(k)<--(n)
            RETURN p;
@@ -151,13 +151,13 @@
 -STATEMENT CREATE REL TABLE T(FROM B TO A, FROM C TO B);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B), (c:C)
-           CREATE (b)-[:T_B_A]->(a),
-                  (c)-[:T_C_B]->(b);
+           CREATE (b)-[:KNOWS]->(a),
+                  (c)-[:T]->(b);
 ---- ok
 -STATEMENT MATCH p = (n)-->(m)--(o)
            RETURN p;
 ---- 1
-{_NODES: [{_ID: 2:0, _LABEL: C, ID: 0},{_ID: 1:0, _LABEL: B, ID: 0},{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: [(2:0)-{_LABEL: T_C_B, _ID: 5:0}->(1:0),(1:0)-{_LABEL: T_B_A, _ID: 4:0}->(0:0)]}
+{_NODES: [{_ID: 2:0, _LABEL: C, ID: 0},{_ID: 1:0, _LABEL: B, ID: 0},{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: [(2:0)-{_LABEL: T, _ID: 5:0}->(1:0),(1:0)-{_LABEL: KNOWS, _ID: 3:0}->(0:0)]}
 
 # Named path with multiple alternating directed/undirected relationships
 -CASE Scenario11
@@ -173,14 +173,14 @@
 -STATEMENT CREATE REL TABLE T(FROM B TO A, FROM C TO B, FROM D TO C);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B), (c:C), (d:D)
-           CREATE (b)-[:T_B_A]->(a),
-                  (c)-[:T_C_B]->(b),
-                  (d)-[:T_D_C]->(c);
+           CREATE (b)-[:KNOWS]->(a),
+                  (c)-[:T]->(b),
+                  (d)-[:T]->(c);
 ---- ok
 -STATEMENT MATCH path = (n)-->(m)--(o)--(p)
            RETURN path;
 ---- 1
-{_NODES: [{_ID: 3:0, _LABEL: D, ID: 0},{_ID: 2:0, _LABEL: C, ID: 0},{_ID: 1:0, _LABEL: B, ID: 0},{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: [(3:0)-{_LABEL: T_D_C, _ID: 7:0}->(2:0),(2:0)-{_LABEL: T_C_B, _ID: 6:0}->(1:0),(1:0)-{_LABEL: T_B_A, _ID: 5:0}->(0:0)]}
+{_NODES: [{_ID: 3:0, _LABEL: D, ID: 0},{_ID: 2:0, _LABEL: C, ID: 0},{_ID: 1:0, _LABEL: B, ID: 0},{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: [(3:0)-{_LABEL: T, _ID: 7:0}->(2:0),(2:0)-{_LABEL: T, _ID: 6:0}->(1:0),(1:0)-{_LABEL: KNOWS, _ID: 5:0}->(0:0)]}
 
 # Matching path with multiple bidirectional relationships
 -CASE Scenario12
@@ -238,11 +238,11 @@
 -STATEMENT CREATE REL TABLE CONNECTED_TO(FROM A TO Start, FROM A TO End, FROM A TO A);
 ---- ok
 -STATEMENT CREATE (db1:Start), (db2:End), (mid:A), (other:A)
-           CREATE (mid)-[:CONNECTED_TO_A_Start]->(db1),
-                  (mid)-[:CONNECTED_TO_A_End]->(db2),
-                  (mid)-[:CONNECTED_TO_A_End]->(db2),
-                  (mid)-[:CONNECTED_TO_A_A]->(other),
-                  (mid)-[:CONNECTED_TO_A_A]->(other);
+           CREATE (mid)-[:CONNECTED_TO]->(db1),
+                  (mid)-[:CONNECTED_TO]->(db2),
+                  (mid)-[:CONNECTED_TO]->(db2),
+                  (mid)-[:CONNECTED_TO]->(other),
+                  (mid)-[:CONNECTED_TO]->(other);
 ---- ok
 -STATEMENT MATCH topRoute = (:Start)<-[:CONNECTED_TO]-()-[:CONNECTED_TO*3..3]-(:End)
            RETURN topRoute;
@@ -276,7 +276,7 @@
 ---- ok
 -STATEMENT CREATE REL TABLE KNOWS(FROM A TO B, FROM B TO C, num INT64);
 ---- ok
--STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS_A_B {num: 1}]->(b:B {name: 'B'})-[:KNOWS_B_C {num: 2}]->(c:C {name: 'C'});
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS {num: 1}]->(b:B {name: 'B'})-[:KNOWS {num: 2}]->(c:C {name: 'C'});
 ---- ok
 -STATEMENT MATCH p = (n {name: 'A'})-[:KNOWS*1..2]->(x)
            RETURN p;

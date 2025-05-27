@@ -10,10 +10,10 @@
 ---- ok
 -STATEMENT MATCH (a:User2) RETURN *;
 ---- 4
-{_ID: 4:0, _LABEL: User2, name: Adam, age: 30}
-{_ID: 4:1, _LABEL: User2, name: Karissa, age: 40}
-{_ID: 4:2, _LABEL: User2, name: Zhang, age: 50}
-{_ID: 4:3, _LABEL: User2, name: Noura, age: 25}
+{_ID: 6:0, _LABEL: User2, name: Adam, age: 30}
+{_ID: 6:1, _LABEL: User2, name: Karissa, age: 40}
+{_ID: 6:2, _LABEL: User2, name: Zhang, age: 50}
+{_ID: 6:3, _LABEL: User2, name: Noura, age: 25}
 
 -CASE CreateNodeTest1
 -STATEMENT CREATE (u:User {name: 'Alice', age: 35})

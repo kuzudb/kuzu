@@ -14,21 +14,21 @@ Table knows comment updated.
 0|person|NODE|local(kuzu)|A test comment
 1|organisation|NODE|local(kuzu)|
 2|movies|NODE|local(kuzu)|
-3|knows|REL|local(kuzu)|Another test comment
-4|studyAt|REL|local(kuzu)|
-5|workAt|REL|local(kuzu)|
-6|meets|REL|local(kuzu)|
-7|marries|REL|local(kuzu)|
+4|knows|REL|local(kuzu)|Another test comment
+6|studyAt|REL|local(kuzu)|
+8|workAt|REL|local(kuzu)|
+10|meets|REL|local(kuzu)|
+12|marries|REL|local(kuzu)|
 -STATEMENT CALL show_tables() RETURN *
 ---- 8
 0|person|NODE|local(kuzu)|A test comment
 1|organisation|NODE|local(kuzu)|
 2|movies|NODE|local(kuzu)|
-3|knows|REL|local(kuzu)|Another test comment
-4|studyAt|REL|local(kuzu)|
-5|workAt|REL|local(kuzu)|
-6|meets|REL|local(kuzu)|
-7|marries|REL|local(kuzu)|
+4|knows|REL|local(kuzu)|Another test comment
+6|studyAt|REL|local(kuzu)|
+8|workAt|REL|local(kuzu)|
+10|meets|REL|local(kuzu)|
+12|marries|REL|local(kuzu)|
 
 -CASE CommentOnRelGroup
 -STATEMENT CREATE NODE TABLE PersonA (id INT64 PRIMARY KEY);
@@ -41,14 +41,14 @@ Table knows comment updated.
 ---- ok
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 11
-0|Rel|REL|local(kuzu)|This should appear
 0|person|NODE|local(kuzu)|
 1|organisation|NODE|local(kuzu)|
 2|movies|NODE|local(kuzu)|
-3|knows|REL|local(kuzu)|
-4|studyAt|REL|local(kuzu)|
-5|workAt|REL|local(kuzu)|
-6|meets|REL|local(kuzu)|
-7|marries|REL|local(kuzu)|
-8|PersonA|NODE|local(kuzu)|
-9|PersonB|NODE|local(kuzu)|
+4|knows|REL|local(kuzu)|
+6|studyAt|REL|local(kuzu)|
+8|workAt|REL|local(kuzu)|
+10|meets|REL|local(kuzu)|
+12|marries|REL|local(kuzu)|
+13|PersonA|NODE|local(kuzu)|
+14|PersonB|NODE|local(kuzu)|
+17|Rel|REL|local(kuzu)|This should appear

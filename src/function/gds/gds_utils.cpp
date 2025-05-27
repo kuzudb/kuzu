@@ -18,27 +18,25 @@ namespace kuzu {
 namespace function {
 
 static std::shared_ptr<FrontierTask> getFrontierTask(const main::ClientContext* context,
-    TableCatalogEntry* fromEntry, TableCatalogEntry* toEntry, TableCatalogEntry* relEntry,
-    Graph* graph, ExtendDirection extendDirection, const GDSComputeState& computeState,
-    std::vector<std::string> propertiesToScan) {
-    computeState.beginFrontierCompute(fromEntry->getTableID(), toEntry->getTableID());
-    auto info = FrontierTaskInfo(fromEntry, toEntry, relEntry, graph, extendDirection,
-        *computeState.edgeCompute, std::move(propertiesToScan));
+    const GraphRelInfo& relInfo, Graph* graph, ExtendDirection extendDirection,
+    const GDSComputeState& computeState, std::vector<std::string> propertiesToScan) {
+    auto info = FrontierTaskInfo(relInfo.srcTableID, relInfo.dstTableID, relInfo.relGroupEntry,
+        graph, extendDirection, *computeState.edgeCompute, std::move(propertiesToScan));
+    computeState.beginFrontierCompute(info.getBoundTableID(), info.getNbrTableID());
     auto numThreads = context->getMaxNumThreadForExec();
     auto sharedState =
         std::make_shared<FrontierTaskSharedState>(numThreads, *computeState.frontierPair);
-    auto maxOffset = graph->getMaxOffset(context->getTransaction(), fromEntry->getTableID());
+    auto maxOffset = graph->getMaxOffset(context->getTransaction(), info.getBoundTableID());
     sharedState->morselDispatcher.init(maxOffset);
     return std::make_shared<FrontierTask>(numThreads, info, sharedState);
 }
 
-static void scheduleFrontierTask(ExecutionContext* context, TableCatalogEntry* fromEntry,
-    TableCatalogEntry* toEntry, TableCatalogEntry* relEntry, Graph* graph,
-    ExtendDirection extendDirection, const GDSComputeState& computeState,
+static void scheduleFrontierTask(ExecutionContext* context, const GraphRelInfo& relInfo,
+    Graph* graph, ExtendDirection extendDirection, const GDSComputeState& computeState,
     std::vector<std::string> propertiesToScan) {
     auto clientContext = context->clientContext;
-    auto task = getFrontierTask(clientContext, fromEntry, toEntry, relEntry, graph, extendDirection,
-        computeState, std::move(propertiesToScan));
+    auto task = getFrontierTask(clientContext, relInfo, graph, extendDirection, computeState,
+        std::move(propertiesToScan));
     if (computeState.frontierPair->getState() == GDSDensityState::SPARSE) {
         task->runSparse();
         return;
@@ -60,27 +58,24 @@ static void runOneIteration(ExecutionContext* context, Graph* graph,
     ExtendDirection extendDirection, const GDSComputeState& compState,
     const std::vector<std::string>& propertiesToScan) {
     for (auto info : graph->getGraphEntry()->nodeInfos) {
-        auto fromEntry = info.entry;
-        for (const auto& nbrInfo : graph->getForwardNbrTableInfos(fromEntry->getTableID())) {
+        for (const auto& relInfo : graph->getRelInfos(info.entry->getTableID())) {
             if (context->clientContext->interrupted()) {
                 throw InterruptException{};
             }
-            auto toEntry = nbrInfo.nodeEntry;
-            auto relEntry = nbrInfo.relEntry;
             switch (extendDirection) {
             case ExtendDirection::FWD: {
-                scheduleFrontierTask(context, fromEntry, toEntry, relEntry, graph,
-                    ExtendDirection::FWD, compState, propertiesToScan);
+                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::FWD, compState,
+                    propertiesToScan);
             } break;
             case ExtendDirection::BWD: {
-                scheduleFrontierTask(context, toEntry, fromEntry, relEntry, graph,
-                    ExtendDirection::BWD, compState, propertiesToScan);
+                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::BWD, compState,
+                    propertiesToScan);
             } break;
             case ExtendDirection::BOTH: {
-                scheduleFrontierTask(context, fromEntry, toEntry, relEntry, graph,
-                    ExtendDirection::FWD, compState, propertiesToScan);
-                scheduleFrontierTask(context, toEntry, fromEntry, relEntry, graph,
-                    ExtendDirection::BWD, compState, propertiesToScan);
+                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::FWD, compState,
+                    propertiesToScan);
+                scheduleFrontierTask(context, relInfo, graph, ExtendDirection::BWD, compState,
+                    propertiesToScan);
             } break;
             default:
                 KU_UNREACHABLE;

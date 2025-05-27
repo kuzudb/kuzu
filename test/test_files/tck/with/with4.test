@@ -18,7 +18,7 @@
            RETURN r2 AS rel;
 ---- 2
 (0:0)-{_LABEL: T1, _ID: 1:0}->(0:1)
-(0:2)-{_LABEL: T2, _ID: 2:0}->(0:3)
+(0:2)-{_LABEL: T2, _ID: 3:0}->(0:3)
 
 # Aliasing expression to new variable name
 -CASE Scenario2

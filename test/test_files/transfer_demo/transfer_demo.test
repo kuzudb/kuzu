@@ -56,29 +56,29 @@
            HINT (((a1 JOIN t) JOIN a2) JOIN o2) JOIN p2
            RETURN rels(t);
 ---- 10
-[(1:9)-{_LABEL: Transfer, _ID: 3:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
-[(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:20)-{_LABEL: Transfer, _ID: 3:19, amount: 7000.000000, transaction_id: 54375211}->(1:7)]
-[(1:17)-{_LABEL: Transfer, _ID: 3:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:4)-{_LABEL: Transfer, _ID: 3:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 3:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
-[(1:5)-{_LABEL: Transfer, _ID: 3:2, amount: 395.000000, transaction_id: 45994036}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 3:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:10)-{_LABEL: Transfer, _ID: 3:6, amount: 709.000000, transaction_id: 47530799}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 3:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:2)-{_LABEL: Transfer, _ID: 3:15, amount: 753.000000, transaction_id: 47399495}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 3:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:0)-{_LABEL: Transfer, _ID: 3:14, amount: 653.000000, transaction_id: 47433922}->(1:4),(1:4)-{_LABEL: Transfer, _ID: 3:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 3:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
-[(1:3)-{_LABEL: Transfer, _ID: 3:16, amount: 606.000000, transaction_id: 47211605}->(1:4),(1:4)-{_LABEL: Transfer, _ID: 3:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 3:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
+[(1:9)-{_LABEL: Transfer, _ID: 4:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
+[(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:20)-{_LABEL: Transfer, _ID: 4:19, amount: 7000.000000, transaction_id: 54375211}->(1:7)]
+[(1:17)-{_LABEL: Transfer, _ID: 4:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:4)-{_LABEL: Transfer, _ID: 4:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 4:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
+[(1:5)-{_LABEL: Transfer, _ID: 4:2, amount: 395.000000, transaction_id: 45994036}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 4:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:10)-{_LABEL: Transfer, _ID: 4:6, amount: 709.000000, transaction_id: 47530799}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 4:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:2)-{_LABEL: Transfer, _ID: 4:15, amount: 753.000000, transaction_id: 47399495}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 4:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:0)-{_LABEL: Transfer, _ID: 4:14, amount: 653.000000, transaction_id: 47433922}->(1:4),(1:4)-{_LABEL: Transfer, _ID: 4:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 4:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
+[(1:3)-{_LABEL: Transfer, _ID: 4:16, amount: 606.000000, transaction_id: 47211605}->(1:4),(1:4)-{_LABEL: Transfer, _ID: 4:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 4:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
 -STATEMENT MATCH (a1:Account)-[t*1..3]->(a2:Account)<-[o2:Owns]-(p2:Person)
            WHERE p2.name = "Edward"
            HINT a1 JOIN (t JOIN (a2 JOIN (o2 JOIN p2)))
            RETURN rels(t);
 ---- 10
-[(1:9)-{_LABEL: Transfer, _ID: 3:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
-[(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:20)-{_LABEL: Transfer, _ID: 3:19, amount: 7000.000000, transaction_id: 54375211}->(1:7)]
-[(1:17)-{_LABEL: Transfer, _ID: 3:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:4)-{_LABEL: Transfer, _ID: 3:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 3:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
-[(1:5)-{_LABEL: Transfer, _ID: 3:2, amount: 395.000000, transaction_id: 45994036}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 3:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:10)-{_LABEL: Transfer, _ID: 3:6, amount: 709.000000, transaction_id: 47530799}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 3:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:2)-{_LABEL: Transfer, _ID: 3:15, amount: 753.000000, transaction_id: 47399495}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 3:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 3:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
-[(1:0)-{_LABEL: Transfer, _ID: 3:14, amount: 653.000000, transaction_id: 47433922}->(1:4),(1:4)-{_LABEL: Transfer, _ID: 3:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 3:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
-[(1:3)-{_LABEL: Transfer, _ID: 3:16, amount: 606.000000, transaction_id: 47211605}->(1:4),(1:4)-{_LABEL: Transfer, _ID: 3:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 3:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
+[(1:9)-{_LABEL: Transfer, _ID: 4:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
+[(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:20)-{_LABEL: Transfer, _ID: 4:19, amount: 7000.000000, transaction_id: 54375211}->(1:7)]
+[(1:17)-{_LABEL: Transfer, _ID: 4:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:4)-{_LABEL: Transfer, _ID: 4:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 4:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
+[(1:5)-{_LABEL: Transfer, _ID: 4:2, amount: 395.000000, transaction_id: 45994036}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 4:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:10)-{_LABEL: Transfer, _ID: 4:6, amount: 709.000000, transaction_id: 47530799}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 4:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:2)-{_LABEL: Transfer, _ID: 4:15, amount: 753.000000, transaction_id: 47399495}->(1:17),(1:17)-{_LABEL: Transfer, _ID: 4:4, amount: 200.000000, transaction_id: 47183056}->(1:12),(1:12)-{_LABEL: Transfer, _ID: 4:17, amount: 874.000000, transaction_id: 49496437}->(1:7)]
+[(1:0)-{_LABEL: Transfer, _ID: 4:14, amount: 653.000000, transaction_id: 47433922}->(1:4),(1:4)-{_LABEL: Transfer, _ID: 4:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 4:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
+[(1:3)-{_LABEL: Transfer, _ID: 4:16, amount: 606.000000, transaction_id: 47211605}->(1:4),(1:4)-{_LABEL: Transfer, _ID: 4:8, amount: 52.000000, transaction_id: 49526936}->(1:9),(1:9)-{_LABEL: Transfer, _ID: 4:9, amount: 543.000000, transaction_id: 49667851}->(1:7)]
 

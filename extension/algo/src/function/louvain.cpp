@@ -491,9 +491,11 @@ private:
 
 void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph* graph,
     PhaseState& state) {
-    const auto nbrTables = graph->getForwardNbrTableInfos(tableId);
+    const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
-    const auto scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, {});
+    KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
+    const auto scanState =
+        graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
 
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         state.initNextNode(nodeId);

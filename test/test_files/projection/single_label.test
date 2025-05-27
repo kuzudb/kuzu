@@ -376,16 +376,16 @@ Dan|Carol
 -LOG RelID2
 -STATEMENT MATCH (a:person)-[r:studyAt]->(o:organisation) RETURN id(r)
 ---- 3
-4:0
-4:1
-4:2
+5:0
+5:1
+5:2
 
 -LOG RelID3
 -STATEMENT MATCH (a:person)-[r:workAt]->(o:organisation) RETURN id(r)
 ---- 3
-5:0
-5:1
-5:2
+7:0
+7:1
+7:2
 
 #-LOG QueryOneToOneRelTable
 #-STATEMENT MATCH (:person)-[m:marries]->(:person) RETURN m

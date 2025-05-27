@@ -34,6 +34,12 @@ public:
         nextTableIdx = 0;
     }
 
+    void addRelInfos(std::vector<ScanRelTableInfo> relInfos_) {
+        for (auto& relInfo : relInfos_) {
+            relInfos.push_back(std::move(relInfo));
+        }
+    }
+
     bool scan(transaction::Transaction* transaction, storage::RelTableScanState& scanState);
 
 private:

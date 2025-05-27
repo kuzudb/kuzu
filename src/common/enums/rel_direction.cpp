@@ -17,12 +17,24 @@ std::string RelDirectionUtils::relDirectionToString(RelDataDirection direction) 
     return directionStrs[relDirectionToKeyIdx(direction)];
 }
 
-common::idx_t RelDirectionUtils::relDirectionToKeyIdx(RelDataDirection direction) {
+idx_t RelDirectionUtils::relDirectionToKeyIdx(RelDataDirection direction) {
     switch (direction) {
     case RelDataDirection::FWD:
         return 0;
     case RelDataDirection::BWD:
         return 1;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+table_id_t RelDirectionUtils::getNbrTableID(RelDataDirection direction, table_id_t srcTableID,
+    table_id_t dstTableID) {
+    switch (direction) {
+    case RelDataDirection::FWD:
+        return dstTableID;
+    case RelDataDirection::BWD:
+        return srcTableID;
     default:
         KU_UNREACHABLE;
     }

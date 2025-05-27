@@ -224,7 +224,7 @@ uint64_t CardinalityEstimator::getNumRels(const Transaction* transaction,
 double CardinalityEstimator::getExtensionRate(const RelExpression& rel,
     const NodeExpression& boundNode, const Transaction* transaction) const {
     auto numBoundNodes = static_cast<double>(getNumNodes(transaction, boundNode.getTableIDs()));
-    auto numRels = static_cast<double>(getNumRels(transaction, rel.getTableIDs()));
+    auto numRels = static_cast<double>(getNumRels(transaction, rel.getInnerRelTableIDs()));
     KU_ASSERT(numBoundNodes > 0);
     auto oneHopExtensionRate = numRels / atLeastOne(numBoundNodes);
     switch (rel.getRelType()) {

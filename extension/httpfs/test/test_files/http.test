@@ -62,11 +62,11 @@ Guelph|75000
 0|person|NODE|test(KUZU)|
 1|organisation|NODE|test(KUZU)|
 2|movies|NODE|test(KUZU)|
-3|knows|REL|test(KUZU)|
-4|studyAt|REL|test(KUZU)|
-5|workAt|REL|test(KUZU)|
-6|meets|REL|test(KUZU)|
-7|marries|REL|test(KUZU)|
+4|knows|REL|test(KUZU)|
+6|studyAt|REL|test(KUZU)|
+8|workAt|REL|test(KUZU)|
+10|meets|REL|test(KUZU)|
+12|marries|REL|test(KUZU)|
 
 -LOG QueryRemoteNodeTable
 -STATEMENT match (p:person) return p.*

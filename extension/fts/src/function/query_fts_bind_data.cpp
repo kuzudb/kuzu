@@ -5,7 +5,6 @@
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
-#include "function/fts_utils.h"
 #include "function/stem.h"
 #include "libstemmer.h"
 #include "re2.h"

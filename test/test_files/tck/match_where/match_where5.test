@@ -15,8 +15,8 @@
 -STATEMENT CREATE (root:Root {name: 'x'}),
                   (child1:TextNode {var: 'text'}),
                   (child2:IntNode {var: 0})
-           CREATE (root)-[:T_Root_TextNode]->(child1),
-                  (root)-[:T_Root_IntNode]->(child2);
+           CREATE (root)-[:T]->(child1),
+                  (root)-[:T]->(child2);
 ---- ok
 -STATEMENT MATCH (:Root {name: 'x'})-->(i:TextNode)
            WHERE i.var > 'te'
@@ -37,8 +37,8 @@
 -STATEMENT CREATE (root:Root {name: 'x'}),
                   (child1:TextNode {var: 'text'}),
                   (child2:IntNode {var: 0})
-           CREATE (root)-[:T_Root_TextNode]->(child1),
-                  (root)-[:T_Root_IntNode]->(child2);
+           CREATE (root)-[:T]->(child1),
+                  (root)-[:T]->(child2);
 ---- ok
 -STATEMENT MATCH (:Root {name: 'x'})-->(i:TextNode)
            WHERE i.var > 'te' AND LABEL(i) = 'TextNode'
@@ -59,8 +59,8 @@
 -STATEMENT CREATE (root:Root {name: 'x'}),
                   (child1:TextNode {var: 'text'}),
                   (child2:IntNode {var: 0})
-           CREATE (root)-[:T_Root_TextNode]->(child1),
-                  (root)-[:T_Root_IntNode]->(child2);
+           CREATE (root)-[:T]->(child1),
+                  (root)-[:T]->(child2);
 ---- ok
 -STATEMENT MATCH (:Root {name: 'x'})-->(i:TextNode)
            WHERE i.var > 'te' AND i.var IS NOT NULL

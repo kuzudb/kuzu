@@ -38,7 +38,7 @@
            MATCH (x:X), (a)-->(b)
            RETURN *;
 ---- 1
-{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 3:0, _LABEL: X, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 4:0, _LABEL: X, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
 
 # Forwarding a relationship variable
 -CASE Scenario3
@@ -106,9 +106,9 @@
 ---- ok
 -STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
-           CREATE (s)-[:REL_Single_A]->(a),
-                  (s)-[:REL_Single_B]->(b),
-                  (a)-[:REL_A_C]->(c),
+           CREATE (s)-[:REL]->(a),
+                  (s)-[:REL]->(b),
+                  (a)-[:REL]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
 -STATEMENT OPTIONAL MATCH (a:A)

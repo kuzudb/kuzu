@@ -108,10 +108,10 @@ Craig
 ---- ok
 -STATEMENT CREATE (a:A), (n1:B {num: 1}), (n2:B {num: 2}),
                   (m1:C), (m2:C)
-           CREATE (a)-[:T_A_B]->(n1),
-                  (n1)-[:T_B_C]->(m1),
-                  (a)-[:T_A_B]->(n2),
-                  (n2)-[:T_B_C]->(m2);
+           CREATE (a)-[:T]->(n1),
+                  (n1)-[:T]->(m1),
+                  (a)-[:T]->(n2),
+                  (n2)-[:T]->(m2);
 ---- ok
 -STATEMENT MATCH (a:A)-->(n)-->(m)
            RETURN n.num, count(*)

@@ -75,7 +75,8 @@ public:
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         const binder::BoundCopyFromInfo& copyFromInfo, planner::Schema* outFSchema,
-        common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
+        common::RelDataDirection direction, common::table_id_t tableID,
+        common::table_id_t nbrTableID, std::vector<common::column_id_t> columnIDs,
         std::vector<common::LogicalType> columnTypes, uint32_t operatorID);
 
     KUZU_API std::unique_ptr<PhysicalOperator> mapOperator(
@@ -222,10 +223,6 @@ public:
         const binder::BoundDeleteInfo& boundInfo, const planner::Schema& schema) const;
     NodeTableDeleteInfo getNodeTableDeleteInfo(const catalog::TableCatalogEntry& entry,
         DataPos pkPos) const;
-    NodeTableSetInfo getNodeTableSetInfo(const catalog::TableCatalogEntry& entry,
-        const binder::Expression& expr) const;
-    RelTableSetInfo getRelTableSetInfo(const catalog::TableCatalogEntry& entry,
-        const binder::Expression& expr) const;
 
     static void mapSIPJoin(PhysicalOperator* joinRoot);
 

@@ -6,7 +6,6 @@
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
@@ -55,9 +54,10 @@ static void writeStringStreamToFile(ClientContext* context, const std::string& s
         0 /* offset */);
 }
 
-static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
+static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* entry,
     const FileScanInfo* info) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
+    // TODO(Ziyi): We should pass fileName from binder phase to here.
     auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns;
     const auto numProperties = entry->getNumProperties();
@@ -69,16 +69,55 @@ static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
         columns += "`" + prop.getName() + "`";
         columns += i == numProperties - 1 ? "" : ",";
     }
+    auto copyOptionsCypher = CSVOption::toCypher(csvConfig.option.toOptionsMap());
     if (columns.empty()) {
         ss << stringFormat("COPY `{}` FROM \"{}\" {};\n", entry->getName(), fileName,
-            csvConfig.option.toCypher());
+            copyOptionsCypher);
     } else {
         ss << stringFormat("COPY `{}` ({}) FROM \"{}\" {};\n", entry->getName(), columns, fileName,
-            csvConfig.option.toCypher());
+            copyOptionsCypher);
     }
 }
 
-static void exportLoadedExtensions(stringstream& ss, ClientContext* clientContext) {
+static void writeCopyRelStatement(stringstream& ss, const ClientContext* context,
+    const TableCatalogEntry* entry, const FileScanInfo* info) {
+    const auto csvConfig = CSVReaderConfig::construct(info->options);
+    std::string columns;
+    const auto numProperties = entry->getNumProperties();
+    for (auto i = 0u; i < numProperties; i++) {
+        auto& prop = entry->getProperty(i);
+        if (prop.getType() == LogicalType::INTERNAL_ID()) {
+            continue;
+        }
+        columns += "`" + prop.getName() + "`";
+        columns += i == numProperties - 1 ? "" : ",";
+    }
+    auto transaction = context->getTransaction();
+    const auto catalog = context->getCatalog();
+    auto optionsMap = csvConfig.option.toOptionsMap();
+    for (auto& entryInfo : entry->constCast<RelGroupCatalogEntry>().getRelEntryInfos()) {
+        auto fromTableName =
+            catalog->getTableCatalogEntry(transaction, entryInfo.nodePair.srcTableID)->getName();
+        auto toTableName =
+            catalog->getTableCatalogEntry(transaction, entryInfo.nodePair.dstTableID)->getName();
+        // TODO(Ziyi): We should pass fileName from binder phase to here.
+        auto fileName = stringFormat("{}_{}_{}.{}", entry->getName(), fromTableName, toTableName,
+            StringUtils::getLower(info->fileTypeInfo.fileTypeStr));
+        auto copyOptionsMap = optionsMap;
+        copyOptionsMap["from"] = stringFormat("'{}'", fromTableName);
+        copyOptionsMap["to"] = stringFormat("'{}'", toTableName);
+        auto copyOptions = CSVOption::toCypher(copyOptionsMap);
+        if (columns.empty()) {
+            ss << stringFormat("COPY `{}` FROM \"{}\" {};\n", entry->getName(), fileName,
+                copyOptions);
+        } else {
+            ss << stringFormat("COPY `{}` ({}) FROM \"{}\" {};\n", entry->getName(), columns,
+                fileName, copyOptions);
+        }
+    }
+}
+
+static void exportLoadedExtensions(stringstream& ss, const ClientContext* clientContext) {
     auto extensionCypher = clientContext->getExtensionManager()->toCypher();
     if (!extensionCypher.empty()) {
         ss << extensionCypher << std::endl;
@@ -95,17 +134,11 @@ std::string getSchemaCypher(ClientContext* clientContext) {
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
         ss << nodeTableEntry->toCypher(toCypherInfo) << std::endl;
     }
-    RelTableToCypherInfo relTableToCypherInfo{clientContext};
-    for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
-        if (entry->hasParentRelGroup(catalog, transaction)) {
-            continue;
-        }
+    RelGroupToCypherInfo relTableToCypherInfo{clientContext};
+    for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
         ss << entry->toCypher(relTableToCypherInfo) << std::endl;
     }
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
-    for (const auto& relGroupEntry : catalog->getRelGroupEntries(transaction)) {
-        ss << relGroupEntry->toCypher(relGroupToCypherInfo) << std::endl;
-    }
     for (const auto sequenceEntry : catalog->getSequenceEntries(transaction)) {
         ss << sequenceEntry->toCypher(relGroupToCypherInfo) << std::endl;
     }
@@ -116,15 +149,16 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     return ss.str();
 }
 
-std::string getCopyCypher(const Catalog* catalog, Transaction* transaction,
-    const FileScanInfo* boundFileInfo) {
+std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boundFileInfo) {
     stringstream ss;
+    auto transaction = context->getTransaction();
+    const auto catalog = context->getCatalog();
     for (const auto& nodeTableEntry :
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
-        writeCopyStatement(ss, nodeTableEntry, boundFileInfo);
+        writeCopyNodeStatement(ss, nodeTableEntry, boundFileInfo);
     }
-    for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
-        writeCopyStatement(ss, entry, boundFileInfo);
+    for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
+        writeCopyRelStatement(ss, context, entry, boundFileInfo);
     }
     return ss.str();
 }
@@ -144,14 +178,12 @@ std::string getIndexCypher(ClientContext* clientContext, const FileScanInfo& exp
 
 void ExportDB::executeInternal(ExecutionContext* context) {
     const auto clientContext = context->clientContext;
-    const auto transaction = clientContext->getTransaction();
-    const auto catalog = clientContext->getCatalog();
     // write the schema.cypher file
     writeStringStreamToFile(clientContext, getSchemaCypher(clientContext),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::SCHEMA_FILE_NAME);
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
-    writeStringStreamToFile(clientContext, getCopyCypher(catalog, transaction, &boundFileInfo),
+    writeStringStreamToFile(clientContext, getCopyCypher(clientContext, &boundFileInfo),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::COPY_FILE_NAME);
     // write the index.cypher file
     writeStringStreamToFile(clientContext, getIndexCypher(clientContext, boundFileInfo),

@@ -22,7 +22,7 @@ Binder exception: Create rel e bound by multiple node labels is not supported.
 
 -STATEMENT ALTER TABLE Knows_PersonA_PersonB DROP data;
 ---- error
-Runtime exception: Cannot alter table Knows_PersonA_PersonB because it is referenced by table Knows.
+Catalog exception: Knows_PersonA_PersonB does not exist in catalog.
 -STATEMENT ALTER TABLE Knows DROP data;
 ---- ok
 -STATEMENT CALL table_info("Knows") RETURN *;
@@ -45,10 +45,10 @@ Binder exception: Table Know already exists.
 Binder exception: Table Know2 already exists.
 -STATEMENT CALL show_tables() RETURN *;
 ---- 4
-0|Know|REL|local(kuzu)|
 0|PersonA|NODE|local(kuzu)|
 1|PersonB|NODE|local(kuzu)|
-2|Know2|REL|local(kuzu)|
+3|Know2|REL|local(kuzu)|
+6|Know|REL|local(kuzu)|
 
 -CASE DuplicateFromToPairs
 -STATEMENT CREATE NODE TABLE PersonA (id INT64 PRIMARY KEY);

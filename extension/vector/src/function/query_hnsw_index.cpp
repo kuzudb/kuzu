@@ -59,8 +59,8 @@ std::unique_ptr<TableFuncBindData> QueryHNSWIndexBindData::copy() const {
     bindData->nodeTableEntry = nodeTableEntry;
     bindData->indexEntry = indexEntry;
     bindData->indexColumnID = indexColumnID;
-    bindData->upperHNSWRelTableEntry = upperHNSWRelTableEntry;
-    bindData->lowerHNSWRelTableEntry = lowerHNSWRelTableEntry;
+    bindData->upperRelTableEntry = upperRelTableEntry;
+    bindData->lowerRelTableEntry = lowerRelTableEntry;
     bindData->config = config;
     bindData->queryExpression = queryExpression;
     bindData->kExpression = kExpression;
@@ -118,12 +118,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
               LogicalTypeID::ARRAY);
     bindData->indexColumnID = nodeTableEntry->getColumnID(propertyID);
     const auto& auxInfo = bindData->indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
-    bindData->upperHNSWRelTableEntry =
+    bindData->upperRelTableEntry =
         catalog->getTableCatalogEntry(transaction, auxInfo.upperRelTableID)
-            ->ptrCast<RelTableCatalogEntry>();
-    bindData->lowerHNSWRelTableEntry =
+            ->ptrCast<RelGroupCatalogEntry>();
+    bindData->lowerRelTableEntry =
         catalog->getTableCatalogEntry(transaction, auxInfo.lowerRelTableID)
-            ->ptrCast<RelTableCatalogEntry>();
+            ->ptrCast<RelGroupCatalogEntry>();
     bindData->config = QueryHNSWConfig{input->optionalParams};
     bindData->queryExpression = input->params[2];
     bindData->kExpression = input->params[3];
@@ -179,8 +179,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         // We start searching when there is no query result to output.
         const auto& auxInfo = bindData->indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
         const auto index = std::make_unique<OnDiskHNSWIndex>(input.context->clientContext,
-            bindData->nodeTableEntry, bindData->indexColumnID, bindData->upperHNSWRelTableEntry,
-            bindData->lowerHNSWRelTableEntry, auxInfo.config.copy());
+            bindData->nodeTableEntry, bindData->indexColumnID, bindData->upperRelTableEntry,
+            bindData->lowerRelTableEntry, auxInfo.config.copy());
         index->setDefaultUpperEntryPoint(auxInfo.upperEntryPoint);
         index->setDefaultLowerEntryPoint(auxInfo.lowerEntryPoint);
         const auto dimension = ArrayType::getNumElements(

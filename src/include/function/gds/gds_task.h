@@ -12,25 +12,29 @@ namespace kuzu {
 namespace function {
 
 struct FrontierTaskInfo {
-    catalog::TableCatalogEntry* boundEntry = nullptr;
-    catalog::TableCatalogEntry* nbrEntry = nullptr;
-    catalog::TableCatalogEntry* relEntry = nullptr;
+    common::table_id_t srcTableID;
+    common::table_id_t dstTableID;
+    catalog::TableCatalogEntry* relGroupEntry = nullptr;
     graph::Graph* graph;
     common::ExtendDirection direction;
     EdgeCompute& edgeCompute;
     std::vector<std::string> propertiesToScan;
 
-    FrontierTaskInfo(catalog::TableCatalogEntry* boundEntry, catalog::TableCatalogEntry* nbrEntry,
-        catalog::TableCatalogEntry* relEntry, graph::Graph* graph,
+    FrontierTaskInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
+        catalog::TableCatalogEntry* relGroupEntry, graph::Graph* graph,
         common::ExtendDirection direction, EdgeCompute& edgeCompute,
         std::vector<std::string> propertiesToScan)
-        : boundEntry{boundEntry}, nbrEntry{nbrEntry}, relEntry{relEntry}, graph{graph},
-          direction{direction}, edgeCompute{edgeCompute},
+        : srcTableID{srcTableID}, dstTableID{dstTableID}, relGroupEntry{relGroupEntry},
+          graph{graph}, direction{direction}, edgeCompute{edgeCompute},
           propertiesToScan{std::move(propertiesToScan)} {}
     FrontierTaskInfo(const FrontierTaskInfo& other)
-        : boundEntry{other.boundEntry}, nbrEntry{other.nbrEntry}, relEntry{other.relEntry},
-          graph{other.graph}, direction{other.direction}, edgeCompute{other.edgeCompute},
-          propertiesToScan{other.propertiesToScan} {}
+        : srcTableID{other.srcTableID}, dstTableID{other.dstTableID},
+          relGroupEntry{other.relGroupEntry}, graph{other.graph}, direction{other.direction},
+          edgeCompute{other.edgeCompute}, propertiesToScan{other.propertiesToScan} {}
+
+    common::table_id_t getBoundTableID() const;
+    common::table_id_t getNbrTableID() const;
+    common::oid_t getRelTableID() const;
 };
 
 struct FrontierTaskSharedState {

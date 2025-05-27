@@ -337,7 +337,7 @@ def test_recursive_rel(conn_db_readonly: ConnDB) -> None:
     assert len(e["_rels"]) == 1
     rel = e["_rels"][0]
     excepted_rel = {
-        "_id": {"offset": 0, "table": 4},
+        "_id": {"offset": 0, "table": 5},
         "_src": {"offset": 0, "table": 0},
         "_dst": {"offset": 0, "table": 1},
         "_label": "studyAt",

@@ -78,11 +78,11 @@ static std::unique_ptr<ValueVector> getValueVector(const LogicalType& type, Memo
 }
 
 OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
-    TableCatalogEntry* tableEntry, std::shared_ptr<Expression> predicate)
-    : OnDiskGraphNbrScanState{context, tableEntry, std::move(predicate), {}} {}
+    const TableCatalogEntry& entry, oid_t relTableID, std::shared_ptr<Expression> predicate)
+    : OnDiskGraphNbrScanState{context, entry, relTableID, std::move(predicate), {}} {}
 
 OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
-    TableCatalogEntry* tableEntry, std::shared_ptr<Expression> predicate,
+    const TableCatalogEntry& entry, oid_t relTableID, std::shared_ptr<Expression> predicate,
     std::vector<std::string> relProperties, bool randomLookup) {
     auto predicateProps = getProperties(predicate);
     auto schema = getSchema(predicateProps);
@@ -101,8 +101,8 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
     relPropertyColumnIDs.resize(relProperties.size());
     for (auto i = 0u; i < relProperties.size(); ++i) {
         auto propertyName = relProperties[i];
-        auto& property = tableEntry->getProperty(propertyName);
-        relPropertyColumnIDs[i] = tableEntry->getColumnID(propertyName);
+        auto& property = entry.getProperty(propertyName);
+        relPropertyColumnIDs[i] = entry.getColumnID(propertyName);
         KU_ASSERT(relPropertyColumnIDs[i] != INVALID_COLUMN_ID);
         propertyVectors[i] = getValueVector(property.getType(), mm, state);
     }
@@ -111,10 +111,9 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
         relPredicateEvaluator = mapper.getEvaluator(predicate);
         relPredicateEvaluator->init(resultSet, context);
     }
-    auto table =
-        context->getStorageManager()->getTable(tableEntry->getTableID())->ptrCast<RelTable>();
-    for (auto dataDirection : tableEntry->ptrCast<RelTableCatalogEntry>()->getRelDataDirections()) {
-        auto columnIDs = getColumnIDs(predicateProps, *tableEntry, relPropertyColumnIDs);
+    auto table = context->getStorageManager()->getTable(relTableID)->ptrCast<RelTable>();
+    for (auto dataDirection : entry.constCast<RelGroupCatalogEntry>().getRelDataDirections()) {
+        auto columnIDs = getColumnIDs(predicateProps, entry, relPropertyColumnIDs);
         std::vector outVectors{dstNodeIDVector.get()};
         for (auto& propertyVector : propertyVectors) {
             outVectors.push_back(propertyVector.get());
@@ -133,22 +132,22 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
 OnDiskGraph::OnDiskGraph(ClientContext* context, GraphEntry entry)
     : context{context}, graphEntry{std::move(entry)} {
     auto storage = context->getStorageManager();
-    auto catalog = context->getCatalog();
-    auto transaction = context->getTransaction();
     for (const auto& nodeInfo : graphEntry.nodeInfos) {
         auto id = nodeInfo.entry->getTableID();
         nodeIDToNodeTable.insert({id, storage->getTable(id)->ptrCast<NodeTable>()});
     }
-    for (const auto& nodeInfo : graphEntry.nodeInfos) {
-        auto id = nodeInfo.entry->getTableID();
-        nodeIDToNbrTableInfos.insert({id, {}});
-        for (auto& relInfo : graphEntry.relInfos) {
-            auto relEntry = relInfo.entry->ptrCast<RelTableCatalogEntry>();
-            if (relEntry->getSrcTableID() != id) {
+    for (auto& relInfo : graphEntry.relInfos) {
+        auto relGroupEntry = relInfo.entry->ptrCast<RelGroupCatalogEntry>();
+        for (auto& relEntryInfo : relGroupEntry->getRelEntryInfos()) {
+            auto srcTableID = relEntryInfo.nodePair.srcTableID;
+            auto dstTableID = relEntryInfo.nodePair.dstTableID;
+            if (!nodeIDToNodeTable.contains(srcTableID)) {
                 continue;
             }
-            auto dstEntry = catalog->getTableCatalogEntry(transaction, relEntry->getDstTableID());
-            nodeIDToNbrTableInfos.at(id).emplace_back(dstEntry, relInfo.entry);
+            if (!nodeIDToNodeTable.contains(dstTableID)) {
+                continue;
+            }
+            relInfos.emplace_back(srcTableID, dstTableID, relGroupEntry, relEntryInfo.oid);
         }
     }
 }
@@ -178,30 +177,27 @@ offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction) const {
     return numNodes;
 }
 
-std::vector<NbrTableInfo> OnDiskGraph::getForwardNbrTableInfos(table_id_t srcNodeTableID) {
-    KU_ASSERT(nodeIDToNbrTableInfos.contains(srcNodeTableID));
-    return nodeIDToNbrTableInfos.at(srcNodeTableID);
+std::vector<GraphRelInfo> OnDiskGraph::getRelInfos(table_id_t srcTableID) {
+    std::vector<GraphRelInfo> result;
+    for (auto& info : relInfos) {
+        if (info.srcTableID == srcTableID) {
+            result.push_back(info);
+        }
+    }
+    return result;
 }
 
 // TODO(Xiyang): since now we need to provide nbr info at prepare stage. It no longer make sense to
 // have scanFwd&scanBwd. The direction has already been decided in this function.
-std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* tableEntry,
-    TableCatalogEntry* nbrNodeEntry, std::vector<std::string> relProperties) {
-    auto& info = graphEntry.getRelInfo(tableEntry->getTableID());
-    auto state = std::make_unique<OnDiskGraphNbrScanState>(context, tableEntry, info.predicate,
-        relProperties, true /*randomLookup*/);
-    if (nodeOffsetMaskMap != nullptr &&
-        nodeOffsetMaskMap->containsTableID(nbrNodeEntry->getTableID())) {
-        state->nbrNodeMask = nodeOffsetMaskMap->getOffsetMask(nbrNodeEntry->getTableID());
+std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(const TableCatalogEntry& entry,
+    oid_t relTableID, table_id_t nbrTableID, std::vector<std::string> relProperties) {
+    auto& info = graphEntry.getRelInfo(entry.getTableID());
+    auto state = std::make_unique<OnDiskGraphNbrScanState>(context, entry, relTableID,
+        info.predicate, relProperties, true /*randomLookup*/);
+    if (nodeOffsetMaskMap != nullptr && nodeOffsetMaskMap->containsTableID(nbrTableID)) {
+        state->nbrNodeMask = nodeOffsetMaskMap->getOffsetMask(nbrTableID);
     }
     return state;
-}
-
-std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* tableEntry) const {
-    auto& info = graphEntry.getRelInfo(tableEntry->getTableID());
-    std::vector<std::string> properties;
-    return std::make_unique<OnDiskGraphNbrScanState>(context, tableEntry, info.predicate,
-        properties, true /*randomLookup*/);
 }
 
 Graph::EdgeIterator OnDiskGraph::scanFwd(nodeID_t nodeID, NbrScanState& state) {

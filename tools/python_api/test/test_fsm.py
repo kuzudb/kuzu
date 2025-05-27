@@ -97,8 +97,8 @@ def fsm_rel_group_setup(tmp_path: Path):
     conn.execute("create rel table likes (FROM personA TO personB, FROM personB To personA, date DATE);")
     conn.execute(f'COPY personA FROM "{KUZU_ROOT}/dataset/rel-group/node.csv";')
     conn.execute(f'COPY personB FROM "{KUZU_ROOT}/dataset/rel-group/node.csv";')
-    conn.execute(f'COPY likes_personA_personB FROM "{KUZU_ROOT}/dataset/rel-group/edge.csv";')
-    conn.execute(f'COPY likes_personB_personA FROM "{KUZU_ROOT}/dataset/rel-group/edge.csv";')
+    conn.execute(f'COPY likes FROM "{KUZU_ROOT}/dataset/rel-group/edge.csv" (FROM="personA", TO="personB");')
+    conn.execute(f'COPY likes FROM "{KUZU_ROOT}/dataset/rel-group/edge.csv" (FROM="personB", TO="personA");')
     return db, conn
 
 
@@ -186,9 +186,7 @@ def test_fsm_reclaim_struct(fsm_rel_table_setup) -> None:
 
 def test_fsm_reclaim_rel_group(fsm_rel_group_setup) -> None:
     _, conn = fsm_rel_group_setup
-    used_pages = get_used_page_ranges(conn, "likes_personA_personB") + get_used_page_ranges(
-        conn, "likes_personB_personA"
-    )
+    used_pages = get_used_page_ranges(conn, "likes")
     conn.execute("drop table likes")
     prevent_data_file_truncation(conn)
     conn.execute("checkpoint")
@@ -199,10 +197,8 @@ def test_fsm_reclaim_rel_group(fsm_rel_group_setup) -> None:
 def test_fsm_reclaim_rel_group_column(fsm_rel_group_setup) -> None:
     _, conn = fsm_rel_group_setup
     used_pages = (
-        get_used_page_ranges(conn, "likes_personA_personB", "fwd_date")
-        + get_used_page_ranges(conn, "likes_personA_personB", "bwd_date")
-        + get_used_page_ranges(conn, "likes_personB_personA", "fwd_date")
-        + get_used_page_ranges(conn, "likes_personB_personA", "bwd_date")
+        get_used_page_ranges(conn, "likes", "fwd_date")
+        + get_used_page_ranges(conn, "likes", "bwd_date")
     )
     conn.execute("alter table likes drop date")
     prevent_data_file_truncation(conn)

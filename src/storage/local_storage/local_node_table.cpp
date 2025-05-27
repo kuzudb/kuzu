@@ -23,7 +23,7 @@ std::vector<LogicalType> LocalNodeTable::getNodeTableColumnTypes(
     return types;
 }
 
-LocalNodeTable::LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, Table& table)
+LocalNodeTable::LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, const Table& table)
     : LocalTable{table},
       nodeGroups{getNodeTableColumnTypes(*tableEntry), false /*enableCompression*/} {
     initLocalHashIndex();

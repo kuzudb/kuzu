@@ -15,7 +15,9 @@ struct RelDirectionUtils {
     static RelDataDirection getOppositeDirection(RelDataDirection direction);
 
     static std::string relDirectionToString(RelDataDirection direction);
-    static common::idx_t relDirectionToKeyIdx(RelDataDirection direction);
+    static idx_t relDirectionToKeyIdx(RelDataDirection direction);
+    static table_id_t getNbrTableID(RelDataDirection direction, table_id_t srcTableID,
+        table_id_t dstTableID);
 };
 
 } // namespace common

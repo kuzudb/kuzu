@@ -88,10 +88,12 @@ public:
         : graph{graph}, visitedState{visitedState}, visitedOrder{visitedOrder} {
         KU_ASSERT(graph->getNodeTableIDs().size() == 1);
         nodeTableID = graph->getNodeTableIDs()[0];
-        auto nbrInfos = graph->getForwardNbrTableInfos(nodeTableID);
+        auto nbrInfos = graph->getRelInfos(nodeTableID);
         KU_ASSERT(nbrInfos.size() == 1);
         auto nbrInfo = nbrInfos[0];
-        scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, {});
+        KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
+        scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
+            nbrInfo.dstTableID, {});
     }
 
     void compute(const offset_t maxOffset, NodeOffsetMaskMap* map, ExecutionContext* context) {

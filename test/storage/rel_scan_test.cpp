@@ -3,7 +3,6 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/types/date_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
@@ -33,7 +32,7 @@ public:
             nodeEntries.push_back(entry);
         }
         std::vector<catalog::TableCatalogEntry*> relEntries;
-        for (auto& entry : catalog->getRelTableEntries(transaction)) {
+        for (auto& entry : catalog->getRelGroupEntries(transaction)) {
             relEntries.push_back(entry);
         }
         auto entry = graph::GraphEntry(nodeEntries, relEntries);
@@ -61,8 +60,10 @@ TEST_F(RelScanTest, ScanFwd) {
     auto nodeEntry = catalog->getTableCatalogEntry(transaction, "person");
     auto tableID = nodeEntry->getTableID();
     auto relEntry = catalog->getTableCatalogEntry(transaction, "knows");
-    auto scanState =
-        graph->prepareRelScan(relEntry, nodeEntry, {common::InternalKeyword::ID, "date"});
+    auto relTableID =
+        relEntry->ptrCast<catalog::RelGroupCatalogEntry>()->getSingleRelEntryInfo().oid;
+    auto scanState = graph->prepareRelScan(*relEntry, relTableID, nodeEntry->getTableID(),
+        {common::InternalKeyword::ID, "date"});
 
     std::unordered_map<offset_t, date_t> expectedDates = {
         {0, Date::fromDate(2021, 6, 30)},
@@ -96,7 +97,7 @@ TEST_F(RelScanTest, ScanFwd) {
                 EXPECT_EQ(nbr.tableID, tableID);
                 auto edgeID = propertyVectors[0]->template getValue<nodeID_t>(i);
                 resultNodeOffsets.push_back(nbr.offset);
-                EXPECT_EQ(edgeID.tableID, relEntry->getTableID());
+                EXPECT_EQ(edgeID.tableID, relTableID);
                 resultRelOffsets.push_back(edgeID.offset);
                 auto date = propertyVectors[1]->template getValue<date_t>(i);
                 resultDates.push_back(date);
@@ -125,7 +126,7 @@ TEST_F(RelScanTest, ScanFwd) {
                     auto date = propertyVectors[1]->template getValue<date_t>(i);
                     EXPECT_EQ(nbr.tableID, tableID);
                     resultNodeOffsets.push_back(nbr.offset);
-                    EXPECT_EQ(edgeID.tableID, relEntry->getTableID());
+                    EXPECT_EQ(edgeID.tableID, relTableID);
                     resultRelOffsets.push_back(edgeID.offset);
                     resultDates.push_back(date);
                 });
