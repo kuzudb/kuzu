@@ -3,13 +3,17 @@
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
-#include "transaction/transaction.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
+
+// Page size must be aligned to 8 byte chunks for the 64-bit NullMask algorithms to work
+// without the possibility of memory errors from reading/writing off the end of a page.
+static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
 
 struct NullColumnFunc {
     static void readValuesFromPageToVector(const uint8_t* frame, PageCursor& pageCursor,
@@ -35,44 +39,6 @@ NullColumn::NullColumn(const std::string& name, FileHandle* dataFH, MemoryManage
     : Column{name, LogicalType::BOOL(), dataFH, mm, shadowFile, enableCompression,
           false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
-}
-
-void NullColumn::scan(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
-    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
-}
-
-void NullColumn::scan(const Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) const {
-    Column::scan(transaction, state, startOffsetInGroup, endOffsetInGroup, resultVector,
-        offsetInVector);
-}
-
-void NullColumn::scan(const Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
-    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
-}
-
-void NullColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t offsetInChunk,
-    const ColumnChunkData& data, offset_t dataOffset, length_t numValues) const {
-    if (numValues == 0) {
-        return;
-    }
-    writeValues(state, offsetInChunk, data.getData(), nullptr /*nullChunkData*/, dataOffset,
-        numValues);
-    const auto& nullChunk = data.cast<NullChunkData>();
-    bool min = nullChunk.isNull(dataOffset);
-    bool max = min;
-    for (auto i = 0u; i < numValues; i++) {
-        if (nullChunk.isNull(dataOffset + i)) {
-            max = true;
-        } else {
-            min = false;
-        }
-    }
-    updateStatistics(persistentChunk.getMetadata(), offsetInChunk + numValues - 1,
-        StorageValue(min), StorageValue(max));
 }
 
 } // namespace storage

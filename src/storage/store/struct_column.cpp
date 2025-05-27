@@ -2,6 +2,7 @@
 
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/null_column.h"
 #include "storage/store/struct_chunk_data.h"
