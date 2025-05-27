@@ -107,6 +107,8 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
         }
         KU_ASSERT(entry->getTableType() == TableType::NODE);
         tableData.tableName = entry->getName();
+        tableData.fileName =
+            entry->getName() + "." + StringUtils::getLower(fileTypeInfo.fileTypeStr);
         auto query = getExportNodeTableDataQuery(*entry);
         bindExportTableData(tableData, query, context, binder);
         exportData.push_back(std::move(tableData));
