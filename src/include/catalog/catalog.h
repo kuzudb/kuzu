@@ -177,6 +177,7 @@ public:
 
     void incrementVersion() { version++; }
     uint64_t getVersion() const { return version; }
+    void setVersion(uint64_t newVersion) { version = newVersion; }
 
     void serialize(common::Serializer& ser) const;
     void deserialize(common::Deserializer& deSer);

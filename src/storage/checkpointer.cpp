@@ -52,14 +52,15 @@ void Checkpointer::writeCheckpoint() {
     // Serialize the catalog if there are changes
     if (databaseHeader.catalogVersion != catalog->getVersion()) {
         databaseHeader.catalogPageRange = serializeCatalog(*catalog, *storageManager);
-        databaseHeader.catalogVersion = catalog->getVersion();
     }
     // Serialize the storage metadata if there are changes
     if (hasStorageChanges || databaseHeader.catalogVersion != catalog->getVersion() ||
         databaseHeader.pageManagerVersion != dataFH->getPageManager()->getVersion()) {
         databaseHeader.metadataPageRange = serializeMetadata(*catalog, *storageManager);
-        databaseHeader.pageManagerVersion = dataFH->getPageManager()->getVersion();
     }
+
+    databaseHeader.catalogVersion = catalog->getVersion();
+    databaseHeader.pageManagerVersion = dataFH->getPageManager()->getVersion();
 
     writeDatabaseHeader(databaseHeader);
 
@@ -198,19 +199,26 @@ static DatabaseHeader readDatabaseHeader(common::Deserializer& deSer) {
 }
 
 DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
-    // If we haven't checkpointed the database yet we return the default header
-    if (clientContext.getStorageManager()->getDataFH()->getFileInfo()->getFileSize() <=
-        common::KUZU_PAGE_SIZE) {
-        return DatabaseHeader{{}, {},
-            std::numeric_limits<decltype(DatabaseHeader::catalogVersion)>::max(),
+    static const auto defaultHeader =
+        DatabaseHeader{{}, {}, std::numeric_limits<decltype(DatabaseHeader::catalogVersion)>::max(),
             std::numeric_limits<decltype(DatabaseHeader::pageManagerVersion)>::max()};
+    if (clientContext.getStorageManager()->getDataFH()->getFileInfo()->getFileSize() <
+        common::KUZU_PAGE_SIZE) {
+        // If the data file hasn't been written to there is no existing database header
+        return defaultHeader;
     }
     auto vfs = clientContext.getVFSUnsafe();
     auto fileInfo = vfs->openFile(StorageUtils::getDataFName(vfs, clientContext.getDatabasePath()),
         common::FileOpenFlags{common::FileFlags::READ_ONLY}, &clientContext);
     auto reader = std::make_unique<common::BufferedFileReader>(std::move(fileInfo));
     common::Deserializer deSer(std::move(reader));
-    return readDatabaseHeader(deSer);
+    try {
+        return readDatabaseHeader(deSer);
+    } catch (const common::RuntimeException&) {
+        // It is possible we optimistically write to the database file before the first checkpoint
+        // In this case the magic bytes check will fail and we assume there is no existing header
+        return defaultHeader;
+    }
 }
 
 void Checkpointer::readCheckpoint() {
@@ -236,9 +244,11 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.catalogPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     catalog->deserialize(deSer);
+    catalog->setVersion(currentHeader.catalogVersion);
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     storageManager->deserialize(*catalog, deSer);
+    storageManager->getDataFH()->getPageManager()->setVersion(currentHeader.pageManagerVersion);
 }
 
 } // namespace storage
