@@ -478,7 +478,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -518,7 +518,8 @@ visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {
         [this, transaction](offset_t offset_) -> bool { return isVisible(transaction, offset_); };
 }
 
-void NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
+bool NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
+    bool ret = hasChanges;
     if (hasChanges) {
         // Deleted columns are vacuumed and not checkpointed.
         std::vector<std::unique_ptr<Column>> checkpointColumns;
@@ -542,6 +543,7 @@ void NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
         hasChanges = false;
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
     }
+    return ret;
 }
 
 void NodeTable::rollbackPKIndexInsert(const Transaction* transaction, row_idx_t startRow,
@@ -609,7 +611,7 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to

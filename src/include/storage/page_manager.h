@@ -19,7 +19,10 @@ class FileHandle;
 class PageManager {
 public:
     explicit PageManager(FileHandle* fileHandle)
-        : freeSpaceManager(std::make_unique<FreeSpaceManager>()), fileHandle(fileHandle) {}
+        : freeSpaceManager(std::make_unique<FreeSpaceManager>()), fileHandle(fileHandle),
+          version(0) {}
+
+    uint64_t getVersion() const { return version; }
 
     PageRange allocatePageRange(common::page_idx_t numPages);
     void freePageRange(PageRange block);
@@ -39,6 +42,7 @@ private:
     std::unique_ptr<FreeSpaceManager> freeSpaceManager;
     std::mutex mtx;
     FileHandle* fileHandle;
+    uint64_t version;
 };
 } // namespace storage
 } // namespace kuzu

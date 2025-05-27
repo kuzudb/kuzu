@@ -149,8 +149,9 @@ void StorageManager::reclaimDroppedTables(const Catalog& catalog) {
     }
 }
 
-void StorageManager::checkpoint(const Catalog& catalog) {
+bool StorageManager::checkpoint(const Catalog& catalog) {
     std::lock_guard lck{mtx};
+    bool hasChanges = false;
     const auto nodeTableEntries = catalog.getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     const auto relGroupEntries = catalog.getRelGroupEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     for (const auto tableEntry : nodeTableEntries) {
@@ -159,7 +160,7 @@ void StorageManager::checkpoint(const Catalog& catalog) {
                 stringFormat("Checkpoint failed: table {} not found in storage manager.",
                     tableEntry->getName()));
         }
-        tables.at(tableEntry->getTableID())->checkpoint(tableEntry);
+        hasChanges = tables.at(tableEntry->getTableID())->checkpoint(tableEntry) || hasChanges;
     }
     for (const auto entry : relGroupEntries) {
         for (auto& info : entry->getRelEntryInfos()) {
@@ -167,11 +168,12 @@ void StorageManager::checkpoint(const Catalog& catalog) {
                 throw RuntimeException(stringFormat(
                     "Checkpoint failed: table {} not found in storage manager.", entry->getName()));
             }
-            tables.at(info.oid)->checkpoint(entry);
+            hasChanges = tables.at(info.oid)->checkpoint(entry) || hasChanges;
         }
         entry->vacuumColumnIDs(1);
     }
     reclaimDroppedTables(catalog);
+    return hasChanges;
 }
 
 void StorageManager::finalizeCheckpoint() {

@@ -159,7 +159,7 @@ public:
 
     void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
-    void checkpoint(catalog::TableCatalogEntry* tableEntry) override;
+    bool checkpoint(catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override;
     void reclaimStorage(FileHandle& dataFH) override;
 

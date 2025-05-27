@@ -481,7 +481,8 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     }
 }
 
-void RelTable::checkpoint(TableCatalogEntry* tableEntry) {
+bool RelTable::checkpoint(TableCatalogEntry* tableEntry) {
+    bool ret = hasChanges;
     if (hasChanges) {
         // Deleted columns are vacuumed and not checkpointed or serialized.
         std::vector<column_id_t> columnIDs;
@@ -494,6 +495,7 @@ void RelTable::checkpoint(TableCatalogEntry* tableEntry) {
         }
         hasChanges = false;
     }
+    return ret;
 }
 
 row_idx_t RelTable::getNumTotalRows(const Transaction* transaction) {

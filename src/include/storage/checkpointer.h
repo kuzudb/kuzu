@@ -1,6 +1,7 @@
 #pragma once
 
 #include "main/client_context.h"
+#include "storage/page_range.h"
 
 namespace kuzu {
 namespace main {
@@ -9,7 +10,12 @@ class AttachedKuzuDatabase;
 
 namespace storage {
 
-struct PageRange;
+struct DatabaseHeader {
+    PageRange catalogPageRange;
+    PageRange metadataPageRange;
+    uint64_t catalogVersion;
+    uint64_t pageManagerVersion;
+};
 
 class Checkpointer {
     friend class main::AttachedKuzuDatabase;
@@ -29,7 +35,10 @@ private:
         common::VirtualFileSystem* vfs, catalog::Catalog* catalog, StorageManager* storageManager);
 
 private:
-    void writeDatabaseHeader(const PageRange& catalogPageRange, const PageRange& metadataPageRange);
+    void writeDatabaseHeader(const DatabaseHeader& header);
+    DatabaseHeader getCurrentDatabaseHeader() const;
+    PageRange serializeCatalog(catalog::Catalog& catalog, StorageManager& storageManager);
+    PageRange serializeMetadata(catalog::Catalog& catalog, StorageManager& storageManager);
 
 private:
     main::ClientContext& clientContext;

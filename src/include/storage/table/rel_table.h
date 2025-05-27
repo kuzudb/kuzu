@@ -175,8 +175,7 @@ public:
     }
     common::column_id_t getNumColumns() const {
         KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
+        RUNTIME_CHECK(for (const auto& relData : directedRelData) {
             KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
         });
         return directedRelData[0]->getNumColumns();
@@ -190,7 +189,7 @@ public:
 
     void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
-    void checkpoint(catalog::TableCatalogEntry* tableEntry) override;
+    bool checkpoint(catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override {};
     void reclaimStorage(FileHandle& dataFH) override;
 

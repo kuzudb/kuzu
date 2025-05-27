@@ -36,7 +36,7 @@ public:
 
     void createTable(catalog::TableCatalogEntry* entry);
 
-    void checkpoint(const catalog::Catalog& catalog);
+    bool checkpoint(const catalog::Catalog& catalog);
     void finalizeCheckpoint();
     void rollbackCheckpoint(const catalog::Catalog& catalog);
 
