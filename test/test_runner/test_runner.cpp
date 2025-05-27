@@ -220,7 +220,7 @@ void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size
         case ResultType::ERROR_MSG: {
             statement->newOutput +=
                 "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
-            statement->newOutput += result->getErrorMessage() + '\n';
+            statement->newOutput += StringUtils::rtrim(result->getErrorMessage()) + '\n';
         } break;
         case ResultType::ERROR_REGEX: {
             statement->newOutput += "---- " +
