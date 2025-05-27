@@ -307,7 +307,7 @@ void ClientContext::cleanUp() {
 }
 
 std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_view query,
-    std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParams) {
+    std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams) {
     std::unique_lock lck{mtx};
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
@@ -319,8 +319,16 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
         return preparedStatementWithError(
             "Connection Exception: We do not support prepare multiple statements.");
     }
-    auto result =
-        prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/, inputParams);
+
+    // The binder deals with the parameter values as shared ptrs
+    // Copy the params to a new map that matches the format that the binder expects
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParamsTmp;
+    for (auto& [key, value] : inputParams) {
+        inputParamsTmp.insert(
+            std::make_pair(key, std::make_shared<common::Value>(*value)));
+    }
+    auto result = prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/,
+        std::move(inputParamsTmp));
     useInternalCatalogEntry_ = false;
     return result;
 }

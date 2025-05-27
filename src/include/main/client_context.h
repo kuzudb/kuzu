@@ -157,7 +157,7 @@ public:
 
     // Query.
     std::unique_ptr<PreparedStatement> prepareWithParams(std::string_view query,
-        std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParams = {});
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams = {});
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
         std::optional<uint64_t> queryID = std::nullopt);

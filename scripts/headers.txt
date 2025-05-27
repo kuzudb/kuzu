@@ -27,7 +27,6 @@ src/include/common/string_format.h
 src/include/common/timer.h
 src/include/common/type_utils.h
 src/include/common/types/blob.h
-src/include/common/types/parameter.h
 src/include/common/types/date_t.h
 src/include/common/types/dtime_t.h
 src/include/common/types/int128_t.h
