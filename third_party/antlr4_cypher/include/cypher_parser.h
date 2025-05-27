@@ -398,6 +398,7 @@ public:
     OC_QueryContext *oC_Query();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
+    OC_ParameterContext *oC_Parameter();
     OC_VariableContext *oC_Variable();
     OC_SchemaNameContext *oC_SchemaName();
     OC_FunctionInvocationContext *oC_FunctionInvocation();

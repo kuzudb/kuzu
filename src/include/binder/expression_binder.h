@@ -136,6 +136,7 @@ private:
     Binder* binder;
     main::ClientContext* context;
     std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
+    std::unordered_set<std::string> parsedParameters;
     ExpressionBinderConfig config;
 };
 

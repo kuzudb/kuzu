@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Any, Callable
 
 from . import _kuzu
@@ -129,7 +130,7 @@ class Connection:
         if len(parameters) == 0 and isinstance(query, str):
             _query_result = self._connection.query(query)
         else:
-            prepared_statement = self.prepare(query) if isinstance(query, str) else query
+            prepared_statement = self._prepare(query, parameters) if isinstance(query, str) else query
             _query_result = self._connection.execute(prepared_statement._prepared_statement, parameters)
         if not _query_result.isSuccess():
             raise RuntimeError(_query_result.getErrorMessage())
@@ -144,7 +145,22 @@ class Connection:
             all_query_results.append(QueryResult(self, _query_result))
         return all_query_results
 
-    def prepare(self, query: str) -> PreparedStatement:
+    def _prepare(
+        self,
+        query: str,
+        parameters: dict[str, Any] | None = None,
+    ) -> PreparedStatement:
+        """
+        The only parameters supported during prepare are dataframes.
+        Any remaining parameters will be ignored and should be passed to execute().
+        """
+        return PreparedStatement(self, query, parameters)
+
+    def prepare(
+        self,
+        query: str,
+        parameters: dict[str, Any] | None = None,
+    ) -> PreparedStatement:
         """
         Create a prepared statement for a query.
 
@@ -153,13 +169,22 @@ class Connection:
         query : str
             Query to prepare.
 
+        parameters : dict[str, Any]
+            Parameters for the query.
+
         Returns
         -------
         PreparedStatement
             Prepared statement.
 
         """
-        return PreparedStatement(self, query)
+        warnings.warn(
+            "The use of separate prepare + execute of queries is deprecated. "
+            "Please using a single call to the execute() API instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._prepare(query, parameters)
 
     def _get_node_property_names(self, table_name: str) -> dict[str, Any]:
         LIST_START_SYMBOL = "["

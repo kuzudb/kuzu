@@ -109,7 +109,10 @@ public:
 
     // Replace function.
     void addScanReplace(function::ScanReplacement scanReplacement);
-    std::unique_ptr<function::ScanReplacementData> tryReplace(const std::string& objectName) const;
+    std::unique_ptr<function::ScanReplacementData> tryReplaceByName(
+        const std::string& objectName) const;
+    std::unique_ptr<function::ScanReplacementData> tryReplaceByHandle(
+        function::scan_replace_handle_t handle) const;
     // Extension
     void setExtensionOption(std::string name, common::Value value);
     const ExtensionOption* getExtensionOption(std::string optionName) const;
@@ -153,7 +156,8 @@ public:
     void cleanUp();
 
     // Query.
-    std::unique_ptr<PreparedStatement> prepare(std::string_view query);
+    std::unique_ptr<PreparedStatement> prepareWithParams(std::string_view query,
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams = {});
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
         std::optional<uint64_t> queryID = std::nullopt);
@@ -184,6 +188,8 @@ private:
 
     static std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
     static std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
+    static void validatePrepareParams(const PreparedStatement* preparedStatement,
+        const std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
     static void bindParametersNoLock(const PreparedStatement* preparedStatement,
         const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
     void validateTransaction(const PreparedStatement& preparedStatement) const;

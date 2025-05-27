@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import threading
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 
@@ -173,7 +174,21 @@ class AsyncConnection:
         finally:
             self.__decrement_connection_counter(conn_index)
 
-    async def prepare(self, query: str) -> PreparedStatement:
+    async def _prepare(self, query: str, parameters: dict[str, Any] | None = None) -> PreparedStatement:
+        """
+        The only parameters supported during prepare are dataframes.
+        Any remaining parameters will be ignored and should be passed to execute().
+        """
+        loop = asyncio.get_running_loop()
+        conn, conn_index = self.__get_connection_with_least_queries()
+
+        try:
+            preparedStatement = await loop.run_in_executor(self.executor, conn.prepare, query, parameters)
+            return preparedStatement
+        finally:
+            self.__decrement_connection_counter(conn_index)
+
+    async def prepare(self, query: str, parameters: dict[str, Any] | None = None) -> PreparedStatement:
         """
         Create a prepared statement for a query asynchronously.
 
@@ -181,6 +196,8 @@ class AsyncConnection:
         ----------
         query : str
             Query to prepare.
+        parameters : dict[str, Any]
+            Parameters for the query.
 
         Returns
         -------
@@ -188,14 +205,13 @@ class AsyncConnection:
             Prepared statement.
 
         """
-        loop = asyncio.get_running_loop()
-        conn, conn_index = self.__get_connection_with_least_queries()
-
-        try:
-            preparedStatement = await loop.run_in_executor(self.executor, conn.prepare, query)
-            return preparedStatement
-        finally:
-            self.__decrement_connection_counter(conn_index)
+        warnings.warn(
+            "The use of separate prepare + execute of queries is deprecated. "
+            "Please using a single call to the execute() API instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return await self._prepare(query, parameters)
 
     def close(self) -> None:
         """

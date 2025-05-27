@@ -43,6 +43,8 @@ public:
 
     common::StatementType getStatementType() const;
 
+    void validateExecuteParam(const std::string& paramName, common::Value* param) const;
+
     KUZU_API ~PreparedStatement();
 
 private:
