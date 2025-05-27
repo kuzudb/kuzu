@@ -70,7 +70,7 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     idx_t resultIdx = 0u;
     do {
         if (TestHelper::REWRITE_TESTS) {
-            writeOutput(currentQueryResult, statement, resultIdx);
+            generateOutput(currentQueryResult, statement, resultIdx);
         } else {
             checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
         }
@@ -179,53 +179,56 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
     }
 }
 
-// Appends `result` as the expected test output to `statement->newOuput` based on the given output type. Used in `EndToEndTest::reWriteTests` to rewrite outputs in test files. 
-void TestRunner::writeOutput(QueryResult* result, TestStatement* statement, size_t resultIdx) {
+// Appends `result` as the expected test output to `statement->newOuput` based on the given output
+// type. Used in `EndToEndTest::rewriteTests` to rewrite outputs in test files.
+void TestRunner::generateOutput(QueryResult* result, TestStatement* statement, size_t resultIdx) {
     TestQueryResult& testAnswer = statement->result[resultIdx];
     statement->testResultType = testAnswer.type;
     switch (testAnswer.type) {
-        case ResultType::OK: {
-            statement->newOutput +=
-                "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
-            if (!result->isSuccess())
-            {
-                statement->newOutput += result->getErrorMessage() + '\n';
-            }
-        } break;
-        case ResultType::HASH: {
-            std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
-                statement->checkColumnNames);
-            statement->newOutput +=
-                std::to_string(result->getNumTuples()) + " tuples hashed to " + resultHash + '\n';
-        } break;
-        case ResultType::TUPLES: {
-            statement->newOutput +=
-                "---- " + std::to_string(result->getNumTuples() + statement->checkColumnNames) + '\n';
-            std::vector<std::string> resultTuples = convertResultToString(*result,
-                statement->checkOutputOrder, statement->checkColumnNames);
+    case ResultType::OK: {
+        statement->newOutput +=
+            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        if (!result->isSuccess()) {
+            statement->newOutput += result->getErrorMessage() + '\n';
+        }
+    } break;
+    case ResultType::HASH: {
+        std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
+            statement->checkColumnNames);
+        statement->newOutput += "---- hash\n" + std::to_string(result->getNumTuples()) +
+                                " tuples hashed to " + resultHash + '\n';
+    } break;
+    case ResultType::TUPLES: {
+        statement->newOutput +=
+            "---- " + std::to_string(result->getNumTuples() + statement->checkColumnNames) + '\n';
+        std::vector<std::string> resultTuples = convertResultToString(*result,
+            statement->checkOutputOrder, statement->checkColumnNames);
 
-            auto expectedResultUnordered = testAnswer.expectedResult;
-            if (!statement->checkOutputOrder) {
-                std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
-            }
-            auto& output  = resultTuples == testAnswer.expectedResult ? expectedResultUnordered : resultTuples;
+        // Use the test file output if it otherwise matches the actual output. This allows
+        // preserving the existing user-written order and avoids producing unnecessary diffs.
+        auto orderedResults = testAnswer.expectedResult;
+        if (!statement->checkOutputOrder) {
+            std::sort(orderedResults.begin(), orderedResults.end());
+        }
+        auto& output = resultTuples == orderedResults ? testAnswer.expectedResult : resultTuples;
 
-            for (auto& res : output) {
-                statement->newOutput += res + '\n';
-            }
-        } break;
-        case ResultType::CSV_FILE:
-            // Not supported yet.
-            return;
-        case ResultType::ERROR_MSG: {
-            statement->newOutput +=
-                "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
-            statement->newOutput += StringUtils::rtrim(result->getErrorMessage()) + '\n';
-        } break;
-        case ResultType::ERROR_REGEX: {
-            statement->newOutput += "---- " +
-                         (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) + '\n';
-        } break;
+        for (auto& res : output) {
+            statement->newOutput += res + '\n';
+        }
+    } break;
+    case ResultType::CSV_FILE:
+        // Not supported yet.
+        return;
+    case ResultType::ERROR_MSG: {
+        statement->newOutput +=
+            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error")) + '\n';
+        statement->newOutput += StringUtils::rtrim(result->getErrorMessage()) + '\n';
+    } break;
+    case ResultType::ERROR_REGEX: {
+        statement->newOutput +=
+            "---- " + (result->isSuccess() ? std::string("ok") : std::string("error(regex)")) +
+            '\n';
+    } break;
     }
 }
 

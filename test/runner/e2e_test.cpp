@@ -3,7 +3,6 @@
 #include <string_view>
 #include <utility>
 
-#include "common/assert.h"
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "spdlog/spdlog.h"
@@ -89,206 +88,6 @@ public:
         }
     }
 
-    // This function collaples multiple repeating space characters into a
-    // single space character.
-    // Used to search for the correct STATEMENT when rewriting output results.
-
-    std::string normalize(const std::string& s) {
-        std::string result;
-        bool in_space = false;
-        for (char c : s) {
-            if (std::isspace(static_cast<unsigned char>(c))) {
-                if (!in_space) {
-                    result += ' ';
-                    in_space = true;
-                }
-            } else {
-                result += c;
-                in_space = false;
-            }
-        }
-        return result;
-    }
-
-
-    // Used when `REWRITE_TESTS` mode is enabled.
-    // Currently, the implementation of the rewrite
-    // functionality is inefficient.
-        // 1) The testStatements vector container does not contain ALL
-        // tests specified in the file.
-        // Rather, it only contains tests for a single CASE. See `parseAndRegisterFileGroup()`.
-        // When rewriting the output, we need to first find this CASE.
-        // 2) This function will be called from `TearDown` each time a
-        // CASE has completed running, including multiple calls for test files that have more than one CASE blocks. 
-        // The current code does not support such calls in parallel and rewrite mode is expected to be run in a single thread with `TEST_JOBS=1`.
-
-    void reWriteTests() {
-        std::fstream file;
-        std::string newFile;
-        std::string currLine;
-        std::string testCaseName;
-        file.open(testPath);
-
-        for (auto& statement : testStatements) {
-            while (getline(file, currLine)) {
-                if (!currLine.starts_with("-STATEMENT")) {
-                    newFile += currLine + '\n';
-                    if (currLine.starts_with("-CASE")) {
-                        static constexpr size_t caseNameOffset = std::string_view("-CASE ").size();
-                        testCaseName = currLine.substr(caseNameOffset);
-                    }
-                    continue;
-                }
-
-                newFile += currLine + '\n';
-
-                if (testCaseName != statement->testCase) {
-                    continue;
-                }
-
-                std::string stmt = currLine;
-
-                // "----" is the prefix to a result specifer, it also indicates the end of a statement.
-                while (getline(file, currLine)) {
-                    if (currLine.starts_with("----")) {
-                        break;
-                    }
-                    newFile += currLine + '\n';
-                    stmt += currLine;
-                }
-
-
-                // For the case of multiple connections statement->query does not indicate the connName.
-                // We must add it if it is required.
-                std::string connName;
-                if (statement->connName.has_value() && statement->connName.value() != "conn_default") {
-                    connName = "[" + statement->connName.value() + "] ";
-                }
-
-
-                if (normalize(stmt) != (normalize("-STATEMENT " + connName + statement->query))) {
-                    newFile += currLine + '\n';
-                    continue;
-                }
-
-                else {
-                    // All cases are handled in a similar manner; we ignore the expected
-                    // output and add the produced output instead.
-                    switch (statement->testResultType) {
-                    // Success results don't need anything after the dashes.
-                    // -STATEMENT CREATE NODE TABLE  Person (ID INT64, PRIMARY KEY (ID));
-                    // ---- ok
-                    case ResultType::OK: {
-
-                        newFile += statement->newOutput;
-                        // Continue reading lines until the empty line, 
-                        // start of statement/case, or comment is found
-
-                        std::streampos lastPos;
-                        while(lastPos = file.tellg(), getline(file, currLine)) {
-                            if (currLine.empty() || (currLine.starts_with("-") && !currLine.starts_with("--")) || currLine.starts_with("#"))
-                            {
-                                file.seekg(lastPos);
-                                break;
-                            }
-                        }
-
-                    } break;
-                    // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
-                    // -CHECK_ORDER # order matters with hashes
-                    // ---- hash
-                    // 4 c921eb680e6d000e4b65556ae02361d2
-                    case ResultType::HASH: {
-                        // Add result specifier.
-                        newFile += currLine + '\n';
-                        // Add produced hash.
-                        newFile += statement->newOutput;
-                        // Ignore expected hash.
-                        getline(file, currLine);
-                    } break;
-                    // -CHECK_COLUMN_NAMES
-                    // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
-                    // ---- 5
-                    // a.fName
-                    // Alice
-                    // Bob
-                    // Carol
-                    // Dan
-                    case ResultType::TUPLES: {
-                        try {
-                            // We extract the number of expected tuples from the result
-                            // specifier line and skip over as many tuples that
-                            // were specified.
-                            static constexpr size_t numTuplesPrefix = std::string_view("---- ").size();
-                            int tuplesToSkip = std::stoi(currLine.substr(numTuplesPrefix));
-                            for (int i = 0; i < tuplesToSkip; ++i) {
-                                getline(file, currLine);
-                            }
-                            // Add the produced output, which contains the
-                            // updated count of tuples.
-                            newFile += statement->newOutput;
-                        } catch (...) {
-                            // Could not overwrite the expected result.
-                            // There was an error in parsing expected tuples.
-                            // We are keeping the expected result as is.
-                            newFile += currLine + '\n';
-                        }
-                    } break;
-                    // -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) RETURN ID(r)
-                    // ---- 5001
-                    // <FILE>:file_with_answers.txt
-                    case ResultType::CSV_FILE:
-                        // Not supported yet.
-                        { newFile += currLine + '\n'; }
-                        break;
-                    // Expects error message
-                    // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
-                    // ---- error
-                    // Error: Binder exception: Variable intended is not in scope.
-                    case ResultType::ERROR_MSG: {
-                        // Add the actual ouput (result and error message).
-                        newFile += statement->newOutput;
-
-                        // Ignore the expected error message. 
-                        // That is, continue reading lines until the empty line, 
-                        // start of statement/case, or comment is found
-                        std::streampos lastPos;
-                        while(lastPos = file.tellg(), getline(file, currLine)) {
-                            if (currLine.empty() || (currLine.starts_with("-") && !currLine.starts_with("--")) || currLine.starts_with("#"))
-                            {
-                                file.seekg(lastPos);
-                                break;
-                            }
-                        }
-                    } break;
-                    //  Expects regex-matching error message
-                    // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
-                    // ---- error(regex)
-                    // ^Error: Binder exception: Variable .* is not in scope\.$
-                    case ResultType::ERROR_REGEX: {
-                        // Add the produced output (i.e the result specifier line).
-                        newFile += statement->newOutput;
-                        // Get the nextline which specifies the regex pattern the error should match
-                        getline(file, currLine);
-                        // If the query still results in an error, put the existing regex expression back.
-                        if (statement->newOutput != "---- ok\n")
-                            newFile += currLine + '\n';
-                    } break;
-                    }
-                    break;
-                }
-            }
-        }
-        // We get any remaining lines in the file such as comments or other 
-        // statements not in the current case.
-        while (getline(file, currLine)) {
-            newFile += currLine + '\n';
-        }
-        file.close();
-        file.open(testPath, std::ios::trunc | std::ios::out);
-        file << newFile;
-    }
-
     void TearDown() override {
         DBTest::TearDown();
         removeIEDBPath();
@@ -298,7 +97,7 @@ public:
         }
 
         if (TestHelper::REWRITE_TESTS) {
-            reWriteTests();
+            rewriteTestFile();
         }
     }
 
@@ -319,6 +118,195 @@ private:
         std::string datasetName = dataset;
         std::replace(datasetName.begin(), datasetName.end(), '/', '_');
         return TestHelper::getTempDir(datasetName + "_parquet_" + getTestGroupAndName());
+    }
+
+    // Used when `REWRITE_TESTS` mode is enabled.
+    //
+    // Currently, the implementation of the rewrite functionality is inefficient.
+    // 1) The testStatements vector container does not contain all the tests specified in the file.
+    //    Rather, it only contains tests for a single CASE. See `parseAndRegisterFileGroup()`.
+    //    When rewriting the output, we need to first find this CASE.
+    // 2) This function will be called from `TearDown` each time a CASE has completed running, which
+    //    implies multiple calls for test files that have more than one CASE block, possibly in
+    //    parallel. The current code does not handle calls for the same test file in parallel, and
+    //    rewrite mode is expected to be run in single-threaded mode using `TEST_JOBS=1`.
+    void rewriteTestFile() {
+        std::fstream file;
+        std::string newFile;
+        std::string currLine;
+        std::string testCaseName;
+        file.open(testPath);
+
+        for (auto& statement : testStatements) {
+            if (statement->query.empty() || statement->isPartofStatementBlock) {
+                continue;
+            }
+            // Find `statement` in the file.
+            while (getline(file, currLine)) {
+                if (!currLine.starts_with("-STATEMENT")) {
+                    newFile += currLine + '\n';
+                    if (currLine.starts_with("-CASE")) {
+                        static constexpr size_t caseNameOffset = std::string_view("-CASE ").size();
+                        testCaseName = currLine.substr(caseNameOffset);
+                    }
+                    continue;
+                }
+
+                newFile += currLine + '\n';
+
+                if (testCaseName != statement->testCase) {
+                    // Not the CASE for the current `statement`.
+                    continue;
+                }
+
+                std::string stmt = currLine;
+                while (getline(file, currLine)) {
+                    if (currLine.starts_with("----")) {
+                        // "----" indicates the end of a statement.
+                        break;
+                    }
+                    newFile += currLine + '\n';
+                    // There may be other test options before the output is specified.
+                    if (!currLine.starts_with("#") && !currLine.starts_with("-")) {
+                        stmt += currLine;
+                    }
+                }
+                // Manually add `connName` as `statement->query` does not retain it, if any.
+                std::string connName;
+                if (statement->connName.has_value() &&
+                    statement->connName.value() != "conn_default") {
+                    connName = "[" + statement->connName.value() + "] ";
+                }
+
+                if (removeAllSpaces(stmt) ==
+                    removeAllSpaces("-STATEMENT " + connName + statement->originalQuery)) {
+                    // Found the line containing `statement`.
+                    break;
+                }
+
+                newFile += currLine + '\n';
+            }
+
+            // For all cases, ignore the specified expected output in the test file and append the
+            // actual output instead.
+            switch (statement->testResultType) {
+            // `OK` results don't need anything after the dashes.
+            // -STATEMENT CREATE NODE TABLE Person (ID INT64, PRIMARY KEY (ID));
+            // ---- ok
+            case ResultType::OK: {
+                newFile += statement->newOutput;
+                skipExistingOutput(file);
+            } break;
+            // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
+            // ---- hash
+            // 4 c921eb680e6d000e4b65556ae02361d2
+            case ResultType::HASH: {
+                newFile += statement->newOutput;
+                // Skip existing output.
+                getline(file, currLine);
+            } break;
+            // -CHECK_COLUMN_NAMES
+            // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 2
+            // ---- 3
+            // a.fName
+            // Alice
+            // Bob
+            case ResultType::TUPLES: {
+                // We extract the number of expected tuples and skip over as many lines.
+                constexpr size_t numTuplesPrefix = std::string_view("---- ").size();
+                int linesToSkip = std::stoi(currLine.substr(numTuplesPrefix));
+                std::string skippedLines;
+                bool hasVariable = false;
+                for (int i = 0; i < linesToSkip; ++i) {
+                    getline(file, currLine);
+                    skippedLines += currLine + '\n';
+                    if (currLine.find("${") != std::string::npos) {
+                        hasVariable = true;
+                    }
+                }
+                // If any of the existing output tuples contain a variable, retain that output,
+                // as `statement->newOutput` will replace such variables with their actual value.
+                if (hasVariable) {
+                    newFile += stringFormat("---- {}\n", linesToSkip);
+                    newFile += skippedLines;
+                } else {
+                    newFile += statement->newOutput;
+                }
+            } break;
+            // -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) RETURN ID(r)
+            // ---- 5001
+            // <FILE>:file_with_answers.txt
+            //
+            // Not supported yet.
+            case ResultType::CSV_FILE: {
+                newFile += currLine + '\n';
+            } break;
+            // Expects an error message.
+            // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
+            // ---- error
+            // Error: Binder exception: Variable intended is not in scope.
+            case ResultType::ERROR_MSG: {
+                auto lines = skipExistingOutput(file);
+                // If the existing error message contains a variable, reuse the message,
+                // as `statement->newOutput` will replace such variables with their actual value.
+                if (lines.find("${") != std::string::npos) {
+                    newFile += currLine + '\n' + lines;
+                } else {
+                    newFile += statement->newOutput;
+                }
+            } break;
+            //  Expects a regex-matching error message.
+            // -STATEMENT MATCH (p:person) RETURN COUNT(intended-error);
+            // ---- error(regex)
+            // ^Error: Binder exception: Variable .* is not in scope\.$
+            case ResultType::ERROR_REGEX: {
+                newFile += statement->newOutput;
+                // Get the nextline which specifies the regex pattern the error should match
+                getline(file, currLine);
+                // If the actual output is an error, put the existing regex expression back.
+                if (statement->newOutput != "---- ok\n") {
+                    newFile += currLine + '\n';
+                }
+            } break;
+            }
+        }
+        // Append any remaining lines in the file.
+        while (getline(file, currLine)) {
+            newFile += currLine + '\n';
+        }
+        file.close();
+        file.open(testPath, std::ios::trunc | std::ios::out);
+        file << newFile;
+    }
+
+    // This function removes all spaces from `s`. Used to normalize the search for a matching
+    // STATEMENT when rewriting output results.
+    std::string removeAllSpaces(const std::string& s) {
+        std::string result;
+        for (char c : s) {
+            if (!std::isspace(c)) {
+                result += c;
+            }
+        }
+        return result;
+    }
+
+    // Skip all lines in `file` until an empty line, start of statement/case, or comment is found.
+    std::string skipExistingOutput(std::fstream& file) {
+        std::streampos lastPos;
+        std::string currLine;
+        std::string skippedLines;
+        while (lastPos = file.tellg(), getline(file, currLine)) {
+            if (currLine.empty() ||
+                (currLine.starts_with("-") && !currLine.starts_with("--") &&
+                    !(currLine.size() > 1 && std::isdigit(currLine[1]))) ||
+                currLine.starts_with("#")) {
+                file.seekg(lastPos);
+                break;
+            }
+            skippedLines += currLine + '\n';
+        }
+        return skippedLines;
     }
 };
 
@@ -355,7 +343,8 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
                     testStatements = std::move(testStatements), testCaseName]() mutable -> DBTest* {
                     decltype(testStatements) testStatementsCopy;
                     for (const auto& testStatement : testStatements) {
-                        testStatementsCopy.emplace_back(std::make_unique<TestStatement>(*testStatement));
+                        testStatementsCopy.emplace_back(
+                            std::make_unique<TestStatement>(*testStatement));
                         testStatementsCopy.back()->testCase = testCaseName;
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
