@@ -11,9 +11,8 @@ void AzureConnector::connect(const std::string& /*dbPath*/, const std::string& /
     // Install the Desired Extension on DuckDB
     executeQuery("install azure;");
     executeQuery("load azure;");
-    executeQuery("install httpfs;");
-    executeQuery("load httpfs;");
-    initRemoteFSSecrets(context);
+    //initRemoteFSSecrets(context);
+    initRemoteAzureFSSecrets();
 }
 
 } // namespace azure_extension

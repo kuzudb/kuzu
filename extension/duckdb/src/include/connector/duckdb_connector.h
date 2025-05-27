@@ -45,6 +45,15 @@ public:
         }
     }
 
+    // very temporary workaround until we figure out how we want to deal with azure secrets
+    void initRemoteAzureFSSecrets() const {
+        // well-known azurite connection string (for testing locally)
+        executeQuery("CREATE SECRET azure_secret (\
+            TYPE AZURE,\
+            CONNECTION_STRING 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;'\
+        );");
+    }
+
 protected:
     std::unique_ptr<duckdb::DuckDB> instance;
     std::unique_ptr<duckdb::Connection> connection;

@@ -14,7 +14,8 @@ static constexpr std::array AUTH_OPTION_NAMES = {"ACCESS_KEY_ID", "SECRET_ACCESS
 
 static constexpr std::array<std::string_view, 1> s3PrefixArray = {"s3://"};
 S3FileSystemConfig getS3Config() {
-    return S3FileSystemConfig{.prefixes = s3PrefixArray,
+    return S3FileSystemConfig{
+        .prefixes = s3PrefixArray,
         .fsName = "S3",
         .accessKeyIDOption = {common::Value{""}, true},
         .secretAccessKeyOption = {common::Value{""}, true},
@@ -28,7 +29,8 @@ S3FileSystemConfig getS3Config() {
 // https://cloud.google.com/storage/docs/aws-simple-migration
 static constexpr std::array<std::string_view, 2> gcsPrefixArray = {"gcs://", "gs://"};
 S3FileSystemConfig getGCSConfig() {
-    return S3FileSystemConfig{.prefixes = gcsPrefixArray,
+    return S3FileSystemConfig{
+        .prefixes = gcsPrefixArray,
         .fsName = "GCS",
         .accessKeyIDOption = {common::Value{""}, true},
         .secretAccessKeyOption = {common::Value{""}, true},
@@ -36,6 +38,19 @@ S3FileSystemConfig getGCSConfig() {
         .endpointOption = {common::Value{"storage.googleapis.com"}, false, false},
         .urlStyleOption = {{common::Value{"path"}}, false, false},
         .regionOption = {common::Value{"us-east-1"}, false, false}};
+}
+
+static constexpr std::array<std::string_view, 1> azurePrefixArray = {"az://"};
+S3FileSystemConfig getAzureConfig() {
+    return S3FileSystemConfig{
+        .prefixes = azurePrefixArray,
+        .fsName = "AZURE",
+        .accessKeyIDOption = {common::Value{""}},
+        .secretAccessKeyOption = {common::Value{""}},
+        .sessionTokenOption = {common::Value{""}},
+        .endpointOption = {common::Value{""}},
+        .urlStyleOption = {common::Value{""}},
+        .regionOption = {common::Value{""}}};
 }
 
 std::span<const S3FileSystemConfig> S3FileSystemConfig::getAvailableConfigs() {
