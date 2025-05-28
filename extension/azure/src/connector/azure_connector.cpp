@@ -25,7 +25,8 @@ void AzureConnector::initRemoteFSSecrets(main::ClientContext* context) const {
         TYPE azure,
         CONNECTION_STRING '{}'
     );)";
-    executeQuery(common::stringFormat(query, context->getCurrentSetting("AZURE_CONNECTION_STRING").toString()));
+    executeQuery(common::stringFormat(query,
+        context->getCurrentSetting("AZURE_CONNECTION_STRING").toString()));
 }
 
 } // namespace azure_extension

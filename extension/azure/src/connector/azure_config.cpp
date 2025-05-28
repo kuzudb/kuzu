@@ -6,10 +6,11 @@ namespace azure_extension {
 using namespace common;
 
 AzureConfig AzureConfig::getDefault() {
-    return AzureConfig {
-        // Well-known Azurite connection string (for testing locally)
-        .connectionString = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
-    };
+    return AzureConfig{// Well-known Azurite connection string (for testing locally)
+        .connectionString =
+            "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey="
+            "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/"
+            "KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"};
 }
 
 void AzureConfig::registerExtensionOptions(main::Database* db) const {
