@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-Expression::~Expression() {}
+Expression::~Expression() = default;
 
 void Expression::cast(const LogicalType&) {
     // LCOV_EXCL_START
