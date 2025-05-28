@@ -126,7 +126,7 @@ LogicalPlan JoinPlanSolver::solveMultiwayJoinTreeNode(const JoinTreeNode& treeNo
     KU_ASSERT(extraInfo.joinNodes.size() == 1);
     auto& joinNode = extraInfo.joinNodes[0]->constCast<NodeExpression>();
     auto probePlan = solveTreeNode(*treeNode.children[0], &treeNode);
-    std::vector<std::unique_ptr<LogicalPlan>> buildPlans;
+    std::vector<LogicalPlan> buildPlans;
     expression_vector boundNodeIDs;
     for (auto i = 1u; i < treeNode.children.size(); ++i) {
         auto child = treeNode.children[i];
@@ -134,7 +134,7 @@ LogicalPlan JoinPlanSolver::solveMultiwayJoinTreeNode(const JoinTreeNode& treeNo
         auto& childExtraInfo = child->extraInfo->constCast<ExtraScanTreeNodeInfo>();
         auto rel = std::static_pointer_cast<RelExpression>(childExtraInfo.relInfos[0].nodeOrRel);
         auto boundNode = *rel->getSrcNode() == joinNode ? rel->getDstNode() : rel->getSrcNode();
-        buildPlans.push_back(solveTreeNode(*child, &treeNode).shallowCopy());
+        buildPlans.push_back(solveTreeNode(*child, &treeNode).copy());
         boundNodeIDs.push_back(boundNode->constCast<NodeExpression>().getInternalID());
     }
     auto plan = LogicalPlan();

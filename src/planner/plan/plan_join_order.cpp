@@ -142,11 +142,11 @@ LogicalPlan Planner::planQueryGraph(const QueryGraph& queryGraph,
     auto& plans = context.getPlans(context.getFullyMatchedSubqueryGraph());
     auto bestIdx = 0;
     for (auto i = 1u; i < plans.size(); ++i) {
-        if (plans[i]->getCost() < plans[bestIdx]->getCost()) {
+        if (plans[i].getCost() < plans[bestIdx].getCost()) {
             bestIdx = i;
         }
     }
-    auto bestPlan = plans[bestIdx]->copy();
+    auto bestPlan = plans[bestIdx].copy();
     if (queryGraph.isEmpty()) {
         appendEmptyResult(bestPlan);
     }
@@ -228,13 +228,13 @@ void Planner::planCorrelatedExpressionsScan(const QueryGraphPlanningInfo& info) 
             newSubgraph.addQueryNode(nodePos);
         }
     }
-    auto plan = std::make_unique<LogicalPlan>();
-    appendExpressionsScan(corrExprs, *plan);
-    plan->getLastOperator()->setCardinality(info.corrExprsCard);
+    auto plan = LogicalPlan();
+    appendExpressionsScan(corrExprs, plan);
+    plan.getLastOperator()->setCardinality(info.corrExprsCard);
     auto predicates = getNewlyMatchedExprs(context.getEmptySubqueryGraph(), newSubgraph,
         context.getWhereExpressions());
-    appendFilters(predicates, *plan);
-    appendDistinct(corrExprs, *plan);
+    appendFilters(predicates, plan);
+    appendDistinct(corrExprs, plan);
     context.addPlan(newSubgraph, std::move(plan));
 }
 
@@ -242,12 +242,12 @@ void Planner::planNodeScan(uint32_t nodePos) {
     auto node = context.queryGraph->getQueryNode(nodePos);
     auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
-    auto plan = std::make_unique<LogicalPlan>();
+    auto plan = LogicalPlan();
     auto properties = getProperties(*node);
-    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), properties, *plan);
+    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), properties, plan);
     auto predicates = getNewlyMatchedExprs(context.getEmptySubqueryGraph(), newSubgraph,
         context.getWhereExpressions());
-    appendFilters(predicates, *plan);
+    appendFilters(predicates, plan);
     context.addPlan(newSubgraph, std::move(plan));
 }
 
@@ -255,14 +255,14 @@ void Planner::planNodeIDScan(uint32_t nodePos, const QueryGraphPlanningInfo& inf
     auto node = context.queryGraph->getQueryNode(nodePos);
     auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
-    auto plan = std::make_unique<LogicalPlan>();
+    auto plan = LogicalPlan();
 
     // NodeID will be a join condition with outer plan so very likely we will apply a semi mask
     // later in the optimization stage. So we can assume the cardinality will not exceed outer
     // plan cardinality.
     cardinalityEstimator.addPerQueryGraphNodeIDDom(*node->getInternalID(), info.corrExprsCard);
 
-    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), {}, *plan);
+    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), {}, plan);
     context.addPlan(newSubgraph, std::move(plan));
 }
 
@@ -294,12 +294,12 @@ void Planner::planRelScan(uint32_t relPos) {
     const auto predicates = getNewlyMatchedExprs(context.getEmptySubqueryGraph(), newSubgraph,
         context.getWhereExpressions());
     for (const auto direction : rel->getExtendDirections()) {
-        auto plan = std::make_unique<LogicalPlan>();
+        auto plan = LogicalPlan();
         auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
         const auto extendDirection = getExtendDirection(*rel, *boundNode);
-        appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, *plan);
-        appendExtend(boundNode, nbrNode, rel, extendDirection, getProperties(*rel), *plan);
-        appendFilters(predicates, *plan);
+        appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, plan);
+        appendExtend(boundNode, nbrNode, rel, extendDirection, getProperties(*rel), plan);
+        appendFilters(predicates, plan);
         context.addPlan(newSubgraph, std::move(plan));
     }
 }
@@ -396,16 +396,14 @@ static bool isNodeSequentialOnPlan(const LogicalPlan& plan, const NodeExpression
 }
 
 // As a heuristic for wcoj, we always pick rel scan that starts from the bound node.
-static std::unique_ptr<LogicalPlan> getWCOJBuildPlanForRel(
-    std::vector<std::unique_ptr<LogicalPlan>>& candidatePlans, const NodeExpression& boundNode) {
-    std::unique_ptr<LogicalPlan> result;
+static LogicalPlan getWCOJBuildPlanForRel(const std::vector<LogicalPlan>& candidatePlans,
+    const NodeExpression& boundNode) {
     for (auto& candidatePlan : candidatePlans) {
-        if (isNodeSequentialOnPlan(*candidatePlan, boundNode)) {
-            KU_ASSERT(result == nullptr);
-            result = candidatePlan->shallowCopy();
+        if (isNodeSequentialOnPlan(candidatePlan, boundNode)) {
+            return candidatePlan.copy();
         }
     }
-    return result;
+    return LogicalPlan();
 }
 
 void Planner::planWCOJoin(const SubqueryGraph& subgraph,
@@ -415,7 +413,7 @@ void Planner::planWCOJoin(const SubqueryGraph& subgraph,
     std::vector<SubqueryGraph> prevSubgraphs;
     prevSubgraphs.push_back(subgraph);
     expression_vector boundNodeIDs;
-    std::vector<std::unique_ptr<LogicalPlan>> relPlans;
+    std::vector<LogicalPlan> relPlans;
     for (auto& rel : rels) {
         auto boundNode = rel->getSrcNodeName() == intersectNode->getUniqueName() ?
                              rel->getDstNode() :
@@ -423,8 +421,8 @@ void Planner::planWCOJoin(const SubqueryGraph& subgraph,
 
         // stop if the rel pattern's supported rel directions don't contain the current direction
         const auto extendDirection = getExtendDirection(*rel, *boundNode);
-        if (extendDirection != common::ExtendDirection::BOTH &&
-            !common::containsValue(rel->getExtendDirections(), extendDirection)) {
+        if (extendDirection != ExtendDirection::BOTH &&
+            !containsValue(rel->getExtendDirections(), extendDirection)) {
             return;
         }
 
@@ -440,7 +438,7 @@ void Planner::planWCOJoin(const SubqueryGraph& subgraph,
         KU_ASSERT(context.subPlansTable->containSubgraphPlans(relSubgraph));
         auto& relPlanCandidates = context.subPlansTable->getSubgraphPlans(relSubgraph);
         auto relPlan = getWCOJBuildPlanForRel(relPlanCandidates, *boundNode);
-        if (relPlan == nullptr) { // Cannot find a suitable rel plan.
+        if (relPlan.isEmpty()) { // Cannot find a suitable rel plan.
             return;
         }
         relPlans.push_back(std::move(relPlan));
@@ -456,19 +454,18 @@ void Planner::planWCOJoin(const SubqueryGraph& subgraph,
         // I tend to disable WCOJ for this case for now. The proper fix should be move to
         // node-at-a-time enumeration and re-enable WCOJ.
         // TODO(Xiyang): Fixme according to the description above.
-        if (leftPlan->getSchema()->isExpressionInScope(*intersectNode->getInternalID())) {
+        if (leftPlan.getSchema()->isExpressionInScope(*intersectNode->getInternalID())) {
             continue;
         }
-        auto leftPlanCopy = leftPlan->shallowCopy();
-        std::vector<std::unique_ptr<LogicalPlan>> rightPlansCopy;
+        auto leftPlanCopy = leftPlan.copy();
+        std::vector<LogicalPlan> rightPlansCopy;
         rightPlansCopy.reserve(relPlans.size());
         for (auto& relPlan : relPlans) {
-            rightPlansCopy.push_back(relPlan->shallowCopy());
+            rightPlansCopy.push_back(relPlan.copy());
         }
-        appendIntersect(intersectNode->getInternalID(), boundNodeIDs, *leftPlanCopy,
-            rightPlansCopy);
+        appendIntersect(intersectNode->getInternalID(), boundNodeIDs, leftPlanCopy, rightPlansCopy);
         for (auto& predicate : predicates) {
-            appendFilter(predicate, *leftPlanCopy);
+            appendFilter(predicate, leftPlanCopy);
         }
         context.subPlansTable->addPlan(newSubgraph, std::move(leftPlanCopy));
     }
@@ -550,10 +547,10 @@ bool Planner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph&
     auto predicates = getNewlyMatchedExprs(subgraph, newSubgraph, context.getWhereExpressions());
     bool hasAppliedINLJoin = false;
     for (auto& prevPlan : context.getPlans(subgraph)) {
-        if (isNodeSequentialOnPlan(*prevPlan, *boundNode)) {
-            auto plan = prevPlan->shallowCopy();
-            appendExtend(boundNode, nbrNode, rel, extendDirection, getProperties(*rel), *plan);
-            appendFilters(predicates, *plan);
+        if (isNodeSequentialOnPlan(prevPlan, *boundNode)) {
+            auto plan = prevPlan.copy();
+            appendExtend(boundNode, nbrNode, rel, extendDirection, getProperties(*rel), plan);
+            appendFilters(predicates, plan);
             context.addPlan(newSubgraph, std::move(plan));
             hasAppliedINLJoin = true;
         }
@@ -574,22 +571,22 @@ void Planner::planInnerHashJoin(const SubqueryGraph& subgraph, const SubqueryGra
         getNewlyMatchedExprs(subgraph, otherSubgraph, newSubgraph, context.getWhereExpressions());
     for (auto& leftPlan : context.getPlans(subgraph)) {
         for (auto& rightPlan : context.getPlans(otherSubgraph)) {
-            if (CostModel::computeHashJoinCost(joinNodeIDs, *leftPlan, *rightPlan) < maxCost) {
-                auto leftPlanProbeCopy = leftPlan->shallowCopy();
-                auto rightPlanBuildCopy = rightPlan->shallowCopy();
-                appendHashJoin(joinNodeIDs, JoinType::INNER, *leftPlanProbeCopy,
-                    *rightPlanBuildCopy, *leftPlanProbeCopy);
-                appendFilters(predicates, *leftPlanProbeCopy);
+            if (CostModel::computeHashJoinCost(joinNodeIDs, leftPlan, rightPlan) < maxCost) {
+                auto leftPlanProbeCopy = leftPlan.copy();
+                auto rightPlanBuildCopy = rightPlan.copy();
+                appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlanProbeCopy, rightPlanBuildCopy,
+                    leftPlanProbeCopy);
+                appendFilters(predicates, leftPlanProbeCopy);
                 context.addPlan(newSubgraph, std::move(leftPlanProbeCopy));
             }
             // flip build and probe side to get another HashJoin plan
             if (flipPlan &&
-                CostModel::computeHashJoinCost(joinNodeIDs, *rightPlan, *leftPlan) < maxCost) {
-                auto leftPlanBuildCopy = leftPlan->shallowCopy();
-                auto rightPlanProbeCopy = rightPlan->shallowCopy();
-                appendHashJoin(joinNodeIDs, JoinType::INNER, *rightPlanProbeCopy,
-                    *leftPlanBuildCopy, *rightPlanProbeCopy);
-                appendFilters(predicates, *rightPlanProbeCopy);
+                CostModel::computeHashJoinCost(joinNodeIDs, rightPlan, leftPlan) < maxCost) {
+                auto leftPlanBuildCopy = leftPlan.copy();
+                auto rightPlanProbeCopy = rightPlan.copy();
+                appendHashJoin(joinNodeIDs, JoinType::INNER, rightPlanProbeCopy, leftPlanBuildCopy,
+                    rightPlanProbeCopy);
+                appendFilters(predicates, rightPlanProbeCopy);
                 context.addPlan(newSubgraph, std::move(rightPlanProbeCopy));
             }
         }

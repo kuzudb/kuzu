@@ -261,7 +261,7 @@ public:
         LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendIntersect(const std::shared_ptr<binder::Expression>& intersectNodeID,
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
-        std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
+        std::vector<LogicalPlan>& buildPlans);
 
     void appendCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan,
         LogicalPlan& resultPlan);

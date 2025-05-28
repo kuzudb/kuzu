@@ -13,6 +13,7 @@ class KUZU_API LogicalPlan {
 
 public:
     LogicalPlan() : cost{0} {}
+    LogicalPlan(const LogicalPlan& other) : lastOperator{other.lastOperator}, cost{other.cost} {}
     EXPLICIT_COPY_DEFAULT_MOVE(LogicalPlan);
 
     void setLastOperator(std::shared_ptr<LogicalOperator> op) { lastOperator = std::move(op); }
@@ -38,11 +39,6 @@ public:
 
     bool isProfile() const;
     bool hasUpdate() const;
-
-    std::unique_ptr<LogicalPlan> shallowCopy() const;
-
-private:
-    LogicalPlan(const LogicalPlan& other) : lastOperator{other.lastOperator}, cost{other.cost} {}
 
 private:
     std::shared_ptr<LogicalOperator> lastOperator;
