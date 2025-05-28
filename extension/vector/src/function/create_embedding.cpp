@@ -38,13 +38,14 @@ namespace vector_extension {
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<LogicalType> types;
     types.push_back(input.arguments[0]->getDataType().copy());
-    return std::make_unique<FunctionBindData>(std::move(types), LogicalType(LogicalTypeID::ARRAY).copy());
+
+    return std::make_unique<FunctionBindData>(std::move(types), LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::ARRAY);
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::LIST);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
     return functionSet;
