@@ -39,19 +39,10 @@ public:
 
     std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(std::string query) const;
 
-    void initRemoteFSSecrets(main::ClientContext* context) const {
+    virtual void initRemoteFSSecrets(main::ClientContext* context) const {
         for (auto& fsConfig : httpfs_extension::S3FileSystemConfig::getAvailableConfigs()) {
-            executeQuery(DuckDBSecretManager::getRemoteFSSecret(context, fsConfig));
+            executeQuery(DuckDBSecretManager::getRemoteS3FSSecret(context, fsConfig));
         }
-    }
-
-    // very temporary workaround until we figure out how we want to deal with azure secrets
-    void initRemoteAzureFSSecrets() const {
-        // well-known azurite connection string (for testing locally)
-        executeQuery("CREATE SECRET azure_secret (\
-            TYPE AZURE,\
-            CONNECTION_STRING 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;'\
-        );");
     }
 
 protected:

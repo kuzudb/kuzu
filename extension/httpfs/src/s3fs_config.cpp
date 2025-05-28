@@ -38,18 +38,6 @@ S3FileSystemConfig getGCSConfig() {
         .regionOption = {common::Value{"us-east-1"}, false, false}};
 }
 
-static constexpr std::array<std::string_view, 1> azurePrefixArray = {"az://"};
-S3FileSystemConfig getAzureConfig() {
-    return S3FileSystemConfig{.prefixes = azurePrefixArray,
-        .fsName = "AZURE",
-        .accessKeyIDOption = {common::Value{""}},
-        .secretAccessKeyOption = {common::Value{""}},
-        .sessionTokenOption = {common::Value{""}},
-        .endpointOption = {common::Value{""}},
-        .urlStyleOption = {common::Value{""}},
-        .regionOption = {common::Value{""}}};
-}
-
 std::span<const S3FileSystemConfig> S3FileSystemConfig::getAvailableConfigs() {
     static const std::array ret = {getS3Config(), getGCSConfig()};
     return ret;
@@ -102,7 +90,7 @@ void S3FileSystemConfig::setEnvValue(main::ClientContext* context) const {
         if (authOptions[i]->isConfigurable) {
             const auto fsOptionName = getFSOptionName(*this, AUTH_OPTION_NAMES[i]);
             auto optionValueFromEnv = main::ClientContext::getEnvVariable(fsOptionName);
-            if (optionValueFromEnv != "") {
+            if (!optionValueFromEnv.empty()) {
                 context->setExtensionOption(fsOptionName, Value::createValue(optionValueFromEnv));
             }
         }

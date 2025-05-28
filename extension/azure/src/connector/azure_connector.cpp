@@ -1,5 +1,8 @@
 #include "connector/azure_connector.h"
 
+#include "connector/azure_config.h"
+#include "main/client_context.h"
+
 namespace kuzu {
 namespace azure_extension {
 
@@ -11,8 +14,18 @@ void AzureConnector::connect(const std::string& /*dbPath*/, const std::string& /
     // Install the Desired Extension on DuckDB
     executeQuery("install azure;");
     executeQuery("load azure;");
-    // initRemoteFSSecrets(context);
-    initRemoteAzureFSSecrets();
+    initRemoteFSSecrets(context);
+}
+
+void AzureConnector::initRemoteFSSecrets(main::ClientContext* context) const {
+    auto config = AzureConfig::getDefault();
+    config.registerExtensionOptions(context->getDatabase());
+    config.initFromEnv(context);
+    std::string query = R"(CREATE SECRET azure_secret (
+        TYPE azure,
+        CONNECTION_STRING '{}'
+    );)";
+    executeQuery(common::stringFormat(query, context->getCurrentSetting("AZURE_CONNECTION_STRING").toString()));
 }
 
 } // namespace azure_extension
