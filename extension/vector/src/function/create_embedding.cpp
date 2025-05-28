@@ -6,6 +6,7 @@
 #include "catalog/hnsw_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/mask.h"
+#include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/function.h"
@@ -34,10 +35,17 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace vector_extension {
 
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
+    std::vector<LogicalType> types;
+    types.push_back(input.arguments[0]->getDataType().copy());
+    return std::make_unique<FunctionBindData>(std::move(types), LogicalType(LogicalTypeID::ARRAY).copy());
+}
+
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::ARRAY);
+    function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
     return functionSet;
 }
