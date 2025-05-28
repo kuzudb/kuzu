@@ -1,7 +1,7 @@
 #include "main/azure_extension.h"
 
-#include "function/azure_scan.h"
 #include "connector/azure_config.h"
+#include "function/azure_scan.h"
 #include "main/client_context.h"
 #include "main/database.h"
 #include "main/duckdb_extension.h"
