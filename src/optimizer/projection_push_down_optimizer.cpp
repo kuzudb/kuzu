@@ -20,6 +20,7 @@
 #include "planner/operator/persistent/logical_insert.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/operator/persistent/logical_set.h"
+#include <planner/operator/scan/logical_scan_node_table.h>
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -266,6 +267,28 @@ void ProjectionPushDownOptimizer::visitTableFunctionCall(LogicalOperator* op) {
     tableFunctionCall.setColumnSkips(std::move(columnSkips));
 }
 
+void ProjectionPushDownOptimizer::visitScanNodeTable(LogicalOperator* op) {
+    clearScanNodeTableProperties(op);
+}
+
+bool ProjectionPushDownOptimizer::clearScanNodeTableProperties(planner::LogicalOperator* op) const {
+    auto& scanNodeTable = op->cast<LogicalScanNodeTable>();
+    if (scanNodeTable.getProperties().empty()) {
+        return false;
+    }
+    bool hasPropertiesInUse = false;
+    for (auto expression : scanNodeTable.getProperties()) {
+        if (propertiesInUse.contains(expression)) {
+            hasPropertiesInUse = true;
+            break;
+        }
+    }
+    if (!hasPropertiesInUse) {
+        scanNodeTable.clearProperty();
+    }
+    return !hasPropertiesInUse;
+}
+
 void ProjectionPushDownOptimizer::visitSetInfo(const binder::BoundSetPropertyInfo& info) {
     switch (info.tableType) {
     case TableType::NODE: {
@@ -361,8 +384,14 @@ void ProjectionPushDownOptimizer::preAppendProjection(LogicalOperator* op, idx_t
         // We don't have a way to handle
         return;
     }
-    auto projection =
-        std::make_shared<LogicalProjection>(std::move(expressions), op->getChild(childIdx));
+    auto child = op->getChild(childIdx);
+    // reset scan node table properties
+    if (child->getOperatorType() == LogicalOperatorType::SCAN_NODE_TABLE) {
+        if (clearScanNodeTableProperties(child.get())) {
+            return;
+        }
+    }
+    auto projection = std::make_shared<LogicalProjection>(std::move(expressions), child);
     projection->computeFlatSchema();
     op->setChild(childIdx, std::move(projection));
 }
