@@ -10,7 +10,7 @@ public:
     void connect(const std::string& dbPath, const std::string& catalogName,
         const std::string& schemaName, main::ClientContext* context) override;
 
-    void initRemoteFSSecrets(main::ClientContext* context) const override;
+    void initRemoteAzureSecrets(main::ClientContext* context) const;
 };
 
 } // namespace azure_extension
