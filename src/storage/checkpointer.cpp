@@ -50,11 +50,13 @@ void Checkpointer::writeCheckpoint() {
     auto* dataFH = storageManager->getDataFH();
 
     // Serialize the catalog if there are changes
-    if (catalog->changedSinceLastCheckpoint()) {
+    if (databaseHeader.catalogPageRange.startPageIdx == common::INVALID_PAGE_IDX ||
+        catalog->changedSinceLastCheckpoint()) {
         databaseHeader.catalogPageRange = serializeCatalog(*catalog, *storageManager);
     }
     // Serialize the storage metadata if there are changes
-    if (hasStorageChanges || catalog->changedSinceLastCheckpoint() ||
+    if (databaseHeader.metadataPageRange.startPageIdx == common::INVALID_PAGE_IDX ||
+        hasStorageChanges || catalog->changedSinceLastCheckpoint() ||
         dataFH->getPageManager()->changedSinceLastCheckpoint()) {
         databaseHeader.metadataPageRange = serializeMetadata(*catalog, *storageManager);
     }

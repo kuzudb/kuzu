@@ -392,14 +392,18 @@ Binder exception: Unknown table function output variable name: destination table
 Binder exception: The number of variables in the yield clause exceeds the number of output variables of the table function.
 
 -CASE CallCatalogVersion
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
 -STATEMENT CALL catalog_version() return *;
 ---- 1
-8
+0
 -STATEMENT CREATE NODE TABLE test(id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CALL catalog_version() return *;
 ---- 1
-9
+1
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE REL TABLE testRel(FROM test TO test);
@@ -408,7 +412,7 @@ Binder exception: The number of variables in the yield clause exceeds the number
 ---- ok
 -STATEMENT CALL catalog_version() return *;
 ---- 1
-9
+1
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE REL TABLE testRel(FROM test TO test);
@@ -417,7 +421,7 @@ Binder exception: The number of variables in the yield clause exceeds the number
 ---- ok
 -STATEMENT CALL catalog_version() return *;
 ---- 1
-10
+2
 
 -CASE CacheArrayColumn
 -STATEMENT CREATE NODE TABLE testArray(id INT64 PRIMARY KEY, arr INT64[8]);
