@@ -68,7 +68,7 @@ public:
         : lastExpressionId{0}, scope{}, expressionBinder{this, clientContext},
           clientContext{clientContext} {}
 
-    std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
+    KUZU_API std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
     void setInputParameters(
         std::unordered_map<std::string, std::shared_ptr<common::Value>> parameters) {

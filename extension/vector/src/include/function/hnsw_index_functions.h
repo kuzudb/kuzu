@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/bound_statement.h"
 #include "binder/expression/node_expression.h"
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
@@ -61,18 +62,17 @@ struct FinalizeHNSWSharedState final : function::SimpleTableFuncSharedState {
 };
 
 struct QueryHNSWIndexBindData final : function::TableFuncBindData {
-    graph::GraphEntry graphEntry;
     catalog::NodeTableCatalogEntry* nodeTableEntry = nullptr;
     catalog::IndexCatalogEntry* indexEntry = nullptr;
     common::column_id_t indexColumnID = common::INVALID_COLUMN_ID;
     catalog::RelGroupCatalogEntry* upperRelTableEntry = nullptr;
     catalog::RelGroupCatalogEntry* lowerRelTableEntry = nullptr;
-
-    QueryHNSWConfig config;
-
     std::shared_ptr<binder::Expression> queryExpression;
     std::shared_ptr<binder::Expression> kExpression;
     std::shared_ptr<binder::NodeExpression> outputNode;
+    QueryHNSWConfig config;
+
+    std::shared_ptr<binder::BoundStatement> filterStatement;
 
     explicit QueryHNSWIndexBindData(binder::expression_vector columns)
         : TableFuncBindData({std::move(columns), 1 /* maxOffset */}) {}

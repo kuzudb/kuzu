@@ -15,7 +15,7 @@ namespace parser {
 class Parser {
 
 public:
-    static std::vector<std::shared_ptr<Statement>> parseQuery(std::string_view query);
+    KUZU_API static std::vector<std::shared_ptr<Statement>> parseQuery(std::string_view query);
 };
 
 } // namespace parser

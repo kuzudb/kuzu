@@ -194,6 +194,9 @@ QueryHNSWConfig::QueryHNSWConfig(const function::optional_params_t& optionalPara
             value.validateType(DirectedSearchUpSelThreshold::TYPE);
             directedSearchUpSelThreshold = value.getValue<double>();
             DirectedSearchUpSelThreshold::validate(directedSearchUpSelThreshold);
+        } else if (HNSWFilter::NAME == lowerCaseName) {
+            value.validateType(HNSWFilter::TYPE);
+            filter = value.getValue<std::string>();
         } else {
             throw common::BinderException{common::stringFormat(
                 "Unrecognized optional parameter {} in {}.", name, QueryVectorIndexFunction::name)};

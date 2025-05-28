@@ -89,6 +89,12 @@ struct DirectedSearchUpSelThreshold {
     static void validate(double value);
 };
 
+struct HNSWFilter {
+    static constexpr const char* NAME = "filter";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
+    static constexpr const char* DEFAULT_VALUE = "";
+};
+
 struct HNSWIndexConfig {
     int64_t mu = Mu::DEFAULT_VALUE;
     int64_t ml = Ml::DEFAULT_VALUE;
@@ -121,6 +127,7 @@ struct QueryHNSWConfig {
     int64_t efs = Efs::DEFAULT_VALUE;
     double blindSearchUpSelThreshold = BlindSearchUpSelThreshold::DEFAULT_VALUE;
     double directedSearchUpSelThreshold = DirectedSearchUpSelThreshold::DEFAULT_VALUE;
+    std::string filter = HNSWFilter::DEFAULT_VALUE;
 
     QueryHNSWConfig() = default;
 
