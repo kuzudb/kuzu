@@ -392,6 +392,7 @@ Binder exception: Unknown table function output variable name: destination table
 Binder exception: The number of variables in the yield clause exceeds the number of output variables of the table function.
 
 -CASE CallCatalogVersion
+-SKIP_IN_MEM
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CHECKPOINT;
