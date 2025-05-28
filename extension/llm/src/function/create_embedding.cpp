@@ -17,13 +17,9 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace llm_extension {
 
-static void execFunc( 
-    const std::vector<std::shared_ptr<common::ValueVector>>& parameters, 
-    const std::vector<common::SelectionVector*>& /*parameterSelVectors*/, 
-    common::ValueVector& result, 
-    common::SelectionVector* resultSelVector, 
-    void* /*dataPtr*/)
-{
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& /*parameterSelVectors*/,
+    common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     // This iteration only supports using Ollama with nomic-embed-text.
     // The user must install and have nomic-embed-text running at
     // http://localhost::11434.
@@ -36,10 +32,12 @@ static void execFunc(
     if (!res) {
         throw ConnectionException("Request failed: No response (server not reachable?)\n");
     } else if (res->status != 200) {
-        throw ConnectionException("Request failed with status " + std::to_string(res->status) + "\n Body: " + res->body + "\n");
+        throw ConnectionException("Request failed with status " + std::to_string(res->status) +
+                                  "\n Body: " + res->body + "\n");
     }
 
-    std::vector<float> embeddingVec = nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
+    std::vector<float> embeddingVec =
+        nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
         auto pos = (*resultSelVector)[selectedPos];
@@ -53,12 +51,12 @@ static void execFunc(
     }
 }
 
-
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<LogicalType> types;
     types.push_back(input.arguments[0]->getDataType().copy());
     assert(types.front() == LogicalType::STRING());
-    return std::make_unique<FunctionBindData>(std::move(types), LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
+    return std::make_unique<FunctionBindData>(std::move(types),
+        LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
 }
 
 function_set CreateEmbedding::getFunctionSet() {

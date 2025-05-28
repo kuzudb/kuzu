@@ -1,6 +1,6 @@
 #include "main/llm_extension.h"
-#include "function/llm_functions.h"
 
+#include "function/llm_functions.h"
 #include "main/client_context.h"
 #include "main/database.h"
 
@@ -13,7 +13,7 @@ void LLMExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addScalarFunc<CreateEmbedding>(db);
 }
 
-} // namespace vector_extension
+} // namespace llm_extension
 } // namespace kuzu
 
 #if defined(BUILD_DYNAMIC_LOAD)

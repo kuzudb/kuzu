@@ -144,6 +144,5 @@ struct CreateEmbedding final {
     static function::function_set getFunctionSet();
 };
 
-
 } // namespace vector_extension
 } // namespace kuzu

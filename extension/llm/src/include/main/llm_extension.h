@@ -12,5 +12,5 @@ public:
 public:
     static void load(main::ClientContext* context);
 };
-} // namespace vector_extension
+} // namespace llm_extension
 } // namespace kuzu
