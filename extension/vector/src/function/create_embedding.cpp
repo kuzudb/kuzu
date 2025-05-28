@@ -11,6 +11,7 @@
 #include "function/function.h"
 #include "function/gds/gds.h"
 #include "function/hnsw_index_functions.h"
+#include "function/scalar_function.h"
 #include "function/table/bind_data.h"
 #include "index/hnsw_index.h"
 #include "index/hnsw_index_utils.h"
@@ -33,10 +34,12 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace vector_extension {
 
-
-
 function_set CreateEmbedding::getFunctionSet() {
-    return function_set();
+    function_set functionSet;
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::ARRAY);
+    functionSet.push_back(std::move(function));
+    return functionSet;
 }
 
 } // namespace vector_extension
