@@ -25,6 +25,8 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
+#include "httplib.h"
+#include "json.hpp"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -36,24 +38,46 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace vector_extension {
 
-
-
 static void execFunc( 
-    const std::vector<std::shared_ptr<common::ValueVector>>& /*parameters*/, 
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters, 
     const std::vector<common::SelectionVector*>& /*parameterSelVectors*/, 
     common::ValueVector& result, 
     common::SelectionVector* resultSelVector, 
     void* /*dataPtr*/)
 {
+    assert(parameters.size() == 1);
+    std::string text = parameters[0]->getValue<ku_string_t>(0).getAsString();
+
+    httplib::Client client("http://localhost:11434");
+
+    nlohmann::json payload = {{"model", "nomic-embed-text"}, {"prompt", text}};
+
+    httplib::Headers headers = {{"Content-Type", "application/json"}};
+
+    auto res = client.Post("/api/embeddings", headers, payload.dump(), "application/json");
+
+    if (!res)
+    {
+        std::cerr << "Request failed: No response (server not reachable?)\n";
+    } 
+    else if (res->status != 200)
+    {
+        std::cerr << "Request failed with status " << res->status << "\n";
+        std::cerr << "Body: " << res->body << "\n";
+    }
+
+    nlohmann::json response = nlohmann::json::parse(res->body);
+    std::vector<float> embeddingVec = response["embedding"].get<std::vector<float>>();
+
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
         auto pos = (*resultSelVector)[selectedPos];
-        auto resultEntry = ListVector::addList(&result, 10);
+        auto resultEntry = ListVector::addList(&result, embeddingVec.size());
         result.setValue(pos, resultEntry);
         auto resultDataVector = ListVector::getDataVector(&result);
         auto resultPos = resultEntry.offset;
-        for (int i = 0; i < 10; i++) {
-            resultDataVector->copyFromValue(resultPos++, Value((float)i));
+        for (auto i = 0u; i < embeddingVec.size(); i++) {
+            resultDataVector->copyFromValue(resultPos++, Value(embeddingVec[i]));
         }
     }
 }
