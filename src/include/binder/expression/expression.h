@@ -53,7 +53,7 @@ public:
         : Expression{expressionType, std::move(dataType), expression_vector{},
               std::move(uniqueName)} {}
     DELETE_COPY_DEFAULT_MOVE(Expression);
-    virtual ~Expression() = default;
+    virtual ~Expression();
 
     void setUniqueName(const std::string& name) { uniqueName = name; }
     std::string getUniqueName() const {
