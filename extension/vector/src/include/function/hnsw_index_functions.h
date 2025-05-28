@@ -139,7 +139,7 @@ struct QueryVectorIndexFunction final {
 };
 
 struct CreateEmbedding final {
-    static constexpr const char* name = "Create_Embedding";
+    static constexpr const char* name = "CREATE_EMBEDDING";
 
     static function::function_set getFunctionSet();
 };
