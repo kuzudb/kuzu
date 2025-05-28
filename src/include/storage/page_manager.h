@@ -23,7 +23,8 @@ public:
           version(0) {}
 
     uint64_t getVersion() const { return version; }
-    void setVersion(uint64_t newVersion) { version = newVersion; }
+    bool changedSinceLastCheckpoint() const { return version != 0; }
+    void resetVersion() { version = 0; }
 
     PageRange allocatePageRange(common::page_idx_t numPages);
     void freePageRange(PageRange block);

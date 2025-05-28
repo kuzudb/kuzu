@@ -50,17 +50,14 @@ void Checkpointer::writeCheckpoint() {
     auto* dataFH = storageManager->getDataFH();
 
     // Serialize the catalog if there are changes
-    if (databaseHeader.catalogVersion != catalog->getVersion()) {
+    if (catalog->changedSinceLastCheckpoint()) {
         databaseHeader.catalogPageRange = serializeCatalog(*catalog, *storageManager);
     }
     // Serialize the storage metadata if there are changes
-    if (hasStorageChanges || databaseHeader.catalogVersion != catalog->getVersion() ||
-        databaseHeader.pageManagerVersion != dataFH->getPageManager()->getVersion()) {
+    if (hasStorageChanges || catalog->changedSinceLastCheckpoint() ||
+        dataFH->getPageManager()->changedSinceLastCheckpoint()) {
         databaseHeader.metadataPageRange = serializeMetadata(*catalog, *storageManager);
     }
-
-    databaseHeader.catalogVersion = catalog->getVersion();
-    databaseHeader.pageManagerVersion = dataFH->getPageManager()->getVersion();
 
     writeDatabaseHeader(databaseHeader);
 
@@ -84,6 +81,9 @@ void Checkpointer::writeCheckpoint() {
     wal->clearWAL();
     shadowFile.clearAll(clientContext);
     storageManager->finalizeCheckpoint();
+
+    catalog->resetVersion();
+    dataFH->getPageManager()->resetVersion();
 }
 
 static void writeMagicBytes(common::Serializer& serializer) {
@@ -109,10 +109,6 @@ void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {
     headerSerializer.writeDebuggingInfo("metadata");
     headerSerializer.serializeValue(metadataPageRange.startPageIdx);
     headerSerializer.serializeValue(metadataPageRange.numPages);
-    headerSerializer.writeDebuggingInfo("catalog_version");
-    headerSerializer.serializeValue(header.catalogVersion);
-    headerSerializer.writeDebuggingInfo("page_manager_version");
-    headerSerializer.serializeValue(header.pageManagerVersion);
     auto headerPage = headerWriter->getPage(0);
 
     const auto storageManager = clientContext.getStorageManager();
@@ -183,7 +179,6 @@ static DatabaseHeader readDatabaseHeader(common::Deserializer& deSer) {
     validateMagicBytes(deSer);
     validateStorageVersion(deSer);
     PageRange catalogPageRange{}, metaPageRange{};
-    uint64_t catalogVersion{}, pageManagerVersion{};
     std::string key;
     deSer.validateDebuggingInfo(key, "catalog");
     deSer.deserializeValue(catalogPageRange.startPageIdx);
@@ -191,17 +186,14 @@ static DatabaseHeader readDatabaseHeader(common::Deserializer& deSer) {
     deSer.validateDebuggingInfo(key, "metadata");
     deSer.deserializeValue(metaPageRange.startPageIdx);
     deSer.deserializeValue(metaPageRange.numPages);
-    deSer.validateDebuggingInfo(key, "catalog_version");
-    deSer.deserializeValue(catalogVersion);
-    deSer.validateDebuggingInfo(key, "page_manager_version");
-    deSer.deserializeValue(pageManagerVersion);
-    return {catalogPageRange, metaPageRange, catalogVersion, pageManagerVersion};
+    return {
+        catalogPageRange,
+        metaPageRange,
+    };
 }
 
 DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
-    static const auto defaultHeader =
-        DatabaseHeader{{}, {}, std::numeric_limits<decltype(DatabaseHeader::catalogVersion)>::max(),
-            std::numeric_limits<decltype(DatabaseHeader::pageManagerVersion)>::max()};
+    static const auto defaultHeader = DatabaseHeader{{}, {}};
     if (clientContext.getStorageManager()->getDataFH()->getFileInfo()->getFileSize() <
         common::KUZU_PAGE_SIZE) {
         // If the data file hasn't been written to there is no existing database header
@@ -244,11 +236,9 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.catalogPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     catalog->deserialize(deSer);
-    catalog->setVersion(currentHeader.catalogVersion);
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     storageManager->deserialize(*catalog, deSer);
-    storageManager->getDataFH()->getPageManager()->setVersion(currentHeader.pageManagerVersion);
 }
 
 } // namespace storage
