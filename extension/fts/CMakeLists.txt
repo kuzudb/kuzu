@@ -7,6 +7,8 @@ include_directories(
 add_subdirectory(src/catalog)
 add_subdirectory(src/function)
 add_subdirectory(src/main)
+add_subdirectory(src/update)
+add_subdirectory(src/utils)
 add_subdirectory(test)
 
 add_subdirectory(third_party/snowball)
