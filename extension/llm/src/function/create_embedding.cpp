@@ -1,3 +1,4 @@
+#include "common/exception/connection.h"
 #include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "function/function.h"
@@ -23,30 +24,22 @@ static void execFunc(
     common::SelectionVector* resultSelVector, 
     void* /*dataPtr*/)
 {
+    // This iteration only supports using Ollama with nomic-embed-text.
+    // The user must install and have nomic-embed-text running at
+    // http://localhost::11434.
     assert(parameters.size() == 1);
     std::string text = parameters[0]->getValue<ku_string_t>(0).getAsString();
-
     httplib::Client client("http://localhost:11434");
-
     nlohmann::json payload = {{"model", "nomic-embed-text"}, {"prompt", text}};
-
     httplib::Headers headers = {{"Content-Type", "application/json"}};
-
     auto res = client.Post("/api/embeddings", headers, payload.dump(), "application/json");
-
-    if (!res)
-    {
-        std::cerr << "Request failed: No response (server not reachable?)\n";
-    } 
-    else if (res->status != 200)
-    {
-        std::cerr << "Request failed with status " << res->status << "\n";
-        std::cerr << "Body: " << res->body << "\n";
+    if (!res) {
+        throw ConnectionException("Request failed: No response (server not reachable?)\n");
+    } else if (res->status != 200) {
+        throw ConnectionException("Request failed with status " + std::to_string(res->status) + "\n Body: " + res->body + "\n");
     }
 
-    nlohmann::json response = nlohmann::json::parse(res->body);
-    std::vector<float> embeddingVec = response["embedding"].get<std::vector<float>>();
-
+    std::vector<float> embeddingVec = nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
         auto pos = (*resultSelVector)[selectedPos];
