@@ -16,7 +16,7 @@ CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 NUM_THREADS ?= 1
 PREFIX ?= install
 TEST_JOBS ?= 10
-EXTENSION_LIST ?= httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;azure;unity_catalog;vector;neo4j;algo
+EXTENSION_LIST ?= httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;azure;unity_catalog;vector;neo4j;algo;llm
 EXTENSION_TEST_EXCLUDE_FILTER ?= ""
 
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)

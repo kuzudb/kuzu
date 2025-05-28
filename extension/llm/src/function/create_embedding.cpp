@@ -3,7 +3,6 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/hnsw_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/mask.h"
 #include "common/types/ku_list.h"
@@ -12,11 +11,9 @@
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/function.h"
 #include "function/gds/gds.h"
-#include "function/hnsw_index_functions.h"
+#include "function/llm_functions.h"
 #include "function/scalar_function.h"
 #include "function/table/bind_data.h"
-#include "index/hnsw_index.h"
-#include "index/hnsw_index_utils.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
@@ -36,7 +33,7 @@ using namespace kuzu::catalog;
 using namespace kuzu::processor;
 
 namespace kuzu {
-namespace vector_extension {
+namespace llm_extension {
 
 static void execFunc( 
     const std::vector<std::shared_ptr<common::ValueVector>>& parameters, 
@@ -99,5 +96,5 @@ function_set CreateEmbedding::getFunctionSet() {
     return functionSet;
 }
 
-} // namespace vector_extension
+} // namespace llm_extension
 } // namespace kuzu

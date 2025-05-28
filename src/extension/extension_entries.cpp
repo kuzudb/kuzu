@@ -22,7 +22,8 @@ static constexpr std::array icebergExtensionFunctions = {"ICEBERG_SCAN", "ICEBER
     "ICEBERG_SNAPSHOTS"};
 static constexpr std::array azureExtensionFunctions = {"AZURE_SCAN"};
 static constexpr std::array vectorExtensionFunctions = {"QUERY_VECTOR_INDEX", "CREATE_VECTOR_INDEX",
-    "DROP_VECTOR_INDEX", "CREATE_EMBEDDING"};
+    "DROP_VECTOR_INDEX"};
+static constexpr std::array llmExtensionFunctions = {"CREATE_EMBEDDING"};
 static constexpr std::array neo4jExtensionFunctions = {"NEO4J_MIGRATE"};
 static constexpr std::array algoExtensionFunctions = {"K_CORE_DECOMPOSITION", "PAGE_RANK",
     "STRONGLY_CONNECTED_COMPONENTS_KOSARAJU", "STRONGLY_CONNECTED_COMPONENTS",
@@ -36,6 +37,7 @@ static constexpr EntriesForExtension functionsForExtensionsRaw[] = {
     {"AZURE", azureExtensionFunctions, azureExtensionFunctions.size()},
     {"JSON", jsonExtensionFunctions, jsonExtensionFunctions.size()},
     {"VECTOR", vectorExtensionFunctions, vectorExtensionFunctions.size()},
+    {"LLM", llmExtensionFunctions, llmExtensionFunctions.size()},
     {"NEO4J", neo4jExtensionFunctions, neo4jExtensionFunctions.size()},
     {"ALGO", algoExtensionFunctions, algoExtensionFunctions.size()},
 };
