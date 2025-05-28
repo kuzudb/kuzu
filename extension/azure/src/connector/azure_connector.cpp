@@ -18,9 +18,7 @@ void AzureConnector::connect(const std::string& /*dbPath*/, const std::string& /
 }
 
 void AzureConnector::initRemoteAzureSecrets(main::ClientContext* context) const {
-    auto config = AzureConfig::getDefault();
-    config.registerExtensionOptions(context->getDatabase());
-    config.initFromEnv(context);
+
     std::string query = R"(CREATE SECRET azure_secret (
         TYPE azure,
         CONNECTION_STRING '{}'

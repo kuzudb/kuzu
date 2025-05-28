@@ -227,7 +227,7 @@ extension-json-test: extension-json-test-build
 extension-debug:
 	$(call run-cmake-debug, \
 		-DBUILD_EXTENSIONS="$(EXTENSION_LIST)" \
-		-DBUILD_KUZU=TRUE \
+		-DBUILD_KUZU=FALSE \
 	)
 
 extension-release:

@@ -1,6 +1,7 @@
 #include "main/azure_extension.h"
 
 #include "function/azure_scan.h"
+#include "connector/azure_config.h"
 #include "main/client_context.h"
 #include "main/database.h"
 #include "main/duckdb_extension.h"
@@ -11,7 +12,9 @@ namespace azure_extension {
 void AzureExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     extension::ExtensionUtils::addTableFunc<AzureScanFunction>(db);
-    duckdb_extension::DuckdbExtension::loadRemoteFSOptions(context);
+    auto config = AzureConfig::getDefault();
+    config.registerExtensionOptions(context->getDatabase());
+    config.initFromEnv(context);
 }
 
 } // namespace azure_extension
