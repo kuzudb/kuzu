@@ -20,14 +20,18 @@ static void initHNSWEntries(const transaction::Transaction* transaction,
 
 void VectorExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
+
+    extension::ExtensionUtils::addScalarFunc<CreateEmbedding>(db);
+
     extension::ExtensionUtils::addTableFunc<QueryVectorIndexFunction>(db);
     extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateHNSWIndexFunction>(db);
-    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalFinalizeHNSWIndexFunction>(
-        db);
+    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalFinalizeHNSWIndexFunction>( db);
+
     extension::ExtensionUtils::addStandaloneTableFunc<CreateVectorIndexFunction>(db);
     extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalDropHNSWIndexFunction>(db);
     extension::ExtensionUtils::addStandaloneTableFunc<DropVectorIndexFunction>(db);
     initHNSWEntries(&transaction::DUMMY_TRANSACTION, *db.getCatalog());
+
 }
 
 } // namespace vector_extension

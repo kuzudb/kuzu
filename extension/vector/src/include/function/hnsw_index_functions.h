@@ -138,5 +138,12 @@ struct QueryVectorIndexFunction final {
     static function::function_set getFunctionSet();
 };
 
+struct CreateEmbedding final {
+    static constexpr const char* name = "Create_Embedding";
+
+    static function::function_set getFunctionSet();
+};
+
+
 } // namespace vector_extension
 } // namespace kuzu
