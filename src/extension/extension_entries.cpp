@@ -22,7 +22,7 @@ static constexpr std::array icebergExtensionFunctions = {"ICEBERG_SCAN", "ICEBER
     "ICEBERG_SNAPSHOTS"};
 static constexpr std::array azureExtensionFunctions = {"AZURE_SCAN"};
 static constexpr std::array vectorExtensionFunctions = {"QUERY_VECTOR_INDEX", "CREATE_VECTOR_INDEX",
-    "DROP_VECTOR_INDEX"};
+    "DROP_VECTOR_INDEX", "CREATE_EMBEDDING"};
 static constexpr std::array neo4jExtensionFunctions = {"NEO4J_MIGRATE"};
 static constexpr std::array algoExtensionFunctions = {"K_CORE_DECOMPOSITION", "PAGE_RANK",
     "STRONGLY_CONNECTED_COMPONENTS_KOSARAJU", "STRONGLY_CONNECTED_COMPONENTS",
