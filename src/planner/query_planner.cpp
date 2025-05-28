@@ -9,7 +9,6 @@ namespace kuzu {
 namespace planner {
 
 LogicalPlan Planner::planQuery(const BoundStatement& boundStatement) {
-    std::unique_ptr<LogicalPlan> resultPlans;
     auto& regularQuery = boundStatement.constCast<BoundRegularQuery>();
     if (regularQuery.getNumSingleQueries() == 1) {
         return planSingleQuery(*regularQuery.getSingleQuery(0));

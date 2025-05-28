@@ -518,7 +518,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
                 auto bestPlan = planner.planStatement(*boundStatement);
                 // optimizing
                 optimizer::Optimizer::optimize(&bestPlan, this, planner.getCardinalityEstimator());
-                preparedStatement->logicalPlan = bestPlan.shallowCopy();
+                preparedStatement->logicalPlan = std::make_unique<LogicalPlan>(bestPlan);
             },
             preparedStatement->isReadOnly(), preparedStatement->isTransactionStatement(),
             TransactionHelper::getAction(shouldCommitNewTransaction,

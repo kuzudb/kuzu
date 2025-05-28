@@ -22,11 +22,10 @@ public:
     bool containPlans(const binder::SubqueryGraph& subqueryGraph) const {
         return subPlansTable->containSubgraphPlans(subqueryGraph);
     }
-    std::vector<std::unique_ptr<LogicalPlan>>& getPlans(
-        const binder::SubqueryGraph& subqueryGraph) const {
+    const std::vector<LogicalPlan>& getPlans(const binder::SubqueryGraph& subqueryGraph) const {
         return subPlansTable->getSubgraphPlans(subqueryGraph);
     }
-    void addPlan(const binder::SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan) {
+    void addPlan(const binder::SubqueryGraph& subqueryGraph, LogicalPlan plan) {
         subPlansTable->addPlan(subqueryGraph, std::move(plan));
     }
 

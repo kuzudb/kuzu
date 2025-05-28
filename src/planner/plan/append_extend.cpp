@@ -131,14 +131,14 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     // Scan path rel property pipeline
     std::shared_ptr<LogicalOperator> pathRelPropertyScanRoot = nullptr;
     if (!recursiveInfo->relProjectionList.empty()) {
-        auto pathRelPropertyScanPlan = std::make_unique<LogicalPlan>();
+        auto pathRelPropertyScanPlan = LogicalPlan();
         auto relProperties = recursiveInfo->relProjectionList;
         relProperties.push_back(recursiveInfo->rel->getInternalIDProperty());
         bool extendFromSource = *boundNode == *rel->getSrcNode();
         createPathRelPropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeCopy,
             recursiveInfo->rel, direction, extendFromSource, relProperties,
-            *pathRelPropertyScanPlan);
-        pathRelPropertyScanRoot = pathRelPropertyScanPlan->getLastOperator();
+            pathRelPropertyScanPlan);
+        pathRelPropertyScanRoot = pathRelPropertyScanPlan.getLastOperator();
     }
     // Construct path by probing scanned properties
     auto pathPropertyProbe =

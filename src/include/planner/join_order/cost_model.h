@@ -17,7 +17,7 @@ public:
     static uint64_t computeMarkJoinCost(const binder::expression_vector& joinNodeIDs,
         const LogicalPlan& probe, const LogicalPlan& build);
     static uint64_t computeIntersectCost(const LogicalPlan& probePlan,
-        const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
+        const std::vector<LogicalPlan>& buildPlans);
 };
 
 } // namespace planner
