@@ -804,6 +804,12 @@ jobs:
       - name: Check and fix extension format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
 
+      - name: Format Python API
+        run: |
+          cd tools/python_api
+          make requirements
+          make format
+
       - name: Update Rust
         run: rustup update
 
