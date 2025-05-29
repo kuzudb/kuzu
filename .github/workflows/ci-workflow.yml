@@ -1055,7 +1055,11 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
-      AZURE_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=${{ secrets.AZURE_ACCOUNT_NAME }};AccountKey=${{ secrets.AZURE_ACCOUNT_KEY }};EndpointSuffix=core.windows.net
+      AZURE_CONNECTION_STRING: >
+        DefaultEndpointsProtocol=https;
+        AccountName=${{ secrets.AZURE_ACCOUNT_NAME }};
+        AccountKey=${{ secrets.AZURE_ACCOUNT_KEY }};
+        EndpointSuffix=core.windows.net
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
       ASAN_OPTIONS: detect_leaks=1
@@ -1113,7 +1117,11 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
-      AZURE_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=${{ secrets.AZURE_ACCOUNT_NAME }};AccountKey=${{ secrets.AZURE_ACCOUNT_KEY }};EndpointSuffix=core.windows.net
+      AZURE_CONNECTION_STRING: >
+        DefaultEndpointsProtocol=https;
+        AccountName=${{ secrets.AZURE_ACCOUNT_NAME }};
+        AccountKey=${{ secrets.AZURE_ACCOUNT_KEY }};
+        EndpointSuffix=core.windows.net
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
@@ -1177,7 +1185,11 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
-      AZURE_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=${{ secrets.AZURE_ACCOUNT_NAME }};AccountKey=${{ secrets.AZURE_ACCOUNT_KEY }};EndpointSuffix=core.windows.net
+      AZURE_CONNECTION_STRING: >
+        DefaultEndpointsProtocol=https;
+        AccountName=${{ secrets.AZURE_ACCOUNT_NAME }};
+        AccountKey=${{ secrets.AZURE_ACCOUNT_KEY }};
+        EndpointSuffix=core.windows.net
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: TRUE
