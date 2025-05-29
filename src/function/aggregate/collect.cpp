@@ -9,25 +9,104 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
+/**
+ * For collect each grouped key corresponds to a list of values
+ * We store this value as a linked list where each element is allocated from the shared overflow
+ * buffer
+ * The format for each element in the list is the following in order:
+ * - The value of the current element
+ * - The pointer to the next element in the list
+ */
+struct CollectListElement {
+    CollectListElement() : elementPtr(nullptr) {}
+    explicit CollectListElement(uint8_t* elementPtr) : elementPtr(elementPtr) {}
+
+    CollectListElement getNextElement() const { return CollectListElement{*getNextElementPtr()}; }
+    uint8_t** getNextElementPtr() const { return reinterpret_cast<uint8_t**>(elementPtr); }
+    void setNextElement(CollectListElement next) const {
+        KU_ASSERT(*getNextElementPtr() == nullptr);
+        *getNextElementPtr() = next.elementPtr;
+    }
+    void setNextElement(std::nullptr_t next) const { *getNextElementPtr() = next; }
+    uint8_t* getDataPtr() const { return elementPtr + sizeof(uint8_t*); }
+
+    static uint64_t size(LogicalType& elementType) {
+        return sizeof(uint8_t*) + StorageUtils::getDataTypeSize(elementType);
+    }
+
+    bool valid() const { return elementPtr; }
+
+    uint8_t* elementPtr;
+};
+
 struct CollectState : public AggregateState {
-    CollectState() : blocks(std::make_unique<std::vector<uint8_t*>>()) {};
+    CollectState() = default;
     uint32_t getStateSize() const override { return sizeof(*this); }
     void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override;
 
-    std::unique_ptr<std::vector<uint8_t*>> blocks;
+    void appendElement(ValueVector* input, uint32_t pos, InMemOverflowBuffer* overflowBuffer);
+    void resetList();
+    void appendList(const CollectState& o);
+
+    // We store the head + tail of the linked list
+    CollectListElement head;
+    CollectListElement tail;
+    uint64_t listSize = 0;
+
+    // CollectStates are stored in factorizedTable entries. When the factorizedTable is
+    // destructed, the destructor of CollectStates won't be called. Therefore, we need to make sure
+    // that no additional actions are required for destructing the head/tail outside of deallocating
+    // their memory
+
+    static_assert(std::is_trivially_destructible_v<CollectListElement>);
 };
 
+void CollectState::appendList(const CollectState& o) {
+    if (head.valid()) {
+        KU_ASSERT(tail.valid());
+        tail.setNextElement(o.head);
+        tail = o.tail;
+    } else {
+        head = o.head;
+        tail = o.tail;
+    }
+    listSize += o.listSize;
+}
+
+void CollectState::appendElement(ValueVector* input, uint32_t pos,
+    InMemOverflowBuffer* overflowBuffer) {
+    CollectListElement newElement{
+        overflowBuffer->allocateSpace(CollectListElement::size(input->dataType))};
+    newElement.setNextElement(nullptr);
+    input->copyToRowData(pos, newElement.getDataPtr(), overflowBuffer);
+
+    if (tail.valid()) {
+        tail.setNextElement(newElement);
+    } else {
+        KU_ASSERT(!head.valid());
+        head = newElement;
+    }
+    tail = newElement;
+
+    ++listSize;
+}
+
+void CollectState::resetList() {
+    head = {};
+    tail = {};
+    listSize = 0;
+}
+
 void CollectState::moveResultToVector(common::ValueVector* outputVector, uint64_t pos) {
-    auto listEntry = common::ListVector::addList(outputVector, blocks->size());
+    auto listEntry = common::ListVector::addList(outputVector, listSize);
     outputVector->setValue<common::list_entry_t>(pos, listEntry);
     auto outputDataVector = common::ListVector::getDataVector(outputVector);
+    CollectListElement curElement = head;
     for (auto i = 0u; i < listEntry.size; i++) {
-        outputDataVector->copyFromRowData(listEntry.offset + i, (*blocks)[i]);
+        KU_ASSERT(curElement.valid());
+        outputDataVector->copyFromRowData(listEntry.offset + i, curElement.getDataPtr());
+        curElement = curElement.getNextElement();
     }
-    // CollectStates are stored in factorizedTable entries. When the factorizedTable is
-    // destructed, the destructor of CollectStates won't be called. Therefore, we need to
-    // manually deallocate the memory of CollectStates.
-    blocks.reset();
 }
 
 static std::unique_ptr<AggregateState> initialize() {
@@ -36,12 +115,9 @@ static std::unique_ptr<AggregateState> initialize() {
 
 static void updateSingleValue(CollectState* state, ValueVector* input, uint32_t pos,
     uint64_t multiplicity, InMemOverflowBuffer* overflowBuffer) {
-    const auto dataSize = StorageUtils::getDataTypeSize(input->dataType);
     for (auto i = 0u; i < multiplicity; ++i) {
-        auto tuple = overflowBuffer->allocateSpace(dataSize);
-        state->blocks->push_back(tuple);
         state->isNull = false;
-        input->copyToRowData(pos, tuple, overflowBuffer);
+        state->appendElement(input, pos, overflowBuffer);
     }
 }
 
@@ -80,9 +156,9 @@ static void combine(uint8_t* state_, uint8_t* otherState_,
         return;
     }
     auto state = reinterpret_cast<CollectState*>(state_);
-    std::move(begin(*otherState->blocks), end(*otherState->blocks), back_inserter(*state->blocks));
+    state->appendList(*otherState);
     state->isNull = false;
-    otherState->blocks.reset();
+    otherState->resetList();
     otherState->isNull = true;
 }
 
