@@ -6,7 +6,7 @@ from tools.python_api.test.type_aliases import ConnDB
 
 
 def test_param_empty(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     lst = [[]]
     conn.execute("CREATE NODE TABLE tab(id SERIAL, lst INT64[][], PRIMARY KEY(id))")
     result = conn.execute("CREATE (t:tab {lst: $1}) RETURN t.*", {"1": lst})
@@ -17,7 +17,7 @@ def test_param_empty(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_issue_2874(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     result = conn.execute("UNWIND $idList as tid MATCH (t:person {ID: tid}) RETURN t.fName;", {"idList": [1, 2, 3]})
     assert result.has_next()
     assert result.get_next() == ["Bob"]
@@ -28,7 +28,7 @@ def test_issue_2874(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_issue_2906(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     result = conn.execute("MATCH (a:person) WHERE $1 > a.ID AND $1 < a.age / 5 RETURN a.fName;", {"1": 6})
     assert result.has_next()
     assert result.get_next() == ["Alice"]
@@ -39,7 +39,7 @@ def test_issue_2906(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_issue_3135(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     conn.execute("CREATE NODE TABLE t1(id SERIAL, number INT32, PRIMARY KEY(id));")
     conn.execute("CREATE (:t1 {number: $1})", {"1": 2})
     result = conn.execute("MATCH (n:t1) RETURN n.number;")
@@ -50,7 +50,7 @@ def test_issue_3135(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_empty_list2(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     conn.execute(
         """
         CREATE NODE TABLE SnapArtifactScan (
@@ -82,7 +82,7 @@ def test_empty_list2(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_empty_map(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     conn.execute(
         """
         CREATE NODE TABLE Test (
@@ -111,7 +111,7 @@ def test_empty_map(conn_db_readwrite: ConnDB) -> None:
 
 # TODO(Maxwell): check if we should change getCastCost() for the following test
 # def test_issue_3248(conn_db_readwrite: ConnDB) -> None:
-#     conn, db = conn_db_readwrite
+#     conn, _ = conn_db_readwrite
 #     # Define schema
 #     conn.execute("CREATE NODE TABLE Item(id UINT64, item STRING, price DOUBLE, vector DOUBLE[2], PRIMARY KEY (id))")
 #

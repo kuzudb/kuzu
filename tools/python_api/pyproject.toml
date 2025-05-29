@@ -67,7 +67,6 @@ select = [
   "FBT001", # flake8-boolean-trap
 ]
 ignore = [
-  "D401", # First line should be in imperative mood
   "D105", # Missing docstring in magic method
   "D100", # Missing docstring in public module
   "D104", # Missing docstring in public package

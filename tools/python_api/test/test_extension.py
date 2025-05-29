@@ -12,7 +12,7 @@ from type_aliases import ConnDB
 EXTENSION_CMAKE_PREFIX = 'add_definitions(-DKUZU_EXTENSION_VERSION="'
 
 
-@pytest.fixture()
+@pytest.fixture
 def extension_extension_dir_prefix() -> str:
     system = platform.system()
     extension_extension_dir_prefix = None

@@ -18,9 +18,9 @@ def test_get_next() -> None:
     result.rows_as_dict()
 
     row = result.get_next()
-    assert row == {'p.name': 'Alice', 'p.age': 30}
+    assert row == {"p.name": "Alice", "p.age": 30}
     row = result.get_next()
-    assert row == {'p.name': 'Bob', 'p.age': 40}
+    assert row == {"p.name": "Bob", "p.age": 40}
 
 
 def test_get_all() -> None:
@@ -38,8 +38,8 @@ def test_get_all() -> None:
     result.rows_as_dict()
 
     rows = result.get_all()
-    assert rows[0] == {'p.name': 'Alice', 'p.age': 30}
-    assert rows[1] == {'p.name': 'Bob', 'p.age': 40}
+    assert rows[0] == {"p.name": "Alice", "p.age": 30}
+    assert rows[1] == {"p.name": "Bob", "p.age": 40}
 
 
 def test_get_n() -> None:
@@ -60,13 +60,13 @@ def test_get_n() -> None:
     rows = result.get_n(2)
 
     assert len(rows) == 2
-    assert rows[0] == {'p.name': 'Alice', 'p.age': 30}
-    assert rows[1] == {'p.name': 'Bob', 'p.age': 40}
+    assert rows[0] == {"p.name": "Alice", "p.age": 30}
+    assert rows[1] == {"p.name": "Bob", "p.age": 40}
 
     rows = result.get_n(1)
 
     assert len(rows) == 1
-    assert rows[0] == {'p.name': 'Cole', 'p.age': 20}
+    assert rows[0] == {"p.name": "Cole", "p.age": 20}
 
     rows = result.get_n(1)
 
@@ -87,8 +87,8 @@ def test_dict_iteration() -> None:
 
     result.rows_as_dict()
     rows = list(result)
-    assert rows[0] == {'p.name': 'Alice', 'p.age': 30}
-    assert rows[1] == {'p.name': 'Bob', 'p.age': 40}
+    assert rows[0] == {"p.name": "Alice", "p.age": 30}
+    assert rows[1] == {"p.name": "Bob", "p.age": 40}
 
 
 def test_dict_iteration_inline() -> None:
@@ -104,8 +104,8 @@ def test_dict_iteration_inline() -> None:
     assert result.get_num_tuples() == 2
 
     rows = list(result.rows_as_dict())
-    assert rows[0] == {'p.name': 'Alice', 'p.age': 30}
-    assert rows[1] == {'p.name': 'Bob', 'p.age': 40}
+    assert rows[0] == {"p.name": "Alice", "p.age": 30}
+    assert rows[1] == {"p.name": "Bob", "p.age": 40}
 
 
 def test_on_off() -> None:
@@ -123,12 +123,12 @@ def test_on_off() -> None:
     assert result.get_num_tuples() == 3
 
     row = result.get_next()
-    assert row == ['Alice', 30]
+    assert row == ["Alice", 30]
 
     result.rows_as_dict()
     row = result.get_next()
-    assert row == {'p.name': 'Bob', 'p.age': 40}
+    assert row == {"p.name": "Bob", "p.age": 40}
 
     result.rows_as_dict(False)
     row = result.get_next()
-    assert row == ['Cole', 20]
+    assert row == ["Cole", 20]

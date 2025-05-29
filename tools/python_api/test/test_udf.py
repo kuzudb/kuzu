@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta  # noqa: TCH003
+from datetime import date, datetime, timedelta  # noqa: TC003
 
 import pandas as pd
 import pyarrow as pa
@@ -25,7 +25,7 @@ def udf_predicate_test(conn, functionName, params, expectedResult):
 
 
 def test_udf(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
 
     def add5int(x: int) -> int:
         print(x)
@@ -157,7 +157,7 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_udf_null(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
 
     def get5(x: int) -> int:
         return 5
@@ -174,7 +174,7 @@ def test_udf_except(conn_db_readwrite: ConnDB) -> None:
     class TestException(Exception):
         pass
 
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
 
     def throw() -> int:
         errmsg = "test"
@@ -191,17 +191,17 @@ def test_udf_except(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_udf_remove(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
 
     def myfunction() -> int:
         return 1
 
     conn.create_function("myfunction", myfunction)
 
-    with pytest.raises(RuntimeError, match="Catalog exception: function notmyfunction doesn't exist."):
+    with pytest.raises(RuntimeError, match=r"Catalog exception: function notmyfunction doesn't exist."):
         conn.remove_function("notmyfunction")
 
     conn.remove_function("myfunction")
 
-    with pytest.raises(RuntimeError, match="Catalog exception: function list_create doesn't exist."):
+    with pytest.raises(RuntimeError, match=r"Catalog exception: function list_create doesn't exist."):
         conn.remove_function("list_create")

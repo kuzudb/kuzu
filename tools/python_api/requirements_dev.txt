@@ -12,6 +12,6 @@ setuptools~=80.8
 pytest-asyncio~=0.25
 
 # required for lint/formatting
-ruff==0.3.2
-mypy==1.9.0
-uv==0.1.17
+ruff==0.11.12
+mypy==1.16.0
+uv==0.7.8

@@ -34,7 +34,7 @@ _expected_dtypes = {
     "a.workedHours": {"arrow": pa.list_(pa.int64()), "pl": pl.List(pl.Int64)},
     "a.usedNames": {"arrow": pa.list_(pa.string()), "pl": pl.List(pl.String)},
     "a.courseScoresPerTerm": {"arrow": pa.list_(pa.list_(pa.int64())), "pl": pl.List(pl.List(pl.Int64))},
-    "a.grades": {"arrow": pa.list_(pa.int64(), 4), "pl": pl.Array(pl.Int64, width=4)},
+    "a.grades": {"arrow": pa.list_(pa.int64(), 4), "pl": pl.Array(pl.Int64, shape=(4,))},
     "a.height": {"arrow": pa.float32(), "pl": pl.Float32},
     "a.u": {"arrow": pa.string(), "pl": pl.String},
     # ------------------------------------------------
@@ -108,7 +108,7 @@ def assert_col_names(data: Any, expected_col_names: list[str]) -> None:
 
 
 def test_to_arrow(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
 
     def _test_person_table(_conn: kuzu.Connection, return_type: str, chunk_size: int | None = None) -> None:
         query = "MATCH (a:person) RETURN a.* ORDER BY a.ID"
@@ -487,12 +487,12 @@ def test_to_arrow_array(conn_db_readwrite: ConnDB) -> None:
     conn.execute("CREATE (p:school {id: 8, prop1: [2,3,1]})")
     conn.execute("CREATE (p:school {id: 18, prop1: null})")
     results = conn.execute("match (p:school) return p.*").get_as_arrow(8)
-    assert results[0].to_pylist() == [5,8,18]
-    assert results[1].to_pylist() == [None,[2,3,1],None]
+    assert results[0].to_pylist() == [5, 8, 18]
+    assert results[1].to_pylist() == [None, [2, 3, 1], None]
 
 
 def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
 
     def _test_node_helper(srcStruct, dstStruct):
         assert set(srcStruct.keys()) == set(dstStruct.keys())

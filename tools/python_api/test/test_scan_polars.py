@@ -6,7 +6,7 @@ from type_aliases import ConnDB
 
 
 def test_polars_basic(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     df = pl.DataFrame([
         pl.Series("col1", [1, 2], dtype=pl.Int64),
         pl.Series("col2", ["a", "b"], dtype=pl.String),
@@ -43,7 +43,7 @@ def test_polars_basic(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_polars_basic_param(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     df = pl.DataFrame([
         pl.Series("col1", [1, 2], dtype=pl.Int64),
         pl.Series("col2", ["a", "b"], dtype=pl.String),
@@ -80,8 +80,8 @@ def test_polars_basic_param(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_polars_error(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
-    with pytest.raises(RuntimeError, match="Binder exception: Variable df is not in scope."):
+    conn, _ = conn_db_readonly
+    with pytest.raises(RuntimeError, match=r"Binder exception: Variable df is not in scope."):
         conn.execute("LOAD FROM df RETURN *;")
     df = []
     with pytest.raises(
@@ -92,7 +92,7 @@ def test_polars_error(conn_db_readonly: ConnDB) -> None:
 
 
 def test_polars_scan_ignore_errors(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     df = pl.DataFrame({"id": [1, 2, 3, 1]})
     conn.execute("CREATE NODE TABLE ids(id INT64, PRIMARY KEY(id))")
     conn.execute("COPY ids FROM df(IGNORE_ERRORS=true)")
@@ -109,7 +109,7 @@ def test_polars_scan_ignore_errors(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_copy_from_polars_multi_pairs(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     conn.execute("CREATE NODE TABLE prof(id INT64, PRIMARY KEY(id))")
     conn.execute("CREATE (p:prof {id: 3});")
     conn.execute("CREATE (p:prof {id: 4});")
@@ -125,7 +125,7 @@ def test_copy_from_polars_multi_pairs(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_scan_from_empty_lst(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     df = pl.DataFrame({"prop1": [3], "prop2": [[]]})
     result = conn.execute("LOAD FROM df RETURN *")
     assert result.has_next()

@@ -196,10 +196,7 @@ def test_fsm_reclaim_rel_group(fsm_rel_group_setup) -> None:
 
 def test_fsm_reclaim_rel_group_column(fsm_rel_group_setup) -> None:
     _, conn = fsm_rel_group_setup
-    used_pages = (
-        get_used_page_ranges(conn, "likes", "fwd_date")
-        + get_used_page_ranges(conn, "likes", "bwd_date")
-    )
+    used_pages = get_used_page_ranges(conn, "likes", "fwd_date") + get_used_page_ranges(conn, "likes", "bwd_date")
     conn.execute("alter table likes drop date")
     prevent_data_file_truncation(conn)
     conn.execute("checkpoint")

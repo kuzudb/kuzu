@@ -326,32 +326,28 @@ class QueryResult:
                     continue
                 column_type, _ = properties_to_extract[i]
                 if column_type == Type.NODE.value:
-                    _id = row[i]["_id"]
-                    nodes[(_id["table"], _id["offset"])] = row[i]
-                    table_to_label_dict[_id["table"]] = row[i]["_label"]
+                    id = row[i]["_id"]
+                    nodes[id["table"], id["offset"]] = row[i]
+                    table_to_label_dict[id["table"]] = row[i]["_label"]
 
                 elif column_type == Type.REL.value:
-                    _src = row[i]["_src"]
-                    _dst = row[i]["_dst"]
                     rels[encode_rel_id(row[i])] = row[i]
 
                 elif column_type == Type.RECURSIVE_REL.value:
                     for node in row[i]["_nodes"]:
-                        _id = node["_id"]
-                        nodes[(_id["table"], _id["offset"])] = node
-                        table_to_label_dict[_id["table"]] = node["_label"]
+                        id = node["_id"]
+                        nodes[id["table"], id["offset"]] = node
+                        table_to_label_dict[id["table"]] = node["_label"]
                     for rel in row[i]["_rels"]:
                         for key in list(rel.keys()):
                             if rel[key] is None:
                                 del rel[key]
-                        _src = rel["_src"]
-                        _dst = rel["_dst"]
                         rels[encode_rel_id(rel)] = rel
 
         # Add nodes
         for node in nodes.values():
-            _id = node["_id"]
-            node_id = node["_label"] + "_" + str(_id["offset"])
+            id = node["_id"]
+            node_id = node["_label"] + "_" + str(id["offset"])
             if node["_label"] not in table_primary_key_dict:
                 props = self.connection._get_node_property_names(node["_label"])
                 for prop_name in props:
@@ -364,10 +360,10 @@ class QueryResult:
 
         # Add rels
         for rel in rels.values():
-            _src = rel["_src"]
-            _dst = rel["_dst"]
-            src_node = nodes[(_src["table"], _src["offset"])]
-            dst_node = nodes[(_dst["table"], _dst["offset"])]
+            src = rel["_src"]
+            dst = rel["_dst"]
+            src_node = nodes[src["table"], src["offset"]]
+            dst_node = nodes[dst["table"], dst["offset"]]
             src_id = encode_node_id(src_node, table_primary_key_dict)
             dst_id = encode_node_id(dst_node, table_primary_key_dict)
             nx_graph.add_edge(src_id, dst_id, **rel)
@@ -392,7 +388,7 @@ class QueryResult:
 
     def get_as_torch_geometric(self) -> tuple[geo.Data | geo.HeteroData, dict, dict, dict]:  # type: ignore[type-arg]
         """
-        Converts the nodes and rels in query result into a PyTorch Geometric graph representation
+        Convert the nodes and rels in query result into a PyTorch Geometric graph representation
         torch_geometric.data.Data or torch_geometric.data.HeteroData.
 
         For node conversion, numerical and boolean properties are directly converted into tensor and
