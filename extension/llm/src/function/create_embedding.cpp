@@ -30,8 +30,10 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
         nlohmann::json payload = {{"model", "nomic-embed-text"}, {"prompt", text}};
         auto res = client.Post("/api/embeddings", headers, payload.dump(), "application/json");
         if (!res) {
-            // TODO: Current server url is hardcoded. This must be changed when we accomodate different endpoints.
-            throw ConnectionException("Request failed: Could not connect to server: http://localhost:11434\n");
+            // TODO: Current server url is hardcoded. This must be changed when we accomodate
+            // different endpoints.
+            throw ConnectionException(
+                "Request failed: Could not connect to server: http://localhost:11434\n");
         } else if (res->status != 200) {
             throw ConnectionException("Request failed with status " + std::to_string(res->status) +
                                       "\n Body: " + res->body + "\n");
