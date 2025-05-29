@@ -38,7 +38,8 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
                                       "\n Body: " + res->body + "\n");
         }
 
-        std::vector<float> embeddingVec = nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
+        std::vector<float> embeddingVec =
+            nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
         auto pos = (*resultSelVector)[selectedPos];
         auto resultEntry = ListVector::addList(&result, embeddingVec.size());
         result.setValue(pos, resultEntry);
