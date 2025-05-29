@@ -62,6 +62,7 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     NodeTableScanState& scanState, common::offset_t offset) const {
     scanState.nodeIDVector->setValue(0, common::internalID_t{offset, nodeTable.getTableID()});
     scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(1);
+    // TODO(Guodong): Should be able to read from the local storage too.
     scanState.source = TableScanSource::COMMITTED;
     scanState.nodeGroupIdx = StorageUtils::getNodeGroupIdx(offset);
     nodeTable.initScanState(transaction, scanState);

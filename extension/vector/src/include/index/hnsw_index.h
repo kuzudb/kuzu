@@ -266,6 +266,17 @@ struct HNSWSearchState {
 
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
+    struct InsertState final : Index::InsertState {
+        OnDiskEmbeddingScanState embeddingScanState;
+        HNSWSearchState searchState;
+
+        InsertState(const transaction::Transaction* transaction, storage::MemoryManager* mm,
+            storage::NodeTable& nodeTable, common::column_id_t columnID, uint64_t degree)
+            : embeddingScanState{transaction, mm, nodeTable, columnID},
+              searchState{transaction, mm, nodeTable, columnID,
+                  nodeTable.getNumTotalRows(transaction), degree, QueryHNSWConfig{}} {}
+    };
+
     OnDiskHNSWIndex(main::ClientContext* context, storage::IndexInfo indexInfo,
         std::unique_ptr<storage::IndexStorageInfo> storageInfo, HNSWIndexConfig config);
 
@@ -275,14 +286,11 @@ public:
     static std::unique_ptr<Index> load(main::ClientContext* context,
         storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
         std::span<uint8_t> storageInfoBuffer);
-    std::unique_ptr<InsertState> initInsertState(const transaction::Transaction*,
-        storage::MemoryManager*, storage::visible_func) override {
-        KU_UNREACHABLE;
-    }
-    void insert(transaction::Transaction*, const common::ValueVector&,
-        const std::vector<common::ValueVector*>&, InsertState&) override {
-        KU_UNREACHABLE;
-    }
+    std::unique_ptr<Index::InsertState> initInsertState(const transaction::Transaction*,
+        storage::MemoryManager* mm, storage::visible_func) override;
+    void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& indexVectors,
+        Index::InsertState& insertState) override;
 
     static storage::IndexType getIndexType() {
         static const storage::IndexType HNSW_INDEX_TYPE{"HNSW",
@@ -308,6 +316,10 @@ private:
     void blindTwoHopFilteredSearch(transaction::Transaction* transaction, const void* queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
+    void insertToLowerLayer(transaction::Transaction* transaction, common::offset_t offset,
+        common::offset_t entryPoint, const void* queryVector, HNSWSearchState& searchState);
+    void insertRels(transaction::Transaction* transaction, common::offset_t offset,
+        common::offset_t dstNode, storage::RelTable& relTable) const;
 
     void processSecondHopCandidates(transaction::Transaction* transaction, const void* queryVector,
         HNSWSearchState& searchState, int64_t& numVisitedNbrs,
