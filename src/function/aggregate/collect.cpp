@@ -1,5 +1,4 @@
 #include "function/aggregate_function.h"
-#include "processor/result/factorized_table.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::binder;
@@ -11,48 +10,38 @@ namespace kuzu {
 namespace function {
 
 struct CollectState : public AggregateState {
-    CollectState() : factorizedTable{nullptr} {}
+    CollectState() : blocks(std::make_unique<std::vector<uint8_t*>>()) {};
     uint32_t getStateSize() const override { return sizeof(*this); }
     void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override;
 
-    std::unique_ptr<processor::FactorizedTable> factorizedTable;
+    std::unique_ptr<std::vector<uint8_t*>> blocks;
 };
 
 void CollectState::moveResultToVector(common::ValueVector* outputVector, uint64_t pos) {
-    auto listEntry = common::ListVector::addList(outputVector, factorizedTable->getNumTuples());
+    auto listEntry = common::ListVector::addList(outputVector, blocks->size());
     outputVector->setValue<common::list_entry_t>(pos, listEntry);
     auto outputDataVector = common::ListVector::getDataVector(outputVector);
     for (auto i = 0u; i < listEntry.size; i++) {
-        outputDataVector->copyFromRowData(listEntry.offset + i, factorizedTable->getTuple(i));
+        outputDataVector->copyFromRowData(listEntry.offset + i, (*blocks)[i]);
     }
     // CollectStates are stored in factorizedTable entries. When the factorizedTable is
     // destructed, the destructor of CollectStates won't be called. Therefore, we need to
     // manually deallocate the memory of CollectStates.
-    factorizedTable.reset();
+    blocks.reset();
 }
 
 static std::unique_ptr<AggregateState> initialize() {
     return std::make_unique<CollectState>();
 }
 
-static void initCollectStateIfNecessary(CollectState* state, InMemOverflowBuffer* overflowBuffer,
-    LogicalType& dataType) {
-    if (state->factorizedTable == nullptr) {
-        auto tableSchema = FactorizedTableSchema();
-        tableSchema.appendColumn(ColumnSchema(false /* isUnflat */, 0 /* groupID */,
-            StorageUtils::getDataTypeSize(dataType)));
-        state->factorizedTable = std::make_unique<FactorizedTable>(
-            overflowBuffer->getMemoryManager(), std::move(tableSchema));
-    }
-}
-
 static void updateSingleValue(CollectState* state, ValueVector* input, uint32_t pos,
     uint64_t multiplicity, InMemOverflowBuffer* overflowBuffer) {
-    initCollectStateIfNecessary(state, overflowBuffer, input->dataType);
+    const auto dataSize = StorageUtils::getDataTypeSize(input->dataType);
     for (auto i = 0u; i < multiplicity; ++i) {
-        auto tuple = state->factorizedTable->appendEmptyTuple();
+        auto tuple = overflowBuffer->allocateSpace(dataSize);
+        state->blocks->push_back(tuple);
         state->isNull = false;
-        input->copyToRowData(pos, tuple, state->factorizedTable->getInMemOverflowBuffer());
+        input->copyToRowData(pos, tuple, overflowBuffer);
     }
 }
 
@@ -91,13 +80,9 @@ static void combine(uint8_t* state_, uint8_t* otherState_,
         return;
     }
     auto state = reinterpret_cast<CollectState*>(state_);
-    if (state->isNull) {
-        state->factorizedTable = std::move(otherState->factorizedTable);
-        state->isNull = false;
-    } else {
-        state->factorizedTable->merge(*otherState->factorizedTable);
-    }
-    otherState->factorizedTable.reset();
+    std::move(begin(*otherState->blocks), end(*otherState->blocks), back_inserter(*state->blocks));
+    state->isNull = false;
+    otherState->blocks.reset();
     otherState->isNull = true;
 }
 

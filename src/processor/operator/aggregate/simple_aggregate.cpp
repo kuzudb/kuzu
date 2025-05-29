@@ -152,6 +152,7 @@ void SimpleAggregateSharedState::finalizePartitions(storage::MemoryManager* memo
         return;
     }
     BaseAggregateSharedState::finalizePartitions(globalPartitions, [&](auto& partition) {
+        std::unique_lock lck{mtx};
         for (size_t i = 0; i < partition.distinctTables.size(); i++) {
             if (!aggregateFunctions[i].isDistinct) {
                 continue;
