@@ -15,7 +15,7 @@ namespace planner {
 void Planner::appendNodeSemiMask(SemiMaskTargetType targetType, const NodeExpression& node,
     LogicalPlan& plan) {
     auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskKeyType::NODE, targetType,
-       node.getInternalID(), node.getTableIDs(), plan.getLastOperator());
+        node.getInternalID(), node.getTableIDs(), plan.getLastOperator());
     semiMasker->computeFactorizedSchema();
     plan.setLastOperator(semiMasker);
 }

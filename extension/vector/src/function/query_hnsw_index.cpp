@@ -120,19 +120,28 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             auto binder = Binder(context);
             boundStatement = binder.bind(*parsedStatements[0]);
         } catch (Exception& e) {
-            throw BinderException{stringFormat("Failed to bind filter query with error {}", e.what())};
+            throw BinderException{
+                stringFormat("Failed to bind filter query with error {}", e.what())};
         }
         auto resultColumns = boundStatement->getStatementResult()->getColumns();
         if (resultColumns.size() != 1) {
-            throw BinderException(stringFormat("The return clause of filter query should contain exact one node expression. Found {}.", ExpressionUtil::toString(resultColumns)));
+            throw BinderException(stringFormat("The return clause of filter query should contain "
+                                               "exact one node expression. Found {}.",
+                ExpressionUtil::toString(resultColumns)));
         }
         auto resultColumn = resultColumns[0];
         if (resultColumn->getDataType().getLogicalTypeID() != LogicalTypeID::NODE) {
-            throw BinderException(stringFormat("The return clause of filter query should contain exact one node expression. Expression {} has type {}.", resultColumn->toString(), resultColumn->getDataType().toString()));
+            throw BinderException(
+                stringFormat("The return clause of filter query should contain exact one node "
+                             "expression. Expression {} has type {}.",
+                    resultColumn->toString(), resultColumn->getDataType().toString()));
         }
         auto& node = resultColumn->constCast<NodeExpression>();
-        if (node.getNumEntries() != 1 || node.getEntry(0)->getTableID() != bindData->nodeTableEntry->getTableID()) {
-            throw BinderException(stringFormat("Node {} in return clause of filter query should be labeled as {}.", node.toString(), bindData->nodeTableEntry->getName()));
+        if (node.getNumEntries() != 1 ||
+            node.getEntry(0)->getTableID() != bindData->nodeTableEntry->getTableID()) {
+            throw BinderException(
+                stringFormat("Node {} in return clause of filter query should be labeled as {}.",
+                    node.toString(), bindData->nodeTableEntry->getName()));
         }
         bindData->filterStatement = std::move(boundStatement);
     }

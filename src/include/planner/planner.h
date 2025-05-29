@@ -185,8 +185,8 @@ public:
         const std::vector<std::shared_ptr<binder::NodeExpression>>& joinNodes, bool flipPlan);
 
     // Plan semi mask
-    void appendNodeSemiMask(SemiMaskTargetType targetType,
-        const binder::NodeExpression& node, LogicalPlan& plan);
+    void appendNodeSemiMask(SemiMaskTargetType targetType, const binder::NodeExpression& node,
+        LogicalPlan& plan);
     // void appendNodeSemiMaskAndSink(SemiMaskTargetType targetType,
     //     const binder::NodeExpression& node, LogicalPlan& plan);
     LogicalPlan getNodeSemiMaskPlan(SemiMaskTargetType targetType,
