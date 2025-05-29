@@ -187,8 +187,6 @@ public:
     // Plan semi mask
     void appendNodeSemiMask(SemiMaskTargetType targetType, const binder::NodeExpression& node,
         LogicalPlan& plan);
-    // void appendNodeSemiMaskAndSink(SemiMaskTargetType targetType,
-    //     const binder::NodeExpression& node, LogicalPlan& plan);
     LogicalPlan getNodeSemiMaskPlan(SemiMaskTargetType targetType,
         const binder::NodeExpression& node, std::shared_ptr<binder::Expression> nodePredicate);
 

@@ -13,7 +13,6 @@
 #include "index/hnsw_index.h"
 #include "index/hnsw_index_utils.h"
 #include "parser/parser.h"
-#include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
@@ -121,27 +120,27 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             boundStatement = binder.bind(*parsedStatements[0]);
         } catch (Exception& e) {
             throw BinderException{
-                stringFormat("Failed to bind filter query with error {}", e.what())};
+                stringFormat("Failed to bind the filter query. Found error: {}", e.what())};
         }
         auto resultColumns = boundStatement->getStatementResult()->getColumns();
         if (resultColumns.size() != 1) {
-            throw BinderException(stringFormat("The return clause of filter query should contain "
-                                               "exact one node expression. Found {}.",
-                ExpressionUtil::toString(resultColumns)));
+            throw BinderException(
+                stringFormat("The return clause of a filter query should contain "
+                             "exactly one node expression. Found more than one expressions: {}.",
+                    ExpressionUtil::toString(resultColumns)));
         }
         auto resultColumn = resultColumns[0];
         if (resultColumn->getDataType().getLogicalTypeID() != LogicalTypeID::NODE) {
-            throw BinderException(
-                stringFormat("The return clause of filter query should contain exact one node "
-                             "expression. Expression {} has type {}.",
-                    resultColumn->toString(), resultColumn->getDataType().toString()));
+            throw BinderException(stringFormat("The return clause of a filter query should be of "
+                                               "type NODE. Found type {} instead.",
+                resultColumn->getDataType().toString()));
         }
         auto& node = resultColumn->constCast<NodeExpression>();
         if (node.getNumEntries() != 1 ||
             node.getEntry(0)->getTableID() != bindData->nodeTableEntry->getTableID()) {
-            throw BinderException(
-                stringFormat("Node {} in return clause of filter query should be labeled as {}.",
-                    node.toString(), bindData->nodeTableEntry->getName()));
+            throw BinderException(stringFormat(
+                "Node {} in the return clause of the filter query should be labeled as {}.",
+                node.toString(), bindData->nodeTableEntry->getName()));
         }
         bindData->filterStatement = std::move(boundStatement);
     }

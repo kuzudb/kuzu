@@ -70,7 +70,7 @@
     filter := "MATCH (n:embeddings) WHERE n.dummy < 100 RETURN n")
     RETURN node.id ORDER BY distance;
 ---- error
-Binder exception: Failed to bind filter query with error Binder exception: Cannot find property dummy for n.
+Binder exception: Failed to bind the filter query. Found error: Binder exception: Cannot find property dummy for n.
 -LOG IncorrectFilterReturn1
 -STATEMENT CALL QUERY_VECTOR_INDEX(
     'embeddings',
@@ -81,7 +81,7 @@ Binder exception: Failed to bind filter query with error Binder exception: Canno
     filter := "MATCH (n:embeddings) WHERE n.id < 100 RETURN n.id, 1")
     RETURN node.id ORDER BY distance;
 ---- error
-Binder exception: The return clause of filter query should contain exact one node expression. Found n.id,1.
+Binder exception: The return clause of a filter query should contain exactly one node expression. Found more than one expressions: n.id,1.
 -LOG IncorrectFilterReturn2
 -STATEMENT CALL QUERY_VECTOR_INDEX(
     'embeddings',
@@ -92,7 +92,7 @@ Binder exception: The return clause of filter query should contain exact one nod
     filter := "MATCH (n:embeddings) WHERE n.id < 100 RETURN n.id")
     RETURN node.id ORDER BY distance;
 ---- error
-Binder exception: The return clause of filter query should contain exact one node expression. Expression n.id has type INT64.
+Binder exception: The return clause of a filter query should be of type NODE. Found type INT64 instead.
 -LOG IncorrectFilterReturn3
 -STATEMENT CREATE NODE TABLE TEMP(id INT64 PRIMARY KEY);
 ---- ok
@@ -105,7 +105,7 @@ Binder exception: The return clause of filter query should contain exact one nod
     filter := "MATCH (n:TEMP) WHERE n.id < 100 RETURN n")
     RETURN node.id ORDER BY distance;
 ---- error
-Binder exception: Node n in return clause of filter query should be labeled as embeddings.
+Binder exception: Node n in the return clause of the filter query should be labeled as embeddings.
 
 -CASE Filtered8DimDotProduct2
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
