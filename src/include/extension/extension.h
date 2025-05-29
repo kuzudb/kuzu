@@ -70,7 +70,8 @@ struct KUZU_API ExtensionUtils {
     static constexpr const char* EXTENSION_FILE_NAME = "lib{}.kuzu_extension";
 
     static constexpr const char* OFFICIAL_EXTENSION[] = {"HTTPFS", "POSTGRES", "DUCKDB", "JSON",
-        "SQLITE", "FTS", "DELTA", "ICEBERG", "AZURE", "UNITY_CATALOG", "VECTOR", "NEO4J", "ALGO", "LLM"};
+        "SQLITE", "FTS", "DELTA", "ICEBERG", "AZURE", "UNITY_CATALOG", "VECTOR", "NEO4J", "ALGO",
+        "LLM"};
 
     static constexpr const char* EXTENSION_LOADER_SUFFIX = "_loader";
 
