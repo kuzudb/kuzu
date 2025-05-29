@@ -230,6 +230,7 @@ void Checkpointer::readCheckpoint() {
         storageManager);
 }
 
+// TODO(Guodong): Double check here to reduce passed params.
 void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext* context,
     common::VirtualFileSystem* vfs, catalog::Catalog* catalog, StorageManager* storageManager) {
     auto fileInfo = vfs->openFile(StorageUtils::getDataFName(vfs, dbPath),

@@ -235,14 +235,14 @@ private:
     void sortEntries(const transaction::Transaction* transaction,
         const InMemHashIndex<T>& insertLocalStorage,
         typename InMemHashIndex<T>::SlotIterator& slotToMerge,
-        std::vector<HashIndexEntryView>& partitions);
+        std::vector<HashIndexEntryView>& entries);
     void mergeBulkInserts(const transaction::Transaction* transaction,
         const InMemHashIndex<T>& insertLocalStorage);
     // Returns the number of elements merged which matched the given slot id
     size_t mergeSlot(const transaction::Transaction* transaction,
         const std::vector<HashIndexEntryView>& slotToMerge,
         typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
-        typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t slotId);
+        typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t diskSlotId);
 
     inline bool equals(const transaction::Transaction* /*transaction*/, Key keyToLookup,
         const T& keyInEntry) const {
@@ -334,6 +334,12 @@ class PrimaryKeyIndex final : public Index {
 public:
     static constexpr const char* DEFAULT_NAME = "_PK";
 
+    struct InsertState final : Index::InsertState {
+        visible_func isVisible; // Function to check visibility of the inserted key
+
+        explicit InsertState(visible_func isVisible_) : isVisible{std::move(isVisible_)} {}
+    };
+
     // Construct an existing index
     PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storageInfo,
         bool inMemMode, MemoryManager& memoryManager, FileHandle* dataFH, ShadowFile* shadowFile);
@@ -366,6 +372,13 @@ public:
     bool lookup(const transaction::Transaction* trx, common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t& result, visible_func isVisible);
 
+    std::unique_ptr<Index::InsertState> initInsertState(const transaction::Transaction*,
+        MemoryManager*, visible_func isVisible) override {
+        return std::make_unique<InsertState>(isVisible);
+    }
+    void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& indexVectors,
+        Index::InsertState& insertState) override;
     bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
         common::offset_t value, visible_func isVisible) {
         return insert(transaction, key.getAsStringView(), value, isVisible);
@@ -422,7 +435,7 @@ public:
         return indexInfo.keyDataTypes[0];
     }
 
-    void writeHeaders();
+    void writeHeaders() const;
 
     static KUZU_API std::unique_ptr<Index> load(main::ClientContext* context,
         StorageManager* storageManager, IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer);

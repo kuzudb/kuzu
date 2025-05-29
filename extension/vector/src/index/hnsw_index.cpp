@@ -60,7 +60,7 @@ common::offset_t InMemHNSWLayer::searchNN(common::offset_t node, common::offset_
     while (minDist < lastMinDist) {
         lastMinDist = minDist;
         auto neighbors = graph->getNeighbors(currentNodeOffset);
-        for (auto nbrOffset : neighbors) {
+        for (const auto nbrOffset : neighbors) {
             if (nbrOffset == graph->getInvalidOffset()) {
                 break;
             }
@@ -77,7 +77,7 @@ common::offset_t InMemHNSWLayer::searchNN(common::offset_t node, common::offset_
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWLayer::insertRel(common::offset_t srcNode, common::offset_t dstNode) {
-    auto currentLen = graph->incrementCSRLength(srcNode);
+    const auto currentLen = graph->incrementCSRLength(srcNode);
     KU_ASSERT(srcNode < info.numNodes);
     graph->setDstNode(srcNode * info.degreeThresholdToShrink + currentLen, dstNode);
     if (currentLen == info.degreeThresholdToShrink - 1) {
@@ -128,7 +128,7 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const void* queryVector,
         }
         candidates.pop();
         auto neighbors = graph->getNeighbors(candidate);
-        for (auto nbrOffset : neighbors) {
+        for (const auto nbrOffset : neighbors) {
             if (nbrOffset == graph->getInvalidOffset()) {
                 break;
             }
@@ -231,7 +231,7 @@ static common::ArrayTypeInfo getArrayTypeInfo(NodeTable& table, common::column_i
 InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo indexInfo,
     std::unique_ptr<IndexStorageInfo> storageInfo, NodeTable& table, common::column_id_t columnID,
     HNSWIndexConfig config)
-    : HNSWIndex{indexInfo, std::move(storageInfo), std::move(config),
+    : HNSWIndex{std::move(indexInfo), std::move(storageInfo), std::move(config),
           getArrayTypeInfo(table, columnID)} {
     const auto numNodes = table.getNumTotalRows(context->getTransaction());
     embeddings = std::make_unique<InMemEmbeddings>(context->getTransaction(),
@@ -302,10 +302,9 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, IndexInfo indexIn
                                ->getTable(nodeTableEntry->getTableID())
                                ->cast<NodeTable>(),
               indexInfo.columnIDs[0])},
-      nodeTableID{nodeTableEntry->getTableID()}, upperRelTableEntry{upperRelTableEntry},
-      lowerRelTableEntry{lowerRelTableEntry} {
-    auto& nodeTable =
-        context->getStorageManager()->getTable(nodeTableEntry->getTableID())->cast<NodeTable>();
+      nodeTable{
+          context->getStorageManager()->getTable(nodeTableEntry->getTableID())->cast<NodeTable>()},
+      upperRelTableEntry{upperRelTableEntry}, lowerRelTableEntry{lowerRelTableEntry} {
     KU_ASSERT(this->indexInfo.columnIDs.size() == 1);
     KU_ASSERT(nodeTable.getColumn(this->indexInfo.columnIDs[0]).getDataType().getLogicalTypeID() ==
               common::LogicalTypeID::ARRAY);
@@ -316,6 +315,11 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, IndexInfo indexIn
     lowerGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(lowerGraphEntry));
     graph::GraphEntry upperGraphEntry{{nodeTableEntry}, {upperRelTableEntry}};
     upperGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(upperGraphEntry));
+    const auto storageManager = context->getStorageManager();
+    lowerRelTable = storageManager->getTable(lowerRelTableEntry->getSingleRelEntryInfo().oid)
+                        ->ptrCast<RelTable>();
+    upperRelTable = storageManager->getTable(upperRelTableEntry->getSingleRelEntryInfo().oid)
+                        ->ptrCast<RelTable>();
 }
 
 std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, StorageManager*,
@@ -323,9 +327,9 @@ std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, Stora
     auto reader =
         std::make_unique<common::BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = HNSWStorageInfo::deserialize(std::move(reader));
-    auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
-    auto catalog = context->getCatalog();
-    auto indexEntry =
+    const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+    const auto catalog = context->getCatalog();
+    const auto indexEntry =
         catalog->getIndex(&transaction::DUMMY_TRANSACTION, indexInfo.tableID, indexInfo.name);
     auto nodeEntry =
         catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, indexEntry->getTableID())
@@ -338,7 +342,7 @@ std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, Stora
         catalog
             ->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, hnswStorageInfo.lowerRelTableID)
             ->ptrCast<catalog::RelGroupCatalogEntry>();
-    auto auxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
+    const auto auxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
     return std::make_unique<OnDiskHNSWIndex>(context, std::move(indexInfo), std::move(storageInfo),
         nodeEntry, upperRelTableEntry, lowerRelTableEntry, auxInfo.config.copy());
 }
@@ -347,7 +351,7 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::search(transaction::Transaction* 
     const void* queryVector, HNSWSearchState& searchState) const {
     auto entryPoint =
         searchNNInUpperLayer(transaction, queryVector, *searchState.embeddingScanState.scanState);
-    auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+    const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
     if (entryPoint == common::INVALID_OFFSET) {
         if (hnswStorageInfo.lowerEntryPoint == common::INVALID_OFFSET) {
             // Both upper and lower layers are empty. Thus, the index is empty.
@@ -361,7 +365,7 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::search(transaction::Transaction* 
 
 common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction* transaction,
     const void* queryVector, NodeTableScanState& embeddingScanState) const {
-    auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+    const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
     auto currentNodeOffset = hnswStorageInfo.upperEntryPoint;
     if (currentNodeOffset == common::INVALID_OFFSET) {
         return common::INVALID_OFFSET;
@@ -372,13 +376,13 @@ common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction*
     auto minDist = metricFunc(queryVector, currNodeVector, embeddings->getDimension());
     KU_ASSERT(lastMinDist >= 0);
     KU_ASSERT(minDist >= 0);
-    auto relEntryInfo = upperRelTableEntry->getSingleRelEntryInfo();
-    auto scanState = upperGraph->prepareRelScan(*upperRelTableEntry, relEntryInfo.oid,
+    const auto relEntryInfo = upperRelTableEntry->getSingleRelEntryInfo();
+    const auto scanState = upperGraph->prepareRelScan(*upperRelTableEntry, relEntryInfo.oid,
         relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
     while (minDist < lastMinDist) {
         lastMinDist = minDist;
         auto neighborItr =
-            upperGraph->scanFwd(common::nodeID_t{currentNodeOffset, nodeTableID}, *scanState);
+            upperGraph->scanFwd(common::nodeID_t{currentNodeOffset, indexInfo.tableID}, *scanState);
         for (const auto neighborChunk : neighborItr) {
             neighborChunk.forEach([&](auto neighbors, auto, auto i) {
                 auto neighbor = neighbors[i];
@@ -398,7 +402,7 @@ common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction*
 void OnDiskHNSWIndex::initLowerLayerSearchState(transaction::Transaction* transaction,
     HNSWSearchState& searchState) const {
     searchState.visited.reset();
-    auto relEntryInfo = lowerRelTableEntry->getSingleRelEntryInfo();
+    const auto relEntryInfo = lowerRelTableEntry->getSingleRelEntryInfo();
     searchState.nbrScanState = lowerGraph->prepareRelScan(*lowerRelTableEntry, relEntryInfo.oid,
         relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
     searchState.searchType = getFilteredSearchType(transaction, searchState);
@@ -433,7 +437,7 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLowerLayer(
             break;
         }
         candidates.pop();
-        auto neighborItr = lowerGraph->scanFwd(common::nodeID_t{candidate, nodeTableID},
+        auto neighborItr = lowerGraph->scanFwd(common::nodeID_t{candidate, indexInfo.tableID},
             *searchState.nbrScanState);
         switch (searchState.searchType) {
         case SearchType::UNFILTERED:
@@ -479,13 +483,13 @@ void OnDiskHNSWIndex::initSearchCandidates(transaction::Transaction* transaction
     case SearchType::ONE_HOP_FILTERED:
     case SearchType::DIRECTED_TWO_HOP:
     case SearchType::BLIND_TWO_HOP: {
-        auto initialCandidates = FILTERED_SEARCH_INITIAL_CANDIDATES - results.size();
+        const auto initialCandidates = FILTERED_SEARCH_INITIAL_CANDIDATES - results.size();
         for (auto candidate : searchState.semiMask->collectMaskedNodes(initialCandidates)) {
             if (searchState.visited.contains(candidate)) {
                 continue;
             }
             searchState.visited.add(candidate);
-            auto candidateVector = embeddings->getEmbedding(transaction,
+            const auto candidateVector = embeddings->getEmbedding(transaction,
                 *searchState.embeddingScanState.scanState, candidate);
             auto candidateDist =
                 metricFunc(queryVector, candidateVector, embeddings->getDimension());
@@ -630,7 +634,7 @@ bool OnDiskHNSWIndex::searchOverSecondHopNbrs(transaction::Transaction* transact
     }
     searchState.visited.add(cand);
     // Second hop lookups from the current node.
-    auto secondHopNbrItr = lowerGraph->scanFwd(common::nodeID_t{cand, nodeTableID},
+    auto secondHopNbrItr = lowerGraph->scanFwd(common::nodeID_t{cand, indexInfo.tableID},
         *searchState.secondHopNbrScanState);
     for (const auto& secondHopNbrChunk : secondHopNbrItr) {
         if (numVisitedNbrs >= config.ml) {
