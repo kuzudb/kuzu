@@ -6,7 +6,7 @@ namespace azure_extension {
 using namespace common;
 
 AzureConfig AzureConfig::getDefault() {
-    return AzureConfig{ .connectionString = "" };
+    return AzureConfig{.connectionString = ""};
 }
 
 void AzureConfig::registerExtensionOptions(main::Database* db) const {
