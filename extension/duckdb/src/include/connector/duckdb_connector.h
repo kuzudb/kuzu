@@ -41,7 +41,7 @@ public:
 
     void initRemoteFSSecrets(main::ClientContext* context) const {
         for (auto& fsConfig : httpfs_extension::S3FileSystemConfig::getAvailableConfigs()) {
-            executeQuery(DuckDBSecretManager::getRemoteFSSecret(context, fsConfig));
+            executeQuery(DuckDBSecretManager::getRemoteS3FSSecret(context, fsConfig));
         }
     }
 

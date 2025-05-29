@@ -90,7 +90,7 @@ void S3FileSystemConfig::setEnvValue(main::ClientContext* context) const {
         if (authOptions[i]->isConfigurable) {
             const auto fsOptionName = getFSOptionName(*this, AUTH_OPTION_NAMES[i]);
             auto optionValueFromEnv = main::ClientContext::getEnvVariable(fsOptionName);
-            if (optionValueFromEnv != "") {
+            if (!optionValueFromEnv.empty()) {
                 context->setExtensionOption(fsOptionName, Value::createValue(optionValueFromEnv));
             }
         }

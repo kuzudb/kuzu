@@ -293,80 +293,87 @@ Binder exception: a.fName has type PROPERTY but LITERAL,PARAMETER,PATTERN was ex
 
 -LOG ShowOfficialExtensions
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() RETURN *
----- 11
+---- 12
+ALGO|Adds support for graph algorithms
+AZURE|Adds support for reading from azure blob storage
 DELTA|Adds support for reading from delta tables
 DUCKDB|Adds support for reading from duckdb tables
 FTS|Adds support for full-text search indexes
 HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 ICEBERG|Adds support for reading from iceberg tables
 JSON|Adds support for JSON operations
+NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
-NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-ALGO|Adds support for graph algorithms
 
 -CASE CallFuncWithYield
 -LOG CallWithYield
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description return name, description
----- 11
+---- 12
+ALGO|Adds support for graph algorithms
+AZURE|Adds support for reading from azure blob storage
 DELTA|Adds support for reading from delta tables
 DUCKDB|Adds support for reading from duckdb tables
 FTS|Adds support for full-text search indexes
 HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 ICEBERG|Adds support for reading from iceberg tables
 JSON|Adds support for JSON operations
+NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
-NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-ALGO|Adds support for graph algorithms
+
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name as extension_name, description as extension_description return extension_name, extension_description
----- 11
+---- 12
+ALGO|Adds support for graph algorithms
+AZURE|Adds support for reading from azure blob storage
 DELTA|Adds support for reading from delta tables
 DUCKDB|Adds support for reading from duckdb tables
 FTS|Adds support for full-text search indexes
 HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 ICEBERG|Adds support for reading from iceberg tables
 JSON|Adds support for JSON operations
+NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
-NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-ALGO|Adds support for graph algorithms
+
 -LOG ShowConnectionWithoutYieldError
 -STATEMENT CALL show_connection('workAt') CALL show_connection('workAt') RETURN *
 ---- error
 Binder exception: Variable source table name already exists.
 -LOG ShowExtensionWithYield
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name as extension_name, description as extension_description CALL SHOW_OFFICIAL_EXTENSIONS() WHERE extension_name = 'SQLITE' RETURN *
----- 11
+---- 12
+SQLITE|Adds support for reading from SQLITE tables|ALGO|Adds support for graph algorithms
+SQLITE|Adds support for reading from SQLITE tables|AZURE|Adds support for reading from azure blob storage
 SQLITE|Adds support for reading from SQLITE tables|DELTA|Adds support for reading from delta tables
 SQLITE|Adds support for reading from SQLITE tables|DUCKDB|Adds support for reading from duckdb tables
 SQLITE|Adds support for reading from SQLITE tables|FTS|Adds support for full-text search indexes
 SQLITE|Adds support for reading from SQLITE tables|HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 SQLITE|Adds support for reading from SQLITE tables|ICEBERG|Adds support for reading from iceberg tables
 SQLITE|Adds support for reading from SQLITE tables|JSON|Adds support for JSON operations
+SQLITE|Adds support for reading from SQLITE tables|NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 SQLITE|Adds support for reading from SQLITE tables|POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables|SQLITE|Adds support for reading from SQLITE tables
 SQLITE|Adds support for reading from SQLITE tables|UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
-SQLITE|Adds support for reading from SQLITE tables|NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-SQLITE|Adds support for reading from SQLITE tables|ALGO|Adds support for graph algorithms
 
 -LOG ShowExtensionPartialAlias
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description as extension_description RETURN *
----- 11
+---- 12
+ALGO|Adds support for graph algorithms
+AZURE|Adds support for reading from azure blob storage
 DELTA|Adds support for reading from delta tables
 DUCKDB|Adds support for reading from duckdb tables
 FTS|Adds support for full-text search indexes
 HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 ICEBERG|Adds support for reading from iceberg tables
 JSON|Adds support for JSON operations
+NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
-NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
-ALGO|Adds support for graph algorithms
 
 -CASE CallFuncWithYieldError
 -STATEMENT CALL TABLE_INFO('person') yield `property id` as id RETURN *;

@@ -1,3 +1,4 @@
+#add_static_link_extension(azure)
 #add_static_link_extension(delta)
 #add_static_link_extension(duckdb)
 #add_static_link_extension(fts)

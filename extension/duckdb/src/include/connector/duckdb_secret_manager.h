@@ -10,7 +10,7 @@ struct S3FileSystemConfig;
 namespace duckdb_extension {
 
 struct DuckDBSecretManager {
-    static std::string getRemoteFSSecret(main::ClientContext* context,
+    static std::string getRemoteS3FSSecret(main::ClientContext* context,
         const httpfs_extension::S3FileSystemConfig& config);
 };
 

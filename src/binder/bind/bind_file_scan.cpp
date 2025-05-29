@@ -47,10 +47,10 @@ FileTypeInfo Binder::bindFileTypeInfo(const std::vector<std::string>& filePaths)
 std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) const {
     std::vector<std::string> boundFilePaths;
     for (auto& filePath : filePaths) {
-        // This is a temporary workaround because we use duckdb to read from iceberg/delta.
-        // When we read delta/iceberg tables from s3/httpfs, we don't have the httpfs extension
-        // loaded meaning that we cannot handle remote paths. So we pass the file path to duckdb
-        // for validation when we bindFileScanSource.
+        // This is a temporary workaround because we use duckdb to read from iceberg/delta/azure.
+        // When we read delta/iceberg/azure tables from s3/httpfs, we don't have the httpfs
+        // extension loaded meaning that we cannot handle remote paths. So we pass the file path to
+        // duckdb for validation when we bindFileScanSource.
         const auto& loadedExtensions = clientContext->getExtensionManager()->getLoadedExtensions();
         const bool httpfsExtensionLoaded =
             std::any_of(loadedExtensions.begin(), loadedExtensions.end(),
