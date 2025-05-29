@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from .torch_geometric_result_converter import TorchGeometricResultConverter
 from .types import Type
 
 if TYPE_CHECKING:
     import sys
+    from collections.abc import Iterator
     from types import TracebackType
+    from typing import Any
 
     import networkx as nx
     import pandas as pd
@@ -40,6 +42,7 @@ class QueryResult:
         self.connection = connection
         self._query_result = query_result
         self.is_closed = False
+        self.as_dict = False
 
     def __enter__(self) -> Self:
         return self
@@ -55,6 +58,80 @@ class QueryResult:
     def __del__(self) -> None:
         self.close()
 
+    def __iter__(self) -> Iterator[list[Any] | dict[str, Any]]:
+        return self
+
+    def __next__(self) -> list[Any] | dict[str, Any]:
+        if self.has_next():
+            return self.get_next()
+
+        raise StopIteration
+
+    def has_next(self) -> bool:
+        """
+        Check if there are more rows in the query result.
+
+        Returns
+        -------
+        bool
+            True if there are more rows in the query result, False otherwise.
+        """
+        self.check_for_query_result_close()
+        return self._query_result.hasNext()
+
+    def get_next(self) -> list[Any] | dict[str, Any]:
+        """
+        Get the next row in the query result.
+
+        Returns
+        -------
+        list
+            Next row in the query result.
+
+        Raises
+        ------
+        Exception
+            If there are no more rows.
+        """
+        self.check_for_query_result_close()
+        row = self._query_result.getNext()
+        return _row_to_dict(self.columns, row) if self.as_dict else row
+
+    def get_all(self) -> list[list[Any] | dict[str, Any]]:
+        """
+        Get the next row in the query result.
+
+        Returns
+        -------
+        list
+            All remaining rows in the query result.
+        """
+        return list(self)
+
+    def get_n(self, count: int) -> list[list[Any] | dict[str, Any]]:
+        """
+        Get many rows in the query result.
+
+        Returns
+        -------
+        list
+            Up to `count` rows in the query result.
+        """
+        results = []
+        while self.has_next() and count > 0:
+            results.append(self.get_next())
+            count -= 1
+        return results
+
+    def close(self) -> None:
+        """Close the query result."""
+        if not self.is_closed:
+            # Allows the connection to be garbage collected if the query result
+            # is closed manually by the user.
+            self._query_result.close()
+            self.connection = None
+            self.is_closed = True
+
     def check_for_query_result_close(self) -> None:
         """
         Check if the query result is closed and raise an exception if it is.
@@ -68,41 +145,6 @@ class QueryResult:
         if self.is_closed:
             msg = "Query result is closed"
             raise RuntimeError(msg)
-
-    def has_next(self) -> bool:
-        """
-        Check if there are more rows in the query result.
-
-        Returns
-        -------
-        bool
-            True if there are more rows in the query result, False otherwise.
-
-        """
-        self.check_for_query_result_close()
-        return self._query_result.hasNext()
-
-    def get_next(self) -> list[Any]:
-        """
-        Get the next row in the query result.
-
-        Returns
-        -------
-        list
-            Next row in the query result.
-
-        """
-        self.check_for_query_result_close()
-        return self._query_result.getNext()
-
-    def close(self) -> None:
-        """Close the query result."""
-        if not self.is_closed:
-            # Allows the connection to be garbage collected if the query result
-            # is closed manually by the user.
-            self._query_result.close()
-            self.connection = None
-            self.is_closed = True
 
     def get_as_df(self) -> pd.DataFrame:
         """
@@ -437,3 +479,26 @@ class QueryResult:
         """
         self.check_for_query_result_close()
         return self._query_result.getNumTuples()
+
+    def rows_as_dict(self) -> Self:
+        """
+        Change the format of the results, such that each row is a dict with the
+        column name as a key.
+
+        Returns
+        -------
+        self
+            The object itself.
+
+        """
+        self.as_dict = True
+        self.columns = self.get_column_names()
+        return self
+
+
+def _row_to_dict(columns: list[str], row: list[Any]) -> dict[str, Any]:
+    if len(columns) != len(row):
+        msg = "Number of columns in output row does not match number of columns"
+        raise RuntimeError(msg)
+
+    return dict(zip(columns, row))
