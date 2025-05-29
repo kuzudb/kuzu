@@ -1,6 +1,5 @@
+#include "common/assert.h"
 #include "common/exception/connection.h"
-#include "common/types/types.h"
-#include "common/types/value/nested.h"
 #include "function/function.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
@@ -10,7 +9,6 @@
 using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::function;
-using namespace kuzu::planner;
 using namespace kuzu::catalog;
 using namespace kuzu::processor;
 
@@ -23,7 +21,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     // This iteration only supports using Ollama with nomic-embed-text.
     // The user must install and have nomic-embed-text running at
     // http://localhost::11434.
-    assert(parameters.size() == 1);
+    KU_ASSERT(parameters.size() == 1);
     httplib::Client client("http://localhost:11434");
     httplib::Headers headers = {{"Content-Type", "application/json"}};
     result.resetAuxiliaryBuffer();
@@ -54,15 +52,16 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<LogicalType> types;
     types.push_back(input.arguments[0]->getDataType().copy());
-    assert(types.front() == LogicalType::STRING());
+    KU_ASSERT(types.front() == LogicalType::STRING());
+    static constexpr uint64_t NOMIC_EMBED_TEXT_EMBEDDING_DIMENSIONS = 768;
     return std::make_unique<FunctionBindData>(std::move(types),
-        LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
+        LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), NOMIC_EMBED_TEXT_EMBEDDING_DIMENSIONS));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::LIST, execFunc);
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
     return functionSet;

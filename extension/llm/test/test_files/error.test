@@ -28,7 +28,7 @@
 
 -STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title) AS emb SET b.title_embedding = emb;
 ---- error
-Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 766, Actual: 768.
+Binder exception: Data type of expression emb should not be modified.
 
 -STATEMENT MATCH (b:Book) RETURN b;
 ---- 5

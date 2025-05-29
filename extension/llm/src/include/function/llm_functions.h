@@ -1,9 +1,6 @@
 #pragma once
 
-#include "binder/expression/node_expression.h"
-#include "function/table/bind_data.h"
-#include "function/table/simple_table_function.h"
-#include "function/table/table_function.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace llm_extension {
