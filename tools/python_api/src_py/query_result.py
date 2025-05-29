@@ -480,10 +480,15 @@ class QueryResult:
         self.check_for_query_result_close()
         return self._query_result.getNumTuples()
 
-    def rows_as_dict(self) -> Self:
+    def rows_as_dict(self, state=True) -> Self:
         """
         Change the format of the results, such that each row is a dict with the
         column name as a key.
+
+        Parameters
+        ----------
+        state
+            Whether to turn dict formatting on or off. Turns it on by default.
 
         Returns
         -------
@@ -491,8 +496,9 @@ class QueryResult:
             The object itself.
 
         """
-        self.as_dict = True
-        self.columns = self.get_column_names()
+        self.as_dict = state
+        if state:
+            self.columns = self.get_column_names()
         return self
 
 
