@@ -13,10 +13,6 @@ import pytz
 from pandas import Timestamp
 from type_aliases import ConnDB
 
-# enable polars' decimal support
-pl.Config.activate_decimals(True)
-
-
 _expected_dtypes = {
     # ------------------------------------------------
     # person
