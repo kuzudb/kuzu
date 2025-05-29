@@ -24,22 +24,21 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     // The user must install and have nomic-embed-text running at
     // http://localhost::11434.
     assert(parameters.size() == 1);
-    std::string text = parameters[0]->getValue<ku_string_t>(0).getAsString();
     httplib::Client client("http://localhost:11434");
-    nlohmann::json payload = {{"model", "nomic-embed-text"}, {"prompt", text}};
     httplib::Headers headers = {{"Content-Type", "application/json"}};
-    auto res = client.Post("/api/embeddings", headers, payload.dump(), "application/json");
-    if (!res) {
-        throw ConnectionException("Request failed: No response (server not reachable?)\n");
-    } else if (res->status != 200) {
-        throw ConnectionException("Request failed with status " + std::to_string(res->status) +
-                                  "\n Body: " + res->body + "\n");
-    }
-
-    std::vector<float> embeddingVec =
-        nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        std::string text = parameters[0]->getValue<ku_string_t>(selectedPos).getAsString();
+        nlohmann::json payload = {{"model", "nomic-embed-text"}, {"prompt", text}};
+        auto res = client.Post("/api/embeddings", headers, payload.dump(), "application/json");
+        if (!res) {
+            throw ConnectionException("Request failed: No response (server not reachable?)\n");
+        } else if (res->status != 200) {
+            throw ConnectionException("Request failed with status " + std::to_string(res->status) +
+                                      "\n Body: " + res->body + "\n");
+        }
+
+        std::vector<float> embeddingVec = nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
         auto pos = (*resultSelVector)[selectedPos];
         auto resultEntry = ListVector::addList(&result, embeddingVec.size());
         result.setValue(pos, resultEntry);
