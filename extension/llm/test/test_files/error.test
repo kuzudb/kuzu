@@ -29,7 +29,7 @@ Binder exception: Data type of expression emb should not be modified.
 -STATEMENT CREATE (b:Book {title: 'The Quantum World', published_year: 2004});
 ---- ok
 
--Log Run Without Having Ollama at http://localhost:11434
+-LOG Run Without Having Ollama at http://localhost:11434
 -STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title) AS emb SET b.title_embedding = emb;
 ---- error
 Connection exception: Request failed: No response (server not reachable?)
