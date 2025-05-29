@@ -4,7 +4,7 @@
 
 #include "catalog/catalog.h"
 #include "shadow_file.h"
-#include "storage/index/hash_index.h"
+#include "storage/index/index.h"
 #include "storage/wal/wal.h"
 
 namespace kuzu {
@@ -48,6 +48,10 @@ public:
     bool compressionEnabled() const { return enableCompression; }
     bool isInMemory() const { return inMemory; }
 
+    void registerIndexType(IndexType indexType) {
+        registeredIndexTypes.push_back(std::move(indexType));
+    }
+
     void serialize(const catalog::Catalog& catalog, common::Serializer& ser);
     void deserialize(const catalog::Catalog& catalog, common::Deserializer& deSer);
 
@@ -70,6 +74,7 @@ private:
     std::unique_ptr<ShadowFile> shadowFile;
     bool enableCompression;
     bool inMemory;
+    std::vector<IndexType> registeredIndexTypes;
 };
 
 } // namespace storage

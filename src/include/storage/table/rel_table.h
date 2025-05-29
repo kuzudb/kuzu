@@ -178,8 +178,7 @@ public:
     }
     common::column_id_t getNumColumns() const {
         KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
+        RUNTIME_CHECK(for (const auto& relData : directedRelData) {
             KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
         });
         return directedRelData[0]->getNumColumns();
@@ -216,7 +215,7 @@ public:
     common::table_id_t getRelGroupID() const { return relGroupID; }
 
     void serialize(common::Serializer& ser) const override;
-    void deserialize(catalog::TableCatalogEntry* tableEntry, common::Deserializer& deSer) override;
+    void deserialize(common::Deserializer& deSer) override;
 
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,

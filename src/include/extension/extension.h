@@ -77,8 +77,6 @@ struct KUZU_API ExtensionUtils {
 
     static constexpr const char* EXTENSION_INSTALLER_SUFFIX = "_installer";
 
-    static bool isFullPath(const std::string& extension);
-
     static ExtensionRepoInfo getExtensionLibRepoInfo(const std::string& extensionName,
         const std::string& extensionRepo);
 

@@ -16,9 +16,9 @@ namespace kuzu {
 namespace storage {
 
 struct PageCursor {
+    PageCursor() : PageCursor{UINT32_MAX, UINT16_MAX} {};
     PageCursor(common::page_idx_t pageIdx, uint32_t posInPage)
         : pageIdx{pageIdx}, elemPosInPage{posInPage} {};
-    PageCursor() : PageCursor{UINT32_MAX, UINT16_MAX} {};
 
     void nextPage() {
         pageIdx++;
