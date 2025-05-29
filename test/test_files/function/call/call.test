@@ -349,6 +349,7 @@ Binder exception: Variable source table name already exists.
 -LOG ShowExtensionWithYield
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name as extension_name, description as extension_description CALL SHOW_OFFICIAL_EXTENSIONS() WHERE extension_name = 'SQLITE' RETURN *
 ---- 13
+SQLITE|Adds support for reading from SQLITE tables|ALGO|Adds support for graph algorithms
 SQLITE|Adds support for reading from SQLITE tables|AZURE|Adds support for reading from azure blob storage
 SQLITE|Adds support for reading from SQLITE tables|DELTA|Adds support for reading from delta tables
 SQLITE|Adds support for reading from SQLITE tables|DUCKDB|Adds support for reading from duckdb tables
@@ -361,12 +362,12 @@ SQLITE|Adds support for reading from SQLITE tables|NEO4J|Adds support for migrat
 SQLITE|Adds support for reading from SQLITE tables|POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables|SQLITE|Adds support for reading from SQLITE tables
 SQLITE|Adds support for reading from SQLITE tables|UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
-
 -LOG ShowExtensionPartialAlias
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description as extension_description RETURN *
 ---- 13
 ALGO|Adds support for graph algorithms
 AZURE|Adds support for reading from azure blob storage
+DELTA|Adds support for reading from delta tables
 DUCKDB|Adds support for reading from duckdb tables
 FTS|Adds support for full-text search indexes
 HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
@@ -377,7 +378,6 @@ NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 UNITY_CATALOG|Adds support for scanning delta tables registered in unity catalog
-
 -CASE CallFuncWithYieldError
 -STATEMENT CALL TABLE_INFO('person') yield `property id` as id RETURN *;
 ---- error
