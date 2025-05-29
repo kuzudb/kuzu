@@ -137,12 +137,15 @@ public:
     template<common::IndexHashable T>
     size_t appendPKWithIndexPos(const transaction::Transaction* transaction,
         const IndexBuffer<T>& buffer, uint64_t bufferOffset, uint64_t indexPos) {
-        return pkIndex->appendWithIndexPos(transaction, buffer, bufferOffset, indexPos,
+        return getPKIndex()->appendWithIndexPos(transaction, buffer, bufferOffset, indexPos,
             [&](common::offset_t offset) { return isVisible(transaction, offset); });
     }
 
     common::column_id_t getPKColumnID() const { return pkColumnID; }
-    PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
+    PrimaryKeyIndex* getPKIndex() const {
+        KU_ASSERT(pkIndexPos < indexes.size());
+        return &indexes[pkIndexPos]->cast<PrimaryKeyIndex>();
+    }
     common::column_id_t getNumColumns() const { return columns.size(); }
     Column& getColumn(common::column_id_t columnID) {
         KU_ASSERT(columnID < columns.size());
@@ -190,7 +193,7 @@ public:
     }
 
     void serialize(common::Serializer& serializer) const override;
-    void deserialize(catalog::TableCatalogEntry* entry, common::Deserializer& deSer) override;
+    void deserialize(common::Deserializer& deSer) override;
 
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,
@@ -205,7 +208,8 @@ private:
     std::vector<std::unique_ptr<Column>> columns;
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
-    std::unique_ptr<PrimaryKeyIndex> pkIndex;
+    common::idx_t pkIndexPos;
+    std::vector<std::unique_ptr<Index>> indexes;
     NodeTableVersionRecordHandler versionRecordHandler;
 };
 

@@ -30,6 +30,7 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
         *memoryManager.getBufferManager(), vfs, context);
     inMemory = main::DBConfig::isDBPathInMemory(databasePath);
     initDataFileHandle(vfs, context);
+    registeredIndexTypes.push_back(HASH_INDEX_TYPE);
 }
 
 StorageManager::~StorageManager() = default;
@@ -241,7 +242,7 @@ void StorageManager::deserialize(const Catalog& catalog, Deserializer& deSer) {
         auto tableEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)
                               ->ptrCast<NodeTableCatalogEntry>();
         tables[tableID] = std::make_unique<NodeTable>(this, tableEntry, &memoryManager);
-        tables[tableID]->deserialize(tableEntry, deSer);
+        tables[tableID]->deserialize(deSer);
     }
     deSer.validateDebuggingInfo(key, "num_rel_groups");
     uint64_t numRelGroups = 0;
@@ -264,7 +265,7 @@ void StorageManager::deserialize(const Catalog& catalog, Deserializer& deSer) {
             KU_ASSERT(!tables.contains(info.oid));
             tables[info.oid] = std::make_unique<RelTable>(relGroupEntry, info.nodePair.srcTableID,
                 info.nodePair.dstTableID, this, &memoryManager);
-            tables.at(info.oid)->deserialize(relGroupEntry, deSer);
+            tables.at(info.oid)->deserialize(deSer);
         }
     }
     deSer.validateDebuggingInfo(key, "page_manager");

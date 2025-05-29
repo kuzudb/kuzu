@@ -43,9 +43,6 @@ public:
     void clearAll(main::ClientContext& context);
 
 private:
-    static std::unique_ptr<common::FileInfo> getDataFileInfo(const main::ClientContext& context);
-
-private:
     FileHandle* shadowingFH;
     // The map caches shadow page idxes for pages in original files.
     std::unordered_map<common::file_idx_t,
