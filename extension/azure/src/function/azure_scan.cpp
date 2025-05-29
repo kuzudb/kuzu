@@ -8,7 +8,7 @@ using namespace common;
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
+    auto scanInput = input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>();
     auto connector = std::make_shared<AzureConnector>();
     connector->connect("" /* inMemDB */, "" /* defaultCatalogName */, "" /* defaultSchemaName */,
         context);
