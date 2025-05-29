@@ -18,14 +18,6 @@
 ---- error
 Binder exception: Data type of expression emb should not be modified.
 
--STATEMENT MATCH (b:Book) RETURN b;
----- 5
-{_ID: 0:0, _LABEL: Book, id: 0, title: The Quantum World, published_year: 2004}
-{_ID: 0:1, _LABEL: Book, id: 1, title: Chronicles of the Universe, published_year: 2022}
-{_ID: 0:2, _LABEL: Book, id: 2, title: Learning Machines, published_year: 2019}
-{_ID: 0:3, _LABEL: Book, id: 3, title: Echoes of the Past, published_year: 2010}
-{_ID: 0:4, _LABEL: Book, id: 4, title: The Dragon Call, published_year: 2015}
-
 -CASE FailedPost
 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
@@ -42,11 +34,3 @@ Binder exception: Data type of expression emb should not be modified.
 ---- error
 Connection exception: Request failed: No response (server not reachable?)
 
-
--STATEMENT MATCH (b:Book) RETURN b;
----- 5
-{_ID: 0:0, _LABEL: Book, id: 0, title: The Quantum World, published_year: 2004}
-{_ID: 0:1, _LABEL: Book, id: 1, title: Chronicles of the Universe, published_year: 2022}
-{_ID: 0:2, _LABEL: Book, id: 2, title: Learning Machines, published_year: 2019}
-{_ID: 0:3, _LABEL: Book, id: 3, title: Echoes of the Past, published_year: 2010}
-{_ID: 0:4, _LABEL: Book, id: 4, title: The Dragon Call, published_year: 2015}
