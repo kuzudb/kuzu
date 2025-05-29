@@ -8,11 +8,11 @@
 #include "common/mask.h"
 #include "common/types/value/nested.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
-#include "function/gds/gds.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
 #include "index/hnsw_index.h"
 #include "index/hnsw_index_utils.h"
+#include "parser/parser.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
@@ -55,7 +55,6 @@ static void validateK(int64_t val) {
 
 std::unique_ptr<TableFuncBindData> QueryHNSWIndexBindData::copy() const {
     auto bindData = std::make_unique<QueryHNSWIndexBindData>(columns);
-    bindData->graphEntry = graphEntry.copy();
     bindData->nodeTableEntry = nodeTableEntry;
     bindData->indexEntry = indexEntry;
     bindData->indexColumnID = indexColumnID;
@@ -65,6 +64,7 @@ std::unique_ptr<TableFuncBindData> QueryHNSWIndexBindData::copy() const {
     bindData->queryExpression = queryExpression;
     bindData->kExpression = kExpression;
     bindData->outputNode = outputNode;
+    bindData->filterStatement = filterStatement;
     return bindData;
 }
 
@@ -73,30 +73,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
-    const auto tableOrGraphName = input->getLiteralVal<std::string>(0);
+    const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
     // Bind graph entry and node table entry
-    NodeTableCatalogEntry* nodeTableEntry = nullptr;
-    graph::GraphEntry graphEntry;
-    if (catalog->containsTable(transaction, tableOrGraphName)) {
-        nodeTableEntry = HNSWIndexUtils::bindNodeTable(*context, tableOrGraphName, indexName,
-            HNSWIndexUtils::IndexOperation::QUERY);
-    } else if (context->getGraphEntrySetUnsafe().hasGraph(tableOrGraphName)) {
-        graphEntry = GDSFunction::bindGraphEntry(*context, tableOrGraphName);
-        if (graphEntry.nodeInfos.size() > 1 || !graphEntry.relInfos.empty()) {
-            throw BinderException{stringFormat(
-                "Projected graph {} either contains relationship tables or "
-                "multiple node tables. Projected graphs passed to QUERY_VECTOR_INDEX function must "
-                "contain only nodes from a single node table and no relationship tables.",
-                tableOrGraphName)};
-        }
-        nodeTableEntry = graphEntry.nodeInfos[0].entry->ptrCast<NodeTableCatalogEntry>();
-        HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
-            HNSWIndexUtils::IndexOperation::QUERY);
-    } else {
-        throw BinderException{
-            stringFormat("Cannot find table or projected graph named as {}.", tableOrGraphName)};
+    if (!catalog->containsTable(transaction, tableName)) {
+        throw BinderException{stringFormat("Cannot find table named as {}.", tableName)};
     }
+    auto nodeTableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
+        HNSWIndexUtils::IndexOperation::QUERY);
     // Bind columns
     auto columnNames = std::vector<std::string>{QueryVectorIndexFunction::nnColumnName,
         QueryVectorIndexFunction::distanceColumnName};
@@ -108,7 +92,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columns.push_back(input->binder->createVariable(columnNames[1], LogicalType::DOUBLE()));
     // Fill bind data
     auto bindData = std::make_unique<QueryHNSWIndexBindData>(columns);
-    bindData->graphEntry = graphEntry.copy();
     bindData->nodeTableEntry = nodeTableEntry;
     auto indexEntry = catalog->getIndex(transaction, nodeTableEntry->getTableID(), indexName);
     bindData->indexEntry = indexEntry;
@@ -124,10 +107,43 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     bindData->lowerRelTableEntry =
         catalog->getTableCatalogEntry(transaction, auxInfo.lowerRelTableID)
             ->ptrCast<RelGroupCatalogEntry>();
-    bindData->config = QueryHNSWConfig{input->optionalParams};
     bindData->queryExpression = input->params[2];
     bindData->kExpression = input->params[3];
     bindData->outputNode = outputNode;
+    bindData->config = QueryHNSWConfig{input->optionalParams};
+    if (!bindData->config.filter.empty()) { // Bind search filter statement
+        std::unique_ptr<BoundStatement> boundStatement;
+        try {
+            auto parsedStatements = parser::Parser::parseQuery(bindData->config.filter);
+            KU_ASSERT(parsedStatements.size() == 1);
+            auto binder = Binder(context);
+            boundStatement = binder.bind(*parsedStatements[0]);
+        } catch (Exception& e) {
+            throw BinderException{
+                stringFormat("Failed to bind the filter query. Found error: {}", e.what())};
+        }
+        auto resultColumns = boundStatement->getStatementResult()->getColumns();
+        if (resultColumns.size() != 1) {
+            throw BinderException(
+                stringFormat("The return clause of a filter query should contain "
+                             "exactly one node expression. Found more than one expressions: {}.",
+                    ExpressionUtil::toString(resultColumns)));
+        }
+        auto resultColumn = resultColumns[0];
+        if (resultColumn->getDataType().getLogicalTypeID() != LogicalTypeID::NODE) {
+            throw BinderException(stringFormat("The return clause of a filter query should be of "
+                                               "type NODE. Found type {} instead.",
+                resultColumn->getDataType().toString()));
+        }
+        auto& node = resultColumn->constCast<NodeExpression>();
+        if (node.getNumEntries() != 1 ||
+            node.getEntry(0)->getTableID() != bindData->nodeTableEntry->getTableID()) {
+            throw BinderException(stringFormat(
+                "Node {} in the return clause of the filter query should be labeled as {}.",
+                node.toString(), bindData->nodeTableEntry->getName()));
+        }
+        bindData->filterStatement = std::move(boundStatement);
+    }
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
 }
@@ -250,19 +266,22 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
     auto bindData = call.getBindData()->constPtrCast<QueryHNSWIndexBindData>();
     auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
-    // Check if there is filter predicate on the base node table. If so, we need to plan the
-    // filtered search.
-    if (!bindData->graphEntry.isEmpty()) {
-        KU_ASSERT(bindData->graphEntry.nodeInfos.size() == 1);
-        auto& nodeInfo = bindData->graphEntry.nodeInfos[0];
-        if (nodeInfo.predicate) {
-            // We have filter predicate on the base node table. Should add a semi mask subplan
-            // and pass the semi mask to QueryHNSWIndexFunction to perform filtered search.
-            auto& nodeExpr = nodeInfo.nodeOrRel->constCast<NodeExpression>();
-            auto filterPlan = planner->getNodeSemiMaskPlan(SemiMaskTargetType::SCAN_NODE, nodeExpr,
-                nodeInfo.predicate);
-            op->addChild(filterPlan.getLastOperator());
-        }
+    if (bindData->filterStatement != nullptr) {
+        auto& node = bindData->filterStatement->getSingleColumnExpr()->constCast<NodeExpression>();
+        auto filterPlan = planner->planStatement(*bindData->filterStatement);
+        KU_ASSERT(
+            filterPlan.getLastOperator()->getOperatorType() == LogicalOperatorType::PROJECTION);
+        auto projection = filterPlan.getLastOperator();
+        // Pre-append semi mask before projection
+        filterPlan.setLastOperator(projection->getChild(0));
+        planner->appendNodeSemiMask(SemiMaskTargetType::SCAN_NODE, node, filterPlan);
+        auto& semiMasker = filterPlan.getLastOperator()->cast<LogicalSemiMasker>();
+        semiMasker.addTarget(op.get());
+        projection->setChild(0, filterPlan.getLastOperator());
+        projection->computeFactorizedSchema();
+        filterPlan.setLastOperator(projection);
+        planner->appendDummySink(filterPlan);
+        op->addChild(filterPlan.getLastOperator());
     }
     op->computeFactorizedSchema();
     planner->planReadOp(op, predicates, plan);
@@ -287,17 +306,12 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
                         ->getBindData()
                         ->constPtrCast<QueryHNSWIndexBindData>();
     // Map node predicate pipeline
-    if (!bindData->graphEntry.isEmpty() && bindData->graphEntry.nodeInfos[0].predicate) {
+    if (bindData->filterStatement != nullptr) {
         sharedState->semiMasks.addMask(bindData->nodeTableEntry->getTableID(),
             SemiMaskUtil::createMask(bindData->numRows));
         planMapper->addOperatorMapping(logicalOp, op.get());
         KU_ASSERT(logicalOp->getNumChildren() == 1);
         auto logicalRoot = logicalOp->getChild(0);
-        KU_ASSERT(logicalRoot->getNumChildren() == 1);
-        auto child = logicalRoot->getChild(0);
-        KU_ASSERT(child->getOperatorType() == LogicalOperatorType::SEMI_MASKER);
-        auto logicalSemiMasker = child->ptrCast<LogicalSemiMasker>();
-        logicalSemiMasker->addTarget(logicalOp);
         auto root = planMapper->mapOperator(logicalRoot.get());
         op->addChild(std::move(root));
         planMapper->eraseOperatorMapping(logicalOp);

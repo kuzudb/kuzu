@@ -12,6 +12,20 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
+void Planner::appendNodeSemiMask(SemiMaskTargetType targetType, const NodeExpression& node,
+    LogicalPlan& plan) {
+    auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskKeyType::NODE, targetType,
+        node.getInternalID(), node.getTableIDs(), plan.getLastOperator());
+    semiMasker->computeFactorizedSchema();
+    plan.setLastOperator(semiMasker);
+}
+
+void Planner::appendDummySink(LogicalPlan& plan) {
+    auto dummySink = std::make_shared<LogicalDummySink>(plan.getLastOperator());
+    dummySink->computeFactorizedSchema();
+    plan.setLastOperator(std::move(dummySink));
+}
+
 // Create a plan with a root semi masker for given node and node predicate.
 LogicalPlan Planner::getNodeSemiMaskPlan(SemiMaskTargetType targetType, const NodeExpression& node,
     std::shared_ptr<Expression> nodePredicate) {
@@ -28,12 +42,8 @@ LogicalPlan Planner::getNodeSemiMaskPlan(SemiMaskTargetType targetType, const No
     appendScanNodeTable(node.getInternalID(), node.getTableIDs(), getProperties(node), plan);
     appendFilter(nodePredicate, plan);
     exitPropertyExprCollection(std::move(prevCollection));
-    auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskKeyType::NODE, targetType,
-        node.getInternalID(), node.getTableIDs(), plan.getLastOperator());
-    semiMasker->computeFactorizedSchema();
-    auto dummySink = std::make_shared<LogicalDummySink>(semiMasker);
-    dummySink->computeFactorizedSchema();
-    plan.setLastOperator(dummySink);
+    appendNodeSemiMask(targetType, node, plan);
+    appendDummySink(plan);
     return plan;
 }
 

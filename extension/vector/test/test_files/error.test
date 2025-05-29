@@ -103,21 +103,11 @@ Binder exception: Cannot match a built-in function for given function QUERY_VECT
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph', ['embeddings', 'test'], []);
----- ok
--STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN node.id ORDER BY distance;
----- error
-Binder exception: Projected graph emb-graph either contains relationship tables or multiple node tables. Projected graphs passed to QUERY_VECTOR_INDEX function must contain only nodes from a single node table and no relationship tables.
 -STATEMENT CREATE REL TABLE rel(FROM embeddings TO embeddings);
 ---- ok
--STATEMENT CALL PROJECT_GRAPH('emb-graph2', ['embeddings'], ['rel']);
----- ok
--STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph2', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN node.id ORDER BY distance;
----- error
-Binder exception: Projected graph emb-graph2 either contains relationship tables or multiple node tables. Projected graphs passed to QUERY_VECTOR_INDEX function must contain only nodes from a single node table and no relationship tables.
 -STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph3', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN node.id ORDER BY distance;
 ---- error
-Binder exception: Cannot find table or projected graph named as emb-graph3.
+Binder exception: Cannot find table named as emb-graph3.
 
 -CASE InCorrectSearchThreshold
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
