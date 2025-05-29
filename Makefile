@@ -277,6 +277,7 @@ clean-extension:
 	cmake -E rm -rf extension/delta/build
 	cmake -E rm -rf extension/iceberg/build
 	cmake -E rm -rf extension/azure/build
+	cmake -E rm -rf extension/llm/build
 	cmake -E rm -rf extension/unity_catalog/build
 	cmake -E rm -rf extension/vector/build
 	cmake -E rm -rf extension/neo4j/build
