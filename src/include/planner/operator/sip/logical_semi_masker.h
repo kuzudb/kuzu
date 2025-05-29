@@ -67,6 +67,8 @@ public:
         : LogicalOperator{type_, std::move(child)}, keyType{keyType}, targetType{targetType},
           key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)} {}
 
+    ~LogicalSemiMasker() override;
+
     void computeFactorizedSchema() override { copyChildSchema(0); }
     void computeFlatSchema() override { copyChildSchema(0); }
 
