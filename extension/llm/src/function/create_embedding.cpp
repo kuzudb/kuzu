@@ -55,7 +55,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     KU_ASSERT(types.front() == LogicalType::STRING());
     static constexpr uint64_t NOMIC_EMBED_TEXT_EMBEDDING_DIMENSIONS = 768;
     return std::make_unique<FunctionBindData>(std::move(types),
-        LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), NOMIC_EMBED_TEXT_EMBEDDING_DIMENSIONS));
+        LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT),
+            NOMIC_EMBED_TEXT_EMBEDDING_DIMENSIONS));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
