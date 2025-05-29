@@ -13,6 +13,38 @@ public:
 
     static std::vector<std::string> stemTerms(std::vector<std::string> terms,
         const FTSConfig& config, main::ClientContext& context, bool isConjunctive);
+
+    static std::string getDefaultStopWordsTableName() {
+        return common::stringFormat("default_english_stopwords");
+    }
+
+    static std::string getInternalTablePrefix(common::table_id_t tableID,
+        const std::string& indexName) {
+        return common::stringFormat("{}_{}", tableID, indexName);
+    }
+
+    static std::string getNonDefaultStopWordsTableName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return common::stringFormat("{}_stopwords", getInternalTablePrefix(tableID, indexName));
+    }
+
+    static std::string getDocsTableName(common::table_id_t tableID, const std::string& indexName) {
+        return common::stringFormat("{}_docs", getInternalTablePrefix(tableID, indexName));
+    }
+
+    static std::string getAppearsInfoTableName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return common::stringFormat("{}_appears_info", getInternalTablePrefix(tableID, indexName));
+    }
+
+    static std::string getTermsTableName(common::table_id_t tableID, const std::string& indexName) {
+        return common::stringFormat("{}_terms", getInternalTablePrefix(tableID, indexName));
+    }
+
+    static std::string getAppearsInTableName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return common::stringFormat("{}_appears_in", getInternalTablePrefix(tableID, indexName));
+    }
 };
 
 } // namespace fts_extension

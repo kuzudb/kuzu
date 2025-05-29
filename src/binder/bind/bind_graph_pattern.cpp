@@ -672,7 +672,7 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
 TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
-    auto useInternal = clientContext->useInternalCatalogEntry();
+    auto useInternal = true; //clientContext->useInternalCatalogEntry();
     if (!catalog->containsTable(transaction, name, useInternal)) {
         throw BinderException(stringFormat("Table {} does not exist.", name));
     }
@@ -683,7 +683,7 @@ std::vector<TableCatalogEntry*> Binder::bindRelGroupEntries(
     const std::vector<std::string>& tableNames) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
-    auto useInternal = clientContext->useInternalCatalogEntry();
+    auto useInternal = true; //clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
     if (tableNames.empty()) { // Rewrite as all rel groups in database.
         for (auto entry : catalog->getRelGroupEntries(transaction, useInternal)) {

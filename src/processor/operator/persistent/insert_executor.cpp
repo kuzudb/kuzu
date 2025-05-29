@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/insert_executor.h"
 
+#include "/Users/z473chen/Desktop/code/kuzu/extension/fts/src/include/update/update_fts.h"
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
@@ -88,18 +90,25 @@ void NodeInsertExecutor::setNodeIDVectorToNonNull() const {
     info.nodeIDVector->setNull(info.nodeIDVector->state->getSelVector()[0], false);
 }
 
-nodeID_t NodeInsertExecutor::insert(Transaction* transaction) {
+nodeID_t NodeInsertExecutor::insert(main::ClientContext* context) {
     for (auto& evaluator : tableInfo.columnDataEvaluators) {
         evaluator->evaluate();
     }
-    if (checkConflict(transaction)) {
+    if (checkConflict(context->getTransaction())) {
         return info.getNodeID();
     }
     auto nodeInsertState = std::make_unique<storage::NodeTableInsertState>(*info.nodeIDVector,
         *tableInfo.pkVector, tableInfo.columnDataVectors);
-    tableInfo.table->insert(transaction, *nodeInsertState);
+    tableInfo.table->insert(context->getTransaction(), *nodeInsertState);
     writeColumnVectors(info.columnVectors, tableInfo.columnDataVectors);
-    return info.getNodeID();
+    auto insertedNodeID = info.getNodeID();
+
+    if (context->getCatalog()->containsIndex(context->getTransaction(), 0, "personidx")) {
+        fts_extension::FTSUpdater ftsUpdater{
+            context->getCatalog()->getIndex(context->getTransaction(), 0, "personidx"), context};
+        ftsUpdater.insertNode(context, insertedNodeID, tableInfo.columnDataVectors);
+    }
+    return insertedNodeID;
 }
 
 void NodeInsertExecutor::skipInsert() const {

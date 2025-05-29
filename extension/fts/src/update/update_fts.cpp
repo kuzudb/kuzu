@@ -1,23 +1,63 @@
 #include "update/update_fts.h"
 
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/string_utils.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
+#include "storage/storage_manager.h"
 #include "utils/fts_utils.h"
 
 namespace kuzu {
 namespace fts_extension {
 
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
-FTSUpdater::FTSUpdater()
-    : docNodeIDVector{LogicalType::INTERNAL_ID()}, docPKVector{LogicalType::INT64()},
-      lenVector{LogicalType::UINT64()}, dictNodeIDVector{LogicalType::INTERNAL_ID()},
-      dictPKVector{LogicalType::STRING()}, dictDFVector{LogicalType::UINT64()} {
+FTSUpdater::FTSUpdater(catalog::IndexCatalogEntry* ftsEntry, main::ClientContext* context)
+    : ftsEntry{ftsEntry}, dataChunkState{DataChunkState::getSingleValueDataChunkState()},
+      docNodeIDVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunkState},
+      docPKVector{LogicalType::INT64(), context->getMemoryManager(), dataChunkState},
+      lenVector{LogicalType::UINT64(), context->getMemoryManager(), dataChunkState},
+      termsNodeIDVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunkState},
+      termsPKVector{LogicalType::STRING(), context->getMemoryManager(), dataChunkState},
+      termsDFVector{LogicalType::UINT64(), context->getMemoryManager(), dataChunkState},
+      appearsInSrcVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunkState},
+      appearsInDstVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunkState},
+      relIDVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunkState},
+      tfVector{LogicalType::UINT64(), context->getMemoryManager(), dataChunkState} {
+    docProperties.push_back(&docPKVector);
     docProperties.push_back(&lenVector);
-    dictProperties.push_back(&dictDFVector);
+    termsProperties.push_back(&termsPKVector);
+    termsProperties.push_back(&termsDFVector);
+    appearsInProperties.push_back(&relIDVector);
+    appearsInProperties.push_back(&tfVector);
+    auto storageManager = context->getStorageManager();
+    auto catalog = context->getCatalog();
+    auto trx = context->getTransaction();
+    auto indexName = ftsEntry->getIndexName();
+    auto docTableName = FTSUtils::getDocsTableName(ftsEntry->getTableID(), indexName);
+    auto termsTableName = FTSUtils::getTermsTableName(ftsEntry->getTableID(), indexName);
+    auto appearsInTableName = FTSUtils::getAppearsInTableName(ftsEntry->getTableID(), indexName);
+    docTable =
+        storageManager->getTable(catalog->getTableCatalogEntry(trx, docTableName)->getTableID())
+            ->ptrCast<NodeTable>();
+    termsTable =
+        storageManager->getTable(catalog->getTableCatalogEntry(trx, termsTableName)->getTableID())
+            ->ptrCast<NodeTable>();
+    auto appearsInTableEntry =
+        catalog->getTableCatalogEntry(trx, appearsInTableName)
+            ->constPtrCast<catalog::RelGroupCatalogEntry>()
+            ->getRelEntryInfo(termsTable->getTableID(), docTable->getTableID());
+    appearsInTable = storageManager->getTable(appearsInTableEntry->oid)->ptrCast<RelTable>();
+    dfColumnID =
+        catalog->getTableCatalogEntry(context->getTransaction(), termsTableName)->getColumnID("df");
 }
+
+struct TermInfo {
+    common::offset_t offset;
+    uint64_t tf;
+};
 
 void FTSUpdater::insertNode(main::ClientContext* context, common::nodeID_t insertedNodeID,
     std::vector<common::ValueVector*> columnDataVectors) {
@@ -32,28 +72,63 @@ void FTSUpdater::insertNode(main::ClientContext* context, common::nodeID_t inser
         }
         content = columnDataVector->getValue<ku_string_t>(pos).getAsString();
         FTSUtils::normalizeQuery(content);
-        terms = StringUtils::split(content, " ");
-        auto stemmedTerms =
-            FTSUtils::stemTerms(terms, ftsEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config,
-                *context, false /* isConjunctive */);
-        terms.insert(terms.end(), stemmedTerms.begin(), stemmedTerms.end());
-    }
-
-    std::unordered_map<std::string, uint64_t> tfMap;
-    for (auto& term : terms) {
-        ++tfMap[term];
+        auto termsInContent = StringUtils::split(content, " ");
+        termsInContent = FTSUtils::stemTerms(termsInContent,
+            ftsEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config, *context,
+            false /* isConjunctive */);
+        terms.insert(terms.end(), termsInContent.begin(), termsInContent.end());
     }
 
     docPKVector.setValue(0, insertedNodeID.offset);
-    lenVector.setValue(0, terms.size());
+    lenVector.setValue(0, (uint64_t)terms.size());
     // Insert to doc table
-    auto nodeInsertState = std::make_unique<storage::NodeTableInsertState>(docNodeIDVector,
-        docPKVector, docProperties);
+    auto nodeInsertState =
+        std::make_unique<NodeTableInsertState>(docNodeIDVector, docPKVector, docProperties);
     docTable->insert(context->getTransaction(), *nodeInsertState);
 
+    std::unordered_map<std::string, TermInfo> tfCollection;
+    for (auto& term : terms) {
+        tfCollection[term].tf++;
+    }
+
+    internalID_t termNodeID{INVALID_OFFSET, termsTable->getTableID()};
+    NodeTableUpdateState updateState{dfColumnID, termsNodeIDVector, termsDFVector};
+
+    auto nodeTableScanState =
+        NodeTableScanState(&termsNodeIDVector, std::vector{&termsDFVector}, dataChunkState);
+    nodeTableScanState.setToTable(context->getTransaction(), termsTable, {dfColumnID}, {});
     // Insert to dict table
+    for (auto& [term, termInfo] : tfCollection) {
+        termsPKVector.setValue(0, term);
+        // If the word already exists in the dict table, we update the df. Otherwise, we
+        // insert a new word entry to the dict table.
+        if (termsTable->lookupPK(context->getTransaction(), &termsPKVector, 0 /* vectorPos */,
+                termNodeID.offset)) {
+            termsNodeIDVector.setValue(0, termNodeID);
+            termsTable->initScanState(context->getTransaction(), nodeTableScanState,
+                termNodeID.tableID, termNodeID.offset);
+            termsTable->lookup(context->getTransaction(), nodeTableScanState);
+            termsDFVector.setValue(0, termsDFVector.getValue<uint64_t>(0) + 1);
+            termsTable->update(context->getTransaction(), updateState);
+            termInfo.offset = termNodeID.offset;
+        } else {
+            termsDFVector.setValue(0, 1);
+            nodeInsertState = std::make_unique<NodeTableInsertState>(termsNodeIDVector,
+                termsPKVector, termsProperties);
+            termsTable->insert(context->getTransaction(), *nodeInsertState);
+            termInfo.offset = termsNodeIDVector.getValue<nodeID_t>(0).offset;
+        }
+    }
 
     // Insert to appears in table
+    auto relInsertState = std::make_unique<storage::RelTableInsertState>(appearsInSrcVector,
+        appearsInDstVector, appearsInProperties);
+    appearsInDstVector.setValue(0, docNodeIDVector.getValue<nodeID_t>(0));
+    for (auto& [term, termInfo] : tfCollection) {
+        appearsInSrcVector.setValue(0, nodeID_t{termInfo.offset, termsTable->getTableID()});
+        tfVector.setValue(0, termInfo.tf);
+        appearsInTable->insert(context->getTransaction(), *relInsertState);
+    }
 }
 
 void FTSUpdater::deleteNode(transaction::Transaction* transaction, common::nodeID_t deletedNodeID) {

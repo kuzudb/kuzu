@@ -3,11 +3,11 @@
 #include "catalog/catalog.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_index_utils.h"
-#include "function/fts_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
 #include "processor/execution_context.h"
+#include "utils/fts_utils.h"
 
 namespace kuzu {
 namespace fts_extension {

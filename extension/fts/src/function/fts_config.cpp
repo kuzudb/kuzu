@@ -1,15 +1,16 @@
 #include "function/fts_config.h"
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_utils.h"
-#include "function/fts_utils.h"
 #include "function/stem.h"
 #include "main/client_context.h"
+#include "utils/fts_utils.h"
 
 namespace kuzu {
 namespace fts_extension {

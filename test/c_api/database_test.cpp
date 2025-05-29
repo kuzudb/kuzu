@@ -298,3 +298,29 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
+
+TEST_F(CApiDatabaseTest, dasd) {
+    createDBAndConn();
+    conn->query("create node table person (id serial, content string, primary key(id));");
+    conn->query("create (p:person {content: 'alice bob'})");
+    conn->query("CALL CREATE_FTS_INDEX('person', 'personidx', ['content'])");
+    conn->query("create (p:person {content: 'alice dan alice'})");
+    conn->query("create (p:person {content: 'uwaterloo'})");
+    conn->getClientContext()->setUseInternalCatalogEntry(true);
+    printf("%s", conn->query("CALL show_tables() return *")->toString().c_str());
+    printf("%s", conn->query("MATCH (d:`0_personidx_docs`) return d")->toString().c_str());
+    printf("%s", conn->query("MATCH (d:`0_personidx_terms`) return d")->toString().c_str());
+    printf("%s", conn->query("CALL QUERY_FTS_INDEX('person', 'personidx', 'alice') return *")
+                     ->toString()
+                     .c_str());
+}
+
+TEST_F(CApiDatabaseTest, dsada) {
+    createDBAndConn();
+    auto prepared = conn->prepare("MATCH (n :Entity)\n"
+                                  "    REtURN CAST($n_embedding,'FLOAT[2]') \n"
+                                  "    UNION\n"
+                                  "    MATCH (n :Entity)\n"
+                                  "    return CAST($n_embedding,'FLOAT[2]') ");
+    conn->execute(prepared.get(), std::make_pair(std::string("$n_embedding"), 1));
+}
