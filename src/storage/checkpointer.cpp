@@ -16,6 +16,22 @@ Checkpointer::Checkpointer(main::ClientContext& clientContext)
     : clientContext{clientContext},
       isInMemory{main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())} {}
 
+PageRange Checkpointer::serializeCatalog(catalog::Catalog& catalog,
+    StorageManager& storageManager) {
+    auto catalogWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
+    common::Serializer catalogSerializer(catalogWriter);
+    catalog.serialize(catalogSerializer);
+    return catalogWriter->flush(storageManager.getDataFH(), storageManager.getShadowFile());
+}
+
+PageRange Checkpointer::serializeMetadata(catalog::Catalog& catalog,
+    StorageManager& storageManager) {
+    auto metadataWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
+    common::Serializer metadataSerializer(metadataWriter);
+    storageManager.serialize(catalog, metadataSerializer);
+    return metadataWriter->flush(storageManager.getDataFH(), storageManager.getShadowFile());
+}
+
 void Checkpointer::writeCheckpoint() {
     if (isInMemory) {
         return;
@@ -23,24 +39,29 @@ void Checkpointer::writeCheckpoint() {
     const auto catalog = clientContext.getCatalog();
     const auto storageManager = clientContext.getStorageManager();
     auto wal = clientContext.getWAL();
+
+    auto databaseHeader = getCurrentDatabaseHeader();
+
     // Checkpoint storage. Note that we first checkpoint storage before serializing the catalog, as
     // checkpointing storage may overwrite columnIDs in the catalog.
-    storageManager->checkpoint(*catalog);
+    bool hasStorageChanges = storageManager->checkpoint(*catalog);
 
-    // Serialize catalog.
-    auto catalogWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
-    common::Serializer catalogSerializer(catalogWriter);
-    catalog->serialize(catalogSerializer);
-    // Serialize storage metadata.
-    auto metadataWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
-    common::Serializer metadataSerializer(metadataWriter);
-    storageManager->serialize(*catalog, metadataSerializer);
-    // Flush the metadata to the shadow file and update the database header.
-    auto dataFH = storageManager->getDataFH();
     auto& shadowFile = storageManager->getShadowFile();
-    auto catalogPageRange = catalogWriter->flush(dataFH, shadowFile);
-    auto metadataPageRange = metadataWriter->flush(dataFH, shadowFile);
-    writeDatabaseHeader(catalogPageRange, metadataPageRange);
+    auto* dataFH = storageManager->getDataFH();
+
+    // Serialize the catalog if there are changes
+    if (databaseHeader.catalogPageRange.startPageIdx == common::INVALID_PAGE_IDX ||
+        catalog->changedSinceLastCheckpoint()) {
+        databaseHeader.catalogPageRange = serializeCatalog(*catalog, *storageManager);
+    }
+    // Serialize the storage metadata if there are changes
+    if (databaseHeader.metadataPageRange.startPageIdx == common::INVALID_PAGE_IDX ||
+        hasStorageChanges || catalog->changedSinceLastCheckpoint() ||
+        dataFH->getPageManager()->changedSinceLastCheckpoint()) {
+        databaseHeader.metadataPageRange = serializeMetadata(*catalog, *storageManager);
+    }
+
+    writeDatabaseHeader(databaseHeader);
 
     // Flush the shadow file.
     shadowFile.flushAll();
@@ -62,6 +83,9 @@ void Checkpointer::writeCheckpoint() {
     wal->clearWAL();
     shadowFile.clearAll(clientContext);
     storageManager->finalizeCheckpoint();
+
+    catalog->resetVersion();
+    dataFH->getPageManager()->resetVersion();
 }
 
 static void writeMagicBytes(common::Serializer& serializer) {
@@ -72,8 +96,10 @@ static void writeMagicBytes(common::Serializer& serializer) {
     }
 }
 
-void Checkpointer::writeDatabaseHeader(const PageRange& catalogPageRange,
-    const PageRange& metadataPageRange) {
+void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {
+    const auto& catalogPageRange = header.catalogPageRange;
+    const auto& metadataPageRange = header.metadataPageRange;
+
     auto headerWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
     common::Serializer headerSerializer(headerWriter);
     writeMagicBytes(headerSerializer);
@@ -151,7 +177,7 @@ static void validateMagicBytes(common::Deserializer& deSer) {
     }
 }
 
-static std::pair<PageRange, PageRange> readDatabaseHeader(common::Deserializer& deSer) {
+static DatabaseHeader readDatabaseHeader(common::Deserializer& deSer) {
     validateMagicBytes(deSer);
     validateStorageVersion(deSer);
     PageRange catalogPageRange{}, metaPageRange{};
@@ -162,7 +188,31 @@ static std::pair<PageRange, PageRange> readDatabaseHeader(common::Deserializer& 
     deSer.validateDebuggingInfo(key, "metadata");
     deSer.deserializeValue(metaPageRange.startPageIdx);
     deSer.deserializeValue(metaPageRange.numPages);
-    return {catalogPageRange, metaPageRange};
+    return {
+        catalogPageRange,
+        metaPageRange,
+    };
+}
+
+DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
+    static const auto defaultHeader = DatabaseHeader{{}, {}};
+    if (clientContext.getStorageManager()->getDataFH()->getFileInfo()->getFileSize() <
+        common::KUZU_PAGE_SIZE) {
+        // If the data file hasn't been written to there is no existing database header
+        return defaultHeader;
+    }
+    auto vfs = clientContext.getVFSUnsafe();
+    auto fileInfo = vfs->openFile(StorageUtils::getDataFName(vfs, clientContext.getDatabasePath()),
+        common::FileOpenFlags{common::FileFlags::READ_ONLY}, &clientContext);
+    auto reader = std::make_unique<common::BufferedFileReader>(std::move(fileInfo));
+    common::Deserializer deSer(std::move(reader));
+    try {
+        return readDatabaseHeader(deSer);
+    } catch (const common::RuntimeException&) {
+        // It is possible we optimistically write to the database file before the first checkpoint
+        // In this case the magic bytes check will fail and we assume there is no existing header
+        return defaultHeader;
+    }
 }
 
 void Checkpointer::readCheckpoint() {
@@ -184,12 +234,12 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
         common::FileOpenFlags{common::FileFlags::READ_ONLY}, context);
     auto reader = std::make_unique<common::BufferedFileReader>(std::move(fileInfo));
     common::Deserializer deSer(std::move(reader));
-    auto [catalogPageRange, metaPageRange] = readDatabaseHeader(deSer);
+    auto currentHeader = readDatabaseHeader(deSer);
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
-        catalogPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
+        currentHeader.catalogPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     catalog->deserialize(deSer);
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
-        metaPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
+        currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     storageManager->deserialize(*catalog, deSer);
 }
 

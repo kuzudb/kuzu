@@ -518,7 +518,8 @@ visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {
         [this, transaction](offset_t offset_) -> bool { return isVisible(transaction, offset_); };
 }
 
-void NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
+bool NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
+    bool ret = hasChanges;
     if (hasChanges) {
         // Deleted columns are vacuumed and not checkpointed.
         std::vector<std::unique_ptr<Column>> checkpointColumns;
@@ -542,6 +543,7 @@ void NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
         hasChanges = false;
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
     }
+    return ret;
 }
 
 void NodeTable::rollbackPKIndexInsert(const Transaction* transaction, row_idx_t startRow,
