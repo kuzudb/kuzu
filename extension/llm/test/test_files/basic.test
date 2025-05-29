@@ -20,12 +20,6 @@
 -STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING,  title_embedding FLOAT[768], published_year INT64);
 ---- ok
 
--STATEMENT CREATE NODE TABLE Publisher(name STRING PRIMARY KEY);
----- ok
-
--STATEMENT CREATE REL TABLE PublishedBy(FROM Book TO Publisher);
----- ok
-
 -STATEMENT CREATE (b:Book {title: 'The Quantum World', published_year: 2004});
 ---- ok
 
