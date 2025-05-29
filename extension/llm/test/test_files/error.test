@@ -32,5 +32,5 @@ Binder exception: Data type of expression emb should not be modified.
 -LOG Run Without Having Ollama at http://localhost:11434
 -STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title) AS emb SET b.title_embedding = emb;
 ---- error
-Connection exception: Request failed: No response (server not reachable?)
+Connection exception: Request failed: Could not connect to server: <url>.
 
