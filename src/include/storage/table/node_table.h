@@ -141,10 +141,22 @@ public:
             [&](common::offset_t offset) { return isVisible(transaction, offset); });
     }
 
+    void addIndex(std::unique_ptr<Index> index);
+    void addOrReplaceIndex(std::unique_ptr<Index> index);
+
     common::column_id_t getPKColumnID() const { return pkColumnID; }
     PrimaryKeyIndex* getPKIndex() const {
-        KU_ASSERT(pkIndexPos < indexes.size());
-        return &indexes[pkIndexPos]->cast<PrimaryKeyIndex>();
+        const auto index = getIndex(PrimaryKeyIndex::name);
+        KU_ASSERT(index.has_value());
+        return &index.value()->cast<PrimaryKeyIndex>();
+    }
+    std::optional<Index*> getIndex(const std::string& name) const {
+        for (auto& index : indexes) {
+            if (common::StringUtils::caseInsensitiveEquals(index->getName(), name)) {
+                return index.get();
+            }
+        }
+        return std::nullopt;
     }
     common::column_id_t getNumColumns() const { return columns.size(); }
     Column& getColumn(common::column_id_t columnID) {
@@ -208,7 +220,6 @@ private:
     std::vector<std::unique_ptr<Column>> columns;
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
-    common::idx_t pkIndexPos;
     std::vector<std::unique_ptr<Index>> indexes;
     NodeTableVersionRecordHandler versionRecordHandler;
 };

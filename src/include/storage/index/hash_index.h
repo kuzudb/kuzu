@@ -332,6 +332,8 @@ struct PrimaryKeyIndexStorageInfo final : IndexStorageInfo {
 
 class PrimaryKeyIndex final : public Index {
 public:
+    static constexpr const char* name = "_PK";
+
     // Construct an existing index
     PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storageInfo,
         bool inMemMode, MemoryManager& memoryManager, FileHandle* dataFH, ShadowFile* shadowFile);
