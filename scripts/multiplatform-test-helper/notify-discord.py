@@ -42,6 +42,7 @@ if __name__ == "__main__":
     with open(sys.argv[1], "r") as f:
         result = json.load(f)
         failures = {}
+        message += "### Success:\n"
         for platform in sorted(result.keys()):
             if len(message) >= 1500:
                 messages.append(message)
@@ -54,6 +55,7 @@ if __name__ == "__main__":
                 else:
                     failures.setdefault(platform, list()).append(r)
         # Show all failures at the end.
+        message += "### Failure:\n"
         for platform in sorted(failures.keys()):
             if len(message) >= 1500:
                 messages.append(message)
