@@ -2,6 +2,7 @@ name: Multiplatform Build and Test
 
 env:
   USE_EXISTING_BINARY_DATASET: 1
+  WERROR: 1
 
 on:
   workflow_dispatch:
@@ -164,6 +165,8 @@ jobs:
     name: ${{ matrix.runner }}
     needs: [ generate-binary-demo ]
     runs-on: ${{ matrix.runner }}
+    env:
+      WERROR: 0
     steps:
       - name: Disable Windows Defender
         continue-on-error: true
