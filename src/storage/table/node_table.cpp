@@ -657,7 +657,7 @@ void NodeTable::deserialize(Deserializer& deSer) {
     uint64_t numIndexes = 0u;
     deSer.deserializeValue<uint64_t>(numIndexes);
     indexInfos.reserve(numIndexes);
-    storageInfoBufferSizes.resize(numIndexes);
+    storageInfoBufferSizes.reserve(numIndexes);
     storageInfoBuffers.reserve(numIndexes);
     for (uint64_t i = 0; i < numIndexes; ++i) {
         IndexInfo indexInfo = IndexInfo::deserialize(deSer);
@@ -675,13 +675,14 @@ void NodeTable::deserialize(Deserializer& deSer) {
         switch (indexInfo.indexType.definitionType) {
         case IndexDefinitionType::BUILTIN: {
             if (indexInfo.indexType.typeName == HASH_INDEX_TYPE.typeName) {
-                pkIndexPos = indexes.size();
+                pkIndexPos = i;
                 auto storageInfoBuffer = std::move(storageInfoBuffers[i]);
                 auto storageInfoBufferReader = std::make_unique<BufferReader>(
                     storageInfoBuffer.get(), storageInfoBufferSizes[i]);
-                auto storageInfo = PrimaryKeyIndexStorageInfo::deserialize(deSer);
-                indexes.push_back(std::make_unique<PrimaryKeyIndex>(indexInfo,
-                    std::move(storageInfo), inMemory, *memoryManager, dataFH, shadowFile));
+                auto storageInfo =
+                    PrimaryKeyIndexStorageInfo::deserialize(std::move(storageInfoBufferReader));
+                indexes[i] = std::make_unique<PrimaryKeyIndex>(indexInfo, std::move(storageInfo),
+                    inMemory, *memoryManager, dataFH, shadowFile);
             } else {
                 throw RuntimeException(
                     "No built-in index type with name: " + indexInfo.indexType.typeName);

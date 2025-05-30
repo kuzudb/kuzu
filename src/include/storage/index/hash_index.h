@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "common/cast.h"
+#include "common/serializer/buffered_reader.h"
 #include "common/serializer/serializer.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
@@ -315,6 +316,8 @@ struct PrimaryKeyIndexStorageInfo final : IndexStorageInfo {
         common::page_idx_t overflowHeaderPage)
         : firstHeaderPage{firstHeaderPage}, overflowHeaderPage{overflowHeaderPage} {}
 
+    DELETE_COPY_DEFAULT_MOVE(PrimaryKeyIndexStorageInfo);
+
     std::shared_ptr<common::BufferedSerializer> serialize() const override {
         auto bufferWriter = std::make_shared<common::BufferedSerializer>();
         auto serializer = common::Serializer(bufferWriter);
@@ -323,7 +326,8 @@ struct PrimaryKeyIndexStorageInfo final : IndexStorageInfo {
         return bufferWriter;
     }
 
-    static std::unique_ptr<IndexStorageInfo> deserialize(common::Deserializer& deSer);
+    static std::unique_ptr<IndexStorageInfo> deserialize(
+        std::unique_ptr<common::BufferReader> reader);
 };
 
 class PrimaryKeyIndex final : public Index {
@@ -414,10 +418,6 @@ public:
     common::PhysicalTypeID keyTypeID() const { return indexInfo.keyDataType; }
 
     void writeHeaders();
-
-    // Construct a new index
-    PrimaryKeyIndex(IndexInfo indexInfo, bool inMemMode, MemoryManager& memoryManager,
-        FileHandle* dataFH, ShadowFile* shadowFile);
 
 private:
     void initOverflowAndSubIndices(bool inMemMode, MemoryManager& mm,
