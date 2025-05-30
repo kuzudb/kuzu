@@ -119,26 +119,27 @@ public:
             writeFromVectorFunc, &vectorToWriteFrom->getNullMask());
     }
 
-    page_idx_t writeValuesToPageFromBuffer(ChunkState& state, offset_t dstOffset,
-        const uint8_t* data, const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues,
+    void writeValuesToPageFromBuffer(ChunkState& state, offset_t dstOffset, const uint8_t* data,
+        const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues,
         const write_values_func_t& writeFunc) override {
-        return writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc,
-            nullChunkData);
+        writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc, nullChunkData);
     }
 
     template<typename InputType, typename... AdditionalArgs>
-    page_idx_t writeValuesToPage(ChunkState& state, offset_t dstOffset, InputType data,
+    void writeValuesToPage(ChunkState& state, offset_t dstOffset, InputType data,
         offset_t srcOffset, offset_t numValues,
         const write_values_to_page_func_t<InputType, AdditionalArgs...>& writeFunc,
         const NullMask* nullMask) {
         auto numValuesWritten = 0u;
         auto cursor = getPageCursorForOffsetInGroup(dstOffset, state.metadata.getStartPageIdx(),
             state.numValuesPerPage);
-        page_idx_t numPagesAppended = 0;
         while (numValuesWritten < numValues) {
+            KU_ASSERT(
+                cursor.pageIdx == INVALID_PAGE_IDX /*constant compression*/ ||
+                cursor.pageIdx < state.metadata.getStartPageIdx() + state.metadata.getNumPages());
             auto numValuesToWriteInPage = std::min(numValues - numValuesWritten,
                 state.numValuesPerPage - cursor.elemPosInPage);
-            numPagesAppended += updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
+            updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
                 if constexpr (std::is_same_v<InputType, ValueVector*>) {
                     writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
                         numValuesToWriteInPage, state.metadata.compMeta);
@@ -150,7 +151,6 @@ public:
             numValuesWritten += numValuesToWriteInPage;
             cursor.nextPage();
         }
-        return numPagesAppended;
     }
 
     template<typename OutputType>
@@ -253,16 +253,16 @@ public:
             writeFromVectorFunc, &vectorToWriteFrom->getNullMask());
     }
 
-    page_idx_t writeValuesToPageFromBuffer(ChunkState& state, offset_t dstOffset,
-        const uint8_t* data, const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues,
+    void writeValuesToPageFromBuffer(ChunkState& state, offset_t dstOffset, const uint8_t* data,
+        const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues,
         const write_values_func_t& writeFunc) override {
         if (state.metadata.compMeta.compression != CompressionType::ALP) {
-            return defaultReader->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData,
+            defaultReader->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData,
                 srcOffset, numValues, writeFunc);
+            return;
         }
 
-        return writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc,
-            nullChunkData);
+        writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc, nullChunkData);
     }
 
 private:
@@ -334,7 +334,7 @@ private:
     }
 
     template<typename InputType, typename... AdditionalArgs>
-    page_idx_t writeValuesToPage(ChunkState& state, offset_t offsetInChunk, InputType data,
+    void writeValuesToPage(ChunkState& state, offset_t offsetInChunk, InputType data,
         uint32_t srcOffset, size_t numValues,
         const write_values_to_page_func_t<InputType, AdditionalArgs...>& writeFunc,
         const NullMask* nullMask) {
@@ -398,8 +398,8 @@ private:
             }
         }
 
-        return defaultReader->writeValuesToPage(state, offsetInChunk,
-            writeToPageBufferHelper.getData(), 0, numValues, writeFunc, nullMask);
+        defaultReader->writeValuesToPage(state, offsetInChunk, writeToPageBufferHelper.getData(), 0,
+            numValues, writeFunc, nullMask);
     }
 
     std::unique_ptr<DefaultColumnReadWriter> defaultReader;
@@ -434,27 +434,16 @@ void ColumnReadWriter::readFromPage(const Transaction* transaction, page_idx_t p
     fileHandleToPin->optimisticReadPage(pageIdxToPin, readFunc);
 }
 
-bool ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
+void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
     const std::function<void(uint8_t*, offset_t)>& writeOp) const {
-    bool insertingNewPage = false;
     if (cursor.pageIdx == INVALID_PAGE_IDX) {
         writeOp(nullptr, cursor.elemPosInPage);
-        return false;
+        return;
     }
-
-    // The implemented mechanism for inserting new pages here doesn't work if we do concurrent
-    // writes We currently don't do concurrent writes but should also actually never hit the case
-    // where we need to insert pages either
     KU_ASSERT(cursor.pageIdx < dataFH->getNumPages());
 
-    if (cursor.pageIdx >= dataFH->getNumPages()) {
-        KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
-        ShadowUtils::insertNewPage(*dataFH, *shadowFile);
-        insertingNewPage = true;
-    }
-    ShadowUtils::updatePage(*dataFH, cursor.pageIdx, insertingNewPage, *shadowFile,
+    ShadowUtils::updatePage(*dataFH, cursor.pageIdx, false /*insertingNewPage*/, *shadowFile,
         [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
-    return insertingNewPage;
 }
 
 PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInChunk,
