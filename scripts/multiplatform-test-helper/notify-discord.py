@@ -47,7 +47,16 @@ if __name__ == "__main__":
                 message = ""
             message += f"- **{platform}**:\n"
             for r in result[platform]:
-                message += f"  - {r['stage']}: {r['status']}\n"
+                if r['status'] == "✅":
+                    message += f"  - {r['stage']}: {r['status']}\n"
+        for platform in sorted(result.keys()):
+            if len(message) >= 1500:
+                messages.append(message)
+                message = ""
+            message += f"- **{platform}**:\n"
+            for r in result[platform]:
+                if r['status'] != "✅":
+                    message += f"  - {r['stage']}: {r['status']}\n"
     if GITHUB_URL:
         message += "\n"
         message += f"  [Github]({GITHUB_URL})"
