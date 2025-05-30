@@ -16,28 +16,15 @@ namespace vector_extension {
 std::shared_ptr<common::BufferedSerializer> HNSWIndexAuxInfo::serialize() const {
     auto bufferWriter = std::make_shared<common::BufferedSerializer>();
     auto serializer = common::Serializer(bufferWriter);
-    serializer.serializeValue(upperRelTableID);
-    serializer.serializeValue(lowerRelTableID);
-    serializer.serializeValue(upperEntryPoint);
-    serializer.serializeValue(lowerEntryPoint);
     config.serialize(serializer);
     return bufferWriter;
 }
 
 std::unique_ptr<HNSWIndexAuxInfo> HNSWIndexAuxInfo::deserialize(
     std::unique_ptr<common::BufferReader> reader) {
-    common::table_id_t upperRelTableID = common::INVALID_TABLE_ID;
-    common::table_id_t lowerRelTableID = common::INVALID_TABLE_ID;
-    common::offset_t upperEntryPoint = common::INVALID_OFFSET;
-    common::offset_t lowerEntryPoint = common::INVALID_OFFSET;
     common::Deserializer deSer{std::move(reader)};
-    deSer.deserializeValue(upperRelTableID);
-    deSer.deserializeValue(lowerRelTableID);
-    deSer.deserializeValue(upperEntryPoint);
-    deSer.deserializeValue(lowerEntryPoint);
     auto config = HNSWIndexConfig::deserialize(deSer);
-    return std::make_unique<HNSWIndexAuxInfo>(upperRelTableID, lowerRelTableID, upperEntryPoint,
-        lowerEntryPoint, std::move(config));
+    return std::make_unique<HNSWIndexAuxInfo>(std::move(config));
 }
 
 std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,

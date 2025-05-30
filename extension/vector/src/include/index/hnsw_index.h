@@ -9,6 +9,9 @@
 #include "index/hnsw_index_utils.h"
 
 namespace kuzu {
+namespace catalog {
+class IndexCatalogEntry;
+}
 namespace function {
 struct HNSWSearchState;
 struct QueryHNSWLocalState;
@@ -72,17 +75,38 @@ struct VisitedState {
     bool contains(common::offset_t offset) const { return visited[offset]; }
 };
 
-class HNSWIndex {
+struct HNSWStorageInfo final : storage::IndexStorageInfo {
+    common::table_id_t upperRelTableID;
+    common::table_id_t lowerRelTableID;
+    common::offset_t upperEntryPoint;
+    common::offset_t lowerEntryPoint;
+
+    HNSWStorageInfo()
+        : upperRelTableID{common::INVALID_TABLE_ID}, lowerRelTableID{common::INVALID_TABLE_ID},
+          upperEntryPoint{common::INVALID_OFFSET}, lowerEntryPoint{common::INVALID_OFFSET} {}
+    HNSWStorageInfo(const common::table_id_t& upperRelTableID,
+        const common::table_id_t& lowerRelTableID, common::offset_t upperEntryPoint,
+        common::offset_t lowerEntryPoint)
+        : upperRelTableID{upperRelTableID}, lowerRelTableID{lowerRelTableID},
+          upperEntryPoint{upperEntryPoint}, lowerEntryPoint{lowerEntryPoint} {}
+
+    std::shared_ptr<common::BufferedSerializer> serialize() const override;
+
+    static std::unique_ptr<IndexStorageInfo> deserialize(
+        std::unique_ptr<common::BufferReader> reader);
+};
+
+class HNSWIndex : public storage::Index {
 public:
-    explicit HNSWIndex(HNSWIndexConfig config, common::ArrayTypeInfo typeInfo)
-        : config{std::move(config)}, typeInfo{std::move(typeInfo)} {
+    explicit HNSWIndex(storage::IndexInfo indexInfo,
+        std::unique_ptr<storage::IndexStorageInfo> storageInfo, HNSWIndexConfig config,
+        common::ArrayTypeInfo typeInfo)
+        : Index{indexInfo, std::move(storageInfo)}, config{std::move(config)},
+          typeInfo{std::move(typeInfo)} {
         metricFunc =
             HNSWIndexUtils::getMetricsFunction(this->config.metric, this->typeInfo.getChildType());
     }
-    virtual ~HNSWIndex() = default;
-
-    virtual common::offset_t getUpperEntryPoint() const = 0;
-    virtual common::offset_t getLowerEntryPoint() const = 0;
+    ~HNSWIndex() override = default;
 
     common::LogicalType getElementType() const { return typeInfo.getChildType().copy(); }
 
@@ -146,13 +170,17 @@ private:
     InMemHNSWLayerInfo info;
 };
 
+static constexpr storage::IndexType HNSW_INDEX_TYPE{"HNSW",
+    storage::IndexConstraintType::SECONDARY_NON_UNIQUE, storage::IndexDefinitionType::EXTENSION};
+
 class InMemHNSWIndex final : public HNSWIndex {
 public:
-    InMemHNSWIndex(const main::ClientContext* context, storage::NodeTable& table,
+    InMemHNSWIndex(const main::ClientContext* context, storage::IndexInfo indexInfo,
+        std::unique_ptr<storage::IndexStorageInfo> storageInfo, storage::NodeTable& table,
         common::column_id_t columnID, HNSWIndexConfig config);
 
-    common::offset_t getUpperEntryPoint() const override { return upperLayer->getEntryPoint(); }
-    common::offset_t getLowerEntryPoint() const override { return lowerLayer->getEntryPoint(); }
+    common::offset_t getUpperEntryPoint() const { return upperLayer->getEntryPoint(); }
+    common::offset_t getLowerEntryPoint() const { return lowerLayer->getEntryPoint(); }
 
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
     bool insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited);
@@ -207,21 +235,18 @@ struct HNSWSearchState {
 
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
-    OnDiskHNSWIndex(main::ClientContext* context, catalog::NodeTableCatalogEntry* nodeTableEntry,
-        common::column_id_t columnID, catalog::RelGroupCatalogEntry* upperRelTableEntry,
+    OnDiskHNSWIndex(main::ClientContext* context, storage::IndexInfo indexInfo,
+        std::unique_ptr<storage::IndexStorageInfo> storageInfo,
+        catalog::NodeTableCatalogEntry* nodeTableEntry,
+        catalog::RelGroupCatalogEntry* upperRelTableEntry,
         catalog::RelGroupCatalogEntry* lowerRelTableEntry, HNSWIndexConfig config);
-
-    void setDefaultUpperEntryPoint(common::offset_t offset) {
-        defaultUpperEntryPoint.store(offset);
-    }
-    void setDefaultLowerEntryPoint(common::offset_t offset) {
-        defaultLowerEntryPoint.store(offset);
-    }
-    common::offset_t getUpperEntryPoint() const override { return defaultUpperEntryPoint.load(); }
-    common::offset_t getLowerEntryPoint() const override { return defaultLowerEntryPoint.load(); }
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
         const void* queryVector, HNSWSearchState& searchState) const;
+
+    static std::unique_ptr<Index> load(main::ClientContext* context, storage::IndexInfo indexInfo,
+        const catalog::Catalog& catalog, const catalog::IndexCatalogEntry* indexEntry,
+        std::span<uint8_t> storageInfoBuffer);
 
 private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
@@ -279,8 +304,8 @@ private:
     // The search starts in the upper layer to find the closest node, which serves as the entry
     // point for the lower layer search. If the upper layer does not return a valid entry point,
     // the search falls back to the defaultLowerEntryPoint in the lower layer.
-    std::atomic<common::offset_t> defaultUpperEntryPoint;
-    std::atomic<common::offset_t> defaultLowerEntryPoint;
+    // std::atomic<common::offset_t> defaultUpperEntryPoint;
+    // std::atomic<common::offset_t> defaultLowerEntryPoint;
     std::unique_ptr<graph::OnDiskGraph> upperGraph;
     std::unique_ptr<graph::OnDiskGraph> lowerGraph;
     std::unique_ptr<OnDiskEmbeddings> embeddings;

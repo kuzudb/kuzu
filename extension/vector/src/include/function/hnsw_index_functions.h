@@ -65,8 +65,6 @@ struct QueryHNSWIndexBindData final : function::TableFuncBindData {
     catalog::NodeTableCatalogEntry* nodeTableEntry = nullptr;
     catalog::IndexCatalogEntry* indexEntry = nullptr;
     common::column_id_t indexColumnID = common::INVALID_COLUMN_ID;
-    catalog::RelGroupCatalogEntry* upperRelTableEntry = nullptr;
-    catalog::RelGroupCatalogEntry* lowerRelTableEntry = nullptr;
     std::shared_ptr<binder::Expression> queryExpression;
     std::shared_ptr<binder::Expression> kExpression;
     std::shared_ptr<binder::NodeExpression> outputNode;

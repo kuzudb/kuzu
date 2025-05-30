@@ -58,8 +58,6 @@ std::unique_ptr<TableFuncBindData> QueryHNSWIndexBindData::copy() const {
     bindData->nodeTableEntry = nodeTableEntry;
     bindData->indexEntry = indexEntry;
     bindData->indexColumnID = indexColumnID;
-    bindData->upperRelTableEntry = upperRelTableEntry;
-    bindData->lowerRelTableEntry = lowerRelTableEntry;
     bindData->config = config;
     bindData->queryExpression = queryExpression;
     bindData->kExpression = kExpression;
@@ -74,7 +72,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto transaction = context->getTransaction();
     context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     const auto tableName = input->getLiteralVal<std::string>(0);
-    const auto indexName = input->getLiteralVal<std::string>(1);
+    auto indexName = input->getLiteralVal<std::string>(1);
     // Bind graph entry and node table entry
     if (!catalog->containsTable(transaction, tableName)) {
         throw BinderException{stringFormat("Cannot find table named as {}.", tableName)};
@@ -100,13 +98,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     KU_ASSERT(nodeTableEntry->getProperty(propertyID).getType().getLogicalTypeID() ==
               LogicalTypeID::ARRAY);
     bindData->indexColumnID = nodeTableEntry->getColumnID(propertyID);
-    const auto& auxInfo = bindData->indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
-    bindData->upperRelTableEntry =
-        catalog->getTableCatalogEntry(transaction, auxInfo.upperRelTableID)
-            ->ptrCast<RelGroupCatalogEntry>();
-    bindData->lowerRelTableEntry =
-        catalog->getTableCatalogEntry(transaction, auxInfo.lowerRelTableID)
-            ->ptrCast<RelGroupCatalogEntry>();
     bindData->queryExpression = input->params[2];
     bindData->kExpression = input->params[3];
     bindData->outputNode = outputNode;
@@ -160,7 +151,7 @@ static std::vector<T> convertQueryVector(const Value& value) {
 }
 
 static Value evaluateParamExpr(std::shared_ptr<Expression> paramExpression,
-    main::ClientContext* context, LogicalType expectedType) {
+    main::ClientContext* context, const LogicalType& expectedType) {
     std::shared_ptr<Expression> kExpr = paramExpression;
     if (paramExpression->expressionType == ExpressionType::PARAMETER) {
         kExpr = std::make_shared<LiteralExpression>(ExpressionUtil::evaluateAsLiteralValue(*kExpr),
@@ -190,24 +181,23 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     const auto localState = input.localState->ptrCast<QueryHNSWLocalState>();
     const auto bindData = input.bindData->constPtrCast<QueryHNSWIndexBindData>();
     // As `k` can be larger than the default vector capacity, we run the actual search in the first
-    // call, and output the rest of the query result in chunks in following calls.
+    // call, and output the rest of the query result in chunks in the following calls.
     if (!localState->hasResultToOutput()) {
-        // We start searching when there is no query result to output.
-        const auto& auxInfo = bindData->indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
-        const auto index = std::make_unique<OnDiskHNSWIndex>(input.context->clientContext,
-            bindData->nodeTableEntry, bindData->indexColumnID, bindData->upperRelTableEntry,
-            bindData->lowerRelTableEntry, auxInfo.config.copy());
-        index->setDefaultUpperEntryPoint(auxInfo.upperEntryPoint);
-        index->setDefaultLowerEntryPoint(auxInfo.lowerEntryPoint);
+        const auto nodeTable = input.context->clientContext->getStorageManager()
+                                   ->getTable(bindData->nodeTableEntry->getTableID())
+                                   ->ptrCast<storage::NodeTable>();
+        auto indexOpt = nodeTable->getIndex(bindData->indexEntry->getIndexName());
+        KU_ASSERT(indexOpt.has_value());
+        auto& index = indexOpt.value()->cast<OnDiskHNSWIndex>();
         const auto dimension = ArrayType::getNumElements(
             getIndexColumnType(*bindData->nodeTableEntry, *bindData->indexEntry));
-        auto indexType = index->getElementType();
+        auto indexType = index.getElementType();
         TypeUtils::visit(
             indexType,
             [&]<VectorElementType T>(T) {
                 auto queryVector = getQueryVector<T>(input.context->clientContext,
-                    bindData->queryExpression, index->getElementType(), dimension);
-                localState->result = index->search(input.context->clientContext->getTransaction(),
+                    bindData->queryExpression, index.getElementType(), dimension);
+                localState->result = index.search(input.context->clientContext->getTransaction(),
                     queryVector.data(), localState->searchState);
             },
             [&](auto) { KU_UNREACHABLE; });
@@ -262,7 +252,7 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(
 }
 
 static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingClause,
-    expression_vector predicates, LogicalPlan& plan) {
+    const expression_vector& predicates, LogicalPlan& plan) {
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
     auto bindData = call.getBindData()->constPtrCast<QueryHNSWIndexBindData>();
     auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());

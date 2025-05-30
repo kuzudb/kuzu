@@ -26,7 +26,7 @@ struct IndexType {
     static IndexType deserialize(common::Deserializer& deSer);
 };
 
-static constexpr IndexType HASH_INDEX_TYPE{"DEFAULT", IndexConstraintType::PRIMARY,
+static constexpr IndexType HASH_INDEX_TYPE{"HASH", IndexConstraintType::PRIMARY,
     IndexDefinitionType::BUILTIN};
 
 struct IndexInfo {
@@ -39,7 +39,7 @@ struct IndexInfo {
     static IndexInfo deserialize(common::Deserializer& deSer);
 };
 
-struct IndexStorageInfo {
+struct KUZU_API IndexStorageInfo {
     IndexStorageInfo() {}
     virtual ~IndexStorageInfo() = default;
     DELETE_COPY_DEFAULT_MOVE(IndexStorageInfo);
@@ -52,7 +52,7 @@ struct IndexStorageInfo {
     }
 };
 
-class Index {
+class KUZU_API Index {
 public:
     Index(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storageInfo)
         : indexInfo{std::move(indexInfo)}, storageInfo{std::move(storageInfo)},
@@ -72,11 +72,21 @@ public:
         return indexInfo.indexType.definitionType == IndexDefinitionType::EXTENSION;
     }
     bool isLoaded() const { return loaded; }
+    std::string getName() const { return indexInfo.name; }
+    IndexInfo getIndexInfo() const { return indexInfo; }
 
-    virtual void checkpointInMemory() {};
+    virtual void checkpointInMemory() {
+        // DO NOTHING.
+    };
     virtual void checkpoint(bool forceCheckpointAll = false) { KU_UNUSED(forceCheckpointAll); }
-    virtual void rollbackCheckpoint() {}
+    virtual void rollbackCheckpoint() {
+        // DO NOTHING.
+    }
 
+    std::span<uint8_t> getStorageBuffer() const {
+        KU_ASSERT(!loaded);
+        return std::span(storageInfoBuffer.get(), storageInfoBufferSize);
+    }
     virtual void serialize(common::Serializer& ser) const;
 
     template<typename TARGET>

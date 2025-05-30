@@ -1,6 +1,8 @@
 #include "index/hnsw_index.h"
 
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/hnsw_index_catalog_entry.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
@@ -226,9 +228,11 @@ static common::ArrayTypeInfo getArrayTypeInfo(NodeTable& table, common::column_i
     return common::ArrayTypeInfo{typeInfo->getChildType().copy(), typeInfo->getNumElements()};
 }
 
-InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, NodeTable& table,
-    common::column_id_t columnID, HNSWIndexConfig config)
-    : HNSWIndex{std::move(config), getArrayTypeInfo(table, columnID)} {
+InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo indexInfo,
+    std::unique_ptr<IndexStorageInfo> storageInfo, NodeTable& table, common::column_id_t columnID,
+    HNSWIndexConfig config)
+    : HNSWIndex{indexInfo, std::move(storageInfo), std::move(config),
+          getArrayTypeInfo(table, columnID)} {
     const auto numNodes = table.getNumTotalRows(context->getTransaction());
     embeddings = std::make_unique<InMemEmbeddings>(context->getTransaction(),
         common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()},
@@ -264,19 +268,45 @@ void InMemHNSWIndex::finalize(MemoryManager& mm, common::node_group_idx_t nodeGr
     lowerLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.lowerPartitionerSharedState);
 }
 
-OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context,
-    catalog::NodeTableCatalogEntry* nodeTableEntry, common::column_id_t columnID,
+std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {
+    auto bufferWriter = std::make_shared<common::BufferedSerializer>();
+    auto serializer = common::Serializer(bufferWriter);
+    serializer.write<common::table_id_t>(upperRelTableID);
+    serializer.write<common::table_id_t>(lowerRelTableID);
+    serializer.write<common::offset_t>(upperEntryPoint);
+    serializer.write<common::offset_t>(lowerEntryPoint);
+    return bufferWriter;
+}
+
+std::unique_ptr<IndexStorageInfo> HNSWStorageInfo::deserialize(
+    std::unique_ptr<common::BufferReader> reader) {
+    common::table_id_t upperRelTableID = common::INVALID_TABLE_ID;
+    common::table_id_t lowerRelTableID = common::INVALID_TABLE_ID;
+    common::offset_t upperEntryPoint = common::INVALID_OFFSET;
+    common::offset_t lowerEntryPoint = common::INVALID_OFFSET;
+    common::Deserializer deSer{std::move(reader)};
+    deSer.deserializeValue<common::table_id_t>(upperRelTableID);
+    deSer.deserializeValue<common::table_id_t>(lowerRelTableID);
+    deSer.deserializeValue<common::offset_t>(upperEntryPoint);
+    deSer.deserializeValue<common::offset_t>(lowerEntryPoint);
+    return std::make_unique<HNSWStorageInfo>(upperRelTableID, lowerRelTableID, upperEntryPoint,
+        lowerEntryPoint);
+}
+
+OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, IndexInfo indexInfo,
+    std::unique_ptr<IndexStorageInfo> storageInfo, catalog::NodeTableCatalogEntry* nodeTableEntry,
     catalog::RelGroupCatalogEntry* upperRelTableEntry,
     catalog::RelGroupCatalogEntry* lowerRelTableEntry, HNSWIndexConfig config)
-    : HNSWIndex{std::move(config), getArrayTypeInfo(context->getStorageManager()
-                                                        ->getTable(nodeTableEntry->getTableID())
-                                                        ->cast<NodeTable>(),
-                                       columnID)},
+    : HNSWIndex{indexInfo, std::move(storageInfo), std::move(config),
+          getArrayTypeInfo(context->getStorageManager()
+                               ->getTable(nodeTableEntry->getTableID())
+                               ->cast<NodeTable>(),
+              indexInfo.columnID)},
       nodeTableID{nodeTableEntry->getTableID()}, upperRelTableEntry{upperRelTableEntry},
       lowerRelTableEntry{lowerRelTableEntry} {
     auto& nodeTable =
         context->getStorageManager()->getTable(nodeTableEntry->getTableID())->cast<NodeTable>();
-    KU_ASSERT(nodeTable.getColumn(columnID).getDataType().getLogicalTypeID() ==
+    KU_ASSERT(nodeTable.getColumn(indexInfo.columnID).getDataType().getLogicalTypeID() ==
               common::LogicalTypeID::ARRAY);
     embeddings = std::make_unique<OnDiskEmbeddings>(
         common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()},
@@ -287,16 +317,40 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context,
     upperGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(upperGraphEntry));
 }
 
+std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, IndexInfo indexInfo,
+    const catalog::Catalog& catalog, const catalog::IndexCatalogEntry* indexEntry,
+    std::span<uint8_t> storageInfoBuffer) {
+    auto reader =
+        std::make_unique<common::BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
+    auto storageInfo = HNSWStorageInfo::deserialize(std::move(reader));
+    auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+    auto nodeEntry =
+        catalog.getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, indexEntry->getTableID())
+            ->ptrCast<catalog::NodeTableCatalogEntry>();
+    auto upperRelTableEntry =
+        catalog
+            .getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, hnswStorageInfo.upperRelTableID)
+            ->ptrCast<catalog::RelGroupCatalogEntry>();
+    auto lowerRelTableEntry =
+        catalog
+            .getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, hnswStorageInfo.lowerRelTableID)
+            ->ptrCast<catalog::RelGroupCatalogEntry>();
+    auto auxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
+    return std::make_unique<OnDiskHNSWIndex>(context, std::move(indexInfo), std::move(storageInfo),
+        nodeEntry, upperRelTableEntry, lowerRelTableEntry, auxInfo.config.copy());
+}
+
 std::vector<NodeWithDistance> OnDiskHNSWIndex::search(transaction::Transaction* transaction,
     const void* queryVector, HNSWSearchState& searchState) const {
     auto entryPoint =
         searchNNInUpperLayer(transaction, queryVector, *searchState.embeddingScanState.scanState);
+    auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
     if (entryPoint == common::INVALID_OFFSET) {
-        if (defaultLowerEntryPoint == common::INVALID_OFFSET) {
+        if (hnswStorageInfo.lowerEntryPoint == common::INVALID_OFFSET) {
             // Both upper and lower layers are empty. Thus, the index is empty.
             return {};
         }
-        entryPoint = defaultLowerEntryPoint;
+        entryPoint = hnswStorageInfo.lowerEntryPoint;
     }
     KU_ASSERT(entryPoint != common::INVALID_OFFSET);
     return searchKNNInLowerLayer(transaction, queryVector, entryPoint, searchState);
@@ -304,7 +358,8 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::search(transaction::Transaction* 
 
 common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction* transaction,
     const void* queryVector, NodeTableScanState& embeddingScanState) const {
-    auto currentNodeOffset = defaultUpperEntryPoint.load();
+    auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+    auto currentNodeOffset = hnswStorageInfo.upperEntryPoint;
     if (currentNodeOffset == common::INVALID_OFFSET) {
         return common::INVALID_OFFSET;
     }

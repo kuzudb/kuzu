@@ -232,8 +232,8 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
     KU_ASSERT(pkColumnID != INVALID_COLUMN_ID);
-    IndexInfo indexInfo{"", HASH_INDEX_TYPE, pkColumnID, pkDefinition.getType().getPhysicalType()};
-    pkIndexPos = indexes.size();
+    IndexInfo indexInfo{PrimaryKeyIndex::name, HASH_INDEX_TYPE, pkColumnID,
+        pkDefinition.getType().getPhysicalType()};
     indexes.push_back(
         PrimaryKeyIndex::createNewIndex(indexInfo, inMemory, *memoryManager, dataFH, shadowFile));
     nodeGroups = std::make_unique<NodeGroupCollection>(
@@ -641,6 +641,23 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
     }
 }
 
+void NodeTable::addIndex(std::unique_ptr<Index> index) {
+    if (getIndex(index->getName()).has_value()) {
+        throw RuntimeException("Index with name " + index->getName() + " already exists.");
+    }
+    indexes.push_back(std::move(index));
+}
+
+void NodeTable::addOrReplaceIndex(std::unique_ptr<Index> index) {
+    for (auto i = 0u; i < indexes.size(); ++i) {
+        if (StringUtils::caseInsensitiveEquals(indexes[i]->getName(), index->getName())) {
+            indexes[i] = std::move(index);
+            return;
+        }
+    }
+    indexes.push_back(std::move(index));
+}
+
 void NodeTable::serialize(Serializer& serializer) const {
     nodeGroups->serialize(serializer);
     serializer.write<uint64_t>(indexes.size());
@@ -675,7 +692,6 @@ void NodeTable::deserialize(Deserializer& deSer) {
         switch (indexInfo.indexType.definitionType) {
         case IndexDefinitionType::BUILTIN: {
             if (indexInfo.indexType.typeName == HASH_INDEX_TYPE.typeName) {
-                pkIndexPos = i;
                 auto storageInfoBuffer = std::move(storageInfoBuffers[i]);
                 auto storageInfoBufferReader = std::make_unique<BufferReader>(
                     storageInfoBuffer.get(), storageInfoBufferSizes[i]);

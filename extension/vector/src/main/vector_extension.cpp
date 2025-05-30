@@ -4,16 +4,27 @@
 #include "function/hnsw_index_functions.h"
 #include "main/client_context.h"
 #include "main/database.h"
+#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace vector_extension {
 
-static void initHNSWEntries(const transaction::Transaction* transaction,
-    catalog::Catalog& catalog) {
-    for (auto& indexEntry : catalog.getIndexEntries(transaction)) {
+static void initHNSWEntries(main::ClientContext* context) {
+    auto catalog = context->getCatalog();
+    auto storageManager = context->getStorageManager();
+    for (auto& indexEntry : catalog->getIndexEntries(&transaction::DUMMY_TRANSACTION)) {
         if (indexEntry->getIndexType() == HNSWIndexCatalogEntry::TYPE_NAME &&
             !indexEntry->isLoaded()) {
             indexEntry->setAuxInfo(HNSWIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
+            // Should load the index in storage side as well.
+            auto& nodeTable =
+                storageManager->getTable(indexEntry->getTableID())->cast<storage::NodeTable>();
+            auto optionalIndex = nodeTable.getIndex(indexEntry->getIndexName());
+            KU_ASSERT(optionalIndex.has_value() && !optionalIndex.value()->isLoaded());
+            auto unloadedIndex = optionalIndex.value();
+            auto loadedIndex = OnDiskHNSWIndex::load(context, unloadedIndex->getIndexInfo(),
+                *catalog, indexEntry, unloadedIndex->getStorageBuffer());
+            nodeTable.addOrReplaceIndex(std::move(loadedIndex));
         }
     }
 }
@@ -27,7 +38,7 @@ void VectorExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addStandaloneTableFunc<CreateVectorIndexFunction>(db);
     extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalDropHNSWIndexFunction>(db);
     extension::ExtensionUtils::addStandaloneTableFunc<DropVectorIndexFunction>(db);
-    initHNSWEntries(&transaction::DUMMY_TRANSACTION, *db.getCatalog());
+    initHNSWEntries(context);
 }
 
 } // namespace vector_extension
