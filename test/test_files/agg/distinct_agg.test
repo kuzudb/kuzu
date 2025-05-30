@@ -122,3 +122,10 @@ Bob|Dan
 -STATEMENT MATCH (:person), (a:person)-[t:knows*2..2]->(b:person) RETURN count(*), count(DISTINCT t);
 ---- 1
 288|36
+
+-CASE Debug
+-STATEMENT UNWIND [1,1,3] AS x MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=5 WITH COLLECT(DISTINCT e) AS es UNWIND es AS newE RETURN newE.date;
+---- 3
+1950-05-14
+2000-01-01
+2021-06-30

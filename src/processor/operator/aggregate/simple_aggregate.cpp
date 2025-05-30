@@ -151,6 +151,7 @@ void SimpleAggregateSharedState::finalizePartitions(storage::MemoryManager* memo
     if (!hasDistinct) {
         return;
     }
+    InMemOverflowBuffer localOverflowBuffer(memoryManager);
     BaseAggregateSharedState::finalizePartitions(globalPartitions, [&](auto& partition) {
         for (size_t i = 0; i < partition.distinctTables.size(); i++) {
             if (!aggregateFunctions[i].isDistinct) {
@@ -173,7 +174,7 @@ void SimpleAggregateSharedState::finalizePartitions(storage::MemoryManager* memo
             while (numTuplesToScan > 0) {
                 ft->scan(vectors, startTupleIdx, numTuplesToScan, colIdxToScan);
                 aggregateFunctions[i].updateAllState((uint8_t*)state.get(), &aggregateVector,
-                    1 /*multiplicity*/, &aggregateOverflowBuffer);
+                    1 /*multiplicity*/, &localOverflowBuffer);
                 startTupleIdx += numTuplesToScan;
                 numTuplesToScan =
                     std::min(DEFAULT_VECTOR_CAPACITY, ft->getNumTuples() - startTupleIdx);
@@ -182,6 +183,10 @@ void SimpleAggregateSharedState::finalizePartitions(storage::MemoryManager* memo
             queue.reset();
         }
     });
+    {
+        std::unique_lock lck{mtx};
+        aggregateOverflowBuffer.merge(localOverflowBuffer);
+    }
 }
 
 void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {

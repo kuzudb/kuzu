@@ -48,3 +48,12 @@ Internet Explorer|[Chrome,Firefox,Internet Explorer,Opera,Safari]
 Chrome|[Chrome,Firefox,Internet Explorer,Opera,Safari]
 Safari|[Chrome,Firefox,Internet Explorer,Opera,Safari]
 Opera|[Chrome,Firefox,Internet Explorer,Opera,Safari]
+
+-LOG TestCollectManyGroups
+-STATEMENT MATCH (a:Comment)-[e:replyOf_Comment]->(b:Comment) WITH b, collect(a) as aList RETURN b.id, size(aList) ORDER BY b.id DESC LIMIT 5;
+---- 5
+1099511998009|1
+1099511998014|4
+1099511998015|4
+1099511998020|1
+1099511998025|1
