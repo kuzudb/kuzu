@@ -157,6 +157,9 @@ public:
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
+    // Deletes all edges attached to the node(s) specified in the deleteState
+    // Currently only supports deleting from a single src node
+    // Note that since the rel table doesn't store nodes this doesn't delete the node itself
     void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
         RelTableDeleteState* deleteState);
     bool checkIfNodeHasRels(transaction::Transaction* transaction,

@@ -135,7 +135,11 @@ TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
 TEST_F(OptimizerTest, MergeConsecutiveMatch) {
     auto q1 = "MATCH (a:person) MATCH (b:person) WHERE b.ID=0 MATCH (a)-[]->(b) "
               "RETURN COUNT(*);";
-    ASSERT_STREQ(getEncodedPlan(q1).c_str(), "E(a)IndexScan(b)");
+    if (common::DEFAULT_EXTEND_DIRECTION == common::ExtendDirection::FWD) {
+        ASSERT_STREQ(getEncodedPlan(q1).c_str(), "HJ(b._ID){E(b)S(a)}{IndexScan(b)}");
+    } else {
+        ASSERT_STREQ(getEncodedPlan(q1).c_str(), "E(a)IndexScan(b)");
+    }
 }
 
 TEST_F(OptimizerTest, PkScanTest) {
@@ -152,6 +156,9 @@ TEST_F(OptimizerTest, FilterDifferentPropertiesTest) {
 }
 
 TEST_F(OptimizerTest, SingleNodeTwoHopJoins) {
+    if (common::DEFAULT_EXTEND_DIRECTION != common::ExtendDirection::BOTH) {
+        GTEST_SKIP();
+    }
 #if defined(WIN32)
     // Skip on windows as we don't generate consistent plan as on other platforms.
     // TODO(Guodong/Xiyang): We should make sure the plan is consistent on all platforms.
@@ -173,6 +180,9 @@ TEST_F(OptimizerTest, SingleNodeTwoHopJoins) {
 }
 
 TEST_F(OptimizerTest, PlanUndirectedInnerJoin) {
+    if (common::DEFAULT_EXTEND_DIRECTION != common::ExtendDirection::BOTH) {
+        GTEST_SKIP();
+    }
     auto query = "MATCH (a:person)-[e:knows]-(b:person) RETURN a.ID, b.ID;";
     auto encodedPlan = getEncodedPlan(query);
     // there should only be a single hash join in the plan
