@@ -568,7 +568,9 @@ def test_pyarrow_union_dense(conn_db_readonly: ConnDB) -> None:
     arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength + 2)])
     arr3 = pa.array([generate_primitive("float32[pyarrow]") for j in range(datalength + 3)])
     col1 = pa.UnionArray.from_dense(
-        pa.array(type_codes, type=pa.int8()), offsets, [arr1.slice(1, datalength), arr2.slice(2, datalength), arr3.slice(3, datalength)]
+        pa.array(type_codes, type=pa.int8()),
+        offsets,
+        [arr1.slice(1, datalength), arr2.slice(2, datalength), arr3.slice(3, datalength)],
     )
     df = pd.DataFrame({"index": arrowtopd(index), "col1": arrowtopd(col1)})
     result = conn.execute("LOAD FROM df RETURN * ORDER BY index")

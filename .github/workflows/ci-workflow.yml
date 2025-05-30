@@ -366,7 +366,6 @@ jobs:
 
   rust-build-test:
     name: rust build & test
-    needs: [ rustfmt-check ]
     runs-on: kuzu-self-hosted-testing
     env:
       # CARGO_BUILD_JOBS is set using this in the Makefile
@@ -779,19 +778,19 @@ jobs:
           cmp tmphashfile scripts/antlr4/hash.md5
           rm tmphashfile
 
-  clang-format:
-    name: clang format
+  code-format:
+    name: code format
     runs-on: ubuntu-24.04
     steps:
-      - name: Install clang-format
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format-18
-
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-18
 
       - name: Check and fix source format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r src/
@@ -805,16 +804,29 @@ jobs:
       - name: Check and fix extension format
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
 
-      - name: Fail if any chang is made (master branch)
+      - name: Format Python API
+        run: |
+          cd tools/python_api
+          make requirements
+          make format
+
+      - name: Update Rust
+        run: rustup update
+
+      - name: Format Rust API
+        working-directory: tools/rust_api
+        run: cargo fmt --all
+
+      - name: Fail if any change is detected on the master branch
         if: github.ref == 'refs/heads/master'
         run: git diff --exit-code
 
-      - name: Commit changes (non-master branch)
+      - name: Commit changes on non-master branches
         uses: EndBug/add-and-commit@v9
         if: github.ref != 'refs/heads/master'
         with:
           author_name: "CI Bot"
-          message: "Run clang-format"
+          message: "ci: auto code format"
 
   python-lint-check:
     name: python lint check
@@ -832,19 +844,6 @@ jobs:
         run: |
           make requirements
           ./.venv/bin/ruff check src_py test --verbose
-
-  rustfmt-check:
-    name: rustfmt check
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Update Rust
-        run: rustup update
-
-      - uses: actions/checkout@v4
-
-      - name: Check Rust API format
-        working-directory: tools/rust_api
-        run: cargo fmt --check
 
   benchmark:
     name: benchmark
@@ -897,7 +896,7 @@ jobs:
 
   macos-build-test:
     name: apple clang build & test
-    needs: [ sanity-checks, rustfmt-check, python-lint-check, generate-binary-datasets ]
+    needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
     runs-on: [ self-hosted, macOS ]
     env:
       TEST_JOBS: 16
