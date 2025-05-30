@@ -15,8 +15,8 @@ void IndexType::serialize(common::Serializer& ser) const {
 
 IndexType IndexType::deserialize(common::Deserializer& deSer) {
     std::string typeName;
-    IndexConstraintType constraintType;
-    IndexDefinitionType definitionType;
+    auto constraintType = IndexConstraintType::PRIMARY;
+    auto definitionType = IndexDefinitionType::BUILTIN;
     deSer.deserializeValue(typeName);
     deSer.deserializeValue<IndexConstraintType>(constraintType);
     deSer.deserializeValue<IndexDefinitionType>(definitionType);
@@ -32,8 +32,8 @@ void IndexInfo::serialize(common::Serializer& ser) const {
 
 IndexInfo IndexInfo::deserialize(common::Deserializer& deSer) {
     std::string name;
-    common::column_id_t columnID;
-    common::PhysicalTypeID keyDataType;
+    common::column_id_t columnID = common::INVALID_COLUMN_ID;
+    auto keyDataType = common::PhysicalTypeID::ANY;
     deSer.deserializeValue(name);
     IndexType indexType = IndexType::deserialize(deSer);
     deSer.deserializeValue<common::column_id_t>(columnID);

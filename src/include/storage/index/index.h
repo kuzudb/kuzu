@@ -42,6 +42,7 @@ struct IndexInfo {
 struct IndexStorageInfo {
     IndexStorageInfo() {}
     virtual ~IndexStorageInfo() = default;
+    DELETE_COPY_DEFAULT_MOVE(IndexStorageInfo);
 
     virtual std::shared_ptr<common::BufferedSerializer> serialize() const;
 
