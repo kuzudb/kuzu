@@ -1,6 +1,6 @@
 # required for tests
 networkx~=3.0
-numpy~=2.2
+numpy~=1.26
 pandas~=2.2
 polars~=1.30
 pyarrow~=20.0
