@@ -9,12 +9,11 @@ from uuid import UUID
 import kuzu
 import pytz
 from pandas import Timedelta, Timestamp
-
 from type_aliases import ConnDB
 
 
 def test_to_df(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
 
     def _test_person_to_df(conn: kuzu.Connection) -> None:
         query = "MATCH (p:person) return p.* ORDER BY p.ID"

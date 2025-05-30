@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
 PYTHONPATH=
-SHELL=/bin/bash
+SHELL=/usr/bin/env bash
 VENV=.venv
 
 ifeq ($(OS),Windows_NT)
@@ -25,6 +25,14 @@ lint:  ## Apply autoformatting and linting rules
 	$(VENV_BIN)/ruff check src_py test
 	$(VENV_BIN)/ruff format src_py test
 	-$(VENV_BIN)/mypy src_py test
+
+.PHONY: check
+check:
+	$(VENV_BIN)/ruff check src_py test
+
+.PHONY: format
+format:
+	$(VENV_BIN)/ruff format src_py test
 
 .PHONY: build
 build:  ## Compile kuzu (and install in 'build') for Python

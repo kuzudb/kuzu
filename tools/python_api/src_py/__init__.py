@@ -77,7 +77,7 @@ __all__ = [
     "PreparedStatement",
     "QueryResult",
     "Type",
-    "__version__",
-    "storage_version",
-    "version",
+    "__version__",  # noqa: F822
+    "storage_version",  # noqa: F822
+    "version",  # noqa: F822
 ]

@@ -148,7 +148,7 @@ def init_db(path: Path) -> Path:
     if Path(path).exists():
         shutil.rmtree(path)
 
-    conn, db = create_conn_db(path, read_only=False)
+    conn, _ = create_conn_db(path, read_only=False)
     init_tinysnb(conn)
     init_demo(conn)
     init_npy(conn)

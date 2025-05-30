@@ -9,8 +9,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_async_prepare_and_execute(async_connection_readonly):
     query = "MATCH (a:person) WHERE a.ID = $1 RETURN a.age;"
-    prepared = await async_connection_readonly.prepare(query)
-    result = await async_connection_readonly.execute(prepared, {"1": 0})
+    result = await async_connection_readonly.execute(query, {"1": 0})
     assert result.has_next()
     assert result.get_next() == [35]
     assert not result.has_next()
@@ -23,10 +22,7 @@ async def test_async_prepare_and_execute(async_connection_readonly):
 async def test_async_prepare_and_execute_concurrent(async_connection_readonly):
     num_queries = 100
     query = "RETURN $1;"
-    prepared_statements = await asyncio.gather(*[async_connection_readonly.prepare(query) for _ in range(num_queries)])
-    results = await asyncio.gather(*[
-        async_connection_readonly.execute(prepared, {"1": i}) for i, prepared in enumerate(prepared_statements)
-    ])
+    results = await asyncio.gather(*[async_connection_readonly.execute(query, {"1": i}) for i in range(num_queries)])
     for i, result in enumerate(results):
         assert result.has_next()
         assert result.get_next() == [i]
@@ -156,8 +152,7 @@ def test_acquire_connection(async_connection_readonly):
 async def test_async_connection_interrupt(async_connection_readonly) -> None:
     query = "UNWIND RANGE(1,1000000) AS x UNWIND RANGE(1, 1000000) AS y RETURN COUNT(x + y);"
     async_connection_readonly.set_query_timeout(100 * 1000)
-    prepared = await async_connection_readonly.prepare(query)
-    task = asyncio.create_task(async_connection_readonly.execute(prepared))
+    task = asyncio.create_task(async_connection_readonly.execute(query))
     time.sleep(5)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):

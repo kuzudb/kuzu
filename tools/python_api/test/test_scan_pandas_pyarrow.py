@@ -71,7 +71,7 @@ def is_null(val):
 
 
 def pyarrow_test_helper(establish_connection, n, k):
-    conn, db = establish_connection
+    conn, _ = establish_connection
     names = ["boolcol", "int32col", "int64col", "uint64col", "floatcol"]
     schema = ["bool[pyarrow]", "int32[pyarrow]", "int64[pyarrow]", "uint64[pyarrow]", "float32[pyarrow]"]
     set_thread_count(conn, k)
@@ -113,7 +113,7 @@ def test_pyarrow_primitive(tmp_path: Path) -> None:
 
 
 def test_pyarrow_time(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     col1 = pa.array([1000123, 2000123, 3000123], type=pa.duration("s"))
     col2 = pa.array([1000123000000, 2000123000000, 3000123000000], type=pa.duration("us"))
     col3 = pa.array([1000123000000000, 2000123000000000, 3000123000000000], type=pa.duration("ns"))
@@ -164,7 +164,7 @@ def generate_blob(length):
 
 
 def test_pyarrow_blob(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     # blobs, blob views, and fixed size blobs
     random.seed(100)
     index = pa.array(range(16000), type=pa.int64())
@@ -202,7 +202,7 @@ def generate_string(length):
 
 
 def test_pyarrow_string(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     # blobs, blob views, and fixed size blobs
     random.seed(100)
     index = pa.array(range(16000), type=pa.int64())
@@ -226,7 +226,7 @@ def test_pyarrow_string(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_dict(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     index = pa.array(range(2000), type=pa.int64())
     col1 = pa.array([random.randint(0, 1) for i in range(2000)], type=pa.int32()).dictionary_encode()
@@ -244,7 +244,7 @@ def test_pyarrow_dict(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_dict_offset(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     datalength = 4000
     index = pa.array(range(datalength), type=pa.int64())
@@ -265,7 +265,7 @@ def test_pyarrow_dict_offset(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_list(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     datalength = 50
     childlength = 5
@@ -299,7 +299,7 @@ def test_pyarrow_list(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_list_offset(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     datalength = 50
     childlength = 5
@@ -325,7 +325,7 @@ def test_pyarrow_list_offset(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_fixed_list(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     data_len = 50
     child_len = 3
@@ -448,17 +448,17 @@ def test_pyarrow_fixed_list(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_fixed_list_offset(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     data_len = 50
     child_len = 5
     values = pa.array([generate_primitive("int32[pyarrow]") for _ in range(data_len * child_len + 2)])
     mask = pa.array([random.choice([True, False]) for _ in range(data_len)])
     index = pa.array(range(data_len))
-    _col1 = pa.FixedSizeListArray.from_arrays(values.slice(2, data_len * child_len), list_size=child_len)
-    col1 = _col1.slice(1, 49)
-    _col2 = pa.FixedSizeListArray.from_arrays(values.slice(1, data_len * child_len), list_size=child_len, mask=mask)
-    col2 = _col2.slice(1, 49)
+    col1 = pa.FixedSizeListArray.from_arrays(values.slice(2, data_len * child_len), list_size=child_len)
+    col1 = col1.slice(1, 49)
+    col2 = pa.FixedSizeListArray.from_arrays(values.slice(1, data_len * child_len), list_size=child_len, mask=mask)
+    col2 = col2.slice(1, 49)
     df = pd.DataFrame({"index": arrowtopd(index.slice(0, 49)), "col1": arrowtopd(col1), "col2": arrowtopd(col2)})
     result = conn.execute("LOAD FROM df RETURN * ORDER BY index")
     idx = 0
@@ -473,7 +473,7 @@ def test_pyarrow_fixed_list_offset(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_struct(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     datalength = 4096
     index = pa.array(range(datalength))
@@ -501,7 +501,7 @@ def test_pyarrow_struct(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_struct_offset(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     datalength = 4096
     index = pa.array(range(datalength))
@@ -528,7 +528,7 @@ def test_pyarrow_struct_offset(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_union_sparse(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     datalength = 4096
     index = pa.array(range(datalength))
@@ -553,23 +553,22 @@ def test_pyarrow_union_sparse(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_union_dense(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     datalength = 4096
     index = pa.array(range(datalength))
-    _type_codes = [random.randint(0, 2) for i in range(datalength)]
-    type_codes = pa.array(_type_codes, type=pa.int8())
-    _offsets = [0 for _ in range(datalength)]
-    _cnt = [0, 0, 0]
-    for i in range(len(_type_codes)):
-        _offsets[i] = _cnt[_type_codes[i]]
-        _cnt[_type_codes[i]] += 1
-    offsets = pa.array(_offsets, type=pa.int32())
+    type_codes = [random.randint(0, 2) for i in range(datalength)]
+    offsets = [0 for _ in range(datalength)]
+    cnt = [0, 0, 0]
+    for i in range(len(type_codes)):
+        offsets[i] = cnt[type_codes[i]]
+        cnt[type_codes[i]] += 1
+    offsets = pa.array(offsets, type=pa.int32())
     arr1 = pa.array([generate_primitive("int32[pyarrow]") for i in range(datalength + 1)], type=pa.int32())
     arr2 = pa.array([generate_string(random.randint(1, 10)) for i in range(datalength + 2)])
     arr3 = pa.array([generate_primitive("float32[pyarrow]") for j in range(datalength + 3)])
     col1 = pa.UnionArray.from_dense(
-        type_codes, offsets, [arr1.slice(1, datalength), arr2.slice(2, datalength), arr3.slice(3, datalength)]
+        pa.array(type_codes, type=pa.int8()), offsets, [arr1.slice(1, datalength), arr2.slice(2, datalength), arr3.slice(3, datalength)]
     )
     df = pd.DataFrame({"index": arrowtopd(index), "col1": arrowtopd(col1)})
     result = conn.execute("LOAD FROM df RETURN * ORDER BY index")
@@ -585,7 +584,7 @@ def test_pyarrow_union_dense(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_map(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     datalength = 4096
     index = pa.array(range(datalength))
@@ -617,7 +616,7 @@ def test_pyarrow_map(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_map_offset(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     random.seed(100)
     datalength = 50
     maplength = 5
@@ -627,10 +626,10 @@ def test_pyarrow_map_offset(conn_db_readonly: ConnDB) -> None:
     offsets = pa.array(offsets, type=pa.int32())
     keys = pa.array([random.randint(0, (1 << 31) - 1) for _ in range(datalength * maplength + 1)])
     values = pa.array([generate_primitive("int64[pyarrow]") for _ in range(datalength * maplength + 1)])
-    _col1 = pa.MapArray.from_arrays(
+    col1 = pa.MapArray.from_arrays(
         offsets, keys.slice(1, datalength * maplength), values.slice(1, datalength * maplength)
     )
-    col1 = _col1.slice(2, 48)
+    col1 = col1.slice(2, 48)
     df = pd.DataFrame({
         "index": arrowtopd(index.slice(0, 48)),
         "col1": arrowtopd(col1),
@@ -648,7 +647,7 @@ def test_pyarrow_map_offset(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_decimal(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     datalength = 4
     index = pa.array(range(datalength))
     decimal52 = pa.array(map(Decimal, ["1.2", "2", "0.5", "100"]), type=pa.decimal128(7, 2))
@@ -666,7 +665,7 @@ def test_pyarrow_decimal(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_pyarrow_skip_limit(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     datalength = 15000
     random.seed(100)
     index = pa.array(range(datalength))
@@ -702,7 +701,7 @@ def test_pyarrow_skip_limit(conn_db_readonly: ConnDB) -> None:
 
 
 def test_pyarrow_invalid_skip_limit(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     df = pd.DataFrame({"col": arrowtopd(pa.array([1, 2, 3, 4, 5]))})
     with pytest.raises(
         RuntimeError, match=re.escape("Binder exception: SKIP Option must be a positive integer literal.")

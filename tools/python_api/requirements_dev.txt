@@ -1,17 +1,17 @@
 # required for tests
 networkx~=3.0
 numpy~=1.26
-pandas
-polars~=0.20
-pyarrow>=15
-pybind11>=2.6.0
+pandas~=2.2
+polars~=1.30
+pyarrow~=20.0
+pybind11~=2.13
 pytest
 torch
 torch-geometric~=2.3.0
 setuptools~=80.8
-pytest-asyncio~=0.25
+pytest-asyncio~=1.0
 
 # required for lint/formatting
-ruff==0.3.2
-mypy==1.9.0
-uv==0.1.17
+ruff==0.11.12
+mypy==1.16.0
+uv==0.7.8

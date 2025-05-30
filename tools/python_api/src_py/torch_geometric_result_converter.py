@@ -44,25 +44,25 @@ class TorchGeometricResultConverter:
                 if column_type == Type.NODE.value:
                     node = row[i]
                     label = node["_label"]
-                    _id = node["_id"]
-                    self.table_to_label_dict[_id["table"]] = label
+                    nid = node["_id"]
+                    self.table_to_label_dict[nid["table"]] = label
 
-                    if (_id["table"], _id["offset"]) in self.internal_id_to_pos_dict:
+                    if (nid["table"], nid["offset"]) in self.internal_id_to_pos_dict:
                         continue
 
                     node_property_names = self.__get_node_property_names(label)
 
                     pos, primary_key = self.__extract_properties_from_node(node, label, node_property_names)
 
-                    self.internal_id_to_pos_dict[(_id["table"], _id["offset"])] = pos
+                    self.internal_id_to_pos_dict[nid["table"], nid["offset"]] = pos
                     if label not in self.pos_to_primary_key_dict:
                         self.pos_to_primary_key_dict[label] = {}
                     self.pos_to_primary_key_dict[label][pos] = primary_key
 
                 elif column_type == Type.REL.value:
-                    _src = row[i]["_src"]
-                    _dst = row[i]["_dst"]
-                    self.rels[(_src["table"], _src["offset"], _dst["table"], _dst["offset"])] = row[i]
+                    src = row[i]["_src"]
+                    dst = row[i]["_dst"]
+                    self.rels[src["table"], src["offset"], dst["table"], dst["offset"]] = row[i]
 
     def __extract_properties_from_node(
         self,
@@ -171,8 +171,8 @@ class TorchGeometricResultConverter:
     def __populate_edges_dict(self) -> None:
         # Post-process edges, map internal ids to positions
         for r in self.rels:
-            src_pos = self.internal_id_to_pos_dict[(r[0], r[1])]
-            dst_pos = self.internal_id_to_pos_dict[(r[2], r[3])]
+            src_pos = self.internal_id_to_pos_dict[r[0], r[1]]
+            dst_pos = self.internal_id_to_pos_dict[r[2], r[3]]
             src_label = self.table_to_label_dict[r[0]]
             dst_label = self.table_to_label_dict[r[2]]
             if src_label not in self.edges_dict:

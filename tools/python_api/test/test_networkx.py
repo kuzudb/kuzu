@@ -114,7 +114,7 @@ def test_to_networkx_node(conn_db_readonly: ConnDB) -> None:
     }
     for i in range(len(nodes)):
         node_id, node = nodes[i]
-        assert node_id == "%s_%d" % (node["_label"], node["ID"])
+        assert node_id == f"{node['_label']}_{node['ID']}"
         for key in ground_truth:
             assert node[key] == ground_truth[key][i]
 
@@ -228,7 +228,7 @@ def test_networkx_undirected(conn_db_readonly: ConnDB) -> None:
         ],
     }
     for node_id, node in nodes:
-        assert node_id == "%s_%d" % (node["_label"], node["ID"])
+        assert node_id == f"{node['_label']}_{node['ID']}"
 
     for _, node in nodes:
         found = False
@@ -290,7 +290,7 @@ def test_networkx_directed(conn_db_readonly: ConnDB) -> None:
     }
 
     for node_id, node in nodes:
-        assert node_id == "%s_%d" % (node["_label"], node["ID"])
+        assert node_id == f"{node['_label']}_{node['ID']}"
 
     for _, node in nodes:
         if "person" not in node:
@@ -429,7 +429,8 @@ def test_networkx_optional_match(conn_db_readonly: ConnDB) -> None:
                 assert data["since"] == follows["since"]
                 break
         else:
-            raise f"Edge {src_name} -> {dst_name} not found in ground truth"
+            msg = f"Edge {src_name} -> {dst_name} not found in ground truth"
+            raise AssertionError(msg)
 
     edges = list(nx_graph.edges(data=True))
     assert len(edges) == 4

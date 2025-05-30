@@ -16,8 +16,8 @@ def test_iteration_list() -> None:
     assert result.get_num_tuples() == 2
 
     rows = list(result)
-    assert rows[0] == ['Alice', 30]
-    assert rows[1] == ['Bob', 40]
+    assert rows[0] == ["Alice", 30]
+    assert rows[1] == ["Bob", 40]
 
 
 def test_iteration_loop() -> None:
@@ -36,8 +36,8 @@ def test_iteration_loop() -> None:
     for row in result:
         rows.append(row)
 
-    assert rows[0] == ['Alice', 30]
-    assert rows[1] == ['Bob', 40]
+    assert rows[0] == ["Alice", 30]
+    assert rows[1] == ["Bob", 40]
 
 
 def test_get_all() -> None:
@@ -54,8 +54,8 @@ def test_get_all() -> None:
 
     rows = result.get_all()
 
-    assert rows[0] == ['Alice', 30]
-    assert rows[1] == ['Bob', 40]
+    assert rows[0] == ["Alice", 30]
+    assert rows[1] == ["Bob", 40]
 
 
 def test_get_n() -> None:
@@ -76,13 +76,13 @@ def test_get_n() -> None:
     rows = result.get_n(2)
 
     assert len(rows) == 2
-    assert rows[0] == ['Alice', 30]
-    assert rows[1] == ['Bob', 40]
+    assert rows[0] == ["Alice", 30]
+    assert rows[1] == ["Bob", 40]
 
     rows = result.get_n(1)
 
     assert len(rows) == 1
-    assert rows[0] == ['Cole', 20]
+    assert rows[0] == ["Cole", 20]
 
     rows = result.get_n(3)
 
@@ -95,6 +95,6 @@ def test_get_n() -> None:
     rows = result.get_n(10)
 
     assert len(rows) == 3
-    assert rows[0] == ['Alice', 30]
-    assert rows[1] == ['Bob', 40]
-    assert rows[2] == ['Cole', 20]
+    assert rows[0] == ["Alice", 30]
+    assert rows[1] == ["Bob", 40]
+    assert rows[2] == ["Cole", 20]

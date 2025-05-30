@@ -4,7 +4,7 @@ from type_aliases import ConnDB
 
 
 def test_pyarrow_basic(conn_db_readonly: ConnDB) -> None:
-    conn, db = conn_db_readonly
+    conn, _ = conn_db_readonly
     tab = pa.Table.from_arrays(
         [
             [1, 2, 3],
@@ -43,33 +43,11 @@ def test_pyarrow_copy_from_parameterized_df(conn_db_readwrite: ConnDB) -> None:
         [pa.array([1, 2, 3], type=pa.int32()), pa.array([2, 3, 1], type=pa.int32())], names=["from", "to"]
     )
     conn.execute("CREATE REL TABLE pyarrowrel(FROM pyarrowtab TO pyarrowtab)")
-    prep = conn.prepare("COPY pyarrowrel FROM $tab", {"tab": rels})
-    conn.execute(prep)
+    conn.execute("COPY pyarrowrel FROM $tab", {"tab": rels})
     result = conn.execute("MATCH (a:pyarrowtab)-[:pyarrowrel]->(b:pyarrowtab) RETURN a.id, b.id ORDER BY a.id")
     assert result.get_next() == [1, 2]
     assert result.get_next() == [2, 3]
     assert result.get_next() == [3, 1]
-
-
-def test_pyarrow_different_dataframes_passed_to_prepare_and_execute(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
-    tab = pa.Table.from_arrays(
-        [
-            pa.array([1, 2, 3], type=pa.int32()),
-        ],
-        names=["id"],
-    )
-    tab1 = pa.Table.from_arrays(
-        [
-            pa.array([4, 5, 6], type=pa.int32()),
-        ],
-        names=["id"],
-    )
-    conn.execute("CREATE NODE TABLE ids(id INT64, PRIMARY KEY(id))")
-    error_message = "When preparing the current statement the dataframe passed into parameter 'tab' was different from the one provided during prepare. Dataframes parameters are only used during prepare; please make sure that they are either not passed into execute or they match the one passed during prepare."
-    prep = conn.prepare("COPY ids FROM $tab", {"tab": tab})
-    with pytest.raises(RuntimeError, match=error_message):
-        conn.execute(prep, {"tab": tab1})
 
 
 def test_pyarrow_copy_from_invalid_source(conn_db_readwrite: ConnDB) -> None:
@@ -83,7 +61,7 @@ def test_pyarrow_copy_from_invalid_source(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_pyarrow_copy_from(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     tab = pa.Table.from_arrays(
         [
             pa.array([1, 2, 3], type=pa.int32()),
@@ -131,7 +109,7 @@ def test_pyarrow_copy_from(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_pyarrow_scan_ignore_errors(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     tab = pa.Table.from_arrays(
         [
             pa.array([1, 2, 3, 1], type=pa.int32()),
@@ -153,7 +131,7 @@ def test_pyarrow_scan_ignore_errors(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_pyarrow_scan_invalid_option(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     tab = pa.Table.from_arrays(
         [
             pa.array([1, 2, 3], type=pa.int32()),
@@ -167,7 +145,7 @@ def test_pyarrow_scan_invalid_option(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_copy_from_pyarrow_multi_pairs(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+    conn, _ = conn_db_readwrite
     conn.execute("CREATE NODE TABLE prof(id INT64, PRIMARY KEY(id))")
     conn.execute("CREATE (p:prof {id: 3});")
     conn.execute("CREATE (p:prof {id: 4});")

@@ -244,31 +244,31 @@ def test_to_torch_geometric_homogeneous_graph(conn_db_readonly: ConnDB) -> None:
         orginal_dst = pos_to_idx[dst]
         assert (orginal_src, orginal_dst) in ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(orginal_src, orginal_dst)]["date"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[orginal_src, orginal_dst]["date"]
             == edge_properties["date"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(orginal_src, orginal_dst)]["meetTime"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[orginal_src, orginal_dst]["meetTime"]
             == edge_properties["meetTime"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(orginal_src, orginal_dst)]["validInterval"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[orginal_src, orginal_dst]["validInterval"]
             == edge_properties["validInterval"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(orginal_src, orginal_dst)]["comments"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[orginal_src, orginal_dst]["comments"]
             == edge_properties["comments"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(orginal_src, orginal_dst)]["summary"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[orginal_src, orginal_dst]["summary"]
             == edge_properties["summary"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(orginal_src, orginal_dst)]["notes"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[orginal_src, orginal_dst]["notes"]
             == edge_properties["notes"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(orginal_src, orginal_dst)]["someMap"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[orginal_src, orginal_dst]["someMap"]
             == edge_properties["someMap"][i]
         )
 
@@ -416,27 +416,27 @@ def test_to_torch_geometric_heterogeneous_graph(conn_db_readonly: ConnDB) -> Non
         original_src, original_dst = pos_to_idx["person"][src], pos_to_idx["person"][dst]
         assert (original_src, original_dst) in ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(original_src, original_dst)]["date"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[original_src, original_dst]["date"]
             == edge_properties["person", "person"]["date"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(original_src, original_dst)]["meetTime"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[original_src, original_dst]["meetTime"]
             == edge_properties["person", "person"]["meetTime"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(original_src, original_dst)]["validInterval"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[original_src, original_dst]["validInterval"]
             == edge_properties["person", "person"]["validInterval"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(original_src, original_dst)]["comments"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[original_src, original_dst]["comments"]
             == edge_properties["person", "person"]["comments"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(original_src, original_dst)]["summary"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[original_src, original_dst]["summary"]
             == edge_properties["person", "person"]["summary"][i]
         )
         assert (
-            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(original_src, original_dst)]["notes"]
+            ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[original_src, original_dst]["notes"]
             == edge_properties["person", "person"]["notes"][i]
         )
         assert edge_properties["person", "person"]["_label"][i] == "knows"
@@ -529,7 +529,7 @@ def test_to_torch_geometric_heterogeneous_graph(conn_db_readonly: ConnDB) -> Non
         )
         original_src, original_dst = pos_to_idx["person"][src], pos_to_idx["organisation"][dst]
         assert (
-            ground_truth.TINY_SNB_WORKS_AT_PROPERTIES_GROUND_TRUTH[(original_src, original_dst)]["year"]
+            ground_truth.TINY_SNB_WORKS_AT_PROPERTIES_GROUND_TRUTH[original_src, original_dst]["year"]
             == edge_properties["person", "organisation"]["year"][i]
         )
         assert edge_properties["person", "organisation"]["_label"][i] == "workAt"

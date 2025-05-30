@@ -178,7 +178,7 @@ class AsyncConnection:
         """
         The only parameters supported during prepare are dataframes.
         Any remaining parameters will be ignored and should be passed to execute().
-        """
+        """  # noqa: D401
         loop = asyncio.get_running_loop()
         conn, conn_index = self.__get_connection_with_least_queries()
 

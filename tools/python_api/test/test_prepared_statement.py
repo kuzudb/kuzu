@@ -3,31 +3,30 @@ from __future__ import annotations
 import datetime
 import uuid
 
+import pytest
 from type_aliases import ConnDB
 
 
 def test_read(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
-    prepared_statement = conn.prepare("MATCH (a:person) WHERE a.isStudent = $1 AND a.isWorker = $k RETURN COUNT(*)")
-    assert prepared_statement.is_success()
-    assert prepared_statement.get_error_message() == ""
+    prepared_query = "MATCH (a:person) WHERE a.isStudent = $1 AND a.isWorker = $k RETURN COUNT(*)"
 
-    result = conn.execute(prepared_statement, {"1": False, "k": False})
+    result = conn.execute(prepared_query, {"1": False, "k": False})
     assert result.has_next()
     assert result.get_next() == [1]
     assert not result.has_next()
 
-    result = conn.execute(prepared_statement, {"1": True, "k": False})
+    result = conn.execute(prepared_query, {"1": True, "k": False})
     assert result.has_next()
     assert result.get_next() == [3]
     assert not result.has_next()
 
-    result = conn.execute(prepared_statement, {"1": False, "k": True})
+    result = conn.execute(prepared_query, {"1": False, "k": True})
     assert result.has_next()
     assert result.get_next() == [4]
     assert not result.has_next()
 
-    result = conn.execute(prepared_statement, {"1": True, "k": True})
+    result = conn.execute(prepared_query, {"1": True, "k": True})
     assert result.has_next()
     assert result.get_next() == [0]
     assert not result.has_next()
@@ -35,11 +34,9 @@ def test_read(conn_db_readonly: ConnDB) -> None:
 
 def test_null_value(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
-    prepared_statement = conn.prepare("RETURN [4, $1, 2, $3, 4]")
-    assert prepared_statement.is_success()
-    assert prepared_statement.get_error_message() == ""
+    prepared_query = "RETURN [4, $1, 2, $3, 4]"
 
-    result = conn.execute(prepared_statement, {"1": None, "3": 5})
+    result = conn.execute(prepared_query, {"1": None, "3": 5})
     assert result.has_next()
     assert result.get_next() == [[4, None, 2, 5, 4]]
     assert not result.has_next()
@@ -80,13 +77,10 @@ def test_write(conn_db_readwrite: ConnDB) -> None:
         },
     ]
 
-    prepared_statement = conn.prepare(
-        "CREATE (n:organisation {ID: $ID, name: $name, orgCode: $orgCode, mark: $mark, score: $score, history: $history, licenseValidInterval: $licenseValidInterval, rating: $rating})"
-    )
-    assert prepared_statement.is_success()
+    prepared_query = "CREATE (n:organisation {ID: $ID, name: $name, orgCode: $orgCode, mark: $mark, score: $score, history: $history, licenseValidInterval: $licenseValidInterval, rating: $rating})"
     for org in orgs:
         org_dict = {str(k): v for k, v in org.items()}
-        conn.execute(prepared_statement, org_dict)
+        conn.execute(prepared_query, org_dict)
 
     all_orgs_res = conn.execute("MATCH (n:organisation) RETURN n")
     while all_orgs_res.has_next():
@@ -112,17 +106,12 @@ def test_write(conn_db_readwrite: ConnDB) -> None:
 
 
 def test_error(conn_db_readonly: ConnDB) -> None:
-    prepared_statement = conn_db_readonly[0].prepare("MATCH (d:dog) WHERE d.isServiceDog = $1 RETURN COUNT(*)")
-    assert not prepared_statement.is_success()
-    assert prepared_statement.get_error_message() == "Binder exception: Table dog does not exist."
+    with pytest.raises(RuntimeError, match=r"Binder exception: Table dog does not exist."):
+        conn_db_readonly[0].execute("MATCH (d:dog) WHERE d.isServiceDog = $1 RETURN COUNT(*)")
 
-    prepared_statement = conn_db_readonly[0].prepare("SELECT * FROM person")
-    assert not prepared_statement.is_success()
-    assert prepared_statement.get_error_message().startswith("Parser exception: extraneous input 'SELECT'")
 
 def test_prepare_limit(conn_db_readonly: ConnDB) -> None:
-    prepared_statement = conn_db_readonly[0].prepare("MATCH (p:person) return p.ID limit $lt")
-    result = conn_db_readonly[0].execute(prepared_statement, {'lt': 3})
+    result = conn_db_readonly[0].execute("MATCH (p:person) return p.ID limit $lt", {"lt": 3})
     assert result.get_next() == [0]
     assert result.get_next() == [2]
     assert result.get_next() == [3]

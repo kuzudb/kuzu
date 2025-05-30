@@ -28,6 +28,7 @@ cmake-build-release/
 test/unittest_temp_*
 dataset/parquet_temp_*
 tools/python_api/test/test_PYTHON_CSV.csv
+test.db/
 
 # antlr4 jar
 scripts/antlr4/antlr4.jar
