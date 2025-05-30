@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace llm_extension {
 
-struct CreateEmbedding final {
+struct CreateEmbedding {
     static constexpr const char* name = "CREATE_EMBEDDING";
 
     static function::function_set getFunctionSet();

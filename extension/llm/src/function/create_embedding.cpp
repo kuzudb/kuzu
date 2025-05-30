@@ -26,7 +26,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     httplib::Headers headers = {{"Content-Type", "application/json"}};
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
-        std::string text = parameters[0]->getValue<ku_string_t>(selectedPos).getAsString();
+        auto text = parameters[0]->getValue<ku_string_t>(selectedPos).getAsString();
         nlohmann::json payload = {{"model", "nomic-embed-text"}, {"prompt", text}};
         auto res = client.Post("/api/embeddings", headers, payload.dump(), "application/json");
         if (!res) {
@@ -39,8 +39,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
                                       "\n Body: " + res->body + "\n");
         }
 
-        std::vector<float> embeddingVec =
-            nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
+        auto embeddingVec = nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
         auto pos = (*resultSelVector)[selectedPos];
         auto resultEntry = ListVector::addList(&result, embeddingVec.size());
         result.setValue(pos, resultEntry);
