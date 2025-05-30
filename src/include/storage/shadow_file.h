@@ -20,7 +20,7 @@ struct ShadowFileHeader {
 // NOTE: This class is NOT thread-safe for now, as we are not checkpointing in parallel yet.
 class ShadowFile {
 public:
-    ShadowFile(const std::string& directory, bool readOnly, BufferManager& bufferManager,
+    ShadowFile(const std::string& dbPath, bool readOnly, BufferManager& bufferManager,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     DELETE_COPY_DEFAULT_MOVE(ShadowFile);
@@ -41,9 +41,6 @@ public:
 
     void flushAll() const;
     void clearAll(main::ClientContext& context);
-
-private:
-    static std::unique_ptr<common::FileInfo> getDataFileInfo(const main::ClientContext& context);
 
 private:
     FileHandle* shadowingFH;

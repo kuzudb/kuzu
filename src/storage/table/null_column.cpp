@@ -3,7 +3,7 @@
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
-#include "transaction/transaction.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

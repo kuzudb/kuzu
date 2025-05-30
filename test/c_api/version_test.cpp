@@ -5,7 +5,6 @@
 #include "c_api/kuzu.h"
 #include "c_api_test/c_api_test.h"
 #include "gtest/gtest.h"
-#include "main/version.h"
 
 using namespace kuzu::main;
 using namespace kuzu::testing;
@@ -30,7 +29,7 @@ TEST_F(CApiVersionTest, GetStorageVersion) {
     if (databasePath == "" || databasePath == ":memory:") {
         return;
     }
-    auto data = std::filesystem::path(databasePath) / "data.kz";
+    auto data = std::filesystem::path(databasePath);
     std::ifstream catalogFile;
     catalogFile.open(data, std::ios::binary);
     char magic[5];

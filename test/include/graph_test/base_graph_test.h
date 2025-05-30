@@ -12,14 +12,29 @@ using ::testing::Test;
 namespace kuzu {
 namespace testing {
 
-static void removeDir(const std::string& dir) {
-    if (std::filesystem::exists(dir)) {
-        std::error_code removeErrorCode;
-        if (!std::filesystem::remove_all(dir, removeErrorCode)) {
-            throw common::Exception(common::stringFormat(
-                "Error removing directory {}.  Error Message: {}", dir, removeErrorCode.message()));
-        }
+static void removeDir(const std::string& dbPath) {
+    if (!std::filesystem::exists(dbPath)) {
+        return;
     }
+    std::error_code removeErrorCode;
+    if (!std::filesystem::is_directory(dbPath)) {
+        return;
+    }
+    if (!std::filesystem::remove_all(dbPath, removeErrorCode)) {
+        throw common::Exception(common::stringFormat(
+            "Error removing directory {}.  Error Message: {}", dbPath, removeErrorCode.message()));
+    }
+}
+
+static void removeParentDirectoryOfDBPath(const std::string& dbPath) {
+    if (!std::filesystem::exists(dbPath)) {
+        return;
+    }
+    if (std::filesystem::is_directory(dbPath)) {
+        return;
+    }
+    const auto parentDir = std::filesystem::path(dbPath).parent_path();
+    removeDir(parentDir.string());
 }
 
 class BaseGraphTest : public Test {
@@ -27,7 +42,7 @@ public:
     void SetUp() override {
         systemConfig = TestHelper::getSystemConfigFromEnv();
         setDatabasePath();
-        removeDir(databasePath);
+        removeParentDirectoryOfDBPath(databasePath);
 
         ieDBPath = "";
     }
@@ -39,7 +54,7 @@ public:
         connMap.clear();
         database.reset();
         if (!inMemMode) {
-            std::filesystem::remove_all(databasePath);
+            removeParentDirectoryOfDBPath(databasePath);
         }
     }
 
@@ -48,9 +63,11 @@ public:
     void createConns(const std::set<std::string>& connNames);
 
     void initGraph() { initGraph(getInputDir()); }
+
     void initGraph(const std::string& datasetDir) const;
 
     void setIEDatabasePath(const std::string& filePath) { ieDBPath = filePath; }
+
     void removeIEDBPath() const {
         if (ieDBPath != "") {
             const auto lastSlashPos = ieDBPath.rfind('/');
@@ -70,12 +87,15 @@ protected:
     static storage::BufferManager* getBufferManager(const main::Database& database) {
         return database.bufferManager.get();
     }
+
     static storage::MemoryManager* getMemoryManager(const main::Database& database) {
         return database.memoryManager.get();
     }
+
     static common::VirtualFileSystem* getFileSystem(const main::Database& database) {
         return database.vfs.get();
     }
+
     static storage::StorageManager* getStorageManager(main::Database& database) {
         return database.storageManager.get();
     }
@@ -84,6 +104,7 @@ protected:
     static main::ClientContext* getClientContext(const main::Connection& connection) {
         return connection.clientContext.get();
     }
+
     static void sortAndCheckTestResults(const std::vector<std::string>& actualResult,
         std::vector<std::string>& expectedResult) {
         sort(expectedResult.begin(), expectedResult.end());
@@ -96,12 +117,11 @@ protected:
         return std::string(testInfo->test_case_name()) + "." + std::string(testInfo->name());
     }
 
-private:
     void setDatabasePath() {
         auto isValid = [](const char* env) { return env != nullptr && strlen(env) > 0; };
         const auto inMemModeEnv = std::getenv("IN_MEM_MODE");
         inMemMode = isValid(inMemModeEnv) ? std::string(inMemModeEnv) == "true" : false;
-        databasePath = inMemMode ? "" : TestHelper::getTempDir(getTestGroupAndName());
+        databasePath = inMemMode ? "" : TestHelper::getTempDBPathStr(getTestGroupAndName());
     }
 
 public:
@@ -116,6 +136,5 @@ public:
     // for export import db
     std::string ieDBPath;
 };
-
 } // namespace testing
 } // namespace kuzu

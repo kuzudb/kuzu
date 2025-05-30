@@ -21,9 +21,6 @@ def serialize(kuzu_exec_path, dataset_name, dataset_path, serialized_graph_path,
               single_thread: bool = False):
     bin_version = _get_kuzu_version()
 
-    if not os.path.exists(serialized_graph_path):
-        os.mkdir(serialized_graph_path)
-
     if os.path.exists(os.path.join(serialized_graph_path, 'version.txt')):
         with open(os.path.join(serialized_graph_path, 'version.txt'), encoding="utf-8") as f:
             dataset_version = f.readline().strip()
@@ -66,7 +63,8 @@ def serialize(kuzu_exec_path, dataset_name, dataset_path, serialized_graph_path,
         # Run kuzu shell one query at a time. This ensures a new process is
         # created for each query to avoid memory leaks.
         stdout = sys.stdout if create_match or not benchmark_copy_log_dir else subprocess.PIPE
-        process = subprocess.Popen([kuzu_exec_path, serialized_graph_path],
+        db_path = os.path.join(serialized_graph_path, 'db.kz')
+        process = subprocess.Popen([kuzu_exec_path, db_path],
                                    stdin=subprocess.PIPE, stdout=stdout, encoding="utf-8")
         process.stdin.write(s)
         process.stdin.close()
