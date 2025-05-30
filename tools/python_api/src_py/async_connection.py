@@ -176,11 +176,9 @@ class AsyncConnection:
 
     async def _prepare(self, query: str, parameters: dict[str, Any] | None = None) -> PreparedStatement:
         """
-        Prepare a query.
-
         The only parameters supported during prepare are dataframes.
         Any remaining parameters will be ignored and should be passed to execute().
-        """
+        """  # noqa: D401
         loop = asyncio.get_running_loop()
         conn, conn_index = self.__get_connection_with_least_queries()
 

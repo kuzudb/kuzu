@@ -326,18 +326,18 @@ class QueryResult:
                     continue
                 column_type, _ = properties_to_extract[i]
                 if column_type == Type.NODE.value:
-                    id = row[i]["_id"]
-                    nodes[id["table"], id["offset"]] = row[i]
-                    table_to_label_dict[id["table"]] = row[i]["_label"]
+                    nid = row[i]["_id"]
+                    nodes[nid["table"], nid["offset"]] = row[i]
+                    table_to_label_dict[nid["table"]] = row[i]["_label"]
 
                 elif column_type == Type.REL.value:
                     rels[encode_rel_id(row[i])] = row[i]
 
                 elif column_type == Type.RECURSIVE_REL.value:
                     for node in row[i]["_nodes"]:
-                        id = node["_id"]
-                        nodes[id["table"], id["offset"]] = node
-                        table_to_label_dict[id["table"]] = node["_label"]
+                        nid = node["_id"]
+                        nodes[nid["table"], nid["offset"]] = node
+                        table_to_label_dict[nid["table"]] = node["_label"]
                     for rel in row[i]["_rels"]:
                         for key in list(rel.keys()):
                             if rel[key] is None:
@@ -346,8 +346,8 @@ class QueryResult:
 
         # Add nodes
         for node in nodes.values():
-            id = node["_id"]
-            node_id = node["_label"] + "_" + str(id["offset"])
+            nid = node["_id"]
+            node_id = node["_label"] + "_" + str(nid["offset"])
             if node["_label"] not in table_primary_key_dict:
                 props = self.connection._get_node_property_names(node["_label"])
                 for prop_name in props:

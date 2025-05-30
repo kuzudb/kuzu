@@ -44,17 +44,17 @@ class TorchGeometricResultConverter:
                 if column_type == Type.NODE.value:
                     node = row[i]
                     label = node["_label"]
-                    id = node["_id"]
-                    self.table_to_label_dict[id["table"]] = label
+                    nid = node["_id"]
+                    self.table_to_label_dict[nid["table"]] = label
 
-                    if (id["table"], id["offset"]) in self.internal_id_to_pos_dict:
+                    if (nid["table"], nid["offset"]) in self.internal_id_to_pos_dict:
                         continue
 
                     node_property_names = self.__get_node_property_names(label)
 
                     pos, primary_key = self.__extract_properties_from_node(node, label, node_property_names)
 
-                    self.internal_id_to_pos_dict[id["table"], id["offset"]] = pos
+                    self.internal_id_to_pos_dict[nid["table"], nid["offset"]] = pos
                     if label not in self.pos_to_primary_key_dict:
                         self.pos_to_primary_key_dict[label] = {}
                     self.pos_to_primary_key_dict[label][pos] = primary_key
