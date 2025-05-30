@@ -1,5 +1,7 @@
 #include "storage/table/rel_table.h"
 
+#include <algorithm>
+
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
@@ -10,6 +12,7 @@
 #include "storage/storage_manager.h"
 #include "storage/table/rel_table_data.h"
 #include "transaction/transaction.h"
+#include <ranges>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -269,12 +272,17 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
-    // TODO(Royi) we currently do not support detached deleting from single-direction rel tables
-    KU_ASSERT(directedRelData.size() == NUM_REL_DIRECTIONS);
+    if (std::ranges::count(getStorageDirections(), direction) == 0) {
+        throw RuntimeException(common::stringFormat(
+            "Cannot delete edges of direction {} from table {} as they do not exist.",
+            RelDirectionUtils::relDirectionToString(direction), tableName));
+    }
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData = getDirectedTableData(direction);
     const auto reverseTableData =
-        getDirectedTableData(RelDirectionUtils::getOppositeDirection(direction));
+        directedRelData.size() == NUM_REL_DIRECTIONS ?
+            getDirectedTableData(RelDirectionUtils::getOppositeDirection(direction)) :
+            nullptr;
     auto relReadState = std::make_unique<RelTableScanState>(
         *transaction->getClientContext()->getMemoryManager(), &deleteState->srcNodeIDVector,
         std::vector{&deleteState->dstNodeIDVector, &deleteState->relIDVector},
@@ -339,13 +347,13 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
                 localTable->delete_(transaction, *deleteState);
                 continue;
             }
-            const auto deleted = tableData->delete_(transaction, deleteState->srcNodeIDVector,
-                deleteState->relIDVector);
-            const auto reverseDeleted = reverseTableData->delete_(transaction,
-                deleteState->dstNodeIDVector, deleteState->relIDVector);
-            KU_ASSERT(deleted == reverseDeleted);
-            KU_UNUSED(deleted);
-            KU_UNUSED(reverseDeleted);
+            [[maybe_unused]] const auto deleted = tableData->delete_(transaction,
+                deleteState->srcNodeIDVector, deleteState->relIDVector);
+            if (reverseTableData) {
+                [[maybe_unused]] const auto reverseDeleted = reverseTableData->delete_(transaction,
+                    deleteState->dstNodeIDVector, deleteState->relIDVector);
+                KU_ASSERT(deleted == reverseDeleted);
+            }
         }
         tempState->getSelVectorUnsafe().setToUnfiltered();
     }

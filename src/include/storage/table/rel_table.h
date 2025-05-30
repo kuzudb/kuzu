@@ -157,6 +157,9 @@ public:
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
+    // Deletes all edges attached to the node(s) specified in the deleteState
+    // Currently only supports deleting from a single src node
+    // Note that since the rel table doesn't store nodes this doesn't delete the node itself
     void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
         RelTableDeleteState* deleteState);
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
@@ -175,8 +178,7 @@ public:
     }
     common::column_id_t getNumColumns() const {
         KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
+        RUNTIME_CHECK(for (const auto& relData : directedRelData) {
             KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
         });
         return directedRelData[0]->getNumColumns();
