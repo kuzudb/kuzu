@@ -16,7 +16,7 @@ CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 NUM_THREADS ?= 1
 PREFIX ?= install
 TEST_JOBS ?= 10
-EXTENSION_LIST ?= httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;azure;unity_catalog;vector;neo4j;algo
+EXTENSION_LIST ?= httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;azure;unity_catalog;vector;neo4j;algo;llm
 EXTENSION_TEST_EXCLUDE_FILTER ?= ""
 
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
@@ -277,6 +277,7 @@ clean-extension:
 	cmake -E rm -rf extension/delta/build
 	cmake -E rm -rf extension/iceberg/build
 	cmake -E rm -rf extension/azure/build
+	cmake -E rm -rf extension/llm/build
 	cmake -E rm -rf extension/unity_catalog/build
 	cmake -E rm -rf extension/vector/build
 	cmake -E rm -rf extension/neo4j/build
