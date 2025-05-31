@@ -10,6 +10,7 @@
 #include "storage/local_storage/local_storage.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
+#include "storage/storage_utils.h"
 #include "storage/table/rel_table_data.h"
 #include "transaction/transaction.h"
 #include <ranges>
