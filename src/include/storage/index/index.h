@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "common/serializer/buffered_serializer.h"
 #include "common/types/types.h"
 #include <span>
