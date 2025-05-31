@@ -21,30 +21,27 @@ static cardinality_t atLeastOne(uint64_t x) {
     return x == 0 ? 1 : x;
 }
 
-void CardinalityEstimator::initNodeIDDom(const Transaction* transaction,
-    const QueryGraph& queryGraph) {
+void CardinalityEstimator::init(const QueryGraph& queryGraph) {
     perQueryGraphNodeIDName2dom.clear();
-    for (uint64_t i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
-        auto node = queryGraph.getQueryNode(i).get();
-        addNodeIDDomAndStats(transaction, *node->getInternalID(), node->getTableIDs());
+    for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
+        init(*queryGraph.getQueryNode(i));
     }
     for (uint64_t i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
         auto rel = queryGraph.getQueryRel(i);
         if (QueryRelTypeUtils::isRecursive(rel->getRelType())) {
-            auto node = rel->getRecursiveInfo()->node.get();
-            addNodeIDDomAndStats(transaction, *node->getInternalID(), node->getTableIDs());
+            auto recursiveInfo = rel->getRecursiveInfo();
+            init(*recursiveInfo->node);
         }
     }
 }
 
-void CardinalityEstimator::addNodeIDDomAndStats(const Transaction* transaction,
-    const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs) {
-    auto key = nodeID.getUniqueName();
+void CardinalityEstimator::init(const NodeExpression& node) {
+    auto key = node.getInternalID()->getUniqueName();
     cardinality_t numNodes = 0u;
-    for (auto tableID : tableIDs) {
+    for (auto tableID : node.getTableIDs()) {
         auto stats =
             context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>().getStats(
-                transaction);
+                context->getTransaction());
         numNodes += stats.getTableCard();
         if (!nodeTableStats.contains(tableID)) {
             nodeTableStats.insert({tableID, std::move(stats)});

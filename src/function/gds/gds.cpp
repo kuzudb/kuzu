@@ -172,8 +172,9 @@ std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskPlanRoots(const GDSBind
         if (nodeInfo.predicate == nullptr) {
             continue;
         }
+        auto& node = nodeInfo.nodeOrRel->constCast<NodeExpression>();
         auto p = planner->getNodeSemiMaskPlan(SemiMaskTargetType::GDS_GRAPH_NODE,
-            nodeInfo.nodeOrRel->constCast<NodeExpression>(), nodeInfo.predicate);
+            node, nodeInfo.predicate);
         nodeMaskPlanRoots.push_back(p.getLastOperator());
     }
     return nodeMaskPlanRoots;
@@ -192,6 +193,7 @@ void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& rea
 
     auto nodeOutput = bindData->nodeOutput->ptrCast<NodeExpression>();
     KU_ASSERT(nodeOutput != nullptr);
+    planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
     auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
     if (scanPlan.isEmpty()) {
         return;

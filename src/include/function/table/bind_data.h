@@ -37,8 +37,6 @@ struct KUZU_API TableFuncBindData {
         return columnPredicates;
     }
 
-    virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nullptr; }
-
     virtual bool getIgnoreErrorsOption() const;
 
     virtual std::unique_ptr<TableFuncBindData> copy() const;

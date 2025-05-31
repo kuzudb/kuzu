@@ -19,15 +19,12 @@ class LogicalAggregate;
 
 class CardinalityEstimator {
 public:
-    CardinalityEstimator() : context{nullptr} {};
     explicit CardinalityEstimator(main::ClientContext* context) : context{context} {}
     DELETE_COPY_DEFAULT_MOVE(CardinalityEstimator);
 
-    // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
-    void initNodeIDDom(const transaction::Transaction* transaction,
-        const binder::QueryGraph& queryGraph);
-    KUZU_API void addNodeIDDomAndStats(const transaction::Transaction* transaction,
-        const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs);
+    void init(const binder::QueryGraph& queryGraph);
+    void init(const binder::NodeExpression& node);
+
     void addPerQueryGraphNodeIDDom(const binder::Expression& nodeID, cardinality_t numNodes);
     void clearPerQueryGraphStats();
 
@@ -49,6 +46,8 @@ public:
     cardinality_t multiply(double extensionRate, cardinality_t card) const;
 
 private:
+    // void addNodeIDDomAndStats(const transaction::Transaction* transaction,
+    //     const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs);
     cardinality_t getNodeIDDom(const std::string& nodeIDName) const;
     cardinality_t getNumNodes(const transaction::Transaction* transaction,
         const std::vector<common::table_id_t>& tableIDs) const;

@@ -287,6 +287,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     planner->planReadOp(op, predicates, plan);
     auto nodeOutput = bindData->outputNode->ptrCast<NodeExpression>();
     KU_ASSERT(nodeOutput != nullptr);
+    planner->getCardinalityEstimator().init(*nodeOutput);
     auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
     if (scanPlan.isEmpty()) {
         return;

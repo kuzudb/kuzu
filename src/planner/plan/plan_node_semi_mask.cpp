@@ -37,9 +37,9 @@ LogicalPlan Planner::getNodeSemiMaskPlan(SemiMaskTargetType targetType, const No
         auto& propExpr = expr->constCast<PropertyExpression>();
         propertyExprCollection.addProperties(propExpr.getVariableName(), expr);
     }
-    cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTransaction(),
-        *node.getInternalID(), node.getTableIDs());
-    appendScanNodeTable(node.getInternalID(), node.getTableIDs(), getProperties(node), plan);
+
+    // TODO: comment
+    appendScanNodeTable(node.getInternalID(), node.getTableIDs(), getProperties(node), plan, false /* estimate card */);
     appendFilter(nodePredicate, plan);
     exitPropertyExprCollection(std::move(prevCollection));
     appendNodeSemiMask(targetType, node, plan);

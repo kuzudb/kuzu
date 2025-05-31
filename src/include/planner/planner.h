@@ -309,7 +309,7 @@ public:
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
     const CardinalityEstimator& getCardinalityEstimator() const { return cardinalityEstimator; }
-    CardinalityEstimator& getCardinalityEstimator() { return cardinalityEstimator; }
+    CardinalityEstimator& getCardinliatyEstimatorUnsafe() { return cardinalityEstimator; }
 
     // Get operators
     static std::shared_ptr<LogicalOperator> getTableFunctionCall(
