@@ -1,14 +1,20 @@
-include(FetchContent)
-
 # Disable WERROR for gtest.
 set(CMAKE_COMPILE_WARNING_AS_ERROR FALSE)
-# Disable LTO for gtest, since it uses an older version of CMake.
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
 
-FetchContent_Declare(
+find_package(GTest QUIET)
+if(GTest_FOUND)
+    message(STATUS "Using system GTest")
+else()
+    message(STATUS "GTest not found. Fetching from GitHub...")
+    include(FetchContent)
+    FetchContent_Declare(
         googletest
         GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG v1.13.0
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+        GIT_TAG        v1.17.0
+        GIT_SHALLOW    TRUE
+    )
+    if(WIN32)
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    endif()
+    FetchContent_MakeAvailable(googletest)
+endif()
