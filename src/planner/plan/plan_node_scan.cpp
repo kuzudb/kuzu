@@ -1,4 +1,3 @@
-#include "main/client_context.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -12,9 +11,6 @@ LogicalPlan Planner::getNodePropertyScanPlan(const NodeExpression& node) {
     if (properties.empty()) {
         return scanPlan;
     }
-    // Because the node is not
-    cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTransaction(),
-        *node.getInternalID(), node.getTableIDs());
     appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
     return scanPlan;
 }

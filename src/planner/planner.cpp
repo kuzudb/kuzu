@@ -53,70 +53,67 @@ void PropertyExprCollection::clear() {
     patternNameToProperties.clear();
 }
 
-Planner::Planner(main::ClientContext* clientContext) : clientContext{clientContext} {
-    cardinalityEstimator = CardinalityEstimator(clientContext);
-    context = JoinOrderEnumeratorContext();
-}
+Planner::Planner(main::ClientContext* clientContext) : clientContext{clientContext}, cardinalityEstimator{clientContext}, context{} {}
 
 LogicalPlan Planner::planStatement(const BoundStatement& statement) {
     switch (statement.getStatementType()) {
     case StatementType::QUERY: {
         return planQuery(statement);
-    } break;
+    }
     case StatementType::CREATE_TABLE: {
         return planCreateTable(statement);
-    } break;
+    }
     case StatementType::CREATE_SEQUENCE: {
         return planCreateSequence(statement);
-    } break;
+    }
     case StatementType::CREATE_TYPE: {
         return planCreateType(statement);
-    } break;
+    }
     case StatementType::COPY_FROM: {
         return planCopyFrom(statement);
-    } break;
+    }
     case StatementType::COPY_TO: {
         return planCopyTo(statement);
-    } break;
+    }
     case StatementType::DROP: {
         return planDrop(statement);
-    } break;
+    }
     case StatementType::ALTER: {
         return planAlter(statement);
-    } break;
+    }
     case StatementType::STANDALONE_CALL: {
         return planStandaloneCall(statement);
-    } break;
+    }
     case StatementType::STANDALONE_CALL_FUNCTION: {
         return planStandaloneCallFunction(statement);
-    } break;
+    }
     case StatementType::EXPLAIN: {
         return planExplain(statement);
-    } break;
+    }
     case StatementType::CREATE_MACRO: {
         return planCreateMacro(statement);
-    } break;
+    }
     case StatementType::TRANSACTION: {
         return planTransaction(statement);
-    } break;
+    }
     case StatementType::EXTENSION: {
         return planExtension(statement);
-    } break;
+    }
     case StatementType::EXPORT_DATABASE: {
         return planExportDatabase(statement);
-    } break;
+    }
     case StatementType::IMPORT_DATABASE: {
         return planImportDatabase(statement);
-    } break;
+    }
     case StatementType::ATTACH_DATABASE: {
         return planAttachDatabase(statement);
-    } break;
+    }
     case StatementType::DETACH_DATABASE: {
         return planDetachDatabase(statement);
-    } break;
+    }
     case StatementType::USE_DATABASE: {
         return planUseDatabase(statement);
-    } break;
+    }
     default:
         KU_UNREACHABLE;
     }
