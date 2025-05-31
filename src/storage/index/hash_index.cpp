@@ -19,6 +19,7 @@
 #include "storage/local_storage/local_hash_index.h"
 #include "storage/overflow_file.h"
 #include "storage/shadow_utils.h"
+#include "storage/storage_manager.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -625,6 +626,17 @@ void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
 }
 
 PrimaryKeyIndex::~PrimaryKeyIndex() = default;
+
+std::unique_ptr<Index> PrimaryKeyIndex::load(main::ClientContext* context, IndexInfo indexInfo,
+    std::span<uint8_t> storageInfoBuffer) {
+    auto storageInfoBufferReader =
+        std::make_unique<BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
+    auto storageInfo = PrimaryKeyIndexStorageInfo::deserialize(std::move(storageInfoBufferReader));
+    const auto storageManager = context->getStorageManager();
+    return std::make_unique<PrimaryKeyIndex>(indexInfo, std::move(storageInfo),
+        storageManager->isInMemory(), *context->getMemoryManager(), storageManager->getDataFH(),
+        &storageManager->getShadowFile());
+}
 
 } // namespace storage
 } // namespace kuzu

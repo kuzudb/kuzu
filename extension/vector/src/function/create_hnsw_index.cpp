@@ -270,8 +270,10 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     auto nodeTable =
         clientContext->getStorageManager()->getTable(nodeTableID)->ptrCast<storage::NodeTable>();
     auto columnID = bindData->tableEntry->getColumnID(bindData->propertyID);
-    storage::IndexInfo indexInfo{bindData->indexName, HNSW_INDEX_TYPE, columnID,
-        PhysicalTypeID::ARRAY};
+    storage::IndexInfo indexInfo{bindData->indexName, HNSW_INDEX_TYPE.typeName, nodeTableID,
+        columnID, PhysicalTypeID::ARRAY,
+        HNSW_INDEX_TYPE.constraintType == storage::IndexConstraintType::PRIMARY,
+        HNSW_INDEX_TYPE.definitionType == storage::IndexDefinitionType::BUILTIN};
     auto storageInfo = std::make_unique<HNSWStorageInfo>(upperTable->getTableID(),
         lowerTable->getTableID(), index->getUpperEntryPoint(), index->getLowerEntryPoint());
     auto onDiskIndex = std::make_unique<OnDiskHNSWIndex>(context->clientContext, indexInfo,

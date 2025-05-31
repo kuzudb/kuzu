@@ -170,9 +170,6 @@ private:
     InMemHNSWLayerInfo info;
 };
 
-static constexpr storage::IndexType HNSW_INDEX_TYPE{"HNSW",
-    storage::IndexConstraintType::SECONDARY_NON_UNIQUE, storage::IndexDefinitionType::EXTENSION};
-
 class InMemHNSWIndex final : public HNSWIndex {
 public:
     InMemHNSWIndex(const main::ClientContext* context, storage::IndexInfo indexInfo,
@@ -245,7 +242,6 @@ public:
         const void* queryVector, HNSWSearchState& searchState) const;
 
     static std::unique_ptr<Index> load(main::ClientContext* context, storage::IndexInfo indexInfo,
-        const catalog::Catalog& catalog, const catalog::IndexCatalogEntry* indexEntry,
         std::span<uint8_t> storageInfoBuffer);
 
 private:
@@ -310,6 +306,10 @@ private:
     std::unique_ptr<graph::OnDiskGraph> lowerGraph;
     std::unique_ptr<OnDiskEmbeddings> embeddings;
 };
+
+static const storage::IndexType HNSW_INDEX_TYPE{"HNSW",
+    storage::IndexConstraintType::SECONDARY_NON_UNIQUE, storage::IndexDefinitionType::EXTENSION,
+    OnDiskHNSWIndex::load};
 
 } // namespace vector_extension
 } // namespace kuzu

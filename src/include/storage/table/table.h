@@ -194,7 +194,7 @@ public:
         std::vector<common::LogicalType> types);
 
     virtual void serialize(common::Serializer& serializer) const = 0;
-    virtual void deserialize(common::Deserializer& deSer) = 0;
+    virtual void deserialize(main::ClientContext* context, common::Deserializer& deSer) = 0;
 
 protected:
     virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;
