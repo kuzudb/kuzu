@@ -4,7 +4,6 @@
 #include "common/cast.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
-#include "common/serializer/buffered_reader.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "main/db_config.h"

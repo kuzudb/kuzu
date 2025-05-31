@@ -2,7 +2,7 @@
 
 #include "common/serializer/buffered_serializer.h"
 #include "common/types/types.h"
-#include "storage/storage_utils.h"
+#include <span>
 
 namespace kuzu {
 namespace storage {
@@ -27,6 +27,11 @@ struct KUZU_API IndexType {
     IndexConstraintType constraintType;
     IndexDefinitionType definitionType;
     index_load_func_t loadFunc;
+
+    IndexType(std::string typeName, IndexConstraintType constraintType,
+        IndexDefinitionType definitionType, index_load_func_t loadFunc)
+        : typeName{std::move(typeName)}, constraintType{constraintType},
+          definitionType{definitionType}, loadFunc{std::move(loadFunc)} {}
 };
 
 struct KUZU_API IndexInfo {

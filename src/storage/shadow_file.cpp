@@ -10,7 +10,6 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
 #include "storage/storage_manager.h"
-#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
