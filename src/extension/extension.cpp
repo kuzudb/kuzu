@@ -5,6 +5,8 @@
 #include "common/string_utils.h"
 #include "common/system_message.h"
 #include "main/client_context.h"
+#include "storage/storage_manager.h"
+
 #ifdef _WIN32
 
 #include "windows.h"
@@ -155,6 +157,10 @@ bool ExtensionUtils::isOfficialExtension(const std::string& extension) {
         }
     }
     return false;
+}
+
+void ExtensionUtils::registerIndexType(main::Database& database, storage::IndexType type) {
+    database.storageManager->registerIndexType(std::move(type));
 }
 
 ExtensionLibLoader::ExtensionLibLoader(const std::string& extensionName, const std::string& path)

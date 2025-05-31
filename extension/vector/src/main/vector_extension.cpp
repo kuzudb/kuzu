@@ -19,12 +19,11 @@ static void initHNSWEntries(main::ClientContext* context) {
             // Should load the index in storage side as well.
             auto& nodeTable =
                 storageManager->getTable(indexEntry->getTableID())->cast<storage::NodeTable>();
-            auto optionalIndex = nodeTable.getIndex(indexEntry->getIndexName());
-            KU_ASSERT(optionalIndex.has_value() && !optionalIndex.value()->isLoaded());
-            auto unloadedIndex = optionalIndex.value();
-            auto loadedIndex = OnDiskHNSWIndex::load(context, unloadedIndex->getIndexInfo(),
-                *catalog, indexEntry, unloadedIndex->getStorageBuffer());
-            nodeTable.addOrReplaceIndex(std::move(loadedIndex));
+            auto optionalIndex = nodeTable.getIndexHolder(indexEntry->getIndexName());
+            KU_ASSERT_UNCONDITIONAL(
+                optionalIndex.has_value() && !optionalIndex.value().get().isLoaded());
+            auto& unloadedIndex = optionalIndex.value().get();
+            unloadedIndex.load(context);
         }
     }
 }
@@ -38,6 +37,7 @@ void VectorExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addStandaloneTableFunc<CreateVectorIndexFunction>(db);
     extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalDropHNSWIndexFunction>(db);
     extension::ExtensionUtils::addStandaloneTableFunc<DropVectorIndexFunction>(db);
+    extension::ExtensionUtils::registerIndexType(db, HNSW_INDEX_TYPE);
     initHNSWEntries(context);
 }
 

@@ -142,18 +142,30 @@ public:
     }
 
     void addIndex(std::unique_ptr<Index> index);
-    void addOrReplaceIndex(std::unique_ptr<Index> index);
 
     common::column_id_t getPKColumnID() const { return pkColumnID; }
     PrimaryKeyIndex* getPKIndex() const {
-        const auto index = getIndex(PrimaryKeyIndex::name);
+        const auto index = getIndex(PrimaryKeyIndex::DEFAULT_NAME);
         KU_ASSERT(index.has_value());
         return &index.value()->cast<PrimaryKeyIndex>();
     }
+    std::optional<std::reference_wrapper<IndexHolder>> getIndexHolder(const std::string& name) {
+        for (auto& index : indexes) {
+            if (common::StringUtils::caseInsensitiveEquals(index.getName(), name)) {
+                return index;
+            }
+        }
+        return std::nullopt;
+    }
     std::optional<Index*> getIndex(const std::string& name) const {
         for (auto& index : indexes) {
-            if (common::StringUtils::caseInsensitiveEquals(index->getName(), name)) {
-                return index.get();
+            if (common::StringUtils::caseInsensitiveEquals(index.getName(), name)) {
+                if (index.isLoaded()) {
+                    return index.getIndex();
+                }
+                throw common::RuntimeException(common::stringFormat(
+                    "Index {} is not loaded yet. Please load the index before accessing it.",
+                    name));
             }
         }
         return std::nullopt;
@@ -205,7 +217,7 @@ public:
     }
 
     void serialize(common::Serializer& serializer) const override;
-    void deserialize(common::Deserializer& deSer) override;
+    void deserialize(main::ClientContext* context, common::Deserializer& deSer) override;
 
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,
@@ -220,7 +232,7 @@ private:
     std::vector<std::unique_ptr<Column>> columns;
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
-    std::vector<std::unique_ptr<Index>> indexes;
+    std::vector<IndexHolder> indexes;
     NodeTableVersionRecordHandler versionRecordHandler;
 };
 

@@ -7,33 +7,36 @@
 namespace kuzu {
 namespace storage {
 
-enum class IndexConstraintType : uint8_t {
-    PRIMARY = 0, // Primary key index
-    SECONDARY_NON_UNIQUE = 1,
+enum class KUZU_API IndexConstraintType : uint8_t {
+    PRIMARY = 0,              // Primary key index
+    SECONDARY_NON_UNIQUE = 1, // Secondary index that is not unique
 };
 
-enum class IndexDefinitionType : uint8_t {
+enum class KUZU_API IndexDefinitionType : uint8_t {
     BUILTIN = 0,
     EXTENSION = 1,
 };
 
-struct IndexType {
+class Index;
+struct IndexInfo;
+using index_load_func_t = std::function<std::unique_ptr<Index>(main::ClientContext* context,
+    IndexInfo, std::span<uint8_t>)>;
+
+struct KUZU_API IndexType {
     std::string typeName;
     IndexConstraintType constraintType;
     IndexDefinitionType definitionType;
-
-    void serialize(common::Serializer& ser) const;
-    static IndexType deserialize(common::Deserializer& deSer);
+    index_load_func_t loadFunc;
 };
 
-static constexpr IndexType HASH_INDEX_TYPE{"HASH", IndexConstraintType::PRIMARY,
-    IndexDefinitionType::BUILTIN};
-
-struct IndexInfo {
+struct KUZU_API IndexInfo {
     std::string name;
-    IndexType indexType;
+    std::string indexType;
+    common::table_id_t tableID;
     common::column_id_t columnID;
     common::PhysicalTypeID keyDataType;
+    bool isPrimary;
+    bool isBuiltin;
 
     void serialize(common::Serializer& ser) const;
     static IndexInfo deserialize(common::Deserializer& deSer);
@@ -65,12 +68,8 @@ public:
 
     DELETE_COPY_AND_MOVE(Index);
 
-    bool isPrimary() const {
-        return indexInfo.indexType.constraintType == IndexConstraintType::PRIMARY;
-    }
-    bool isExtension() const {
-        return indexInfo.indexType.definitionType == IndexDefinitionType::EXTENSION;
-    }
+    bool isPrimary() const { return indexInfo.isPrimary; }
+    bool isExtension() const { return indexInfo.isBuiltin; }
     bool isLoaded() const { return loaded; }
     std::string getName() const { return indexInfo.name; }
     IndexInfo getIndexInfo() const { return indexInfo; }
@@ -100,6 +99,45 @@ protected:
     std::unique_ptr<uint8_t[]> storageInfoBuffer;
     uint64_t storageInfoBufferSize;
     bool loaded;
+};
+
+class IndexHolder {
+public:
+    explicit IndexHolder(std::unique_ptr<Index> loadedIndex);
+    IndexHolder(IndexInfo indexInfo, std::unique_ptr<uint8_t[]> storageInfoBuffer,
+        uint32_t storageInfoBufferSize);
+
+    std::string getName() const { return indexInfo.name; }
+    bool isLoaded() const { return loaded; }
+
+    void serialize(common::Serializer& ser) const;
+    KUZU_API void load(main::ClientContext* context);
+    void checkpoint() {
+        if (loaded) {
+            KU_ASSERT(index);
+            index->checkpoint();
+        }
+    }
+    void rollbackCheckpoint() {
+        if (loaded) {
+            KU_ASSERT(index);
+            index->rollbackCheckpoint();
+        }
+    }
+
+    Index* getIndex() const {
+        KU_ASSERT(index);
+        return index.get();
+    }
+
+private:
+    IndexInfo indexInfo;
+    std::unique_ptr<uint8_t[]> storageInfoBuffer;
+    uint64_t storageInfoBufferSize;
+    bool loaded;
+
+    // Loaded index structure.
+    std::unique_ptr<Index> index;
 };
 
 } // namespace storage

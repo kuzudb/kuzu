@@ -318,22 +318,24 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, IndexInfo indexIn
 }
 
 std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, IndexInfo indexInfo,
-    const catalog::Catalog& catalog, const catalog::IndexCatalogEntry* indexEntry,
     std::span<uint8_t> storageInfoBuffer) {
     auto reader =
         std::make_unique<common::BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = HNSWStorageInfo::deserialize(std::move(reader));
     auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+    auto catalog = context->getCatalog();
+    auto indexEntry =
+        catalog->getIndex(&transaction::DUMMY_TRANSACTION, indexInfo.tableID, indexInfo.name);
     auto nodeEntry =
-        catalog.getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, indexEntry->getTableID())
+        catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, indexEntry->getTableID())
             ->ptrCast<catalog::NodeTableCatalogEntry>();
     auto upperRelTableEntry =
         catalog
-            .getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, hnswStorageInfo.upperRelTableID)
+            ->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, hnswStorageInfo.upperRelTableID)
             ->ptrCast<catalog::RelGroupCatalogEntry>();
     auto lowerRelTableEntry =
         catalog
-            .getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, hnswStorageInfo.lowerRelTableID)
+            ->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, hnswStorageInfo.lowerRelTableID)
             ->ptrCast<catalog::RelGroupCatalogEntry>();
     auto auxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
     return std::make_unique<OnDiskHNSWIndex>(context, std::move(indexInfo), std::move(storageInfo),

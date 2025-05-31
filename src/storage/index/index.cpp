@@ -3,42 +3,38 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "storage/index/hash_index.h"
+#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace storage {
 
-void IndexType::serialize(common::Serializer& ser) const {
-    ser.write<std::string>(typeName);
-    ser.write<IndexConstraintType>(constraintType);
-    ser.write<IndexDefinitionType>(definitionType);
-}
-
-IndexType IndexType::deserialize(common::Deserializer& deSer) {
-    std::string typeName;
-    auto constraintType = IndexConstraintType::PRIMARY;
-    auto definitionType = IndexDefinitionType::BUILTIN;
-    deSer.deserializeValue(typeName);
-    deSer.deserializeValue<IndexConstraintType>(constraintType);
-    deSer.deserializeValue<IndexDefinitionType>(definitionType);
-    return IndexType{std::move(typeName), constraintType, definitionType};
-}
-
 void IndexInfo::serialize(common::Serializer& ser) const {
     ser.write<std::string>(name);
-    indexType.serialize(ser);
+    ser.write<std::string>(indexType);
+    ser.write<common::table_id_t>(tableID);
     ser.write<common::column_id_t>(columnID);
     ser.write<common::PhysicalTypeID>(keyDataType);
+    ser.write<bool>(isPrimary);
+    ser.write<bool>(isBuiltin);
 }
 
 IndexInfo IndexInfo::deserialize(common::Deserializer& deSer) {
     std::string name;
+    std::string indexType;
+    common::table_id_t tableID = common::INVALID_TABLE_ID;
     common::column_id_t columnID = common::INVALID_COLUMN_ID;
     auto keyDataType = common::PhysicalTypeID::ANY;
+    bool isPrimary = false;
+    bool isBuiltin = false;
     deSer.deserializeValue(name);
-    IndexType indexType = IndexType::deserialize(deSer);
+    deSer.deserializeValue(indexType);
+    deSer.deserializeValue<common::table_id_t>(tableID);
     deSer.deserializeValue<common::column_id_t>(columnID);
     deSer.deserializeValue<common::PhysicalTypeID>(keyDataType);
-    return IndexInfo{std::move(name), std::move(indexType), columnID, keyDataType};
+    deSer.deserializeValue<bool>(isPrimary);
+    deSer.deserializeValue<bool>(isBuiltin);
+    return IndexInfo{std::move(name), std::move(indexType), tableID, columnID, keyDataType,
+        isPrimary, isBuiltin};
 }
 
 std::shared_ptr<common::BufferedSerializer> IndexStorageInfo::serialize() const {
@@ -50,6 +46,44 @@ void Index::serialize(common::Serializer& ser) const {
     auto bufferedWriter = storageInfo->serialize();
     ser.write<uint64_t>(bufferedWriter->getSize());
     ser.write(bufferedWriter->getData().data.get(), bufferedWriter->getSize());
+}
+
+IndexHolder::IndexHolder(std::unique_ptr<Index> loadedIndex)
+    : indexInfo{loadedIndex->getIndexInfo()}, storageInfoBuffer{nullptr}, storageInfoBufferSize{0},
+      loaded{true}, index{std::move(loadedIndex)} {}
+
+IndexHolder::IndexHolder(IndexInfo indexInfo, std::unique_ptr<uint8_t[]> storageInfoBuffer,
+    uint32_t storageInfoBufferSize)
+    : indexInfo{std::move(indexInfo)}, storageInfoBuffer{std::move(storageInfoBuffer)},
+      storageInfoBufferSize{storageInfoBufferSize}, loaded{false}, index{nullptr} {}
+
+void IndexHolder::serialize(common::Serializer& ser) const {
+    if (loaded) {
+        KU_ASSERT(index);
+        index->serialize(ser);
+    } else {
+        indexInfo.serialize(ser);
+        ser.write<uint64_t>(storageInfoBufferSize);
+        if (storageInfoBufferSize > 0) {
+            KU_ASSERT(storageInfoBuffer);
+            ser.write(storageInfoBuffer.get(), storageInfoBufferSize);
+        }
+    }
+}
+
+void IndexHolder::load(main::ClientContext* context) {
+    if (loaded) {
+        return;
+    }
+    KU_ASSERT(!index);
+    KU_ASSERT(storageInfoBuffer);
+    auto indexTypeOptional = context->getStorageManager()->getIndexType(indexInfo.indexType);
+    if (!indexTypeOptional.has_value()) {
+        throw common::RuntimeException("No index type with name: " + indexInfo.indexType);
+    }
+    index = indexTypeOptional.value().get().loadFunc(context, indexInfo,
+        std::span(storageInfoBuffer.get(), storageInfoBufferSize));
+    loaded = true;
 }
 
 } // namespace storage

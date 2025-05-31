@@ -51,9 +51,11 @@ public:
     void registerIndexType(IndexType indexType) {
         registeredIndexTypes.push_back(std::move(indexType));
     }
+    std::optional<std::reference_wrapper<const IndexType>> getIndexType(
+        const std::string& typeName) const;
 
     void serialize(const catalog::Catalog& catalog, common::Serializer& ser);
-    void deserialize(const catalog::Catalog& catalog, common::Deserializer& deSer);
+    void deserialize(main::ClientContext* context, common::Deserializer& deSer);
 
 private:
     void initDataFileHandle(common::VirtualFileSystem* vfs, main::ClientContext* context);

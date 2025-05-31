@@ -232,10 +232,12 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
     KU_ASSERT(pkColumnID != INVALID_COLUMN_ID);
-    IndexInfo indexInfo{PrimaryKeyIndex::name, HASH_INDEX_TYPE, pkColumnID,
-        pkDefinition.getType().getPhysicalType()};
-    indexes.push_back(
-        PrimaryKeyIndex::createNewIndex(indexInfo, inMemory, *memoryManager, dataFH, shadowFile));
+    IndexInfo indexInfo{PrimaryKeyIndex::DEFAULT_NAME, HASH_INDEX_TYPE.typeName, tableID,
+        pkColumnID, pkDefinition.getType().getPhysicalType(),
+        HASH_INDEX_TYPE.constraintType == IndexConstraintType::PRIMARY,
+        HASH_INDEX_TYPE.definitionType == IndexDefinitionType::BUILTIN};
+    indexes.push_back(IndexHolder{
+        PrimaryKeyIndex::createNewIndex(indexInfo, inMemory, *memoryManager, dataFH, shadowFile)});
     nodeGroups = std::make_unique<NodeGroupCollection>(
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
         storageManager->getDataFH(), &versionRecordHandler);
@@ -546,7 +548,7 @@ bool NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
             memoryManager};
         nodeGroups->checkpoint(*memoryManager, state);
         for (auto& index : indexes) {
-            index->checkpoint();
+            index.checkpoint();
         }
         hasChanges = false;
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
@@ -569,7 +571,7 @@ void NodeTable::rollbackGroupCollectionInsert(row_idx_t numRows_) {
 
 void NodeTable::rollbackCheckpoint() {
     for (auto& index : indexes) {
-        index->rollbackCheckpoint();
+        index.rollbackCheckpoint();
     }
 }
 
@@ -645,28 +647,18 @@ void NodeTable::addIndex(std::unique_ptr<Index> index) {
     if (getIndex(index->getName()).has_value()) {
         throw RuntimeException("Index with name " + index->getName() + " already exists.");
     }
-    indexes.push_back(std::move(index));
-}
-
-void NodeTable::addOrReplaceIndex(std::unique_ptr<Index> index) {
-    for (auto i = 0u; i < indexes.size(); ++i) {
-        if (StringUtils::caseInsensitiveEquals(indexes[i]->getName(), index->getName())) {
-            indexes[i] = std::move(index);
-            return;
-        }
-    }
-    indexes.push_back(std::move(index));
+    indexes.push_back(IndexHolder{std::move(index)});
 }
 
 void NodeTable::serialize(Serializer& serializer) const {
     nodeGroups->serialize(serializer);
     serializer.write<uint64_t>(indexes.size());
     for (auto i = 0u; i < indexes.size(); ++i) {
-        indexes[i]->serialize(serializer);
+        indexes[i].serialize(serializer);
     }
 }
 
-void NodeTable::deserialize(Deserializer& deSer) {
+void NodeTable::deserialize(main::ClientContext* context, Deserializer& deSer) {
     nodeGroups->deserialize(deSer, *memoryManager);
     std::vector<IndexInfo> indexInfos;
     std::vector<length_t> storageInfoBufferSizes;
@@ -686,33 +678,14 @@ void NodeTable::deserialize(Deserializer& deSer) {
         deSer.read(storageInfoBuffer.get(), storageInfoSize);
         storageInfoBuffers.push_back(std::move(storageInfoBuffer));
     }
+    indexes.clear();
     indexes.reserve(indexInfos.size());
     for (auto i = 0u; i < indexInfos.size(); ++i) {
         auto& indexInfo = indexInfos[i];
-        switch (indexInfo.indexType.definitionType) {
-        case IndexDefinitionType::BUILTIN: {
-            if (indexInfo.indexType.typeName == HASH_INDEX_TYPE.typeName) {
-                auto storageInfoBuffer = std::move(storageInfoBuffers[i]);
-                auto storageInfoBufferReader = std::make_unique<BufferReader>(
-                    storageInfoBuffer.get(), storageInfoBufferSizes[i]);
-                auto storageInfo =
-                    PrimaryKeyIndexStorageInfo::deserialize(std::move(storageInfoBufferReader));
-                indexes[i] = std::make_unique<PrimaryKeyIndex>(indexInfo, std::move(storageInfo),
-                    inMemory, *memoryManager, dataFH, shadowFile);
-            } else {
-                throw RuntimeException(
-                    "No built-in index type with name: " + indexInfo.indexType.typeName);
-            }
-        } break;
-        case IndexDefinitionType::EXTENSION: {
-            // For extension indexes, we assume that the index type is valid, and it will only be
-            // fully constructed when we're loading the extension.
-            indexes.push_back(std::make_unique<Index>(indexInfo, std::move(storageInfoBuffers[i]),
-                storageInfoBufferSizes[i]));
-        } break;
-        default: {
-            KU_UNREACHABLE;
-        }
+        indexes.push_back(
+            IndexHolder(indexInfo, std::move(storageInfoBuffers[i]), storageInfoBufferSizes[i]));
+        if (indexInfo.indexType == HASH_INDEX_TYPE.typeName) {
+            indexes[i].load(context);
         }
     }
 }
