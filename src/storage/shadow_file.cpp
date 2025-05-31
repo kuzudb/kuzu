@@ -9,7 +9,7 @@
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
-#include "storage/storage_utils.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -73,7 +73,7 @@ page_idx_t ShadowFile::getShadowPage(file_idx_t originalFile, page_idx_t origina
 void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
     const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     page_idx_t shadowPageIdx = 1; // Skip header page.
-    auto dataFileInfo = getDataFileInfo(context);
+    auto dataFileInfo = context.getStorageManager()->getDataFH()->getFileInfo();
     for (const auto& record : shadowPageRecords) {
         shadowingFH->readPageFromDisk(pageBuffer.get(), shadowPageIdx++);
         dataFileInfo->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
@@ -112,13 +112,6 @@ void ShadowFile::clearAll(ClientContext& context) {
     shadowPageRecords.clear();
     // Reserve header page.
     shadowingFH->addNewPage();
-}
-
-std::unique_ptr<FileInfo> ShadowFile::getDataFileInfo(const ClientContext& context) {
-    const auto fileName =
-        StorageUtils::getDataFName(context.getVFSUnsafe(), context.getDatabasePath());
-    return context.getVFSUnsafe()->openFile(fileName,
-        FileOpenFlags(FileFlags::READ_ONLY | FileFlags::WRITE));
 }
 
 } // namespace storage

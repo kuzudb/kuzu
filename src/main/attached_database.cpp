@@ -5,6 +5,7 @@
 #include "main/db_config.h"
 #include "storage/checkpointer.h"
 #include "storage/storage_manager.h"
+#include "storage/storage_utils.h"
 #include "transaction/transaction_manager.h"
 
 namespace kuzu {
