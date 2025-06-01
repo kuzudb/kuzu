@@ -8,6 +8,7 @@ if(SINGLE_THREADED)
     add_compile_definitions(__SINGLE_THREADED__)
     message(STATUS "Single-threaded mode is enabled")
 else()
+    message(STATUS "Multi-threaded mode is enabled: CMAKE_BUILD_PARALLEL_LEVEL=$ENV{CMAKE_BUILD_PARALLEL_LEVEL}")
     find_package(Threads REQUIRED)
 endif()
 
