@@ -50,6 +50,7 @@ jobs:
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
@@ -113,6 +114,7 @@ jobs:
           echo "Java test,$?" >> status.txt
 
       - name: Cleanup
+        continue-on-error: true
         run: make clean
 
       - name: Rust share build
@@ -141,7 +143,6 @@ jobs:
           echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
-        continue-on-error: true
         run: |
           cat status.txt
           mv status.txt ${{ matrix.runner }}.csv
@@ -185,6 +186,7 @@ jobs:
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
@@ -256,6 +258,7 @@ jobs:
 
       - name: Cleanup
         shell: cmd
+        continue-on-error: true
         run: make clean
 
       - name: Rust share build
@@ -285,7 +288,6 @@ jobs:
           echo Rust example,%ERRORLEVEL% >> status.txt
 
       - name: Rename status.txt
-        continue-on-error: true
         shell: cmd
         run: |
           cat status.txt
@@ -339,6 +341,7 @@ jobs:
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
@@ -397,6 +400,7 @@ jobs:
           echo "Java test,$?" >> status.txt
 
       - name: Cleanup
+        continue-on-error: true
         run: make clean
 
       - name: Install Rust
@@ -432,7 +436,6 @@ jobs:
           echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
-        continue-on-error: true
         run: |
           cat status.txt
           PLATFORM=$(echo ${{ matrix.image }} | tr ':' '-')
@@ -496,6 +499,7 @@ jobs:
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
@@ -554,6 +558,7 @@ jobs:
           echo "Java test,$?" >> status.txt
 
       - name: Cleanup
+        continue-on-error: true
         run: make clean
 
       - name: Install Rust
@@ -589,7 +594,6 @@ jobs:
           echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
-        continue-on-error: true
         run: |
           cat status.txt
           PLATFORM=$(echo ${{ matrix.image }} | tr ':' '-')
@@ -623,6 +627,7 @@ jobs:
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
@@ -681,6 +686,7 @@ jobs:
           echo "Java test,$?" >> status.txt
 
       - name: Cleanup
+        continue-on-error: true
         run: make clean
 
       - name: Install Rust
@@ -716,7 +722,6 @@ jobs:
           echo "Rust example,$?" >> ../../status.txt
 
       - name: Rename status.txt
-        continue-on-error: true
         run: |
           cat status.txt
           mv status.txt archlinux.csv
