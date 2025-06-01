@@ -30,7 +30,7 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
         *memoryManager.getBufferManager(), vfs, context);
     inMemory = main::DBConfig::isDBPathInMemory(databasePath);
     initDataFileHandle(vfs, context);
-    registerIndexType(HASH_INDEX_TYPE);
+    registerIndexType(PrimaryKeyIndex::getIndexType());
 }
 
 StorageManager::~StorageManager() = default;

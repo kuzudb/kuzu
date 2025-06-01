@@ -1,8 +1,9 @@
 #include "storage/index/index.h"
 
+#include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "storage/index/hash_index.h"
+#include "main/client_context.h"
 #include "storage/storage_manager.h"
 
 namespace kuzu {

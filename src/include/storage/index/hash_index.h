@@ -424,6 +424,12 @@ public:
     static KUZU_API std::unique_ptr<Index> load(main::ClientContext* context, IndexInfo indexInfo,
         std::span<uint8_t> storageInfoBuffer);
 
+    static IndexType getIndexType() {
+        static const IndexType HASH_INDEX_TYPE{"HASH", IndexConstraintType::PRIMARY,
+            IndexDefinitionType::BUILTIN, load};
+        return HASH_INDEX_TYPE;
+    }
+
 private:
     void initOverflowAndSubIndices(bool inMemMode, MemoryManager& mm,
         PrimaryKeyIndexStorageInfo& storageInfo);
@@ -438,9 +444,6 @@ private:
     // Stores both primary and overflow slots
     std::unique_ptr<DiskArrayCollection> hashIndexDiskArrays;
 };
-
-static const IndexType HASH_INDEX_TYPE{"HASH", IndexConstraintType::PRIMARY,
-    IndexDefinitionType::BUILTIN, PrimaryKeyIndex::load};
 
 } // namespace storage
 } // namespace kuzu

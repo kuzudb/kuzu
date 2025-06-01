@@ -244,6 +244,13 @@ public:
     static std::unique_ptr<Index> load(main::ClientContext* context, storage::IndexInfo indexInfo,
         std::span<uint8_t> storageInfoBuffer);
 
+    static storage::IndexType getIndexType() {
+        static const storage::IndexType HNSW_INDEX_TYPE{"HNSW",
+            storage::IndexConstraintType::SECONDARY_NON_UNIQUE,
+            storage::IndexDefinitionType::EXTENSION, load};
+        return HNSW_INDEX_TYPE;
+    }
+
 private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
         const void* queryVector, storage::NodeTableScanState& embeddingScanState) const;
@@ -306,10 +313,6 @@ private:
     std::unique_ptr<graph::OnDiskGraph> lowerGraph;
     std::unique_ptr<OnDiskEmbeddings> embeddings;
 };
-
-static const storage::IndexType HNSW_INDEX_TYPE{"HNSW",
-    storage::IndexConstraintType::SECONDARY_NON_UNIQUE, storage::IndexDefinitionType::EXTENSION,
-    OnDiskHNSWIndex::load};
 
 } // namespace vector_extension
 } // namespace kuzu

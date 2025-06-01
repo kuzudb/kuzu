@@ -231,10 +231,11 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
     KU_ASSERT(pkColumnID != INVALID_COLUMN_ID);
-    IndexInfo indexInfo{PrimaryKeyIndex::DEFAULT_NAME, HASH_INDEX_TYPE.typeName, tableID,
-        pkColumnID, pkDefinition.getType().getPhysicalType(),
-        HASH_INDEX_TYPE.constraintType == IndexConstraintType::PRIMARY,
-        HASH_INDEX_TYPE.definitionType == IndexDefinitionType::BUILTIN};
+    auto hashIndexType = PrimaryKeyIndex::getIndexType();
+    IndexInfo indexInfo{PrimaryKeyIndex::DEFAULT_NAME, hashIndexType.typeName, tableID, pkColumnID,
+        pkDefinition.getType().getPhysicalType(),
+        hashIndexType.constraintType == IndexConstraintType::PRIMARY,
+        hashIndexType.definitionType == IndexDefinitionType::BUILTIN};
     indexes.push_back(IndexHolder{
         PrimaryKeyIndex::createNewIndex(indexInfo, inMemory, *memoryManager, dataFH, shadowFile)});
     nodeGroups = std::make_unique<NodeGroupCollection>(
@@ -680,10 +681,9 @@ void NodeTable::deserialize(main::ClientContext* context, Deserializer& deSer) {
     indexes.clear();
     indexes.reserve(indexInfos.size());
     for (auto i = 0u; i < indexInfos.size(); ++i) {
-        auto& indexInfo = indexInfos[i];
-        indexes.push_back(
-            IndexHolder(indexInfo, std::move(storageInfoBuffers[i]), storageInfoBufferSizes[i]));
-        if (indexInfo.indexType == HASH_INDEX_TYPE.typeName) {
+        indexes.push_back(IndexHolder(indexInfos[i], std::move(storageInfoBuffers[i]),
+            storageInfoBufferSizes[i]));
+        if (indexInfos[i].isBuiltin) {
             indexes[i].load(context);
         }
     }
