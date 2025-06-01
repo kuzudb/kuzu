@@ -180,6 +180,9 @@ python-debug:
 pytest: python
 	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
 
+pytest-venv: python
+	$(MAKE) -C tools/python_api pytest
+
 pytest-debug: python-debug
 	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
 
