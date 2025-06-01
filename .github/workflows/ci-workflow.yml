@@ -154,11 +154,6 @@ jobs:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
 
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
@@ -188,7 +183,7 @@ jobs:
           make test
 
       - name: Python test
-        run: make pytest
+        run: make pytest-venv
 
       - name: Node.js test
         run: make nodejstest
@@ -238,11 +233,6 @@ jobs:
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -410,11 +400,6 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
@@ -468,11 +453,6 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
@@ -497,7 +477,7 @@ jobs:
           make test DEFAULT_REL_STORAGE_DIRECTION=BOTH
 
       - name: Python test
-        run: make pytest
+        run: make pytest-venv
 
       - name: Node.js test
         run: make nodejstest
@@ -541,15 +521,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
       - name: Build
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
@@ -587,15 +558,6 @@ jobs:
       BUFFER_POOL_SIZE: 1073741824
     steps:
       - uses: actions/checkout@v4
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Build
         run: |
@@ -649,11 +611,6 @@ jobs:
         with:
           name: binary-demo
           path: dataset/binary-demo
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -709,7 +666,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make pytest
+          make pytest-venv
 
       - name: Node.js test
         shell: cmd
@@ -931,11 +888,6 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
-      - name: Ensure Python dependencies
-        run: |
-          pip3 install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
@@ -970,7 +922,7 @@ jobs:
           PYBIND11_PYTHON_VERSION: 3.12
         run: |
           ulimit -n 10240
-          make pytest
+          make pytest-venv
 
       - name: C and C++ Examples
         run: |
