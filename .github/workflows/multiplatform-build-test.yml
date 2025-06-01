@@ -3,6 +3,7 @@ name: Multiplatform Build and Test
 env:
   USE_EXISTING_BINARY_DATASET: 1
   WERROR: 1
+  BUILD_TYPE: Release
 
 on:
   workflow_dispatch:
@@ -669,7 +670,7 @@ jobs:
         run: |
           set +e
           echo NUM_THREADS=$(nproc)
-          make test NUM_THREADS=$(nproc) USE_STD_FORMAT=1
+          make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
           make clean
           rm -rf dataset/ldbc-1
