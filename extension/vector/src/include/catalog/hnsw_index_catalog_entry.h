@@ -14,7 +14,7 @@ struct HNSWIndexAuxInfo final : catalog::IndexAuxInfo {
 
     HNSWIndexConfig config;
 
-    HNSWIndexAuxInfo(HNSWIndexConfig config) : config{std::move(config)} {}
+    explicit HNSWIndexAuxInfo(HNSWIndexConfig config) : config{std::move(config)} {}
 
     HNSWIndexAuxInfo(const HNSWIndexAuxInfo& other) : config{other.config.copy()} {}
 
