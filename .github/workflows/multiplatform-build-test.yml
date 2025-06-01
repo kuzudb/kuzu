@@ -83,19 +83,11 @@ jobs:
           make example NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "C and C++ examples,$?" >> status.txt
 
-      - name: Ensure Python dependencies
-        continue-on-error: true
-        run: |
-          pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-
       - name: Python test
         continue-on-error: true
         run: |
-          python --version
-          pip --version
           set +e
-          make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
+          make pytest-venv NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Python test,$?" >> status.txt
 
       - name: Ensure Node.js dependencies
@@ -150,10 +142,11 @@ jobs:
 
       - name: Rename status.txt
         continue-on-error: true
-        run: mv status.txt ${{ matrix.runner }}.csv
+        run: |
+          cat status.txt
+          mv status.txt ${{ matrix.runner }}.csv
 
       - uses: actions/upload-artifact@v4
-        continue-on-error: true
         with:
           name: ${{ matrix.runner }}
           path: ${{ matrix.runner }}.csv
@@ -184,6 +177,9 @@ jobs:
           Set-MpPreference -DisableScriptScanning $true
           Set-MpPreference -SubmitSamplesConsent NeverSend
 
+      - uses: ilammy/msvc-dev-cmd@v1
+        continue-on-error: true
+
       - uses: actions/checkout@v4
         continue-on-error: true
 
@@ -192,9 +188,6 @@ jobs:
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
-
-      - uses: ilammy/msvc-dev-cmd@v1
-        continue-on-error: true
 
       - uses: actions/setup-python@v4
         continue-on-error: true
@@ -225,20 +218,11 @@ jobs:
           make example NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo C and C++ examples,%ERRORLEVEL% >> status.txt
 
-      - name: Ensure Python dependencies
-        continue-on-error: true
-        shell: cmd
-        run: |
-          pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-
       - name: Python test
         continue-on-error: true
         shell: cmd
         run: |
-          python --version
-          pip --version
-          make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
+          make pytest-venv NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Python test,%ERRORLEVEL% >> status.txt
 
       - name: Ensure Node.js dependencies
@@ -304,10 +288,10 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
+          cat status.txt
           rename status.txt ${{ matrix.runner }}.csv
 
       - uses: actions/upload-artifact@v4
-        continue-on-error: true
         with:
           name: ${{ matrix.runner }}
           path: ${{ matrix.runner }}.csv
@@ -341,7 +325,7 @@ jobs:
         continue-on-error: true
         run: |
           apt-get update
-          apt-get install -y git build-essential cmake python3 python3-dev python3-venv python3-pip openjdk-17-jdk ca-certificates curl gnupg ${{ matrix.image == 'ubuntu:22.04' && 'gcc-12 g++-12' || 'gcc g++' }} ${{ (matrix.image == 'debian:sid' || matrix.image == 'ubuntu:25.04') && 'nodejs npm' || 'nodejs' }}
+          apt-get install -y git build-essential cmake python3 python3-dev python3-venv openjdk-17-jdk ca-certificates curl gnupg ${{ matrix.image == 'ubuntu:22.04' && 'gcc-12 g++-12' || 'gcc g++' }} ${{ (matrix.image == 'debian:sid' || matrix.image == 'ubuntu:25.04') && 'nodejs npm' || 'nodejs' }}
 
       - name: Setup gcc 12
         if: ${{ matrix.image == 'ubuntu:22.04' }}
@@ -383,22 +367,11 @@ jobs:
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
-      - name: Ensure Python dependencies
-        continue-on-error: true
-        run: |
-          python3 -m venv /opt/venv
-          . /opt/venv/bin/activate
-          pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-
       - name: Python test
         continue-on-error: true
         run: |
-          . /opt/venv/bin/activate
-          python --version
-          pip --version
           set +e
-          make pytest NUM_THREADS=$(nproc)
+          make pytest-venv NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
       - name: Ensure Node.js dependencies
@@ -461,12 +434,12 @@ jobs:
       - name: Rename status.txt
         continue-on-error: true
         run: |
+          cat status.txt
           PLATFORM=$(echo ${{ matrix.image }} | tr ':' '-')
           echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
           mv status.txt $PLATFORM.csv
 
       - uses: actions/upload-artifact@v4
-        continue-on-error: true
         with:
           name: ${{env.PLATFORM}}
           path: ${{env.PLATFORM}}.csv
@@ -551,22 +524,11 @@ jobs:
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
-      - name: Ensure Python dependencies
-        continue-on-error: true
-        run: |
-          python3 -m venv /opt/venv
-          source /opt/venv/bin/activate
-          pip3 install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-
       - name: Python test
         continue-on-error: true
         run: |
-          source /opt/venv/bin/activate
-          python --version
-          pip --version
           set +e
-          make pytest NUM_THREADS=$(nproc)
+          make pytest-venv NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
       - name: Ensure Node.js dependencies
@@ -629,12 +591,12 @@ jobs:
       - name: Rename status.txt
         continue-on-error: true
         run: |
+          cat status.txt
           PLATFORM=$(echo ${{ matrix.image }} | tr ':' '-')
           echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
           mv status.txt $PLATFORM.csv
 
       - uses: actions/upload-artifact@v4
-        continue-on-error: true
         with:
           name: ${{env.PLATFORM}}
           path: ${{env.PLATFORM}}.csv
@@ -654,7 +616,7 @@ jobs:
         continue-on-error: true
         run: |
           pacman -Syu --noconfirm
-          pacman -S --needed --noconfirm git base-devel cmake gcc python python-pip npm jdk17-openjdk
+          pacman -S --needed --noconfirm git base-devel cmake gcc python npm jdk17-openjdk
 
       - uses: actions/checkout@v4
         continue-on-error: true
@@ -689,22 +651,11 @@ jobs:
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
-      - name: Ensure Python dependencies
-        continue-on-error: true
-        run: |
-          python3 -m venv /opt/venv
-          source /opt/venv/bin/activate
-          pip install torch~=2.6.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.6.0+cpu.html
-
       - name: Python test
         continue-on-error: true
         run: |
-          source /opt/venv/bin/activate
-          python --version
-          pip --version
           set +e
-          make pytest NUM_THREADS=$(nproc)
+          make pytest-venv NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
       - name: Ensure Node.js dependencies
@@ -767,10 +718,10 @@ jobs:
       - name: Rename status.txt
         continue-on-error: true
         run: |
+          cat status.txt
           mv status.txt archlinux.csv
 
       - uses: actions/upload-artifact@v4
-        continue-on-error: true
         with:
           name: archlinux
           path: archlinux.csv
