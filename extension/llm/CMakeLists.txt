@@ -1,3 +1,5 @@
+find_package(OpenSSL REQUIRED)
+
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
         ${CMAKE_BINARY_DIR}/src/include
@@ -6,7 +8,6 @@ include_directories(
         ${OPENSSL_INCLUDE_DIR})
 
 
-find_package(OpenSSL REQUIRED)
 
 
 add_subdirectory(src/function)
