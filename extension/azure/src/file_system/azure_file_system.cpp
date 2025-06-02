@@ -43,5 +43,10 @@ uint64_t AzureFileSystem::getFileSize(const FileInfo& /*fileInfo*/) const {
     KU_UNREACHABLE;
 }
 
+bool AzureFileSystem::fileOrPathExists(const std::string& /*path*/,
+    main::ClientContext* /*context*/) {
+    return true;
+}
+
 } // namespace azure_extension
 } // namespace kuzu

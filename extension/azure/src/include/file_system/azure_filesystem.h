@@ -33,6 +33,8 @@ private:
     int64_t seek(common::FileInfo& fileInfo, uint64_t offset, int whence) const override;
 
     uint64_t getFileSize(const common::FileInfo& fileInfo) const override;
+
+    bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
 };
 
 } // namespace azure_extension
