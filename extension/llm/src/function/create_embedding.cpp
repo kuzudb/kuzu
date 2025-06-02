@@ -44,12 +44,12 @@ static httplib::Headers getHeaders(const std::string& provider)
 {
     if (provider == "open-ai")
     {
-        auto key = std::string(std::getenv("OPENAI_API_KEY"));
-        if (key.empty()) 
+        auto env_key = std::getenv("OPENAI_API_KEY");
+        if (env_key == nullptr) 
         {
             throw(RuntimeException("Could not get key from: OPENAI_API_KEY"));
         }
-        return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + key}};
+        return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
     }
 
     else if (provider == "ollama")
