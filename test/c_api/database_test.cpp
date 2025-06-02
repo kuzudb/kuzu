@@ -313,14 +313,13 @@ TEST_F(CApiDatabaseTest, dasd) {
     printf("%s", conn->query("CALL QUERY_FTS_INDEX('person', 'personidx', 'alice') return *")
                      ->toString()
                      .c_str());
+    printf("%s", conn->query("match (p:person {id: 0}) delete p")->toString().c_str());
+    printf("%s", conn->query("explain MATCH (d:`0_personidx_docs`) return d")->toString().c_str());
 }
 
-TEST_F(CApiDatabaseTest, dsada) {
+TEST_F(CApiDatabaseTest, dasd13) {
     createDBAndConn();
-    auto prepared = conn->prepare("MATCH (n :Entity)\n"
-                                  "    REtURN CAST($n_embedding,'FLOAT[2]') \n"
-                                  "    UNION\n"
-                                  "    MATCH (n :Entity)\n"
-                                  "    return CAST($n_embedding,'FLOAT[2]') ");
-    conn->execute(prepared.get(), std::make_pair(std::string("$n_embedding"), 1));
+    conn->query("CREATE NODE TABLE serial_pk (id SERIAL PRIMARY KEY, name STRING)");
+    conn->query("CREATE NODE TABLE string_pk (id STRING PRIMARY KEY, name STRING)");
+    printf("%s", conn->query("explain MATCH (n) RETURN 1")->toString().c_str());
 }

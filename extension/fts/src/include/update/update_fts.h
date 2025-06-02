@@ -15,7 +15,7 @@ public:
     void insertNode(main::ClientContext* context, common::nodeID_t insertedNodeID,
         std::vector<common::ValueVector*> columnDataVectors);
 
-    void deleteNode(transaction::Transaction* transaction, common::nodeID_t deletedNodeID);
+    void deleteNode(main::ClientContext* context, common::nodeID_t deletedNodeID);
 
 private:
     catalog::IndexCatalogEntry* ftsEntry;

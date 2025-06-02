@@ -131,8 +131,64 @@ void FTSUpdater::insertNode(main::ClientContext* context, common::nodeID_t inser
     }
 }
 
-void FTSUpdater::deleteNode(transaction::Transaction* transaction, common::nodeID_t deletedNodeID) {
+void FTSUpdater::deleteNode(main::ClientContext* context, common::nodeID_t deletedNodeID) {
+    // Delete from doc table
+    docPKVector.setValue(0, deletedNodeID.offset);
+    nodeID_t docNodeID{INVALID_OFFSET, docTable->getTableID()};
+    docTable->lookupPK(context->getTransaction(), &docPKVector, 0 /* vectorPos */,
+        docNodeID.offset);
+    docNodeIDVector.setValue(0, docNodeID);
+    auto nodeDeleteState = std::make_unique<NodeTableDeleteState>(docNodeIDVector, docPKVector);
+    docTable->delete_(context->getTransaction(), *nodeDeleteState);
 
+    // Update dict table
+    std::unordered_map<std::string, offset_t> terms;
+    nodeID_t termNodeID{INVALID_OFFSET, termsTable->getTableID()};
+    for (auto& [term, offset] : terms) {
+        termsPKVector.setValue(0, term);
+        // If the word already exists in the dict table, we update the df. Otherwise, we
+        // insert a new word entry to the dict table.
+        auto found = termsTable->lookupPK(context->getTransaction(), &termsPKVector,
+            0 /* vectorPos */, offset);
+        termNodeID.offset = offset;
+        KU_ASSERT(found);
+        auto nodeTableScanState =
+            NodeTableScanState(&termsNodeIDVector, std::vector{&termsDFVector}, dataChunkState);
+        nodeTableScanState.setToTable(context->getTransaction(), termsTable, {dfColumnID}, {});
+        termsNodeIDVector.setValue(0, termNodeID);
+        termsTable->initScanState(context->getTransaction(), nodeTableScanState, termNodeID.tableID,
+            termNodeID.offset);
+        termsTable->lookup(context->getTransaction(), nodeTableScanState);
+        auto df = termsDFVector.getValue<uint64_t>(0);
+        if (df == 1) {
+            // Delete from terms table
+            nodeDeleteState =
+                std::make_unique<NodeTableDeleteState>(termsNodeIDVector, termsPKVector);
+            docTable->delete_(context->getTransaction(), *nodeDeleteState);
+        } else {
+            // Update terms table
+            NodeTableUpdateState updateState{dfColumnID, termsNodeIDVector, termsDFVector};
+            termsDFVector.setValue(0, df - 1);
+            termsTable->update(context->getTransaction(), updateState);
+        }
+    }
+
+    // Delete from appearsInfo table
+    auto deleteState =
+        std::make_unique<RelTableDeleteState>(appearsInSrcVector, appearsInDstVector, relIDVector);
+    relID_t relID = {INVALID_OFFSET, appearsInTable->getTableID()};
+
+    // 1， alice, 5
+    //1， alice, 3
+    // 1, bob, 2
+    // 1, bob, 1
+    for (auto& [_, offset] : terms) {
+        termNodeID.offset = offset;
+        appearsInSrcVector.setValue(0, termNodeID);
+        appearsInDstVector.setValue(0, docNodeID);
+        relIDVector.setValue(0, relID);
+        termsTable->delete_(context->getTransaction(), *deleteState);
+    }
 }
 
 } // namespace fts_extension

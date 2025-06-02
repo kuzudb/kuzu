@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "/Users/z473chen/Desktop/code/kuzu/extension/fts/src/include/update/update_fts.h"
 #include "common/assert.h"
 #include "common/exception/message.h"
 #include "common/vector/value_vector.h"
@@ -75,6 +76,14 @@ void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         std::make_unique<NodeTableDeleteState>(*info.nodeIDVector, *tableInfo.pkVector);
     if (!tableInfo.table->delete_(context->clientContext->getTransaction(), *deleteState)) {
         return;
+    }
+    auto clientContext = context->clientContext;
+    if (clientContext->getCatalog()->containsIndex(clientContext->getTransaction(), 0,
+            "personidx")) {
+        fts_extension::FTSUpdater ftsUpdater{
+            clientContext->getCatalog()->getIndex(clientContext->getTransaction(), 0, "personidx"),
+            clientContext};
+        ftsUpdater.deleteNode(clientContext, info.nodeIDVector->getValue<nodeID_t>(0));
     }
     auto transaction = context->clientContext->getTransaction();
     switch (info.deleteType) {
