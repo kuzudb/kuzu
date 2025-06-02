@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <unordered_map>
-#include <unordered_set>
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
