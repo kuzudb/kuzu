@@ -1,6 +1,8 @@
 #pragma once
 
+#include "common/types/types.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/table/column_chunk_data.h"
 #include "storage/table/dictionary_column.h"
 
 namespace kuzu {
@@ -17,16 +19,9 @@ public:
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         PageAllocator& pageAllocator);
 
-    void scan(const ChunkState& state, common::offset_t startOffsetInGroup,
-        common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
-        uint64_t offsetInVector = 0) const override;
-    void scan(const ChunkState& state, ColumnChunkData* columnChunk,
-        common::offset_t startOffset = 0,
-        common::offset_t endOffset = common::INVALID_OFFSET) const override;
-
-    void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
-        const ColumnChunkData& data, common::offset_t srcOffset,
-        common::length_t numValues) const override;
+    void writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+        common::offset_t dstOffsetInSegment, const ColumnChunkData& data,
+        common::offset_t srcOffset, common::length_t numValues) const override;
 
     void checkpointSegment(ColumnCheckpointState&& checkpointState,
         PageAllocator& pageAllocator) const override;
@@ -34,26 +29,31 @@ public:
     const DictionaryColumn& getDictionary() const { return dictionary; }
     const Column* getIndexColumn() const { return indexColumn.get(); }
 
-    static ChunkState& getChildState(ChunkState& state, ChildStateIndex child);
-    static const ChunkState& getChildState(const ChunkState& state, ChildStateIndex child);
+    static SegmentState& getChildState(SegmentState& state, ChildStateIndex child);
+    static const SegmentState& getChildState(const SegmentState& state, ChildStateIndex child);
 
 protected:
-    void scanInternal(const ChunkState& state, common::offset_t startOffsetInChunk,
-        common::row_idx_t numValuesToScan, common::ValueVector* resultVector) const override;
-    void scanUnfiltered(const ChunkState& state, common::offset_t startOffsetInChunk,
+    void scanSegment(const SegmentState& state, common::offset_t startOffsetInChunk,
+        common::row_idx_t numValuesToScan, common::ValueVector* resultVector,
+        common::offset_t offsetInResult) const override;
+
+    void scanSegment(const SegmentState& state, ColumnChunkData* resultChunk,
+        common::offset_t startOffsetInSegment, common::row_idx_t numValuesToScan) const override;
+
+    void scanUnfiltered(const SegmentState& state, common::offset_t startOffsetInChunk,
         common::offset_t numValuesToRead, common::ValueVector* resultVector,
         common::sel_t startPosInVector = 0) const;
-    void scanFiltered(const ChunkState& state, common::offset_t startOffsetInChunk,
-        common::ValueVector* resultVector) const;
+    void scanFiltered(const SegmentState& state, common::offset_t startOffsetInChunk,
+        common::ValueVector* resultVector, common::sel_t startPosInVector) const;
 
-    void lookupInternal(const ChunkState& state, common::offset_t nodeOffset,
+    void lookupInternal(const SegmentState& state, common::offset_t nodeOffset,
         common::ValueVector* resultVector, uint32_t posInVector) const override;
 
 private:
-    bool canCheckpointInPlace(const ChunkState& state,
+    bool canCheckpointInPlace(const SegmentState& state,
         const ColumnCheckpointState& checkpointState) const override;
 
-    bool canIndexCommitInPlace(const ChunkState& state, uint64_t numStrings,
+    bool canIndexCommitInPlace(const SegmentState& state, uint64_t numStrings,
         common::offset_t maxOffset) const;
 
 private:

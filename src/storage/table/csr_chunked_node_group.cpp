@@ -7,9 +7,9 @@
 #include "storage/page_allocator.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column.h"
-#include "storage/table/csr_node_group.h"
 #include "storage/table/column_chunk.h"
 #include "storage/table/column_chunk_data.h"
+#include "storage/table/csr_node_group.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -46,13 +46,13 @@ CSRRegion CSRRegion::upgradeLevel(const std::vector<CSRRegion>& leafRegions,
     const idx_t leftLeafRegionIdx = newRegion.getLeftLeafRegionIdx();
     const idx_t rightLeafRegionIdx = newRegion.getRightLeafRegionIdx();
     for (auto leafRegionIdx = leftLeafRegionIdx; leafRegionIdx <= rightLeafRegionIdx;
-         leafRegionIdx++) {
+        leafRegionIdx++) {
         KU_ASSERT(leafRegionIdx < leafRegions.size());
         newRegion.sizeChange += leafRegions[leafRegionIdx].sizeChange;
         newRegion.hasPersistentDeletions |= leafRegions[leafRegionIdx].hasPersistentDeletions;
         newRegion.hasInsertions |= leafRegions[leafRegionIdx].hasInsertions;
         for (auto columnID = 0u; columnID < leafRegions[leafRegionIdx].hasUpdates.size();
-             columnID++) {
+            columnID++) {
             newRegion.hasUpdates[columnID] =
                 static_cast<bool>(newRegion.hasUpdates[columnID]) ||
                 static_cast<bool>(leafRegions[leafRegionIdx].hasUpdates[columnID]);
@@ -151,7 +151,7 @@ offset_vec_t ChunkedCSRHeader::populateStartCSROffsetsFromLength(bool leaveGaps)
 }
 
 void ChunkedCSRHeader::populateEndCSROffsetFromStartAndLength() const {
-    const auto numNodes = length->getNumValues();
+    [[maybe_unused]] const auto numNodes = length->getNumValues();
     KU_ASSERT(offset->getNumValues() == numNodes);
     // TODO(bmwinger): maybe there's a way of also vectorizing this for the length chunk, E.g. a
     // forEach over two values
@@ -395,6 +395,7 @@ bool InMemChunkedCSRHeader::sanityCheck() const {
 void InMemChunkedCSRHeader::copyFrom(const InMemChunkedCSRHeader& other) const {
     KU_ASSERT(offset->getNumValues() == length->getNumValues());
     KU_ASSERT(other.offset->getNumValues() == other.length->getNumValues());
+    KU_ASSERT(other.offset->getCapacity() == offset->getCapacity());
     const auto numOtherValues = other.offset->getNumValues();
     memcpy(offset->getData(), other.offset->getData(), numOtherValues * sizeof(offset_t));
     memcpy(length->getData(), other.length->getData(), numOtherValues * sizeof(length_t));

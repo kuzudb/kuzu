@@ -23,7 +23,6 @@
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
-using namespace kuzu::transaction;
 using namespace kuzu::evaluator;
 
 namespace kuzu {
@@ -130,7 +129,7 @@ Column* Column::getNullColumn() const {
     return nullColumn.get();
 }
 
-void Column::populateExtraChunkState(ChunkState& state) const {
+void Column::populateExtraChunkState(SegmentState& state) const {
     if (state.metadata.compMeta.compression == CompressionType::ALP) {
         if (dataType.getPhysicalType() == PhysicalTypeID::DOUBLE) {
             state.alpExceptionChunk =
@@ -184,62 +183,28 @@ ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData,
     return chunkData.flushBuffer(pageAllocator, allocatedBlock, preScanMetadata);
 }
 
-void Column::scan(const ChunkState& state, offset_t startOffsetInChunk, row_idx_t numValuesToScan,
-    ValueVector* resultVector) const {
-    if (nullColumn) {
-        KU_ASSERT(state.nullState);
-        nullColumn->scan(*state.nullState, startOffsetInChunk, numValuesToScan, resultVector);
-    }
-    scanInternal(state, startOffsetInChunk, numValuesToScan, resultVector);
-}
-
-void Column::scan(const ChunkState& state, offset_t startOffsetInGroup, offset_t endOffsetInGroup,
+void Column::scan(const ChunkState& state, offset_t startOffsetInChunk, offset_t length,
     ValueVector* resultVector, uint64_t offsetInVector) const {
-    if (nullColumn) {
-        KU_ASSERT(state.nullState);
-        nullColumn->scan(*state.nullState, startOffsetInGroup, endOffsetInGroup, resultVector,
-            offsetInVector);
-    }
-    columnReadWriter->readCompressedValuesToVector(state, resultVector, offsetInVector,
-        startOffsetInGroup, endOffsetInGroup, readToVectorFunc);
+    state.rangeSegments(startOffsetInChunk, length,
+        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
+            scanSegment(segmentState, startOffsetInSegment, lengthInSegment, resultVector,
+                offsetInVector + dstOffset);
+        });
 }
 
-void Column::scan(const ChunkState& state, ColumnChunkData* columnChunk, offset_t startOffset,
-    offset_t endOffset) const {
+void Column::scanSegment(const SegmentState& state, offset_t startOffsetInSegment,
+    row_idx_t numValuesToScan, ValueVector* resultVector, offset_t offsetInVector) const {
     if (nullColumn) {
-        nullColumn->scan(*state.nullState, columnChunk->getNullData(), startOffset, endOffset);
-    }
-
-    startOffset = std::min(startOffset, state.metadata.numValues);
-    endOffset = std::min(endOffset, state.metadata.numValues);
-    KU_ASSERT(endOffset >= startOffset);
-    const auto numValuesToScan = endOffset - startOffset;
-    if (numValuesToScan > columnChunk->getCapacity()) {
-        columnChunk->resizeWithoutPreserve(std::bit_ceil(numValuesToScan));
+        KU_ASSERT(state.nullState);
+        nullColumn->scanSegment(*state.nullState, startOffsetInSegment, numValuesToScan,
+            resultVector, offsetInVector);
     }
     if (getDataTypeSizeInChunk(dataType) == 0) {
-        columnChunk->setNumValues(numValuesToScan);
         return;
     }
-
-    KU_ASSERT((numValuesToScan + startOffset) <= state.metadata.numValues);
-    const uint64_t numValuesScanned = columnReadWriter->readCompressedValuesToPage(state,
-        columnChunk->getData(), 0, startOffset, endOffset, readToPageFunc);
-
-    columnChunk->setNumValues(numValuesScanned);
-}
-
-void Column::scan(const ChunkState& state, offset_t startOffsetInGroup, offset_t endOffsetInGroup,
-    uint8_t* result) {
-    columnReadWriter->readCompressedValuesToPage(state, result, 0, startOffsetInGroup,
-        endOffsetInGroup, readToPageFunc);
-}
-
-void Column::scanInternal(const ChunkState& state, offset_t startOffsetInChunk,
-    row_idx_t numValuesToScan, ValueVector* resultVector) const {
-    if (resultVector->state->getSelVector().isUnfiltered()) {
-        columnReadWriter->readCompressedValuesToVector(state, resultVector, 0, startOffsetInChunk,
-            startOffsetInChunk + numValuesToScan, readToVectorFunc);
+    if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {
+        columnReadWriter->readCompressedValuesToVector(state, resultVector, offsetInVector,
+            startOffsetInSegment, numValuesToScan, readToVectorFunc);
     } else {
         struct Filterer {
             explicit Filterer(const SelectionVector& selVector)
@@ -257,26 +222,73 @@ void Column::scanInternal(const ChunkState& state, offset_t startOffsetInChunk,
             offset_t posInSelVector;
         };
 
-        columnReadWriter->readCompressedValuesToVector(state, resultVector, 0, startOffsetInChunk,
-            startOffsetInChunk + numValuesToScan, readToVectorFunc,
+        columnReadWriter->readCompressedValuesToVector(state, resultVector, offsetInVector,
+            startOffsetInSegment, numValuesToScan, readToVectorFunc,
             Filterer{resultVector->state->getSelVector()});
     }
 }
 
-void Column::lookupValue(const ChunkState& state, offset_t nodeOffset, ValueVector* resultVector,
-    uint32_t posInVector) const {
+void Column::scanSegment(const SegmentState& state, ColumnChunkData* outputChunk,
+    offset_t offsetInSegment, offset_t numValues) const {
+    auto startLength = outputChunk->getNumValues();
     if (nullColumn) {
-        nullColumn->lookupValue(*state.nullState, nodeOffset, resultVector, posInVector);
+        nullColumn->scanSegment(*state.nullState, outputChunk->getNullData(), offsetInSegment,
+            numValues);
     }
-    if (resultVector->isNull(posInVector)) {
-        return;
+
+    if (startLength + numValues > outputChunk->getCapacity()) {
+        outputChunk->resize(std::bit_ceil(startLength + numValues));
     }
-    lookupInternal(state, nodeOffset, resultVector, posInVector);
+
+    // FIXME(bmwinger): failing for certain null columns
+    // KU_ASSERT((offsetInSegment + numValues) <= state.metadata.numValues);
+    if (getDataTypeSizeInChunk(dataType) > 0) {
+        columnReadWriter->readCompressedValuesToPage(state, outputChunk->getData(),
+            outputChunk->getNumValues(), offsetInSegment, numValues, readToPageFunc);
+    }
+    outputChunk->setNumValues(startLength + numValues);
 }
 
-void Column::lookupInternal(const ChunkState& state, offset_t nodeOffset, ValueVector* resultVector,
+void Column::scan(const ChunkState& state, ColumnChunkData* outputChunk, offset_t offsetInChunk,
+    offset_t numValues) const {
+    outputChunk->setNumValues(0);
+    [[maybe_unused]] uint64_t numValuesScanned = state.rangeSegments(offsetInChunk, numValues,
+        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto) {
+            scanSegment(segmentState, outputChunk, startOffsetInSegment, lengthInSegment);
+        });
+    KU_ASSERT(outputChunk->getNumValues() == numValuesScanned);
+}
+
+void Column::scan(const ChunkState& state, offset_t startOffsetInGroup, offset_t length,
+    uint8_t* result) {
+    state.rangeSegments(startOffsetInGroup, length,
+        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
+            columnReadWriter->readCompressedValuesToPage(segmentState, result, dstOffset,
+                startOffsetInSegment, lengthInSegment, readToPageFunc);
+        });
+}
+
+void Column::scanSegment(const SegmentState& state, offset_t startOffsetInSegment, offset_t length,
+    uint8_t* result) {
+    columnReadWriter->readCompressedValuesToPage(state, result, 0, startOffsetInSegment, length,
+        readToPageFunc);
+}
+
+void Column::lookupValue(const ChunkState& state, offset_t nodeOffset, ValueVector* resultVector,
     uint32_t posInVector) const {
-    columnReadWriter->readCompressedValueToVector(state, nodeOffset, resultVector, posInVector,
+    offset_t offsetInSegment = 0;
+    auto segmentState = state.findSegment(nodeOffset, offsetInSegment);
+    if (nullColumn) {
+        nullColumn->lookupInternal(*segmentState->nullState, nodeOffset, resultVector, posInVector);
+    }
+    if (!resultVector->isNull(posInVector)) {
+        lookupInternal(*segmentState, nodeOffset, resultVector, posInVector);
+    }
+}
+
+void Column::lookupInternal(const SegmentState& state, offset_t offsetInSegment,
+    ValueVector* resultVector, uint32_t posInVector) const {
+    columnReadWriter->readCompressedValueToVector(state, offsetInSegment, resultVector, posInVector,
         readToVectorFunc);
 }
 
@@ -320,36 +332,58 @@ void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
 // using from Column is the ColumnReaderWriter And since ColumnChunk needs to call it for multiple
 // segments, it might make more sense for it to be there instead of passing the Column in
 // ColumnChunk::write
-void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
+void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t initialDstOffset,
     const ColumnChunkData& data, offset_t srcOffset, length_t numValues) const {
-    std::optional<NullMask> nullMask = data.getNullMask();
-    NullMask* nullMaskPtr = nullptr;
-    if (nullMask) {
-        nullMaskPtr = &*nullMask;
-    }
-    writeValues(state, dstOffset, data.getData(), nullMaskPtr, srcOffset, numValues);
+    state.rangeSegments(srcOffset, numValues,
+        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+            writeInternal(persistentChunk, segmentState, initialDstOffset + dstOffset, data,
+                offsetInSegment, lengthInSegment);
+        });
+}
 
-    if (dataType.getPhysicalType() != PhysicalTypeID::ALP_EXCEPTION_DOUBLE &&
-        dataType.getPhysicalType() != PhysicalTypeID::ALP_EXCEPTION_FLOAT) {
+void Column::writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+    offset_t dstOffsetInSegment, const ColumnChunkData& data, offset_t srcOffset,
+    offset_t numValues) const {
+    auto nullMask = data.getNullMask();
+    columnReadWriter->writeValuesToPageFromBuffer(state, dstOffsetInSegment, data.getData(),
+        nullMask ? &*nullMask : nullptr, srcOffset, numValues, writeFunc);
+
+    // TODO: this needs to be propagated to other WriteInternal functions
+    // Or maybe split this function into writeSegment and writeSegmentInternal
+    if (dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_DOUBLE &&
+        dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_FLOAT) {
+        auto nullMask = data.getNullMask();
         auto [minWritten, maxWritten] = getMinMaxStorageValue(data.getData(), srcOffset, numValues,
-            dataType.getPhysicalType(), nullMaskPtr);
-        updateStatistics(persistentChunk.getMetadata(), dstOffset + numValues - 1, minWritten,
-            maxWritten);
+            dataType.getPhysicalType(), nullMask ? &*nullMask : nullptr);
+        updateStatistics(persistentChunk.getMetadata(), dstOffsetInSegment + numValues - 1,
+            minWritten, maxWritten);
     }
 }
 
-void Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* data,
+// TODO: Do we need to adapt the offsets to this current node group?
+void Column::writeValues(ChunkState& state, offset_t initialDstOffset, const uint8_t* data,
     const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues) const {
-    columnReadWriter->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData, srcOffset,
-        numValues, writeFunc);
+    state.rangeSegments(srcOffset, numValues,
+        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+            writeValuesInternal(segmentState, initialDstOffset + dstOffset, data, nullChunkData,
+                offsetInSegment, lengthInSegment);
+        });
+}
+
+void Column::writeValuesInternal(SegmentState& state, common::offset_t dstOffsetInSegment,
+    const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
+    common::offset_t numValues) const {
+    columnReadWriter->writeValuesToPageFromBuffer(state, dstOffsetInSegment, data, nullChunkData,
+        srcOffset, numValues, writeFunc);
 }
 
 // Append to the end of the chunk.
-offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
+offset_t Column::appendValues(ColumnChunkData& persistentChunk, SegmentState& state,
     const uint8_t* data, const NullMask* nullChunkData, offset_t numValues) const {
     auto& metadata = persistentChunk.getMetadata();
     const auto startOffset = metadata.numValues;
-    writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
+    writeValuesInternal(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/,
+        numValues);
 
     auto [minWritten, maxWritten] = getMinMaxStorageValue(data, 0 /*offset*/, numValues,
         dataType.getPhysicalType(), nullChunkData);
@@ -369,11 +403,11 @@ bool Column::isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
     return false;
 }
 
-void Column::checkpointColumnChunkInPlace(ChunkState& state,
+void Column::checkpointColumnChunkInPlace(SegmentState& state,
     const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const {
     for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
         KU_ASSERT(segmentCheckpointState.numRows > 0);
-        state.column->write(checkpointState.persistentData, state,
+        state.column->writeInternal(checkpointState.persistentData, state,
             segmentCheckpointState.offsetInSegment, segmentCheckpointState.chunkData,
             segmentCheckpointState.startRowInData, segmentCheckpointState.numRows);
     }
@@ -400,12 +434,13 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState,
         pageAllocator);
 }
 
-void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
-    const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const {
+void Column::checkpointColumnChunkOutOfPlace(const SegmentState& state,
+    const ColumnCheckpointState& checkpointState, PageAllocator &pageAllocator) const {
     const auto numRows = std::max(checkpointState.endRowIdxToWrite, state.metadata.numValues);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
-    scan(state, &checkpointState.persistentData);
+    KU_ASSERT(checkpointState.persistentData.getNumValues() == 0);
+    scanSegment(state, &checkpointState.persistentData, 0, state.metadata.numValues);
     state.reclaimAllocatedPages(pageAllocator);
     for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
         checkpointState.persistentData.write(&segmentCheckpointState.chunkData,
@@ -416,7 +451,7 @@ void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     checkpointState.persistentData.flush(pageAllocator);
 }
 
-bool Column::canCheckpointInPlace(const ChunkState& state,
+bool Column::canCheckpointInPlace(const SegmentState& state,
     const ColumnCheckpointState& checkpointState) const {
     if (isEndOffsetOutOfPagesCapacity(checkpointState.persistentData.getMetadata(),
             checkpointState.endRowIdxToWrite)) {
@@ -440,7 +475,7 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
 }
 
 void Column::checkpointSegment(ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const {
-    ChunkState chunkState;
+    SegmentState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     if (canCheckpointInPlace(chunkState, checkpointState)) {
         checkpointColumnChunkInPlace(chunkState, checkpointState, pageAllocator);

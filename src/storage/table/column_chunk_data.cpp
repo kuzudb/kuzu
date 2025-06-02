@@ -33,7 +33,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
+void SegmentState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
     const auto& entry = metadata.pageRange;
     if (entry.startPageIdx != INVALID_PAGE_IDX) {
         pageAllocator.freePageRange(entry);
@@ -43,6 +43,12 @@ void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
     }
     for (const auto& child : childrenStates) {
         child.reclaimAllocatedPages(pageAllocator);
+    }
+}
+
+void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
+    for (auto& state : segmentStates) {
+        state.reclaimAllocatedPages(pageAllocator);
     }
 }
 
@@ -346,7 +352,7 @@ uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
     }
 }
 
-void ColumnChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void ColumnChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     if (nullData) {
         KU_ASSERT(state.nullState);
         nullData->initializeScanState(*state.nullState, column->getNullColumn());
@@ -455,6 +461,8 @@ void ColumnChunkData::resetNumValuesFromMetadata() {
     numValues = metadata.numValues;
     if (nullData) {
         nullData->resetNumValuesFromMetadata();
+        // FIXME(bmwinger): not always working
+        // KU_ASSERT(numValues == nullData->numValues);
     }
 }
 

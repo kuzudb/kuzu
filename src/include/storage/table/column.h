@@ -32,7 +32,7 @@ public:
 
     virtual ~Column();
 
-    void populateExtraChunkState(ChunkState& state) const;
+    void populateExtraChunkState(SegmentState& state) const;
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         PageAllocator& pageAllocator);
@@ -41,37 +41,47 @@ public:
     static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData,
         PageAllocator& pageAllocator);
 
-    virtual void scan(const ChunkState& state, common::offset_t startOffsetInChunk,
-        common::row_idx_t numValuesToScan, common::ValueVector* resultVector) const;
-    virtual void lookupValue(const ChunkState& state, common::offset_t nodeOffset,
+    // Use lookupInternal to specialize
+    void lookupValue(const ChunkState& state, common::offset_t nodeOffset,
         common::ValueVector* resultVector, uint32_t posInVector) const;
 
-    // Scan from [startOffsetInGroup, endOffsetInGroup).
+    // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
+    // FIXME(bmwinger): this function does not take into account the resultVector's SelectionVector
+    // However its specializations in StringColumn and ListColumn do
     virtual void scan(const ChunkState& state, common::offset_t startOffsetInGroup,
-        common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
-        uint64_t offsetInVector) const;
-    // Scan from [startOffsetInGroup, endOffsetInGroup).
-    virtual void scan(const ChunkState& state, ColumnChunkData* columnChunk,
-        common::offset_t startOffset = 0,
-        common::offset_t endOffset = common::INVALID_OFFSET) const;
+        common::offset_t length, common::ValueVector* resultVector, uint64_t offsetInVector) const;
+    // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
+    // Appends to the end of the columnChunk
+    void scan(const ChunkState& state, ColumnChunkData* columnChunk,
+        common::offset_t offsetInChunk = 0, common::offset_t numValues = UINT64_MAX) const;
+    // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
+    // Appends to the end of the columnChunk
+    virtual void scanSegment(const SegmentState& state, ColumnChunkData* columnChunk,
+        common::offset_t offsetInSegment, common::offset_t numValue) const;
+    // Scan to raw data (does not scan any nested data and should only be used on primitive columns)
+    void scanSegment(const SegmentState& state, common::offset_t startOffsetInSegment,
+        common::offset_t length, uint8_t* result);
+    // Scan to raw data (does not scan any nested data and should only be used on primitive columns)
+    void scan(const ChunkState& state, common::offset_t startOffsetInGroup, common::offset_t length,
+        uint8_t* result);
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
 
     Column* getNullColumn() const;
 
-    std::string getName() const { return name; }
-
-    virtual void scan(const ChunkState& state, common::offset_t startOffsetInGroup,
-        common::offset_t endOffsetInGroup, uint8_t* result);
+    std::string_view getName() const { return name; }
 
     // Batch write to a set of sequential pages.
-    virtual void write(ColumnChunkData& persistentChunk, ChunkState& state,
-        common::offset_t dstOffset, const ColumnChunkData& data, common::offset_t srcOffset,
-        common::length_t numValues) const;
+    void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
+        const ColumnChunkData& data, common::offset_t srcOffset, common::length_t numValues) const;
+
+    virtual void writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+        common::offset_t dstOffsetInSegment, const ColumnChunkData& data,
+        common::offset_t srcOffset, common::length_t numValues) const;
 
     // Append values to the end of the node group, resizing it if necessary
-    common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
+    common::offset_t appendValues(ColumnChunkData& persistentChunk, SegmentState& state,
         const uint8_t* data, const common::NullMask* nullChunkData,
         common::offset_t numValues) const;
 
@@ -87,14 +97,19 @@ public:
     virtual void checkpointSegment(ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const;
 
 protected:
-    virtual void scanInternal(const ChunkState& state, common::offset_t startOffsetInChunk,
-        common::row_idx_t numValuesToScan, common::ValueVector* resultVector) const;
+    virtual void scanSegment(const SegmentState& state, common::offset_t startOffsetInSegment,
+        common::row_idx_t numValuesToScan, common::ValueVector* resultVector,
+        common::offset_t startOffsetInVector) const;
 
-    virtual void lookupInternal(const ChunkState& state, common::offset_t nodeOffset,
+    virtual void lookupInternal(const SegmentState& state, common::offset_t offsetInSegment,
         common::ValueVector* resultVector, uint32_t posInVector) const;
 
     void writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
         const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
+        common::offset_t numValues = 1) const;
+
+    void writeValuesInternal(SegmentState& state, common::offset_t dstOffsetInSegment,
+        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
         common::offset_t numValues = 1) const;
 
     void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
@@ -104,16 +119,16 @@ protected:
     bool isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
         common::offset_t endOffset) const;
 
-    virtual bool canCheckpointInPlace(const ChunkState& state,
+    virtual bool canCheckpointInPlace(const SegmentState& state,
         const ColumnCheckpointState& checkpointState) const;
 
-    void checkpointColumnChunkInPlace(ChunkState& state,
+    void checkpointColumnChunkInPlace(SegmentState& state,
         const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const;
 
     void checkpointNullData(const ColumnCheckpointState& checkpointState,
         PageAllocator& pageAllocator) const;
 
-    void checkpointColumnChunkOutOfPlace(const ChunkState& state,
+    void checkpointColumnChunkOutOfPlace(const SegmentState& state,
         const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const;
 
     // check if val is in range [start, end)
@@ -141,22 +156,15 @@ public:
     InternalIDColumn(std::string name, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 
-    void scan(const ChunkState& state, common::offset_t startOffsetInChunk,
-        common::row_idx_t numValuesToScan, common::ValueVector* resultVector) const override {
-        Column::scan(state, startOffsetInChunk, numValuesToScan, resultVector);
+    void scan(const ChunkState& state, common::offset_t startOffsetInGroup, common::offset_t length,
+        common::ValueVector* resultVector, uint64_t offsetInVector) const override {
+        Column::scan(state, startOffsetInGroup, length, resultVector, offsetInVector);
         populateCommonTableID(resultVector);
     }
 
-    void scan(const ChunkState& state, common::offset_t startOffsetInGroup,
-        common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
-        uint64_t offsetInVector) const override {
-        Column::scan(state, startOffsetInGroup, endOffsetInGroup, resultVector, offsetInVector);
-        populateCommonTableID(resultVector);
-    }
-
-    void lookupInternal(const ChunkState& state, common::offset_t nodeOffset,
+    void lookupInternal(const SegmentState& state, common::offset_t offsetInSegment,
         common::ValueVector* resultVector, uint32_t posInVector) const override {
-        Column::lookupInternal(state, nodeOffset, resultVector, posInVector);
+        Column::lookupInternal(state, offsetInSegment, resultVector, posInVector);
         populateCommonTableID(resultVector);
     }
 
