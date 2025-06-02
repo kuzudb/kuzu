@@ -108,6 +108,16 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
     }
 }
 
+bool handleFileViaFunction(main::ClientContext* context, std::vector<std::string> filePaths) {
+    bool handleFileViaFunction = false;
+    if (context->getVFSUnsafe()->fileOrPathExists(filePaths[0], context)) {
+        auto fileInfo = context->getVFSUnsafe()->openFile(filePaths[0],
+            FileOpenFlags(FileFlags::READ_ONLY), context);
+        handleFileViaFunction = fileInfo->handleFileViaFunction();
+    }
+    return handleFileViaFunction;
+}
+
 std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSource& scanSource,
     const options_t& options, const std::vector<std::string>& columnNames,
     const std::vector<LogicalType>& columnTypes) {
@@ -135,12 +145,11 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     // Bind file configuration
     auto fileScanInfo = std::make_unique<FileScanInfo>(std::move(fileTypeInfo), filePaths);
     fileScanInfo->options = std::move(boundOptions);
-    auto fileInfo = clientContext->getVFSUnsafe()->openFile(filePaths[0],
-        FileOpenFlags(FileFlags::READ_ONLY), clientContext);
     TableFunction func;
-    if (fileInfo->handleFileViaFunction()) {
-        func = fileInfo->getHandleFunction();
-        fileTypeInfo.fileType = FileType::UNKNOWN;
+    if (handleFileViaFunction(clientContext, filePaths)) {
+        func = clientContext->getVFSUnsafe()
+                   ->openFile(filePaths[0], FileOpenFlags(FileFlags::READ_ONLY), clientContext)
+                   ->getHandleFunction();
     } else {
         func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
     }
