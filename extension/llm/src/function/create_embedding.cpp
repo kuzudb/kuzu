@@ -21,19 +21,6 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace llm_extension {
 
-
-
-//curl -X POST \
-//  -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
-//  -H "Content-Type: application/json" \
-//  https://us-central1-aiplatform.googleapis.com/v1/projects/PROJECT_ID/locations/us-central1/publishers/google/models/text-embedding-005:predict \
-//  -d '{
-//    "instances": [
-//      { "content": "Sample text" }
-//    ]
-//  }'
-
-
 // similar to getEmbeddingDimensions, consider turning into a map
 static std::string getClient(const std::string& provider)
 {
@@ -186,7 +173,7 @@ static uint64_t getEmbeddingDimensions(const std::string& provider, const std::s
             {"open-ai", {{"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536}, {"text-embedding-ada-002", 1536}}},
             {"voyage-ai", {{"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024}, {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024}, {"voyage-code-2", 1536}}},
             {"ollama", {{"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}}},
-            {"google-gemini", {{"gemini-embedding-exp-03-07", 3072}}},
+            {"google-gemini", {{"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}}}
     };
 
     auto providerItr = providerModelMap.find(provider);
