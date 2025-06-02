@@ -184,8 +184,8 @@ void GroupDependencyAnalyzer::visitCase(std::shared_ptr<binder::Expression> expr
     visit(caseExpression.getElseExpression());
 }
 
-void GroupDependencyAnalyzer::visitNodeOrRel(std::shared_ptr<binder::Expression> expr) {
-    for (auto& p : expr->constCast<NodeOrRelExpression>().getPropertyExprs()) {
+void GroupDependencyAnalyzer::visitNodeOrRel(std::shared_ptr<Expression> expr) {
+    for (auto& p : expr->constCast<NodeOrRelExpression>().getPropertyExpressions()) {
         visit(p);
     }
     switch (expr->getDataType().getLogicalTypeID()) {

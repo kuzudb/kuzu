@@ -27,8 +27,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     throw BinderException(ExceptionMessage::variableNotInScope(varName));
 }
 
-std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(
-    common::LogicalType logicalType, std::string_view name) const {
+std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(LogicalType logicalType,
+    std::string_view name) const {
     return createVariableExpression(std::move(logicalType), std::string(name));
 }
 

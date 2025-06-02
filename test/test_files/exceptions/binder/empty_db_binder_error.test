@@ -26,13 +26,29 @@ Binder exception: Number of columns mismatch. Expected 1 but got 2.
 Binder exception: Cannot delete node table person because it is referenced by relationship table follows.
 
 -CASE MismatchedPropertyDataTypes
--STATEMENT CREATE NODE TABLE person(ID INT64, PRIMARY KEY(ID))
+-STATEMENT CREATE NODE TABLE person(ID INT64, x INT64[], PRIMARY KEY(ID))
 ---- ok
--STATEMENT CREATE NODE TABLE fruit(ID STRING, PRIMARY KEY(ID))
+-STATEMENT CREATE NODE TABLE fruit(ID STRING, x INT64, PRIMARY KEY(ID))
 ---- ok
--STATEMENT MATCH (pf:person:fruit) RETURN *;
+-STATEMENT MATCH (pf:person:fruit) RETURN COUNT(*);
+---- 1
+0
+-STATEMENT MATCH (pf:person:fruit) RETURN pf.ID;
 ---- error
-Binder exception: Expected the same data type for property ID but found STRING and INT64.
+Runtime exception: Trying to cast property pf.ID from STRING to INT64 in ScanNodeTable. This is not supported yet.
+-STATEMENT CREATE REL TABLE R1 (FROM person TO fruit, y DATE);
+---- ok
+-STATEMENT CREATE REL TABLE R2 (FROM person TO fruit, y INT);
+---- ok
+-STATEMENT MATCH (pf:person:fruit) RETURN pf.x;
+---- error
+Runtime exception: Trying to cast property pf.x from INT64[] to STRING in ScanNodeTable. This is not supported yet.
+-STATEMENT MATCH (p:person)-[r]->(f:Fruit) RETURN COUNT(*);
+---- 1
+0
+-STATEMENT MATCH (p:person)-[r]->(f:Fruit) RETURN r;
+---- error
+Runtime exception: Trying to cast property r.y from DATE to STRING in ScanRelTable. This is not supported yet.
 
 -CASE UnsupportedRecursiveRelProjectionItem
 -STATEMENT CREATE NODE TABLE person(ID INT64, PRIMARY KEY(ID))

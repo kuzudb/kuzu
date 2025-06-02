@@ -337,11 +337,11 @@ public:
     static LogicalType POINTER() { return LogicalType(LogicalTypeID::POINTER); }
     static KUZU_API LogicalType STRUCT(std::vector<StructField>&& fields);
 
-    static KUZU_API LogicalType RECURSIVE_REL(std::unique_ptr<StructTypeInfo> typeInfo);
+    static KUZU_API LogicalType RECURSIVE_REL(std::vector<StructField>&& fields);
 
-    static KUZU_API LogicalType NODE(std::unique_ptr<StructTypeInfo> typeInfo);
+    static KUZU_API LogicalType NODE(std::vector<StructField>&& fields);
 
-    static KUZU_API LogicalType REL(std::unique_ptr<StructTypeInfo> typeInfo);
+    static KUZU_API LogicalType REL(std::vector<StructField>&& fields);
 
     static KUZU_API LogicalType UNION(std::vector<StructField>&& fields);
 
@@ -583,8 +583,6 @@ struct KUZU_API StructType {
     static const StructField& getField(const LogicalType& type, const std::string& key);
 
     static struct_field_idx_t getFieldIdx(const LogicalType& type, const std::string& key);
-
-    static LogicalType getNodeType(const catalog::NodeTableCatalogEntry& entry);
 };
 
 struct KUZU_API MapType {

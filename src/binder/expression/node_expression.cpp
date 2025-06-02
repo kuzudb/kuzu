@@ -1,16 +1,14 @@
 #include "binder/expression/node_expression.h"
 
-#include "binder/expression/property_expression.h"
-
 namespace kuzu {
 namespace binder {
 
 NodeExpression::~NodeExpression() = default;
 
 std::shared_ptr<Expression> NodeExpression::getPrimaryKey(common::table_id_t tableID) const {
-    for (auto& e : propertyExprs) {
-        if (e->constCast<PropertyExpression>().isPrimaryKey(tableID)) {
-            return e->copy();
+    for (auto& property : propertyExprs) {
+        if (property->isPrimaryKey(tableID)) {
+            return property;
         }
     }
     KU_UNREACHABLE;

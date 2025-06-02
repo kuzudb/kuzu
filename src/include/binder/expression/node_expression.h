@@ -16,19 +16,17 @@ public:
 
     bool isMultiLabeled() const override { return entries.size() > 1; }
 
-    void setInternalID(std::unique_ptr<Expression> expression) {
-        internalID = std::move(expression);
-    }
+    void setInternalID(std::shared_ptr<PropertyExpression> expr) { internalID = std::move(expr); }
     std::shared_ptr<Expression> getInternalID() const {
         KU_ASSERT(internalID != nullptr);
-        return internalID->copy();
+        return internalID;
     }
 
     // Get the primary key property expression for a given table ID.
     std::shared_ptr<Expression> getPrimaryKey(common::table_id_t tableID) const;
 
 private:
-    std::unique_ptr<Expression> internalID;
+    std::shared_ptr<PropertyExpression> internalID;
 };
 
 } // namespace binder

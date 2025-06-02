@@ -33,25 +33,11 @@ void NodeOrRelExpression::addEntries(const std::vector<TableCatalogEntry*>& entr
     }
 }
 
-void NodeOrRelExpression::addPropertyExpression(const std::string& propertyName,
-    std::unique_ptr<Expression> property) {
+void NodeOrRelExpression::addPropertyExpression(std::shared_ptr<PropertyExpression> property) {
+    auto propertyName = property->getPropertyName();
     KU_ASSERT(!propertyNameToIdx.contains(propertyName));
     propertyNameToIdx.insert({propertyName, propertyExprs.size()});
     propertyExprs.push_back(std::move(property));
-}
-
-std::shared_ptr<Expression> NodeOrRelExpression::getPropertyExpression(
-    const std::string& propertyName) const {
-    KU_ASSERT(propertyNameToIdx.contains(propertyName));
-    return propertyExprs[propertyNameToIdx.at(propertyName)]->copy();
-}
-
-expression_vector NodeOrRelExpression::getPropertyExprs() const {
-    expression_vector result;
-    for (auto& expr : propertyExprs) {
-        result.push_back(expr->copy());
-    }
-    return result;
 }
 
 } // namespace binder

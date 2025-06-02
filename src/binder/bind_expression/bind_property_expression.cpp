@@ -1,7 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/node_rel_expression.h"
-#include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "common/cast.h"
 #include "common/exception/binder.h"
@@ -42,12 +41,11 @@ expression_vector ExpressionBinder::bindPropertyStarExpression(
 expression_vector ExpressionBinder::bindNodeOrRelPropertyStarExpression(const Expression& child) {
     expression_vector result;
     auto& nodeOrRel = child.constCast<NodeOrRelExpression>();
-    for (auto& expression : nodeOrRel.getPropertyExprsRef()) {
-        auto propertyExpression = expression->ptrCast<PropertyExpression>();
-        if (Binder::reservedInPropertyLookup(propertyExpression->getPropertyName())) {
+    for (auto& property : nodeOrRel.getPropertyExpressions()) {
+        if (Binder::reservedInPropertyLookup(property->getPropertyName())) {
             continue;
         }
-        result.push_back(expression->copy());
+        result.push_back(property);
     }
     return result;
 }

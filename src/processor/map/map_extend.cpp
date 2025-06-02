@@ -15,7 +15,7 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace processor {
 
-static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalogEntry,
+static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableEntry,
     RelDataDirection direction, RelTable* relTable, bool shouldScanNbrID,
     const expression_vector& properties, const std::vector<ColumnPredicateSet>& columnPredicates) {
     std::vector<column_id_t> columnIDs;
@@ -29,8 +29,15 @@ static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalo
     }
     for (auto& expr : properties) {
         auto& property = expr->constCast<PropertyExpression>();
-        if (property.hasProperty(tableCatalogEntry.getTableID())) {
-            columnIDs.push_back(tableCatalogEntry.getColumnID(property.getPropertyName()));
+        if (property.hasProperty(tableEntry.getTableID())) {
+            auto propertyName = property.getPropertyName();
+            columnIDs.push_back(tableEntry.getColumnID(propertyName));
+            auto& columnType = tableEntry.getProperty(propertyName).getType();
+            if (property.getDataType() != columnType) {
+                throw RuntimeException(stringFormat("Trying to cast property {} from {} to {} in "
+                                                    "ScanRelTable. This is not supported yet.",
+                    expr->toString(), columnType.toString(), expr->getDataType().toString()));
+            }
         } else {
             columnIDs.push_back(INVALID_COLUMN_ID);
         }

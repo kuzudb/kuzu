@@ -175,10 +175,9 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     auto entry = node->getEntry(0);
     KU_ASSERT(entry->getTableType() == TableType::NODE);
     auto insertInfo = BoundInsertInfo(TableType::NODE, node);
-    for (auto& expr : node->getPropertyExprs()) {
-        auto propertyExpr = expr->constPtrCast<PropertyExpression>();
-        if (propertyExpr->hasProperty(entry->getTableID())) {
-            insertInfo.columnExprs.push_back(expr);
+    for (auto& property : node->getPropertyExpressions()) {
+        if (property->hasProperty(entry->getTableID())) {
+            insertInfo.columnExprs.push_back(property);
         }
     }
     insertInfo.columnDataExprs =

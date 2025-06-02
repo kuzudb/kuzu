@@ -167,7 +167,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getNodeEvaluator(
     expression_vector children;
     children.push_back(node->getInternalID());
     children.push_back(node->getLabelExpression());
-    for (auto& property : node->getPropertyExprs()) {
+    for (auto& property : node->getPropertyExpressions()) {
         children.push_back(property);
     }
     auto childrenEvaluators = getEvaluators(children);
@@ -182,7 +182,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getRelEvaluator(
     children.push_back(rel->getSrcNode()->getInternalID());
     children.push_back(rel->getDstNode()->getInternalID());
     children.push_back(rel->getLabelExpression());
-    for (auto& property : rel->getPropertyExprs()) {
+    for (auto& property : rel->getPropertyExpressions()) {
         children.push_back(property);
     }
     auto childrenEvaluators = getEvaluators(children);

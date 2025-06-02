@@ -40,7 +40,12 @@ static std::vector<column_id_t> getColumnIDs(const expression_vector& propertyEx
         columnIDs.push_back(columnID);
     }
     for (const auto& expr : propertyExprs) {
-        columnIDs.push_back(expr->constCast<PropertyExpression>().getColumnID(relEntry));
+        auto& property = expr->constCast<PropertyExpression>();
+        if (property.hasProperty(relEntry.getTableID())) {
+            columnIDs.push_back(relEntry.getColumnID(property.getPropertyName()));
+        } else {
+            columnIDs.push_back(INVALID_COLUMN_ID);
+        }
     }
     return columnIDs;
 }
