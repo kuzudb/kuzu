@@ -1,5 +1,7 @@
+#include <cstdint>
 #include "common/assert.h"
 #include "common/exception/connection.h"
+#include "common/string_utils.h"
 #include "function/function.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
@@ -18,9 +20,12 @@ namespace llm_extension {
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     const std::vector<common::SelectionVector*>& /*parameterSelVectors*/,
     common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
+    
     // This iteration only supports using Ollama with nomic-embed-text.
     // The user must install and have nomic-embed-text running at
     // http://localhost::11434.
+    
+    
     KU_ASSERT(parameters.size() == 1);
     httplib::Client client("http://localhost:11434");
     httplib::Headers headers = {{"Content-Type", "application/json"}};
@@ -51,20 +56,56 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     }
 }
 
+// WIP
+static uint64_t getEmbeddingDimensions(const std::string& provider, const std::string& model)
+{
+    if (provider == "open-ai")
+    {
+        if (model == "text-embedding-3-large")
+        {
+            return 3072;
+        }
+        else if (model == "text-embedding-3-small" || model == "text-embedding-ada-002")
+        {
+            return 1536;
+        }
+        // TODO: Throw a message about invalid model
+        KU_UNREACHABLE;
+    }
+
+    else if (provider == "ollama")
+    {
+        if (model == "nomic-text-embed")
+        {
+            return 1536;
+        }
+        else if (model == "all-minilm:l6-v2")
+        {
+            return 384;
+        }
+        // TODO: Throw a message about invalid model
+        KU_UNREACHABLE;
+    }
+    // TODO: Throw a message complaining about invalid provider
+    KU_UNREACHABLE;
+    return 0;
+}
+
+
+
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<LogicalType> types;
     types.push_back(input.arguments[0]->getDataType().copy());
-    KU_ASSERT(types.front() == LogicalType::STRING());
-    static constexpr uint64_t NOMIC_EMBED_TEXT_EMBEDDING_DIMENSIONS = 768;
-    return std::make_unique<FunctionBindData>(std::move(types),
-        LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT),
-            NOMIC_EMBED_TEXT_EMBEDDING_DIMENSIONS));
+    types.push_back(input.arguments[1]->getDataType().copy());
+    types.push_back(input.arguments[2]->getDataType().copy());
+    uint64_t embeddingDimensions = getEmbeddingDimensions(StringUtils::getLower(input.arguments[1]->toString()), StringUtils::getLower(input.arguments[2]->toString()));
+    return std::make_unique<FunctionBindData>(std::move(types), LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::ARRAY, execFunc);
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING}, LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
     return functionSet;
