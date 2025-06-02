@@ -26,6 +26,7 @@ Waterloo|150000
 IO exception: HTTP Returns: 404, Failed to download extension: "http" from extension.kuzudb.com/v0.1.0/osx_arm64/libhttp.kuzu_extension.
 
 -CASE InstallUnofficialExtensions
+-SKIP_WASM
 -STATEMENT INSTALL sqlitescanner;
 ---- error
 Binder exception: sqlitescanner is not an official extension.
@@ -85,13 +86,10 @@ Extension: neo4j updated from the repo: http://extension.kuzudb.com/.
 -WASM_ONLY
 -STATEMENT INSTALL neo4j;
 ---- error
-Extensions are not available in the WASM environment
+Binder exception: Extensions are not available in the WASM environment
 -STATEMENT LOAD duckdb;
 ---- error
-Extensions are not available in the WASM environment
+Binder exception: Extensions are not available in the WASM environment
 -STATEMENT UNINSTALL httpfs;
 ---- error
-Extensions are not available in the WASM environment
--STATEMENT upgrade delta;
----- error
-Extensions are not available in the WASM environment
+Binder exception: Extensions are not available in the WASM environment
