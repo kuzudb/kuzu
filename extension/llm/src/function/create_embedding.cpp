@@ -29,6 +29,11 @@ static std::string getClient(const std::string& provider)
         return "https://api.openai.com";
     }
 
+    else if (provider == "voyage-ai")
+    {
+        return "https://api.voyageai.com";
+    }
+
     else if (provider == "ollama")
     {
         return "http://localhost:11434";
@@ -52,6 +57,16 @@ static httplib::Headers getHeaders(const std::string& provider)
         return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
     }
 
+    else if (provider == "voyage-ai")
+    {
+        auto env_key = std::getenv("VOYAGE_API_KEY");
+        if (env_key == nullptr) 
+        {
+            throw(RuntimeException("Could not get key from: VOYAGE_API_KEY\n"));
+        }
+        return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
+    }
+
     else if (provider == "ollama")
     {
         return httplib::Headers{{"Content-Type", "applications/json"}};
@@ -64,6 +79,11 @@ static httplib::Headers getHeaders(const std::string& provider)
 static nlohmann::json getPayload(const std::string& provider, const std::string& model, const std::string& text)
 {
     if (provider == "open-ai")
+    {
+        return nlohmann::json {{"model", model}, {"input", text}};
+    }
+
+    else if (provider == "voyage-ai")
     {
         return nlohmann::json {{"model", model}, {"input", text}};
     }
@@ -83,6 +103,11 @@ static std::string getPath(const std::string& provider)
     {
         return "/v1/embeddings";
     }
+    else if (provider == "voyage-ai")
+    {
+        return "/v1/embeddings";
+    }
+
     else if (provider == "ollama")
     {
         return "/api/embeddings";
@@ -100,6 +125,13 @@ static std::vector<float> getEmbedding(const httplib::Result& res, const std::st
         return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
 
     }
+
+    else if (provider == "voyage-ai")
+    {
+        return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
+
+    }
+
     else if (provider == "ollama")
     {
         return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
@@ -126,6 +158,40 @@ static uint64_t getEmbeddingDimensions(const std::string& provider, const std::s
         }
         throw(BinderException("Invalid Model: " + model));
     }
+
+    if (provider == "voyage-ai")
+    {
+        if (model == "voyage-3-large")
+        {
+            return 1024;
+        }
+        else if (model == "voyage-3.5")
+        {
+            return 1024;
+        }
+        else if (model == "voyage-3.5-lite")
+        {
+            return 1024;
+        }
+        else if (model == "voyage-code-3")
+        {
+            return 1024;
+        }
+        else if (model == "voyage-finance-2")
+        {
+            return 1024;
+        }
+        else if (model == "voyage-law-2")
+        {
+            return 1024;
+        }
+        else if (model == "voyage-code-2")
+        {
+            return 1536;
+        }
+        throw(BinderException("Invalid Model: " + model));
+    }
+
 
     else if (provider == "ollama")
     {
