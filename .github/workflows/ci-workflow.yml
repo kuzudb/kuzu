@@ -127,7 +127,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CLANGD_DIAGNOSTIC_JOBS: 32
       CLANGD_DIAGNOSTIC_INSTANCES: 6
@@ -153,10 +152,6 @@ jobs:
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Test
         run: |
@@ -185,6 +180,10 @@ jobs:
       - name: Python test
         run: make pytest-venv
 
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
       - name: Node.js test
         run: make nodejstest
 
@@ -207,7 +206,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CLANGD_DIAGNOSTIC_JOBS: 32
       CLANGD_DIAGNOSTIC_INSTANCES: 6
@@ -233,10 +231,6 @@ jobs:
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Test vector 1024
         env:
@@ -360,7 +354,6 @@ jobs:
     env:
       # CARGO_BUILD_JOBS is set using this in the Makefile
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       CC: gcc
       CXX: g++
       KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
@@ -400,10 +393,6 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
       - name: Test with ASAN
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
@@ -430,7 +419,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CC: clang
       CXX: clang++
@@ -453,10 +441,6 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
       - name: Test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
@@ -478,6 +462,10 @@ jobs:
 
       - name: Python test
         run: make pytest-venv
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
 
       - name: Node.js test
         run: make nodejstest
@@ -504,7 +492,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CC: clang
       CXX: clang++
@@ -543,7 +530,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CC: clang
       CXX: clang++
@@ -587,9 +573,7 @@ jobs:
     env:
       # Shorten build path as much as possible
       CARGO_TARGET_DIR: ${{ github.workspace }}/rs
-      CARGO_BUILD_JOBS: 18
       NUM_THREADS: 18
-      CMAKE_BUILD_PARALLEL_LEVEL: 18
       TEST_JOBS: 9
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
       UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
@@ -611,10 +595,6 @@ jobs:
         with:
           name: binary-demo
           path: dataset/binary-demo
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Visual Studio Generator Build
         shell: cmd
@@ -667,6 +647,10 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make pytest-venv
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
 
       - name: Node.js test
         shell: cmd
@@ -879,7 +863,6 @@ jobs:
             export NUM_THREADS=12
           fi
           echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
-          echo "CMAKE_BUILD_PARALLEL_LEVEL=$NUM_THREADS" >> $GITHUB_ENV
           echo "NUM_THREADS=$NUM_THREADS"
 
       - name: Download binary-demo
@@ -887,10 +870,6 @@ jobs:
         with:
           name: binary-demo
           path: dataset/binary-demo
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Test
         run: |
@@ -928,6 +907,10 @@ jobs:
         run: |
           ulimit -n 10240
           make example
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
 
       - name: Node.js test
         run: |
@@ -1117,7 +1100,6 @@ jobs:
     env:
       # Shorten build path as much as possible
       CARGO_TARGET_DIR: ${{ github.workspace }}/rs
-      CARGO_BUILD_JOBS: 18
       NUM_THREADS: 18
       TEST_JOBS: 9
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
