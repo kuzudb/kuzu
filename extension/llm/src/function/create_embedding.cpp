@@ -1,12 +1,15 @@
 #include <cstdint>
-#include "common/assert.h"
+#include <cstdlib>
+#include "common/exception/binder.h"
 #include "common/exception/connection.h"
+#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "function/function.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
-#include "httplib.h"
 #include "json.hpp"
+#define CPPHTTPLIB_OPENSSL_SUPPORT
+#include "httplib.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -17,28 +20,142 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace llm_extension {
 
+
+// similar to getEmbeddingDimensions, consider turning into a map
+static std::string getClient(const std::string& provider)
+{
+    if (provider == "open-ai")
+    {
+        return "https://api.openai.com";
+    }
+
+    else if (provider == "ollama")
+    {
+        return "http://localhost:11434";
+    }
+    
+    throw(RuntimeException("Invalid Provider: " + provider));
+    return std::string();
+}
+
+
+// similar to getEmbeddingDimensions, consider turning into a map
+static httplib::Headers getHeaders(const std::string& provider)
+{
+    if (provider == "open-ai")
+    {
+        auto key = std::string(std::getenv("OPENAI_API_KEY"));
+        if (key.empty()) 
+        {
+            throw(RuntimeException("Could not get key from: OPENAI_API_KEY"));
+        }
+        return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + key}};
+    }
+
+    else if (provider == "ollama")
+    {
+        return httplib::Headers{{"Content-Type", "applications/json"}};
+    }
+    throw(RuntimeException("Invalid Provider: " + provider));
+    return httplib::Headers{};
+}
+
+// similar to getEmbeddingDimensions, consider turning into a map
+static nlohmann::json getPayload(const std::string& provider, const std::string& model, const std::string& text)
+{
+    if (provider == "open-ai")
+    {
+        return nlohmann::json {{"model", model}, {"input", text}};
+    }
+
+    else if (provider == "ollama")
+    {
+        return nlohmann::json {{"model", model}, {"prompt", text}};
+    }
+    throw(RuntimeException("Invalid Provider: " + provider));
+    return 0;
+}
+
+// similar to getEmbeddingDimensions, consider turning into a map
+static std::string getPath(const std::string& provider)
+{
+    if (provider == "open-ai")
+    {
+        return "/v1/embeddings";
+    }
+    else if (provider == "ollama")
+    {
+        return "/api/embeddings";
+    }
+    throw(RuntimeException("Invalid Provider: " + provider));
+    return std::string();
+
+}
+
+// WIP: Consider implementing as 2d map lookup
+static uint64_t getEmbeddingDimensions(const std::string& provider, const std::string& model)
+{
+    if (provider == "open-ai")
+    {
+        if (model == "text-embedding-3-large")
+        {
+            return 3072;
+        }
+        else if (model == "text-embedding-3-small" || model == "text-embedding-ada-002")
+        {
+            return 1536;
+        }
+        throw(BinderException("Invalid Model: " + model));
+    }
+
+    else if (provider == "ollama")
+    {
+        if (model == "nomic-embed-text")
+        {
+            return 1536;
+        }
+        else if (model == "all-minilm:l6-v2")
+        {
+            return 384;
+        }
+        throw(BinderException("Invalid Model: " + model));
+    }
+
+    throw(BinderException("Invalid Provider: " + provider));
+    return 0;
+}
+
+
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     const std::vector<common::SelectionVector*>& /*parameterSelVectors*/,
     common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     
-    // This iteration only supports using Ollama with nomic-embed-text.
-    // The user must install and have nomic-embed-text running at
-    // http://localhost::11434.
     
-    
-    KU_ASSERT(parameters.size() == 1);
-    httplib::Client client("http://localhost:11434");
-    httplib::Headers headers = {{"Content-Type", "application/json"}};
+    auto provider = parameters[1]->getValue<ku_string_t>(0).getAsString();
+    auto model = parameters[2]->getValue<ku_string_t>(0).getAsString();
+    httplib::Client client(getClient(provider));
+    httplib::Headers headers = getHeaders(provider);
+    std::string path = getPath(provider);
+
+
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+
+
         auto text = parameters[0]->getValue<ku_string_t>(selectedPos).getAsString();
-        nlohmann::json payload = {{"model", "nomic-embed-text"}, {"prompt", text}};
-        auto res = client.Post("/api/embeddings", headers, payload.dump(), "application/json");
+
+
+        nlohmann::json payload = getPayload(provider, model, text);
+
+
+        auto res = client.Post(path, headers, payload.dump(), "application/json");
+
+
         if (!res) {
             // TODO: Current server url is hardcoded. This must be changed when we accomodate
             // different endpoints.
             throw ConnectionException(
-                "Request failed: Could not connect to server: http://localhost:11434\n");
+                "Request failed: Could not connect to server: " + client.host() + '\n');
         } else if (res->status != 200) {
             throw ConnectionException("Request failed with status " + std::to_string(res->status) +
                                       "\n Body: " + res->body + "\n");
@@ -56,40 +173,6 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     }
 }
 
-// WIP
-static uint64_t getEmbeddingDimensions(const std::string& provider, const std::string& model)
-{
-    if (provider == "open-ai")
-    {
-        if (model == "text-embedding-3-large")
-        {
-            return 3072;
-        }
-        else if (model == "text-embedding-3-small" || model == "text-embedding-ada-002")
-        {
-            return 1536;
-        }
-        // TODO: Throw a message about invalid model
-        KU_UNREACHABLE;
-    }
-
-    else if (provider == "ollama")
-    {
-        if (model == "nomic-text-embed")
-        {
-            return 1536;
-        }
-        else if (model == "all-minilm:l6-v2")
-        {
-            return 384;
-        }
-        // TODO: Throw a message about invalid model
-        KU_UNREACHABLE;
-    }
-    // TODO: Throw a message complaining about invalid provider
-    KU_UNREACHABLE;
-    return 0;
-}
 
 
 
