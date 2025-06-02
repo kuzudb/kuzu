@@ -174,8 +174,8 @@ std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskPlanRoots(const GDSBind
         }
         auto& node = nodeInfo.nodeOrRel->constCast<NodeExpression>();
         planner->getCardinliatyEstimatorUnsafe().init(node);
-        auto p = planner->getNodeSemiMaskPlan(SemiMaskTargetType::GDS_GRAPH_NODE,
-            node, nodeInfo.predicate);
+        auto p = planner->getNodeSemiMaskPlan(SemiMaskTargetType::GDS_GRAPH_NODE, node,
+            nodeInfo.predicate);
         nodeMaskPlanRoots.push_back(p.getLastOperator());
     }
     return nodeMaskPlanRoots;

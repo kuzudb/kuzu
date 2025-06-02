@@ -51,8 +51,7 @@ void CardinalityEstimator::init(const NodeExpression& node) {
     }
 }
 
-void CardinalityEstimator::rectifyCardinality(const Expression& nodeID,
-    cardinality_t card) {
+void CardinalityEstimator::rectifyCardinality(const Expression& nodeID, cardinality_t card) {
     KU_ASSERT(nodeIDName2dom.contains(nodeID.getUniqueName()));
     auto newCard = std::min(nodeIDName2dom.at(nodeID.getUniqueName()), card);
     nodeIDName2dom[nodeID.getUniqueName()] = newCard;

@@ -53,7 +53,8 @@ void PropertyExprCollection::clear() {
     patternNameToProperties.clear();
 }
 
-Planner::Planner(main::ClientContext* clientContext) : clientContext{clientContext}, cardinalityEstimator{clientContext}, context{} {}
+Planner::Planner(main::ClientContext* clientContext)
+    : clientContext{clientContext}, cardinalityEstimator{clientContext}, context{} {}
 
 LogicalPlan Planner::planStatement(const BoundStatement& statement) {
     switch (statement.getStatementType()) {

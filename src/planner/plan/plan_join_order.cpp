@@ -187,10 +187,11 @@ void Planner::planBaseTableScans(const QueryGraphPlanningInfo& info) {
         for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
             auto queryNode = queryGraph->getQueryNode(nodePos);
             if (info.containsCorrExpr(*queryNode->getInternalID())) {
-                // NodeID will be a join condition with outer plan so very likely we will apply a semi mask
-                // later in the optimization stage. So we can assume the cardinality will not exceed outer
-                // plan cardinality.
-                cardinalityEstimator.rectifyCardinality(*queryNode->getInternalID(), info.corrExprsCard);
+                // NodeID will be a join condition with outer plan so very likely we will apply a
+                // semi mask later in the optimization stage. So we can assume the cardinality will
+                // not exceed outer plan cardinality.
+                cardinalityEstimator.rectifyCardinality(*queryNode->getInternalID(),
+                    info.corrExprsCard);
                 // In un-nested subquery, e.g. MATCH (a) OPTIONAL MATCH (a)-[e1]->(b), the inner
                 // query ("(a)-[e1]->(b)") needs to scan a, which is already scanned in the outer
                 // query (a). To avoid scanning storage twice, we keep track of node table "a" and
