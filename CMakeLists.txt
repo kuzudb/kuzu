@@ -210,6 +210,10 @@ if(${BUILD_WASM})
     add_compile_definitions(__WASM__)
 endif()
 
+if(${BUILD_SWIFT})
+    add_compile_definitions(__SWIFT__)
+endif()
+
 if(ANDROID_ABI)
     message(STATUS "Android ABI detected: ${ANDROID_ABI}")
     add_compile_definitions(__ANDROID__)
