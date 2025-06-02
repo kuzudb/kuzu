@@ -6,18 +6,21 @@ namespace azure_extension {
 using namespace common;
 
 AzureConfig AzureConfig::getDefault() {
-    return AzureConfig{.connectionString = ""};
+    return AzureConfig{};
 }
 
 void AzureConfig::registerExtensionOptions(main::Database* db) const {
-    db->addExtensionOption("AZURE_CONNECTION_STRING", LogicalTypeID::STRING,
-        Value::createValue(connectionString), true);
+    for (auto [fieldName, field] : getFields()) {
+        db->addExtensionOption(fieldName, LogicalTypeID::STRING, Value::createValue(field), true);
+    }
 }
 
 void AzureConfig::initFromEnv(main::ClientContext* context) const {
-    auto envValue = main::ClientContext::getEnvVariable("AZURE_CONNECTION_STRING");
-    if (!envValue.empty()) {
-        context->setExtensionOption("AZURE_CONNECTION_STRING", Value::createValue(envValue));
+    for (auto [fieldName, _] : getFields()) {
+        auto envValue = main::ClientContext::getEnvVariable(fieldName);
+        if (!envValue.empty()) {
+            context->setExtensionOption(fieldName, Value::createValue(envValue));
+        }
     }
 }
 
