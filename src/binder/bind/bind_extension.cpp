@@ -51,6 +51,9 @@ static void bindUninstallExtension(const ExtensionAuxInfo& auxInfo) {
 }
 
 std::unique_ptr<BoundStatement> Binder::bindExtension(const Statement& statement) {
+#ifdef __WASM__
+    throw common::BinderException{"Extensions are not available in the WASM environment"};
+#endif
     auto extensionStatement = statement.constPtrCast<ExtensionStatement>();
     auto auxInfo = extensionStatement->getAuxInfo();
     switch (auxInfo->action) {
