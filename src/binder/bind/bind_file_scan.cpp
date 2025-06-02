@@ -115,6 +115,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     auto filePaths = bindFilePaths(fileSource->filePaths);
     auto boundOptions = bindParsingOptions(options);
     FileTypeInfo fileTypeInfo;
+
     if (boundOptions.contains(FileScanInfo::FILE_FORMAT_OPTION_NAME)) {
         auto fileFormat = boundOptions.at(FileScanInfo::FILE_FORMAT_OPTION_NAME).toString();
         fileTypeInfo = FileTypeInfo{FileTypeUtils::fromString(fileFormat), fileFormat};
@@ -134,7 +135,15 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     // Bind file configuration
     auto fileScanInfo = std::make_unique<FileScanInfo>(std::move(fileTypeInfo), filePaths);
     fileScanInfo->options = std::move(boundOptions);
-    auto func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
+    auto fileInfo = clientContext->getVFSUnsafe()->openFile(filePaths[0],
+        FileOpenFlags(FileFlags::READ_ONLY), clientContext);
+    TableFunction func;
+    if (fileInfo->handleFileViaFunction()) {
+        func = fileInfo->getHandleFunction();
+        fileTypeInfo.fileType = FileType::UNKNOWN;
+    } else {
+        func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
+    }
     // Bind table function
     auto bindInput = TableFuncBindInput();
     bindInput.addLiteralParam(Value::createValue(filePaths[0]));

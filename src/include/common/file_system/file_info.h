@@ -5,6 +5,7 @@
 
 #include "common/api.h"
 #include "common/cast.h"
+#include "function/table/table_function.h"
 
 namespace kuzu {
 namespace common {
@@ -34,6 +35,10 @@ struct KUZU_API FileInfo {
     void truncate(uint64_t size);
 
     bool canPerformSeek() const;
+
+    virtual bool handleFileViaFunction() const { return false; }
+
+    virtual function::TableFunction getHandleFunction() const { KU_UNREACHABLE; }
 
     template<class TARGET>
     TARGET* ptrCast() {
