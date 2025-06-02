@@ -13,8 +13,8 @@ void IndexInfo::serialize(common::Serializer& ser) const {
     ser.write<std::string>(name);
     ser.write<std::string>(indexType);
     ser.write<common::table_id_t>(tableID);
-    ser.write<common::column_id_t>(columnID);
-    ser.write<common::PhysicalTypeID>(keyDataType);
+    ser.serializeVector(columnIDs);
+    ser.serializeVector(keyDataTypes);
     ser.write<bool>(isPrimary);
     ser.write<bool>(isBuiltin);
 }
@@ -23,19 +23,19 @@ IndexInfo IndexInfo::deserialize(common::Deserializer& deSer) {
     std::string name;
     std::string indexType;
     common::table_id_t tableID = common::INVALID_TABLE_ID;
-    common::column_id_t columnID = common::INVALID_COLUMN_ID;
-    auto keyDataType = common::PhysicalTypeID::ANY;
+    std::vector<common::column_id_t> columnIDs;
+    std::vector<common::PhysicalTypeID> keyDataTypes;
     bool isPrimary = false;
     bool isBuiltin = false;
     deSer.deserializeValue(name);
     deSer.deserializeValue(indexType);
     deSer.deserializeValue<common::table_id_t>(tableID);
-    deSer.deserializeValue<common::column_id_t>(columnID);
-    deSer.deserializeValue<common::PhysicalTypeID>(keyDataType);
+    deSer.deserializeVector(columnIDs);
+    deSer.deserializeVector(keyDataTypes);
     deSer.deserializeValue<bool>(isPrimary);
     deSer.deserializeValue<bool>(isBuiltin);
-    return IndexInfo{std::move(name), std::move(indexType), tableID, columnID, keyDataType,
-        isPrimary, isBuiltin};
+    return IndexInfo{std::move(name), std::move(indexType), tableID, std::move(columnIDs),
+        std::move(keyDataTypes), isPrimary, isBuiltin};
 }
 
 std::shared_ptr<common::BufferedSerializer> IndexStorageInfo::serialize() const {
@@ -72,7 +72,7 @@ void IndexHolder::serialize(common::Serializer& ser) const {
     }
 }
 
-void IndexHolder::load(main::ClientContext* context) {
+void IndexHolder::load(main::ClientContext* context, StorageManager* storageManager) {
     if (loaded) {
         return;
     }
@@ -82,7 +82,7 @@ void IndexHolder::load(main::ClientContext* context) {
     if (!indexTypeOptional.has_value()) {
         throw common::RuntimeException("No index type with name: " + indexInfo.indexType);
     }
-    index = indexTypeOptional.value().get().loadFunc(context, indexInfo,
+    index = indexTypeOptional.value().get().loadFunc(context, storageManager, indexInfo,
         std::span(storageInfoBuffer.get(), storageInfoBufferSize));
     loaded = true;
 }

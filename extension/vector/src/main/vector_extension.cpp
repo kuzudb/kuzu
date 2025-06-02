@@ -23,7 +23,7 @@ static void initHNSWEntries(main::ClientContext* context) {
             KU_ASSERT_UNCONDITIONAL(
                 optionalIndex.has_value() && !optionalIndex.value().get().isLoaded());
             auto& unloadedIndex = optionalIndex.value().get();
-            unloadedIndex.load(context);
+            unloadedIndex.load(context, storageManager);
         }
     }
 }

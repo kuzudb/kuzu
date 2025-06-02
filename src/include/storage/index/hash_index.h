@@ -359,7 +359,7 @@ public:
     template<common::IndexHashable T>
     inline bool lookup(const transaction::Transaction* trx, T key, common::offset_t& result,
         visible_func isVisible) {
-        KU_ASSERT(indexInfo.keyDataType == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->lookupInternal(trx, key, result, isVisible);
     }
 
@@ -373,7 +373,7 @@ public:
     template<common::IndexHashable T>
     inline bool insert(const transaction::Transaction* transaction, T key, common::offset_t value,
         visible_func isVisible) {
-        KU_ASSERT(indexInfo.keyDataType == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->insertInternal(transaction, key, value, isVisible);
     }
     bool insert(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
@@ -386,7 +386,7 @@ public:
     size_t appendWithIndexPos(const transaction::Transaction* transaction,
         const IndexBuffer<T>& buffer, uint64_t bufferOffset, uint64_t indexPos,
         visible_func isVisible) {
-        KU_ASSERT(indexInfo.keyDataType == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         KU_ASSERT(std::all_of(buffer.begin(), buffer.end(), [&](auto& elem) {
             return HashIndexUtils::getHashIndexPosition(elem.first) == indexPos;
         }));
@@ -404,7 +404,7 @@ public:
     void delete_(common::ku_string_t key) { return delete_(key.getAsStringView()); }
     template<common::IndexHashable T>
     inline void delete_(T key) {
-        KU_ASSERT(indexInfo.keyDataType == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->deleteInternal(key);
     }
 
@@ -417,12 +417,15 @@ public:
 
     void rollbackCheckpoint() override;
 
-    common::PhysicalTypeID keyTypeID() const { return indexInfo.keyDataType; }
+    common::PhysicalTypeID keyTypeID() const {
+        KU_ASSERT(indexInfo.keyDataTypes.size() == 1);
+        return indexInfo.keyDataTypes[0];
+    }
 
     void writeHeaders();
 
-    static KUZU_API std::unique_ptr<Index> load(main::ClientContext* context, IndexInfo indexInfo,
-        std::span<uint8_t> storageInfoBuffer);
+    static KUZU_API std::unique_ptr<Index> load(main::ClientContext* context,
+        StorageManager* storageManager, IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer);
 
     static IndexType getIndexType() {
         static const IndexType HASH_INDEX_TYPE{"HASH", IndexConstraintType::PRIMARY,

@@ -215,7 +215,8 @@ public:
     common::table_id_t getRelGroupID() const { return relGroupID; }
 
     void serialize(common::Serializer& ser) const override;
-    void deserialize(main::ClientContext* context, common::Deserializer& deSer) override;
+    void deserialize(main::ClientContext* context, StorageManager* storageManager,
+        common::Deserializer& deSer) override;
 
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,

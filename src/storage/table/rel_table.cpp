@@ -523,7 +523,7 @@ void RelTable::serialize(Serializer& ser) const {
     }
 }
 
-void RelTable::deserialize(main::ClientContext*, Deserializer& deSer) {
+void RelTable::deserialize(main::ClientContext*, StorageManager*, Deserializer& deSer) {
     std::string key;
     deSer.validateDebuggingInfo(key, "next_rel_offset");
     deSer.deserializeValue<offset_t>(nextRelOffset);

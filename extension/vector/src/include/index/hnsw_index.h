@@ -241,7 +241,8 @@ public:
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
         const void* queryVector, HNSWSearchState& searchState) const;
 
-    static std::unique_ptr<Index> load(main::ClientContext* context, storage::IndexInfo indexInfo,
+    static std::unique_ptr<Index> load(main::ClientContext* context,
+        storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
         std::span<uint8_t> storageInfoBuffer);
 
     static storage::IndexType getIndexType() {

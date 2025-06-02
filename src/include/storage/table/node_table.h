@@ -217,7 +217,8 @@ public:
     }
 
     void serialize(common::Serializer& serializer) const override;
-    void deserialize(main::ClientContext* context, common::Deserializer& deSer) override;
+    void deserialize(main::ClientContext* context, StorageManager* storageManager,
+        common::Deserializer& deSer) override;
 
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,

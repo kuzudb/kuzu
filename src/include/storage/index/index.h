@@ -6,6 +6,9 @@
 #include "common/types/types.h"
 #include <span>
 
+namespace kuzu::storage {
+class StorageManager;
+}
 namespace kuzu {
 namespace storage {
 
@@ -22,7 +25,7 @@ enum class KUZU_API IndexDefinitionType : uint8_t {
 class Index;
 struct IndexInfo;
 using index_load_func_t = std::function<std::unique_ptr<Index>(main::ClientContext* context,
-    IndexInfo, std::span<uint8_t>)>;
+    StorageManager* storageManager, IndexInfo, std::span<uint8_t>)>;
 
 struct KUZU_API IndexType {
     std::string typeName;
@@ -40,10 +43,17 @@ struct KUZU_API IndexInfo {
     std::string name;
     std::string indexType;
     common::table_id_t tableID;
-    common::column_id_t columnID;
-    common::PhysicalTypeID keyDataType;
+    std::vector<common::column_id_t> columnIDs;
+    std::vector<common::PhysicalTypeID> keyDataTypes;
     bool isPrimary;
     bool isBuiltin;
+
+    IndexInfo(std::string name, std::string indexType, common::table_id_t tableID,
+        std::vector<common::column_id_t> columnIDs,
+        std::vector<common::PhysicalTypeID> keyDataTypes, bool isPrimary, bool isBuiltin)
+        : name{std::move(name)}, indexType{std::move(indexType)}, tableID{tableID},
+          columnIDs{std::move(columnIDs)}, keyDataTypes{std::move(keyDataTypes)},
+          isPrimary{isPrimary}, isBuiltin{isBuiltin} {}
 
     void serialize(common::Serializer& ser) const;
     static IndexInfo deserialize(common::Deserializer& deSer);
@@ -118,13 +128,15 @@ public:
     bool isLoaded() const { return loaded; }
 
     void serialize(common::Serializer& ser) const;
-    KUZU_API void load(main::ClientContext* context);
+    KUZU_API void load(main::ClientContext* context, StorageManager* storageManager);
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void checkpoint() {
         if (loaded) {
             KU_ASSERT(index);
             index->checkpoint();
         }
     }
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void rollbackCheckpoint() {
         if (loaded) {
             KU_ASSERT(index);

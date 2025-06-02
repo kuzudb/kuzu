@@ -235,12 +235,12 @@ void StorageManager::serialize(const Catalog& catalog, Serializer& ser) {
     dataFH->getPageManager()->serialize(ser);
 }
 
-void StorageManager::deserialize(main::ClientContext* context, Deserializer& deSer) {
+void StorageManager::deserialize(main::ClientContext* context, const Catalog* catalog,
+    Deserializer& deSer) {
     std::string key;
     deSer.validateDebuggingInfo(key, "num_node_tables");
     uint64_t numNodeTables = 0;
     deSer.deserializeValue<uint64_t>(numNodeTables);
-    auto catalog = context->getCatalog();
     for (auto i = 0u; i < numNodeTables; i++) {
         deSer.validateDebuggingInfo(key, "table_id");
         table_id_t tableID = INVALID_TABLE_ID;
@@ -253,7 +253,7 @@ void StorageManager::deserialize(main::ClientContext* context, Deserializer& deS
         auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)
                               ->ptrCast<NodeTableCatalogEntry>();
         tables[tableID] = std::make_unique<NodeTable>(this, tableEntry, &memoryManager);
-        tables[tableID]->deserialize(context, deSer);
+        tables[tableID]->deserialize(context, this, deSer);
     }
     deSer.validateDebuggingInfo(key, "num_rel_groups");
     uint64_t numRelGroups = 0;
@@ -276,7 +276,7 @@ void StorageManager::deserialize(main::ClientContext* context, Deserializer& deS
             KU_ASSERT(!tables.contains(info.oid));
             tables[info.oid] = std::make_unique<RelTable>(relGroupEntry, info.nodePair.srcTableID,
                 info.nodePair.dstTableID, this, &memoryManager);
-            tables.at(info.oid)->deserialize(context, deSer);
+            tables.at(info.oid)->deserialize(context, this, deSer);
         }
     }
     deSer.validateDebuggingInfo(key, "page_manager");

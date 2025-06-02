@@ -301,12 +301,13 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, IndexInfo indexIn
           getArrayTypeInfo(context->getStorageManager()
                                ->getTable(nodeTableEntry->getTableID())
                                ->cast<NodeTable>(),
-              indexInfo.columnID)},
+              indexInfo.columnIDs[0])},
       nodeTableID{nodeTableEntry->getTableID()}, upperRelTableEntry{upperRelTableEntry},
       lowerRelTableEntry{lowerRelTableEntry} {
     auto& nodeTable =
         context->getStorageManager()->getTable(nodeTableEntry->getTableID())->cast<NodeTable>();
-    KU_ASSERT(nodeTable.getColumn(indexInfo.columnID).getDataType().getLogicalTypeID() ==
+    KU_ASSERT(this->indexInfo.columnIDs.size() == 1);
+    KU_ASSERT(nodeTable.getColumn(this->indexInfo.columnIDs[0]).getDataType().getLogicalTypeID() ==
               common::LogicalTypeID::ARRAY);
     embeddings = std::make_unique<OnDiskEmbeddings>(
         common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()},
@@ -317,8 +318,8 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, IndexInfo indexIn
     upperGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(upperGraphEntry));
 }
 
-std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, IndexInfo indexInfo,
-    std::span<uint8_t> storageInfoBuffer) {
+std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, StorageManager*,
+    IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer) {
     auto reader =
         std::make_unique<common::BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = HNSWStorageInfo::deserialize(std::move(reader));

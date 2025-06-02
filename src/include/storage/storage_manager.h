@@ -55,7 +55,10 @@ public:
         const std::string& typeName) const;
 
     void serialize(const catalog::Catalog& catalog, common::Serializer& ser);
-    void deserialize(main::ClientContext* context, common::Deserializer& deSer);
+    // We need to pass in the catalog and storageManager explicitly as they can be from
+    // attachedDatabase.
+    void deserialize(main::ClientContext* context, const catalog::Catalog* catalog,
+        common::Deserializer& deSer);
 
 private:
     void initDataFileHandle(common::VirtualFileSystem* vfs, main::ClientContext* context);

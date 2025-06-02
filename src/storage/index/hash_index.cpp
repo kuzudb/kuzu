@@ -1,7 +1,6 @@
 #include "storage/index/hash_index.h"
 
 #include <bitset>
-#include <cstdint>
 
 #include "common/assert.h"
 #include "common/serializer/deserializer.h"
@@ -208,8 +207,7 @@ void HashIndex<T>::reserve(const Transaction* transaction, uint64_t newEntries) 
             static_cast<slot_id_t>(1ul << this->indexHeaderForWriteTrx.currentLevel));
     // Always start with at least one page worth of slots.
     // This guarantees that when splitting the source and destination slot are never on the same
-    // page
-    // Which allows safe use of multiple disk array iterators.
+    // page, which allows safe use of multiple disk array iterators.
     numRequiredSlots = std::max(numRequiredSlots, KUZU_PAGE_SIZE / pSlots->getAlignedElementSize());
     // If there are no entries, we can just re-size the number of primary slots and re-calculate the
     // levels
@@ -479,7 +477,8 @@ PrimaryKeyIndex::PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStora
 
 void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& memoryManager,
     PrimaryKeyIndexStorageInfo& storageInfo) {
-    if (indexInfo.keyDataType == PhysicalTypeID::STRING) {
+    KU_ASSERT(indexInfo.keyDataTypes.size() == 1);
+    if (indexInfo.keyDataTypes[0] == PhysicalTypeID::STRING) {
         if (inMemMode) {
             overflowFile = std::make_unique<InMemOverflowFile>(memoryManager);
         } else {
@@ -489,7 +488,7 @@ void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& m
     }
     hashIndices.reserve(NUM_HASH_INDEXES);
     TypeUtils::visit(
-        indexInfo.keyDataType,
+        indexInfo.keyDataTypes[0],
         [&](ku_string_t) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                 hashIndices.push_back(std::make_unique<HashIndex<ku_string_t>>(memoryManager,
@@ -510,8 +509,9 @@ void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& m
 bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uint64_t vectorPos,
     offset_t& result, visible_func isVisible) {
     bool retVal = false;
+    KU_ASSERT(indexInfo.keyDataTypes.size() == 1);
     TypeUtils::visit(
-        indexInfo.keyDataType,
+        indexInfo.keyDataTypes[0],
         [&]<IndexHashable T>(T) {
             T key = keyVector->getValue<T>(vectorPos);
             retVal = lookup(trx, key, result, isVisible);
@@ -523,8 +523,9 @@ bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uin
 bool PrimaryKeyIndex::insert(const Transaction* transaction, const ValueVector* keyVector,
     uint64_t vectorPos, offset_t value, visible_func isVisible) {
     bool result = false;
+    KU_ASSERT(indexInfo.keyDataTypes.size() == 1);
     TypeUtils::visit(
-        indexInfo.keyDataType,
+        indexInfo.keyDataTypes[0],
         [&]<IndexHashable T>(T) {
             T key = keyVector->getValue<T>(vectorPos);
             result = insert(transaction, key, value, isVisible);
@@ -534,8 +535,9 @@ bool PrimaryKeyIndex::insert(const Transaction* transaction, const ValueVector* 
 }
 
 void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
+    KU_ASSERT(indexInfo.keyDataTypes.size() == 1);
     TypeUtils::visit(
-        indexInfo.keyDataType,
+        indexInfo.keyDataTypes[0],
         [&]<IndexHashable T>(T) {
             for (auto i = 0u; i < keyVector->state->getSelVector().getSelSize(); i++) {
                 auto pos = keyVector->state->getSelVector()[i];
@@ -627,12 +629,11 @@ void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
 
 PrimaryKeyIndex::~PrimaryKeyIndex() = default;
 
-std::unique_ptr<Index> PrimaryKeyIndex::load(main::ClientContext* context, IndexInfo indexInfo,
-    std::span<uint8_t> storageInfoBuffer) {
+std::unique_ptr<Index> PrimaryKeyIndex::load(main::ClientContext* context,
+    StorageManager* storageManager, IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer) {
     auto storageInfoBufferReader =
         std::make_unique<BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = PrimaryKeyIndexStorageInfo::deserialize(std::move(storageInfoBufferReader));
-    const auto storageManager = context->getStorageManager();
     return std::make_unique<PrimaryKeyIndex>(indexInfo, std::move(storageInfo),
         storageManager->isInMemory(), *context->getMemoryManager(), storageManager->getDataFH(),
         &storageManager->getShadowFile());

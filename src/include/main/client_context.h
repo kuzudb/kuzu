@@ -188,8 +188,6 @@ private:
 
     static std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
     static std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
-    static void validatePrepareParams(const PreparedStatement* preparedStatement,
-        const std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
     static void bindParametersNoLock(const PreparedStatement* preparedStatement,
         const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
     void validateTransaction(const PreparedStatement& preparedStatement) const;

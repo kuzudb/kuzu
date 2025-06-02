@@ -114,6 +114,7 @@ public:
     compressed_offsets_t getNeighbors(common::offset_t nodeOffset, common::offset_t maxDegree,
         common::offset_t numNbrs) const;
 
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void setNodeOffset(common::offset_t csrOffset, common::offset_t nodeOffset) {
         view->setNodeOffsetAtomic(csrOffset, nodeOffset);
     }
@@ -154,9 +155,9 @@ public:
         KU_ASSERT(length <= maxDegree);
         csrLengths[nodeOffset].store(length);
     }
-    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     // Note: when the incremented csr length hits maxDegree, this function will block until there is
     // a shrink happening.
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     uint16_t incrementCSRLength(common::offset_t nodeOffset) {
         KU_ASSERT(nodeOffset < numNodes);
         while (true) {
@@ -175,7 +176,7 @@ public:
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState);
 
-    // In the current implementation race conditions can result in dstNode entries being skipped
+    // In the current implementation, race conditions can result in dstNode entries being skipped
     // during insertion. Skipped entries will be marked with this value
     common::offset_t getInvalidOffset() const { return invalidOffset; }
 

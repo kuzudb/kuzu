@@ -30,7 +30,9 @@ CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBind
               ->getTable(bindData.tableEntry->getTableID())
               ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
-    storage::IndexInfo dummyIndexInfo;
+    storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
+        {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
+        false};
     hnswIndex = std::make_shared<InMemHNSWIndex>(bindData.context, dummyIndexInfo,
         std::make_unique<storage::IndexStorageInfo>(), nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -271,8 +273,8 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
         clientContext->getStorageManager()->getTable(nodeTableID)->ptrCast<storage::NodeTable>();
     auto columnID = bindData->tableEntry->getColumnID(bindData->propertyID);
     auto hnswIndexType = OnDiskHNSWIndex::getIndexType();
-    storage::IndexInfo indexInfo{bindData->indexName, hnswIndexType.typeName, nodeTableID, columnID,
-        PhysicalTypeID::ARRAY,
+    storage::IndexInfo indexInfo{bindData->indexName, hnswIndexType.typeName, nodeTableID,
+        {columnID}, {PhysicalTypeID::ARRAY},
         hnswIndexType.constraintType == storage::IndexConstraintType::PRIMARY,
         hnswIndexType.definitionType == storage::IndexDefinitionType::BUILTIN};
     auto storageInfo = std::make_unique<HNSWStorageInfo>(upperTable->getTableID(),
