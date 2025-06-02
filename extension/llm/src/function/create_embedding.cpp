@@ -47,7 +47,7 @@ static httplib::Headers getHeaders(const std::string& provider)
         auto env_key = std::getenv("OPENAI_API_KEY");
         if (env_key == nullptr) 
         {
-            throw(RuntimeException("Could not get key from: OPENAI_API_KEY"));
+            throw(RuntimeException("Could not get key from: OPENAI_API_KEY\n"));
         }
         return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
     }
@@ -152,10 +152,8 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 
 
         if (!res) {
-            // TODO: Current server url is hardcoded. This must be changed when we accomodate
-            // different endpoints.
             throw ConnectionException(
-                "Request failed: Could not connect to server: " + client.host() + '\n');
+                "Request failed: Could not connect to server\n");
         } else if (res->status != 200) {
             throw ConnectionException("Request failed with status " + std::to_string(res->status) +
                                       "\n Body: " + res->body + "\n");
