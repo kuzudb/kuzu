@@ -18,11 +18,12 @@ void AzureConnector::connect(const std::string& /*dbPath*/, const std::string& /
 }
 
 void AzureConnector::initRemoteAzureSecrets(main::ClientContext* context) const {
-    std::string query = "(CREATE SECRET azure_secret (TYPE azure";
+    std::string query = "CREATE SECRET azure_secret (TYPE azure";
     for (auto [fieldName, _] : AzureConfig::getDefault().getFields()) {
-        query += common::stringFormat(", {} '{}'", fieldName, context->getCurrentSetting(fieldName).toString());
+        std::string duckdbFieldName = fieldName.substr(6); // strip "AZURE_" prefix
+        query += common::stringFormat(", {} '{}'", duckdbFieldName, context->getCurrentSetting(fieldName).toString());
     }
-    executeQuery(query + ");)");
+    executeQuery(query + ");");
 }
 
 } // namespace azure_extension
