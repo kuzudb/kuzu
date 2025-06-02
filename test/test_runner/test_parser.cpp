@@ -124,6 +124,12 @@ void TestParser::parseHeader() {
 #endif
             break;
         }
+        case TokenType::WASM_ONLY: {
+#ifndef __WASM__
+            testGroup->group = "DISABLED_" + testGroup->group;
+#endif
+            break;
+        }
         case TokenType::TEST_FWD_ONLY_REL: {
             testGroup->testFwdOnly = true;
             break;
@@ -480,6 +486,12 @@ void TestParser::parseBody() {
         }
         case TokenType::SKIP_WASM: {
 #ifdef __WASM__
+            testCaseName = "DISABLED_" + testCaseName;
+#endif
+            break;
+        }
+        case TokenType::WASM_ONLY: {
+#ifndef __WASM__
             testCaseName = "DISABLED_" + testCaseName;
 #endif
             break;
