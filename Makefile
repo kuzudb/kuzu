@@ -21,12 +21,18 @@
 BUILD_TYPE ?=
 BUILD_PATH ?=
 CLANGD_DIAGNOSTIC_INSTANCES ?= 4
-NUM_THREADS ?= 1
 PREFIX ?= install
 TEST_JOBS ?= 10
 EXTENSION_LIST ?= httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;azure;unity_catalog;vector;neo4j;algo;llm
 EXTENSION_TEST_EXCLUDE_FILTER ?= ""
 
+ifeq ($(shell uname -s 2>/dev/null),Linux)
+	NUM_THREADS ?= $(shell expr $(shell nproc) \* 2 / 3)
+else ifeq ($(shell uname -s 2>/dev/null),Darwin)
+	NUM_THREADS ?= $(shell expr $(shell sysctl -n hw.ncpu) \* 2 / 3)
+else
+	NUM_THREADS ?= 1
+endif
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
 
 ifeq ($(OS),Windows_NT)
