@@ -1,5 +1,7 @@
 #include <cstdint>
 #include <cstdlib>
+#include <unordered_map>
+#include <unordered_set>
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
@@ -123,7 +125,6 @@ static std::vector<float> getEmbedding(const httplib::Result& res, const std::st
     if (provider == "open-ai")
     {
         return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
-
     }
 
     else if (provider == "voyage-ai")
@@ -143,71 +144,26 @@ static std::vector<float> getEmbedding(const httplib::Result& res, const std::st
 }
 
 
-// WIP: Consider implementing as 2d map lookup
 static uint64_t getEmbeddingDimensions(const std::string& provider, const std::string& model)
 {
-    if (provider == "open-ai")
+    static const std::unordered_map<std::string, std::unordered_map<std::string, uint64_t>> providerModelMap = 
     {
-        if (model == "text-embedding-3-large")
-        {
-            return 3072;
-        }
-        else if (model == "text-embedding-3-small" || model == "text-embedding-ada-002")
-        {
-            return 1536;
-        }
+            {"open-ai", {{"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536}, {"text-embedding-ada-002", 1536}}},
+            {"voyage-ai", {{"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024}, {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024}, {"voyage-code-2", 1536}}},
+            {"ollama", {{"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}}},
+    };
+
+    auto providerItr = providerModelMap.find(provider);
+    if (providerItr == providerModelMap.end())
+    {
+        throw(BinderException("Invalid Provider: " + provider));
+    }
+    auto modelItr = providerItr->second.find(model);
+    if (modelItr == providerItr->second.end())
+    {
         throw(BinderException("Invalid Model: " + model));
     }
-
-    if (provider == "voyage-ai")
-    {
-        if (model == "voyage-3-large")
-        {
-            return 1024;
-        }
-        else if (model == "voyage-3.5")
-        {
-            return 1024;
-        }
-        else if (model == "voyage-3.5-lite")
-        {
-            return 1024;
-        }
-        else if (model == "voyage-code-3")
-        {
-            return 1024;
-        }
-        else if (model == "voyage-finance-2")
-        {
-            return 1024;
-        }
-        else if (model == "voyage-law-2")
-        {
-            return 1024;
-        }
-        else if (model == "voyage-code-2")
-        {
-            return 1536;
-        }
-        throw(BinderException("Invalid Model: " + model));
-    }
-
-
-    else if (provider == "ollama")
-    {
-        if (model == "nomic-embed-text")
-        {
-            return 1536;
-        }
-        else if (model == "all-minilm:l6-v2")
-        {
-            return 384;
-        }
-        throw(BinderException("Invalid Model: " + model));
-    }
-
-    throw(BinderException("Invalid Provider: " + provider));
-    return 0;
+    return modelItr->second;
 }
 
 
