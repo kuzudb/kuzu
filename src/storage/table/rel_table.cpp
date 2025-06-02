@@ -10,6 +10,7 @@
 #include "storage/local_storage/local_storage.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
+#include "storage/storage_utils.h"
 #include "storage/table/rel_table_data.h"
 #include "transaction/transaction.h"
 #include <ranges>
@@ -522,7 +523,7 @@ void RelTable::serialize(Serializer& ser) const {
     }
 }
 
-void RelTable::deserialize(TableCatalogEntry*, Deserializer& deSer) {
+void RelTable::deserialize(main::ClientContext*, StorageManager*, Deserializer& deSer) {
     std::string key;
     deSer.validateDebuggingInfo(key, "next_rel_offset");
     deSer.deserializeValue<offset_t>(nextRelOffset);

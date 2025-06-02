@@ -1,10 +1,12 @@
 #include "storage/checkpointer.h"
 
 #include "catalog/catalog.h"
+#include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/metadata_writer.h"
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "storage/shadow_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
@@ -240,7 +242,7 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     catalog->deserialize(deSer);
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
-    storageManager->deserialize(*catalog, deSer);
+    storageManager->deserialize(context, catalog, deSer);
 }
 
 } // namespace storage

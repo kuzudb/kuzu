@@ -228,9 +228,16 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         columns[columnID] = ColumnFactory::createColumn(columnName, property.getType().copy(),
             dataFH, memoryManager, shadowFile, enableCompression);
     }
-    pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH, inMemory,
-        nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *memoryManager,
-        shadowFile);
+    auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
+    auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
+    KU_ASSERT(pkColumnID != INVALID_COLUMN_ID);
+    auto hashIndexType = PrimaryKeyIndex::getIndexType();
+    IndexInfo indexInfo{PrimaryKeyIndex::DEFAULT_NAME, hashIndexType.typeName, tableID,
+        {pkColumnID}, {pkDefinition.getType().getPhysicalType()},
+        hashIndexType.constraintType == IndexConstraintType::PRIMARY,
+        hashIndexType.definitionType == IndexDefinitionType::BUILTIN};
+    indexes.push_back(IndexHolder{
+        PrimaryKeyIndex::createNewIndex(indexInfo, inMemory, *memoryManager, dataFH, shadowFile)});
     nodeGroups = std::make_unique<NodeGroupCollection>(
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
         storageManager->getDataFH(), &versionRecordHandler);
@@ -308,7 +315,7 @@ offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
     KU_ASSERT(pkVector->state->getSelVector().getSelSize() == 1);
     const auto pkVectorPos = pkVector->state->getSelVector()[0];
     offset_t offset = INVALID_OFFSET;
-    if (pkIndex->lookup(transaction, propertyVectors[pkColumnID], pkVectorPos, offset,
+    if (getPKIndex()->lookup(transaction, propertyVectors[pkColumnID], pkVectorPos, offset,
             [&](offset_t offset_) { return isVisible(transaction, offset_); })) {
         return offset;
     }
@@ -326,7 +333,7 @@ void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector*
     if (pkVector->isNull(selVector[0])) {
         throw RuntimeException(ExceptionMessage::nullPKException());
     }
-    if (pkIndex->lookup(transaction, pkVector, selVector[0], dummyOffset,
+    if (getPKIndex()->lookup(transaction, pkVector, selVector[0], dummyOffset,
             [&](offset_t offset) { return isVisible(transaction, offset); })) {
         throw RuntimeException(
             ExceptionMessage::duplicatePKException(pkVector->getAsValue(selVector[0])->toString()));
@@ -365,6 +372,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     if (nodeUpdateState.nodeIDVector.isNull(pos)) {
         return;
     }
+    auto pkIndex = getPKIndex();
     if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
         validatePkNotExists(transaction, &nodeUpdateState.propertyVector);
     }
@@ -377,7 +385,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     } else {
         if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
             insertPK(transaction, nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector,
-                pkIndex.get(), getVisibleFunc(transaction));
+                pkIndex, getVisibleFunc(transaction));
         }
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =
@@ -503,7 +511,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     }
 
     // 3. Scan pk column for newly inserted tuples that are not deleted and insert into pk index.
-    UncommittedPKInserter pkInserter{startNodeOffset, this, pkIndex.get(),
+    UncommittedPKInserter pkInserter{startNodeOffset, this, getPKIndex(),
         getVisibleFunc(transaction)};
     // We need to scan from local storage here because some tuples in local node groups might
     // have been deleted.
@@ -539,7 +547,9 @@ bool NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
         NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), *dataFH,
             memoryManager};
         nodeGroups->checkpoint(*memoryManager, state);
-        pkIndex->checkpoint();
+        for (auto& index : indexes) {
+            index.checkpoint();
+        }
         hasChanges = false;
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
     }
@@ -550,7 +560,7 @@ void NodeTable::rollbackPKIndexInsert(const Transaction* transaction, row_idx_t 
     row_idx_t numRows_, node_group_idx_t nodeGroupIdx_) {
     row_idx_t startNodeOffset = startRow + StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx_);
 
-    RollbackPKDeleter pkDeleter{startNodeOffset, numRows_, this, pkIndex.get()};
+    RollbackPKDeleter pkDeleter{startNodeOffset, numRows_, this, getPKIndex()};
     scanPKColumn(transaction, pkDeleter, *nodeGroups);
 }
 
@@ -560,7 +570,9 @@ void NodeTable::rollbackGroupCollectionInsert(row_idx_t numRows_) {
 }
 
 void NodeTable::rollbackCheckpoint() {
-    pkIndex->rollbackCheckpoint();
+    for (auto& index : indexes) {
+        index.rollbackCheckpoint();
+    }
 }
 
 void NodeTable::reclaimStorage(FileHandle& dataFH) {
@@ -600,7 +612,7 @@ bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector,
             return true;
         }
     }
-    return pkIndex->lookup(transaction, keyVector, vectorPos, result,
+    return getPKIndex()->lookup(transaction, keyVector, vectorPos, result,
         [&](offset_t offset) { return isVisibleNoLock(transaction, offset); });
 }
 
@@ -631,30 +643,51 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
     }
 }
 
-void NodeTable::serialize(Serializer& serializer) const {
-    pkIndex->serialize(serializer);
-    nodeGroups->serialize(serializer);
+void NodeTable::addIndex(std::unique_ptr<Index> index) {
+    if (getIndex(index->getName()).has_value()) {
+        throw RuntimeException("Index with name " + index->getName() + " already exists.");
+    }
+    indexes.push_back(IndexHolder{std::move(index)});
 }
 
-void NodeTable::deserialize(TableCatalogEntry* entry, Deserializer& deSer) {
-    std::string key;
-    page_idx_t firstHeaderPage = INVALID_PAGE_IDX;
-    page_idx_t overflowHeaderPage = INVALID_PAGE_IDX;
-    deSer.validateDebuggingInfo(key, "firstHeaderPage");
-    deSer.deserializeValue<page_idx_t>(firstHeaderPage);
-    deSer.validateDebuggingInfo(key, "overflowHeaderPage");
-    deSer.deserializeValue<page_idx_t>(overflowHeaderPage);
-    auto pkType =
-        entry->cast<NodeTableCatalogEntry>().getPrimaryKeyDefinition().getType().getPhysicalType();
-    if (firstHeaderPage == INVALID_PAGE_IDX && overflowHeaderPage == INVALID_PAGE_IDX) {
-        // This means that the pk index is empty.
-        pkIndex =
-            std::make_unique<PrimaryKeyIndex>(dataFH, inMemory, pkType, *memoryManager, shadowFile);
-    } else {
-        pkIndex = std::make_unique<PrimaryKeyIndex>(dataFH, inMemory, pkType, *memoryManager,
-            shadowFile, firstHeaderPage, overflowHeaderPage);
+void NodeTable::serialize(Serializer& serializer) const {
+    nodeGroups->serialize(serializer);
+    serializer.write<uint64_t>(indexes.size());
+    for (auto i = 0u; i < indexes.size(); ++i) {
+        indexes[i].serialize(serializer);
     }
+}
+
+void NodeTable::deserialize(main::ClientContext* context, StorageManager* storageManager,
+    Deserializer& deSer) {
     nodeGroups->deserialize(deSer, *memoryManager);
+    std::vector<IndexInfo> indexInfos;
+    std::vector<length_t> storageInfoBufferSizes;
+    std::vector<std::unique_ptr<uint8_t[]>> storageInfoBuffers;
+    uint64_t numIndexes = 0u;
+    deSer.deserializeValue<uint64_t>(numIndexes);
+    indexInfos.reserve(numIndexes);
+    storageInfoBufferSizes.reserve(numIndexes);
+    storageInfoBuffers.reserve(numIndexes);
+    for (uint64_t i = 0; i < numIndexes; ++i) {
+        IndexInfo indexInfo = IndexInfo::deserialize(deSer);
+        indexInfos.push_back(indexInfo);
+        uint64_t storageInfoSize = 0u;
+        deSer.deserializeValue<uint64_t>(storageInfoSize);
+        storageInfoBufferSizes.push_back(storageInfoSize);
+        auto storageInfoBuffer = std::make_unique<uint8_t[]>(storageInfoSize);
+        deSer.read(storageInfoBuffer.get(), storageInfoSize);
+        storageInfoBuffers.push_back(std::move(storageInfoBuffer));
+    }
+    indexes.clear();
+    indexes.reserve(indexInfos.size());
+    for (auto i = 0u; i < indexInfos.size(); ++i) {
+        indexes.push_back(IndexHolder(indexInfos[i], std::move(storageInfoBuffers[i]),
+            storageInfoBufferSizes[i]));
+        if (indexInfos[i].isBuiltin) {
+            indexes[i].load(context, storageManager);
+        }
+    }
 }
 
 std::unique_ptr<NodeTableScanState> PKColumnScanHelper::initPKScanState(

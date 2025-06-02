@@ -30,6 +30,7 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
         *memoryManager.getBufferManager(), vfs, context);
     inMemory = main::DBConfig::isDBPathInMemory(databasePath);
     initDataFileHandle(vfs, context);
+    registerIndexType(PrimaryKeyIndex::getIndexType());
 }
 
 StorageManager::~StorageManager() = default;
@@ -190,6 +191,16 @@ void StorageManager::rollbackCheckpoint(const Catalog& catalog) {
     dataFH->getPageManager()->rollbackCheckpoint();
 }
 
+std::optional<std::reference_wrapper<const IndexType>> StorageManager::getIndexType(
+    const std::string& typeName) const {
+    for (auto& indexType : registeredIndexTypes) {
+        if (StringUtils::caseInsensitiveEquals(indexType.typeName, typeName)) {
+            return indexType;
+        }
+    }
+    return std::nullopt;
+}
+
 void StorageManager::serialize(const Catalog& catalog, Serializer& ser) {
     std::lock_guard lck{mtx};
     auto nodeTableEntries = catalog.getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
@@ -224,7 +235,8 @@ void StorageManager::serialize(const Catalog& catalog, Serializer& ser) {
     dataFH->getPageManager()->serialize(ser);
 }
 
-void StorageManager::deserialize(const Catalog& catalog, Deserializer& deSer) {
+void StorageManager::deserialize(main::ClientContext* context, const Catalog* catalog,
+    Deserializer& deSer) {
     std::string key;
     deSer.validateDebuggingInfo(key, "num_node_tables");
     uint64_t numNodeTables = 0;
@@ -233,15 +245,15 @@ void StorageManager::deserialize(const Catalog& catalog, Deserializer& deSer) {
         deSer.validateDebuggingInfo(key, "table_id");
         table_id_t tableID = INVALID_TABLE_ID;
         deSer.deserializeValue<table_id_t>(tableID);
-        if (!catalog.containsTable(&DUMMY_TRANSACTION, tableID)) {
+        if (!catalog->containsTable(&DUMMY_TRANSACTION, tableID)) {
             throw RuntimeException(
                 stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
         }
         KU_ASSERT(!tables.contains(tableID));
-        auto tableEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)
+        auto tableEntry = catalog->getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)
                               ->ptrCast<NodeTableCatalogEntry>();
         tables[tableID] = std::make_unique<NodeTable>(this, tableEntry, &memoryManager);
-        tables[tableID]->deserialize(tableEntry, deSer);
+        tables[tableID]->deserialize(context, this, deSer);
     }
     deSer.validateDebuggingInfo(key, "num_rel_groups");
     uint64_t numRelGroups = 0;
@@ -250,21 +262,21 @@ void StorageManager::deserialize(const Catalog& catalog, Deserializer& deSer) {
         deSer.validateDebuggingInfo(key, "rel_group_id");
         table_id_t relGroupID = INVALID_TABLE_ID;
         deSer.deserializeValue<table_id_t>(relGroupID);
-        if (!catalog.containsTable(&DUMMY_TRANSACTION, relGroupID)) {
+        if (!catalog->containsTable(&DUMMY_TRANSACTION, relGroupID)) {
             throw RuntimeException(
                 stringFormat("Load table failed: table {} doesn't exist in catalog.", relGroupID));
         }
         deSer.validateDebuggingInfo(key, "num_inner_rel_tables");
         uint64_t numInnerRelTables = 0;
         deSer.deserializeValue<uint64_t>(numInnerRelTables);
-        auto relGroupEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, relGroupID)
+        auto relGroupEntry = catalog->getTableCatalogEntry(&DUMMY_TRANSACTION, relGroupID)
                                  ->ptrCast<RelGroupCatalogEntry>();
         for (auto k = 0u; k < numInnerRelTables; k++) {
             RelTableCatalogInfo info = RelTableCatalogInfo::deserialize(deSer);
             KU_ASSERT(!tables.contains(info.oid));
             tables[info.oid] = std::make_unique<RelTable>(relGroupEntry, info.nodePair.srcTableID,
                 info.nodePair.dstTableID, this, &memoryManager);
-            tables.at(info.oid)->deserialize(relGroupEntry, deSer);
+            tables.at(info.oid)->deserialize(context, this, deSer);
         }
     }
     deSer.validateDebuggingInfo(key, "page_manager");

@@ -1,16 +1,18 @@
 #pragma once
 
 #include <algorithm>
-#include <cstdint>
 #include <string_view>
 #include <type_traits>
 
 #include "common/cast.h"
+#include "common/serializer/buffered_reader.h"
+#include "common/serializer/serializer.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "hash_index_header.h"
 #include "hash_index_slot.h"
+#include "index.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/index/in_mem_hash_index.h"
@@ -304,17 +306,41 @@ inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transactio
     return false;
 }
 
-class PrimaryKeyIndex {
-public:
-    // Construct a new index
-    PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, common::PhysicalTypeID keyDataType,
-        MemoryManager& memoryManager, ShadowFile* shadowFile);
-    // Construct an existing index
-    PrimaryKeyIndex(FileHandle* dataFH, bool inMemMode, common::PhysicalTypeID keyDataType,
-        MemoryManager& memoryManager, ShadowFile* shadowFile, common::page_idx_t firstHeaderPage,
-        common::page_idx_t overflowHeaderPage);
+struct PrimaryKeyIndexStorageInfo final : IndexStorageInfo {
+    common::page_idx_t firstHeaderPage;
+    common::page_idx_t overflowHeaderPage;
 
-    ~PrimaryKeyIndex();
+    PrimaryKeyIndexStorageInfo()
+        : firstHeaderPage{common::INVALID_PAGE_IDX}, overflowHeaderPage{common::INVALID_PAGE_IDX} {}
+    PrimaryKeyIndexStorageInfo(common::page_idx_t firstHeaderPage,
+        common::page_idx_t overflowHeaderPage)
+        : firstHeaderPage{firstHeaderPage}, overflowHeaderPage{overflowHeaderPage} {}
+
+    DELETE_COPY_DEFAULT_MOVE(PrimaryKeyIndexStorageInfo);
+
+    std::shared_ptr<common::BufferedSerializer> serialize() const override {
+        auto bufferWriter = std::make_shared<common::BufferedSerializer>();
+        auto serializer = common::Serializer(bufferWriter);
+        serializer.write<common::page_idx_t>(firstHeaderPage);
+        serializer.write<common::page_idx_t>(overflowHeaderPage);
+        return bufferWriter;
+    }
+
+    static std::unique_ptr<IndexStorageInfo> deserialize(
+        std::unique_ptr<common::BufferReader> reader);
+};
+
+class PrimaryKeyIndex final : public Index {
+public:
+    static constexpr const char* DEFAULT_NAME = "_PK";
+
+    // Construct an existing index
+    PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storageInfo,
+        bool inMemMode, MemoryManager& memoryManager, FileHandle* dataFH, ShadowFile* shadowFile);
+    ~PrimaryKeyIndex() override;
+
+    static std::unique_ptr<PrimaryKeyIndex> createNewIndex(IndexInfo indexInfo, bool inMemMode,
+        MemoryManager& memoryManager, FileHandle* dataFH, ShadowFile* shadowFile);
 
     template<typename T>
     inline HashIndex<HashIndexType<T>>* getTypedHashIndex(T key) {
@@ -333,7 +359,7 @@ public:
     template<common::IndexHashable T>
     inline bool lookup(const transaction::Transaction* trx, T key, common::offset_t& result,
         visible_func isVisible) {
-        KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->lookupInternal(trx, key, result, isVisible);
     }
 
@@ -347,7 +373,7 @@ public:
     template<common::IndexHashable T>
     inline bool insert(const transaction::Transaction* transaction, T key, common::offset_t value,
         visible_func isVisible) {
-        KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->insertInternal(transaction, key, value, isVisible);
     }
     bool insert(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
@@ -360,7 +386,7 @@ public:
     size_t appendWithIndexPos(const transaction::Transaction* transaction,
         const IndexBuffer<T>& buffer, uint64_t bufferOffset, uint64_t indexPos,
         visible_func isVisible) {
-        KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         KU_ASSERT(std::all_of(buffer.begin(), buffer.end(), [&](auto& elem) {
             return HashIndexUtils::getHashIndexPosition(elem.first) == indexPos;
         }));
@@ -378,30 +404,40 @@ public:
     void delete_(common::ku_string_t key) { return delete_(key.getAsStringView()); }
     template<common::IndexHashable T>
     inline void delete_(T key) {
-        KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->deleteInternal(key);
     }
 
     void delete_(common::ValueVector* keyVector);
 
-    void checkpointInMemory();
-    void checkpoint(bool forceCheckpointAll = false);
+    void checkpointInMemory() override;
+    void checkpoint(bool forceCheckpointAll = false) override;
     FileHandle* getFileHandle() const { return fileHandle; }
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
-    void rollbackCheckpoint();
+    void rollbackCheckpoint() override;
 
-    common::PhysicalTypeID keyTypeID() const { return keyDataTypeID; }
+    common::PhysicalTypeID keyTypeID() const {
+        KU_ASSERT(indexInfo.keyDataTypes.size() == 1);
+        return indexInfo.keyDataTypes[0];
+    }
 
     void writeHeaders();
 
-    void serialize(common::Serializer& serializer) const;
+    static KUZU_API std::unique_ptr<Index> load(main::ClientContext* context,
+        StorageManager* storageManager, IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer);
+
+    static IndexType getIndexType() {
+        static const IndexType HASH_INDEX_TYPE{"HASH", IndexConstraintType::PRIMARY,
+            IndexDefinitionType::BUILTIN, load};
+        return HASH_INDEX_TYPE;
+    }
 
 private:
-    void initOverflowAndSubIndices(bool inMemMode, MemoryManager& mm);
+    void initOverflowAndSubIndices(bool inMemMode, MemoryManager& mm,
+        PrimaryKeyIndexStorageInfo& storageInfo);
 
 private:
-    common::PhysicalTypeID keyDataTypeID;
     FileHandle* fileHandle;
     std::unique_ptr<OverflowFile> overflowFile;
     std::vector<std::unique_ptr<OnDiskHashIndex>> hashIndices;
@@ -410,8 +446,6 @@ private:
     ShadowFile& shadowFile;
     // Stores both primary and overflow slots
     std::unique_ptr<DiskArrayCollection> hashIndexDiskArrays;
-    common::page_idx_t firstHeaderPage;
-    common::page_idx_t overflowHeaderPage;
 };
 
 } // namespace storage

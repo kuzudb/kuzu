@@ -15,6 +15,9 @@
 #define ADD_CONFIDENTIAL_EXTENSION_OPTION(OPTION)                                                  \
     db->addExtensionOption(OPTION::NAME, OPTION::TYPE, OPTION::getDefaultValue(), true)
 
+namespace kuzu::storage {
+struct IndexType;
+}
 namespace kuzu {
 namespace function {
 struct TableFunction;
@@ -76,8 +79,6 @@ struct KUZU_API ExtensionUtils {
     static constexpr const char* EXTENSION_LOADER_SUFFIX = "_loader";
 
     static constexpr const char* EXTENSION_INSTALLER_SUFFIX = "_installer";
-
-    static bool isFullPath(const std::string& extension);
 
     static ExtensionRepoInfo getExtensionLibRepoInfo(const std::string& extensionName,
         const std::string& extensionRepo);
@@ -146,6 +147,8 @@ struct KUZU_API ExtensionUtils {
         addFunc<typename T::alias>(database, T::name,
             catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
     }
+
+    static void registerIndexType(main::Database& database, storage::IndexType type);
 };
 
 class KUZU_API ExtensionLibLoader {

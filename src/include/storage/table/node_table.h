@@ -137,12 +137,39 @@ public:
     template<common::IndexHashable T>
     size_t appendPKWithIndexPos(const transaction::Transaction* transaction,
         const IndexBuffer<T>& buffer, uint64_t bufferOffset, uint64_t indexPos) {
-        return pkIndex->appendWithIndexPos(transaction, buffer, bufferOffset, indexPos,
+        return getPKIndex()->appendWithIndexPos(transaction, buffer, bufferOffset, indexPos,
             [&](common::offset_t offset) { return isVisible(transaction, offset); });
     }
 
+    void addIndex(std::unique_ptr<Index> index);
+
     common::column_id_t getPKColumnID() const { return pkColumnID; }
-    PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
+    PrimaryKeyIndex* getPKIndex() const {
+        const auto index = getIndex(PrimaryKeyIndex::DEFAULT_NAME);
+        KU_ASSERT(index.has_value());
+        return &index.value()->cast<PrimaryKeyIndex>();
+    }
+    std::optional<std::reference_wrapper<IndexHolder>> getIndexHolder(const std::string& name) {
+        for (auto& index : indexes) {
+            if (common::StringUtils::caseInsensitiveEquals(index.getName(), name)) {
+                return index;
+            }
+        }
+        return std::nullopt;
+    }
+    std::optional<Index*> getIndex(const std::string& name) const {
+        for (auto& index : indexes) {
+            if (common::StringUtils::caseInsensitiveEquals(index.getName(), name)) {
+                if (index.isLoaded()) {
+                    return index.getIndex();
+                }
+                throw common::RuntimeException(common::stringFormat(
+                    "Index {} is not loaded yet. Please load the index before accessing it.",
+                    name));
+            }
+        }
+        return std::nullopt;
+    }
     common::column_id_t getNumColumns() const { return columns.size(); }
     Column& getColumn(common::column_id_t columnID) {
         KU_ASSERT(columnID < columns.size());
@@ -190,7 +217,8 @@ public:
     }
 
     void serialize(common::Serializer& serializer) const override;
-    void deserialize(catalog::TableCatalogEntry* entry, common::Deserializer& deSer) override;
+    void deserialize(main::ClientContext* context, StorageManager* storageManager,
+        common::Deserializer& deSer) override;
 
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,
@@ -205,7 +233,7 @@ private:
     std::vector<std::unique_ptr<Column>> columns;
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
-    std::unique_ptr<PrimaryKeyIndex> pkIndex;
+    std::vector<IndexHolder> indexes;
     NodeTableVersionRecordHandler versionRecordHandler;
 };
 

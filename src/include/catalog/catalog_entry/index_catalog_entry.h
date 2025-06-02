@@ -95,7 +95,7 @@ public:
 
     bool isLoaded() const { return auxBuffer == nullptr; }
 
-    TableCatalogEntry* getTableEntryToExport(main::ClientContext* context) {
+    TableCatalogEntry* getTableEntryToExport(main::ClientContext* context) const {
         return isLoaded() ? auxInfo->getTableEntryToExport(context) : nullptr;
     }
 

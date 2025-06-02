@@ -18,6 +18,7 @@
 #include "storage/checkpointer.h"
 #include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
+#include "storage/storage_utils.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::catalog;
