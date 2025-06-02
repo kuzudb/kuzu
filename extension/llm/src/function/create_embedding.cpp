@@ -22,6 +22,18 @@ namespace kuzu {
 namespace llm_extension {
 
 
+
+//curl -X POST \
+//  -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+//  -H "Content-Type: application/json" \
+//  https://us-central1-aiplatform.googleapis.com/v1/projects/PROJECT_ID/locations/us-central1/publishers/google/models/text-embedding-005:predict \
+//  -d '{
+//    "instances": [
+//      { "content": "Sample text" }
+//    ]
+//  }'
+
+
 // similar to getEmbeddingDimensions, consider turning into a map
 static std::string getClient(const std::string& provider)
 {
@@ -34,7 +46,10 @@ static std::string getClient(const std::string& provider)
     {
         return "https://api.voyageai.com";
     }
-
+    else if (provider == "google-gemini")
+    {
+        return "https://generativelanguage.googleapis.com";
+    }
     else if (provider == "ollama")
     {
         return "http://localhost:11434";
@@ -68,6 +83,11 @@ static httplib::Headers getHeaders(const std::string& provider)
         return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
     }
 
+    else if (provider == "google-gemini")
+    {
+        return httplib::Headers{{"Content-Type", "applications/json"}};
+    }
+
     else if (provider == "ollama")
     {
         return httplib::Headers{{"Content-Type", "applications/json"}};
@@ -88,6 +108,10 @@ static nlohmann::json getPayload(const std::string& provider, const std::string&
     {
         return nlohmann::json {{"model", model}, {"input", text}};
     }
+    else if (provider == "google-gemini")
+    {
+        return nlohmann::json {{"model", "models/" + model}, {"content", {{"parts", { {{"text", text}}}}}}};
+    }
 
     else if (provider == "ollama")
     {
@@ -98,7 +122,7 @@ static nlohmann::json getPayload(const std::string& provider, const std::string&
 }
 
 // similar to getEmbeddingDimensions, consider turning into a map
-static std::string getPath(const std::string& provider)
+static std::string getPath(const std::string& provider, const std::string& model)
 {
     if (provider == "open-ai")
     {
@@ -107,6 +131,15 @@ static std::string getPath(const std::string& provider)
     else if (provider == "voyage-ai")
     {
         return "/v1/embeddings";
+    }
+    else if (provider == "google-gemini")
+    {
+        auto env_key = std::getenv("GEMINI_API_KEY");
+        if (env_key == nullptr)
+        {
+            throw(RuntimeException("Could not get key from: GEMINI_API_KEY\n"));
+        }
+        return "/v1beta/models/"+ model +":embedContent?key=" + std::string(env_key);
     }
 
     else if (provider == "ollama")
@@ -129,14 +162,17 @@ static std::vector<float> getEmbedding(const httplib::Result& res, const std::st
     else if (provider == "voyage-ai")
     {
         return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
-
+    }
+    else if (provider == "google-gemini")
+    {
+        return nlohmann::json::parse(res->body)["embedding"]["values"].get<std::vector<float>>();
     }
 
     else if (provider == "ollama")
     {
         return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
-
     }
+
     throw(RuntimeException("Invalid Provider: " + provider));
     return std::vector<float>();
 
@@ -150,6 +186,7 @@ static uint64_t getEmbeddingDimensions(const std::string& provider, const std::s
             {"open-ai", {{"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536}, {"text-embedding-ada-002", 1536}}},
             {"voyage-ai", {{"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024}, {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024}, {"voyage-code-2", 1536}}},
             {"ollama", {{"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}}},
+            {"google-gemini", {{"gemini-embedding-exp-03-07", 3072}}},
     };
 
     auto providerItr = providerModelMap.find(provider);
@@ -175,7 +212,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     auto model = parameters[2]->getValue<ku_string_t>(0).getAsString();
     httplib::Client client(getClient(provider));
     httplib::Headers headers = getHeaders(provider);
-    std::string path = getPath(provider);
+    std::string path = getPath(provider, model);
 
 
     result.resetAuxiliaryBuffer();
@@ -195,8 +232,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
             throw ConnectionException(
                 "Request failed: Could not connect to server\n");
         } else if (res->status != 200) {
-            throw ConnectionException("Request failed with status " + std::to_string(res->status) +
-                                      "\n Body: " + res->body + "\n");
+            throw ConnectionException("Request failed with status " + std::to_string(res->status) + "\n Body: " + res->body + "\n");
         }
 
         auto embeddingVec = getEmbedding(res, provider);
@@ -234,3 +270,4 @@ function_set CreateEmbedding::getFunctionSet() {
 
 } // namespace llm_extension
 } // namespace kuzu
+#undef CPPHTTPLIB_OPENSSL_SUPPORT
