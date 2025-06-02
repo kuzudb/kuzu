@@ -1,11 +1,14 @@
 #include "storage/store/dictionary_column.h"
 
 #include <algorithm>
+#include <cstdint>
 
 #include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/string_column.h"
 #include <bit>
 
@@ -28,31 +31,37 @@ DictionaryColumn::DictionaryColumn(const std::string& name, FileHandle* dataFH, 
         shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
-void DictionaryColumn::scan(const Transaction* transaction, const ChunkState& state,
+void DictionaryColumn::scan(const Transaction* transaction, const SegmentState& state,
     DictionaryChunk& dictChunk) const {
     auto& dataMetadata =
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA).metadata;
     // Make sure that the chunk is large enough
     auto stringDataChunk = dictChunk.getStringDataChunk();
-    if (dataMetadata.numValues > stringDataChunk->getCapacity()) {
-        stringDataChunk->resize(std::bit_ceil(dataMetadata.numValues));
+    if (stringDataChunk->getNumValues() + dataMetadata.numValues > stringDataChunk->getCapacity()) {
+        stringDataChunk->resize(
+            std::bit_ceil(stringDataChunk->getNumValues() + dataMetadata.numValues));
     }
-    dataColumn->scan(transaction,
-        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA), stringDataChunk);
+    dataColumn->scanInternal(transaction,
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA), 0,
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA).metadata.numValues,
+        stringDataChunk, stringDataChunk->getNumValues());
 
     auto& offsetMetadata =
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET).metadata;
     auto offsetChunk = dictChunk.getOffsetChunk();
     // Make sure that the chunk is large enough
-    if (offsetMetadata.numValues > offsetChunk->getCapacity()) {
-        offsetChunk->resize(std::bit_ceil(offsetMetadata.numValues));
+    if (offsetChunk->getNumValues() + offsetMetadata.numValues > offsetChunk->getCapacity()) {
+        offsetChunk->resize(std::bit_ceil(offsetChunk->getNumValues() + offsetMetadata.numValues));
     }
-    offsetColumn->scan(transaction,
-        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET), offsetChunk);
+    offsetColumn->scanInternal(transaction,
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET), 0,
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET)
+            .metadata.numValues,
+        offsetChunk, offsetChunk->getNumValues());
 }
 
-void DictionaryColumn::scan(const Transaction* transaction, const ChunkState& offsetState,
-    const ChunkState& dataState, std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan,
+void DictionaryColumn::scan(const Transaction* transaction, const SegmentState& offsetState,
+    const SegmentState& dataState, std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan,
     ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) const {
     string_index_t firstOffsetToScan = 0, lastOffsetToScan = 0;
     auto comp = [](auto pair1, auto pair2) { return pair1.first < pair2.first; };
@@ -98,7 +107,7 @@ void DictionaryColumn::scan(const Transaction* transaction, const ChunkState& of
     }
 }
 
-string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, ChunkState& state,
+string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, SegmentState& state,
     std::string_view val) const {
     const auto startOffset = dataColumn->appendValues(*dictChunk.getStringDataChunk(),
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
@@ -108,7 +117,7 @@ string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, ChunkS
         reinterpret_cast<const uint8_t*>(&startOffset), nullptr /*nullChunkData*/, 1 /*numValues*/);
 }
 
-void DictionaryColumn::scanOffsets(const Transaction* transaction, const ChunkState& state,
+void DictionaryColumn::scanOffsets(const Transaction* transaction, const SegmentState& state,
     DictionaryChunk::string_offset_t* offsets, uint64_t index, uint64_t numValues,
     uint64_t dataSize) const {
     // We either need to read the next value, or store the maximum string offset at the end.
@@ -122,7 +131,7 @@ void DictionaryColumn::scanOffsets(const Transaction* transaction, const ChunkSt
 }
 
 void DictionaryColumn::scanValueToVector(const Transaction* transaction,
-    const ChunkState& dataState, uint64_t startOffset, uint64_t endOffset,
+    const SegmentState& dataState, uint64_t startOffset, uint64_t endOffset,
     ValueVector* resultVector, uint64_t offsetInVector) const {
     KU_ASSERT(endOffset >= startOffset);
     // Add string to vector first and read directly into the vector
@@ -135,7 +144,7 @@ void DictionaryColumn::scanValueToVector(const Transaction* transaction,
     }
 }
 
-bool DictionaryColumn::canCommitInPlace(const ChunkState& state, uint64_t numNewStrings,
+bool DictionaryColumn::canCommitInPlace(const SegmentState& state, uint64_t numNewStrings,
     uint64_t totalStringLengthToAdd) const {
     if (!canDataCommitInPlace(
             StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
@@ -151,7 +160,7 @@ bool DictionaryColumn::canCommitInPlace(const ChunkState& state, uint64_t numNew
     return true;
 }
 
-bool DictionaryColumn::canDataCommitInPlace(const ChunkState& dataState,
+bool DictionaryColumn::canDataCommitInPlace(const SegmentState& dataState,
     uint64_t totalStringLengthToAdd) const {
     // Make sure there is sufficient space in the data chunk (not currently compressed)
     auto totalStringDataAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
@@ -162,8 +171,8 @@ bool DictionaryColumn::canDataCommitInPlace(const ChunkState& dataState,
     return true;
 }
 
-bool DictionaryColumn::canOffsetCommitInPlace(const ChunkState& offsetState,
-    const ChunkState& dataState, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) const {
+bool DictionaryColumn::canOffsetCommitInPlace(const SegmentState& offsetState,
+    const SegmentState& dataState, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) const {
     auto totalStringOffsetsAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
     auto offsetCapacity =
         offsetState.metadata.compMeta.numValues(KUZU_PAGE_SIZE, offsetColumn->getDataType()) *

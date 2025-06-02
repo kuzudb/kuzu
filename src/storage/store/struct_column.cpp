@@ -1,5 +1,6 @@
 #include "storage/store/struct_column.h"
 
+#include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
@@ -40,59 +41,51 @@ std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkD
     return flushedChunk;
 }
 
-void StructColumn::scan(const Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
-    KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
-    auto& structColumnChunk = columnChunk->cast<StructChunkData>();
+void StructColumn::scanInternal(const transaction::Transaction* transaction,
+    const SegmentState& state, common::offset_t startOffsetInSegment,
+    common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk,
+    common::offset_t offsetInResult) const {
+    KU_ASSERT(resultChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
+    Column::scanInternal(transaction, state, startOffsetInSegment, numValuesToScan, resultChunk,
+        offsetInResult);
+    auto& structColumnChunk = resultChunk->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->scan(transaction, state.childrenStates[i], structColumnChunk.getChild(i),
-            startOffset, endOffset);
+        childColumns[i]->scanInternal(transaction, state.childrenStates[i], startOffsetInSegment,
+            numValuesToScan, structColumnChunk.getChild(i), offsetInResult);
     }
 }
 
-void StructColumn::scan(const Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) const {
-    nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
-        resultVector, offsetInVector);
-    for (auto i = 0u; i < childColumns.size(); i++) {
-        const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scan(transaction, state.childrenStates[i], startOffsetInGroup,
-            endOffsetInGroup, fieldVector, offsetInVector);
-    }
-}
-
-void StructColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
+void StructColumn::scanInternal(const Transaction* transaction, const SegmentState& state,
+    offset_t startOffsetInSegment, row_idx_t numValuesToScan, ValueVector* resultVector,
+    offset_t offsetInResult) const {
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scan(transaction, state.childrenStates[i], startOffsetInChunk,
-            numValuesToScan, fieldVector);
+        childColumns[i]->scanInternal(transaction, state.childrenStates[i], startOffsetInSegment,
+            numValuesToScan, fieldVector, offsetInResult);
     }
 }
 
-void StructColumn::lookupInternal(const Transaction* transaction, const ChunkState& state,
-    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
+void StructColumn::lookupInternal(const Transaction* transaction, const SegmentState& state,
+    offset_t offsetInSegment, ValueVector* resultVector, uint32_t posInVector) const {
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->lookupValue(transaction, state.childrenStates[i], nodeOffset, fieldVector,
-            posInVector);
+        childColumns[i]->lookupInternal(transaction, state.childrenStates[i], offsetInSegment,
+            fieldVector, posInVector);
     }
 }
 
-void StructColumn::write(ColumnChunkData& persistentChunk, ChunkState& state,
-    offset_t offsetInChunk, const ColumnChunkData& data, offset_t dataOffset,
+void StructColumn::writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+    offset_t offsetInSegment, const ColumnChunkData& data, offset_t dataOffset,
     length_t numValues) const {
     KU_ASSERT(data.getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    nullColumn->write(*persistentChunk.getNullData(), *state.nullState, offsetInChunk,
+    nullColumn->writeInternal(*persistentChunk.getNullData(), *state.nullState, offsetInSegment,
         *data.getNullData(), dataOffset, numValues);
     auto& structData = data.cast<StructChunkData>();
     auto& persistentStructChunk = persistentChunk.cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto& childData = structData.getChild(i);
-        childColumns[i]->write(*persistentStructChunk.getChild(i), state.childrenStates[i],
-            offsetInChunk, childData, dataOffset, numValues);
+        childColumns[i]->writeInternal(*persistentStructChunk.getChild(i), state.childrenStates[i],
+            offsetInSegment, childData, dataOffset, numValues);
     }
 }
 

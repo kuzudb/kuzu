@@ -34,7 +34,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void ChunkState::reclaimAllocatedPages(FileHandle& dataFH) const {
+void SegmentState::reclaimAllocatedPages(FileHandle& dataFH) const {
     const auto& entry = metadata.pageRange;
     if (entry.startPageIdx != INVALID_PAGE_IDX) {
         dataFH.getPageManager()->freePageRange(entry);
@@ -44,6 +44,12 @@ void ChunkState::reclaimAllocatedPages(FileHandle& dataFH) const {
     }
     for (const auto& child : childrenStates) {
         child.reclaimAllocatedPages(dataFH);
+    }
+}
+
+void ChunkState::reclaimAllocatedPages(FileHandle& dataFH) const {
+    for (auto& state : segmentStates) {
+        state.reclaimAllocatedPages(dataFH);
     }
 }
 
@@ -347,7 +353,7 @@ uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
     }
 }
 
-void ColumnChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void ColumnChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     if (nullData) {
         KU_ASSERT(state.nullState);
         nullData->initializeScanState(*state.nullState, column->getNullColumn());

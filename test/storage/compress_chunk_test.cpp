@@ -21,7 +21,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace testing {
 
-using check_func_t = std::function<void(ColumnReadWriter*, transaction::Transaction*, ChunkState&,
+using check_func_t = std::function<void(ColumnReadWriter*, transaction::Transaction*, SegmentState&,
     const LogicalType&)>;
 
 class CompressChunkTest : public DBTest {
@@ -36,8 +36,8 @@ public:
     }
 
     template<std::floating_point T>
-    void commitUpdate(transaction::Transaction* transaction, ChunkState& state, FileHandle* dataFH,
-        MemoryManager* memoryManager, ShadowFile* shadowFile);
+    void commitUpdate(transaction::Transaction* transaction, SegmentState& state,
+        FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile);
 
     template<std::floating_point T>
     void testCompressChunk(const std::vector<T>& bufferToCompress, check_func_t checkFunc);
@@ -116,7 +116,7 @@ ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
 }
 
 template<std::floating_point T>
-void CompressChunkTest::commitUpdate(transaction::Transaction* transaction, ChunkState& state,
+void CompressChunkTest::commitUpdate(transaction::Transaction* transaction, SegmentState& state,
     FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile) {
     if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
         state.getExceptionChunk<T>()->finalizeAndFlushToDisk(state);
@@ -150,7 +150,7 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
     auto* clientContext = getClientContext(*conn);
     clientContext->getTransactionContext()->beginWriteTransaction();
 
-    ChunkState state;
+    SegmentState state;
     state.metadata = chunkMetadata;
     state.numValuesPerPage = state.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     if (chunkMetadata.compMeta.compression == CompressionType::ALP) {
@@ -166,7 +166,7 @@ void CompressChunkTest::testUpdateChunk(std::vector<T>& bufferToCompress, check_
     if (!inMemMode) {
         testCompressChunk(bufferToCompress,
             [&bufferToCompress, &updateFunc, this](ColumnReadWriter* reader,
-                transaction::Transaction* transaction, ChunkState& state,
+                transaction::Transaction* transaction, SegmentState& state,
                 const LogicalType& dataType) {
                 auto* mm = getMemoryManager(*database);
                 auto* storageManager = getStorageManager(*database);
@@ -188,7 +188,7 @@ template<std::floating_point T>
 void CompressChunkTest::testCheckWholeOutput(const std::vector<T>& bufferToCompress) {
     testCompressChunk(bufferToCompress,
         [&bufferToCompress](ColumnReadWriter* reader, transaction::Transaction* transaction,
-            ChunkState& state, const LogicalType& dataType) {
+            SegmentState& state, const LogicalType& dataType) {
             std::vector<T> out(bufferToCompress.size());
             reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
                 out.size(), ReadCompressedValuesFromPage(dataType));
@@ -205,7 +205,7 @@ TEST_F(CompressChunkTest, TestDoubleSimpleSingleRead) {
     }
 
     auto checkFunc = [&bufferToCompress](ColumnReadWriter* reader,
-                         transaction::Transaction* transaction, ChunkState& state,
+                         transaction::Transaction* transaction, SegmentState& state,
                          const LogicalType& dataType) {
         std::vector<double> val(2, 1.0);
         reader->readCompressedValueToPage(transaction, state, 1, (uint8_t*)val.data(), 0,
@@ -249,7 +249,7 @@ TEST_F(CompressChunkTest, TestFloatFilter) {
     }
 
     testCompressChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction* transaction,
-                               ChunkState& state, const LogicalType& dataType) {
+                               SegmentState& state, const LogicalType& dataType) {
         common::ValueVector out{LogicalType::FLOAT()};
 
         static constexpr size_t startOffset = 2 * 1024 + 7;
@@ -283,7 +283,7 @@ TEST_F(CompressChunkTest, TestFloatFilterStateful) {
     src[startOffset + 10] = 1234.5678 * 2345.6789 / 3456.7891;
 
     testCompressChunk(src, [](ColumnReadWriter* reader, transaction::Transaction* transaction,
-                               ChunkState& state, const LogicalType& dataType) {
+                               SegmentState& state, const LogicalType& dataType) {
         common::ValueVector out{LogicalType::FLOAT()};
 
         // the filter will pass:
@@ -359,7 +359,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsets) {
     }
 
     testCompressChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction* transaction,
-                               ChunkState& state, const LogicalType& dataType) {
+                               SegmentState& state, const LogicalType& dataType) {
         std::vector<double> out(src.size());
 
         static constexpr size_t offsetInResult = 150;
@@ -384,7 +384,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialMultiPage) {
     }
 
     testCompressChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction* transaction,
-                               ChunkState& state, const LogicalType& dataType) {
+                               SegmentState& state, const LogicalType& dataType) {
         std::vector<double> out(src.size());
 
         static constexpr size_t offsetInSrc = 1485;
@@ -414,7 +414,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
     }
 
     testCompressChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction* transaction,
-                               ChunkState& state, const LogicalType& dataType) {
+                               SegmentState& state, const LogicalType& dataType) {
         common::ValueVector out{LogicalType::DOUBLE()};
 
         const size_t offsetInSrc = src.size() - numValuesToRead;
@@ -443,7 +443,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
     }
 
     testUpdateChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction*,
-                             ChunkState& state, const LogicalType& dataType) {
+                             SegmentState& state, const LogicalType& dataType) {
         static constexpr size_t cpyOffset = 0;
         static constexpr size_t numValuesToSet = 10;
         for (size_t i = 0; i < numValuesToSet; ++i) {
@@ -480,7 +480,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
     }
 
     testUpdateChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction*,
-                             ChunkState& state, const LogicalType& dataType) {
+                             SegmentState& state, const LogicalType& dataType) {
         static constexpr size_t numValuesToSet = 5;
         const size_t cpyOffset = 0;
         src[cpyOffset] = 10101010100101;
@@ -513,7 +513,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
     }
 
     testUpdateChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction*,
-                             ChunkState& state, const LogicalType& dataType) {
+                             SegmentState& state, const LogicalType& dataType) {
         const size_t cpyOffset = 1;
         src[cpyOffset] = 10101010100101;
         for (size_t i = 11; i < src.size(); i += 10) {
@@ -537,7 +537,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
     }
 
     testUpdateChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction*,
-                             ChunkState& state, const LogicalType& dataType) {
+                             SegmentState& state, const LogicalType& dataType) {
         static constexpr size_t numValuesToSet = 1000;
         const size_t cpyOffset = src.size() - numValuesToSet;
         for (size_t i = 0; i < numValuesToSet; ++i) {
@@ -562,7 +562,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
     }
 
     testUpdateChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction*,
-                             ChunkState& state, const LogicalType& dataType) {
+                             SegmentState& state, const LogicalType& dataType) {
         static constexpr size_t numValuesToSet = 1000;
         const size_t cpyOffset = 2100;
         src[cpyOffset] = 10101010100101;
@@ -591,7 +591,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask
         }
 
         testCompressChunk(src, [&src, this](ColumnReadWriter* reader,
-                                   transaction::Transaction* transaction, ChunkState& state,
+                                   transaction::Transaction* transaction, SegmentState& state,
                                    const LogicalType& dataType) {
             auto* mm = getMemoryManager(*database);
             auto* storageManager = getStorageManager(*database);
@@ -628,7 +628,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask
 
 TEST_F(CompressChunkTest, TestInPlaceUpdateConstant) {
     std::vector<double> src(256, 0.54);
-    testCompressChunk(src, [](ColumnReadWriter*, transaction::Transaction*, ChunkState& state,
+    testCompressChunk(src, [](ColumnReadWriter*, transaction::Transaction*, SegmentState& state,
                                const LogicalType& dataType) {
         double newVal = -1;
         InPlaceUpdateLocalState localUpdateState{};
@@ -640,7 +640,7 @@ TEST_F(CompressChunkTest, TestInPlaceUpdateConstant) {
 TEST_F(CompressChunkTest, TestInPlaceUpdateConstantExcludingExceptions) {
     std::vector<float> src(256, 1);
     src[1] = 1234567.7;
-    testCompressChunk(src, [](ColumnReadWriter*, transaction::Transaction*, ChunkState& state,
+    testCompressChunk(src, [](ColumnReadWriter*, transaction::Transaction*, SegmentState& state,
                                const LogicalType& dataType) {
         float newVal = 1.2;
         InPlaceUpdateLocalState localUpdateState{};
@@ -657,7 +657,7 @@ TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) 
     }
 
     testUpdateChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction*,
-                             ChunkState& state, const LogicalType& dataType) {
+                             SegmentState& state, const LogicalType& dataType) {
         static constexpr size_t cpyOffset = 3;
         const size_t numValuesToSet = src.size() - cpyOffset;
         for (size_t i = cpyOffset; i < cpyOffset + numValuesToSet; ++i) {

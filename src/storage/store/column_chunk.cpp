@@ -2,11 +2,11 @@
 
 #include <algorithm>
 #include <memory>
-#include <stdexcept>
 
 #include "common/serializer/deserializer.h"
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
+#include "storage/enums/residency_state.h"
 #include "storage/file_handle.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column.h"
@@ -43,7 +43,10 @@ ColumnChunk::ColumnChunk(bool enableCompression,
     : enableCompression{enableCompression}, data{std::move(segments)} {}
 
 void ColumnChunk::initializeScanState(ChunkState& state, const Column* column) const {
-    data.front()->initializeScanState(state, column);
+    state.segmentStates.resize(data.size());
+    for (size_t i = 0; i < data.size(); i++) {
+        data[i]->initializeScanState(state.segmentStates[i], column);
+    }
 }
 
 void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, ValueVector& output,
@@ -57,7 +60,8 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
             });
     } break;
     case ResidencyState::ON_DISK: {
-        state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &output);
+        state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, offsetInChunk + length,
+            &output, 0);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -380,13 +384,14 @@ void ColumnChunk::checkpoint(Column& column,
     for (size_t i = 0; i < data.size(); i++) {
         std::vector<SegmentCheckpointState> segmentCheckpointStates;
         auto& segment = data[i];
+        KU_ASSERT(segment->getResidencyState() == ResidencyState::ON_DISK);
         for (auto& state : chunkCheckpointStates) {
             if (state.startRow < segmentStart + segment->getNumValues() &&
                 state.startRow + state.numRows > segmentStart) {
                 auto startOffsetInSegment = state.startRow - segmentStart;
                 uint64_t startRowInChunk = 0;
-                if (state.startRow < segmentStart) {
-                    startRowInChunk = segmentStart - state.startRow;
+                if (state.startRow > segmentStart) {
+                    startRowInChunk = state.startRow - segmentStart;
                 }
                 segmentCheckpointStates.push_back(
                     {*state.chunkData, startRowInChunk, startOffsetInSegment,

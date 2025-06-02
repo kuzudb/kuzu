@@ -2,13 +2,16 @@
 
 #include <algorithm>
 
+#include "common/cast.h"
 #include "common/null_mask.h"
+#include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_chunk_data.h"
 #include "transaction/transaction.h"
@@ -34,12 +37,12 @@ StringColumn::StringColumn(std::string name, common::LogicalType dataType, FileH
         shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
-ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {
+SegmentState& StringColumn::getChildState(SegmentState& state, ChildStateIndex child) {
     const auto childIdx = static_cast<idx_t>(child);
     return state.getChildState(childIdx);
 }
 
-const ChunkState& StringColumn::getChildState(const ChunkState& state, ChildStateIndex child) {
+const SegmentState& StringColumn::getChildState(const SegmentState& state, ChildStateIndex child) {
     const auto childIdx = static_cast<idx_t>(child);
     return state.getChildState(childIdx);
 }
@@ -61,29 +64,25 @@ std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkD
 }
 
 void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) const {
-    nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
-        resultVector, offsetInVector);
-    scanUnfiltered(transaction, state, startOffsetInGroup, endOffsetInGroup - startOffsetInGroup,
-        resultVector, offsetInVector);
-}
-
-void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
-    KU_ASSERT(state.nullState);
-    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
+    ColumnChunkData* columnChunk, offset_t startOffset, offset_t numValues) const {
+    Column::scan(transaction, state, columnChunk, startOffset, numValues);
     if (columnChunk->getNumValues() == 0) {
         return;
     }
 
-    auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
-    indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX),
-        stringColumnChunk.getIndexColumnChunk(), startOffset, endOffset);
-    dictionary.scan(transaction, state, stringColumnChunk.getDictionaryChunk());
+    offset_t offsetInResult = 0;
+    state.rangeSegments(startOffset, numValues,
+        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment) {
+            auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
+            indexColumn->scanInternal(transaction,
+                getChildState(segmentState, ChildStateIndex::INDEX), offsetInSegment,
+                lengthInSegment, stringColumnChunk.getIndexColumnChunk(), offsetInResult);
+            dictionary.scan(transaction, segmentState, stringColumnChunk.getDictionaryChunk());
+            offsetInResult += lengthInSegment;
+        });
 }
 
-void StringColumn::lookupInternal(const Transaction* transaction, const ChunkState& state,
+void StringColumn::lookupInternal(const Transaction* transaction, const SegmentState& state,
     offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     string_index_t index = 0;
@@ -96,8 +95,9 @@ void StringColumn::lookupInternal(const Transaction* transaction, const ChunkSta
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
-    const ColumnChunkData& data, offset_t srcOffset, length_t numValues) const {
+void StringColumn::writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+    offset_t dstOffsetInSegment, const ColumnChunkData& data, offset_t srcOffset,
+    length_t numValues) const {
     auto& stringPersistentChunk = persistentChunk.cast<StringChunkData>();
     numValues = std::min(numValues, data.getNumValues() - srcOffset);
     auto& strChunkToWriteFrom = data.cast<StringChunkData>();
@@ -116,33 +116,69 @@ void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, of
     nullMask.copyFromNullBits(data.getNullData()->getNullMask().getData(), srcOffset,
         0 /*dstOffset*/, numValues);
     // Write index to main column
-    indexColumn->writeValues(getChildState(state, ChildStateIndex::INDEX), dstOffset,
-        reinterpret_cast<const uint8_t*>(&indices[0]), &nullMask, 0 /*srcOffset*/, numValues);
+    indexColumn->writeValuesInternal(getChildState(state, ChildStateIndex::INDEX),
+        dstOffsetInSegment, reinterpret_cast<const uint8_t*>(&indices[0]), &nullMask,
+        0 /*srcOffset*/, numValues);
     auto [min, max] = std::minmax_element(indices.begin(), indices.end());
     auto minWritten = StorageValue(*min);
     auto maxWritten = StorageValue(*max);
-    updateStatistics(persistentChunk.getMetadata(), dstOffset + numValues - 1, minWritten,
+    updateStatistics(persistentChunk.getMetadata(), dstOffsetInSegment + numValues - 1, minWritten,
         maxWritten);
     indexColumn->updateStatistics(stringPersistentChunk.getIndexColumnChunk()->getMetadata(),
-        dstOffset + numValues - 1, minWritten, maxWritten);
+        dstOffsetInSegment + numValues - 1, minWritten, maxWritten);
 }
 
 void StringColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) const {
+    auto& persistentData = checkpointState.persistentData;
     Column::checkpointSegment(std::move(checkpointState));
-    checkpointState.persistentData.syncNumValues();
+    persistentData.syncNumValues();
 }
 
-void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
+void StringColumn::scanInternal(const Transaction* transaction, const SegmentState& state,
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector,
+    offset_t offsetInResult) const {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     if (resultVector->state->getSelVector().isUnfiltered()) {
-        scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
+        scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector,
+            offsetInResult);
     } else {
-        scanFiltered(transaction, state, startOffsetInChunk, resultVector);
+        scanFiltered(transaction, state, startOffsetInChunk, resultVector, offsetInResult);
     }
 }
 
-void StringColumn::scanUnfiltered(const Transaction* transaction, const ChunkState& state,
+void StringColumn::scanInternal(const transaction::Transaction* transaction,
+    const SegmentState& state, common::offset_t startOffsetInSegment,
+    common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk,
+    common::offset_t offsetInResult) const {
+    KU_ASSERT(resultChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING);
+
+    auto* stringResultChunk = ku_dynamic_cast<StringChunkData*>(resultChunk);
+
+    indexColumn->scanInternal(transaction, getChildState(state, ChildStateIndex::INDEX),
+        startOffsetInSegment, numValuesToScan, stringResultChunk->getIndexColumnChunk(),
+        offsetInResult);
+    stringResultChunk->getIndexColumnChunk()->setNumValues(
+        stringResultChunk->getIndexColumnChunk()->getNumValues() + numValuesToScan);
+
+    std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
+    for (auto i = 0u; i < numValuesToScan; i++) {
+        if (!resultChunk->isNull(offsetInResult + i)) {
+            offsetsToScan.emplace_back(
+                stringResultChunk->getIndexColumnChunk()->getValue<string_index_t>(i),
+                offsetInResult + i);
+        }
+    }
+
+    if (offsetsToScan.size() == 0) {
+        // All scanned values are null
+        return;
+    }
+    // FIXME(bmwinger): this is temporary and will not perform well (scans everything to avoid
+    // implementing partial scans to ColumnChunkData)
+    dictionary.scan(transaction, state, stringResultChunk->getDictionaryChunk());
+}
+
+void StringColumn::scanUnfiltered(const Transaction* transaction, const SegmentState& state,
     offset_t startOffsetInChunk, offset_t numValuesToRead, ValueVector* resultVector,
     sel_t startPosInVector) const {
     // TODO: Replace indices with ValueVector to avoid maintaining `scan` interface from
@@ -167,10 +203,10 @@ void StringColumn::scanUnfiltered(const Transaction* transaction, const ChunkSta
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, ValueVector* resultVector) const {
+void StringColumn::scanFiltered(const Transaction* transaction, const SegmentState& state,
+    offset_t startOffsetInChunk, ValueVector* resultVector, offset_t offsetInResult) const {
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
-    for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
+    for (auto i = offsetInResult; i < resultVector->state->getSelVector().getSelSize(); i++) {
         const auto pos = resultVector->state->getSelVector()[i];
         if (!resultVector->isNull(pos)) {
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
@@ -191,7 +227,7 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& stat
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-bool StringColumn::canCheckpointInPlace(const ChunkState& state,
+bool StringColumn::canCheckpointInPlace(const SegmentState& state,
     const ColumnCheckpointState& checkpointState) const {
     row_idx_t strLenToAdd = 0u;
     idx_t numStrings = 0u;
@@ -211,9 +247,9 @@ bool StringColumn::canCheckpointInPlace(const ChunkState& state,
     return canIndexCommitInPlace(state, numStrings, checkpointState.endRowIdxToWrite);
 }
 
-bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numStrings,
+bool StringColumn::canIndexCommitInPlace(const SegmentState& state, uint64_t numStrings,
     offset_t maxOffset) const {
-    const ChunkState& indexState = getChildState(state, ChildStateIndex::INDEX);
+    const SegmentState& indexState = getChildState(state, ChildStateIndex::INDEX);
     if (indexColumn->isEndOffsetOutOfPagesCapacity(indexState.metadata, maxOffset)) {
         return false;
     }

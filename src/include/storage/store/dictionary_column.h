@@ -1,7 +1,10 @@
 #pragma once
 
+#include "common/types/types.h"
 #include "dictionary_chunk.h"
 #include "storage/store/column.h"
+#include "storage/store/column_chunk_data.h"
+#include "storage/store/string_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
@@ -11,35 +14,35 @@ public:
     DictionaryColumn(const std::string& name, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 
-    void scan(const transaction::Transaction* transaction, const ChunkState& state,
+    void scan(const transaction::Transaction* transaction, const SegmentState& state,
         DictionaryChunk& dictChunk) const;
     // Offsets to scan should be a sorted list of pairs mapping the index of the entry in the string
     // dictionary (as read from the index column) to the output index in the result vector to store
     // the string.
-    void scan(const transaction::Transaction* transaction, const ChunkState& offsetState,
-        const ChunkState& dataState,
+    void scan(const transaction::Transaction* transaction, const SegmentState& offsetState,
+        const SegmentState& dataState,
         std::vector<std::pair<DictionaryChunk::string_index_t, uint64_t>>& offsetsToScan,
         common::ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) const;
 
-    DictionaryChunk::string_index_t append(const DictionaryChunk& dictChunk, ChunkState& state,
+    DictionaryChunk::string_index_t append(const DictionaryChunk& dictChunk, SegmentState& state,
         std::string_view val) const;
 
-    bool canCommitInPlace(const ChunkState& state, uint64_t numNewStrings,
+    bool canCommitInPlace(const SegmentState& state, uint64_t numNewStrings,
         uint64_t totalStringLengthToAdd) const;
 
     Column* getDataColumn() const { return dataColumn.get(); }
     Column* getOffsetColumn() const { return offsetColumn.get(); }
 
 private:
-    void scanOffsets(const transaction::Transaction* transaction, const ChunkState& state,
+    void scanOffsets(const transaction::Transaction* transaction, const SegmentState& state,
         DictionaryChunk::string_offset_t* offsets, uint64_t index, uint64_t numValues,
         uint64_t dataSize) const;
-    void scanValueToVector(const transaction::Transaction* transaction, const ChunkState& dataState,
-        uint64_t startOffset, uint64_t endOffset, common::ValueVector* resultVector,
-        uint64_t offsetInVector) const;
+    void scanValueToVector(const transaction::Transaction* transaction,
+        const SegmentState& dataState, uint64_t startOffset, uint64_t endOffset,
+        common::ValueVector* resultVector, uint64_t offsetInVector) const;
 
-    bool canDataCommitInPlace(const ChunkState& dataState, uint64_t totalStringLengthToAdd) const;
-    bool canOffsetCommitInPlace(const ChunkState& offsetState, const ChunkState& dataState,
+    bool canDataCommitInPlace(const SegmentState& dataState, uint64_t totalStringLengthToAdd) const;
+    bool canOffsetCommitInPlace(const SegmentState& offsetState, const SegmentState& dataState,
         uint64_t numNewStrings, uint64_t totalStringLengthToAdd) const;
 
 private:

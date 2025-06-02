@@ -60,7 +60,7 @@ protected:
         common::sel_t posInOutputVector = 0) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
-    void initializeScanState(ChunkState& state, const Column* column) const override;
+    void initializeScanState(SegmentState& state, const Column* column) const override;
 
     void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;

@@ -223,7 +223,7 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});
 }
 
-void ListChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void ListChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     ColumnChunkData::initializeScanState(state, column);
 
     auto* listColumn = ku_dynamic_cast<const ListColumn*>(column);

@@ -13,7 +13,7 @@ class FileHandle;
 class ColumnReadWriter;
 class ShadowFile;
 struct ColumnChunkMetadata;
-struct ChunkState;
+struct SegmentState;
 
 template<typename OutputType>
 using read_value_from_page_func_t = std::function<void(uint8_t*, PageCursor&, OutputType, uint32_t,
@@ -48,31 +48,31 @@ public:
     virtual ~ColumnReadWriter() = default;
 
     virtual void readCompressedValueToPage(const transaction::Transaction* transaction,
-        const ChunkState& state, common::offset_t nodeOffset, uint8_t* result,
+        const SegmentState& state, common::offset_t nodeOffset, uint8_t* result,
         uint32_t offsetInResult, const read_value_from_page_func_t<uint8_t*>& readFunc) = 0;
 
     virtual void readCompressedValueToVector(const transaction::Transaction* transaction,
-        const ChunkState& state, common::offset_t nodeOffset, common::ValueVector* result,
+        const SegmentState& state, common::offset_t nodeOffset, common::ValueVector* result,
         uint32_t offsetInResult,
         const read_value_from_page_func_t<common::ValueVector*>& readFunc) = 0;
 
     virtual uint64_t readCompressedValuesToPage(const transaction::Transaction* transaction,
-        const ChunkState& state, uint8_t* result, uint32_t startOffsetInResult,
+        const SegmentState& state, uint8_t* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         const read_values_from_page_func_t<uint8_t*>& readFunc,
         const std::optional<filter_func_t>& filterFunc = {}) = 0;
 
     virtual uint64_t readCompressedValuesToVector(const transaction::Transaction* transaction,
-        const ChunkState& state, common::ValueVector* result, uint32_t startOffsetInResult,
+        const SegmentState& state, common::ValueVector* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         const read_values_from_page_func_t<common::ValueVector*>& readFunc,
         const std::optional<filter_func_t>& filterFunc = {}) = 0;
 
-    virtual void writeValueToPageFromVector(ChunkState& state, common::offset_t offsetInChunk,
+    virtual void writeValueToPageFromVector(SegmentState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom,
         const write_values_from_vector_func_t& writeFromVectorFunc) = 0;
 
-    virtual void writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
+    virtual void writeValuesToPageFromBuffer(SegmentState& state, common::offset_t dstOffset,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
         common::offset_t numValues, const write_values_func_t& writeFunc) = 0;
 
@@ -86,8 +86,10 @@ public:
         common::page_idx_t groupPageIdx, uint64_t numValuesPerPage) const;
 
 protected:
+    // TODO: Inputs should be the offset in the segment, not the node offset (which also means we
+    // can just return the cursor)
     std::pair<common::offset_t, PageCursor> getOffsetAndCursor(common::offset_t nodeOffset,
-        const ChunkState& state) const;
+        const SegmentState& state) const;
 
 private:
     DBFileID dbFileID;

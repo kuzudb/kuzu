@@ -34,35 +34,35 @@ class ColumnStats;
 class FileHandle;
 
 // TODO(bmwinger): Hide access to variables.
-struct ChunkState {
+struct SegmentState {
     const Column* column;
     ColumnChunkMetadata metadata;
     uint64_t numValuesPerPage = UINT64_MAX;
-    std::unique_ptr<ChunkState> nullState;
+    std::unique_ptr<SegmentState> nullState;
 
     // Used for struct/list/string columns.
-    std::vector<ChunkState> childrenStates;
+    std::vector<SegmentState> childrenStates;
 
     // Used for floating point columns
     std::variant<std::unique_ptr<InMemoryExceptionChunk<double>>,
         std::unique_ptr<InMemoryExceptionChunk<float>>>
         alpExceptionChunk;
 
-    explicit ChunkState(bool hasNull = true) : column{nullptr} {
+    explicit SegmentState(bool hasNull = true) : column{nullptr} {
         if (hasNull) {
-            nullState = std::make_unique<ChunkState>(false /*hasNull*/);
+            nullState = std::make_unique<SegmentState>(false /*hasNull*/);
         }
     }
-    ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
+    SegmentState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
         : column{nullptr}, metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
-        nullState = std::make_unique<ChunkState>(false /*hasNull*/);
+        nullState = std::make_unique<SegmentState>(false /*hasNull*/);
     }
 
-    ChunkState& getChildState(common::idx_t childIdx) {
+    SegmentState& getChildState(common::idx_t childIdx) {
         KU_ASSERT(childIdx < childrenStates.size());
         return childrenStates[childIdx];
     }
-    const ChunkState& getChildState(common::idx_t childIdx) const {
+    const SegmentState& getChildState(common::idx_t childIdx) const {
         KU_ASSERT(childIdx < childrenStates.size());
         return childrenStates[childIdx];
     }
@@ -82,6 +82,51 @@ struct ChunkState {
     }
 
     void reclaimAllocatedPages(FileHandle& dataFH) const;
+};
+
+struct ChunkState {
+    const Column* column;
+    std::vector<SegmentState> segmentStates;
+
+    void reclaimAllocatedPages(FileHandle& dataFH) const;
+
+    const SegmentState* findSegment(common::offset_t offsetInChunk,
+        common::offset_t& offsetInSegment) const {
+        offsetInSegment = offsetInChunk;
+        for (const auto& segmentState : segmentStates) {
+            if (offsetInSegment < segmentState.metadata.numValues) {
+                return &segmentState;
+            }
+            offsetInSegment -= segmentState.metadata.numValues;
+        }
+        return nullptr;
+    }
+
+    template<typename Func>
+    void rangeSegments(common::offset_t offsetInChunk, common::length_t length, Func func) {
+        // TODO(bmwinger): try binary search (might only make a difference for a very large number
+        // of segments)
+        auto segment = segmentStates.begin();
+        auto offsetInSegment = offsetInChunk;
+        while (segment->metadata.numValues < offsetInSegment) {
+            offsetInSegment -= segment->metadata.numValues;
+            segment++;
+        }
+        uint64_t lengthScanned = 0;
+        while (lengthScanned < length && segment != segmentStates.end()) {
+            auto lengthInSegment = std::min(length, segment->metadata.numValues);
+            func(*segment, offsetInSegment, lengthInSegment);
+            lengthScanned += lengthInSegment;
+            segment++;
+        }
+    }
+
+    // TODO(bmwinger): this function should be const and only isn't because of ALP exception chunk
+    // modifications
+    template<typename Func>
+    void rangeSegments(common::offset_t offsetInChunk, common::length_t length, Func func) const {
+        const_cast<ChunkState*>(this)->rangeSegments(offsetInChunk, length, func);
+    }
 };
 
 class Spiller;
@@ -173,7 +218,7 @@ public:
     }
     uint64_t getBufferSize() const;
 
-    virtual void initializeScanState(ChunkState& state, const Column* column) const;
+    virtual void initializeScanState(SegmentState& state, const Column* column) const;
     virtual void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const;
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,

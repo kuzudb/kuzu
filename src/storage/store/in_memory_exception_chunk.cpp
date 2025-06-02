@@ -1,6 +1,7 @@
 #include "storage/store/in_memory_exception_chunk.h"
 
 #include <algorithm>
+#include <cstdint>
 
 #include "common/utils.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -20,8 +21,9 @@ template<std::floating_point T>
 using ExceptionInBuffer = std::array<std::byte, EncodeException<T>::sizeInBytes()>;
 
 template<std::floating_point T>
-InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, const ChunkState& state,
-    FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile)
+InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction,
+    const SegmentState& state, FileHandle* dataFH, MemoryManager* memoryManager,
+    ShadowFile* shadowFile)
     : exceptionCount(state.metadata.compMeta.floatMetadata()->exceptionCount),
       finalizedExceptionCount(exceptionCount),
       exceptionCapacity(state.metadata.compMeta.floatMetadata()->exceptionCapacity),
@@ -37,27 +39,28 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, cons
         safeIntegerConversion<page_idx_t>(
             EncodeException<T>::numPagesFromExceptions(exceptionCapacity)),
         exceptionCapacity, compMeta);
-    chunkState = std::make_unique<ChunkState>(exceptionChunkMeta,
+    chunkState = std::make_unique<SegmentState>(exceptionChunkMeta,
         EncodeException<T>::exceptionBytesPerPage() / EncodeException<T>::sizeInBytes());
 
     chunkData = std::make_unique<ColumnChunkData>(*memoryManager, physicalType, false,
         exceptionChunkMeta, true);
     chunkData->setToInMemory();
-    column->scan(transaction, *chunkState, chunkData.get());
+    column->scanInternal(transaction, *chunkState, 0, chunkState->metadata.numValues,
+        chunkData.get(), 0);
 }
 
 template<std::floating_point T>
 InMemoryExceptionChunk<T>::~InMemoryExceptionChunk() = default;
 
 template<std::floating_point T>
-void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ChunkState& state) {
+void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(SegmentState& state) {
     finalize(state);
 
-    column->write(*chunkData, *chunkState, 0, *chunkData, 0, exceptionCapacity);
+    column->writeInternal(*chunkData, *chunkState, 0, *chunkData, 0, exceptionCapacity);
 }
 
 template<std::floating_point T>
-void InMemoryExceptionChunk<T>::finalize(ChunkState& state) {
+void InMemoryExceptionChunk<T>::finalize(SegmentState& state) {
     // removes holes + sorts exception chunk
     finalizedExceptionCount = 0;
     for (size_t i = 0; i < exceptionCount; ++i) {

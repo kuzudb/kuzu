@@ -43,7 +43,7 @@ public:
 
     virtual ~Column();
 
-    void populateExtraChunkState(ChunkState& state) const;
+    void populateExtraChunkState(SegmentState& state) const;
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         FileHandle& dataFH);
@@ -51,38 +51,42 @@ public:
         const ColumnChunkData& chunkData, FileHandle& dataFH);
     static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData, FileHandle& dataFH);
 
-    virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) const;
-    virtual void lookupValue(const transaction::Transaction* transaction, const ChunkState& state,
+    // Use lookupInternal to specialize
+    void lookupValue(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector) const;
 
-    // Scan from [startOffsetInGroup, endOffsetInGroup).
+    // Scan from [startOffsetInGroup, endOffsetInGroup) (use scanInternal to specialize.
     virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) const;
-    // Scan from [startOffsetInGroup, endOffsetInGroup).
+    // Scan entire chunk
     virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
-        ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
-        common::offset_t endOffset = common::INVALID_OFFSET) const;
+        ColumnChunkData* columnChunk, common::offset_t offsetInChunk = 0,
+        common::offset_t numValues = UINT64_MAX) const;
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
 
     Column* getNullColumn() const;
 
-    std::string getName() const { return name; }
+    std::string_view getName() const { return name; }
 
     virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
+    virtual void scan(const transaction::Transaction* transaction, const SegmentState& state,
+        common::offset_t startOffsetInSegment, common::offset_t endOffsetInSegment,
+        uint8_t* result);
 
     // Batch write to a set of sequential pages.
-    virtual void write(ColumnChunkData& persistentChunk, ChunkState& state,
-        common::offset_t dstOffset, const ColumnChunkData& data, common::offset_t srcOffset,
-        common::length_t numValues) const;
+    void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
+        const ColumnChunkData& data, common::offset_t srcOffset, common::length_t numValues) const;
+
+    virtual void writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+        common::offset_t dstOffsetInSegment, const ColumnChunkData& data,
+        common::offset_t srcOffset, common::length_t numValues) const;
 
     // Append values to the end of the node group, resizing it if necessary
-    common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
+    common::offset_t appendValues(ColumnChunkData& persistentChunk, SegmentState& state,
         const uint8_t* data, const common::NullMask* nullChunkData,
         common::offset_t numValues) const;
 
@@ -97,17 +101,29 @@ public:
 
     virtual void checkpointSegment(ColumnCheckpointState&& checkpointState) const;
 
-protected:
-    virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) const;
+    // TODO: maybe change to scanSegment, and can probably be protected again once
+    // InMemExceptionChunk is removed
+    virtual void scanInternal(const transaction::Transaction* transaction,
+        const SegmentState& state, common::offset_t startOffsetInSegment,
+        common::row_idx_t numValuesToScan, common::ValueVector* resultVector,
+        common::offset_t startOffsetInVector) const;
 
+    virtual void scanInternal(const transaction::Transaction* transaction,
+        const SegmentState& state, common::offset_t startOffsetInSegment,
+        common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk,
+        common::offset_t offsetInResult) const;
+
+protected:
     virtual void lookupInternal(const transaction::Transaction* transaction,
-        const ChunkState& state, common::offset_t nodeOffset, common::ValueVector* resultVector,
-        uint32_t posInVector) const;
+        const SegmentState& state, common::offset_t offsetInSegment,
+        common::ValueVector* resultVector, uint32_t posInVector) const;
 
     void writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
         const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
+        common::offset_t numValues = 1) const;
+
+    void writeValuesInternal(SegmentState& state, common::offset_t dstOffsetInSegment,
+        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
         common::offset_t numValues = 1) const;
 
     // Produces a page cursor for the offset relative to the given node group
@@ -123,14 +139,14 @@ protected:
     bool isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
         common::offset_t maxOffset) const;
 
-    virtual bool canCheckpointInPlace(const ChunkState& state,
+    virtual bool canCheckpointInPlace(const SegmentState& state,
         const ColumnCheckpointState& checkpointState) const;
 
-    void checkpointColumnChunkInPlace(ChunkState& state,
+    void checkpointColumnChunkInPlace(SegmentState& state,
         const ColumnCheckpointState& checkpointState) const;
     void checkpointNullData(const ColumnCheckpointState& checkpointState) const;
 
-    void checkpointColumnChunkOutOfPlace(const ChunkState& state,
+    void checkpointColumnChunkOutOfPlace(const SegmentState& state,
         const ColumnCheckpointState& checkpointState) const;
 
     // check if val is in range [start, end)
@@ -159,13 +175,6 @@ public:
     InternalIDColumn(std::string name, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 
-    void scan(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) const override {
-        Column::scan(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
-        populateCommonTableID(resultVector);
-    }
-
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) const override {
@@ -174,10 +183,10 @@ public:
         populateCommonTableID(resultVector);
     }
 
-    void lookupInternal(const transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t nodeOffset, common::ValueVector* resultVector,
+    void lookupInternal(const transaction::Transaction* transaction, const SegmentState& state,
+        common::offset_t offsetInSegment, common::ValueVector* resultVector,
         uint32_t posInVector) const override {
-        Column::lookupInternal(transaction, state, nodeOffset, resultVector, posInVector);
+        Column::lookupInternal(transaction, state, offsetInSegment, resultVector, posInVector);
         populateCommonTableID(resultVector);
     }
 

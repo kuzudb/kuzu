@@ -22,11 +22,11 @@ struct ChunkState;
 template<std::floating_point T>
 class KUZU_API InMemoryExceptionChunk {
 public:
-    InMemoryExceptionChunk(transaction::Transaction* transaction, const ChunkState& state,
+    InMemoryExceptionChunk(transaction::Transaction* transaction, const SegmentState& state,
         FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile);
     ~InMemoryExceptionChunk();
 
-    void finalizeAndFlushToDisk(ChunkState& state);
+    void finalizeAndFlushToDisk(SegmentState& state);
 
     void addException(EncodeException<T> exception);
 
@@ -44,7 +44,7 @@ private:
     static PageCursor getExceptionPageCursor(const ColumnChunkMetadata& metadata,
         PageCursor pageBaseCursor, size_t exceptionCapacity);
 
-    void finalize(ChunkState& state);
+    void finalize(SegmentState& state);
 
     static constexpr common::PhysicalTypeID physicalType =
         std::is_same_v<T, float> ? common::PhysicalTypeID::ALP_EXCEPTION_FLOAT :
@@ -58,7 +58,7 @@ private:
 
     std::unique_ptr<Column> column;
     std::unique_ptr<ColumnChunkData> chunkData;
-    std::unique_ptr<ChunkState> chunkState;
+    std::unique_ptr<SegmentState> chunkState;
 };
 
 } // namespace storage
