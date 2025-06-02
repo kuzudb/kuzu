@@ -132,7 +132,7 @@ void StringChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     output.setValue<std::string_view>(posInOutputVector, str);
 }
 
-void StringChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void StringChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     ColumnChunkData::initializeScanState(state, column);
 
     auto* stringColumn = ku_dynamic_cast<const StringColumn*>(column);

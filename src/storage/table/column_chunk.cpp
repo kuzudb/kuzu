@@ -2,12 +2,12 @@
 
 #include <algorithm>
 #include <memory>
-#include <stdexcept>
 
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
+#include "storage/enums/residency_state.h"
 #include "storage/file_handle.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column.h"
@@ -44,7 +44,11 @@ ColumnChunk::ColumnChunk(bool enableCompression,
     : enableCompression{enableCompression}, data{std::move(segments)} {}
 
 void ColumnChunk::initializeScanState(ChunkState& state, const Column* column) const {
-    data.front()->initializeScanState(state, column);
+    state.column = column;
+    state.segmentStates.resize(data.size());
+    for (size_t i = 0; i < data.size(); i++) {
+        data[i]->initializeScanState(state.segmentStates[i], column);
+    }
 }
 
 void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, ValueVector& output,
@@ -53,12 +57,12 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
         rangeSegments(offsetInChunk, length,
-            [&](auto& segment, auto offsetInSegment, auto lengthInSegment) {
-                segment.scan(output, offsetInSegment, lengthInSegment);
+            [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+                segment.scan(output, offsetInSegment, lengthInSegment, dstOffset);
             });
     } break;
     case ResidencyState::ON_DISK: {
-        state.column->scan(state, offsetInChunk, length, &output);
+        state.column->scan(state, offsetInChunk, length, &output, 0);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -107,18 +111,17 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
     switch (const auto residencyState = getResidencyState()) {
     case ResidencyState::ON_DISK: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
-            chunkState.column->scan(chunkState, &output, startRow, startRow + numRows);
-            scanCommittedUpdates(transaction, output, numValuesBeforeScan, startRow,
-                numRows);
+            chunkState.column->scan(chunkState, &output, startRow, numRows);
+            scanCommittedUpdates(transaction, output, numValuesBeforeScan, startRow, numRows);
         }
     } break;
     case ResidencyState::IN_MEMORY: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
             rangeSegments(startRow, numRows,
-                [&](auto& segment, auto offsetInSegment, auto lengthInSegment) {
+                [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
                     output.append(&segment, startRow, lengthInSegment);
-                    scanCommittedUpdates(transaction, output, numValuesBeforeScan, offsetInSegment,
-                        lengthInSegment);
+                    scanCommittedUpdates(transaction, output, numValuesBeforeScan + dstOffset,
+                        offsetInSegment, lengthInSegment);
                 });
         }
     } break;
@@ -181,7 +184,7 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
     offset_t rowInChunk, ValueVector& output, sel_t posInOutputVector) const {
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
-        rangeSegments(rowInChunk, 1, [&](auto& segment, auto offsetInSegment, auto) {
+        rangeSegments(rowInChunk, 1, [&](auto& segment, auto offsetInSegment, auto, auto) {
             segment.lookup(offsetInSegment, output, posInOutputVector);
         });
     } break;
@@ -206,7 +209,7 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
 void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const ValueVector& values) {
     if (transaction->getID() == Transaction::DUMMY_TRANSACTION_ID) {
-        rangeSegments(offsetInChunk, 1, [&](auto& segment, auto offsetInSegment, auto) {
+        rangeSegments(offsetInChunk, 1, [&](auto& segment, auto offsetInSegment, auto, auto) {
             segment.write(&values, values.state->getSelVector().getSelectedPositions()[0],
                 offsetInSegment);
         });
@@ -381,13 +384,14 @@ void ColumnChunk::checkpoint(Column& column,
     for (size_t i = 0; i < data.size(); i++) {
         std::vector<SegmentCheckpointState> segmentCheckpointStates;
         auto& segment = data[i];
+        KU_ASSERT(segment->getResidencyState() == ResidencyState::ON_DISK);
         for (auto& state : chunkCheckpointStates) {
             if (state.startRow < segmentStart + segment->getNumValues() &&
                 state.startRow + state.numRows > segmentStart) {
                 auto startOffsetInSegment = state.startRow - segmentStart;
                 uint64_t startRowInChunk = 0;
-                if (state.startRow < segmentStart) {
-                    startRowInChunk = segmentStart - state.startRow;
+                if (state.startRow > segmentStart) {
+                    startRowInChunk = state.startRow - segmentStart;
                 }
                 segmentCheckpointStates.push_back(
                     {*state.chunkData, startRowInChunk, startOffsetInSegment,
