@@ -4,7 +4,6 @@
 #include "common/enums/join_type.h"
 #include "common/enums/rel_direction.h"
 #include "common/utils.h"
-#include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/join_order/join_plan_solver.h"
 #include "planner/join_order/join_tree_constructor.h"
@@ -124,13 +123,12 @@ LogicalPlan Planner::planQueryGraphCollection(const QueryGraphCollection& queryG
 LogicalPlan Planner::planQueryGraph(const QueryGraph& queryGraph,
     const QueryGraphPlanningInfo& info) {
     context.init(&queryGraph, info.predicates);
-    cardinalityEstimator.initNodeIDDom(clientContext->getTransaction(), queryGraph);
+    cardinalityEstimator.init(queryGraph);
     if (info.hint != nullptr) {
         auto constructor =
             JoinTreeConstructor(queryGraph, propertyExprCollection, info.predicates, info);
         auto joinTree = constructor.construct(info.hint);
         auto plan = JoinPlanSolver(this).solve(joinTree);
-        cardinalityEstimator.clearPerQueryGraphStats();
         return plan.copy();
     }
     planBaseTableScans(info);
@@ -150,7 +148,6 @@ LogicalPlan Planner::planQueryGraph(const QueryGraph& queryGraph,
     if (queryGraph.isEmpty()) {
         appendEmptyResult(bestPlan);
     }
-    cardinalityEstimator.clearPerQueryGraphStats();
     return bestPlan;
 }
 
@@ -190,11 +187,16 @@ void Planner::planBaseTableScans(const QueryGraphPlanningInfo& info) {
         for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
             auto queryNode = queryGraph->getQueryNode(nodePos);
             if (info.containsCorrExpr(*queryNode->getInternalID())) {
+                // NodeID will be a join condition with outer plan so very likely we will apply a
+                // semi mask later in the optimization stage. So we can assume the cardinality will
+                // not exceed outer plan cardinality.
+                cardinalityEstimator.rectifyCardinality(*queryNode->getInternalID(),
+                    info.corrExprsCard);
                 // In un-nested subquery, e.g. MATCH (a) OPTIONAL MATCH (a)-[e1]->(b), the inner
                 // query ("(a)-[e1]->(b)") needs to scan a, which is already scanned in the outer
                 // query (a). To avoid scanning storage twice, we keep track of node table "a" and
                 // make sure when planning inner query, we only scan internal ID of "a".
-                planNodeIDScan(nodePos, info);
+                planNodeIDScan(nodePos);
             } else {
                 planNodeScan(nodePos);
             }
@@ -251,17 +253,11 @@ void Planner::planNodeScan(uint32_t nodePos) {
     context.addPlan(newSubgraph, std::move(plan));
 }
 
-void Planner::planNodeIDScan(uint32_t nodePos, const QueryGraphPlanningInfo& info) {
+void Planner::planNodeIDScan(uint32_t nodePos) {
     auto node = context.queryGraph->getQueryNode(nodePos);
     auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
     auto plan = LogicalPlan();
-
-    // NodeID will be a join condition with outer plan so very likely we will apply a semi mask
-    // later in the optimization stage. So we can assume the cardinality will not exceed outer
-    // plan cardinality.
-    cardinalityEstimator.addPerQueryGraphNodeIDDom(*node->getInternalID(), info.corrExprsCard);
-
     appendScanNodeTable(node->getInternalID(), node->getTableIDs(), {}, plan);
     context.addPlan(newSubgraph, std::move(plan));
 }

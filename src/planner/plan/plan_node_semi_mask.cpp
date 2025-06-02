@@ -1,7 +1,6 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
-#include "main/client_context.h"
 #include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
@@ -37,8 +36,6 @@ LogicalPlan Planner::getNodeSemiMaskPlan(SemiMaskTargetType targetType, const No
         auto& propExpr = expr->constCast<PropertyExpression>();
         propertyExprCollection.addProperties(propExpr.getVariableName(), expr);
     }
-    cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTransaction(),
-        *node.getInternalID(), node.getTableIDs());
     appendScanNodeTable(node.getInternalID(), node.getTableIDs(), getProperties(node), plan);
     appendFilter(nodePredicate, plan);
     exitPropertyExprCollection(std::move(prevCollection));
