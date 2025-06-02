@@ -1,6 +1,7 @@
 #include "main/azure_extension.h"
 
 #include "connector/azure_config.h"
+#include "file_system/azure_filesystem.h"
 #include "function/azure_scan.h"
 #include "main/client_context.h"
 #include "main/database.h"
@@ -12,6 +13,7 @@ namespace azure_extension {
 void AzureExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     extension::ExtensionUtils::addTableFunc<AzureScanFunction>(db);
+    db.registerFileSystem(std::make_unique<AzureFileSystem>());
     auto config = AzureConfig::getDefault();
     config.registerExtensionOptions(context->getDatabase());
     config.initFromEnv(context);

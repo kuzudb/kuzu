@@ -108,6 +108,16 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
     }
 }
 
+bool handleFileViaFunction(main::ClientContext* context, std::vector<std::string> filePaths) {
+    bool handleFileViaFunction = false;
+    if (context->getVFSUnsafe()->fileOrPathExists(filePaths[0], context)) {
+        auto fileInfo = context->getVFSUnsafe()->openFile(filePaths[0],
+            FileOpenFlags(FileFlags::READ_ONLY), context);
+        handleFileViaFunction = fileInfo->handleFileViaFunction();
+    }
+    return handleFileViaFunction;
+}
+
 std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSource& scanSource,
     const options_t& options, const std::vector<std::string>& columnNames,
     const std::vector<LogicalType>& columnTypes) {
@@ -115,6 +125,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     auto filePaths = bindFilePaths(fileSource->filePaths);
     auto boundOptions = bindParsingOptions(options);
     FileTypeInfo fileTypeInfo;
+
     if (boundOptions.contains(FileScanInfo::FILE_FORMAT_OPTION_NAME)) {
         auto fileFormat = boundOptions.at(FileScanInfo::FILE_FORMAT_OPTION_NAME).toString();
         fileTypeInfo = FileTypeInfo{FileTypeUtils::fromString(fileFormat), fileFormat};
@@ -134,7 +145,14 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     // Bind file configuration
     auto fileScanInfo = std::make_unique<FileScanInfo>(std::move(fileTypeInfo), filePaths);
     fileScanInfo->options = std::move(boundOptions);
-    auto func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
+    TableFunction func;
+    if (handleFileViaFunction(clientContext, filePaths)) {
+        func = clientContext->getVFSUnsafe()
+                   ->openFile(filePaths[0], FileOpenFlags(FileFlags::READ_ONLY), clientContext)
+                   ->getHandleFunction();
+    } else {
+        func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
+    }
     // Bind table function
     auto bindInput = TableFuncBindInput();
     bindInput.addLiteralParam(Value::createValue(filePaths[0]));

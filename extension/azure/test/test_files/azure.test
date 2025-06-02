@@ -2,19 +2,24 @@
 --
 
 -CASE AzureExtensionNotLoaded
--STATEMENT CREATE NODE TABLE Test AS LOAD FROM "az://kuzu-test/vPerson.csv" (file_format='azure') RETURN *;
+-STATEMENT LOAD FROM "az://kuzu-test/vPerson.csv" RETURN *;
 ---- error
-Binder exception: Cannot load from file type azure. If this file type is part of a kuzu extension please load the extension then try again.
+IO exception: Cannot open file az://kuzu-test/vPerson.csv: No such file or directory
 
 -CASE AzureScan
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/azure/build/libazure.kuzu_extension';
 ---- ok
 -STATEMENT LOAD FROM "az://kuzu-test/vPerson.csv" RETURN *;
----- error
-IO exception: Cannot open file az://kuzu-test/vPerson.csv: No such file or directory
+---- 5
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30Z+00:00|3 years 2 days 13 hours 2 minutes|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11
+2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 13:25:30.000526-02:00|10 years 5 months 13 hours 24 us|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000|{a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12}
+3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48 hours 24 minutes 11 seconds|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000|a0eebc999c0b4ef8bb6d6bb9bd380a13
+5|Dan|2|False|True|20|4.800000|1950-07-23|2031-11-30 12:25:30Z|10 years 5 months 13 hours 24 us|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14
+7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48 hours 24 minutes 11 seconds|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000|{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}
+
 -STATEMENT CALL current_setting('AZURE_CONNECTION_STRING') return *;
 ---- ok
--STATEMENT CREATE NODE TABLE Person AS LOAD FROM "az://kuzu-test/vPerson.csv" (file_format='azure') RETURN *;
+-STATEMENT CREATE NODE TABLE Person AS LOAD FROM "az://kuzu-test/vPerson.csv" RETURN *;
 ---- ok
 -STATEMENT MATCH (a:Person) RETURN a.fname, a.ISStudent, a.age;
 ---- 5
@@ -23,7 +28,7 @@ Bob|True|30
 Carol|False|45
 Dan|False|20
 Elizabeth|False|20
--STATEMENT COPY Person FROM (LOAD FROM "az://kuzu-test/vPerson2.csv" (file_format='azure') RETURN *);
+-STATEMENT COPY Person FROM (LOAD FROM "az://kuzu-test/vPerson2.csv" RETURN *);
 ---- ok
 -STATEMENT MATCH (a:Person) RETURN a.fname, a.Gender, a.isWorker;
 ---- 8
@@ -37,7 +42,7 @@ Greg|2|False
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|True
 -STATEMENT CREATE REL TABLE Knows (FROM Person TO Person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MANY);
 ---- ok
--STATEMENT COPY Knows FROM (LOAD FROM "az://kuzu-test/eKnows.csv" (file_format='azure') RETURN *);
+-STATEMENT COPY Knows FROM (LOAD FROM "az://kuzu-test/eKnows.csv" RETURN *);
 ---- ok
 -STATEMENT MATCH (a:Person)-[e:Knows]->(b:Person) RETURN a.fname, b.fname;
 ---- 6
@@ -47,7 +52,7 @@ Alice|Bob
 Bob|Dan
 Bob|Carol
 Bob|Alice
--STATEMENT COPY Knows FROM (LOAD FROM "abfss://kuzu-test/dirA/dirB/eKnows_2.csv" (file_format='azure') RETURN *);
+-STATEMENT COPY Knows FROM (LOAD FROM "abfss://kuzu-test/dirA/dirB/eKnows_2.csv" RETURN *);
 ---- ok
 -STATEMENT MATCH (a:Person)-[e:Knows]->(b:Person) RETURN a.fname, b.fname;
 ---- 14
