@@ -289,7 +289,7 @@ private:
         uint64_t lengthScanned = 0;
         while (lengthScanned < length) {
             auto lengthInSegment = std::min(length, segment->get()->getNumValues());
-            func(*segment->get(), offsetInSegment, lengthInSegment);
+            func(*segment->get(), offsetInSegment, lengthInSegment, lengthScanned);
             lengthScanned += lengthInSegment;
             segment++;
         }

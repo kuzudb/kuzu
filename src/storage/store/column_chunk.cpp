@@ -55,8 +55,8 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
         rangeSegments(offsetInChunk, length,
-            [&](auto& segment, auto offsetInSegment, auto lengthInSegment) {
-                segment.scan(output, offsetInSegment, lengthInSegment);
+            [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+                segment.scan(output, offsetInSegment, lengthInSegment, dstOffset);
             });
     } break;
     case ResidencyState::ON_DISK: {
@@ -117,10 +117,10 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
     case ResidencyState::IN_MEMORY: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
             rangeSegments(startRow, numRows,
-                [&](auto& segment, auto offsetInSegment, auto lengthInSegment) {
+                [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
                     output.append(&segment, startRow, lengthInSegment);
-                    scanCommittedUpdates(transaction, output, numValuesBeforeScan, offsetInSegment,
-                        lengthInSegment);
+                    scanCommittedUpdates(transaction, output, numValuesBeforeScan + dstOffset,
+                        offsetInSegment, lengthInSegment);
                 });
         }
     } break;
@@ -183,7 +183,7 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
     offset_t rowInChunk, ValueVector& output, sel_t posInOutputVector) const {
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
-        rangeSegments(rowInChunk, 1, [&](auto& segment, auto offsetInSegment, auto) {
+        rangeSegments(rowInChunk, 1, [&](auto& segment, auto offsetInSegment, auto, auto) {
             segment.lookup(offsetInSegment, output, posInOutputVector);
         });
     } break;
@@ -208,7 +208,7 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
 void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const ValueVector& values) {
     if (transaction->getID() == Transaction::DUMMY_TRANSACTION_ID) {
-        rangeSegments(offsetInChunk, 1, [&](auto& segment, auto offsetInSegment, auto) {
+        rangeSegments(offsetInChunk, 1, [&](auto& segment, auto offsetInSegment, auto, auto) {
             segment.write(&values, values.state->getSelVector().getSelectedPositions()[0],
                 offsetInSegment);
         });

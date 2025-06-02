@@ -188,27 +188,25 @@ void Column::scan(const Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInChunk, offset_t endOffsetInChunk, ValueVector* resultVector,
     uint64_t offsetInVector) const {
     state.rangeSegments(startOffsetInChunk, endOffsetInChunk - startOffsetInChunk,
-        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment) {
+        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
             if (nullColumn) {
                 KU_ASSERT(segmentState.nullState);
                 nullColumn->scanInternal(transaction, *segmentState.nullState, startOffsetInSegment,
-                    lengthInSegment, resultVector, offsetInVector);
+                    lengthInSegment, resultVector, offsetInVector + dstOffset);
             }
             scanInternal(transaction, segmentState, startOffsetInSegment, lengthInSegment,
-                resultVector, offsetInVector);
-            offsetInVector += lengthInSegment;
+                resultVector, offsetInVector + dstOffset);
         });
 }
 
 void Column::scan(const Transaction* transaction, const ChunkState& state,
     ColumnChunkData* outputChunk, offset_t offsetInChunk, offset_t numValues) const {
     KU_ASSERT(outputChunk->getNumValues() == 0);
-    uint64_t numValuesScanned = 0;
-    state.rangeSegments(offsetInChunk, numValues,
-        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment) {
+    uint64_t numValuesScanned = state.rangeSegments(offsetInChunk, numValues,
+        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
             if (nullColumn) {
                 nullColumn->scanInternal(transaction, *segmentState.nullState, startOffsetInSegment,
-                    lengthInSegment, outputChunk->getNullData(), numValuesScanned);
+                    lengthInSegment, outputChunk->getNullData(), dstOffset);
             }
 
             if (outputChunk->getNumValues() + lengthInSegment > outputChunk->getCapacity()) {
@@ -222,10 +220,9 @@ void Column::scan(const Transaction* transaction, const ChunkState& state,
 
             KU_ASSERT((startOffsetInSegment + lengthInSegment) <= segmentState.metadata.numValues);
             scanInternal(transaction, segmentState, startOffsetInSegment, lengthInSegment,
-                outputChunk, numValuesScanned);
-            numValuesScanned += lengthInSegment;
+                outputChunk, dstOffset);
         });
-    // TODO: this should be made mode explicit
+    // TODO: this should be made more explicit
     outputChunk->setNumValues(numValuesScanned);
 }
 
@@ -241,13 +238,11 @@ void Column::scanInternal(const Transaction* transaction, const SegmentState& st
 
 void Column::scan(const Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, uint8_t* result) {
-    idx_t startOffsetInResult = 0;
     state.rangeSegments(startOffsetInGroup, endOffsetInGroup - startOffsetInGroup,
-        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment) {
+        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
             columnReadWriter->readCompressedValuesToPage(transaction, segmentState, result,
-                startOffsetInResult, startOffsetInSegment, startOffsetInSegment + lengthInSegment,
+                dstOffset, startOffsetInSegment, startOffsetInSegment + lengthInSegment,
                 readToPageFunc);
-            startOffsetInResult++;
         });
 }
 
@@ -346,14 +341,12 @@ void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
 // using from Column is the ColumnReaderWriter And since ColumnChunk needs to call it for multiple
 // segments, it might make more sense for it to be there instead of passing the Column in
 // ColumnChunk::write
-void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
+void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t initialDstOffset,
     const ColumnChunkData& data, offset_t srcOffset, length_t numValues) const {
     state.rangeSegments(srcOffset, numValues,
-        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment) {
-            writeInternal(persistentChunk, segmentState, dstOffset, data, offsetInSegment,
-                lengthInSegment);
-
-            dstOffset += lengthInSegment;
+        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+            writeInternal(persistentChunk, segmentState, initialDstOffset + dstOffset, data,
+                offsetInSegment, lengthInSegment);
         });
 }
 
@@ -377,13 +370,12 @@ void Column::writeInternal(ColumnChunkData& persistentChunk, SegmentState& state
 }
 
 // TODO: Do we need to adapt the offsets to this current node group?
-void Column::writeValues(ChunkState& state, offset_t dstOffset, const uint8_t* data,
+void Column::writeValues(ChunkState& state, offset_t initialDstOffset, const uint8_t* data,
     const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues) const {
     state.rangeSegments(srcOffset, numValues,
-        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment) {
-            writeValuesInternal(segmentState, dstOffset, data, nullChunkData, offsetInSegment,
-                lengthInSegment);
-            dstOffset += lengthInSegment;
+        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+            writeValuesInternal(segmentState, initialDstOffset + dstOffset, data, nullChunkData,
+                offsetInSegment, lengthInSegment);
         });
 }
 

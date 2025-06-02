@@ -102,8 +102,15 @@ struct ChunkState {
         return nullptr;
     }
 
+    // Func should take the following arguments:
+    // (SegmentState& segmentState, offset_t offsetInSegment, offset_t lengthInSegment, offset_t
+    // dstOffset) dstOffset starts from 0 and is the offset in the output data for a given segment
+    //  (it increases by lengthInSegment for each segment)
+    // Returns the total number of values scanned (input length can be longer than the available
+    // values)
     template<typename Func>
-    void rangeSegments(common::offset_t offsetInChunk, common::length_t length, Func func) {
+    common::offset_t rangeSegments(common::offset_t offsetInChunk, common::length_t length,
+        Func func) {
         // TODO(bmwinger): try binary search (might only make a difference for a very large number
         // of segments)
         auto segment = segmentStates.begin();
@@ -113,19 +120,23 @@ struct ChunkState {
             segment++;
         }
         uint64_t lengthScanned = 0;
+        auto dstOffset = 0;
         while (lengthScanned < length && segment != segmentStates.end()) {
             auto lengthInSegment = std::min(length, segment->metadata.numValues);
-            func(*segment, offsetInSegment, lengthInSegment);
+            func(*segment, offsetInSegment, lengthInSegment, dstOffset);
             lengthScanned += lengthInSegment;
             segment++;
+            dstOffset += lengthInSegment;
         }
+        return dstOffset;
     }
 
     // TODO(bmwinger): this function should be const and only isn't because of ALP exception chunk
     // modifications
     template<typename Func>
-    void rangeSegments(common::offset_t offsetInChunk, common::length_t length, Func func) const {
-        const_cast<ChunkState*>(this)->rangeSegments(offsetInChunk, length, func);
+    common::offset_t rangeSegments(common::offset_t offsetInChunk, common::length_t length,
+        Func func) const {
+        return const_cast<ChunkState*>(this)->rangeSegments(offsetInChunk, length, func);
     }
 };
 

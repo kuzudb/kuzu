@@ -70,15 +70,13 @@ void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
         return;
     }
 
-    offset_t offsetInResult = 0;
     state.rangeSegments(startOffset, numValues,
-        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment) {
+        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
             auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
             indexColumn->scanInternal(transaction,
                 getChildState(segmentState, ChildStateIndex::INDEX), offsetInSegment,
-                lengthInSegment, stringColumnChunk.getIndexColumnChunk(), offsetInResult);
+                lengthInSegment, stringColumnChunk.getIndexColumnChunk(), dstOffset);
             dictionary.scan(transaction, segmentState, stringColumnChunk.getDictionaryChunk());
-            offsetInResult += lengthInSegment;
         });
 }
 
