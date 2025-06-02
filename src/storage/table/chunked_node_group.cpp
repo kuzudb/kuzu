@@ -561,7 +561,7 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(MemoryManager& m
 InMemChunkedNodeGroup::InMemChunkedNodeGroup(MemoryManager& mm,
     const std::vector<common::LogicalType>& columnTypes, bool enableCompression, uint64_t capacity,
     common::row_idx_t startRowIdx)
-    : startRowIdx{startRowIdx}, capacity{capacity}, numRows{0}, dataInUse{true} {
+    : startRowIdx{startRowIdx}, numRows{0}, capacity{capacity}, dataInUse{true} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
         chunks.push_back(ColumnChunkFactory::createColumnChunkData(mm, type.copy(),
@@ -571,8 +571,8 @@ InMemChunkedNodeGroup::InMemChunkedNodeGroup(MemoryManager& mm,
 
 InMemChunkedNodeGroup::InMemChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunkData>>&& chunks,
     row_idx_t startRowIdx)
-    : startRowIdx{startRowIdx}, capacity{numRows}, numRows{chunks[0]->getNumValues()},
-      chunks{std::move(chunks)} {
+    : startRowIdx{startRowIdx}, numRows{chunks[0]->getNumValues()}, capacity{numRows},
+      chunks{std::move(chunks)}, dataInUse{true} {
     KU_ASSERT(!this->chunks.empty());
     for (auto columnID = 1u; columnID < this->chunks.size(); columnID++) {
         KU_ASSERT(this->chunks[columnID]->getNumValues() == numRows);
@@ -692,7 +692,7 @@ void InMemChunkedNodeGroup::finalize() const {
 
 InMemChunkedNodeGroup::InMemChunkedNodeGroup(InMemChunkedNodeGroup& base,
     const std::vector<column_id_t>& selectedColumns)
-    : startRowIdx{base.getStartRowIdx()}, capacity{base.getCapacity()}, numRows{base.getNumRows()},
+    : startRowIdx{base.getStartRowIdx()}, numRows{base.getNumRows()}, capacity{base.getCapacity()},
       dataInUse{true} {
     chunks.resize(selectedColumns.size());
     for (auto i = 0u; i < selectedColumns.size(); i++) {

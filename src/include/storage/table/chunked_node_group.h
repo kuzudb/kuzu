@@ -102,7 +102,8 @@ public:
     void finalize() const;
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, MemoryManager &mm, PageAllocator& pageAllocator) const;
+        transaction::Transaction* transaction, MemoryManager& mm,
+        PageAllocator& pageAllocator) const;
 
 protected:
     common::row_idx_t startRowIdx;
@@ -220,8 +221,7 @@ public:
     void finalize() const;
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, 
-        PageAllocator& pageAllocator) const;
+        transaction::Transaction* transaction, PageAllocator& pageAllocator) const;
     virtual void flush(PageAllocator& pageAllocator);
 
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRowsToCommit,
@@ -256,8 +256,8 @@ protected:
     NodeGroupDataFormat format;
     ResidencyState residencyState;
     common::row_idx_t startRowIdx;
-    std::atomic<common::row_idx_t> numRows;
     uint64_t capacity;
+    std::atomic<common::row_idx_t> numRows;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     std::unique_ptr<VersionInfo> versionInfo;
 };

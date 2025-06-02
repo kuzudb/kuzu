@@ -142,7 +142,7 @@ void StructChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     }
 }
 
-void StructChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void StructChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     ColumnChunkData::initializeScanState(state, column);
 
     auto* structColumn = ku_dynamic_cast<const StructColumn*>(column);
