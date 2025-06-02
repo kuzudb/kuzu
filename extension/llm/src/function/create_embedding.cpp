@@ -92,6 +92,25 @@ static std::string getPath(const std::string& provider)
 
 }
 
+
+static std::vector<float> getEmbedding(const httplib::Result& res, const std::string& provider)
+{
+    if (provider == "open-ai")
+    {
+        return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
+
+    }
+    else if (provider == "ollama")
+    {
+        return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
+
+    }
+    throw(RuntimeException("Invalid Provider: " + provider));
+    return std::vector<float>();
+
+}
+
+
 // WIP: Consider implementing as 2d map lookup
 static uint64_t getEmbeddingDimensions(const std::string& provider, const std::string& model)
 {
@@ -159,7 +178,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
                                       "\n Body: " + res->body + "\n");
         }
 
-        auto embeddingVec = nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
+        auto embeddingVec = getEmbedding(res, provider);
         auto pos = (*resultSelVector)[selectedPos];
         auto resultEntry = ListVector::addList(&result, embeddingVec.size());
         result.setValue(pos, resultEntry);
