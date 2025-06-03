@@ -14,6 +14,11 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace catalog {
 
+void RelGroupCatalogEntry::addFromToConnection(common::table_id_t srcTableID,
+    common::table_id_t dstTableID, common::oid_t oid) {
+    relTableInfos.emplace_back(NodeTableIDPair{srcTableID, dstTableID}, oid);
+}
+
 void RelTableCatalogInfo::serialize(Serializer& ser) const {
     ser.writeDebuggingInfo("nodePair");
     ser.serializeValue(nodePair);

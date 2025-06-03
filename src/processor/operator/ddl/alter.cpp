@@ -207,6 +207,15 @@ void Alter::alterTable(main::ClientContext* clientContext, TableCatalogEntry* en
         }
         }
     } break;
+    case AlterType::ADD_FROM_TO_CONNECTION: {
+        auto relGroupEntry = catalog->getTableCatalogEntry(transaction, alterInfo.tableName)
+                                 ->ptrCast<RelGroupCatalogEntry>();
+        auto addFromToConnectionInfo =
+            alterInfo.extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
+        storageManager->addRelTable(relGroupEntry,
+            *relGroupEntry->getRelEntryInfo(addFromToConnectionInfo->srcTableID,
+                addFromToConnectionInfo->dstTableID));
+    } break;
     default:
         break;
     }

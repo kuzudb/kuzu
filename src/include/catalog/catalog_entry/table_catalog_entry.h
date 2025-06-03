@@ -21,6 +21,7 @@ class Transaction;
 
 namespace catalog {
 
+class CatalogSet;
 class Catalog;
 class KUZU_API TableCatalogEntry : public CatalogEntry {
 public:
@@ -32,7 +33,7 @@ public:
     common::table_id_t getTableID() const { return oid; }
 
     virtual std::unique_ptr<TableCatalogEntry> alter(common::transaction_t timestamp,
-        const binder::BoundAlterInfo& alterInfo) const;
+        const binder::BoundAlterInfo& alterInfo, CatalogSet* tables) const;
 
     virtual bool isParent(common::table_id_t /*tableID*/) { return false; };
     virtual common::TableType getTableType() const = 0;

@@ -4,7 +4,6 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/dummy_catalog_entry.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/exception/catalog.h"
@@ -179,7 +178,7 @@ void CatalogSet::alterTableEntry(Transaction* transaction,
     KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
               entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
     const auto tableEntry = entry->ptrCast<TableCatalogEntry>();
-    auto newEntry = tableEntry->alter(transaction->getID(), alterInfo);
+    auto newEntry = tableEntry->alter(transaction->getID(), alterInfo, this);
     switch (alterInfo.alterType) {
     case AlterType::RENAME: {
         // We treat rename table as drop and create.
@@ -194,7 +193,8 @@ void CatalogSet::alterTableEntry(Transaction* transaction,
     case AlterType::COMMENT:
     case AlterType::ADD_PROPERTY:
     case AlterType::DROP_PROPERTY:
-    case AlterType::RENAME_PROPERTY: {
+    case AlterType::RENAME_PROPERTY:
+    case AlterType::ADD_FROM_TO_CONNECTION: {
         emplaceNoLock(std::move(newEntry));
         if (transaction->shouldAppendToUndoBuffer()) {
             transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
@@ -202,41 +202,6 @@ void CatalogSet::alterTableEntry(Transaction* transaction,
     } break;
     default: {
         KU_UNREACHABLE;
-    }
-    }
-}
-
-void CatalogSet::alterRelGroupEntry(Transaction* transaction,
-    const binder::BoundAlterInfo& alterInfo) {
-    std::unique_lock lck{mtx};
-    // LCOV_EXCL_START
-    validateExistNoLock(transaction, alterInfo.tableName);
-    // LCOV_EXCL_STOP
-    auto entry = getEntryNoLock(transaction, alterInfo.tableName);
-    KU_ASSERT(entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
-    auto* relGroupEntry = entry->ptrCast<RelGroupCatalogEntry>();
-    auto newEntry = relGroupEntry->alter(transaction->getID(), alterInfo);
-    switch (alterInfo.alterType) {
-    case AlterType::RENAME: {
-        // We treat rename rel group as drop and create.
-        dropEntryNoLock(transaction, alterInfo.tableName, entry->getOID());
-        auto createdEntry = createEntryNoLock(transaction, std::move(newEntry));
-        KU_ASSERT(entry);
-        if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
-            transaction->pushCreateDropCatalogEntry(*this, *createdEntry, isInternal(),
-                true /* skipLoggingToWAL */);
-        }
-    } break;
-    case AlterType::COMMENT: {
-        emplaceNoLock(std::move(newEntry));
-        if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
-        }
-    } break;
-    default: {
-        // We only need to handle rename and comment at the rel group level. Other alter types are
-        // handled in each child rel table.
     }
     }
 }

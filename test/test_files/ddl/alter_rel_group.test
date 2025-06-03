@@ -1,0 +1,71 @@
+-DATASET CSV tinysnb
+--
+
+-CASE AlterRelGroup
+-STATEMENT ALTER TABLE KNOWS ADD FROM person to organisation
+---- 1
+Table KNOWS altered.
+-STATEMENT MATCH (p:person {ID: 0}), (o:organisation {ID: 4}) CREATE (p)-[:knows]->(o)
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(o:organisation) RETURN p.ID, o.ID
+---- 1
+0|4
+-STATEMENT MATCH (p)-[e:knows]->(o) RETURN p.ID, o.ID
+---- 15
+0|2
+0|3
+0|4
+0|5
+2|0
+2|3
+2|5
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9
+-STATEMENT ALTER TABLE KNOWS ADD FROM organisation to organisation
+---- 1
+Table KNOWS altered.
+-STATEMENT MATCH (p:organisation {ID: 6}), (o:organisation {ID: 4}) CREATE (p)-[:knows]->(o)
+---- ok
+-STATEMENT MATCH (o1:organisation)-[e:knows]->(o2:organisation) RETURN o1.ID, o2.ID
+---- 1
+6|4
+-RELOADDB
+-STATEMENT MATCH (p)-[e:knows]->(o) RETURN p.ID, o.ID
+---- 16
+0|2
+0|3
+0|4
+0|5
+2|0
+2|3
+2|5
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+6|4
+7|8
+7|9
+-STATEMENT DROP TABLE studyAt
+---- ok
+-STATEMENT DROP TABLE workAt
+---- ok
+-STATEMENT DROP TABLE organisation
+---- error
+Binder exception: Cannot delete node table organisation because it is referenced by relationship table knows.
+
+-CASE AlterWithIncorrectTableName
+-STATEMENT ALTER TABLE KNOWS ADD FROM person to person1
+---- error
+Binder exception: Table person1 does not exist.
+-STATEMENT ALTER TABLE KNOWS ADD FROM person to person
+---- error
+Binder exception: Node table pair: person->person already exists in the KNOWS table.

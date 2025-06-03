@@ -43,6 +43,14 @@ struct ExtraRenameTableInfo : public ExtraAlterInfo {
     explicit ExtraRenameTableInfo(std::string newName) : newName{std::move(newName)} {}
 };
 
+struct ExtraAddFromToConnection : public ExtraAlterInfo {
+    std::string srcTableName;
+    std::string dstTableName;
+
+    explicit ExtraAddFromToConnection(std::string srcTableName, std::string dstTableName)
+        : srcTableName{std::move(srcTableName)}, dstTableName{std::move(dstTableName)} {}
+};
+
 struct ExtraAddPropertyInfo : public ExtraAlterInfo {
     std::string propertyName;
     std::string dataType;

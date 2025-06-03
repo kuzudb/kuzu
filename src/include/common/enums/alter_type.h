@@ -11,6 +11,7 @@ enum class AlterType : uint8_t {
     ADD_PROPERTY = 10,
     DROP_PROPERTY = 11,
     RENAME_PROPERTY = 12,
+    ADD_FROM_TO_CONNECTION = 13,
     COMMENT = 201,
     INVALID = 255
 };

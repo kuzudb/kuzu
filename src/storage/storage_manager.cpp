@@ -81,10 +81,17 @@ void StorageManager::createNodeTable(NodeTableCatalogEntry* entry) {
     tables[entry->getTableID()] = std::make_unique<NodeTable>(this, entry, &memoryManager);
 }
 
+// TODO(Guodong): This API is added since storageManager doesn't provide an API to add a single
+// rel table. We may have to refactor the existing StorageManager::createTable(TableCatalogEntry*
+// entry).
+void StorageManager::addRelTable(RelGroupCatalogEntry* entry, const RelTableCatalogInfo& info) {
+    tables[info.oid] = std::make_unique<RelTable>(entry, info.nodePair.srcTableID,
+        info.nodePair.dstTableID, this, &memoryManager);
+}
+
 void StorageManager::createRelTableGroup(RelGroupCatalogEntry* entry) {
     for (auto& info : entry->getRelEntryInfos()) {
-        tables[info.oid] = std::make_unique<RelTable>(entry, info.nodePair.srcTableID,
-            info.nodePair.dstTableID, this, &memoryManager);
+        addRelTable(entry, info);
     }
 }
 

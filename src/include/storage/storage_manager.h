@@ -16,6 +16,7 @@ namespace catalog {
 class CatalogEntry;
 class NodeTableCatalogEntry;
 class RelGroupCatalogEntry;
+struct RelTableCatalogInfo;
 } // namespace catalog
 
 namespace storage {
@@ -35,6 +36,8 @@ public:
     static void recover(main::ClientContext& clientContext);
 
     void createTable(catalog::TableCatalogEntry* entry);
+    void addRelTable(catalog::RelGroupCatalogEntry* entry,
+        const catalog::RelTableCatalogInfo& info);
 
     bool checkpoint(const catalog::Catalog& catalog);
     void finalizeCheckpoint();
@@ -64,6 +67,7 @@ private:
     void initDataFileHandle(common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     void createNodeTable(catalog::NodeTableCatalogEntry* entry);
+
     void createRelTableGroup(catalog::RelGroupCatalogEntry* entry);
 
     void reclaimDroppedTables(const catalog::Catalog& catalog);

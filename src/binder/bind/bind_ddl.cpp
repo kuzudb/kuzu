@@ -7,6 +7,7 @@
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/extend_direction_util.h"
 #include "common/exception/binder.h"
@@ -373,6 +374,9 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     case AlterType::COMMENT: {
         return bindCommentOn(statement);
     }
+    case AlterType::ADD_FROM_TO_CONNECTION: {
+        return bindAddFromToConnection(statement);
+    }
     default: {
         KU_UNREACHABLE;
     }
@@ -450,6 +454,27 @@ std::unique_ptr<BoundStatement> Binder::bindCommentOn(const Statement& statement
     auto boundExtraInfo = std::make_unique<BoundExtraCommentInfo>(comment);
     auto boundInfo =
         BoundAlterInfo(AlterType::COMMENT, tableName, std::move(boundExtraInfo), info->onConflict);
+    return std::make_unique<BoundAlter>(std::move(boundInfo));
+}
+
+std::unique_ptr<BoundStatement> Binder::bindAddFromToConnection(const Statement& statement) const {
+    auto& alter = statement.constCast<Alter>();
+    auto info = alter.getInfo();
+    auto extraInfo = info->extraInfo->constPtrCast<ExtraAddFromToConnection>();
+    auto tableName = info->tableName;
+    auto srcTableEntry = bindNodeTableEntry(extraInfo->srcTableName);
+    auto dstTableEntry = bindNodeTableEntry(extraInfo->dstTableName);
+    auto srcTableID = srcTableEntry->getTableID();
+    auto dstTableID = dstTableEntry->getTableID();
+    auto relGroupEntry = bindRelGroupEntries({tableName})[0]->constPtrCast<RelGroupCatalogEntry>();
+    if (relGroupEntry->hasRelEntryInfo(srcTableID, dstTableID)) {
+        throw BinderException{
+            common::stringFormat("Node table pair: {}->{} already exists in the {} table.",
+                srcTableEntry->getName(), dstTableEntry->getName(), tableName)};
+    }
+    auto boundExtraInfo = std::make_unique<BoundExtraAddFromToConnection>(srcTableID, dstTableID);
+    auto boundInfo = BoundAlterInfo(AlterType::ADD_FROM_TO_CONNECTION, tableName,
+        std::move(boundExtraInfo), info->onConflict);
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
