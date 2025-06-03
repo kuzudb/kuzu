@@ -62,7 +62,7 @@ public:
     RuleKU_MaxValue = 31, RuleKU_StartWith = 32, RuleKU_Cycle = 33, RuleKU_IfExists = 34, 
     RuleKU_Drop = 35, RuleKU_AlterTable = 36, RuleKU_AlterOptions = 37, 
     RuleKU_AddProperty = 38, RuleKU_Default = 39, RuleKU_DropProperty = 40, 
-    RuleKU_RenameTable = 41, RuleKU_RenameProperty = 42, RuleKU_AddNodePair = 43, 
+    RuleKU_RenameTable = 41, RuleKU_RenameProperty = 42, RuleKU_AddFromToConnection = 43, 
     RuleKU_ColumnDefinitions = 44, RuleKU_ColumnDefinition = 45, RuleKU_PropertyDefinitions = 46, 
     RuleKU_PropertyDefinition = 47, RuleKU_CreateNodeConstraint = 48, RuleKU_DataType = 49, 
     RuleKU_ListIdentifiers = 50, RuleKU_ListIdentifier = 51, RuleOC_AnyCypherOption = 52, 
@@ -170,7 +170,7 @@ public:
   class KU_DropPropertyContext;
   class KU_RenameTableContext;
   class KU_RenamePropertyContext;
-  class KU_AddNodePairContext;
+  class KU_AddFromToConnectionContext;
   class KU_ColumnDefinitionsContext;
   class KU_ColumnDefinitionContext;
   class KU_PropertyDefinitionsContext;
@@ -915,7 +915,7 @@ public:
     KU_DropPropertyContext *kU_DropProperty();
     KU_RenameTableContext *kU_RenameTable();
     KU_RenamePropertyContext *kU_RenameProperty();
-    KU_AddNodePairContext *kU_AddNodePair();
+    KU_AddFromToConnectionContext *kU_AddFromToConnection();
 
    
   };
@@ -998,22 +998,18 @@ public:
 
   KU_RenamePropertyContext* kU_RenameProperty();
 
-  class  KU_AddNodePairContext : public antlr4::ParserRuleContext {
+  class  KU_AddFromToConnectionContext : public antlr4::ParserRuleContext {
   public:
-    KU_AddNodePairContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    KU_AddFromToConnectionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *ADD();
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-    antlr4::tree::TerminalNode *FROM();
-    std::vector<OC_SchemaNameContext *> oC_SchemaName();
-    OC_SchemaNameContext* oC_SchemaName(size_t i);
-    antlr4::tree::TerminalNode *TO();
+    antlr4::tree::TerminalNode *SP();
+    KU_FromToConnectionContext *kU_FromToConnection();
 
    
   };
 
-  KU_AddNodePairContext* kU_AddNodePair();
+  KU_AddFromToConnectionContext* kU_AddFromToConnection();
 
   class  KU_ColumnDefinitionsContext : public antlr4::ParserRuleContext {
   public:

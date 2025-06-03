@@ -206,13 +206,14 @@ void Alter::alterTable(main::ClientContext* clientContext, TableCatalogEntry* en
         }
         }
     } break;
-    case AlterType::ADD_NODE_PAIR: {
+    case AlterType::ADD_FROM_TO_CONNECTION: {
         auto relGroupEntry = catalog->getTableCatalogEntry(transaction, alterInfo.tableName)
                                  ->ptrCast<RelGroupCatalogEntry>();
-        auto addNodePairInfo = alterInfo.extraInfo->constPtrCast<BoundExtraAddNodePairInfo>();
+        auto addFromToConnectionInfo =
+            alterInfo.extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
         storageManager->addRelTable(relGroupEntry,
-            *relGroupEntry->getRelEntryInfo(addNodePairInfo->srcTableID,
-                addNodePairInfo->dstTableID));
+            *relGroupEntry->getRelEntryInfo(addFromToConnectionInfo->srcTableID,
+                addFromToConnectionInfo->dstTableID));
     } break;
     default:
         break;

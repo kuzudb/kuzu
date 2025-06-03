@@ -374,8 +374,8 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     case AlterType::COMMENT: {
         return bindCommentOn(statement);
     }
-    case AlterType::ADD_NODE_PAIR: {
-        return bindAddNodePair(statement);
+    case AlterType::ADD_FROM_TO_CONNECTION: {
+        return bindAddFromToConnection(statement);
     }
     default: {
         KU_UNREACHABLE;
@@ -457,10 +457,10 @@ std::unique_ptr<BoundStatement> Binder::bindCommentOn(const Statement& statement
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindAddNodePair(const Statement& statement) const {
+std::unique_ptr<BoundStatement> Binder::bindAddFromToConnection(const Statement& statement) const {
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
-    auto extraInfo = info->extraInfo->constPtrCast<ExtraAddNodePairInfo>();
+    auto extraInfo = info->extraInfo->constPtrCast<ExtraAddFromToConnection>();
     auto tableName = info->tableName;
     auto srcTableEntry = bindNodeTableEntry(extraInfo->srcTableName);
     auto dstTableEntry = bindNodeTableEntry(extraInfo->dstTableName);
@@ -472,9 +472,9 @@ std::unique_ptr<BoundStatement> Binder::bindAddNodePair(const Statement& stateme
             common::stringFormat("Node table pair: {}->{} already exists in the {} table.",
                 srcTableEntry->getName(), dstTableEntry->getName(), tableName)};
     }
-    auto boundExtraInfo = std::make_unique<BoundExtraAddNodePairInfo>(srcTableID, dstTableID);
-    auto boundInfo = BoundAlterInfo(AlterType::ADD_NODE_PAIR, tableName, std::move(boundExtraInfo),
-        info->onConflict);
+    auto boundExtraInfo = std::make_unique<BoundExtraAddFromToConnection>(srcTableID, dstTableID);
+    auto boundInfo = BoundAlterInfo(AlterType::ADD_FROM_TO_CONNECTION, tableName,
+        std::move(boundExtraInfo), info->onConflict);
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 

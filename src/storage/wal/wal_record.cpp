@@ -188,8 +188,8 @@ static void serializeAlterExtraInfo(Serializer& serializer, const BoundAlterInfo
         auto renameTableInfo = extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
         serializer.write(renameTableInfo->newName);
     } break;
-    case AlterType::ADD_NODE_PAIR: {
-        auto addNodePairInfo = extraInfo->constPtrCast<BoundExtraAddNodePairInfo>();
+    case AlterType::ADD_FROM_TO_CONNECTION: {
+        auto addNodePairInfo = extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
         serializer.write(addNodePairInfo->srcTableID);
         serializer.write(addNodePairInfo->dstTableID);
     } break;

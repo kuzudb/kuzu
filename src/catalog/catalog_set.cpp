@@ -4,7 +4,6 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/dummy_catalog_entry.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/exception/catalog.h"
@@ -195,7 +194,7 @@ void CatalogSet::alterTableEntry(Transaction* transaction,
     case AlterType::ADD_PROPERTY:
     case AlterType::DROP_PROPERTY:
     case AlterType::RENAME_PROPERTY:
-    case AlterType::ADD_NODE_PAIR: {
+    case AlterType::ADD_FROM_TO_CONNECTION: {
         emplaceNoLock(std::move(newEntry));
         if (transaction->shouldAppendToUndoBuffer()) {
             transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);

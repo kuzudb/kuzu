@@ -384,7 +384,7 @@ kU_AlterOptions
         | kU_DropProperty
         | kU_RenameTable
         | kU_RenameProperty
-        | kU_AddNodePair;
+        | kU_AddFromToConnection;
 
 kU_AddProperty
     : ADD SP (kU_IfNotExists SP)? oC_PropertyKeyName SP kU_DataType ( SP kU_Default )? ;
@@ -401,8 +401,8 @@ kU_RenameTable
 kU_RenameProperty
     : RENAME SP oC_PropertyKeyName SP TO SP oC_PropertyKeyName ;
 
-kU_AddNodePair
-    : ADD SP FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
+kU_AddFromToConnection
+    : ADD SP kU_FromToConnection ;
 
 kU_ColumnDefinitions: kU_ColumnDefinition ( SP? ',' SP? kU_ColumnDefinition )* ;
 

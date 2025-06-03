@@ -111,7 +111,8 @@ public:
     std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement) const;
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement) const;
     std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement) const;
-    std::unique_ptr<BoundStatement> bindAddNodePair(const parser::Statement& statement) const;
+    std::unique_ptr<BoundStatement> bindAddFromToConnection(
+        const parser::Statement& statement) const;
 
     std::vector<PropertyDefinition> bindPropertyDefinitions(
         const std::vector<parser::ParsedPropertyDefinition>& parsedDefinitions,

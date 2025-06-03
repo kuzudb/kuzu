@@ -37,10 +37,11 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(transaction_t timest
         auto& commentInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraCommentInfo>();
         newEntry->setComment(commentInfo.comment);
     } break;
-    case AlterType::ADD_NODE_PAIR: {
-        auto& commentInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraAddNodePairInfo>();
-        newEntry->ptrCast<RelGroupCatalogEntry>()->addNodePair(commentInfo.srcTableID,
-            commentInfo.dstTableID, tables->getNextOIDNoLock());
+    case AlterType::ADD_FROM_TO_CONNECTION: {
+        auto& fromToConnectionInfo =
+            *alterInfo.extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
+        newEntry->ptrCast<RelGroupCatalogEntry>()->addNodePair(fromToConnectionInfo.srcTableID,
+            fromToConnectionInfo.dstTableID, tables->getNextOIDNoLock());
     } break;
     default: {
         KU_UNREACHABLE;
