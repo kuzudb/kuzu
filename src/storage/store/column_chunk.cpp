@@ -43,6 +43,7 @@ ColumnChunk::ColumnChunk(bool enableCompression,
     : enableCompression{enableCompression}, data{std::move(segments)} {}
 
 void ColumnChunk::initializeScanState(ChunkState& state, const Column* column) const {
+    state.column = column;
     state.segmentStates.resize(data.size());
     for (size_t i = 0; i < data.size(); i++) {
         data[i]->initializeScanState(state.segmentStates[i], column);
@@ -60,8 +61,7 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
             });
     } break;
     case ResidencyState::ON_DISK: {
-        state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, offsetInChunk + length,
-            &output, 0);
+        state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &output, 0);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -110,7 +110,7 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
     switch (const auto residencyState = getResidencyState()) {
     case ResidencyState::ON_DISK: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
-            chunkState.column->scan(transaction, chunkState, &output, startRow, startRow + numRows);
+            chunkState.column->scan(transaction, chunkState, &output, startRow, numRows);
             scanCommittedUpdates(transaction, output, numValuesBeforeScan, startRow, numRows);
         }
     } break;

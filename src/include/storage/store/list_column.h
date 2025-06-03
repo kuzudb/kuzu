@@ -94,7 +94,7 @@ private:
 
     ListOffsetSizeInfo getListOffsetSizeInfo(const transaction::Transaction* transaction,
         const SegmentState& state, common::offset_t startOffsetInSegment,
-        common::offset_t endOffsetInSegment) const;
+        common::offset_t numOffsetsToRead) const;
 
 private:
     std::unique_ptr<Column> offsetColumn;

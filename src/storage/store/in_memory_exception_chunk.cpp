@@ -45,8 +45,8 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction,
     chunkData = std::make_unique<ColumnChunkData>(*memoryManager, physicalType, false,
         exceptionChunkMeta, true);
     chunkData->setToInMemory();
-    column->scanInternal(transaction, *chunkState, 0, chunkState->metadata.numValues,
-        chunkData.get(), 0);
+    column->scanSegment(transaction, *chunkState, chunkData.get(), 0,
+        chunkState->metadata.numValues);
 }
 
 template<std::floating_point T>

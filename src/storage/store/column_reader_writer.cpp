@@ -81,38 +81,40 @@ public:
         : ColumnReadWriter(dbFileID, dataFH, shadowFile) {}
 
     void readCompressedValueToPage(const transaction::Transaction* transaction,
-        const SegmentState& state, common::offset_t nodeOffset, uint8_t* result,
+        const SegmentState& state, common::offset_t offsetInSegment, uint8_t* result,
         uint32_t offsetInResult, const read_value_from_page_func_t<uint8_t*>& readFunc) override {
-        auto [offsetInSegment, cursor] = getOffsetAndCursor(nodeOffset, state);
+        auto cursor = getPageCursorForOffsetInGroup(offsetInSegment,
+            state.metadata.getStartPageIdx(), state.numValuesPerPage);
         readCompressedValue<uint8_t*>(transaction, state.metadata, cursor, offsetInSegment, result,
             offsetInResult, readFunc);
     }
 
     void readCompressedValueToVector(const transaction::Transaction* transaction,
-        const SegmentState& state, common::offset_t nodeOffset, common::ValueVector* result,
+        const SegmentState& state, common::offset_t offsetInSegment, common::ValueVector* result,
         uint32_t offsetInResult,
         const read_value_from_page_func_t<common::ValueVector*>& readFunc) override {
-        auto [offsetInSegment, cursor] = getOffsetAndCursor(nodeOffset, state);
+        auto cursor = getPageCursorForOffsetInGroup(offsetInSegment,
+            state.metadata.getStartPageIdx(), state.numValuesPerPage);
         readCompressedValue<ValueVector*>(transaction, state.metadata, cursor, offsetInSegment,
             result, offsetInResult, readFunc);
     }
 
     uint64_t readCompressedValuesToPage(const transaction::Transaction* transaction,
         const SegmentState& state, uint8_t* result, uint32_t startOffsetInResult,
-        uint64_t startNodeOffset, uint64_t endNodeOffset,
+        uint64_t startOffsetInSegment, uint64_t length,
         const read_values_from_page_func_t<uint8_t*>& readFunc,
         const std::optional<filter_func_t>& filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
-            startNodeOffset, endNodeOffset, readFunc, filterFunc);
+            startOffsetInSegment, length, readFunc, filterFunc);
     }
 
     uint64_t readCompressedValuesToVector(const transaction::Transaction* transaction,
         const SegmentState& state, common::ValueVector* result, uint32_t startOffsetInResult,
-        uint64_t startNodeOffset, uint64_t endNodeOffset,
+        uint64_t startOffsetInSegment, uint64_t length,
         const read_values_from_page_func_t<common::ValueVector*>& readFunc,
         const std::optional<filter_func_t>& filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
-            startNodeOffset, endNodeOffset, readFunc, filterFunc);
+            startOffsetInSegment, length, readFunc, filterFunc);
     }
 
     void writeValueToPageFromVector(SegmentState& state, common::offset_t offsetInSegment,
@@ -170,24 +172,22 @@ public:
 
     template<typename OutputType>
     uint64_t readCompressedValues(const Transaction* transaction, const SegmentState& state,
-        OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-        uint64_t endNodeOffset, const read_values_from_page_func_t<OutputType>& readFunc,
+        OutputType result, uint32_t startOffsetInResult, uint64_t startOffsetInSegment,
+        uint64_t length, const read_values_from_page_func_t<OutputType>& readFunc,
         const std::optional<filter_func_t>& filterFunc) {
         const ColumnChunkMetadata& chunkMeta = state.metadata;
-        const auto numValuesToScan = endNodeOffset - startNodeOffset;
-        if (numValuesToScan == 0) {
+        if (length == 0) {
             return 0;
         }
 
-        auto pageCursor = getPageCursorForOffsetInGroup(startNodeOffset,
+        auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInSegment,
             chunkMeta.getStartPageIdx(), state.numValuesPerPage);
         KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
 
         uint64_t numValuesScanned = 0;
-        while (numValuesScanned < numValuesToScan) {
-            uint64_t numValuesToScanInPage =
-                std::min(state.numValuesPerPage - pageCursor.elemPosInPage,
-                    numValuesToScan - numValuesScanned);
+        while (numValuesScanned < length) {
+            uint64_t numValuesToScanInPage = std::min(
+                state.numValuesPerPage - pageCursor.elemPosInPage, length - numValuesScanned);
             KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
             if (!filterFunc.has_value() ||
                 filterFunc.value()(numValuesScanned, numValuesScanned + numValuesToScanInPage)) {
@@ -214,38 +214,36 @@ public:
           defaultReader(std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, shadowFile)) {}
 
     void readCompressedValueToPage(const transaction::Transaction* transaction,
-        const SegmentState& state, common::offset_t nodeOffset, uint8_t* result,
+        const SegmentState& state, common::offset_t offsetInSegment, uint8_t* result,
         uint32_t offsetInResult, const read_value_from_page_func_t<uint8_t*>& readFunc) override {
-        auto [offsetInSegment, cursor] = getOffsetAndCursor(nodeOffset, state);
         readCompressedValue<uint8_t*>(transaction, state, offsetInSegment, result, offsetInResult,
             readFunc);
     }
 
     void readCompressedValueToVector(const transaction::Transaction* transaction,
-        const SegmentState& state, common::offset_t nodeOffset, common::ValueVector* result,
+        const SegmentState& state, common::offset_t offsetInSegment, common::ValueVector* result,
         uint32_t offsetInResult,
         const read_value_from_page_func_t<common::ValueVector*>& readFunc) override {
-        auto [offsetInSegment, cursor] = getOffsetAndCursor(nodeOffset, state);
         readCompressedValue<ValueVector*>(transaction, state, offsetInSegment, result,
             offsetInResult, readFunc);
     }
 
     uint64_t readCompressedValuesToPage(const transaction::Transaction* transaction,
         const SegmentState& state, uint8_t* result, uint32_t startOffsetInResult,
-        uint64_t startNodeOffset, uint64_t endNodeOffset,
+        uint64_t startOffsetInSegment, uint64_t length,
         const read_values_from_page_func_t<uint8_t*>& readFunc,
         const std::optional<filter_func_t>& filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
-            startNodeOffset, endNodeOffset, readFunc, filterFunc);
+            startOffsetInSegment, length, readFunc, filterFunc);
     }
 
     uint64_t readCompressedValuesToVector(const transaction::Transaction* transaction,
         const SegmentState& state, common::ValueVector* result, uint32_t startOffsetInResult,
-        uint64_t startNodeOffset, uint64_t endNodeOffset,
+        uint64_t startOffsetInSegment, uint64_t length,
         const read_values_from_page_func_t<common::ValueVector*>& readFunc,
         const std::optional<filter_func_t>& filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
-            startNodeOffset, endNodeOffset, readFunc, filterFunc);
+            startOffsetInSegment, length, readFunc, filterFunc);
     }
 
     void writeValueToPageFromVector(SegmentState& state, common::offset_t offsetInSegment,
@@ -317,24 +315,23 @@ private:
 
     template<typename OutputType>
     uint64_t readCompressedValues(const Transaction* transaction, const SegmentState& state,
-        OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-        uint64_t endNodeOffset, const read_values_from_page_func_t<OutputType>& readFunc,
+        OutputType result, uint32_t startOffsetInResult, uint64_t startOffsetInSegment,
+        uint64_t length, const read_values_from_page_func_t<OutputType>& readFunc,
         const std::optional<filter_func_t>& filterFunc) {
         const ColumnChunkMetadata& metadata = state.metadata;
         KU_ASSERT(metadata.compMeta.compression == CompressionType::ALP ||
                   metadata.compMeta.compression == CompressionType::CONSTANT ||
                   metadata.compMeta.compression == CompressionType::UNCOMPRESSED);
 
-        const uint64_t numValuesToScan = endNodeOffset - startNodeOffset;
         const uint64_t numValuesScanned =
             defaultReader->readCompressedValues(transaction, state, result, startOffsetInResult,
-                startNodeOffset, endNodeOffset, readFunc, std::optional<filter_func_t>{filterFunc});
+                startOffsetInSegment, length, readFunc, std::optional<filter_func_t>{filterFunc});
 
         if (metadata.compMeta.compression == CompressionType::ALP && numValuesScanned > 0) {
             // we pass in copies of the filter func as it can hold state which may need resetting
             // between scanning passes
-            patchFloatExceptions(state, startNodeOffset, numValuesToScan, result,
-                startOffsetInResult, std::optional<filter_func_t>{filterFunc});
+            patchFloatExceptions(state, startOffsetInSegment, length, result, startOffsetInResult,
+                std::optional<filter_func_t>{filterFunc});
         }
 
         return numValuesScanned;
@@ -460,17 +457,6 @@ PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInSegm
     auto pageCursor = PageUtils::getPageCursorForPos(offsetInSegment, numValuesPerPage);
     pageCursor.pageIdx += groupPageIdx;
     return pageCursor;
-}
-
-std::pair<common::offset_t, PageCursor> ColumnReadWriter::getOffsetAndCursor(
-    common::offset_t nodeOffset, const SegmentState& state) const {
-    auto [nodeGroupIdx, offsetInSegment] =
-        StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-    auto cursor = getPageCursorForOffsetInGroup(offsetInSegment, state.metadata.getStartPageIdx(),
-        state.numValuesPerPage);
-    KU_ASSERT(isPageIdxValid(cursor.pageIdx, state.metadata));
-
-    return {offsetInSegment, cursor};
 }
 
 } // namespace kuzu::storage

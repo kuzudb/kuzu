@@ -58,13 +58,13 @@ public:
 
     virtual uint64_t readCompressedValuesToPage(const transaction::Transaction* transaction,
         const SegmentState& state, uint8_t* result, uint32_t startOffsetInResult,
-        uint64_t startNodeOffset, uint64_t endNodeOffset,
+        uint64_t startOffsetInSegment, uint64_t length,
         const read_values_from_page_func_t<uint8_t*>& readFunc,
         const std::optional<filter_func_t>& filterFunc = {}) = 0;
 
     virtual uint64_t readCompressedValuesToVector(const transaction::Transaction* transaction,
         const SegmentState& state, common::ValueVector* result, uint32_t startOffsetInResult,
-        uint64_t startNodeOffset, uint64_t endNodeOffset,
+        uint64_t startOffsetInSegment, uint64_t length,
         const read_values_from_page_func_t<common::ValueVector*>& readFunc,
         const std::optional<filter_func_t>& filterFunc = {}) = 0;
 
@@ -82,14 +82,9 @@ public:
     void updatePageWithCursor(PageCursor cursor,
         const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
 
+protected:
     PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
         common::page_idx_t groupPageIdx, uint64_t numValuesPerPage) const;
-
-protected:
-    // TODO: Inputs should be the offset in the segment, not the node offset (which also means we
-    // can just return the cursor)
-    std::pair<common::offset_t, PageCursor> getOffsetAndCursor(common::offset_t nodeOffset,
-        const SegmentState& state) const;
 
 private:
     DBFileID dbFileID;

@@ -103,10 +103,9 @@ std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkDat
 void ListColumn::scanInternal(const Transaction* transaction, const SegmentState& state,
     offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector,
     offset_t offsetInResult) const {
-    KU_ASSERT(resultVector->state);
-    auto listOffsetSizeInfo = getListOffsetSizeInfo(transaction, state, startOffsetInChunk,
-        startOffsetInChunk + numValuesToScan);
-    if (resultVector->state->getSelVector().isUnfiltered()) {
+    auto listOffsetSizeInfo =
+        getListOffsetSizeInfo(transaction, state, startOffsetInChunk, numValuesToScan);
+    if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, state, resultVector, numValuesToScan, listOffsetSizeInfo,
             offsetInResult);
     } else {
@@ -115,12 +114,16 @@ void ListColumn::scanInternal(const Transaction* transaction, const SegmentState
 }
 
 /* FIXME(bmwinger): why was there essentially two different implementations of the same function
-(signatures were originally slightly different)? void ListColumn::scanInternal(const Transaction*
-transaction, const SegmentState& state, offset_t startOffsetInGroup, offset_t endOffsetInGroup,
-ValueVector* resultVector, uint64_t offsetInVector) const { nullColumn->scanInternal(transaction,
-*state.nullState, startOffsetInGroup, endOffsetInGroup, resultVector, offsetInVector); auto
-listOffsetInfoInStorage = getListOffsetSizeInfo(transaction, state, startOffsetInGroup,
-endOffsetInGroup); offset_t listOffsetInVector = offsetInVector == 0 ? 0 :
+(signatures were originally slightly different)?
+
+void ListColumn::scanInternal(const Transaction* transaction, const SegmentState& state,
+    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
+    uint64_t offsetInVector) const {
+    nullColumn->scanInternal(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
+        resultVector, offsetInVector);
+    auto listOffsetInfoInStorage =
+        getListOffsetSizeInfo(transaction, state, startOffsetInGroup, endOffsetInGroup -
+startOffsetInGroup); offset_t listOffsetInVector = offsetInVector == 0 ? 0 :
                               resultVector->getValue<list_entry_t>(offsetInVector - 1).offset +
                                   resultVector->getValue<list_entry_t>(offsetInVector - 1).size;
     auto offsetToWriteListData = listOffsetInVector;
@@ -187,9 +190,10 @@ void ListColumn::scanInternal(const transaction::Transaction* transaction,
         listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
         offset_t startListOffset = listColumnChunk.getListStartOffset(0);
         offset_t endListOffset = listColumnChunk.getListStartOffset(resultChunk->getNumValues());
+        KU_ASSERT(endListOffset >= startListOffset);
         dataColumn->scanInternal(transaction,
-            state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX], startListOffset, endListOffset,
-            listColumnChunk.getDataColumnChunk(),
+            state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX], startListOffset,
+            endListOffset - startListOffset, listColumnChunk.getDataColumnChunk(),
             listColumnChunk.getDataColumnChunk()->getNumValues());
         listColumnChunk.resetOffset();
     } else {
@@ -316,17 +320,16 @@ list_size_t ListColumn::readSize(const Transaction* transaction, const SegmentSt
 }
 
 ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const Transaction* transaction,
-    const SegmentState& state, offset_t startOffsetInSegment, offset_t endOffsetInSegment) const {
-    const auto numOffsetsToRead = endOffsetInSegment - startOffsetInSegment;
+    const SegmentState& state, offset_t startOffsetInSegment, offset_t numOffsetsToRead) const {
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::INT64(),
         enableCompression, numOffsetsToRead, ResidencyState::IN_MEMORY);
     auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::UINT32(),
         enableCompression, numOffsetsToRead, ResidencyState::IN_MEMORY);
     offsetColumn->scanInternal(transaction,
         state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX], startOffsetInSegment,
-        endOffsetInSegment, offsetColumnChunk.get(), 0);
+        numOffsetsToRead, offsetColumnChunk.get(), 0);
     sizeColumn->scanInternal(transaction, state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
-        startOffsetInSegment, endOffsetInSegment, sizeColumnChunk.get(), 0);
+        startOffsetInSegment, numOffsetsToRead, sizeColumnChunk.get(), 0);
     auto numValuesScan = offsetColumnChunk->getNumValues();
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }

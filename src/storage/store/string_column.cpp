@@ -63,6 +63,7 @@ std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkD
     return flushedChunkData;
 }
 
+// TODO(bmwinger): maybe move this into scanInternal
 void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t numValues) const {
     Column::scan(transaction, state, columnChunk, startOffset, numValues);
@@ -71,11 +72,11 @@ void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
     }
 
     state.rangeSegments(startOffset, numValues,
-        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto) {
             auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
-            indexColumn->scanInternal(transaction,
-                getChildState(segmentState, ChildStateIndex::INDEX), offsetInSegment,
-                lengthInSegment, stringColumnChunk.getIndexColumnChunk(), dstOffset);
+            indexColumn->scanSegment(transaction,
+                getChildState(segmentState, ChildStateIndex::INDEX),
+                stringColumnChunk.getIndexColumnChunk(), offsetInSegment, lengthInSegment);
             dictionary.scan(transaction, segmentState, stringColumnChunk.getDictionaryChunk());
         });
 }
@@ -84,8 +85,8 @@ void StringColumn::lookupInternal(const Transaction* transaction, const SegmentS
     offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     string_index_t index = 0;
-    indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX), offsetInChunk,
-        offsetInChunk + 1, reinterpret_cast<uint8_t*>(&index));
+    indexColumn->scanSegment(transaction, getChildState(state, ChildStateIndex::INDEX),
+        offsetInChunk, 1, reinterpret_cast<uint8_t*>(&index));
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan(1);
     offsetsToScan.emplace_back(index, posInVector);
     dictionary.scan(transaction, getChildState(state, ChildStateIndex::OFFSET),
@@ -136,7 +137,7 @@ void StringColumn::scanInternal(const Transaction* transaction, const SegmentSta
     offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector,
     offset_t offsetInResult) const {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    if (resultVector->state->getSelVector().isUnfiltered()) {
+    if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector,
             offsetInResult);
     } else {
@@ -182,8 +183,8 @@ void StringColumn::scanUnfiltered(const Transaction* transaction, const SegmentS
     // TODO: Replace indices with ValueVector to avoid maintaining `scan` interface from
     // uint8_t*.
     auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
-    indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX), startOffsetInChunk,
-        startOffsetInChunk + numValuesToRead, reinterpret_cast<uint8_t*>(indices.get()));
+    indexColumn->scanSegment(transaction, getChildState(state, ChildStateIndex::INDEX),
+        startOffsetInChunk, numValuesToRead, reinterpret_cast<uint8_t*>(indices.get()));
 
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < numValuesToRead; i++) {
@@ -210,8 +211,8 @@ void StringColumn::scanFiltered(const Transaction* transaction, const SegmentSta
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
             const auto offsetInGroup = startOffsetInChunk + pos;
             string_index_t index = 0;
-            indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX),
-                offsetInGroup, offsetInGroup + 1, reinterpret_cast<uint8_t*>(&index));
+            indexColumn->scanSegment(transaction, getChildState(state, ChildStateIndex::INDEX),
+                offsetInGroup, 1, reinterpret_cast<uint8_t*>(&index));
             offsetsToScan.emplace_back(index, pos);
         }
     }

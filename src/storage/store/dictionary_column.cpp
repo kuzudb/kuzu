@@ -41,10 +41,9 @@ void DictionaryColumn::scan(const Transaction* transaction, const SegmentState& 
         stringDataChunk->resize(
             std::bit_ceil(stringDataChunk->getNumValues() + dataMetadata.numValues));
     }
-    dataColumn->scanInternal(transaction,
-        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA), 0,
-        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA).metadata.numValues,
-        stringDataChunk, stringDataChunk->getNumValues());
+    dataColumn->scanSegment(transaction,
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA), stringDataChunk, 0,
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA).metadata.numValues);
 
     auto& offsetMetadata =
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET).metadata;
@@ -53,11 +52,10 @@ void DictionaryColumn::scan(const Transaction* transaction, const SegmentState& 
     if (offsetChunk->getNumValues() + offsetMetadata.numValues > offsetChunk->getCapacity()) {
         offsetChunk->resize(std::bit_ceil(offsetChunk->getNumValues() + offsetMetadata.numValues));
     }
-    offsetColumn->scanInternal(transaction,
-        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET), 0,
+    offsetColumn->scanSegment(transaction,
+        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET), offsetChunk, 0,
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET)
-            .metadata.numValues,
-        offsetChunk, offsetChunk->getNumValues());
+            .metadata.numValues);
 }
 
 void DictionaryColumn::scan(const Transaction* transaction, const SegmentState& offsetState,
@@ -94,8 +92,9 @@ void DictionaryColumn::scan(const Transaction* transaction, const SegmentState& 
     for (auto pos = 0u; pos < offsetsToScan.size(); pos++) {
         auto startOffset = offsets[offsetsToScan[pos].first - firstOffsetToScan];
         auto endOffset = offsets[offsetsToScan[pos].first - firstOffsetToScan + 1];
-        scanValueToVector(transaction, dataState, startOffset, endOffset, resultVector,
-            offsetsToScan[pos].second);
+        KU_ASSERT(endOffset >= startOffset);
+        scanValueToVector(transaction, dataState, startOffset, endOffset - startOffset,
+            resultVector, offsetsToScan[pos].second);
         auto& scannedString = resultVector->getValue<ku_string_t>(offsetsToScan[pos].second);
         // For each string which has the same index in the dictionary as the one we scanned,
         // copy the scanned string to its position in the result vector
@@ -123,21 +122,21 @@ void DictionaryColumn::scanOffsets(const Transaction* transaction, const Segment
     // We either need to read the next value, or store the maximum string offset at the end.
     // Otherwise we won't know what the length of the last string is.
     if (index + numValues < state.metadata.numValues) {
-        offsetColumn->scan(transaction, state, index, index + numValues + 1, (uint8_t*)offsets);
+        offsetColumn->scanSegment(transaction, state, index, index + numValues + 1,
+            (uint8_t*)offsets);
     } else {
-        offsetColumn->scan(transaction, state, index, index + numValues, (uint8_t*)offsets);
+        offsetColumn->scanSegment(transaction, state, index, index + numValues, (uint8_t*)offsets);
         offsets[numValues] = dataSize;
     }
 }
 
 void DictionaryColumn::scanValueToVector(const Transaction* transaction,
-    const SegmentState& dataState, uint64_t startOffset, uint64_t endOffset,
-    ValueVector* resultVector, uint64_t offsetInVector) const {
-    KU_ASSERT(endOffset >= startOffset);
+    const SegmentState& dataState, uint64_t startOffset, uint64_t length, ValueVector* resultVector,
+    uint64_t offsetInVector) const {
     // Add string to vector first and read directly into the vector
-    auto& kuString =
-        StringVector::reserveString(resultVector, offsetInVector, endOffset - startOffset);
-    dataColumn->scan(transaction, dataState, startOffset, endOffset, (uint8_t*)kuString.getData());
+    auto& kuString = StringVector::reserveString(resultVector, offsetInVector, length);
+    dataColumn->scanSegment(transaction, dataState, startOffset, length,
+        (uint8_t*)kuString.getData());
     // Update prefix to match the scanned string data
     if (!ku_string_t::isShortString(kuString.len)) {
         memcpy(kuString.prefix, kuString.getData(), ku_string_t::PREFIX_LENGTH);

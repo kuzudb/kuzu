@@ -55,14 +55,28 @@ public:
     void lookupValue(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector) const;
 
-    // Scan from [startOffsetInGroup, endOffsetInGroup) (use scanInternal to specialize.
+    // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
+    // FIXME(bmwinger): this function does not take into account the resultVector's SelectionVector
+    // However its specializations in StringColumn and ListColumn do
     virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+        common::offset_t startOffsetInGroup, common::offset_t length,
         common::ValueVector* resultVector, uint64_t offsetInVector) const;
-    // Scan entire chunk
+    // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
+    // Appends to the end of the columnChunk
     virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t offsetInChunk = 0,
         common::offset_t numValues = UINT64_MAX) const;
+    // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
+    // Appends to the end of the columnChunk
+    void scanSegment(const transaction::Transaction* transaction, const SegmentState& state,
+        ColumnChunkData* columnChunk, common::offset_t offsetInSegment,
+        common::offset_t numValue) const;
+    // Scan to raw data (does not scan any nested data and should only be used on primitive columns)
+    void scanSegment(const transaction::Transaction* transaction, const SegmentState& state,
+        common::offset_t startOffsetInSegment, common::offset_t length, uint8_t* result);
+    // Scan to raw data (does not scan any nested data and should only be used on primitive columns)
+    void scan(const transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t startOffsetInGroup, common::offset_t length, uint8_t* result);
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
@@ -70,12 +84,6 @@ public:
     Column* getNullColumn() const;
 
     std::string_view getName() const { return name; }
-
-    virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
-    virtual void scan(const transaction::Transaction* transaction, const SegmentState& state,
-        common::offset_t startOffsetInSegment, common::offset_t endOffsetInSegment,
-        uint8_t* result);
 
     // Batch write to a set of sequential pages.
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
@@ -101,8 +109,7 @@ public:
 
     virtual void checkpointSegment(ColumnCheckpointState&& checkpointState) const;
 
-    // TODO: maybe change to scanSegment, and can probably be protected again once
-    // InMemExceptionChunk is removed
+protected:
     virtual void scanInternal(const transaction::Transaction* transaction,
         const SegmentState& state, common::offset_t startOffsetInSegment,
         common::row_idx_t numValuesToScan, common::ValueVector* resultVector,
@@ -113,7 +120,6 @@ public:
         common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk,
         common::offset_t offsetInResult) const;
 
-protected:
     virtual void lookupInternal(const transaction::Transaction* transaction,
         const SegmentState& state, common::offset_t offsetInSegment,
         common::ValueVector* resultVector, uint32_t posInVector) const;
@@ -176,10 +182,9 @@ public:
         ShadowFile* shadowFile, bool enableCompression);
 
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+        common::offset_t startOffsetInGroup, common::offset_t length,
         common::ValueVector* resultVector, uint64_t offsetInVector) const override {
-        Column::scan(transaction, state, startOffsetInGroup, endOffsetInGroup, resultVector,
-            offsetInVector);
+        Column::scan(transaction, state, startOffsetInGroup, length, resultVector, offsetInVector);
         populateCommonTableID(resultVector);
     }
 
