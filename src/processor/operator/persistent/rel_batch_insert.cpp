@@ -55,7 +55,9 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         const auto catalogEntry = catalog->getTableCatalogEntry(transaction, tableName);
         const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
         if (relGroupEntry.getRelEntryInfos().size() == 1) {
-            // This is primarily just to initialize tableID for `create rel table as` (since we only support a single from/to pair for that), though it does cover more cases than just that
+            // This is primarily just to initialize tableID for `create rel table as` (since we only
+            // support a single from/to pair for that), though it does cover more cases than just
+            // that
             relBatchInsertInfo->tableID = relGroupEntry.getRelEntryInfos()[0].oid;
         }
         relBatchInsertInfo->tableEntry = catalogEntry;
