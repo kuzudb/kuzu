@@ -31,6 +31,9 @@ static std::string getClient(const std::string& provider)
         {"voyage-ai", "https://api.voyageai.com"},
         {"google-vertex", "https://aiplatform.googleapis.com"},
         {"google-gemini", "https://generativelanguage.googleapis.com"},
+        // TODO: Region here is hardcoded... when configuration is supported
+        // this needs to change
+        {"amazon-bedrock", "https://bedrock-runtime.us-east-1.amazonaws.com"},
         {"ollama", "http://localhost:11434"}
     };
 
@@ -171,10 +174,6 @@ static httplib::Headers createBedrockHeaders( const std::string& url, const std:
 }
 
 
-
-
-
-
 static httplib::Headers getHeaders(const std::string& provider)
 {
     if (provider == "open-ai")
@@ -249,6 +248,11 @@ static nlohmann::json getPayload(const std::string& provider, const std::string&
         return nlohmann::json {{"instances",{{{"content", text}}}}};
     }
 
+    else if (provider == "amazon-bedrock")
+    {
+        return nlohmann::json {{"inputText", text}};
+    }
+
     else if (provider == "ollama")
     {
         return nlohmann::json {{"model", model}, {"prompt", text}};
@@ -291,6 +295,10 @@ static std::string getPath(const std::string& provider, const std::string& model
         return "/v1/projects/"+std::string(env_project_id)+"/locations/us-central1/publishers/google/models/"+model+":predict";
     }
 
+    else if (provider == "amazon-bedrock")
+    {
+        return "/model/amazon.titan-embed-text-v1/invoke";
+    }
 
     else if (provider == "ollama")
     {
@@ -322,6 +330,10 @@ static std::vector<float> getEmbedding(const httplib::Result& res, const std::st
     {
         return nlohmann::json::parse(res->body)["predictions"][0]["embeddings"]["values"].get<std::vector<float>>();
     }
+    else if (provider == "amazon-bedrock")
+    {
+        return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
+    }
 
     else if (provider == "ollama")
     {
@@ -342,6 +354,7 @@ static uint64_t getEmbeddingDimensions(const std::string& provider, const std::s
             {"open-ai", {{"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536}, {"text-embedding-ada-002", 1536}}},
             {"voyage-ai", {{"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024}, {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024}, {"voyage-code-2", 1536}}},
             {"ollama", {{"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}}},
+            {"amazon-bedrock", {{"amazon.titan-embed-text-v1", 1024}}},
             {"google-vertex", {{"gemini-embedding-001", 3072}, {"text-embedding-005", 768}, {"text-multilingual-embedding-002", 768}}},
             {"google-gemini", {{"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}}}
     };
