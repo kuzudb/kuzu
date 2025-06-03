@@ -104,8 +104,9 @@ True
 # copying the same initial data to a new table should reuse most of the pages so the db should not grow by much
 -STATEMENT COPY knows1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
 ---- ok
-# leave some margin for rewriting storage metadata but most free pages should be used
--STATEMENT call fsm_info() return sum(num_pages) < 5
+# allow margin equal to the largest page range for a column chunk in the table
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages call storage_info('knows1') with num_free_pages, max(num_pages) as largest_range
+            return num_free_pages is null or largest_range >= num_free_pages or 5 >= num_free_pages
 ---- 1
 True
 
