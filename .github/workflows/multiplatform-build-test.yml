@@ -1,7 +1,6 @@
 name: Multiplatform Build and Test
 
 env:
-  USE_EXISTING_BINARY_DATASET: 1
   WERROR: 1
   BUILD_TYPE: Release
   GEN: Ninja
@@ -12,27 +11,6 @@ on:
     - cron: "0 8 * * *"
 
 jobs:
-  generate-binary-demo:
-    runs-on: kuzu-self-hosted-testing
-    env:
-      NUM_THREADS: 32
-      CC: gcc
-      CXX: g++
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build
-        run: make release
-
-      - name: Generate datasets
-        run: bash scripts/generate_binary_demo.sh
-
-      - name: Upload binary-demo
-        uses: actions/upload-artifact@v4
-        with:
-          name: binary-demo
-          path: dataset/binary-demo
-
   macos-build-test:
     strategy:
       matrix:
@@ -40,20 +18,12 @@ jobs:
       fail-fast: false
     name: ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
-    needs: [ generate-binary-demo ]
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@v4
         continue-on-error: true
-
-      - name: Download binary-demo
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: binary-demo
-          path: ${{ github.workspace }}/dataset/binary-demo
 
       - uses: actions/setup-python@v4
         continue-on-error: true
@@ -163,7 +133,6 @@ jobs:
         runner: [ windows-2022, windows-2025 ]
       fail-fast: false
     name: ${{ matrix.runner }}
-    needs: [ generate-binary-demo ]
     runs-on: ${{ matrix.runner }}
     env:
       WERROR: 0
@@ -188,13 +157,6 @@ jobs:
 
       - uses: actions/checkout@v4
         continue-on-error: true
-
-      - name: Download binary-demo
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: binary-demo
-          path: ${{ github.workspace }}/dataset/binary-demo
 
       - uses: actions/setup-python@v4
         continue-on-error: true
@@ -317,7 +279,6 @@ jobs:
         image: [ "ubuntu:22.04", "ubuntu:24.04", "ubuntu:25.04", "debian:12", "debian:sid" ]
       fail-fast: false
     name: ${{ matrix.image }}
-    needs: [ generate-binary-demo ]
     runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.image }}
@@ -351,13 +312,6 @@ jobs:
 
       - uses: actions/checkout@v4
         continue-on-error: true
-
-      - name: Download binary-demo
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: binary-demo
-          path: ${{ github.workspace }}/dataset/binary-demo
 
       - name: Determine NUM_THREADS
         run: |
@@ -471,7 +425,6 @@ jobs:
         image: [ "rockylinux:8", "rockylinux:9", "fedora:41", "fedora:42" ]
       fail-fast: false
     name: ${{ matrix.image }}
-    needs: [ generate-binary-demo ]
     runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.image }}
@@ -515,13 +468,6 @@ jobs:
 
       - uses: actions/checkout@v4
         continue-on-error: true
-
-      - name: Download binary-demo
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: binary-demo
-          path: ${{ github.workspace }}/dataset/binary-demo
 
       - name: Determine NUM_THREADS
         run: |
@@ -632,7 +578,6 @@ jobs:
   archlinux-build-test:
     name: archlinux
     runs-on: ubuntu-24.04
-    needs: [ generate-binary-demo ]
     container:
       image: archlinux:latest
     env:
@@ -648,13 +593,6 @@ jobs:
 
       - uses: actions/checkout@v4
         continue-on-error: true
-
-      - name: Download binary-demo
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: binary-demo
-          path: ${{ github.workspace }}/dataset/binary-demo
 
       - name: Determine NUM_THREADS
         run: |
