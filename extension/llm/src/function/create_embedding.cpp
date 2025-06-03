@@ -103,55 +103,73 @@ std::string encodeURL(const std::string& input, bool encodeSlash) {
 }
 
 
-static void createBedrockHeader(std::string url, std::string query, std::string host,
-    std::string service, std::string method, std::string payloadHash, std::string contentType, httplib::Headers& res) {
-    res.insert({"Host", host});
-    auto envSecretAccessKey = std::getenv("AWS_SECRET_ACCESS_KEY");
-    auto envAccessKey = std::getenv("AWS_ACCESS_KEY");
+static httplib::Headers createBedrockHeaders( const std::string& url, const std::string& query, const std::string& host, const std::string& region, const std::string& service, const std::string& method, std::string payloadHash, std::string contentType = "application/json") {
+    httplib::Headers headers;
+    headers.insert({"Host", host});
 
-    if (envAccessKey == nullptr || envSecretAccessKey == nullptr) {
-        return;
+    const char* accessKey = std::getenv("AWS_ACCESS_KEY_ID");
+    const char* secretKey = std::getenv("AWS_SECRET_ACCESS_KEY");
+
+    if (!accessKey || !secretKey) 
+    {
+        throw RuntimeException("Missing AWS credentials in environment variables.");
     }
-    static constexpr char NULL_PAYLOAD_HASH[] = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
     if (payloadHash.empty()) {
+        static constexpr char NULL_PAYLOAD_HASH[] =
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
         payloadHash = NULL_PAYLOAD_HASH;
     }
-    auto timestamp = common::Timestamp::getCurrentTimestamp();
-    auto dateHeader = getDateHeader(timestamp);
-    auto datetimeHeader = getDateTimeHeader(timestamp);
-    res.insert({"x-amz-date", datetimeHeader});
-    res.insert({"x-amz-content-sha256", payloadHash});
-    std::string signedHeaders = "";
+
+    const auto timestamp = common::Timestamp::getCurrentTimestamp();
+    const auto dateHeader = getDateHeader(timestamp);
+    const auto datetimeHeader = getDateTimeHeader(timestamp);
+
+    headers.insert({"x-amz-date", datetimeHeader});
+    headers.insert({"x-amz-content-sha256", payloadHash});
+    headers.insert({"content-type", "application/json"});
+
+    std::string signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
+
+    std::string canonicalHeaders;
+    canonicalHeaders +=
+        "content-type:" + contentType + "\n"
+        "host:" + host + "\n"
+        "x-amz-content-sha256:" + payloadHash + "\n"
+        "x-amz-date:" + datetimeHeader + "\n";
+
+    std::string canonicalRequest =
+        method + "\n" + encodeURL(url, false) + "\n" + query + "\n" +
+        canonicalHeaders + "\n" +
+        signedHeaders + "\n" +
+        payloadHash;
+
     httpfs_extension::hash_bytes canonicalRequestHash;
     httpfs_extension::hash_str canonicalRequestHashStr;
-    if (!contentType.empty()) {
-        signedHeaders += "content-type;";
-    }
-    signedHeaders += "host;x-amz-content-sha256;x-amz-date";
-    auto canonicalRequest = method + "\n" + encodeURL(url, false) + "\n" + query;
-    if (!contentType.empty()) {
-        canonicalRequest += "\ncontent-type:" + contentType;
-    }
-    canonicalRequest += "\nhost:" + host + "\nx-amz-content-sha256:" + payloadHash +
-                        "\nx-amz-date:" + datetimeHeader;
-    canonicalRequest += "\n\n" + signedHeaders + "\n" + payloadHash;
     httpfs_extension::sha256(canonicalRequest.c_str(), canonicalRequest.length(), canonicalRequestHash);
     httpfs_extension::hex256(canonicalRequestHash, canonicalRequestHashStr);
-    auto stringToSign = "AWS4-HMAC-SHA256\n" + datetimeHeader + "\n" + dateHeader + "/" +
-                        "us-east-1" + "/" + service + "/aws4_request\n" +
-                        std::string((char*)canonicalRequestHashStr, sizeof(httpfs_extension::hash_str));
-    httpfs_extension::hash_bytes dateSignature, regionSignature, serviceSignature, signingKeySignature, signature;
+
+    std::string credentialScope = dateHeader + "/" + region + "/" + service + "/aws4_request";
+    std::string stringToSign = "AWS4-HMAC-SHA256\n" + datetimeHeader + "\n" + credentialScope + "\n" + std::string((char*)canonicalRequestHashStr, sizeof(httpfs_extension::hash_str));
+
+    httpfs_extension::hash_bytes dateKey, regionKey, serviceKey, signingKey, signature;
     httpfs_extension::hash_str signatureStr;
-    auto signKey = "AWS4" + std::string(envSecretAccessKey);
-    httpfs_extension::hmac256(dateHeader, signKey.c_str(), signKey.length(), dateSignature);
-    httpfs_extension::hmac256("us-east-1", dateSignature, regionSignature);
-    httpfs_extension::hmac256(service, regionSignature, serviceSignature);
-    httpfs_extension::hmac256("aws4_request", serviceSignature, signingKeySignature);
-    httpfs_extension::hmac256(stringToSign, signingKeySignature, signature);
+
+    std::string secret = "AWS4" + std::string(secretKey);
+    httpfs_extension::hmac256(dateHeader, secret.c_str(), secret.length(), dateKey);
+    httpfs_extension::hmac256(region, dateKey, regionKey);
+    httpfs_extension::hmac256(service, regionKey, serviceKey);
+    httpfs_extension::hmac256("aws4_request", serviceKey, signingKey);
+    httpfs_extension::hmac256(stringToSign, signingKey, signature);
     httpfs_extension::hex256(signature, signatureStr);
 
-    res.insert({"Authorization", "AWS4-HMAC-SHA256 Credential=" + std::string(envAccessKey) + "/" + dateHeader + "/" + "us-east-1" + "/" + service + "/aws4_request, SignedHeaders=" + signedHeaders + ", Signature=" + std::string((char*)signatureStr, sizeof(httpfs_extension::hash_str))});
+    std::string authorization = "AWS4-HMAC-SHA256 Credential=" + std::string(accessKey) + "/" + credentialScope + ", SignedHeaders=" + signedHeaders + ", Signature=" + std::string((char*)signatureStr, sizeof(httpfs_extension::hash_str));
+
+    headers.insert({"Authorization", authorization});
+
+    return headers;
 }
+
 
 
 
@@ -178,6 +196,12 @@ static httplib::Headers getHeaders(const std::string& provider)
         }
         return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
     }
+    else if (provider == "amazon-bedrock")
+    {
+        //WIP
+        //createBedrockHeader(std::string url, std::string query, std::string host, std::string service, std::string method, std::string payloadHash, std::string contentType);
+    }
+
 
     else if (provider == "google-gemini")
     {
