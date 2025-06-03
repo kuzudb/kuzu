@@ -22,7 +22,6 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace llm_extension {
 
-// similar to getEmbeddingDimensions, consider turning into a map
 static std::string getClient(const std::string& provider)
 {
     static const std::unordered_map<std::string, std::string> providerClientMap = 
