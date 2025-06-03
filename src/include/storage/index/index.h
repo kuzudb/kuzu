@@ -107,8 +107,7 @@ public:
 
     virtual std::unique_ptr<InsertState> initInsertState(
         const transaction::Transaction* transaction, MemoryManager* mm, visible_func isVisible) = 0;
-    virtual void insert(transaction::Transaction* transaction,
-        const common::ValueVector& nodeIDVector,
+    virtual void insert(main::ClientContext* context, const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
 
     virtual void checkpointInMemory() {

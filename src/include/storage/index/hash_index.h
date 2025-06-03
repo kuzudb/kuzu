@@ -376,7 +376,7 @@ public:
         MemoryManager*, visible_func isVisible) override {
         return std::make_unique<InsertState>(isVisible);
     }
-    void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
+    void insert(main::ClientContext* context, const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors,
         Index::InsertState& insertState) override;
     bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
