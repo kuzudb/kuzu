@@ -29,6 +29,7 @@ static std::string getClient(const std::string& provider)
     {
         {"open-ai", "https://api.openai.com"},
         {"voyage-ai", "https://api.voyageai.com"},
+        {"google-vertex", "https://aiplatform.googleapis.com"},
         {"google-gemini", "https://generativelanguage.googleapis.com"},
         {"ollama", "http://localhost:11434"}
     };
@@ -67,6 +68,16 @@ static httplib::Headers getHeaders(const std::string& provider)
         return httplib::Headers{{"Content-Type", "applications/json"}};
     }
 
+    else if (provider == "google-vertex")
+    {
+        auto env_key = std::getenv("GOOGLE_VERTEX_ACCESS_KEY");
+        if (env_key == nullptr) 
+        {
+            throw(RuntimeException("Could not get key from: GOOGLE_VERTEX_ACCESS_KEY\n"));
+        }
+        return httplib::Headers {{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
+    }
+
     else if (provider == "ollama")
     {
         return httplib::Headers{{"Content-Type", "applications/json"}};
@@ -91,6 +102,11 @@ static nlohmann::json getPayload(const std::string& provider, const std::string&
     else if (provider == "google-gemini")
     {
         return nlohmann::json {{"model", "models/" + model}, {"content", {{"parts", { {{"text", text}}}}}}};
+    }
+
+    else if (provider == "google-vertex")
+    {
+        return nlohmann::json {{"instances",{{{"content", text}}}}};
     }
 
     else if (provider == "ollama")
@@ -123,6 +139,13 @@ static std::string getPath(const std::string& provider, const std::string& model
         return "/v1beta/models/"+ model +":embedContent?key=" + std::string(env_key);
     }
 
+    else if (provider == "google-vertex")
+    {
+        //TODO: Location is hardcoded, this should be changed
+        return "/v1/projects/kuzu-llm/locations/us-central1/publishers/google/models/"+model+":predict";
+    }
+
+
     else if (provider == "ollama")
     {
         return "/api/embeddings";
@@ -149,11 +172,16 @@ static std::vector<float> getEmbedding(const httplib::Result& res, const std::st
     {
         return nlohmann::json::parse(res->body)["embedding"]["values"].get<std::vector<float>>();
     }
+    else if (provider == "google-vertex")
+    {
+        return nlohmann::json::parse(res->body)["predictions"][0]["embeddings"]["values"].get<std::vector<float>>();
+    }
 
     else if (provider == "ollama")
     {
         return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
     }
+
 
     KU_UNREACHABLE;
     return std::vector<float>();
@@ -168,6 +196,7 @@ static uint64_t getEmbeddingDimensions(const std::string& provider, const std::s
             {"open-ai", {{"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536}, {"text-embedding-ada-002", 1536}}},
             {"voyage-ai", {{"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024}, {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024}, {"voyage-code-2", 1536}}},
             {"ollama", {{"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}}},
+            {"google-vertex", {{"gemini-embedding-001", 3072}}},
             {"google-gemini", {{"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}}}
     };
 
