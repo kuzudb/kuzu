@@ -222,6 +222,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
         bindCopyRelFromInfo(relGroupEntry.getName(), relGroupEntry.getProperties(),
             copyStatement.getSource(), getScanSourceOptions(copyStatement), expectedColumnNames,
             expectedColumnTypes, fromTable, toTable);
+    boundCopyFromInfo.tableEntry = &relGroupEntry;
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
