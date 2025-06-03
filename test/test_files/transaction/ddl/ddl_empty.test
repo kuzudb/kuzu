@@ -598,6 +598,32 @@ Sóló cón tu párejâ|126
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544
 Roma|298
 
+-CASE DropNodeTableManyLargePKString
+-SKIP_IN_MEM
+-STATEMENT call checkpoint_threshold=0
+---- ok
+-STATEMENT create node table tab (id STRING, PRIMARY KEY (id));
+---- ok
+# table used to store some intermediate results
+-STATEMENT create node table stats(id SERIAL, numPages INT64, PRIMARY KEY(id))
+---- ok
+# preallocate storage for stats table
+-STATEMENT create (:stats)
+---- ok
+-STATEMENT COPY tab FROM (unwind range(1, 100000) as i return concat("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", cast(i, "string")));
+---- ok
+-STATEMENT call file_info() with num_pages match (s:stats) where s.id = 0 set s.numPages = num_pages
+---- ok
+-STATEMENT drop table tab
+---- ok
+-STATEMENT create node table tab (id STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY tab FROM (unwind range(1, 100000) as i return concat("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", cast(i, "string")));
+---- ok
+-STATEMENT call file_info() with num_pages match (s:stats) where s.id = 0 return num_pages <= s.numPages
+---- 1
+True
+
 -CASE DropNodeTableRollbackRecovery
 -SKIP_IN_MEM
 -STATEMENT begin transaction

@@ -158,15 +158,12 @@ void OverflowFileHandle::reclaimStorage(PageManager& pageManager) {
             break;
         }
 
-        if (pageWriteCache.contains(pageIdx)) {
-            pageIdx =
-                *reinterpret_cast<page_idx_t*>(pageWriteCache.at(pageIdx)->getData() + END_OF_PAGE);
-        } else {
-            overflowFile.readFromDisk(TransactionType::CHECKPOINT, pageIdx,
-                [&pageIdx](auto* frame) {
-                    pageIdx = *reinterpret_cast<page_idx_t*>(frame + END_OF_PAGE);
-                });
-        }
+        // reclaimStorage() is only called after the hash index is checkpointed
+        // so the page write cache should always be cleared
+        KU_ASSERT(!pageWriteCache.contains(pageIdx));
+        overflowFile.readFromDisk(TransactionType::CHECKPOINT, pageIdx, [&pageIdx](auto* frame) {
+            pageIdx = *reinterpret_cast<page_idx_t*>(frame + END_OF_PAGE);
+        });
     }
 }
 
