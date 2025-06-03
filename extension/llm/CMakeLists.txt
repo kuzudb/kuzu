@@ -4,6 +4,7 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
         ${CMAKE_BINARY_DIR}/src/include
         src/include
+        ../httpfs/src/include
         ${PROJECT_SOURCE_DIR}/third_party/simsimd/include
         ${OPENSSL_INCLUDE_DIR})
 

@@ -9,6 +9,7 @@
 #include "function/function.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
+#include "crypto.h"
 #include "json.hpp"
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "httplib.h"
@@ -38,6 +39,122 @@ static std::string getClient(const std::string& provider)
     KU_ASSERT(clientIter != providerClientMap.end());
     return clientIter->second;
 }
+
+std::string getDateHeader(const timestamp_t& timestamp) {
+    auto date = Timestamp::getDate(timestamp);
+    int32_t year = 0, month = 0, day = 0;
+    Date::convert(date, year, month, day);
+    std::string formatStr = "{}";
+    if (month < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}";
+    if (day < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}";
+    return common::stringFormat(formatStr, year, month, day);
+}
+
+// Timestamp header is in the format: %Y%m%dT%H%M%SZ.
+std::string getDateTimeHeader(const timestamp_t& timestamp) {
+    auto formatStr = getDateHeader(timestamp);
+    auto time = Timestamp::getTime(timestamp);
+    formatStr += "T";
+    int32_t hours = 0, minutes = 0, seconds = 0, micros = 0;
+    Time::convert(time, hours, minutes, seconds, micros);
+    if (hours < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}";
+    if (minutes < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}";
+    if (seconds < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}Z";
+    return common::stringFormat(formatStr, hours, minutes, seconds);
+}
+
+std::string encodeURL(const std::string& input, bool encodeSlash) {
+    static const char* hex_digit = "0123456789ABCDEF";
+    std::string result;
+    result.reserve(input.size());
+    for (auto i = 0u; i < input.length(); i++) {
+        char ch = input[i];
+        if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
+            ch == '_' || ch == '-' || ch == '~' || ch == '.') {
+            result += ch;
+        } else if (ch == '/') {
+            if (encodeSlash) {
+                result += std::string("%2F");
+            } else {
+                result += ch;
+            }
+        } else {
+            result += std::string("%");
+            result += hex_digit[static_cast<unsigned char>(ch) >> 4];
+            result += hex_digit[static_cast<unsigned char>(ch) & 15];
+        }
+    }
+    return result;
+}
+
+
+static void createBedrockHeader(std::string url, std::string query, std::string host,
+    std::string service, std::string method, std::string payloadHash, std::string contentType, httplib::Headers& res) {
+    res.insert({"Host", host});
+    auto envSecretAccessKey = std::getenv("AWS_SECRET_ACCESS_KEY");
+    auto envAccessKey = std::getenv("AWS_ACCESS_KEY");
+
+    if (envAccessKey == nullptr || envSecretAccessKey == nullptr) {
+        return;
+    }
+    static constexpr char NULL_PAYLOAD_HASH[] = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    if (payloadHash.empty()) {
+        payloadHash = NULL_PAYLOAD_HASH;
+    }
+    auto timestamp = common::Timestamp::getCurrentTimestamp();
+    auto dateHeader = getDateHeader(timestamp);
+    auto datetimeHeader = getDateTimeHeader(timestamp);
+    res.insert({"x-amz-date", datetimeHeader});
+    res.insert({"x-amz-content-sha256", payloadHash});
+    std::string signedHeaders = "";
+    httpfs_extension::hash_bytes canonicalRequestHash;
+    httpfs_extension::hash_str canonicalRequestHashStr;
+    if (!contentType.empty()) {
+        signedHeaders += "content-type;";
+    }
+    signedHeaders += "host;x-amz-content-sha256;x-amz-date";
+    auto canonicalRequest = method + "\n" + encodeURL(url, false) + "\n" + query;
+    if (!contentType.empty()) {
+        canonicalRequest += "\ncontent-type:" + contentType;
+    }
+    canonicalRequest += "\nhost:" + host + "\nx-amz-content-sha256:" + payloadHash +
+                        "\nx-amz-date:" + datetimeHeader;
+    canonicalRequest += "\n\n" + signedHeaders + "\n" + payloadHash;
+    httpfs_extension::sha256(canonicalRequest.c_str(), canonicalRequest.length(), canonicalRequestHash);
+    httpfs_extension::hex256(canonicalRequestHash, canonicalRequestHashStr);
+    auto stringToSign = "AWS4-HMAC-SHA256\n" + datetimeHeader + "\n" + dateHeader + "/" +
+                        "us-east-1" + "/" + service + "/aws4_request\n" +
+                        std::string((char*)canonicalRequestHashStr, sizeof(httpfs_extension::hash_str));
+    httpfs_extension::hash_bytes dateSignature, regionSignature, serviceSignature, signingKeySignature, signature;
+    httpfs_extension::hash_str signatureStr;
+    auto signKey = "AWS4" + std::string(envSecretAccessKey);
+    httpfs_extension::hmac256(dateHeader, signKey.c_str(), signKey.length(), dateSignature);
+    httpfs_extension::hmac256("us-east-1", dateSignature, regionSignature);
+    httpfs_extension::hmac256(service, regionSignature, serviceSignature);
+    httpfs_extension::hmac256("aws4_request", serviceSignature, signingKeySignature);
+    httpfs_extension::hmac256(stringToSign, signingKeySignature, signature);
+    httpfs_extension::hex256(signature, signatureStr);
+
+    res.insert({"Authorization", "AWS4-HMAC-SHA256 Credential=" + std::string(envAccessKey) + "/" + dateHeader + "/" + "us-east-1" + "/" + service + "/aws4_request, SignedHeaders=" + signedHeaders + ", Signature=" + std::string((char*)signatureStr, sizeof(httpfs_extension::hash_str))});
+}
+
+
+
 
 
 static httplib::Headers getHeaders(const std::string& provider)
