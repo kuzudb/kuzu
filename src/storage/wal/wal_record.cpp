@@ -189,9 +189,9 @@ static void serializeAlterExtraInfo(Serializer& serializer, const BoundAlterInfo
         serializer.write(renameTableInfo->newName);
     } break;
     case AlterType::ADD_FROM_TO_CONNECTION: {
-        auto addNodePairInfo = extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
-        serializer.write(addNodePairInfo->srcTableID);
-        serializer.write(addNodePairInfo->dstTableID);
+        auto fromToConnectionInfo = extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
+        serializer.write(fromToConnectionInfo->srcTableID);
+        serializer.write(fromToConnectionInfo->dstTableID);
     } break;
     default: {
         KU_UNREACHABLE;

@@ -40,8 +40,9 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(transaction_t timest
     case AlterType::ADD_FROM_TO_CONNECTION: {
         auto& fromToConnectionInfo =
             *alterInfo.extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
-        newEntry->ptrCast<RelGroupCatalogEntry>()->addNodePair(fromToConnectionInfo.srcTableID,
-            fromToConnectionInfo.dstTableID, tables->getNextOIDNoLock());
+        newEntry->ptrCast<RelGroupCatalogEntry>()->addFromToConnection(
+            fromToConnectionInfo.srcTableID, fromToConnectionInfo.dstTableID,
+            tables->getNextOIDNoLock());
     } break;
     default: {
         KU_UNREACHABLE;

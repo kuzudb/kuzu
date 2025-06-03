@@ -37,7 +37,7 @@ Table KNOWS altered.
 6|4
 -RELOADDB
 -STATEMENT MATCH (p)-[e:knows]->(o) RETURN p.ID, o.ID
----- 15
+---- 16
 0|2
 0|3
 0|4
