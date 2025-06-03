@@ -68,8 +68,8 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto createTableInfo =
         CreateTableInfo(TableType::NODE, tableName, getConflictAction(ctx.kU_IfNotExists()));
+    // If CREATE NODE TABLE AS syntax
     if (ctx.oC_Query()) {
-        // If CREATE NODE TABLE AS syntax
         return std::make_unique<CreateTable>(std::move(createTableInfo),
             std::make_unique<QueryScanSource>(transformQuery(*ctx.oC_Query())));
     } else {
@@ -107,7 +107,16 @@ std::unique_ptr<Statement> Transformer::transformCreateRelGroup(
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
     createTableInfo.extraInfo = std::move(extraInfo);
-    return std::make_unique<CreateTable>(std::move(createTableInfo));
+    if (ctx.oC_Query()) {
+        // Currently we don't support multiple from/to pairs for create rel table as
+        if (ctx.kU_FromToConnections()->kU_FromToConnection().size() > 1) {
+            throw ParserException("Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.");
+        }
+        auto scanSource = std::make_unique<QueryScanSource>(transformQuery(*ctx.oC_Query()));
+        return std::make_unique<CreateTable>(std::move(createTableInfo), std::move(scanSource));
+    } else {
+        return std::make_unique<CreateTable>(std::move(createTableInfo));
+    }
 }
 
 std::unique_ptr<Statement> Transformer::transformCreateSequence(

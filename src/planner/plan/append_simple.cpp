@@ -55,8 +55,17 @@ LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
         // messages. even though we do NOT actually output them
         auto dummyStr = std::make_shared<LiteralExpression>(Value("dummy"), "dummy");
         std::vector<std::shared_ptr<LogicalOperator>> children;
-        auto copyPlan = planCopyNodeFrom(&createTable.getCopyInfo(), {dummyStr});
-        children.push_back(copyPlan.getLastOperator());
+        switch (info.type) {
+        case catalog::CatalogEntryType::NODE_TABLE_ENTRY: {
+            children.push_back(planCopyNodeFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
+        } break;
+        case catalog::CatalogEntryType::REL_GROUP_ENTRY: {
+            children.push_back(planCopyRelFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
+        } break;
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
         auto create = std::make_shared<LogicalCreateTable>(info.copy(), dummyStr);
         auto dummySink = std::make_shared<LogicalDummySink>(std::move(create));
         children.push_back(std::move(dummySink));

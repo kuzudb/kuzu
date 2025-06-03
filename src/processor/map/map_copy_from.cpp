@@ -158,7 +158,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
 physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOperator) {
     auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
     const auto copyFromInfo = copyFrom.getInfo();
-    auto& relGroupEntry = copyFromInfo->tableEntry->constCast<RelGroupCatalogEntry>();
     auto partitioner = mapOperator(copyFrom.getChild(0).get());
     KU_ASSERT(partitioner->getOperatorType() == PhysicalOperatorType::PARTITIONER);
     const auto sharedState = partitioner->ptrCast<Partitioner>()->getSharedState();
@@ -170,12 +169,18 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
         catalog->getTableCatalogEntry(transaction, extraInfo.fromTableName)->getTableID();
     auto toTableID =
         catalog->getTableCatalogEntry(transaction, extraInfo.toTableName)->getTableID();
-    auto tableID = relGroupEntry.getRelEntryInfo(fromTableID, toTableID)->oid;
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     const auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(nullptr, fTable,
         &storageManager->getWAL(), clientContext->getMemoryManager());
-    std::vector directions = relGroupEntry.getRelDataDirections();
+    // If table entry doesn't exist, use both directions
+    std::vector directions = {RelDataDirection::FWD, RelDataDirection::BWD};
+    auto tableID = -1;
+    if (copyFromInfo->tableEntry) {
+        auto& relGroupEntry = copyFromInfo->tableEntry->constCast<RelGroupCatalogEntry>();
+        directions = relGroupEntry.getRelDataDirections();
+        tableID = relGroupEntry.getRelEntryInfo(fromTableID, toTableID)->oid;
+    }
     physical_op_vector_t result;
     for (auto direction : directions) {
         auto nbrTableID = RelDirectionUtils::getNbrTableID(direction, fromTableID, toTableID);

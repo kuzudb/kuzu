@@ -52,9 +52,13 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         const auto clientContext = context->clientContext;
         const auto catalog = clientContext->getCatalog();
         const auto transaction = clientContext->getTransaction();
-        const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, tableName)
-                                        ->constCast<RelGroupCatalogEntry>();
-
+        const auto catalogEntry = catalog->getTableCatalogEntry(transaction, tableName);
+        const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
+        if (relBatchInsertInfo->tableID == -1) {
+            KU_ASSERT(relGroupEntry.getRelEntryInfos().size() == 1); // create rel table as
+            relBatchInsertInfo->tableID = relGroupEntry.getRelEntryInfos()[0].oid;
+        }
+        relBatchInsertInfo->tableEntry = catalogEntry;
         sharedState->table = partitionerSharedState->relTable;
         // TODO(Xiyang): rewrite me
         logical_type_vec_t newColumnTypes;
