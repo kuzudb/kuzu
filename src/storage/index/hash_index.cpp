@@ -673,7 +673,10 @@ void PrimaryKeyIndex::reclaimStorage(PageManager& pageManager) const {
     if (overflowFile) {
         overflowFile->reclaimStorage(pageManager);
     }
-    fileHandle->getPageManager()->freePageRange({getFirstHeaderPage(), NUM_HEADER_PAGES});
+    const auto firstHeaderPage = getFirstHeaderPage();
+    if (firstHeaderPage != INVALID_PAGE_IDX) {
+        fileHandle->getPageManager()->freePageRange({getFirstHeaderPage(), NUM_HEADER_PAGES});
+    }
 }
 
 page_idx_t PrimaryKeyIndex::getDiskArrayFirstHeaderPage() const {
