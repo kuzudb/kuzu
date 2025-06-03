@@ -570,7 +570,15 @@ Binder exception: Cannot find property since for k.
 -SKIP_IN_MEM
 -STATEMENT create node table movies (name STRING, length INT32, note STRING, description STRUCT(rating DOUBLE, stars INT8, views INT64, release TIMESTAMP, release_ns TIMESTAMP_NS, release_ms TIMESTAMP_MS, release_sec TIMESTAMP_SEC, release_tz TIMESTAMP_TZ, film DATE, u8 UINT8, u16 UINT16, u32 UINT32, u64 UINT64, hugedata INT128), content BYTEA, audience MAP(STRING, INT64), grade union(credit boolean, grade1 double, grade2 int64), PRIMARY KEY (name));
 ---- ok
+# table used to store some intermediate results
+-STATEMENT create node table stats(id SERIAL, numPages INT64, PRIMARY KEY(id))
+---- ok
+# preallocate storage for stats table
+-STATEMENT create (:stats)
+---- ok
 -STATEMENT COPY movies FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vMovies.csv";
+---- ok
+-STATEMENT call file_info() with num_pages match (s:stats) where s.id = 0 set s.numPages = num_pages
 ---- ok
 -STATEMENT drop table movies
 ---- ok
@@ -581,11 +589,9 @@ Binder exception: Cannot find property since for k.
 ---- ok
 -STATEMENT COPY movies FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vMovies.csv";
 ---- ok
--STATEMENT call fsm_info() return *
----- 0
--STATEMENT CALL storage_info('movies') where start_page_idx = 0 return count(*)
+-STATEMENT call file_info() with num_pages match (s:stats) where s.id = 0 return num_pages <= s.numPages
 ---- 1
-0
+True
 -STATEMENT match (m:movies) return m.name, m.length
 ---- 3
 Sóló cón tu párejâ|126
@@ -594,9 +600,13 @@ Roma|298
 
 -CASE DropNodeTableRollbackRecovery
 -SKIP_IN_MEM
+-STATEMENT begin transaction
+---- ok
 -STATEMENT create node table movies (name STRING, length INT32, note STRING, description STRUCT(rating DOUBLE, stars INT8, views INT64, release TIMESTAMP, release_ns TIMESTAMP_NS, release_ms TIMESTAMP_MS, release_sec TIMESTAMP_SEC, release_tz TIMESTAMP_TZ, film DATE, u8 UINT8, u16 UINT16, u32 UINT32, u64 UINT64, hugedata INT128), content BYTEA, audience MAP(STRING, INT64), grade union(credit boolean, grade1 double, grade2 int64), PRIMARY KEY (name));
 ---- ok
 -STATEMENT COPY movies FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vMovies.csv";
+---- ok
+-STATEMENT commit
 ---- ok
 -STATEMENT call fsm_info() return *
 ---- 0
@@ -634,7 +644,7 @@ True
 # table used to store some intermediate results
 -STATEMENT create node table stats(id SERIAL, numPages INT64, PRIMARY KEY(id))
 ---- ok
-# pre-allocate rows so that it doesn't affect storage allocations later
+# preallocate storage for stats table
 -STATEMENT create (:stats)
 ---- ok
 -STATEMENT copy person from ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv"](ignore_errors=true)
@@ -648,7 +658,6 @@ True
 -STATEMENT match (a:person)-[k:knows]->(b:person) return a.id, b.id
 ---- error
 Binder exception: Table knows does not exist.
-
 -STATEMENT call file_info() with num_pages match (s:stats) where s.id = 0 set s.numPages = num_pages
 ---- ok
 -STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);

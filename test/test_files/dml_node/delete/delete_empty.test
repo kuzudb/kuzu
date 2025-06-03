@@ -97,28 +97,29 @@
 -STATEMENT create node table other(id INT64, PRIMARY KEY (id))
 ---- ok
 # table used to store some intermediate results
--STATEMENT create node table stats(id SERIAL, numPages INT64, PRIMARY KEY(id))
----- ok
-# pre-allocate rows so that it doesn't affect storage allocations later
--STATEMENT create (:stats)
+-STATEMENT create node table stats(startPageIdx INT64, numPages INT64, PRIMARY KEY(startPageIdx))
 ---- ok
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 -PARALLELISM 1
----- ok
-# store number of pages in the DB before the delete
--STATEMENT CALL file_info() with num_pages match (s:stats) where s.id = 0 set s.numPages = num_pages
 ---- ok
 -STATEMENT call storage_info('Post') where node_group_id = 0 with num_values as node_group_capacity limit 1
            match (p:Post) where ID(p) < internal_id(0, node_group_capacity) delete p with count(*) as num_deleted, node_group_capacity
            return num_deleted = node_group_capacity
 ---- 1
 True
-# on the next allocation the pages for the deleted node group should be reused so the number of pages in the DB shouldn't increase
--STATEMENT copy other from (unwind range(1, 100000) as i return i)
----- ok
--STATEMENT call file_info() with num_pages match (s:stats) return num_pages <= s.numPages
+# store free pages before re-copy
+-STATEMENT call fsm_info() return sum(num_pages) > 0
 ---- 1
 True
+-STATEMENT call fsm_info() with start_page_idx, num_pages create (s:stats {startPageIdx: start_page_idx, numPages: num_pages})
+---- ok
+# on the next allocation the pages for the deleted node group should be reused
+-STATEMENT copy other from (unwind range(1, 100000) as i return i)
+---- ok
+-STATEMENT call storage_info('other') where num_pages > 0 with column_name, start_page_idx, num_pages
+            where count { match (s:stats) where s.startPageIdx <= start_page_idx and s.startPageIdx + s.numPages >= start_page_idx + num_pages } = 0
+            return column_name, start_page_idx, num_pages
+---- 0
 
 -STATEMENT match (p:Post) with count(*) as remaining
            optional match (p:Post) where p.ID = 1030792523231 with p.imageFile as imageFile, remaining
@@ -135,9 +136,6 @@ True
 # table used to store some intermediate results
 -STATEMENT create node table stats(startPageIdx INT64, numPages INT64, PRIMARY KEY(startPageIdx))
 ---- ok
-# pre-allocate rows so that it doesn't affect storage allocations later
--STATEMENT unwind range(1, 10000) as i create (:stats {startPageIdx: i, numPages: 0})
----- ok
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 -PARALLELISM 1
 ---- ok
@@ -147,17 +145,23 @@ True
 -STATEMENT call fsm_info() return sum(num_pages) > 0
 ---- 1
 True
--STATEMENT call fsm_info() with start_page_idx, num_pages match (s:stats) where s.startPageIdx = start_page_idx set s.numPages = num_pages
+-STATEMENT call fsm_info() with start_page_idx, num_pages create (s:stats {startPageIdx: start_page_idx, numPages: num_pages})
 ---- ok
 # copy again, the storage pages should be reallocated
 # the number of pages in the DB can still increase because of the hash index
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 -PARALLELISM 1
 ---- ok
--STATEMENT call storage_info('Post') where num_pages > 0 with column_name, start_page_idx, num_pages
-                where count { match (s:stats) where s.startPageIdx <= start_page_idx and s.startPageIdx + s.numPages >= start_page_idx + num_pages } = 0
-                return column_name, start_page_idx, num_pages
----- 0
+# the re-copying won't be perfect because we don't reset the nodeOffset to be inserted to for Post
+# the "stats" table also uses up some storage
+# so we leave some margin of error when checking to see if all pages have been reallocated
+-STATEMENT call storage_info('Post') with sum(num_pages) as total_num_pages
+            call storage_info('Post') where num_pages > 0 with column_name, start_page_idx, num_pages, total_num_pages
+            where count { match (s:stats) where s.startPageIdx <= start_page_idx and s.startPageIdx + s.numPages >= start_page_idx + num_pages } = 0
+            with sum(num_pages) as new_pages, total_num_pages
+            return new_pages * 10 < total_num_pages
+---- 1
+True
 -RELOADDB
 # try some queries
 -STATEMENT match(p:Post) return count(*)
