@@ -207,13 +207,13 @@ std::unique_ptr<Statement> Transformer::transformAddFromToConnection(
     CypherParser::KU_AlterTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto srcTableName = transformSchemaName(*ctx.kU_AlterOptions()
-            ->kU_AddFromToConnection()
-            ->kU_FromToConnection()
-            ->oC_SchemaName()[0]);
+                                                 ->kU_AddFromToConnection()
+                                                 ->kU_FromToConnection()
+                                                 ->oC_SchemaName()[0]);
     auto dstTableName = transformSchemaName(*ctx.kU_AlterOptions()
-            ->kU_AddFromToConnection()
-            ->kU_FromToConnection()
-            ->oC_SchemaName()[1]);
+                                                 ->kU_AddFromToConnection()
+                                                 ->kU_FromToConnection()
+                                                 ->oC_SchemaName()[1]);
     auto extraInfo = std::make_unique<ExtraAddFromToConnection>(std::move(srcTableName),
         std::move(dstTableName));
     auto info =
