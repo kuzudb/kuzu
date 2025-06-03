@@ -676,7 +676,9 @@ void PrimaryKeyIndex::reclaimStorage(PageManager& pageManager) const {
 }
 
 page_idx_t PrimaryKeyIndex::getDiskArrayFirstHeaderPage() const {
-    return getFirstHeaderPage() + NUM_HEADER_PAGES;
+    const auto firstHeaderPage = getFirstHeaderPage();
+    return firstHeaderPage == INVALID_PAGE_IDX ? INVALID_PAGE_IDX :
+                                                 firstHeaderPage + NUM_HEADER_PAGES;
 }
 
 page_idx_t PrimaryKeyIndex::getFirstHeaderPage() const {

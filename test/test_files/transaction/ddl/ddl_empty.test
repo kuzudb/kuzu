@@ -631,6 +631,12 @@ True
 ---- ok
 -STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
 ---- ok
+# table used to store some intermediate results
+-STATEMENT create node table stats(id SERIAL, numPages INT64, PRIMARY KEY(id))
+---- ok
+# pre-allocate rows so that it doesn't affect storage allocations later
+-STATEMENT create (:stats)
+---- ok
 -STATEMENT copy person from ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv"](ignore_errors=true)
 ---- ok
 -STATEMENT COPY knows FROM ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"];
@@ -639,23 +645,25 @@ True
 ---- ok
 -STATEMENT checkpoint
 ---- ok
--STATEMENT match (a)-[k:knows]->(b) return a.id, b.id
+-STATEMENT match (a:person)-[k:knows]->(b:person) return a.id, b.id
 ---- error
 Binder exception: Table knows does not exist.
 
+-STATEMENT call file_info() with num_pages match (s:stats) where s.id = 0 set s.numPages = num_pages
+---- ok
 -STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
 ---- ok
 -STATEMENT COPY knows FROM ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"];
 ---- ok
--STATEMENT call fsm_info() return *
----- 0
--STATEMENT CALL storage_info('person') where start_page_idx < 4294967295 with max(start_page_idx + num_pages) as expected_start_page_idx
-        CALL storage_info('knows') where start_page_idx = expected_start_page_idx return count(*)
+# The DB shouldn't grow after the recopy
+-STATEMENT CALL file_info() with num_pages match (s:stats) return num_pages <= s.numPages
 ---- 1
-0
+True
 
 -CASE DropRelTableRollbackRecovery
 -SKIP_IN_MEM
+-STATEMENT begin transaction
+---- ok
 -STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, state STRUCT(revenue INT16, location STRING[], stock STRUCT(price INT64[], volume INT64)), info UNION(price FLOAT, movein DATE, note STRING),PRIMARY KEY (ID));
@@ -667,6 +675,10 @@ Binder exception: Table knows does not exist.
 -STATEMENT COPY organisation FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vOrganisation.csv";
 ---- ok
 -STATEMENT COPY studyAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv";
+---- ok
+-STATEMENT commit;
+         checkpoint;
+---- ok
 ---- ok
 -STATEMENT call fsm_info() return *
 ---- 0
