@@ -175,7 +175,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
         &storageManager->getWAL(), clientContext->getMemoryManager());
     // If table entry doesn't exist, use both directions
     std::vector directions = {RelDataDirection::FWD, RelDataDirection::BWD};
-    auto tableID = -1;
+    table_id_t tableID = 0;
     if (copyFromInfo->tableEntry) {
         auto& relGroupEntry = copyFromInfo->tableEntry->constCast<RelGroupCatalogEntry>();
         directions = relGroupEntry.getRelDataDirections();
