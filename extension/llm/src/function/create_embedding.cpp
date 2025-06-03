@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <unordered_map>
+#include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
@@ -24,30 +25,21 @@ namespace llm_extension {
 // similar to getEmbeddingDimensions, consider turning into a map
 static std::string getClient(const std::string& provider)
 {
-    if (provider == "open-ai")
+    static const std::unordered_map<std::string, std::string> providerClientMap = 
     {
-        return "https://api.openai.com";
-    }
+        {"open-ai", "https://api.openai.com"},
+        {"voyage-ai", "https://api.voyageai.com"},
+        {"google-gemini", "https://generativelanguage.googleapis.com"},
+        {"ollama", "http://localhost:11434"}
+    };
 
-    else if (provider == "voyage-ai")
-    {
-        return "https://api.voyageai.com";
-    }
-    else if (provider == "google-gemini")
-    {
-        return "https://generativelanguage.googleapis.com";
-    }
-    else if (provider == "ollama")
-    {
-        return "http://localhost:11434";
-    }
-    
-    throw(RuntimeException("Invalid Provider: " + provider));
-    return std::string();
+    auto clientIter = providerClientMap.find(provider);
+    // Invalid Provider Error Would Be Thrown By GetEmbeddingDimensions
+    KU_ASSERT(clientIter != providerClientMap.end());
+    return clientIter->second;
 }
 
 
-// similar to getEmbeddingDimensions, consider turning into a map
 static httplib::Headers getHeaders(const std::string& provider)
 {
     if (provider == "open-ai")
@@ -79,11 +71,12 @@ static httplib::Headers getHeaders(const std::string& provider)
     {
         return httplib::Headers{{"Content-Type", "applications/json"}};
     }
-    throw(RuntimeException("Invalid Provider: " + provider));
+
+    // Invalid Provider Error Would Be Thrown By GetEmbeddingDimensions
+    KU_UNREACHABLE;
     return httplib::Headers{};
 }
 
-// similar to getEmbeddingDimensions, consider turning into a map
 static nlohmann::json getPayload(const std::string& provider, const std::string& model, const std::string& text)
 {
     if (provider == "open-ai")
@@ -104,11 +97,12 @@ static nlohmann::json getPayload(const std::string& provider, const std::string&
     {
         return nlohmann::json {{"model", model}, {"prompt", text}};
     }
-    throw(RuntimeException("Invalid Provider: " + provider));
+
+    // Invalid Provider Error Would Be Thrown By GetEmbeddingDimensions
+    KU_UNREACHABLE;
     return 0;
 }
 
-// similar to getEmbeddingDimensions, consider turning into a map
 static std::string getPath(const std::string& provider, const std::string& model)
 {
     if (provider == "open-ai")
@@ -133,7 +127,8 @@ static std::string getPath(const std::string& provider, const std::string& model
     {
         return "/api/embeddings";
     }
-    throw(RuntimeException("Invalid Provider: " + provider));
+    // Invalid Provider Error Would Be Thrown By GetEmbeddingDimensions
+    KU_UNREACHABLE;
     return std::string();
 
 }
@@ -160,7 +155,7 @@ static std::vector<float> getEmbedding(const httplib::Result& res, const std::st
         return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
     }
 
-    throw(RuntimeException("Invalid Provider: " + provider));
+    KU_UNREACHABLE;
     return std::vector<float>();
 
 }
