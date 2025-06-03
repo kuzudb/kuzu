@@ -8,6 +8,7 @@ add_subdirectory(src/catalog)
 add_subdirectory(src/function)
 add_subdirectory(src/main)
 add_subdirectory(test)
+add_subdirectory(src/index)
 
 add_subdirectory(third_party/snowball)
 
