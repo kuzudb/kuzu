@@ -110,7 +110,8 @@ std::unique_ptr<Statement> Transformer::transformCreateRelGroup(
     if (ctx.oC_Query()) {
         // Currently we don't support multiple from/to pairs for create rel table as
         if (ctx.kU_FromToConnections()->kU_FromToConnection().size() > 1) {
-            throw ParserException("Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.");
+            throw ParserException(
+                "Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.");
         }
         auto scanSource = std::make_unique<QueryScanSource>(transformQuery(*ctx.oC_Query()));
         return std::make_unique<CreateTable>(std::move(createTableInfo), std::move(scanSource));

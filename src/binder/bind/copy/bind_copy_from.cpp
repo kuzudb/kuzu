@@ -145,15 +145,22 @@ static options_t getScanSourceOptions(const CopyFrom& copyFrom) {
     return options;
 }
 
-BoundCopyFromInfo Binder::bindCopyRelFromInfo(std::string tableName, const std::vector<PropertyDefinition>& properties, const BaseScanSource* source, const options_t& parsingOptions, const std::vector<std::string>& expectedColumnNames, const std::vector<LogicalType>& expectedColumnTypes, const NodeTableCatalogEntry* fromTable, const NodeTableCatalogEntry* toTable) {
-    auto boundSource = bindScanSource(source, parsingOptions, expectedColumnNames, expectedColumnTypes);
+BoundCopyFromInfo Binder::bindCopyRelFromInfo(std::string tableName,
+    const std::vector<PropertyDefinition>& properties, const BaseScanSource* source,
+    const options_t& parsingOptions, const std::vector<std::string>& expectedColumnNames,
+    const std::vector<LogicalType>& expectedColumnTypes, const NodeTableCatalogEntry* fromTable,
+    const NodeTableCatalogEntry* toTable) {
+    auto boundSource =
+        bindScanSource(source, parsingOptions, expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     auto columns = boundSource->getColumns();
-    auto offset = createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
+    auto offset =
+        createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
     auto srcOffset = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalType::INT64());
     auto dstOffset = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalType::INT64());
     expression_vector columnExprs{srcOffset, dstOffset, offset};
-    std::vector<ColumnEvaluateType> evaluateTypes{ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE};
+    std::vector<ColumnEvaluateType> evaluateTypes{ColumnEvaluateType::REFERENCE,
+        ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE};
     for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         auto& property = properties[i];
         auto [evaluateType, column] =
@@ -173,12 +180,14 @@ BoundCopyFromInfo Binder::bindCopyRelFromInfo(std::string tableName, const std::
     } else {
         dstKey = columns[1];
     }
-    auto srcLookUpInfo = IndexLookupInfo(fromTable->getTableID(), srcOffset, srcKey, warningDataExprs);
-    auto dstLookUpInfo = IndexLookupInfo(toTable->getTableID(), dstOffset, dstKey, warningDataExprs);
+    auto srcLookUpInfo =
+        IndexLookupInfo(fromTable->getTableID(), srcOffset, srcKey, warningDataExprs);
+    auto dstLookUpInfo =
+        IndexLookupInfo(toTable->getTableID(), dstOffset, dstKey, warningDataExprs);
     auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
     auto internalIDColumnIndices = std::vector<idx_t>{0, 1, 2};
-    auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>(fromTable->getName(), toTable->getName(),
-        internalIDColumnIndices, lookupInfos);
+    auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>(fromTable->getName(),
+        toTable->getName(), internalIDColumnIndices, lookupInfos);
     return BoundCopyFromInfo(tableName, TableType::REL, boundSource->copy(), offset,
         std::move(columnExprs), std::move(evaluateTypes), std::move(extraCopyRelInfo));
 }
@@ -194,8 +203,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     // Bind from to tables
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
-    auto fromTable = catalog->getTableCatalogEntry(transaction, fromTableName)->ptrCast<NodeTableCatalogEntry>();
-    auto toTable = catalog->getTableCatalogEntry(transaction, toTableName)->ptrCast<NodeTableCatalogEntry>();
+    auto fromTable =
+        catalog->getTableCatalogEntry(transaction, fromTableName)->ptrCast<NodeTableCatalogEntry>();
+    auto toTable =
+        catalog->getTableCatalogEntry(transaction, toTableName)->ptrCast<NodeTableCatalogEntry>();
     auto relInfo = relGroupEntry.getRelEntryInfo(fromTable->getTableID(), toTable->getTableID());
     if (relInfo == nullptr) {
         throw BinderException(stringFormat("Rel table {} does not contain {}-{} from-to pair.",
@@ -207,7 +218,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     bindExpectedRelColumns(relGroupEntry, *fromTable, *toTable, copyStatement.getCopyColumnInfo(),
         expectedColumnNames, expectedColumnTypes);
     // Bind info
-    auto boundCopyFromInfo = bindCopyRelFromInfo(relGroupEntry.getName(), relGroupEntry.getProperties(), copyStatement.getSource(), getScanSourceOptions(copyStatement), expectedColumnNames, expectedColumnTypes, fromTable, toTable);
+    auto boundCopyFromInfo =
+        bindCopyRelFromInfo(relGroupEntry.getName(), relGroupEntry.getProperties(),
+            copyStatement.getSource(), getScanSourceOptions(copyStatement), expectedColumnNames,
+            expectedColumnTypes, fromTable, toTable);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

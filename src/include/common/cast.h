@@ -12,9 +12,7 @@ TO ku_dynamic_cast(FROM* old) {
 #if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
     static_assert(std::is_pointer<TO>());
     TO newVal = dynamic_cast<TO>(old);
-    if (!newVal) {
-
-    }
+    if (!newVal) {}
     KU_ASSERT(newVal != nullptr);
     return newVal;
 #else

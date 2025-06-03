@@ -44,9 +44,9 @@ struct KUZU_API BoundCopyFromInfo {
           offset{std::move(offset)}, columnExprs{std::move(columnExprs)},
           columnEvaluateTypes{std::move(columnEvaluateTypes)}, extraInfo{std::move(extraInfo)} {}
 
-    BoundCopyFromInfo(std::string tableName, common::TableType tableType, std::unique_ptr<BoundBaseScanSource> source,
-        std::shared_ptr<Expression> offset, expression_vector columnExprs,
-        std::vector<common::ColumnEvaluateType> columnEvaluateTypes,
+    BoundCopyFromInfo(std::string tableName, common::TableType tableType,
+        std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
+        expression_vector columnExprs, std::vector<common::ColumnEvaluateType> columnEvaluateTypes,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableEntry{nullptr}, tableName{std::move(tableName)}, tableType{tableType},
           source{std::move(source)}, offset{std::move(offset)}, columnExprs{std::move(columnExprs)},

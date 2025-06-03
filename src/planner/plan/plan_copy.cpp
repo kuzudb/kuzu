@@ -28,7 +28,8 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     // If the table entry doesn't exist, assume both directions
     std::vector<RelDataDirection> directions = {RelDataDirection::FWD, RelDataDirection::BWD};
     if (copyFromInfo.tableEntry) {
-        directions = copyFromInfo.tableEntry->constPtrCast<RelGroupCatalogEntry>()->getRelDataDirections();
+        directions =
+            copyFromInfo.tableEntry->constPtrCast<RelGroupCatalogEntry>()->getRelDataDirections();
     }
     for (auto direction : directions) {
         info.partitioningInfos.push_back(

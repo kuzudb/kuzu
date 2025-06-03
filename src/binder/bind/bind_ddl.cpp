@@ -280,17 +280,25 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const CreateTable& cre
     }
     case TableType::REL: {
         auto& extraInfo = createInfo->extraInfo->constCast<ExtraCreateRelTableGroupInfo>();
-        KU_ASSERT(extraInfo.srcDstTablePairs.size() == 1); // for now, we only support one from-to pair
+        KU_ASSERT(
+            extraInfo.srcDstTablePairs.size() == 1); // for now, we only support one from-to pair
         propertyDefinitions.insert(propertyDefinitions.begin(),
             PropertyDefinition(ColumnDefinition(InternalKeyword::ID, LogicalType::INTERNAL_ID())));
         auto catalog = clientContext->getCatalog();
         auto transaction = clientContext->getTransaction();
-        auto fromTable = catalog->getTableCatalogEntry(transaction, extraInfo.srcDstTablePairs[0].first)->ptrCast<NodeTableCatalogEntry>();
-        auto toTable = catalog->getTableCatalogEntry(transaction, extraInfo.srcDstTablePairs[0].second)->ptrCast<NodeTableCatalogEntry>();
+        auto fromTable =
+            catalog->getTableCatalogEntry(transaction, extraInfo.srcDstTablePairs[0].first)
+                ->ptrCast<NodeTableCatalogEntry>();
+        auto toTable =
+            catalog->getTableCatalogEntry(transaction, extraInfo.srcDstTablePairs[0].second)
+                ->ptrCast<NodeTableCatalogEntry>();
         auto boundCreateInfo = bindCreateRelTableGroupInfo(createInfo);
-        auto boundCopyFromInfo = bindCopyRelFromInfo(createInfo->tableName, propertyDefinitions, createTable.getSource(), options_t{}, columnNames, columnTypes, fromTable, toTable);
-        boundCreateInfo.extraInfo->ptrCast<BoundExtraCreateTableInfo>()->propertyDefinitions = std::move(propertyDefinitions);
-        auto boundCreateTable = std::make_unique<BoundCreateTable>(std::move(boundCreateInfo), BoundStatementResult::createEmptyResult());
+        auto boundCopyFromInfo = bindCopyRelFromInfo(createInfo->tableName, propertyDefinitions,
+            createTable.getSource(), options_t{}, columnNames, columnTypes, fromTable, toTable);
+        boundCreateInfo.extraInfo->ptrCast<BoundExtraCreateTableInfo>()->propertyDefinitions =
+            std::move(propertyDefinitions);
+        auto boundCreateTable = std::make_unique<BoundCreateTable>(std::move(boundCreateInfo),
+            BoundStatementResult::createEmptyResult());
         boundCreateTable->setCopyInfo(std::move(boundCopyFromInfo));
         return boundCreateTable;
     }
