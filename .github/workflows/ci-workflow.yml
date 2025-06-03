@@ -700,17 +700,12 @@ jobs:
       - name: Check source headers for include guards
         run: ./scripts/check-include-guards.sh src/include
           ./scripts/check-include-guards.sh test/include
-          ./scripts/check-include-guards.sh extension/*/src/include
 
       - name: Check extension headers for include guards
-        run: ./scripts/check-include-guards.sh extension/delta/src/include
-          ./scripts/check-include-guards.sh extension/duckdb/src/include
-          ./scripts/check-include-guards.sh extension/fts/src/include
-          ./scripts/check-include-guards.sh extension/httpfs/src/include
-          ./scripts/check-include-guards.sh extension/iceberg/src/include
-          ./scripts/check-include-guards.sh extension/json/src/include
-          ./scripts/check-include-guards.sh extension/postgres/src/include
-          ./scripts/check-include-guards.sh extension/sqlite/src/include
+        run: |
+          for dir in extension/*/src/include ;do
+            ./scripts/check-include-guards.sh "$dir"
+          done
 
       - name: Checks source files for std::assert
         run: ./scripts/check-no-std-assert.sh src
