@@ -188,6 +188,11 @@ static void serializeAlterExtraInfo(Serializer& serializer, const BoundAlterInfo
         auto renameTableInfo = extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
         serializer.write(renameTableInfo->newName);
     } break;
+    case AlterType::ADD_NODE_PAIR: {
+        auto addNodePairInfo = extraInfo->constPtrCast<BoundExtraAddNodePairInfo>();
+        serializer.write(addNodePairInfo->srcTableID);
+        serializer.write(addNodePairInfo->dstTableID);
+    } break;
     default: {
         KU_UNREACHABLE;
     }

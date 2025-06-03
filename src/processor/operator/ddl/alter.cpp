@@ -206,6 +206,14 @@ void Alter::alterTable(main::ClientContext* clientContext, TableCatalogEntry* en
         }
         }
     } break;
+    case AlterType::ADD_NODE_PAIR: {
+        auto relGroupEntry = catalog->getTableCatalogEntry(transaction, alterInfo.tableName)
+                                 ->ptrCast<RelGroupCatalogEntry>();
+        auto addNodePairInfo = alterInfo.extraInfo->constPtrCast<BoundExtraAddNodePairInfo>();
+        storageManager->addRelTable(relGroupEntry,
+            *relGroupEntry->getRelEntryInfo(addNodePairInfo->srcTableID,
+                addNodePairInfo->dstTableID));
+    } break;
     default:
         break;
     }

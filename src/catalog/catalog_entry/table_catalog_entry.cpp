@@ -13,7 +13,7 @@ namespace kuzu {
 namespace catalog {
 
 std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(transaction_t timestamp,
-    const BoundAlterInfo& alterInfo) const {
+    const BoundAlterInfo& alterInfo, CatalogSet* tables) const {
     KU_ASSERT(!deleted);
     auto newEntry = copy();
     switch (alterInfo.alterType) {
@@ -36,6 +36,11 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(transaction_t timest
     case AlterType::COMMENT: {
         auto& commentInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraCommentInfo>();
         newEntry->setComment(commentInfo.comment);
+    } break;
+    case AlterType::ADD_NODE_PAIR: {
+        auto& commentInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraAddNodePairInfo>();
+        newEntry->ptrCast<RelGroupCatalogEntry>()->addNodePair(commentInfo.srcTableID,
+            commentInfo.dstTableID, tables->getNextOIDNoLock());
     } break;
     default: {
         KU_UNREACHABLE;

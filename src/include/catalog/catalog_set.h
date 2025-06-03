@@ -37,8 +37,6 @@ public:
 
     void alterTableEntry(transaction::Transaction* transaction,
         const binder::BoundAlterInfo& alterInfo);
-    void alterRelGroupEntry(transaction::Transaction* transaction,
-        const binder::BoundAlterInfo& alterInfo);
 
     CatalogEntrySet getEntries(const transaction::Transaction* transaction);
     CatalogEntry* getEntryOfOID(const transaction::Transaction* transaction, common::oid_t oid);
@@ -50,6 +48,8 @@ public:
         std::unique_lock lck{mtx};
         return nextOID++;
     }
+
+    common::oid_t getNextOIDNoLock() { return nextOID++; }
 
 private:
     bool containsEntryNoLock(const transaction::Transaction* transaction,
