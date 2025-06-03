@@ -104,8 +104,8 @@ private:
 
     static void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS);
-    static void rollbackRecord(transaction::Transaction* transaction,
-        UndoRecordType recordType, const uint8_t* record);
+    static void rollbackRecord(transaction::Transaction* transaction, UndoRecordType recordType,
+        const uint8_t* record);
 
     static void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS);
     static void rollbackCatalogEntryRecord(const uint8_t* record);

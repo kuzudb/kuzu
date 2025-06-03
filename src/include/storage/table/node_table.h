@@ -189,9 +189,8 @@ public:
     void rollbackCheckpoint() override;
     void reclaimStorage(FileHandle& dataFH) override;
 
-    void rollbackPKIndexInsert(transaction::Transaction* transaction,
-        common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::node_group_idx_t nodeGroupIdx_);
+    void rollbackPKIndexInsert(transaction::Transaction* transaction, common::row_idx_t startRow,
+        common::row_idx_t numRows_, common::node_group_idx_t nodeGroupIdx_);
     void rollbackGroupCollectionInsert(common::row_idx_t numRows_);
 
     common::node_group_idx_t getNumCommittedNodeGroups() const {
