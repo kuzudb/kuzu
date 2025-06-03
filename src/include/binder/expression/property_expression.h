@@ -38,10 +38,6 @@ public:
           propertyName{other.propertyName}, uniqueVarName{other.uniqueVarName},
           rawVariableName{other.rawVariableName}, infos{copyUnorderedMap(other.infos)} {}
 
-    // Construct from a virtual property, i.e. no propertyID available.
-    static std::unique_ptr<PropertyExpression> construct(common::LogicalType type,
-        const std::string& propertyName, const Expression& child);
-
     // If this property is primary key on all tables.
     bool isPrimaryKey() const;
     // If this property is primary key for given table.
@@ -54,15 +50,11 @@ public:
     // If this property exists for given table.
     bool hasProperty(common::table_id_t tableID) const;
 
-    common::column_id_t getColumnID(const catalog::TableCatalogEntry& entry) const;
+    // common::column_id_t getColumnID(const catalog::TableCatalogEntry& entry) const;
     bool isSingleLabel() const { return infos.size() == 1; }
     common::table_id_t getSingleTableID() const { return infos.begin()->first; }
 
     bool isInternalID() const { return getPropertyName() == common::InternalKeyword::ID; }
-
-    std::unique_ptr<Expression> copy() const override {
-        return make_unique<PropertyExpression>(*this);
-    }
 
     std::string toStringInternal() const override { return rawVariableName + "." + propertyName; }
 

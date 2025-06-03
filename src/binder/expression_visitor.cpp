@@ -160,7 +160,7 @@ expression_vector ExpressionChildrenCollector::collectSubqueryChildren(
 expression_vector ExpressionChildrenCollector::collectNodeChildren(const Expression& expression) {
     expression_vector result;
     auto& node = expression.constCast<NodeExpression>();
-    for (auto& property : node.getPropertyExprs()) {
+    for (auto& property : node.getPropertyExpressions()) {
         result.push_back(property);
     }
     result.push_back(node.getInternalID());
@@ -172,7 +172,7 @@ expression_vector ExpressionChildrenCollector::collectRelChildren(const Expressi
     auto& rel = expression.constCast<RelExpression>();
     result.push_back(rel.getSrcNode()->getInternalID());
     result.push_back(rel.getDstNode()->getInternalID());
-    for (auto& property : rel.getPropertyExprs()) {
+    for (auto& property : rel.getPropertyExpressions()) {
         result.push_back(property);
     }
     if (rel.hasDirectionExpr()) {
@@ -243,7 +243,7 @@ void PropertyExprCollector::visitPropertyExpr(std::shared_ptr<Expression> expr) 
 }
 
 void PropertyExprCollector::visitNodeRelExpr(std::shared_ptr<Expression> expr) {
-    for (auto& property : expr->constCast<NodeOrRelExpression>().getPropertyExprs()) {
+    for (auto& property : expr->constCast<NodeOrRelExpression>().getPropertyExpressions()) {
         expressions.push_back(property);
     }
 }

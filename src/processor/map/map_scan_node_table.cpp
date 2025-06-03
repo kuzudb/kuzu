@@ -32,11 +32,24 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(
     std::vector<std::string> tableNames;
     for (const auto& tableID : tableIDs) {
         auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
+        auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
         std::vector<column_id_t> columnIDs;
         for (auto& expr : scan.getProperties()) {
-            columnIDs.push_back(expr->constCast<PropertyExpression>().getColumnID(*tableEntry));
+            auto& property = expr->constCast<PropertyExpression>();
+            if (property.hasProperty(tableEntry->getTableID())) {
+                auto propertyName = property.getPropertyName();
+                columnIDs.push_back(tableEntry->getColumnID(propertyName));
+                auto& columnType = tableEntry->getProperty(propertyName).getType();
+                if (property.getDataType() != columnType) {
+                    throw RuntimeException(stringFormat(
+                        "Trying to cast property {} from {} to {} in ScanNodeTable. This is not "
+                        "supported yet.",
+                        expr->toString(), columnType.toString(), expr->getDataType().toString()));
+                }
+            } else {
+                columnIDs.push_back(INVALID_COLUMN_ID);
+            }
         }
-        auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
         tableInfos.emplace_back(table, std::move(columnIDs),
             copyVector(scan.getPropertyPredicates()));
         tableNames.push_back(table->getTableName());

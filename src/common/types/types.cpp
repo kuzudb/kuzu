@@ -183,16 +183,6 @@ struct_field_idx_t StructType::getFieldIdx(const LogicalType& type, const std::s
     return structTypeInfo->getStructFieldIdx(key);
 }
 
-LogicalType StructType::getNodeType(const catalog::NodeTableCatalogEntry& entry) {
-    std::vector<StructField> nodeFields;
-    nodeFields.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
-    nodeFields.emplace_back(InternalKeyword::LABEL, LogicalType::STRING());
-    for (auto& property : entry.getProperties()) {
-        nodeFields.emplace_back(property.getName(), property.getType().copy());
-    }
-    return LogicalType::NODE(std::make_unique<StructTypeInfo>(std::move(nodeFields)));
-}
-
 const LogicalType& MapType::getKeyType(const LogicalType& type) {
     KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::MAP);
     return *StructType::getFieldTypes(ListType::getChildType(type))[0];
@@ -1269,8 +1259,8 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
     typeVec.push_back(LogicalType::MAP(LogicalType::ANY(), LogicalType::ANY()));
     typeVec.push_back(LogicalType::FLOAT());
     typeVec.push_back(LogicalType::SERIAL());
-    typeVec.push_back(LogicalType::NODE(std::make_unique<StructTypeInfo>()));
-    typeVec.push_back(LogicalType::REL(std::make_unique<StructTypeInfo>()));
+    typeVec.push_back(LogicalType::NODE({}));
+    typeVec.push_back(LogicalType::REL({}));
     typeVec.push_back(LogicalType::STRUCT({}));
     typeVec.push_back(LogicalType::UNION({}));
     return typeVec;
@@ -1406,16 +1396,17 @@ LogicalType LogicalType::STRUCT(std::vector<StructField>&& fields) {
     return LogicalType(LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(fields)));
 }
 
-LogicalType LogicalType::RECURSIVE_REL(std::unique_ptr<StructTypeInfo> typeInfo) {
-    return LogicalType(LogicalTypeID::RECURSIVE_REL, std::move(typeInfo));
+LogicalType LogicalType::RECURSIVE_REL(std::vector<StructField>&& fields) {
+    return LogicalType(LogicalTypeID::RECURSIVE_REL,
+        std::make_unique<StructTypeInfo>(std::move(fields)));
 }
 
-LogicalType LogicalType::NODE(std::unique_ptr<StructTypeInfo> typeInfo) {
-    return LogicalType(LogicalTypeID::NODE, std::move(typeInfo));
+LogicalType LogicalType::NODE(std::vector<StructField>&& fields) {
+    return LogicalType(LogicalTypeID::NODE, std::make_unique<StructTypeInfo>(std::move(fields)));
 }
 
-LogicalType LogicalType::REL(std::unique_ptr<StructTypeInfo> typeInfo) {
-    return LogicalType(LogicalTypeID::REL, std::move(typeInfo));
+LogicalType LogicalType::REL(std::vector<StructField>&& fields) {
+    return LogicalType(LogicalTypeID::REL, std::make_unique<StructTypeInfo>(std::move(fields)));
 }
 
 LogicalType LogicalType::UNION(std::vector<StructField>&& fields) {

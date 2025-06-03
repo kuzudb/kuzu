@@ -156,9 +156,10 @@ static std::optional<cardinality_t> getTableStatsIfPossible(main::ClientContext*
     if (isSingleLabelledProperty(*predicate.getChild(0))) {
         auto& propertyExpr = predicate.getChild(0)->cast<PropertyExpression>();
         auto tableID = propertyExpr.getSingleTableID();
-        if (nodeTableStats.contains(tableID)) {
-            auto columnID = propertyExpr.getColumnID(
-                *context->getCatalog()->getTableCatalogEntry(context->getTransaction(), tableID));
+        if (nodeTableStats.contains(tableID) && propertyExpr.hasProperty(tableID)) {
+            auto entry =
+                context->getCatalog()->getTableCatalogEntry(context->getTransaction(), tableID);
+            auto columnID = entry->getColumnID(propertyExpr.getPropertyName());
             if (columnID != INVALID_COLUMN_ID && columnID != ROW_IDX_COLUMN_ID) {
                 auto& stats = nodeTableStats.at(tableID);
                 return atLeastOne(stats.getNumDistinctValues(columnID));
