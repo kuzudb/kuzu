@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-# Declare explicit build targets to avoid conflict with files of the same name.
+# Explicit targets to avoid conflict with files of the same name.
 .PHONY: \
 	requirements \
 	lint check format \

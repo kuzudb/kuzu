@@ -1,5 +1,8 @@
+# Helper frontend to cmake.
+# Tip: to see the actual commands that will be run for any target, use `make -n <target>`.
+
 .DEFAULT_GOAL := release
-# Declare explicit build targets to avoid conflict with files of the same name.
+# Explicit targets to avoid conflict with files of the same name.
 .PHONY: \
 	release relwithdebinfo debug all allconfig alldebug \
 	test-build test lcov \
