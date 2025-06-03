@@ -298,18 +298,3 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
-
-TEST_F(CApiDatabaseTest, dasd) {
-    createDBAndConn();
-    conn->query("create node table person (id int64 primary key);");
-    conn->query("create node table student (id int64 primary key);");
-    conn->query("create (p:person {id: 5})");
-    conn->query("create (s:student {id: 8})");
-    conn->query("create rel table knows (from person to person);");
-    conn->query("alter table knows add from person to student;");
-    printf("%s", conn->query("match (p:person {id:5}), (s:student {id:8}) create (p)-[:knows]->(s)")
-                     ->toString()
-                     .c_str());
-    printf("%s",
-        conn->query("match (a:person)-[e:knows]->(b:student) return a,e,b")->toString().c_str());
-}
