@@ -185,12 +185,8 @@ jobs:
       - name: Python test
         run: make pytest-venv
 
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
       - name: Node.js test
-        run: make nodejstest
+        run: make nodejstest-deps
 
       - name: Java test
         run: make javatest
@@ -468,12 +464,8 @@ jobs:
       - name: Python test
         run: make pytest-venv
 
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
       - name: Node.js test
-        run: make nodejstest
+        run: make nodejstest-deps
 
       - name: Java test
         run: make javatest
@@ -653,15 +645,11 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make pytest-venv
 
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
       - name: Node.js test
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make nodejstest
+          make nodejstest-deps
 
       - name: Java test
         shell: cmd
@@ -746,10 +734,8 @@ jobs:
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
 
       - name: Format Python API
-        run: |
-          cd tools/python_api
-          make requirements
-          make format
+        working-directory: tools/python_api
+        run: make format
 
       - name: Update Rust
         run: rustup update
@@ -782,9 +768,7 @@ jobs:
 
       - name: Run Python lint
         working-directory: tools/python_api
-        run: |
-          make requirements
-          ./.venv/bin/ruff check src_py test --verbose
+        run: make check
 
   benchmark:
     name: benchmark
@@ -823,8 +807,7 @@ jobs:
 
       # For `napi.h` header.
       - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
+        run: make nodejs-deps
 
       - name: Check for clangd diagnostics
         run: make clangd-diagnostics
@@ -908,14 +891,10 @@ jobs:
           ulimit -n 10240
           make example
 
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
       - name: Node.js test
         run: |
           ulimit -n 10240
-          make nodejstest
+          make nodejstest-deps
 
       - name: Java test
         run: |
@@ -929,8 +908,8 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cmake -B build/release -DBUILD_EXAMPLES=OFF
-          make extension-release
+          # `extension-release` disables KUZU_BUILD, but it is a dependency of `BUILD_EXAMPLES`, so disable it too.
+          make extension-release EXTRA_CMAKE_FLAGS="-DBUILD_EXAMPLES=OFF"
           make rusttest
 
       - name: Rust test with pre-built library
@@ -942,7 +921,6 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cmake -B build/release -DBUILD_EXAMPLES=OFF
           make extension-release
           make rusttest
 
@@ -965,9 +943,7 @@ jobs:
 
       - name: Test
         working-directory: tools/shell/test
-        run: |
-          pip3 install pytest pexpect
-          python3 -m pytest -v .
+        run: make test
 
   linux-extension-test:
     name: linux extension test

@@ -68,18 +68,13 @@ jobs:
           make pytest-venv
           echo "Python test,$?" >> status.txt
 
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        working-directory: tools/nodejs_api
-        run: npm install --include=dev
-
       - name: Node.js test
         continue-on-error: true
         run: |
           node --version
           npm --version
           set +e
-          make nodejstest
+          make nodejstest-deps
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
@@ -202,17 +197,11 @@ jobs:
           make pytest-venv
           echo Python test,%ERRORLEVEL% >> status.txt
 
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        shell: cmd
-        working-directory: .\tools\nodejs_api
-        run: npm install --include=dev
-
       - name: Node.js test
         continue-on-error: true
         shell: cmd
         run: |
-          make nodejstest
+          make nodejstest-deps
           echo Node.js test,%ERRORLEVEL% >> status.txt
 
       - name: Set up JDK 11
@@ -351,18 +340,13 @@ jobs:
           make pytest-venv
           echo "Python test,$?" >> status.txt
 
-      - name: Ensure Node.js dependencies
-        working-directory: tools/nodejs_api
-        continue-on-error: true
-        run: npm install --include=dev
-
       - name: Node.js test
         continue-on-error: true
         run: |
           node --version
           npm --version
           set +e
-          make nodejstest
+          make nodejstest-deps
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
@@ -507,18 +491,13 @@ jobs:
           make pytest-venv
           echo "Python test,$?" >> status.txt
 
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        working-directory: tools/nodejs_api
-        run: npm install --include=dev
-
       - name: Node.js test
         continue-on-error: true
         run: |
           node --version
           npm --version
           set +e
-          make nodejstest
+          make nodejstest-deps
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
@@ -632,18 +611,11 @@ jobs:
           make pytest-venv
           echo "Python test,$?" >> status.txt
 
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        working-directory: tools/nodejs_api
-        run: npm install --include=dev
-
       - name: Node.js test
         continue-on-error: true
         run: |
-          node --version
-          npm --version
           set +e
-          make nodejstest
+          make nodejstest-deps
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test

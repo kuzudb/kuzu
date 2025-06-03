@@ -23,6 +23,7 @@
 
 BUILD_TYPE ?=
 BUILD_PATH ?=
+EXTRA_CMAKE_FLAGS ?=
 CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 PREFIX ?= install
 TEST_JOBS ?= 10
@@ -177,8 +178,13 @@ endif
 nodejs:
 	$(call run-cmake-release, -DBUILD_NODEJS=TRUE)
 
+nodejs-deps:
+	cd tools/nodejs_api && npm install --include=dev
+
 nodejstest: nodejs
 	cd tools/nodejs_api && npm test
+
+nodejstest-deps: nodejs-deps nodejstest
 
 python:
 	$(call run-cmake-release, -DBUILD_PYTHON=TRUE -DBUILD_SHELL=FALSE)
@@ -309,7 +315,7 @@ get-build-type = $(if $(BUILD_TYPE),$(BUILD_TYPE),$1)
 get-build-path = $(if $(BUILD_PATH),$(BUILD_PATH),$(call lowercase,$(call get-build-type,$(1))))
 
 define config-cmake
-	cmake -B build/$(call get-build-path,$1) -DCMAKE_BUILD_TYPE=$(call get-build-type,$1) $2 $(CMAKE_FLAGS) .
+	cmake -B build/$(call get-build-path,$1) -DCMAKE_BUILD_TYPE=$(call get-build-type,$1) $2 $(CMAKE_FLAGS) $(EXTRA_CMAKE_FLAGS) .
 endef
 
 define build-cmake

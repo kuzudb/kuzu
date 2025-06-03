@@ -12,7 +12,6 @@ setuptools~=70.2
 # required for lint/formatting
 ruff==0.11.12
 mypy==1.16.0
-uv==0.7.9
 
 # cpu version of torch
 --find-links https://data.pyg.org/whl/torch-2.2.0+cpu.html
