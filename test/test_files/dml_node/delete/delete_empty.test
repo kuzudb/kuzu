@@ -157,9 +157,9 @@ True
 # so we leave some margin of error when checking to see if all pages have been reallocated
 -STATEMENT call storage_info('Post') with sum(num_pages) as total_num_pages
             call storage_info('Post') where num_pages > 0 with column_name, start_page_idx, num_pages, total_num_pages
-            where count { match (s:stats) where s.startPageIdx <= start_page_idx and s.startPageIdx + s.numPages >= start_page_idx + num_pages } = 0
-            with sum(num_pages) as new_pages, total_num_pages
-            return new_pages * 10 < total_num_pages
+            where count { match (s:stats) where s.startPageIdx <= start_page_idx and s.startPageIdx + s.numPages >= start_page_idx + num_pages } > 0
+            with sum(num_pages) as num_reused_pages, total_num_pages
+            return (total_num_pages - num_reused_pages) * 10 < total_num_pages
 ---- 1
 True
 -RELOADDB
