@@ -141,8 +141,14 @@ static std::string getPath(const std::string& provider, const std::string& model
 
     else if (provider == "google-vertex")
     {
+        auto env_project_id = std::getenv("GOOGLE_CLOUD_PROJECT_ID");
+        if (env_project_id == nullptr)
+        {
+            throw(RuntimeException("Could not get project id from: GOOGLE_CLOUD_PROJECT_ID\n"));
+        }
+
         //TODO: Location is hardcoded, this should be changed
-        return "/v1/projects/kuzu-llm/locations/us-central1/publishers/google/models/"+model+":predict";
+        return "/v1/projects/"+std::string(env_project_id)+"/locations/us-central1/publishers/google/models/"+model+":predict";
     }
 
 
