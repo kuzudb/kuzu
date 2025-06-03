@@ -167,7 +167,7 @@ void UndoBuffer::commit(transaction_t commitTS) const {
     });
 }
 
-void UndoBuffer::rollback(const transaction::Transaction* transaction) const {
+void UndoBuffer::rollback(transaction::Transaction* transaction) const {
     UndoBufferIterator iterator{*this};
     iterator.reverseIterate([&](UndoRecordType entryType, uint8_t const* entry) {
         rollbackRecord(transaction, entryType, entry);
@@ -233,7 +233,7 @@ void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t com
     undoRecord.vectorUpdateInfo->version = commitTS;
 }
 
-void UndoBuffer::rollbackRecord(const transaction::Transaction* transaction,
+void UndoBuffer::rollbackRecord(transaction::Transaction* transaction,
     const UndoRecordType recordType, const uint8_t* record) {
     switch (recordType) {
     case UndoRecordType::CATALOG_ENTRY: {
@@ -285,7 +285,7 @@ void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
     sequenceEntry->rollbackVal(data.usageCount, data.currVal);
 }
 
-void UndoBuffer::rollbackVersionInfo(const transaction::Transaction* transaction,
+void UndoBuffer::rollbackVersionInfo(transaction::Transaction* transaction,
     UndoRecordType recordType, const uint8_t* record) {
     auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {

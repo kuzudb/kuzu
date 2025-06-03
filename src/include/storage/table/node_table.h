@@ -71,19 +71,18 @@ struct NodeTableDeleteState final : TableDeleteState {
         : nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
-struct PKColumnScanHelper {
-    explicit PKColumnScanHelper(NodeTable* table, PrimaryKeyIndex* pkIndex)
-        : table{table}, pkIndex(pkIndex) {}
-    virtual ~PKColumnScanHelper() = default;
+struct IndexScanHelper {
+    explicit IndexScanHelper(NodeTable* table, Index* index) : table{table}, index(index) {}
+    virtual ~IndexScanHelper() = default;
 
-    virtual std::unique_ptr<NodeTableScanState> initPKScanState(
-        const transaction::Transaction* transaction, common::DataChunk& dataChunk,
-        common::column_id_t pkColumnID);
-    virtual bool processScanOutput(const transaction::Transaction* transaction,
-        NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) = 0;
+    virtual std::unique_ptr<NodeTableScanState> initScanState(
+        const transaction::Transaction* transaction, common::DataChunk& dataChunk);
+    virtual bool processScanOutput(transaction::Transaction* transaction, MemoryManager* mm,
+        NodeGroupScanResult scanResult,
+        const std::vector<common::ValueVector*>& scannedVectors) = 0;
 
     NodeTable* table;
-    PrimaryKeyIndex* pkIndex;
+    Index* index;
 };
 
 class NodeTableVersionRecordHandler final : public VersionRecordHandler {
@@ -93,7 +92,7 @@ public:
     void applyFuncToChunkedGroups(version_record_handler_op_t func,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const override;
-    void rollbackInsert(const transaction::Transaction* transaction,
+    void rollbackInsert(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows) const override;
 
@@ -190,9 +189,8 @@ public:
     void rollbackCheckpoint() override;
     void reclaimStorage(FileHandle& dataFH) override;
 
-    void rollbackPKIndexInsert(const transaction::Transaction* transaction,
-        common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::node_group_idx_t nodeGroupIdx_);
+    void rollbackPKIndexInsert(transaction::Transaction* transaction, common::row_idx_t startRow,
+        common::row_idx_t numRows_, common::node_group_idx_t nodeGroupIdx_);
     void rollbackGroupCollectionInsert(common::row_idx_t numRows_);
 
     common::node_group_idx_t getNumCommittedNodeGroups() const {
@@ -226,7 +224,7 @@ private:
 
     visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
     common::DataChunk constructDataChunkForPKColumn() const;
-    void scanPKColumn(const transaction::Transaction* transaction, PKColumnScanHelper& scanHelper,
+    void scanIndexColumns(transaction::Transaction* transaction, IndexScanHelper& scanHelper,
         const NodeGroupCollection& nodeGroups_) const;
 
 private:

@@ -3,11 +3,11 @@
 #include <bitset>
 
 #include "common/assert.h"
+#include "common/exception/message.h"
 #include "common/serializer/deserializer.h"
 #include "common/types/int128_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/disk_array.h"
 #include "storage/disk_array_collection.h"
 #include "storage/file_handle.h"
@@ -66,7 +66,7 @@ template<>
 inline hash_t HashIndex<ku_string_t>::hashStored(const Transaction* transaction,
     const ku_string_t& key) const {
     hash_t hash = 0;
-    auto str = overflowFileHandle->readString(transaction->getType(), key);
+    const auto str = overflowFileHandle->readString(transaction->getType(), key);
     function::Hash::operation(str, hash);
     return hash;
 }
@@ -306,7 +306,7 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
             // them from the vector
             sortEntries(transaction, insertLocalStorage, localSlot, partitionedEntries[i]);
         }
-        // Repeat until there are no un-processed partitions in partitionedEntries
+        // Repeat until there are no unprocessed partitions in partitionedEntries
         // This will run at most NUM_SLOTS_PER_PAGE times the number of entries
         std::bitset<NUM_SLOTS_PER_PAGE> done;
         while (!done.all()) {
@@ -476,14 +476,14 @@ PrimaryKeyIndex::PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStora
     initOverflowAndSubIndices(inMemMode, memoryManager, hashIndexStorageInfo);
 }
 
-void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& memoryManager,
+void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& mm,
     PrimaryKeyIndexStorageInfo& storageInfo) {
     KU_ASSERT(indexInfo.keyDataTypes.size() == 1);
     if (indexInfo.keyDataTypes[0] == PhysicalTypeID::STRING) {
         if (inMemMode) {
-            overflowFile = std::make_unique<InMemOverflowFile>(memoryManager);
+            overflowFile = std::make_unique<InMemOverflowFile>(mm);
         } else {
-            overflowFile = std::make_unique<OverflowFile>(fileHandle, memoryManager, &shadowFile,
+            overflowFile = std::make_unique<OverflowFile>(fileHandle, mm, &shadowFile,
                 storageInfo.overflowHeaderPage);
         }
     }
@@ -492,15 +492,15 @@ void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& m
         indexInfo.keyDataTypes[0],
         [&](ku_string_t) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                hashIndices.push_back(std::make_unique<HashIndex<ku_string_t>>(memoryManager,
-                    fileHandle, overflowFile->addHandle(), *hashIndexDiskArrays, i, &shadowFile,
+                hashIndices.push_back(std::make_unique<HashIndex<ku_string_t>>(mm, fileHandle,
+                    overflowFile->addHandle(), *hashIndexDiskArrays, i, &shadowFile,
                     hashIndexHeadersForReadTrx[i], hashIndexHeadersForWriteTrx[i]));
             }
         },
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                hashIndices.push_back(std::make_unique<HashIndex<T>>(memoryManager, fileHandle,
-                    nullptr, *hashIndexDiskArrays, i, &shadowFile, hashIndexHeadersForReadTrx[i],
+                hashIndices.push_back(std::make_unique<HashIndex<T>>(mm, fileHandle, nullptr,
+                    *hashIndexDiskArrays, i, &shadowFile, hashIndexHeadersForReadTrx[i],
                     hashIndexHeadersForWriteTrx[i]));
             }
         },
@@ -519,6 +519,25 @@ bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uin
         },
         [](auto) { KU_UNREACHABLE; });
     return retVal;
+}
+
+void PrimaryKeyIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
+    const std::vector<ValueVector*>& indexVectors, Index::InsertState& insertState) {
+    KU_ASSERT(indexVectors.size() == 1);
+    const auto& pkVector = *indexVectors[0];
+    const auto& pkInsertState = insertState.cast<InsertState>();
+    for (auto i = 0u; i < nodeIDVector.state->getSelSize(); i++) {
+        const auto nodeIDPos = nodeIDVector.state->getSelVector()[i];
+        const auto offset = nodeIDVector.readNodeOffset(nodeIDPos);
+        const auto pkPos = pkVector.state->getSelVector()[i];
+        if (pkVector.isNull(pkPos)) {
+            throw RuntimeException(ExceptionMessage::nullPKException());
+        }
+        if (!insert(transaction, &pkVector, pkPos, offset, pkInsertState.isVisible)) {
+            throw RuntimeException(
+                ExceptionMessage::duplicatePKException(pkVector.getAsValue(pkPos)->toString()));
+        }
+    }
 }
 
 bool PrimaryKeyIndex::insert(const Transaction* transaction, const ValueVector* keyVector,
@@ -570,7 +589,7 @@ void PrimaryKeyIndex::checkpointInMemory() {
     }
 }
 
-void PrimaryKeyIndex::writeHeaders() {
+void PrimaryKeyIndex::writeHeaders() const {
     size_t headerIdx = 0;
     auto& hashIndexStorageInfo = storageInfo->cast<PrimaryKeyIndexStorageInfo>();
     if (hashIndexStorageInfo.firstHeaderPage == INVALID_PAGE_IDX) {
@@ -581,7 +600,7 @@ void PrimaryKeyIndex::writeHeaders() {
         ShadowUtils::updatePage(*fileHandle, hashIndexStorageInfo.firstHeaderPage + headerPageIdx,
             true /*writing all the data to the page; no need to read original*/, shadowFile,
             [&](auto* frame) {
-                auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
+                const auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
                      i++) {
                     hashIndexHeadersForWriteTrx[headerIdx++].write(onDiskFrame[i]);
@@ -612,7 +631,7 @@ void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
     }
     if (indexChanged || forceCheckpointAll) {
         writeHeaders();
-        auto& hashIndexStorageInfo = storageInfo->cast<PrimaryKeyIndexStorageInfo>();
+        const auto& hashIndexStorageInfo = storageInfo->cast<PrimaryKeyIndexStorageInfo>();
         hashIndexDiskArrays->checkpoint(hashIndexStorageInfo.firstHeaderPage + NUM_HEADER_PAGES);
     }
     if (overflowFile) {

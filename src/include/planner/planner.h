@@ -318,7 +318,6 @@ public:
         const binder::BoundReadingClause& readingClause);
 
     LogicalPlan createUnionPlan(std::vector<LogicalPlan>& childrenPlans, bool isUnionAll);
-    LogicalPlan getBestPlan(std::vector<LogicalPlan> plans);
 
     binder::expression_vector getProperties(const binder::Expression& pattern) const;
 

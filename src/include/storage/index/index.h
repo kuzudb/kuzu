@@ -4,12 +4,18 @@
 
 #include "common/serializer/buffered_serializer.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "in_mem_hash_index.h"
 #include <span>
 
 namespace kuzu::storage {
 class StorageManager;
 }
 namespace kuzu {
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace storage {
 
 enum class KUZU_API IndexConstraintType : uint8_t {
@@ -74,6 +80,14 @@ struct KUZU_API IndexStorageInfo {
 
 class KUZU_API Index {
 public:
+    struct InsertState {
+        virtual ~InsertState() = default;
+        template<typename TARGET>
+        TARGET& cast() {
+            return common::ku_dynamic_cast<TARGET&>(*this);
+        }
+    };
+
     Index(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storageInfo)
         : indexInfo{std::move(indexInfo)}, storageInfo{std::move(storageInfo)},
           storageInfoBuffer{nullptr}, storageInfoBufferSize{0}, loaded{true} {}
@@ -90,6 +104,12 @@ public:
     bool isLoaded() const { return loaded; }
     std::string getName() const { return indexInfo.name; }
     IndexInfo getIndexInfo() const { return indexInfo; }
+
+    virtual std::unique_ptr<InsertState> initInsertState(
+        const transaction::Transaction* transaction, MemoryManager* mm, visible_func isVisible) = 0;
+    virtual void insert(transaction::Transaction* transaction,
+        const common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
 
     virtual void checkpointInMemory() {
         // DO NOTHING.
@@ -129,14 +149,14 @@ public:
 
     void serialize(common::Serializer& ser) const;
     KUZU_API void load(main::ClientContext* context, StorageManager* storageManager);
-    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     void checkpoint() {
         if (loaded) {
             KU_ASSERT(index);
             index->checkpoint();
         }
     }
-    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     void rollbackCheckpoint() {
         if (loaded) {
             KU_ASSERT(index);

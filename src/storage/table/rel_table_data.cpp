@@ -31,7 +31,7 @@ void PersistentVersionRecordHandler::applyFuncToChunkedGroups(version_record_han
     }
 }
 
-void PersistentVersionRecordHandler::rollbackInsert(const Transaction* transaction,
+void PersistentVersionRecordHandler::rollbackInsert(Transaction* transaction,
     node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows) const {
     VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
     relTableData->rollbackGroupCollectionInsert(numRows, true);
@@ -47,7 +47,7 @@ void InMemoryVersionRecordHandler::applyFuncToChunkedGroups(version_record_handl
     nodeGroup->applyFuncToChunkedGroups(func, startRow, numRows, commitTS);
 }
 
-void InMemoryVersionRecordHandler::rollbackInsert(const Transaction* transaction,
+void InMemoryVersionRecordHandler::rollbackInsert(Transaction* transaction,
     node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows) const {
     VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
     auto* nodeGroup = relTableData->getNodeGroupNoLock(nodeGroupIdx);
