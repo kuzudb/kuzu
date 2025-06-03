@@ -99,9 +99,8 @@ struct HNSWStorageInfo final : storage::IndexStorageInfo {
 
 class HNSWIndex : public storage::Index {
 public:
-    explicit HNSWIndex(storage::IndexInfo indexInfo,
-        std::unique_ptr<storage::IndexStorageInfo> storageInfo, HNSWIndexConfig config,
-        common::ArrayTypeInfo typeInfo)
+    HNSWIndex(storage::IndexInfo indexInfo, std::unique_ptr<storage::IndexStorageInfo> storageInfo,
+        HNSWIndexConfig config, common::ArrayTypeInfo typeInfo)
         : Index{std::move(indexInfo), std::move(storageInfo)}, config{std::move(config)},
           typeInfo{std::move(typeInfo)} {
         metricFunc =
