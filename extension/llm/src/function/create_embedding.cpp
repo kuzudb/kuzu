@@ -11,7 +11,6 @@
 #include "function/scalar_function.h"
 #include "crypto.h"
 #include "json.hpp"
-#define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "httplib.h"
 
 using namespace kuzu::common;
