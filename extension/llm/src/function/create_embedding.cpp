@@ -105,11 +105,14 @@ std::string encodeURL(const std::string& input, bool encodeSlash) {
 }
 
 
+//NOLINTNEXTLINE WIP
 static httplib::Headers createBedrockHeaders( const std::string& url, const std::string& query, const std::string& host, const std::string& region, const std::string& service, const std::string& method, std::string payloadHash, std::string contentType = "application/json") {
     httplib::Headers headers;
     headers.insert({"Host", host});
 
+    //NOLINTNEXTLINE Thread Safety Warning
     const char* accessKey = std::getenv("AWS_ACCESS_KEY_ID");
+    //NOLINTNEXTLINE Thread Safety Warning
     const char* secretKey = std::getenv("AWS_SECRET_ACCESS_KEY");
 
     if (!accessKey || !secretKey) 
@@ -185,7 +188,8 @@ static httplib::Headers getHeaders(const std::string& provider)
     auto apiKeyItr = providerAPIKeyMap.find(provider);
     if (apiKeyItr != providerAPIKeyMap.end())
     {
-        auto env_key = std::getenv(apiKeyItr->second.c_str()); //NOLINT thread safety warning
+        //NOLINTNEXTLINE thread safety warning
+        auto env_key = std::getenv(apiKeyItr->second.c_str()); 
         if (env_key == nullptr) 
         {
             throw(RuntimeException("Could not get key from: "+apiKeyItr->second+'\n'));
@@ -249,7 +253,8 @@ static std::string getPath(const std::string& provider, const std::string& model
     }
     else if (provider == "google-gemini")
     {
-        auto env_key = std::getenv("GEMINI_API_KEY"); //NOLINT thread safety warning
+        //NOLINTNEXTLINE thread safety warning
+        auto env_key = std::getenv("GEMINI_API_KEY"); 
         if (env_key == nullptr)
         {
             throw(RuntimeException("Could not get key from: GEMINI_API_KEY\n"));
@@ -259,7 +264,8 @@ static std::string getPath(const std::string& provider, const std::string& model
 
     else if (provider == "google-vertex")
     {
-        auto env_project_id = std::getenv("GOOGLE_CLOUD_PROJECT_ID"); //NOLINT thread safety warning
+        //NOLINTNEXTLINE thread safety warning
+        auto env_project_id = std::getenv("GOOGLE_CLOUD_PROJECT_ID"); 
         if (env_project_id == nullptr)
         {
             throw(RuntimeException("Could not get project id from: GOOGLE_CLOUD_PROJECT_ID\n"));
