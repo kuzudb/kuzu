@@ -17,8 +17,8 @@ FTSStorageInfo::FTSStorageInfo(main::ClientContext* context, common::table_id_t 
     stopWordsTable =
         storageManager
             ->getTable(context->getCatalog()
-                    ->getTableCatalogEntry(context->getTransaction(), stopWordsTableName)
-                    ->getTableID())
+                           ->getTableCatalogEntry(context->getTransaction(), stopWordsTableName)
+                           ->getTableID())
             ->ptrCast<storage::NodeTable>();
     docTable =
         storageManager->getTable(catalog->getTableCatalogEntry(trx, docTableName)->getTableID())
