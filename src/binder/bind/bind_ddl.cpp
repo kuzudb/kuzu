@@ -280,8 +280,11 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const CreateTable& cre
     }
     case TableType::REL: {
         auto& extraInfo = createInfo->extraInfo->constCast<ExtraCreateRelTableGroupInfo>();
-        KU_ASSERT(
-            extraInfo.srcDstTablePairs.size() == 1); // for now, we only support one from-to pair
+        // Currently we don't support multiple from/to pairs for create rel table as
+        if (extraInfo.srcDstTablePairs.size() > 1) {
+            throw BinderException(
+                "Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.");
+        }
         propertyDefinitions.insert(propertyDefinitions.begin(),
             PropertyDefinition(ColumnDefinition(InternalKeyword::ID, LogicalType::INTERNAL_ID())));
         auto catalog = clientContext->getCatalog();

@@ -605,9 +605,9 @@ Bob|Alice
 -STATEMENT CREATE REL TABLE Knows2 (FROM Person2 TO Person2) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
 ---- error
 Binder exception: Knows2 already exists in catalog.
--STATEMENT CREATE REL TABLE Failure (FROM Person2 TO Person2, FROM Person TO Test2) AS RETURN *;
+-STATEMENT CREATE REL TABLE Failure (FROM Person2 TO Person2, FROM Person TO Test2) AS MATCH (:Person2)-[e:Knows2]->(:Person2) RETURN *;
 ---- error
-Parser exception: Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.
+Binder exception: Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.
 -STATEMENT CREATE REL TABLE Knows3 (FROM Person2 TO Person2) AS MATCH (a:Person2)-[e:Knows2]->(b:Person2) WHERE a.Gender = b.Gender RETURN a.id, b.id;
 ---- ok
 -STATEMENT MATCH (a:Person2)-[e:Knows3]->(b:Person2) RETURN a.fname, b.fname;
