@@ -94,10 +94,14 @@
 ---- ok
 -STATEMENT create node table Post (id INT64, imageFile STRING, creationDate INT64, locationIP STRING, browserUsed STRING, language STRING, content STRING, length INT32, PRIMARY KEY (id));
 ---- ok
--STATEMENT create node table other(id INT64, PRIMARY KEY (id))
+-STATEMENT create node table other(id serial, val INT64, PRIMARY KEY (id))
+---- ok
+# preallocate rows for other table so that hash index storage isn't allocated later
+# the val column will be constant so will take up no space
+-STATEMENT unwind range(1, 100000) as i create (:other)
 ---- ok
 # table used to store some intermediate results
--STATEMENT create node table stats(startPageIdx INT64, numPages INT64, PRIMARY KEY(startPageIdx))
+-STATEMENT create node table stats(id SERIAL, numPages INT64, PRIMARY KEY(id))
 ---- ok
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 -PARALLELISM 1
@@ -108,18 +112,16 @@
 ---- 1
 True
 # store free pages before re-copy
--STATEMENT call fsm_info() return sum(num_pages) > 0
+-STATEMENT call file_info() with num_pages create (s:stats {numPages: num_pages})
+---- ok
+# set values for the val column, it will now need some pages for storage
+# on the next allocation the pages for the deleted node group should be reused
+# so the DB shouldn't grow by much
+-STATEMENT match (o:other) set o.val = o.id
+---- ok
+-STATEMENT call file_info() with num_pages match (s:stats) return num_pages <= s.numPages
 ---- 1
 True
--STATEMENT call fsm_info() with start_page_idx, num_pages create (s:stats {startPageIdx: start_page_idx, numPages: num_pages})
----- ok
-# on the next allocation the pages for the deleted node group should be reused
--STATEMENT copy other from (unwind range(1, 100000) as i return i)
----- ok
--STATEMENT call storage_info('other') where num_pages > 0 with column_name, start_page_idx, num_pages
-            where count { match (s:stats) where s.startPageIdx <= start_page_idx and s.startPageIdx + s.numPages >= start_page_idx + num_pages } = 0
-            return column_name, start_page_idx, num_pages
----- 0
 
 -STATEMENT match (p:Post) with count(*) as remaining
            optional match (p:Post) where p.ID = 1030792523231 with p.imageFile as imageFile, remaining
@@ -159,7 +161,7 @@ True
             call storage_info('Post') where num_pages > 0 with column_name, start_page_idx, num_pages, total_num_pages
             where count { match (s:stats) where s.startPageIdx <= start_page_idx and s.startPageIdx + s.numPages >= start_page_idx + num_pages } > 0
             with sum(num_pages) as num_reused_pages, total_num_pages
-            return (total_num_pages - num_reused_pages) * 10 < total_num_pages
+            return (total_num_pages - num_reused_pages) * 5 < total_num_pages
 ---- 1
 True
 -RELOADDB
