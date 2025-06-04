@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cstdlib>
+#include <string_view>
 #include <unordered_map>
 #include "common/assert.h"
 #include "common/exception/binder.h"
@@ -175,50 +176,34 @@ static httplib::Headers createBedrockHeaders( const std::string& url, const std:
 
 static httplib::Headers getHeaders(const std::string& provider)
 {
-    if (provider == "open-ai")
+    static const std::unordered_map<std::string, std::string> providerAPIKeyMap = 
     {
-        auto env_key = std::getenv("OPENAI_API_KEY");
+            {"open-ai", "OPENAI_API_KEY"},
+            {"voyage-ai", "VOYAGE_API_KEY"},
+            {"google-vertex", "GOOGLE_VERTEX_ACCESS_KEY"},
+    };
+
+    auto apiKeyItr = providerAPIKeyMap.find(provider);
+    if (apiKeyItr != providerAPIKeyMap.end())
+    {
+        auto env_key = std::getenv(apiKeyItr->second.c_str()); //NOLINT thread safety warning
         if (env_key == nullptr) 
         {
-            throw(RuntimeException("Could not get key from: OPENAI_API_KEY\n"));
+            throw(RuntimeException("Could not get key from: "+apiKeyItr->second+'\n'));
         }
         return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
+
     }
 
-    else if (provider == "voyage-ai")
+    else if (provider == "google-gemini" || provider == "ollama")
     {
-        auto env_key = std::getenv("VOYAGE_API_KEY");
-        if (env_key == nullptr) 
-        {
-            throw(RuntimeException("Could not get key from: VOYAGE_API_KEY\n"));
-        }
-        return httplib::Headers{{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
+        return httplib::Headers{{"Content-Type", "applications/json"}};
     }
+
     else if (provider == "amazon-bedrock")
     {
         //WIP
         //createBedrockHeader(std::string url, std::string query, std::string host, std::string service, std::string method, std::string payloadHash, std::string contentType);
-    }
-
-
-    else if (provider == "google-gemini")
-    {
-        return httplib::Headers{{"Content-Type", "applications/json"}};
-    }
-
-    else if (provider == "google-vertex")
-    {
-        auto env_key = std::getenv("GOOGLE_VERTEX_ACCESS_KEY");
-        if (env_key == nullptr) 
-        {
-            throw(RuntimeException("Could not get key from: GOOGLE_VERTEX_ACCESS_KEY\n"));
-        }
-        return httplib::Headers {{"Content-Type", "application/json"}, {"Authorization", "Bearer " + std::string(env_key)}};
-    }
-
-    else if (provider == "ollama")
-    {
-        return httplib::Headers{{"Content-Type", "applications/json"}};
     }
 
     // Invalid Provider Error Would Be Thrown By GetEmbeddingDimensions
@@ -228,12 +213,7 @@ static httplib::Headers getHeaders(const std::string& provider)
 
 static nlohmann::json getPayload(const std::string& provider, const std::string& model, const std::string& text)
 {
-    if (provider == "open-ai")
-    {
-        return nlohmann::json {{"model", model}, {"input", text}};
-    }
-
-    else if (provider == "voyage-ai")
+    if (provider == "open-ai" || provider == "voyage-ai")
     {
         return nlohmann::json {{"model", model}, {"input", text}};
     }
@@ -264,17 +244,13 @@ static nlohmann::json getPayload(const std::string& provider, const std::string&
 
 static std::string getPath(const std::string& provider, const std::string& model)
 {
-    if (provider == "open-ai")
-    {
-        return "/v1/embeddings";
-    }
-    else if (provider == "voyage-ai")
+    if (provider == "open-ai" || provider == "voyage-ai")
     {
         return "/v1/embeddings";
     }
     else if (provider == "google-gemini")
     {
-        auto env_key = std::getenv("GEMINI_API_KEY");
+        auto env_key = std::getenv("GEMINI_API_KEY"); //NOLINT thread safety warning
         if (env_key == nullptr)
         {
             throw(RuntimeException("Could not get key from: GEMINI_API_KEY\n"));
@@ -284,7 +260,7 @@ static std::string getPath(const std::string& provider, const std::string& model
 
     else if (provider == "google-vertex")
     {
-        auto env_project_id = std::getenv("GOOGLE_CLOUD_PROJECT_ID");
+        auto env_project_id = std::getenv("GOOGLE_CLOUD_PROJECT_ID"); //NOLINT thread safety warning
         if (env_project_id == nullptr)
         {
             throw(RuntimeException("Could not get project id from: GOOGLE_CLOUD_PROJECT_ID\n"));
@@ -312,12 +288,7 @@ static std::string getPath(const std::string& provider, const std::string& model
 
 static std::vector<float> getEmbedding(const httplib::Result& res, const std::string& provider)
 {
-    if (provider == "open-ai")
-    {
-        return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
-    }
-
-    else if (provider == "voyage-ai")
+    if (provider == "open-ai" || provider == "voyage-ai")
     {
         return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
     }
@@ -329,16 +300,10 @@ static std::vector<float> getEmbedding(const httplib::Result& res, const std::st
     {
         return nlohmann::json::parse(res->body)["predictions"][0]["embeddings"]["values"].get<std::vector<float>>();
     }
-    else if (provider == "amazon-bedrock")
+    else if (provider == "amazon-bedrock" || provider == "ollama")
     {
         return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
     }
-
-    else if (provider == "ollama")
-    {
-        return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
-    }
-
 
     KU_UNREACHABLE;
     return std::vector<float>();
