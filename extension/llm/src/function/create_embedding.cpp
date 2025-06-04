@@ -442,4 +442,3 @@ function_set CreateEmbedding::getFunctionSet() {
 
 } // namespace llm_extension
 } // namespace kuzu
-#undef CPPHTTPLIB_OPENSSL_SUPPORT
