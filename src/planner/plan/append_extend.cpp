@@ -133,7 +133,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     if (!recursiveInfo->relProjectionList.empty()) {
         auto pathRelPropertyScanPlan = LogicalPlan();
         auto relProperties = recursiveInfo->relProjectionList;
-        relProperties.push_back(recursiveInfo->rel->getInternalIDProperty());
+        relProperties.push_back(recursiveInfo->rel->getInternalID());
         bool extendFromSource = *boundNode == *rel->getSrcNode();
         createPathRelPropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeCopy,
             recursiveInfo->rel, direction, extendFromSource, relProperties,

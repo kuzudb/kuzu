@@ -79,7 +79,7 @@ public:
     std::shared_ptr<Expression> getDirectionExpr() const { return directionExpr; }
     RelDirectionType getDirectionType() const { return directionType; }
 
-    std::shared_ptr<Expression> getInternalIDProperty() const {
+    std::shared_ptr<PropertyExpression> getInternalID() const override {
         return getPropertyExpression(common::InternalKeyword::ID);
     }
 

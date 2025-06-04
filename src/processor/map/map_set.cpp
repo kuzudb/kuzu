@@ -122,7 +122,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetProp
     auto& rel = boundInfo.pattern->constCast<RelExpression>();
     auto srcNodeIDPos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
     auto dstNodeIDPos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
-    auto relIDPos = getDataPos(*rel.getInternalIDProperty(), schema);
+    auto relIDPos = getDataPos(*rel.getInternalID(), schema);
     auto& property = boundInfo.column->constCast<PropertyExpression>();
     auto columnVectorPos = DataPos::getInvalidPos();
     if (schema.isExpressionInScope(property)) {

@@ -23,7 +23,7 @@ static void rewrite(std::shared_ptr<Expression> expr, expression_vector& project
         auto& rel = expr->constCast<RelExpression>();
         projectionList.push_back(rel.getSrcNode()->getInternalID());
         projectionList.push_back(rel.getDstNode()->getInternalID());
-        projectionList.push_back(rel.getInternalIDProperty());
+        projectionList.push_back(rel.getInternalID());
         if (rel.hasDirectionExpr()) {
             projectionList.push_back(rel.getDirectionExpr());
         }

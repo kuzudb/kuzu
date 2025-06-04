@@ -17,14 +17,12 @@ void CountFunction::updateAll(uint8_t* state_, ValueVector* input, uint64_t mult
     state->count += multiplicity * input->countNonNull();
 }
 
-void CountFunction::paramRewriteFunc(binder::expression_vector& arguments) {
+void CountFunction::paramRewriteFunc(expression_vector& arguments) {
     KU_ASSERT(arguments.size() == 1);
     if (ExpressionUtil::isNodePattern(*arguments[0])) {
-        auto node = (NodeExpression*)arguments[0].get();
-        arguments[0] = node->getInternalID();
+        arguments[0] = arguments[0]->constCast<NodeExpression>().getInternalID();
     } else if (ExpressionUtil::isRelPattern(*arguments[0])) {
-        auto rel = (RelExpression*)arguments[0].get();
-        arguments[0] = rel->getInternalIDProperty();
+        arguments[0] = arguments[0]->constCast<RelExpression>().getInternalID();
     }
 }
 

@@ -211,7 +211,7 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
                     augmentedGroupByExpressions.push_back(node.getInternalID());
                 } else if (ExpressionUtil::isRelPattern(*expression)) {
                     auto& rel = expression->constCast<RelExpression>();
-                    augmentedGroupByExpressions.push_back(rel.getInternalIDProperty());
+                    augmentedGroupByExpressions.push_back(rel.getInternalID());
                 }
             }
             boundProjectionBody.setGroupByExpressions(std::move(augmentedGroupByExpressions));

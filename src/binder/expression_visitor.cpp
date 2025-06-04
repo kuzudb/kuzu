@@ -231,7 +231,7 @@ void PropertyExprCollector::visitSubqueryExpr(std::shared_ptr<Expression> expr) 
             // If a query rel is empty then it does not have an internal id property.
             continue;
         }
-        expressions.push_back(rel->getInternalIDProperty());
+        expressions.push_back(rel->getInternalID());
     }
     if (subqueryExpr.hasWhereExpression()) {
         visit(subqueryExpr.getWhereExpression());
