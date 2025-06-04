@@ -203,13 +203,8 @@ static httplib::Headers getHeaders(const std::string& provider)
         return httplib::Headers{{"Content-Type", "applications/json"}};
     }
 
-    else if (provider == "amazon-bedrock")
-    {
-        //WIP
-        //createBedrockHeader(std::string url, std::string query, std::string host, std::string service, std::string method, std::string payloadHash, std::string contentType);
-    }
-
-    // Invalid Provider Error Would Be Thrown By GetEmbeddingDimensions
+    // Invalid Provider Error Would Be Thrown By GetEmbeddingDimensions 
+    // AmazonBedrock Uses createBedrockHeaders
     KU_UNREACHABLE;
     return httplib::Headers{};
 }
@@ -353,7 +348,12 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     client.set_connection_timeout(30, 0); 
     client.set_read_timeout(30, 0);      
     client.set_write_timeout(30, 0);     
-    httplib::Headers headers = getHeaders(provider);
+    httplib::Headers headers;
+    bool bedRock = provider == "amazon-bedrock";
+    if (!bedRock)
+    {
+        headers = getHeaders(provider);
+    }
     std::string path = getPath(provider, model);
 
 
@@ -366,7 +366,10 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 
         nlohmann::json payload = getPayload(provider, model, text);
 
-
+        if (bedRock)
+        {
+            //headers = createBedrockHeaders(const std::string &url, const std::string &query, const std::string &host, const std::string &region, const std::string &service, const std::string &method, std::string payloadHash);
+        }
         auto res = client.Post(path, headers, payload.dump(), "application/json");
 
 
