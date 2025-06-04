@@ -14,7 +14,10 @@ The Quantum World
 Learning Machines
 -STATEMENT CREATE (b:Book {title: 'Alice wonderland', author: 'newton', abstract: 'machine'})
 ---- ok
+-STATEMENT CREATE (b:Book {title: 'Alice w', author: 'newton', abstract: 'not exist'})
+---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
----- 2
+---- 3
+Alice wonderland
 The Quantum World
 Learning Machines

@@ -108,6 +108,11 @@ public:
     }
     ~HNSWIndex() override = default;
 
+    void commitInsert(transaction::Transaction*, const common::ValueVector&,
+        const std::vector<common::ValueVector*>&, InsertState&) override {
+        KU_UNREACHABLE;
+    }
+
     common::LogicalType getElementType() const { return typeInfo.getChildType().copy(); }
 
     static std::vector<NodeWithDistance> popTopK(max_node_priority_queue_t& result,
@@ -256,7 +261,7 @@ public:
         KU_UNREACHABLE;
     }
     void insert(transaction::Transaction*, const common::ValueVector&,
-        const std::vector<common::ValueVector*>&, Index::InsertState&) override {
+        const std::vector<common::ValueVector*>&, InsertState&) override {
         KU_UNREACHABLE;
     }
 

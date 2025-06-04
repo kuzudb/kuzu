@@ -110,6 +110,9 @@ public:
     virtual void insert(transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
+    virtual void commitInsert(transaction::Transaction* transaction,
+        const common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
 
     virtual void checkpointInMemory() {
         // DO NOTHING.

@@ -20,6 +20,12 @@ public:
 
     void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) override;
+    void commitInsert(transaction::Transaction*, const common::ValueVector&,
+        const std::vector<common::ValueVector*>&, InsertState&) override {
+        // DO NOTHING.
+        // For FTS index, insertions are handled when the new tuples are inserted into the base
+        // table being indexed.
+    }
 
     static storage::IndexType getIndexType() {
         static const storage::IndexType FTS_INDEX_TYPE{"FTS",

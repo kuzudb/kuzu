@@ -134,7 +134,7 @@ bool UncommittedIndexInserter::processScanOutput(Transaction* transaction, Memor
         nodeIDVector.setValue(i, nodeID_t{startNodeOffset + i, table->getTableID()});
     }
     const auto insertState = index->initInsertState(transaction, mm, isVisible);
-    index->insert(transaction, nodeIDVector, {scannedVectors}, *insertState);
+    index->commitInsert(transaction, nodeIDVector, {scannedVectors}, *insertState);
     startNodeOffset += scanResult.numRows;
     return true;
 }
@@ -349,6 +349,17 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     const auto localTable = transaction->getLocalStorage()->getOrCreateLocalTable(*this);
     validatePkNotExists(transaction, const_cast<ValueVector*>(&nodeInsertState.pkVector));
     localTable->insert(transaction, insertState);
+    for (auto& indexHolder : indexes) {
+        auto index = indexHolder.getIndex();
+        auto indexInsertState = index->initInsertState(transaction, memoryManager,
+            [&](offset_t offset) { return isVisible(transaction, offset); });
+        std::vector<ValueVector*> indexedPropertyVectors;
+        for (const auto columnID : index->getIndexInfo().columnIDs) {
+            indexedPropertyVectors.push_back(insertState.propertyVectors[columnID]);
+        }
+        index->insert(transaction, nodeInsertState.nodeIDVector, indexedPropertyVectors,
+            *indexInsertState);
+    }
     if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
@@ -489,7 +500,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -629,7 +640,7 @@ void NodeTable::scanIndexColumns(Transaction* transaction, IndexScanHelper& scan
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to
