@@ -309,8 +309,8 @@ private:
                   metadata.compMeta.compression == CompressionType::CONSTANT ||
                   metadata.compMeta.compression == CompressionType::UNCOMPRESSED);
         std::optional<filter_func_t> filterFunc{};
-        readCompressedValues(transaction, state, result, offsetInResult, offsetInSegment,
-            offsetInSegment + 1, readFunc, filterFunc);
+        readCompressedValues(transaction, state, result, offsetInResult, offsetInSegment, 1,
+            readFunc, filterFunc);
     }
 
     template<typename OutputType>

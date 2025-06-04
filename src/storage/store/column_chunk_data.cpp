@@ -462,6 +462,8 @@ void ColumnChunkData::resetNumValuesFromMetadata() {
     numValues = metadata.numValues;
     if (nullData) {
         nullData->resetNumValuesFromMetadata();
+        // FIXME(bmwinger): not always working
+        // KU_ASSERT(numValues == nullData->numValues);
     }
 }
 

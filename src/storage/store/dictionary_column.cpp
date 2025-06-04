@@ -122,10 +122,9 @@ void DictionaryColumn::scanOffsets(const Transaction* transaction, const Segment
     // We either need to read the next value, or store the maximum string offset at the end.
     // Otherwise we won't know what the length of the last string is.
     if (index + numValues < state.metadata.numValues) {
-        offsetColumn->scanSegment(transaction, state, index, index + numValues + 1,
-            (uint8_t*)offsets);
+        offsetColumn->scanSegment(transaction, state, index, numValues + 1, (uint8_t*)offsets);
     } else {
-        offsetColumn->scanSegment(transaction, state, index, index + numValues, (uint8_t*)offsets);
+        offsetColumn->scanSegment(transaction, state, index, numValues, (uint8_t*)offsets);
         offsets[numValues] = dataSize;
     }
 }
