@@ -15,6 +15,12 @@
 ---- 1
 77|123456789.123000
 
+-CASE ZoneMapNotEqualSkip
+-STATEMENT ALTER TABLE person ADD another_col INT64 DEFAULT 1
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.another_col <> 1 RETURN a.*
+---- 0
+
 -CASE ZoneMapUpdateThenQueryWithoutCheckpoint
 -LOG Comparison
 -STATEMENT CALL enable_zone_map=true;
