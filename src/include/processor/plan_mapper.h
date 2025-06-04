@@ -76,9 +76,10 @@ public:
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         const binder::BoundCopyFromInfo& copyFromInfo, catalog::RelGroupCatalogEntry* relGroupEntry,
-        planner::Schema* outFSchema, common::RelDataDirection direction, common::table_id_t fromTableID,
-        common::table_id_t toTableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<common::LogicalType> columnTypes, uint32_t operatorID);
+        planner::Schema* outFSchema, common::RelDataDirection direction,
+        common::table_id_t fromTableID, common::table_id_t toTableID,
+        std::vector<common::column_id_t> columnIDs, std::vector<common::LogicalType> columnTypes,
+        uint32_t operatorID);
 
     KUZU_API std::unique_ptr<PhysicalOperator> mapOperator(
         const planner::LogicalOperator* logicalOperator);
