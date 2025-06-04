@@ -2,7 +2,6 @@
 
 #include "binder/bound_scan_source.h"
 #include "binder/expression/expression.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/column_evaluate_type.h"
 #include "common/enums/table_type.h"
 #include "index_look_up_info.h"
