@@ -1,5 +1,7 @@
 package com.kuzudb;
 
+import java.time.Instant;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,6 +37,22 @@ public class PreparedStatementTest extends TestBase {
             assertNotNull(preparedStatement2);
             String message = preparedStatement2.getErrorMessage();
             assertTrue(message.equals("Binder exception: Table personnnn does not exist."));
+        }
+    }
+
+    @Test
+    void PrepStmtTimestamp() {
+        Instant time = Instant.now();
+        Map<String, Value> parameters = Map.of("p", new Value(time));
+        String query = "MATCH ()-[r:knows]->() SET r.meetTime=$p RETURN r.meetTime";
+        try (PreparedStatement preparedStatement = conn.prepare(query)) {
+            String message = preparedStatement.getErrorMessage();
+            assertTrue(message.equals(""));
+            QueryResult result = conn.execute(preparedStatement, parameters);
+            while (result.hasNext()) {
+                String got = result.getNext().getValue(0).getValue().toString();
+                assertTrue(got.equals(time.toString()));
+            }
         }
     }
 
