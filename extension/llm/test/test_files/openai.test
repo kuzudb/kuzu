@@ -77,14 +77,6 @@
 
 -STATEMENT return create_embedding('Hello World', 'open-ai', 'text-embedding-3-small');
 ---- error
-Connection exception: Request failed with status 401
- Body: {
-    "error": {
-        "message": "Incorrect API key provided: badApiKey. You can find your API key at https://platform.openai.com/account/api-keys.",
-        "type": "invalid_request_error",
-        "param": null,
-        "code": "invalid_api_key"
-    }
-}
+Connection exception: Request failed with status 401 Body: { "error": { "message": "Incorrect API key provided: badApiKey. You can find your API key at https://platform.openai.com/account/api-keys.", "type": "invalid_request_error", "param": null, "code": "invalid_api_key" } }
 
 
