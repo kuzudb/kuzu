@@ -29,6 +29,7 @@ public:
     common::table_id_vector_t getTableIDs() const;
     common::table_id_set_t getTableIDsSet() const;
 
+    // Table entries
     common::idx_t getNumEntries() const { return entries.size(); }
     const std::vector<catalog::TableCatalogEntry*>& getEntries() const { return entries; }
     catalog::TableCatalogEntry* getEntry(common::idx_t idx) const { return entries[idx]; }
@@ -37,6 +38,7 @@ public:
     }
     void addEntries(const std::vector<catalog::TableCatalogEntry*>& entries_);
 
+    // Property expressions
     void addPropertyExpression(std::shared_ptr<PropertyExpression> property);
     bool hasPropertyExpression(const std::string& propertyName) const {
         return propertyNameToIdx.contains(propertyName);
@@ -49,12 +51,15 @@ public:
         KU_ASSERT(propertyNameToIdx.contains(propertyName));
         return propertyExprs[propertyNameToIdx.at(propertyName)];
     }
+    virtual std::shared_ptr<PropertyExpression> getInternalID() const = 0;
 
+    // Label expression
     void setLabelExpression(std::shared_ptr<Expression> expression) {
         labelExpression = std::move(expression);
     }
     std::shared_ptr<Expression> getLabelExpression() const { return labelExpression; }
 
+    // Property data expressions
     void addPropertyDataExpr(std::string propertyName, std::shared_ptr<Expression> expr) {
         propertyDataExprs.insert({propertyName, expr});
     }

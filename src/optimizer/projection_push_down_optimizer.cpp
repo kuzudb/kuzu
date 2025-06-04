@@ -208,7 +208,7 @@ void ProjectionPushDownOptimizer::visitDelete(LogicalOperator* op) {
             collectExpressionsInUse(rel.getDstNode()->getInternalID());
             KU_ASSERT(rel.getRelType() == QueryRelType::NON_RECURSIVE);
             if (!rel.isEmpty()) {
-                collectExpressionsInUse(rel.getInternalIDProperty());
+                collectExpressionsInUse(rel.getInternalID());
             }
         }
     } break;
@@ -279,7 +279,7 @@ void ProjectionPushDownOptimizer::visitSetInfo(const binder::BoundSetPropertyInf
         auto& rel = info.pattern->constCast<RelExpression>();
         collectExpressionsInUse(rel.getSrcNode()->getInternalID());
         collectExpressionsInUse(rel.getDstNode()->getInternalID());
-        collectExpressionsInUse(rel.getInternalIDProperty());
+        collectExpressionsInUse(rel.getInternalID());
     } break;
     default:
         KU_UNREACHABLE;
@@ -292,7 +292,7 @@ void ProjectionPushDownOptimizer::visitInsertInfo(const LogicalInsertInfo& info)
         auto& rel = info.pattern->constCast<RelExpression>();
         collectExpressionsInUse(rel.getSrcNode()->getInternalID());
         collectExpressionsInUse(rel.getDstNode()->getInternalID());
-        collectExpressionsInUse(rel.getInternalIDProperty());
+        collectExpressionsInUse(rel.getInternalID());
     }
     for (auto i = 0u; i < info.columnExprs.size(); ++i) {
         if (info.isReturnColumnExprs[i]) {

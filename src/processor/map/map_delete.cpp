@@ -139,7 +139,7 @@ std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(
     if (rel.isEmpty()) {
         return std::make_unique<EmptyRelDeleteExecutor>();
     }
-    auto relIDPos = getDataPos(*rel.getInternalIDProperty(), schema);
+    auto relIDPos = getDataPos(*rel.getInternalID(), schema);
     auto srcNodeIDPos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
     auto dstNodeIDPos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
     auto info = RelDeleteInfo(srcNodeIDPos, dstNodeIDPos, relIDPos);

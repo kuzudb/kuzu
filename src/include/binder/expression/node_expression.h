@@ -17,7 +17,7 @@ public:
     bool isMultiLabeled() const override { return entries.size() > 1; }
 
     void setInternalID(std::shared_ptr<PropertyExpression> expr) { internalID = std::move(expr); }
-    std::shared_ptr<Expression> getInternalID() const {
+    std::shared_ptr<PropertyExpression> getInternalID() const override {
         KU_ASSERT(internalID != nullptr);
         return internalID;
     }

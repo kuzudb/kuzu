@@ -118,7 +118,7 @@ std::shared_ptr<Expression> LabelFunction::rewriteFunc(const RewriteFunctionBind
                 return expressionBinder->createLiteralExpression(label);
             }
         }
-        children.push_back(rel.getInternalIDProperty());
+        children.push_back(rel.getInternalID());
         auto map = getRelTableIDToLabel(rel.getEntries());
         children.push_back(getLabelsAsLiteral(map, expressionBinder));
     }

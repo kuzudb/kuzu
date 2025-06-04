@@ -8,6 +8,7 @@
 #include "main/client_context.h"
 
 using namespace kuzu::common;
+using namespace kuzu::catalog;
 using namespace kuzu::parser;
 using namespace kuzu::function;
 
@@ -24,8 +25,27 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     return bindComparisonExpression(parsedExpression.getExpressionType(), children);
 }
 
+static bool isNodeOrRel(const Expression& expression) {
+    switch (expression.getDataType().getLogicalTypeID()) {
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+        return true;
+    default:
+        return false;
+    }
+}
+
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     ExpressionType expressionType, const expression_vector& children) {
+    // Rewrite node or rel comparison
+    KU_ASSERT(children.size() == 2);
+    if (isNodeOrRel(*children[0]) && isNodeOrRel(*children[1])) {
+        expression_vector newChildren;
+        newChildren.push_back(children[0]->constCast<NodeOrRelExpression>().getInternalID());
+        newChildren.push_back(children[1]->constCast<NodeOrRelExpression>().getInternalID());
+        return bindComparisonExpression(expressionType, newChildren);
+    }
+
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto functionName = ExpressionTypeUtil::toString(expressionType);
@@ -41,9 +61,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     for (auto i = 0u; i < children.size(); i++) {
         childrenTypes.push_back(combinedType.copy());
     }
-    auto entry = catalog->getFunctionEntry(transaction, functionName);
-    auto function = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes,
-        entry->ptrCast<catalog::FunctionCatalogEntry>())
+    auto entry =
+        catalog->getFunctionEntry(transaction, functionName)->ptrCast<FunctionCatalogEntry>();
+    auto function = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry)
                         ->ptrCast<ScalarFunction>();
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {

@@ -439,6 +439,14 @@ Zhang|50
 ---- 1
 Adam|30
 
+-LOG NodeComparison
+-STATEMENT MATCH (u)--(v:User) WHERE v.name='Adam' AND u<>v RETURN COUNT(*);
+---- 1
+3
+-STATEMENT MATCH (u)-[e1]-(v:User)-[e2]-() WHERE v.name='Adam' AND e1<>e2 RETURN COUNT(*);
+---- 1
+6
+
 -CASE CopyTO
 -SKIP_IN_MEM
 -STATEMENT COPY (MATCH (u:User) RETURN u.*) TO '${DATABASE_PATH}/user.csv' (header=true);

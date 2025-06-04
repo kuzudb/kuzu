@@ -83,7 +83,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     if (logicalProbe.getRelChild() != nullptr) {
         auto relBuildPrvOperator = mapOperator(logicalProbe.getRelChild().get());
         auto relBuildSchema = logicalProbe.getRelChild()->getSchema();
-        auto relKeys = expression_vector{recursiveInfo->rel->getInternalIDProperty()};
+        auto relKeys = expression_vector{recursiveInfo->rel->getInternalID()};
         auto relKeyTypes = ExpressionUtil::getDataTypes(relKeys);
         auto relPayloads =
             ExpressionUtil::excludeExpressions(relBuildSchema->getExpressionsInScope(), relKeys);

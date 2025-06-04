@@ -1774,9 +1774,11 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
     if (isSemanticallyNested(left.typeID) || isSemanticallyNested(right.typeID)) {
         if (left.typeID == LogicalTypeID::LIST && right.typeID == LogicalTypeID::ARRAY) {
             return tryCombineListArrayTypes(left, right, result);
-        } else if (left.typeID == LogicalTypeID::ARRAY && right.typeID == LogicalTypeID::LIST) {
+        }
+        if (left.typeID == LogicalTypeID::ARRAY && right.typeID == LogicalTypeID::LIST) {
             return tryCombineListArrayTypes(right, left, result);
-        } else if (left.typeID != right.typeID) {
+        }
+        if (left.typeID != right.typeID) {
             return false;
         }
         switch (left.typeID) {
@@ -1793,7 +1795,8 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
             throw ConversionException("Union casting is not supported");
             // return tryCombineUnionTypes(left, right, result);
         default:
-            KU_UNREACHABLE;
+            throw RuntimeException(stringFormat("Casting between {} and {} is not implemented.",
+                left.toString(), right.toString()));
             // LCOV_EXCL_END
         }
     }
