@@ -26,7 +26,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
     const main::ClientContext* clientContext,
     std::shared_ptr<PartitionerSharedState> partitionerSharedState,
     std::shared_ptr<BatchInsertSharedState> sharedState, const BoundCopyFromInfo& copyFromInfo,
-    RelGroupCatalogEntry* relGroupEntry, Schema* outFSchema, RelDataDirection direction, table_id_t tableID, table_id_t nbrTableID, std::vector<column_id_t> columnIDs, std::vector<LogicalType> columnTypes, uint32_t operatorID) {
+    RelGroupCatalogEntry* relGroupEntry, Schema* outFSchema, RelDataDirection direction,
+    table_id_t tableID, table_id_t nbrTableID, std::vector<column_id_t> columnIDs,
+    std::vector<LogicalType> columnTypes, uint32_t operatorID) {
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
     auto offsetVectorIdx = direction == RelDataDirection::FWD ? 0 : 1;
     const auto numWarningDataColumns = copyFromInfo.getNumWarningColumns();
@@ -174,9 +176,10 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
     // If the table entry doesn't exist, assume both directions
     std::vector directions = {RelDataDirection::FWD, RelDataDirection::BWD};
     table_id_t tableID = 0;
-    RelGroupCatalogEntry* relGroupEntry = nullptr; 
+    RelGroupCatalogEntry* relGroupEntry = nullptr;
     if (catalog->containsTable(transaction, copyFromInfo->tableName)) {
-        relGroupEntry = catalog->getTableCatalogEntry(transaction, copyFromInfo->tableName)->ptrCast<RelGroupCatalogEntry>();
+        relGroupEntry = catalog->getTableCatalogEntry(transaction, copyFromInfo->tableName)
+                            ->ptrCast<RelGroupCatalogEntry>();
         directions = relGroupEntry->getRelDataDirections();
         tableID = relGroupEntry->getRelEntryInfo(fromTableID, toTableID)->oid;
     }
@@ -184,8 +187,8 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
     for (auto direction : directions) {
         auto nbrTableID = RelDirectionUtils::getNbrTableID(direction, fromTableID, toTableID);
         auto copyRel = createRelBatchInsertOp(clientContext, sharedState, batchInsertSharedState,
-            *copyFrom.getInfo(), relGroupEntry, copyFrom.getSchema(), direction, tableID, nbrTableID, {}, {},
-            getOperatorID());
+            *copyFrom.getInfo(), relGroupEntry, copyFrom.getSchema(), direction, tableID,
+            nbrTableID, {}, {}, getOperatorID());
         result.push_back(std::move(copyRel));
     }
     result.push_back(std::move(partitioner));

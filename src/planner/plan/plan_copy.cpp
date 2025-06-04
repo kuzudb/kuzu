@@ -25,7 +25,8 @@ static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan&
     plan.setLastOperator(std::move(indexScan));
 }
 
-static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan, const std::vector<RelDataDirection>& directions) {
+static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan,
+    const std::vector<RelDataDirection>& directions) {
     LogicalPartitionerInfo info(copyFromInfo.offset);
     for (auto& direction : directions) {
         info.partitioningInfos.push_back(
@@ -114,7 +115,8 @@ LogicalPlan Planner::planCopyRelFrom(const BoundCopyFromInfo* info, expression_v
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
     if (catalog->containsTable(transaction, info->tableName)) {
-        const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, info->tableName)->constCast<RelGroupCatalogEntry>();
+        const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, info->tableName)
+                                        ->constCast<RelGroupCatalogEntry>();
         directions = relGroupEntry.getRelDataDirections();
     }
     appendIndexScan(extraInfo, plan);
