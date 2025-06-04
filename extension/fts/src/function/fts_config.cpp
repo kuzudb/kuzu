@@ -7,9 +7,9 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_utils.h"
-#include "function/fts_utils.h"
 #include "function/stem.h"
 #include "main/client_context.h"
+#include "utils/fts_utils.h"
 
 namespace kuzu {
 namespace fts_extension {

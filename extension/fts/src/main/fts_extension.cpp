@@ -6,6 +6,7 @@
 #include "function/drop_fts_index.h"
 #include "function/query_fts_index.h"
 #include "function/stem.h"
+#include "index/fts_index.h"
 #include "main/client_context.h"
 
 namespace kuzu {
@@ -30,6 +31,7 @@ void FtsExtension::load(main::ClientContext* context) {
     ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(db);
     ExtensionUtils::addInternalStandaloneTableFunc<InternalDropFTSFunction>(db);
+    ExtensionUtils::registerIndexType(db, FTSIndex::getIndexType());
     initFTSEntries(&transaction::DUMMY_TRANSACTION, *db.getCatalog());
 }
 

@@ -4,8 +4,8 @@
 #include "common/serializer/buffered_reader.h"
 #include "common/serializer/buffered_serializer.h"
 #include "common/string_utils.h"
-#include "function/fts_utils.h"
 #include "main/client_context.h"
+#include "utils/fts_utils.h"
 
 namespace kuzu {
 namespace fts_extension {

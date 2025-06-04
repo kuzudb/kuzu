@@ -223,7 +223,8 @@ private:
         common::ValueVector* pkVector) const;
 
     visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
-    common::DataChunk constructDataChunkForPKColumn() const;
+    common::DataChunk constructDataChunkForColumns(
+        const std::vector<common::column_id_t>& columnIDs) const;
     void scanIndexColumns(transaction::Transaction* transaction, IndexScanHelper& scanHelper,
         const NodeGroupCollection& nodeGroups_) const;
 

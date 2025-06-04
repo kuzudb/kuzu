@@ -520,7 +520,7 @@ bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uin
     return retVal;
 }
 
-void PrimaryKeyIndex::insert(main::ClientContext* context, const ValueVector& nodeIDVector,
+void PrimaryKeyIndex::insert(transaction::Transaction* transaction, const ValueVector& nodeIDVector,
     const std::vector<ValueVector*>& indexVectors, Index::InsertState& insertState) {
     KU_ASSERT(indexVectors.size() == 1);
     const auto& pkVector = *indexVectors[0];
@@ -532,7 +532,7 @@ void PrimaryKeyIndex::insert(main::ClientContext* context, const ValueVector& no
         if (pkVector.isNull(pkPos)) {
             throw RuntimeException(ExceptionMessage::nullPKException());
         }
-        if (!insert(context->getTransaction(), &pkVector, pkPos, offset, pkInsertState.isVisible)) {
+        if (!insert(transaction, &pkVector, pkPos, offset, pkInsertState.isVisible)) {
             throw RuntimeException(
                 ExceptionMessage::duplicatePKException(pkVector.getAsValue(pkPos)->toString()));
         }

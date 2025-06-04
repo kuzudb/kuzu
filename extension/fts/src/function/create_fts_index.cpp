@@ -7,7 +7,6 @@
 #include "function/fts_bind_data.h"
 #include "function/fts_config.h"
 #include "function/fts_index_utils.h"
-#include "function/fts_utils.h"
 #include "function/gds/gds_task.h"
 #include "function/gds/gds_utils.h"
 #include "function/table/bind_data.h"
@@ -15,8 +14,12 @@
 #include "function/table/simple_table_function.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
+#include "index/fts_index.h"
+#include "index/fts_storage_info.h"
 #include "main/fts_extension.h"
 #include "processor/execution_context.h"
+#include "storage/storage_manager.h"
+#include "utils/fts_utils.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -272,18 +275,41 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         std::vector<std::string>{InternalCreateFTSFunction::DOC_LEN_PROP_NAME});
     auto numDocs = sharedState.numDocs.load();
     auto avgDocLen = numDocs == 0 ? 0 : static_cast<double>(sharedState.totalLen.load()) / numDocs;
-    context.clientContext->getCatalog()->createIndex(context.clientContext->getTransaction(),
-        std::make_unique<catalog::IndexCatalogEntry>(FTSIndexCatalogEntry::TYPE_NAME,
-            bindData.tableID, bindData.indexName, bindData.propertyIDs,
-            std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen,
-                FTSConfig{bindData.createFTSConfig.stemmer,
-                    bindData.createFTSConfig.stopWordsTableInfo.tableName,
-                    bindData.createFTSConfig.stopWordsTableInfo.stopWords})));
+    auto ftsConfig = FTSConfig{bindData.createFTSConfig.stemmer,
+        bindData.createFTSConfig.stopWordsTableInfo.tableName,
+        bindData.createFTSConfig.stopWordsTableInfo.stopWords};
+    auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(FTSIndexCatalogEntry::TYPE_NAME,
+        bindData.tableID, bindData.indexName, bindData.propertyIDs,
+        std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen, ftsConfig));
+    auto catalog = context.clientContext->getCatalog();
+    catalog->createIndex(context.clientContext->getTransaction(), std::move(indexEntry));
+
+    auto nodeTable = context.clientContext->getStorageManager()
+                         ->getTable(bindData.tableID)
+                         ->ptrCast<storage::NodeTable>();
+    auto tableEntry =
+        catalog->getTableCatalogEntry(context.clientContext->getTransaction(), bindData.tableID);
+    std::vector<column_id_t> columnIDs;
+    std::vector<PhysicalTypeID> columnTypes;
+    for (auto& propertyID : bindData.propertyIDs) {
+        columnIDs.push_back(tableEntry->getColumnID(propertyID));
+        columnTypes.push_back(PhysicalTypeID::STRING);
+    }
+    auto ftsIndexType = FTSIndex::getIndexType();
+    storage::IndexInfo indexInfo{bindData.indexName, ftsIndexType.typeName, nodeTable->getTableID(),
+        std::move(columnIDs), std::move(columnTypes),
+        ftsIndexType.constraintType == storage::IndexConstraintType::PRIMARY,
+        ftsIndexType.definitionType == storage::IndexDefinitionType::BUILTIN};
+    auto storageInfo = std::make_unique<FTSStorageInfo>(context.clientContext, indexInfo.tableID,
+        indexInfo.name, ftsConfig.stopWordsTableName);
+    auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
+        std::move(ftsConfig));
+    nodeTable->addIndex(std::move(onDiskIndex));
     return 0;
 }
 
-static std::vector<common::LogicalType> inferInputTypes(const binder::expression_vector& params) {
-    auto inputQueryExpression = params[2];
+static std::vector<common::LogicalType> inferInputTypes(
+    const binder::expression_vector& /*params*/) {
     std::vector<common::LogicalType> inputTypes;
     inputTypes.push_back(common::LogicalType::STRING());
     inputTypes.push_back(common::LogicalType::STRING());

@@ -11,6 +11,9 @@ namespace kuzu {
 namespace fts_extension {
 
 using namespace kuzu::common;
+using namespace kuzu::storage;
+using namespace kuzu::transaction;
+using namespace kuzu::catalog;
 
 void FTSUtils::normalizeQuery(std::string& query) {
     std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
@@ -21,20 +24,17 @@ void FTSUtils::normalizeQuery(std::string& query) {
 
 struct StopWordsChecker {
     ValueVector termsVector;
-    common::offset_t offset = common::INVALID_OFFSET;
     storage::NodeTable* stopWordsTable;
     transaction::Transaction* tx;
+    common::offset_t offset = common::INVALID_OFFSET;
 
-    explicit StopWordsChecker(main::ClientContext& context, const std::string& stopWordsTableName);
+    explicit StopWordsChecker(MemoryManager* mm, NodeTable* stopWordsTable, Transaction* tx);
     bool isStopWord(const std::string& term);
 };
 
-StopWordsChecker::StopWordsChecker(main::ClientContext& context,
-    const std::string& stopWordsTableName)
-    : termsVector{LogicalType::STRING(), context.getMemoryManager()}, tx{context.getTransaction()} {
+StopWordsChecker::StopWordsChecker(MemoryManager* mm, NodeTable* stopwordsTable, Transaction* tx)
+    : termsVector{LogicalType::STRING(), mm}, stopWordsTable{stopwordsTable}, tx{tx} {
     termsVector.state = common::DataChunkState::getSingleValueDataChunkState();
-    auto tableID = context.getCatalog()->getTableCatalogEntry(tx, stopWordsTableName)->getTableID();
-    stopWordsTable = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
 }
 
 bool StopWordsChecker::isStopWord(const std::string& term) {
@@ -43,14 +43,15 @@ bool StopWordsChecker::isStopWord(const std::string& term) {
 }
 
 std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
-    const FTSConfig& config, main::ClientContext& context, bool isConjunctive) {
+    const FTSConfig& config, MemoryManager* mm, NodeTable* stopwordsTable, Transaction* tx,
+    bool isConjunctive) {
     if (config.stemmer == "none") {
         return terms;
     }
     StemFunction::validateStemmer(config.stemmer);
     auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(config.stemmer.c_str()), "UTF_8");
     std::vector<std::string> result;
-    StopWordsChecker checker{context, config.stopWordsTableName};
+    StopWordsChecker checker{mm, stopwordsTable, tx};
     for (auto& term : terms) {
         auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
             term.length());
