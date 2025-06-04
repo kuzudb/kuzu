@@ -37,23 +37,22 @@ struct RelBatchInsertProgressSharedState {
 
 struct RelBatchInsertInfo final : BatchInsertInfo {
     common::RelDataDirection direction;
-    common::table_id_t tableID;
-    common::table_id_t nbrTableID;
+    common::table_id_t fromTableID, toTableID;
     uint64_t partitioningIdx;
     common::column_id_t boundNodeOffsetColumnID;
 
     RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        common::RelDataDirection direction, common::table_id_t tableID,
-        common::table_id_t nbrTableID, uint64_t partitioningIdx, common::column_id_t offsetColumnID,
+        common::RelDataDirection direction, common::table_id_t fromTableID,
+        common::table_id_t toTableID, uint64_t partitioningIdx, common::column_id_t offsetColumnID,
         std::vector<common::column_id_t> columnIDs, std::vector<common::LogicalType> columnTypes,
         common::column_id_t numWarningDataColumns)
         : BatchInsertInfo{tableEntry, compressionEnabled, std::move(columnIDs),
               std::move(columnTypes), numWarningDataColumns},
-          direction{direction}, tableID{tableID}, nbrTableID{nbrTableID},
+          direction{direction}, fromTableID{fromTableID}, toTableID{toTableID},
           partitioningIdx{partitioningIdx}, boundNodeOffsetColumnID{offsetColumnID} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
-        : BatchInsertInfo{other}, direction{other.direction}, tableID{other.tableID},
-          nbrTableID{other.nbrTableID}, partitioningIdx{other.partitioningIdx},
+        : BatchInsertInfo{other}, direction{other.direction}, fromTableID{other.fromTableID},
+          toTableID{other.toTableID}, partitioningIdx{other.partitioningIdx},
           boundNodeOffsetColumnID{other.boundNodeOffsetColumnID} {}
 
     std::unique_ptr<BatchInsertInfo> copy() const override {

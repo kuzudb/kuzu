@@ -30,11 +30,14 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     localState->chunkedGroup =
         std::make_unique<ChunkedCSRNodeGroup>(*context->clientContext->getMemoryManager(),
             relInfo->columnTypes, relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
+    const auto clientContext = context->clientContext;
+    const auto catalogEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(), tableName);
+    const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
+    auto tableID = relGroupEntry.getRelEntryInfo(relInfo->fromTableID, relInfo->toTableID)->oid;
+    auto nbrTableID = RelDirectionUtils::getNbrTableID(relInfo->direction, relInfo->fromTableID, relInfo->toTableID);
     // TODO(Guodong): Get rid of the hard-coded nbr and rel column ID 0/1.
-    localState->chunkedGroup->getColumnChunk(0).getData().cast<InternalIDChunkData>().setTableID(
-        relInfo->nbrTableID);
-    localState->chunkedGroup->getColumnChunk(1).getData().cast<InternalIDChunkData>().setTableID(
-        relInfo->tableID);
+    localState->chunkedGroup->getColumnChunk(0).getData().cast<InternalIDChunkData>().setTableID(nbrTableID);
+    localState->chunkedGroup->getColumnChunk(1).getData().cast<InternalIDChunkData>().setTableID(tableID);
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     relLocalState->dummyAllNullDataChunk = std::make_unique<DataChunk>(relInfo->columnTypes.size());
     for (auto i = 0u; i < relInfo->columnTypes.size(); i++) {
@@ -54,12 +57,6 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         const auto transaction = clientContext->getTransaction();
         const auto catalogEntry = catalog->getTableCatalogEntry(transaction, tableName);
         const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
-        if (relGroupEntry.getRelEntryInfos().size() == 1) {
-            // This is primarily just to initialize tableID for `create rel table as` (since we only
-            // support a single from/to pair for that), though it does cover more cases than just
-            // that
-            relBatchInsertInfo->tableID = relGroupEntry.getRelEntryInfos()[0].oid;
-        }
         relBatchInsertInfo->tableEntry = catalogEntry;
         sharedState->table = partitionerSharedState->relTable;
         // TODO(Xiyang): rewrite me
