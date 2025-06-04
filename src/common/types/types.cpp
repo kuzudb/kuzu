@@ -1795,7 +1795,8 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
             throw ConversionException("Union casting is not supported");
             // return tryCombineUnionTypes(left, right, result);
         default:
-            throw RuntimeException(stringFormat("Casting between {} and {} is not implemented.", left.toString(), right.toString()));
+            throw RuntimeException(stringFormat("Casting between {} and {} is not implemented.",
+                left.toString(), right.toString()));
             // LCOV_EXCL_END
         }
     }
