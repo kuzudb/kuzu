@@ -41,7 +41,7 @@ union StorageValue {
 
     template<typename T>
         requires std::integral<T> && std::numeric_limits<T>::is_signed
-    // zero-initilize union padding
+    // zero-initialize union padding
     explicit StorageValue(T value) : StorageValue(common::int128_t(0)) {
         signedInt = value;
     }

@@ -1,0 +1,12 @@
+-DATASET CSV empty
+
+--
+
+-CASE ZoneMapCastedColumn
+-STATEMENT create node table Comment (id STRING, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv";
+---- ok
+-STATEMENT match (c:Comment) where c.id = 687194777181 return c.browserUsed, c.content;
+---- 1
+Chrome|right
