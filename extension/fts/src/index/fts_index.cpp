@@ -112,6 +112,7 @@ void FTSIndex::insert(Transaction* transaction, const common::ValueVector& nodeI
         auto nodeInsertState =
             std::make_unique<NodeTableInsertState>(ftsInsertState.docNodeIDVector,
                 ftsInsertState.docPKVector, ftsInsertState.docProperties);
+        docTable->initInsertState(transaction, *nodeInsertState);
         docTable->insert(transaction, *nodeInsertState);
 
         std::unordered_map<std::string, TermInfo> tfCollection;
@@ -146,6 +147,7 @@ void FTSIndex::insert(Transaction* transaction, const common::ValueVector& nodeI
                 nodeInsertState =
                     std::make_unique<NodeTableInsertState>(ftsInsertState.termsNodeIDVector,
                         ftsInsertState.termsPKVector, ftsInsertState.termsProperties);
+                termsTable->initInsertState(transaction, *nodeInsertState);
                 termsTable->insert(transaction, *nodeInsertState);
                 termInfo.offset = ftsInsertState.termsNodeIDVector.getValue<nodeID_t>(0).offset;
             }
@@ -155,6 +157,7 @@ void FTSIndex::insert(Transaction* transaction, const common::ValueVector& nodeI
         auto relInsertState =
             std::make_unique<storage::RelTableInsertState>(ftsInsertState.appearsInSrcVector,
                 ftsInsertState.appearsInDstVector, ftsInsertState.appearsInProperties);
+        appearsInTable->initInsertState(transaction, *relInsertState);
         ftsInsertState.appearsInDstVector.setValue(0,
             ftsInsertState.docNodeIDVector.getValue<nodeID_t>(0));
         for (auto& [term, termInfo] : tfCollection) {

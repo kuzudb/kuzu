@@ -95,9 +95,10 @@ nodeID_t NodeInsertExecutor::insert(Transaction* transaction) {
     if (checkConflict(transaction)) {
         return info.getNodeID();
     }
-    auto nodeInsertState = std::make_unique<storage::NodeTableInsertState>(*info.nodeIDVector,
+    auto insertState = std::make_unique<storage::NodeTableInsertState>(*info.nodeIDVector,
         *tableInfo.pkVector, tableInfo.columnDataVectors);
-    tableInfo.table->insert(transaction, *nodeInsertState);
+    tableInfo.table->initInsertState(transaction, *insertState);
+    tableInfo.table->insert(transaction, *insertState);
     writeColumnVectors(info.columnVectors, tableInfo.columnDataVectors);
     return info.getNodeID();
 }
@@ -172,6 +173,7 @@ internalID_t RelInsertExecutor::insert(Transaction* transaction) {
     }
     auto insertState = std::make_unique<storage::RelTableInsertState>(*info.srcNodeIDVector,
         *info.dstNodeIDVector, tableInfo.columnDataVectors);
+    tableInfo.table->initInsertState(transaction, *insertState);
     tableInfo.table->insert(transaction, *insertState);
     writeColumnVectors(info.columnVectors, tableInfo.columnDataVectors);
     return tableInfo.getRelID();

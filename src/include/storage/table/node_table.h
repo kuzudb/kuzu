@@ -45,6 +45,7 @@ struct KUZU_API NodeTableScanState final : TableScanState {
 struct NodeTableInsertState final : TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
+    std::vector<std::unique_ptr<Index::InsertState>> indexInsertStates;
 
     explicit NodeTableInsertState(common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector, std::vector<common::ValueVector*> propertyVectors)
@@ -121,6 +122,8 @@ public:
     common::offset_t validateUniquenessConstraint(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& propertyVectors) const;
 
+    void initInsertState(transaction::Transaction* transaction,
+        TableInsertState& insertState) override;
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
