@@ -81,7 +81,7 @@ struct KUZU_API TableScanState {
     }
 };
 
-struct TableInsertState {
+struct KUZU_API TableInsertState {
     std::vector<common::ValueVector*> propertyVectors;
 
     explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors)

@@ -42,7 +42,7 @@ struct KUZU_API NodeTableScanState final : TableScanState {
         common::offset_t numNodes);
 };
 
-struct NodeTableInsertState final : TableInsertState {
+struct KUZU_API NodeTableInsertState final : TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
     std::vector<std::unique_ptr<Index::InsertState>> indexInsertStates;

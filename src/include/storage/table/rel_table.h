@@ -91,7 +91,7 @@ struct LocalRelTableScanState final : RelTableScanState {
     }
 };
 
-struct RelTableInsertState final : TableInsertState {
+struct KUZU_API RelTableInsertState final : TableInsertState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
 
