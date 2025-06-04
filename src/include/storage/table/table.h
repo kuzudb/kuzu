@@ -114,8 +114,8 @@ struct KUZU_API TableUpdateState {
     }
 };
 
-struct TableDeleteState {
-    virtual ~TableDeleteState();
+struct KUZU_API TableDeleteState {
+    virtual ~TableDeleteState() = default;
 
     template<typename T>
     const T& constCast() const {

@@ -326,9 +326,9 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     auto indexName = hnswBindData->indexName;
     auto tableName = hnswBindData->tableEntry->getName();
     auto tableID = hnswBindData->tableEntry->getTableID();
-    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
+    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {}) WITH (storage_direction='fwd');",
         HNSWIndexUtils::getUpperGraphTableName(tableID, indexName), tableName, tableName);
-    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
+    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {}) WITH (storage_direction='fwd');",
         HNSWIndexUtils::getLowerGraphTableName(tableID, indexName), tableName, tableName);
     std::string params;
     auto& config = hnswBindData->config;

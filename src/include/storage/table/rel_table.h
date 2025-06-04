@@ -91,7 +91,7 @@ struct LocalRelTableScanState final : RelTableScanState {
     }
 };
 
-struct KUZU_API RelTableInsertState : TableInsertState {
+struct KUZU_API RelTableInsertState final : TableInsertState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
 
@@ -121,7 +121,7 @@ struct RelTableUpdateState final : TableUpdateState {
           dstNodeIDVector{dstNodeIDVector}, relIDVector{relIDVector} {}
 };
 
-struct RelTableDeleteState final : TableDeleteState {
+struct KUZU_API RelTableDeleteState final : TableDeleteState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
     common::ValueVector& relIDVector;

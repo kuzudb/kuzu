@@ -267,14 +267,16 @@ struct HNSWSearchState {
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
     struct InsertState final : Index::InsertState {
-        OnDiskEmbeddingScanState embeddingScanState;
+        // State for searching neighbors and reading vectors in the HNSW graph.
         HNSWSearchState searchState;
+        // State for inserting rels.
+        common::DataChunk insertChunk;
+        std::unique_ptr<storage::RelTableInsertState> relInsertState;
+        // State for detaching delete.
+        std::unique_ptr<storage::RelTableDeleteState> relDeleteState;
 
         InsertState(const transaction::Transaction* transaction, storage::MemoryManager* mm,
-            storage::NodeTable& nodeTable, common::column_id_t columnID, uint64_t degree)
-            : embeddingScanState{transaction, mm, nodeTable, columnID},
-              searchState{transaction, mm, nodeTable, columnID,
-                  nodeTable.getNumTotalRows(transaction), degree, QueryHNSWConfig{}} {}
+            storage::NodeTable& nodeTable, common::column_id_t columnID, uint64_t degree);
     };
 
     OnDiskHNSWIndex(main::ClientContext* context, storage::IndexInfo indexInfo,
@@ -316,10 +318,13 @@ private:
     void blindTwoHopFilteredSearch(transaction::Transaction* transaction, const void* queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
-    void insertToLowerLayer(transaction::Transaction* transaction, common::offset_t offset,
-        common::offset_t entryPoint, const void* queryVector, HNSWSearchState& searchState);
-    void insertRels(transaction::Transaction* transaction, common::offset_t offset,
-        common::offset_t dstNode, storage::RelTable& relTable) const;
+    void insertToLayer(transaction::Transaction* transaction, common::offset_t offset,
+        common::offset_t entryPoint, const void* queryVector, InsertState& insertState,
+        bool isUpperLayer);
+    void createRels(transaction::Transaction* transaction, common::offset_t offset,
+        const std::vector<NodeWithDistance>& nbrs, bool isUpperLayer, InsertState& insertState);
+    void shrinkForNode(transaction::Transaction* transaction, common::offset_t offset,
+        storage::RelTable& relTable, common::length_t maxDegree, InsertState& insertState);
 
     void processSecondHopCandidates(transaction::Transaction* transaction, const void* queryVector,
         HNSWSearchState& searchState, int64_t& numVisitedNbrs,
