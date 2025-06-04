@@ -21,8 +21,6 @@ struct ExtraBoundCopyFromInfo {
 };
 
 struct KUZU_API BoundCopyFromInfo {
-    // Catalog entry of table to copy into (nullptr for node tables).
-    catalog::TableCatalogEntry* tableEntry;
     // Name of table to copy into.
     std::string tableName;
     // Type of table.
@@ -35,20 +33,11 @@ struct KUZU_API BoundCopyFromInfo {
     std::vector<common::ColumnEvaluateType> columnEvaluateTypes;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
-    BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
-        std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
-        expression_vector columnExprs, std::vector<common::ColumnEvaluateType> columnEvaluateTypes,
-        std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
-        : tableEntry{tableEntry}, tableName{tableEntry->getName()},
-          tableType{tableEntry->getTableType()}, source{std::move(source)},
-          offset{std::move(offset)}, columnExprs{std::move(columnExprs)},
-          columnEvaluateTypes{std::move(columnEvaluateTypes)}, extraInfo{std::move(extraInfo)} {}
-
     BoundCopyFromInfo(std::string tableName, common::TableType tableType,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         expression_vector columnExprs, std::vector<common::ColumnEvaluateType> columnEvaluateTypes,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
-        : tableEntry{nullptr}, tableName{std::move(tableName)}, tableType{tableType},
+        : tableName{std::move(tableName)}, tableType{tableType},
           source{std::move(source)}, offset{std::move(offset)}, columnExprs{std::move(columnExprs)},
           columnEvaluateTypes{std::move(columnEvaluateTypes)}, extraInfo{std::move(extraInfo)} {}
 
@@ -64,7 +53,7 @@ struct KUZU_API BoundCopyFromInfo {
 
 private:
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
-        : tableEntry{other.tableEntry}, tableName{other.tableName}, tableType{other.tableType},
+        : tableName{other.tableName}, tableType{other.tableType},
           offset{other.offset}, columnExprs{other.columnExprs},
           columnEvaluateTypes{other.columnEvaluateTypes} {
         source = other.source ? other.source->copy() : nullptr;
