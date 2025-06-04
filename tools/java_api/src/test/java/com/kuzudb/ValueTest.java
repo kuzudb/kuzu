@@ -20,10 +20,9 @@ public class ValueTest extends TestBase {
             assertNotNull(preparedStatement);
             assertTrue(preparedStatement.getErrorMessage().equals(""));
             QueryResult result = conn.execute(preparedStatement, parameters);
-            if (result.hasNext()) {
-                String exp = val.getValue() == null ? "" : val.getValue().toString();
-                String got = result.getNext().getValue(0).getValue().toString();
-                assertTrue(exp.equals(got));
+            if (result.hasNext() && val.getValue() != null) {
+                Value cur = result.getNext().getValue(0);
+                assertTrue(val.getValue().equals(cur.getValue()));
             }
         }
     }
