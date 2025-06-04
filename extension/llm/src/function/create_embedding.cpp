@@ -1,6 +1,5 @@
 #include <cstdint>
 #include <cstdlib>
-#include <string_view>
 #include <unordered_map>
 #include "common/assert.h"
 #include "common/exception/binder.h"
