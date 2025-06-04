@@ -46,8 +46,6 @@ public:
         offsetColumnChunk->setNumValues(numValues_);
     }
 
-    uint64_t getNumValues() const override { return nullData->getNumValues(); }
-
     void resetNumValuesFromMetadata() override;
     void syncNumValues() override {
         numValues = offsetColumnChunk->getNumValues();

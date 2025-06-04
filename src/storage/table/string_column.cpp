@@ -6,6 +6,7 @@
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
+#include "storage/storage_utils.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk.h"
 #include "storage/table/null_column.h"
