@@ -26,3 +26,8 @@ Runtime exception: Unrecognized stemmer 'wrong'. Supported stemmers are: ['arabi
 -STATEMENT RETURN STEM('kitaplar', 'turkish')
 ---- 1
 kitap
+-STATEMENT UNWIND ['alice', 'bob', 'carol'] as t RETURN STEM(t, 'porter')
+---- 3
+alic
+bob
+carol

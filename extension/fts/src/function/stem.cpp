@@ -91,13 +91,12 @@ void StemStaticStemmer::operation(common::ku_string_t& word, common::ku_string_t
     common::ku_string_t& result, common::ValueVector& /*leftValueVector*/,
     common::ValueVector& /*rightValueVector*/, common::ValueVector& resultVector, void* dataPtr) {
     auto stemBindData = reinterpret_cast<StemBindData*>(dataPtr);
-    auto stemData = sb_stemmer_stem(stemBindData->sbStemmer,
-        reinterpret_cast<const sb_symbol*>(word.getData()), word.len);
     if (stemBindData->sbStemmer == nullptr) {
         common::StringVector::addString(&resultVector, result,
-            reinterpret_cast<const char*>(word.getData()),
-            sb_stemmer_length(stemBindData->sbStemmer));
+            reinterpret_cast<const char*>(word.getData()), word.len);
     } else {
+        auto stemData = sb_stemmer_stem(stemBindData->sbStemmer,
+            reinterpret_cast<const sb_symbol*>(word.getData()), word.len);
         common::StringVector::addString(&resultVector, result,
             reinterpret_cast<const char*>(stemData), sb_stemmer_length(stemBindData->sbStemmer));
     }
