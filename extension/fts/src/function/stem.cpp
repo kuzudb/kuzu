@@ -1,10 +1,12 @@
 #include "function/stem.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/scalar_function.h"
 #include "libstemmer.h"
 
@@ -53,12 +55,77 @@ void Stem::operation(common::ku_string_t& word, common::ku_string_t& stemmer,
     sb_stemmer_delete(sbStemmer);
 }
 
+struct StemStaticStemmer {
+    static void operation(common::ku_string_t& word, common::ku_string_t& /*stemmer*/,
+        common::ku_string_t& result, common::ValueVector& /*leftValueVector*/,
+        common::ValueVector& /*rightValueVector*/, common::ValueVector& resultVector,
+        void* dataPtr);
+};
+
+struct StemBindData final : public FunctionBindData {
+    sb_stemmer* sbStemmer = nullptr;
+    std::string stemmer;
+
+    StemBindData(common::logical_type_vec_t paramTypes, const std::string& stemmer)
+        : FunctionBindData{std::move(paramTypes), common::LogicalType::STRING()}, stemmer{stemmer} {
+        if (stemmer == "none") {
+            return;
+        }
+        sbStemmer = sb_stemmer_new(stemmer.c_str(), "UTF_8");
+        if (sbStemmer == nullptr) {
+            throw common::RuntimeException(common::stringFormat(
+                "Unrecognized stemmer '{}'. Supported stemmers are: ['{}'], or "
+                "use 'none' for no stemming.",
+                stemmer, getStemmerList()));
+        }
+    }
+
+    ~StemBindData() override { sb_stemmer_delete(sbStemmer); }
+
+    std::unique_ptr<FunctionBindData> copy() const override {
+        return std::make_unique<StemBindData>(copyVector(paramTypes), stemmer);
+    }
+};
+
+void StemStaticStemmer::operation(common::ku_string_t& word, common::ku_string_t& /*stemmer*/,
+    common::ku_string_t& result, common::ValueVector& /*leftValueVector*/,
+    common::ValueVector& /*rightValueVector*/, common::ValueVector& resultVector, void* dataPtr) {
+    auto stemBindData = reinterpret_cast<StemBindData*>(dataPtr);
+    auto stemData = sb_stemmer_stem(stemBindData->sbStemmer,
+        reinterpret_cast<const sb_symbol*>(word.getData()), word.len);
+    if (stemBindData->sbStemmer == nullptr) {
+        common::StringVector::addString(&resultVector, result,
+            reinterpret_cast<const char*>(word.getData()),
+            sb_stemmer_length(stemBindData->sbStemmer));
+    } else {
+        common::StringVector::addString(&resultVector, result,
+            reinterpret_cast<const char*>(stemData), sb_stemmer_length(stemBindData->sbStemmer));
+    }
+}
+
+static std::unique_ptr<FunctionBindData> stemBindFunc(const ScalarBindFuncInput& input) {
+    if (input.arguments[1]->expressionType == ExpressionType::LITERAL) {
+        auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(
+            input.arguments[1], input.context);
+        input.definition->ptrCast<ScalarFunction>()->execFunc =
+            ScalarFunction::BinaryExecWithBindData<ku_string_t, ku_string_t, ku_string_t,
+                StemStaticStemmer>;
+        auto patternInStr = value.getValue<std::string>();
+        return std::make_unique<StemBindData>(binder::ExpressionUtil::getDataTypes(input.arguments),
+            patternInStr);
+    } else {
+        return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::BOOL());
+    }
+}
+
 function::function_set StemFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    auto scalarFunction = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
-        ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t, Stem>));
+        ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t, Stem>);
+    scalarFunction->bindFunc = stemBindFunc;
+    result.push_back(std::move(scalarFunction));
     return result;
 }
 
