@@ -130,7 +130,7 @@ private:
 };
 
 struct NodeToGraphOffsetMap {
-    explicit NodeToGraphOffsetMap(common::offset_t numNodesInTable) : numNodes(numNodesInTable) {};
+    explicit NodeToGraphOffsetMap(common::offset_t numNodesInTable) : numNodes(numNodesInTable){};
     NodeToGraphOffsetMap(common::offset_t numNodesInTable, common::NullMask* selectedNodes);
 
     common::offset_t getNumNodesInGraph() const { return numNodes; }
