@@ -41,7 +41,8 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
     uint64_t partitioningIdx;
     common::column_id_t boundNodeOffsetColumnID;
 
-    RelBatchInsertInfo(std::string tableName, bool compressionEnabled, common::RelDataDirection direction, common::table_id_t fromTableID,
+    RelBatchInsertInfo(std::string tableName, bool compressionEnabled,
+        common::RelDataDirection direction, common::table_id_t fromTableID,
         common::table_id_t toTableID, uint64_t partitioningIdx, common::column_id_t offsetColumnID,
         std::vector<common::column_id_t> columnIDs, std::vector<common::LogicalType> columnTypes,
         common::column_id_t numWarningDataColumns)
@@ -92,9 +93,17 @@ public:
     void updateProgress(const ExecutionContext* context) const;
 
 private:
-    static void appendNodeGroup(const catalog::Catalog* catalog, transaction::Transaction* transaction, storage::MemoryManager& mm, storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState);
+    static void appendNodeGroup(const catalog::Catalog* catalog,
+        transaction::Transaction* transaction, storage::MemoryManager& mm,
+        storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
+        const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
+        const PartitionerSharedState& partitionerSharedState);
 
-    static void populateCSRHeaderAndRowIdx(const catalog::Catalog* catalog, const transaction::Transaction* transaction, storage::InMemChunkedNodeGroupCollection& partition, common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState, common::offset_t numNodes, bool leaveGaps);
+    static void populateCSRHeaderAndRowIdx(const catalog::Catalog* catalog,
+        const transaction::Transaction* transaction,
+        storage::InMemChunkedNodeGroupCollection& partition, common::offset_t startNodeOffset,
+        const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
+        common::offset_t numNodes, bool leaveGaps);
 
     static void populateCSRLengths(const storage::ChunkedCSRHeader& csrHeader,
         common::offset_t numNodes, storage::InMemChunkedNodeGroupCollection& partition,
@@ -105,7 +114,9 @@ private:
     static void setRowIdxFromCSROffsets(storage::ColumnChunkData& rowIdxChunk,
         storage::ColumnChunkData& csrOffsetChunk);
 
-    static void checkRelMultiplicityConstraint(const catalog::Catalog* catalog, const transaction::Transaction* transaction, const storage::ChunkedCSRHeader& csrHeader, common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo);
+    static void checkRelMultiplicityConstraint(const catalog::Catalog* catalog,
+        const transaction::Transaction* transaction, const storage::ChunkedCSRHeader& csrHeader,
+        common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo);
 
 private:
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;
