@@ -211,8 +211,7 @@ static nlohmann::json getPayload(const std::string& provider, const std::string&
     if (provider == "open-ai" || provider == "voyage-ai") {
         return nlohmann::json{{"model", model}, {"input", text}};
     } else if (provider == "google-gemini") {
-        return nlohmann::json{{"model", "models/" + model},
-            {"content", {{"parts", {{{"text", text}}}}}}};
+        return nlohmann::json{{"model", "models/" + model}, {"content", {{"parts", {{{"text", text}}}}}}};
     }
 
     else if (provider == "google-vertex") {
