@@ -134,7 +134,7 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
     }
 }
 
-OnDiskGraph::OnDiskGraph(ClientContext* context, GraphEntry entry)
+OnDiskGraph::OnDiskGraph(ClientContext* context, NativeGraphEntry entry)
     : context{context}, graphEntry{std::move(entry)} {
     auto storage = context->getStorageManager();
     for (const auto& nodeInfo : graphEntry.nodeInfos) {

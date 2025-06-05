@@ -10,17 +10,7 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace graph {
 
-std::string GraphEntryTableInfo::toString() const {
-    std::string result = "{";
-    result += stringFormat("'table': '{}'", tableName);
-    if (predicate != "") {
-        result += stringFormat(",'predicate': '{}'", predicate);
-    }
-    result += "}";
-    return result;
-}
-
-GraphEntry::GraphEntry(std::vector<TableCatalogEntry*> nodeEntries,
+NativeGraphEntry::NativeGraphEntry(std::vector<TableCatalogEntry*> nodeEntries,
     std::vector<TableCatalogEntry*> relEntries) {
     for (auto& entry : nodeEntries) {
         nodeInfos.emplace_back(entry);
@@ -30,7 +20,7 @@ GraphEntry::GraphEntry(std::vector<TableCatalogEntry*> nodeEntries,
     }
 }
 
-std::vector<table_id_t> GraphEntry::getNodeTableIDs() const {
+std::vector<table_id_t> NativeGraphEntry::getNodeTableIDs() const {
     std::vector<table_id_t> result;
     for (auto& info : nodeInfos) {
         result.push_back(info.entry->getTableID());
@@ -38,15 +28,7 @@ std::vector<table_id_t> GraphEntry::getNodeTableIDs() const {
     return result;
 }
 
-std::vector<table_id_t> GraphEntry::getRelTableIDs() const {
-    std::vector<table_id_t> result;
-    for (auto& info : relInfos) {
-        result.push_back(info.entry->getTableID());
-    }
-    return result;
-}
-
-std::vector<TableCatalogEntry*> GraphEntry::getNodeEntries() const {
+std::vector<TableCatalogEntry*> NativeGraphEntry::getNodeEntries() const {
     std::vector<TableCatalogEntry*> result;
     for (auto& info : nodeInfos) {
         result.push_back(info.entry);
@@ -54,15 +36,7 @@ std::vector<TableCatalogEntry*> GraphEntry::getNodeEntries() const {
     return result;
 }
 
-std::vector<TableCatalogEntry*> GraphEntry::getRelEntries() const {
-    std::vector<TableCatalogEntry*> result;
-    for (auto& info : relInfos) {
-        result.push_back(info.entry);
-    }
-    return result;
-}
-
-const BoundGraphEntryTableInfo& GraphEntry::getRelInfo(table_id_t tableID) const {
+const NativeGraphEntryTableInfo& NativeGraphEntry::getRelInfo(table_id_t tableID) const {
     for (auto& info : relInfos) {
         if (info.entry->getTableID() == tableID) {
             return info;
@@ -71,13 +45,6 @@ const BoundGraphEntryTableInfo& GraphEntry::getRelInfo(table_id_t tableID) const
     // LCOV_EXCL_START
     throw RuntimeException(stringFormat("Cannot find rel table with id {}", tableID));
     // LCOV_EXCL_STOP
-}
-
-void GraphEntry::setRelPredicate(std::shared_ptr<Expression> predicate) {
-    for (auto& info : relInfos) {
-        KU_ASSERT(info.predicate == nullptr);
-        info.predicate = predicate;
-    }
 }
 
 } // namespace graph

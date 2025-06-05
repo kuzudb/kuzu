@@ -122,17 +122,14 @@ private:
 
 class KUZU_API OnDiskGraph final : public Graph {
 public:
-    OnDiskGraph(main::ClientContext* context, GraphEntry entry);
+    OnDiskGraph(main::ClientContext* context, NativeGraphEntry entry);
 
-    GraphEntry* getGraphEntry() override { return &graphEntry; }
+    NativeGraphEntry* getGraphEntry() override { return &graphEntry; }
 
     void setNodeOffsetMask(common::NodeOffsetMaskMap* maskMap) { nodeOffsetMaskMap = maskMap; }
 
     std::vector<common::table_id_t> getNodeTableIDs() const override {
         return graphEntry.getNodeTableIDs();
-    }
-    std::vector<common::table_id_t> getRelTableIDs() const override {
-        return graphEntry.getRelTableIDs();
     }
 
     common::table_id_map_t<common::offset_t> getMaxOffsetMap(
@@ -159,7 +156,7 @@ public:
 
 private:
     main::ClientContext* context;
-    GraphEntry graphEntry;
+    NativeGraphEntry graphEntry;
     common::NodeOffsetMaskMap* nodeOffsetMaskMap = nullptr;
     common::table_id_map_t<storage::NodeTable*> nodeIDToNodeTable;
     std::vector<GraphRelInfo> relInfos;

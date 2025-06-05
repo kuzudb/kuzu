@@ -74,7 +74,7 @@ std::unique_ptr<GDSConfig> PageRankOptionalParams::getConfig() const {
 }
 
 struct PageRankBindData final : public GDSBindData {
-    PageRankBindData(expression_vector columns, graph::GraphEntry graphEntry,
+    PageRankBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<Expression> nodeOutput,
         std::unique_ptr<PageRankOptionalParams> optionalParams)
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput),

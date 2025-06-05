@@ -10,7 +10,7 @@
 #include "common/task_system/progress_bar.h"
 #include "extension/extension.h"
 #include "extension/extension_manager.h"
-#include "graph/graph_entry.h"
+#include "graph/graph_entry_set.h"
 #include "main/attached_database.h"
 #include "main/database.h"
 #include "main/database_manager.h"
