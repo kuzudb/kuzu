@@ -61,7 +61,6 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         const auto transaction = clientContext->getTransaction();
         const auto catalogEntry = catalog->getTableCatalogEntry(transaction, tableName);
         const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
-        relBatchInsertInfo->tableEntry = catalogEntry;
         sharedState->table = partitionerSharedState->relTable;
         // TODO(Xiyang): rewrite me
         logical_type_vec_t newColumnTypes;
@@ -106,9 +105,7 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
                               ->getOrCreateNodeGroup(context->clientContext->getTransaction(),
                                   relLocalState->nodeGroupIdx, relInfo->direction)
                               ->cast<CSRNodeGroup>();
-        appendNodeGroup(*context->clientContext->getMemoryManager(),
-            context->clientContext->getTransaction(), nodeGroup, *relInfo, *relLocalState,
-            *sharedState, *partitionerSharedState);
+        appendNodeGroup(context->clientContext->getCatalog(), context->clientContext->getTransaction(), *context->clientContext->getMemoryManager(), nodeGroup, *relInfo, *relLocalState, *sharedState, *partitionerSharedState);
         updateProgress(context);
     }
 }
@@ -140,10 +137,7 @@ static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* t
     }
 }
 
-void RelBatchInsert::appendNodeGroup(MemoryManager& mm, transaction::Transaction* transaction,
-    CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
-    const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-    const PartitionerSharedState& partitionerSharedState) {
+void RelBatchInsert::appendNodeGroup(const catalog::Catalog* catalog, transaction::Transaction* transaction, MemoryManager& mm, CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
     auto partitioningBuffer =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
@@ -160,7 +154,7 @@ void RelBatchInsert::appendNodeGroup(MemoryManager& mm, transaction::Transaction
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
     const auto leaveGaps = nodeGroup.isEmpty();
-    populateCSRHeaderAndRowIdx(*partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
+    populateCSRHeaderAndRowIdx(catalog, transaction, *partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
         leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
@@ -198,15 +192,13 @@ void RelBatchInsert::appendNodeGroup(MemoryManager& mm, transaction::Transaction
     localState.chunkedGroup->resetToEmpty();
 }
 
-void RelBatchInsert::populateCSRHeaderAndRowIdx(InMemChunkedNodeGroupCollection& partition,
-    offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
-    const RelBatchInsertLocalState& localState, offset_t numNodes, bool leaveGaps) {
+void RelBatchInsert::populateCSRHeaderAndRowIdx(const catalog::Catalog* catalog, const transaction::Transaction* transaction, InMemChunkedNodeGroupCollection& partition, offset_t startNodeOffset, const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState, offset_t numNodes, bool leaveGaps) {
     auto& csrNodeGroup = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>();
     auto& csrHeader = csrNodeGroup.getCSRHeader();
     csrHeader.setNumValues(numNodes);
     // Populate lengths for each node and check multiplicity constraint.
     populateCSRLengths(csrHeader, numNodes, partition, relInfo.boundNodeOffsetColumnID);
-    checkRelMultiplicityConstraint(csrHeader, startNodeOffset, relInfo);
+    checkRelMultiplicityConstraint(catalog, transaction, csrHeader, startNodeOffset, relInfo);
     const auto rightCSROffsetOfRegions = csrHeader.populateStartCSROffsetsFromLength(leaveGaps);
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID);
@@ -256,16 +248,14 @@ void RelBatchInsert::setRowIdxFromCSROffsets(ColumnChunkData& rowIdxChunk,
     }
 }
 
-void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrHeader,
-    offset_t startNodeOffset, const RelBatchInsertInfo& relInfo) {
-    auto& relGroupEntry = relInfo.tableEntry->constCast<RelGroupCatalogEntry>();
+void RelBatchInsert::checkRelMultiplicityConstraint(const catalog::Catalog* catalog, const transaction::Transaction* transaction, const ChunkedCSRHeader& csrHeader, offset_t startNodeOffset, const RelBatchInsertInfo& relInfo) {
+    const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, relInfo.tableName)->constCast<RelGroupCatalogEntry>();
     if (!relGroupEntry.isSingleMultiplicity(relInfo.direction)) {
         return;
     }
     for (auto i = 0u; i < csrHeader.length->getNumValues(); i++) {
         if (csrHeader.length->getData().getValue<length_t>(i) > 1) {
-            throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
-                relInfo.tableEntry->getName(), std::to_string(i + startNodeOffset),
+            throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(relInfo.tableName, std::to_string(i + startNodeOffset),
                 RelDirectionUtils::relDirectionToString(relInfo.direction)));
         }
     }
@@ -276,8 +266,7 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     if (relInfo->direction == RelDataDirection::FWD) {
         KU_ASSERT(relInfo->partitioningIdx == 0);
 
-        auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
-            sharedState->getNumRows(), info->tableEntry->getName());
+        auto outputMsg = stringFormat("{} tuples have been copied to the {} table.", sharedState->getNumRows(), relInfo->tableName);
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
 
