@@ -3,6 +3,7 @@
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "common/string_utils.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
@@ -62,6 +63,13 @@ struct StemStaticStemmer {
         void* dataPtr);
 };
 
+struct StemWithoutStemmer {
+    static void operation(common::ku_string_t& word, common::ku_string_t& /*stemmer*/,
+        common::ku_string_t& result, common::ValueVector& /*leftValueVector*/,
+        common::ValueVector& /*rightValueVector*/, common::ValueVector& resultVector,
+        void* dataPtr);
+};
+
 struct StemBindData final : public FunctionBindData {
     sb_stemmer* sbStemmer = nullptr;
     std::string stemmer;
@@ -91,24 +99,34 @@ void StemStaticStemmer::operation(common::ku_string_t& word, common::ku_string_t
     common::ku_string_t& result, common::ValueVector& /*leftValueVector*/,
     common::ValueVector& /*rightValueVector*/, common::ValueVector& resultVector, void* dataPtr) {
     auto stemBindData = reinterpret_cast<StemBindData*>(dataPtr);
-    if (stemBindData->sbStemmer == nullptr) {
-        common::StringVector::addString(&resultVector, result,
-            reinterpret_cast<const char*>(word.getData()), word.len);
-    } else {
-        auto stemData = sb_stemmer_stem(stemBindData->sbStemmer,
-            reinterpret_cast<const sb_symbol*>(word.getData()), word.len);
-        common::StringVector::addString(&resultVector, result,
-            reinterpret_cast<const char*>(stemData), sb_stemmer_length(stemBindData->sbStemmer));
-    }
+    KU_ASSERT(stemBindData->sbStemmer != nullptr);
+    auto stemData = sb_stemmer_stem(stemBindData->sbStemmer,
+        reinterpret_cast<const sb_symbol*>(word.getData()), word.len);
+    common::StringVector::addString(&resultVector, result, reinterpret_cast<const char*>(stemData),
+        sb_stemmer_length(stemBindData->sbStemmer));
+}
+
+void StemWithoutStemmer::operation(common::ku_string_t& word, common::ku_string_t& /*stemmer*/,
+    common::ku_string_t& result, common::ValueVector& /*leftValueVector*/,
+    common::ValueVector& /*rightValueVector*/, common::ValueVector& resultVector,
+    void* /*dataPtr*/) {
+    common::StringVector::addString(&resultVector, result,
+        reinterpret_cast<const char*>(word.getData()), word.len);
 }
 
 static std::unique_ptr<FunctionBindData> stemBindFunc(const ScalarBindFuncInput& input) {
     if (input.arguments[1]->expressionType == ExpressionType::LITERAL) {
         auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(
             input.arguments[1], input.context);
-        input.definition->ptrCast<ScalarFunction>()->execFunc =
-            ScalarFunction::BinaryExecWithBindData<ku_string_t, ku_string_t, ku_string_t,
-                StemStaticStemmer>;
+        if (common::StringUtils::getLower(value.getValue<std::string>()) == "none") {
+            input.definition->ptrCast<ScalarFunction>()->execFunc =
+                ScalarFunction::BinaryExecWithBindData<ku_string_t, ku_string_t, ku_string_t,
+                    StemWithoutStemmer>;
+        } else {
+            input.definition->ptrCast<ScalarFunction>()->execFunc =
+                ScalarFunction::BinaryExecWithBindData<ku_string_t, ku_string_t, ku_string_t,
+                    StemStaticStemmer>;
+        }
         auto patternInStr = value.getValue<std::string>();
         return std::make_unique<StemBindData>(binder::ExpressionUtil::getDataTypes(input.arguments),
             patternInStr);
