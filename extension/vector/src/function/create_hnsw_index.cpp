@@ -258,7 +258,7 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     const auto index = hnswSharedState->hnswIndex.get();
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
     const auto catalog = clientContext->getCatalog();
-    auto nodeTableID = bindData->tableEntry->getTableID();
+    const auto nodeTableID = bindData->tableEntry->getTableID();
     const auto upperTable = catalog->getTableCatalogEntry(transaction,
         HNSWIndexUtils::getUpperGraphTableName(nodeTableID, bindData->indexName));
     const auto lowerTable = catalog->getTableCatalogEntry(transaction,

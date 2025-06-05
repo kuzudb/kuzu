@@ -137,7 +137,7 @@ bool UncommittedIndexInserter::processScanOutput(Transaction* transaction, Memor
     if (!insertState) {
         insertState = index->initInsertState(transaction, mm, isVisible);
     }
-    index->insert(transaction, nodeIDVector, {scannedVectors}, *insertState);
+    index->commitInsert(transaction, nodeIDVector, {scannedVectors}, *insertState);
     startNodeOffset += scanResult.numRows;
     return true;
 }
@@ -341,7 +341,7 @@ void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector*
     }
 }
 
-void NodeTable::initInsertState(const Transaction* transaction, TableInsertState& insertState) {
+void NodeTable::initInsertState(Transaction* transaction, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.cast<NodeTableInsertState>();
     nodeInsertState.indexInsertStates.resize(indexes.size());
     for (auto i = 0u; i < indexes.size(); i++) {

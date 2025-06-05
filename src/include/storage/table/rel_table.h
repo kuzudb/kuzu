@@ -153,7 +153,7 @@ public:
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
-    void initInsertState(const transaction::Transaction*, TableInsertState&) override {
+    void initInsertState(transaction::Transaction*, TableInsertState&) override {
         // DO NOTHING.
     }
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;

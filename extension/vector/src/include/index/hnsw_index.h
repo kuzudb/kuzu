@@ -110,7 +110,9 @@ public:
 
     void commitInsert(transaction::Transaction*, const common::ValueVector&,
         const std::vector<common::ValueVector*>&, InsertState&) override {
-        KU_UNREACHABLE;
+        // DO NOTHING.
+        // For HNSW index, insertions are handled when the new tuples are inserted into the base
+        // table being indexed.
     }
 
     common::LogicalType getElementType() const { return typeInfo.getChildType().copy(); }

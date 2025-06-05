@@ -124,7 +124,7 @@ public:
     common::offset_t validateUniquenessConstraint(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& propertyVectors) const;
 
-    void initInsertState(const transaction::Transaction* transaction,
+    void initInsertState(transaction::Transaction* transaction,
         TableInsertState& insertState) override;
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
