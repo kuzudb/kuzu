@@ -132,6 +132,9 @@ private:
 struct NodeToGraphOffsetMap {
     std::unordered_map<common::offset_t, common::offset_t> nodeToGraphMap;
     std::unique_ptr<common::offset_t[]> graphToNodeMap;
+
+    common::offset_t nodeToGraphOffset(common::offset_t nodeOffset) const;
+    bool containsNodeOffset(common::offset_t nodeOffset) const;
 };
 
 class InMemHNSWGraph {

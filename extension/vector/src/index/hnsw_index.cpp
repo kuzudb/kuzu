@@ -188,12 +188,12 @@ void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGr
     const auto numNodesInGroup =
         std::min(common::StorageConfig::NODE_GROUP_SIZE, info.numNodes - startNodeOffset);
     for (auto i = 0u; i < numNodesInGroup; i++) {
-        if (selectedNodesMap && !selectedNodesMap->nodeToGraphMap.contains(i)) {
+        if (selectedNodesMap && !selectedNodesMap->containsNodeOffset(i)) {
             continue;
         }
         const auto nodeOffset = startNodeOffset + i;
         const auto offsetInGraph =
-            selectedNodesMap ? selectedNodesMap->nodeToGraphMap.at(nodeOffset) : nodeOffset;
+            selectedNodesMap ? selectedNodesMap->nodeToGraphOffset(nodeOffset) : nodeOffset;
         const auto numNbrs = graph->getCSRLength(offsetInGraph);
         if (numNbrs <= info.maxDegree) {
             continue;
@@ -291,7 +291,7 @@ bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
     const auto lowerEntryPoint = upperLayer->searchNN(offset, upperLayer->getEntryPoint());
     lowerLayer->insert(offset, lowerEntryPoint, lowerVisited);
     if (upperLayerSelectionMask->isNull(offset)) {
-        upperLayer->insert(upperGraphSelectionMap->nodeToGraphMap.at(offset),
+        upperLayer->insert(upperGraphSelectionMap->nodeToGraphOffset(offset),
             upperLayer->getEntryPoint(), upperVisited);
     }
     return true;

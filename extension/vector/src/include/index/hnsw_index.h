@@ -146,7 +146,7 @@ struct InMemHNSWLayerInfo {
     uint64_t getDimension() const { return embeddings->getDimension(); }
     void* getEmbedding(common::offset_t offsetInGraph) const {
         return embeddings->getEmbedding(
-            offsetMap ? offsetMap->nodeToGraphMap[offsetInGraph] : offsetInGraph);
+            offsetMap ? offsetMap->graphToNodeMap[offsetInGraph] : offsetInGraph);
     }
 };
 

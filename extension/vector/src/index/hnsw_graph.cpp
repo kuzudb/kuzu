@@ -166,7 +166,7 @@ void InMemHNSWGraph::finalize(MemoryManager& mm, common::node_group_idx_t nodeGr
     const auto numNodesInGroup =
         std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodes - startNodeOffset);
     for (auto i = 0u; i < numNodesInGroup; i++) {
-        if (!selectedNodesMap || selectedNodesMap->nodeToGraphMap.contains(i)) {
+        if (!selectedNodesMap || selectedNodesMap->containsNodeOffset(i)) {
             numRels += getCSRLength(startNodeOffset + i);
         }
     }
@@ -199,12 +199,12 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
     nbrColumnChunk.cast<InternalIDChunkData>().setTableID(dstNodeTableID);
     relIDColumnChunk.cast<InternalIDChunkData>().setTableID(relTableID);
     for (auto i = 0u; i < numNodesInGroup; i++) {
-        if (selectedNodesMap && !selectedNodesMap->nodeToGraphMap.contains(i)) {
+        if (selectedNodesMap && !selectedNodesMap->containsNodeOffset(i)) {
             continue;
         }
         const auto currNodeOffset = startNodeOffset + i;
         const auto offsetInGraph =
-            selectedNodesMap ? selectedNodesMap->nodeToGraphMap.at(currNodeOffset) : currNodeOffset;
+            selectedNodesMap ? selectedNodesMap->nodeToGraphOffset(currNodeOffset) : currNodeOffset;
         const auto csrLen = getCSRLength(offsetInGraph);
         const auto csrOffset = offsetInGraph * maxDegree;
         for (auto j = 0u; j < csrLen; j++) {
@@ -234,6 +234,14 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
     for (common::offset_t i = 0; i < numNodes * maxDegree; i++) {
         setDstNode(i, getInvalidOffset());
     }
+}
+
+common::offset_t NodeToGraphOffsetMap::nodeToGraphOffset(common::offset_t nodeOffset) const {
+    return nodeToGraphMap.at(nodeOffset);
+}
+
+bool NodeToGraphOffsetMap::containsNodeOffset(common::offset_t nodeOffset) const {
+    return nodeToGraphMap.contains(nodeOffset);
 }
 
 } // namespace vector_extension
