@@ -10,7 +10,6 @@
 #include "function/gds/gds_utils.h"
 #include "function/query_fts_bind_data.h"
 #include "index/fts_index.h"
-#include "index/fts_storage_info.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"

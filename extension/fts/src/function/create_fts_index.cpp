@@ -16,7 +16,6 @@
 #include "graph/on_disk_graph.h"
 #include "index/fts_index.h"
 #include "index/fts_internal_table_info.h"
-#include "index/fts_storage_info.h"
 #include "main/fts_extension.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
@@ -312,12 +311,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     return 0;
 }
 
-static std::vector<common::LogicalType> inferInputTypes(
-    const binder::expression_vector& /*params*/) {
-    std::vector<common::LogicalType> inputTypes;
-    inputTypes.push_back(common::LogicalType::STRING());
-    inputTypes.push_back(common::LogicalType::STRING());
-    inputTypes.push_back(common::LogicalType::LIST(common::LogicalType::STRING()));
+static std::vector<LogicalType> inferInputTypes(const binder::expression_vector& /*params*/) {
+    std::vector<LogicalType> inputTypes;
+    inputTypes.push_back(LogicalType::STRING());
+    inputTypes.push_back(LogicalType::STRING());
+    inputTypes.push_back(LogicalType::LIST(LogicalType::STRING()));
     return inputTypes;
 }
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/index/index.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
 

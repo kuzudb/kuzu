@@ -10,8 +10,20 @@ namespace fts_extension {
 struct FTSInsertState;
 struct TermInfo;
 
-class FTSIndex final : public storage::Index {
+struct FTSStorageInfo final : storage::IndexStorageInfo {
+    common::idx_t numDocs = 0;
+    double avgDocLen = 0;
 
+    FTSStorageInfo(common::idx_t numDocs, double avgDocLen)
+        : numDocs{numDocs}, avgDocLen{avgDocLen} {}
+
+    std::shared_ptr<common::BufferedSerializer> serialize() const override;
+
+    static std::unique_ptr<IndexStorageInfo> deserialize(
+        std::unique_ptr<common::BufferReader> reader);
+};
+
+class FTSIndex final : public storage::Index {
 public:
     FTSIndex(storage::IndexInfo indexInfo, std::unique_ptr<storage::IndexStorageInfo> storageInfo,
         FTSConfig ftsConfig, main::ClientContext* context);

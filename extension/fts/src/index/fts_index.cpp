@@ -2,7 +2,6 @@
 
 #include "catalog/fts_index_catalog_entry.h"
 #include "index/fts_internal_table_info.h"
-#include "index/fts_storage_info.h"
 #include "utils/fts_utils.h"
 
 namespace kuzu {
@@ -19,20 +18,18 @@ FTSIndex::FTSIndex(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storag
       config{std::move(config)} {}
 
 std::unique_ptr<Index> FTSIndex::load(main::ClientContext* context,
-    storage::StorageManager* /*storageManager*/, storage::IndexInfo indexInfo,
-    std::span<uint8_t> storageInfoBuffer) {
+    StorageManager* /*storageManager*/, IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer) {
     auto catalog = context->getCatalog();
     auto reader =
-        std::make_unique<common::BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
+        std::make_unique<BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = FTSStorageInfo::deserialize(std::move(reader));
-    auto indexEntry =
-        catalog->getIndex(&transaction::DUMMY_TRANSACTION, indexInfo.tableID, indexInfo.name);
+    auto indexEntry = catalog->getIndex(&DUMMY_TRANSACTION, indexInfo.tableID, indexInfo.name);
     auto ftsConfig = indexEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config;
     return std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
         std::move(ftsConfig), context);
 }
 
-struct FTSInsertState : public storage::Index::InsertState {
+struct FTSInsertState : Index::InsertState {
     MemoryManager* mm;
     std::shared_ptr<DataChunkState> dataChunkState;
     ValueVector idVector;
@@ -62,11 +59,11 @@ FTSInsertState::FTSInsertState(MemoryManager* mm, column_id_t dfColumnID,
       stringPKVector{LogicalType::STRING(), mm, dataChunkState},
       uint64PropVector{LogicalType::UINT64(), mm, dataChunkState},
       docTableInsertState{idVector, int64PKVector,
-          std::vector<common::ValueVector*>{&int64PKVector, &uint64PropVector}},
+          std::vector<ValueVector*>{&int64PKVector, &uint64PropVector}},
       termsTableScanState{&idVector, std::vector{&uint64PropVector}, dataChunkState},
       termsTableUpdateState{dfColumnID, idVector, uint64PropVector},
       termsTableInsertState{idVector, stringPKVector,
-          std::vector<common::ValueVector*>{&stringPKVector, &uint64PropVector}},
+          std::vector<ValueVector*>{&stringPKVector, &uint64PropVector}},
       appearsInTableInsertState{srcIDVector, dstIDVector, {&idVector, &uint64PropVector}} {
     termsTableScanState.setToTable(transaction, tableInfo.termsTable, {tableInfo.dfColumnID}, {});
     tableInfo.docTable->initInsertState(transaction, docTableInsertState);
@@ -75,18 +72,36 @@ FTSInsertState::FTSInsertState(MemoryManager* mm, column_id_t dfColumnID,
 }
 
 struct TermInfo {
-    common::offset_t offset;
+    offset_t offset;
     uint64_t tf;
 };
 
-std::unique_ptr<Index::InsertState> FTSIndex::initInsertState(
-    const transaction::Transaction* transaction, MemoryManager* mm, visible_func /*isVisible*/) {
+std::shared_ptr<BufferedSerializer> FTSStorageInfo::serialize() const {
+    auto bufferWriter = std::make_shared<BufferedSerializer>();
+    auto serializer = Serializer(bufferWriter);
+    serializer.write<idx_t>(numDocs);
+    serializer.write<double>(avgDocLen);
+    return bufferWriter;
+}
+
+std::unique_ptr<IndexStorageInfo> FTSStorageInfo::deserialize(
+    std::unique_ptr<BufferReader> reader) {
+    idx_t numDocs = 0;
+    double avgDocLen = 0.0;
+    Deserializer deSer{std::move(reader)};
+    deSer.deserializeValue<idx_t>(numDocs);
+    deSer.deserializeValue<double>(avgDocLen);
+    return std::make_unique<FTSStorageInfo>(numDocs, avgDocLen);
+}
+
+std::unique_ptr<Index::InsertState> FTSIndex::initInsertState(const Transaction* transaction,
+    MemoryManager* mm, visible_func /*isVisible*/) {
     return std::make_unique<FTSInsertState>(mm, internalTableInfo.dfColumnID, transaction,
         internalTableInfo);
 }
 
 static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& config,
-    NodeTable* stopWordsTable, const std::vector<common::ValueVector*>& indexVectors, sel_t pos,
+    NodeTable* stopWordsTable, const std::vector<ValueVector*>& indexVectors, sel_t pos,
     MemoryManager* mm) {
     std::string content;
     std::vector<std::string> terms;
@@ -104,8 +119,8 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
     return terms;
 }
 
-void FTSIndex::insert(Transaction* transaction, const common::ValueVector& nodeIDVector,
-    const std::vector<common::ValueVector*>& indexVectors, Index::InsertState& insertState) {
+void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
+    const std::vector<ValueVector*>& indexVectors, Index::InsertState& insertState) {
     auto totalInsertedDocLen = 0u;
     for (auto i = 0u; i < nodeIDVector.state->getSelSize(); i++) {
         auto& ftsInsertState = insertState.cast<FTSInsertState>();
@@ -132,10 +147,10 @@ void FTSIndex::insert(Transaction* transaction, const common::ValueVector& nodeI
 }
 
 nodeID_t FTSIndex::insertToDocTable(Transaction* transaction, FTSInsertState& insertState,
-    common::nodeID_t insertedNodeID, const std::vector<std::string>& terms) const {
+    nodeID_t insertedNodeID, const std::vector<std::string>& terms) const {
     auto& ftsInsertState = insertState.cast<FTSInsertState>();
     ftsInsertState.int64PKVector.setValue(0, insertedNodeID.offset);
-    ftsInsertState.uint64PropVector.setValue(0, (uint64_t)terms.size());
+    ftsInsertState.uint64PropVector.setValue(0, static_cast<uint64_t>(terms.size()));
     auto docTable = internalTableInfo.docTable;
     docTable->insert(transaction, ftsInsertState.docTableInsertState);
     return ftsInsertState.idVector.getValue<nodeID_t>(
