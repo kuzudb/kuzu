@@ -26,7 +26,7 @@ struct BoundSetPropertyInfo;
 namespace catalog {
 class TableCatalogEntry;
 class RelGroupCatalogEntry;
-}
+} // namespace catalog
 
 namespace planner {
 class LogicalSemiMasker;
