@@ -11,7 +11,7 @@ EmbeddingProvider &OllamaEmbedding::getInstance()
     return instance;
 }
 std::string OllamaEmbedding::getClient() { return "http://localhost:11434"; }
-std::string OllamaEmbedding::getPath() { return "/api/embeddings"; }
+std::string OllamaEmbedding::getPath(const std::string&) { return "/api/embeddings"; }
 httplib::Headers OllamaEmbedding::getHeaders()
 {
     return httplib::Headers{{"Content-Type", "application/json"}};

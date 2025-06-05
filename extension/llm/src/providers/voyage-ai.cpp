@@ -12,7 +12,7 @@ EmbeddingProvider &VoyageAIEmbedding::getInstance()
     return instance;
 }
 std::string VoyageAIEmbedding::getClient() { return "https://api.voyageai.com"; }
-std::string VoyageAIEmbedding::getPath() { return "/v1/embeddings"; }
+std::string VoyageAIEmbedding::getPath(const std::string&) { return "/v1/embeddings"; }
 httplib::Headers VoyageAIEmbedding::getHeaders()
 {
     const char * envVar = "VOYAGE_API_KEY";

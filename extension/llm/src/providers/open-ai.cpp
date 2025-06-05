@@ -12,7 +12,7 @@ EmbeddingProvider &OpenAIEmbedding::getInstance()
     return instance;
 }
 std::string OpenAIEmbedding::getClient() { return "https://api.openai.com"; }
-std::string OpenAIEmbedding::getPath() { return "/v1/embeddings"; }
+std::string OpenAIEmbedding::getPath(const std::string&) { return "/v1/embeddings"; }
 httplib::Headers OpenAIEmbedding::getHeaders()
 {
     const char * envVar = "OPENAI_API_KEY";

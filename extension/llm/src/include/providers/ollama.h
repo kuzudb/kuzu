@@ -19,7 +19,7 @@ class OllamaEmbedding : public EmbeddingProvider {
     ~OllamaEmbedding() override = default;
     static EmbeddingProvider& getInstance();
     std::string getClient() override;
-    std::string getPath() override;
+    std::string getPath(const std::string&) override;
     httplib::Headers getHeaders() override;
     nlohmann::json getPayload(const std::string&, const std::string&) override;
     std::vector<float> parseResponse(const httplib::Result&) override;
