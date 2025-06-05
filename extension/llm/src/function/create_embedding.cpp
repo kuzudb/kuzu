@@ -97,10 +97,10 @@ std::vector<unsigned char> GetSignatureKey(const std::string& key, const std::st
 
 // AWS Signature Helpers End
 
-
-// AWS requests require an authorization signature in the header. This is part of a scheme to validate the request. The body is used to create this
-// signature. This is one of the reasons the same header cannot be used accross different requests.
-// Refer to https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
+// AWS requests require an authorization signature in the header. This is part of a scheme to
+// validate the request. The body is used to create this signature. This is one of the reasons the
+// same header cannot be used accross different requests. Refer to
+// https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
 static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
     static const std::string envVarAWSAccessKey = "AWS_ACCESS_KEY";
     static const std::string envVarAWSSecretAccessKey = "AWS_SECRET_ACCESS_KEY";
@@ -110,18 +110,15 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
     auto envAWSSecretAccessKey = std::getenv(envVarAWSSecretAccessKey.c_str());
     if (envAWSAccessKey == nullptr || envAWSSecretAccessKey == nullptr) {
         std::string errMsg = "The following key(s) could not be read from the environment:\n";
-        if (!envAWSAccessKey)
-        {
+        if (!envAWSAccessKey) {
             errMsg += envVarAWSAccessKey + '\n';
         }
 
-        if (!envAWSSecretAccessKey)
-        {
+        if (!envAWSSecretAccessKey) {
             errMsg += envVarAWSSecretAccessKey + '\n';
         }
         throw(RuntimeException(errMsg));
     }
-
 
     std::string service = "bedrock";
 
@@ -129,14 +126,12 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
     std::string region = "us-east-1";
     std::string host = "bedrock-runtime.us-east-1.amazonaws.com";
 
-
     time_t now = time(nullptr);
     tm tm_struct{};
 
     {
         auto status = gmtime_r(&now, &tm_struct);
-        if (status == nullptr)
-        {
+        if (status == nullptr) {
             throw(RuntimeException("Failure to convert the specified time to UTC"));
         }
     }
@@ -144,18 +139,19 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
     char dateStamp[9];
     char amzDate[17];
     {
-        const char * dateStampPattern = "%Y%m%d";
-        const char * amzDatePattern = "%Y%m%dT%H%M%SZ";
+        const char* dateStampPattern = "%Y%m%d";
+        const char* amzDatePattern = "%Y%m%dT%H%M%SZ";
         auto status = strftime(dateStamp, sizeof(dateStamp), dateStampPattern, &tm_struct);
-        if (status == 0)
-        {
-            throw(RuntimeException("Unable to format dateStamp with pattern "+ std::string(dateStampPattern) +" (UTC time conversion failed)"));
+        if (status == 0) {
+            throw(
+                RuntimeException("Unable to format dateStamp with pattern " +
+                                 std::string(dateStampPattern) + " (UTC time conversion failed)"));
         }
 
         status = strftime(amzDate, sizeof(amzDate), amzDatePattern, &tm_struct);
-        if (status == 0)
-        {
-            throw(RuntimeException("Unable to format amzDate with pattern "+ std::string(amzDatePattern) +" (UTC time conversion failed)"));
+        if (status == 0) {
+            throw(RuntimeException("Unable to format amzDate with pattern " +
+                                   std::string(amzDatePattern) + " (UTC time conversion failed)"));
         }
     }
 
@@ -179,7 +175,6 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
                      << signedHeaders << "\n"
                      << payloadHash;
     std::string canonicalRequestStr = canonicalRequest.str();
-
 
     std::string algorithm = "AWS4-HMAC-SHA256";
     std::string credentialScope =
