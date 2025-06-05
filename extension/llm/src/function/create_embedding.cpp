@@ -1,14 +1,7 @@
-#include <cstdint>
-#include <cstdlib>
-#include <ctime>
-#include <unordered_map>
-
-#include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
-#include "function/function.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
 #include "httplib.h"
@@ -68,6 +61,8 @@ static httplib::Headers getHeaders(const std::string& provider) {
     return httplib::Headers{};
 }
 
+// AWS Signature Helpers Start
+
 std::string Hex(const unsigned char* data, size_t length) {
     std::ostringstream oss;
     for (size_t i = 0; i < length; ++i) {
@@ -100,28 +95,70 @@ std::vector<unsigned char> GetSignatureKey(const std::string& key, const std::st
     return kSigning;
 }
 
+// AWS Signature Helpers End
+
+
+// AWS requests require an authorization signature in the header. This is part of a scheme to validate the request. The body is used to create this
+// signature. This is one of the reasons the same header cannot be used accross different requests.
+// Refer to https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
 static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
+    static const std::string envVarAWSAccessKey = "AWS_ACCESS_KEY";
+    static const std::string envVarAWSSecretAccessKey = "AWS_SECRET_ACCESS_KEY";
     // NOLINTNEXTLINE Thread Safety Warning
-    auto envAWSAccessKey = std::getenv("AWS_ACCESS_KEY");
+    auto envAWSAccessKey = std::getenv(envVarAWSAccessKey.c_str());
     // NOLINTNEXTLINE Thread Safety Warning
-    auto envAWSSecretAccessKey = std::getenv("AWS_SECRET_ACCESS_KEY");
-    // TODO: Improve this error msg
+    auto envAWSSecretAccessKey = std::getenv(envVarAWSSecretAccessKey.c_str());
     if (envAWSAccessKey == nullptr || envAWSSecretAccessKey == nullptr) {
-        throw(RuntimeException("Bad AWS Keys"));
+        std::string errMsg = "The following key(s) could not be read from the environment:\n";
+        if (!envAWSAccessKey)
+        {
+            errMsg += envVarAWSAccessKey + '\n';
+        }
+
+        if (!envAWSSecretAccessKey)
+        {
+            errMsg += envVarAWSSecretAccessKey + '\n';
+        }
+        throw(RuntimeException(errMsg));
     }
-    std::string method = "POST";
+
+
     std::string service = "bedrock";
 
     // Hardcoded for now, needs to change when a configuration scheme is supported
     std::string region = "us-east-1";
     std::string host = "bedrock-runtime.us-east-1.amazonaws.com";
+
+
     time_t now = time(nullptr);
     tm tm_struct{};
-    (void)gmtime_r(&now, &tm_struct);
+
+    {
+        auto status = gmtime_r(&now, &tm_struct);
+        if (status == nullptr)
+        {
+            throw(RuntimeException("Failure to convert the specified time to UTC"));
+        }
+    }
+
     char dateStamp[9];
-    (void)strftime(dateStamp, sizeof(dateStamp), "%Y%m%d", &tm_struct);
     char amzDate[17];
-    (void)strftime(amzDate, sizeof(amzDate), "%Y%m%dT%H%M%SZ", &tm_struct);
+    {
+        const char * dateStampPattern = "%Y%m%d";
+        const char * amzDatePattern = "%Y%m%dT%H%M%SZ";
+        auto status = strftime(dateStamp, sizeof(dateStamp), dateStampPattern, &tm_struct);
+        if (status == 0)
+        {
+            throw(RuntimeException("Unable to format dateStamp with pattern "+ std::string(dateStampPattern) +" (UTC time conversion failed)"));
+        }
+
+        status = strftime(amzDate, sizeof(amzDate), amzDatePattern, &tm_struct);
+        if (status == 0)
+        {
+            throw(RuntimeException("Unable to format amzDate with pattern "+ std::string(amzDatePattern) +" (UTC time conversion failed)"));
+        }
+    }
+
     std::string canonicalUri = "/model/amazon.titan-embed-text-v1/invoke";
     std::string canonicalQueryString = "";
     httplib::Headers headers{{"host", host}, {"x-amz-date", amzDate}};
@@ -135,13 +172,15 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
     }
     std::string payloadHash = SHA256Hash(payload.dump());
     std::ostringstream canonicalRequest;
-    canonicalRequest << method << "\n"
+    canonicalRequest << "POST\n"
                      << canonicalUri << "\n"
                      << canonicalQueryString << "\n"
                      << canonicalHeaders << "\n"
                      << signedHeaders << "\n"
                      << payloadHash;
     std::string canonicalRequestStr = canonicalRequest.str();
+
+
     std::string algorithm = "AWS4-HMAC-SHA256";
     std::string credentialScope =
         std::string(dateStamp) + "/" + region + "/" + service + "/" + "aws4_request";
@@ -152,6 +191,7 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
                  << credentialScope << "\n"
                  << canonicalRequestHash;
     std::string stringToSignStr = stringToSign.str();
+
     auto signingKey =
         GetSignatureKey(std::string(envAWSSecretAccessKey), dateStamp, region, service);
     unsigned int len = SHA256_DIGEST_LENGTH;
@@ -159,6 +199,7 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
     HMAC(EVP_sha256(), signingKey.data(), signingKey.size(),
         reinterpret_cast<const unsigned char*>(stringToSignStr.c_str()), stringToSignStr.size(),
         signatureRaw, &len);
+
     std::string signature = Hex(signatureRaw, len);
     std::ostringstream authorizationHeader;
     authorizationHeader << algorithm << " " << "Credential=" << std::string(envAWSAccessKey) << "/"
@@ -215,7 +256,7 @@ static std::string getPath(const std::string& provider, const std::string& model
             throw(RuntimeException("Could not get project id from: GOOGLE_CLOUD_PROJECT_ID\n"));
         }
 
-        // TODO: Location is hardcoded, this should be changed
+        // TODO: Location is hardcoded, this should be changed when configuration is supported
         return "/v1/projects/" + std::string(env_project_id) +
                "/locations/us-central1/publishers/google/models/" + model + ":predict";
     }
@@ -244,6 +285,7 @@ static std::vector<float> getEmbedding(const httplib::Result& res, const std::st
         return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
     }
 
+    // Invalid Provider Error Would Be Thrown By GetEmbeddingDimensions
     KU_UNREACHABLE;
     return std::vector<float>();
 }
@@ -286,6 +328,8 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     client.set_read_timeout(30, 0);
     client.set_write_timeout(30, 0);
     httplib::Headers headers;
+
+    // Amazon Bedrock headers differ per request due to a signature authorization scheme
     bool bedRock = provider == "amazon-bedrock";
     if (!bedRock) {
         headers = getHeaders(provider);
@@ -337,6 +381,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
 
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
+    // Prompt, Provider, Model -> Vector Embedding
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING},
