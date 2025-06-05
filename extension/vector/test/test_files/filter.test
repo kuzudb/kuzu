@@ -14,13 +14,14 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
 ---- ok
+-STATEMENT CALL project_graph_cypher('G1', 'MATCH (n:embeddings) WHERE n.id < 100 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 100 RETURN n")
+    efs := 500)
     RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
@@ -28,27 +29,41 @@
 93
 28
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
     directed_search_up_sel := 0.8,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 100 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500)
+    RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 58
 93
 28
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 'FLOAT[8]'),
     3,
     blind_search_up_sel := 0.8,
     directed_search_up_sel := 0.9,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 100 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500)
+    RETURN node.id ORDER BY distance;
+-CHECK_ORDER
+---- 3
+58
+93
+28
+-STATEMENT CALL project_graph('G2', {'embeddings': 'n.id < 100'}, []);
+---- ok
+-STATEMENT CALL QUERY_VECTOR_INDEX(
+    'G2',
+    'e_hnsw_index',
+    CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
+    3,
+    efs := 500)
+    RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 58
@@ -61,51 +76,70 @@
 93
 28
 -LOG InvalidFilterQuery
--STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
-    'e_hnsw_index',
-    CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
-    3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.dummy < 100 RETURN n")
-    RETURN node.id ORDER BY distance;
+-STATEMENT CALL project_graph_cypher('G3', 'MATCH (n:embeddings) WHERE n.dummy < 100 RETURN n');
 ---- error
-Binder exception: Failed to bind the filter query. Found error: Binder exception: Cannot find property dummy for n.
+Binder exception: Cannot find property dummy for n.
+-STATEMENT CALL project_graph_cypher('G4', 'MATCH (n:embeddings) WHERE n.id < 100 RETURN n.id, 1');
+---- ok
 -LOG IncorrectFilterReturn1
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G4',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 100 RETURN n.id, 1")
+    efs := 500)
     RETURN node.id ORDER BY distance;
 ---- error
 Binder exception: The return clause of a filter query should contain exactly one node expression. Found more than one expressions: n.id,1.
+
+-STATEMENT CALL project_graph_cypher('G5', 'MATCH (n:embeddings) WHERE n.id < 100 RETURN n.id');
+---- ok
 -LOG IncorrectFilterReturn2
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G5',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 100 RETURN n.id")
+    efs := 500)
     RETURN node.id ORDER BY distance;
 ---- error
 Binder exception: The return clause of a filter query should be of type NODE. Found type INT64 instead.
 -LOG IncorrectFilterReturn3
 -STATEMENT CREATE NODE TABLE TEMP(id INT64 PRIMARY KEY);
 ---- ok
+-STATEMENT CALL project_graph_cypher('G6', 'MATCH (n:TEMP) WHERE n.id < 100 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G6',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:TEMP) WHERE n.id < 100 RETURN n")
+    efs := 500)
     RETURN node.id ORDER BY distance;
 ---- error
-Binder exception: Node n in the return clause of the filter query should be labeled as embeddings.
+Binder exception: Table TEMP doesn't have an index with name e_hnsw_index.
+-STATEMENT CALL project_graph_cypher('G7', 'MATCH (n:TEMP:embeddings) WHERE n.id < 100 RETURN n');
+---- ok
+-STATEMENT CALL QUERY_VECTOR_INDEX(
+    'G7',
+    'e_hnsw_index',
+    CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
+    3,
+    efs := 500)
+    RETURN node.id ORDER BY distance;
+---- error
+Binder exception: Node n in the return clause of the filter query should have one label.
+-STATEMENT CALL project_graph('G9',{'embeddings': 'n.id < 100', 'TEMP': 'n.id<0'}, []);
+---- ok
+-STATEMENT CALL QUERY_VECTOR_INDEX(
+    'G9',
+    'e_hnsw_index',
+    CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
+    3,
+    efs := 500)
+    RETURN node.id ORDER BY distance;
+---- error
+Binder exception: In vector filtered search, projected graph G9 must contain exactly one node table.
 
 -CASE Filtered8DimDotProduct2
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
@@ -118,13 +152,14 @@ Binder exception: Node n in the return clause of the filter query should be labe
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
 ---- ok
+-STATEMENT CALL project_graph_cypher('G1', 'MATCH (n:embeddings) WHERE n.id < 50 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 50 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 28
@@ -148,13 +183,15 @@ Binder exception: Node n in the return clause of the filter query should be labe
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
 ---- ok
+-STATEMENT CALL project_graph_cypher('G1', 'MATCH (n:embeddings) WHERE n.id < 600 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 600 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500)
+    RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 499
@@ -178,13 +215,15 @@ Binder exception: Node n in the return clause of the filter query should be labe
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
+-STATEMENT CALL project_graph_cypher('G1', 'MATCH (n:embeddings) WHERE n.id < 100 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 100 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500)
+    RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 37
@@ -208,13 +247,15 @@ Binder exception: Node n in the return clause of the filter query should be labe
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
+-STATEMENT CALL project_graph_cypher('G1', 'MATCH (n:embeddings) WHERE n.id < 50 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 50 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500)
+    RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 37
@@ -238,13 +279,14 @@ Binder exception: Node n in the return clause of the filter query should be labe
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
+-STATEMENT CALL project_graph_cypher('G1', 'MATCH (n:embeddings) WHERE n.id < 600 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 600 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 333
@@ -268,13 +310,14 @@ Binder exception: Node n in the return clause of the filter query should be labe
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
+-STATEMENT CALL project_graph_cypher('G1', 'MATCH (n:embeddings) WHERE n.id < 100 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 100 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 37
@@ -298,13 +341,14 @@ Binder exception: Node n in the return clause of the filter query should be labe
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
+-STATEMENT CALL project_graph_cypher('G1', 'MATCH (n:embeddings) WHERE n.id < 50 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 50 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 37
@@ -328,13 +372,14 @@ Binder exception: Node n in the return clause of the filter query should be labe
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
+-STATEMENT CALL project_graph_cypher('G1', 'MATCH (n:embeddings) WHERE n.id < 600 RETURN n');
+---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX(
-    'embeddings',
+    'G1',
     'e_hnsw_index',
     CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'),
     3,
-    efs := 500,
-    filter := "MATCH (n:embeddings) WHERE n.id < 600 RETURN n") RETURN node.id ORDER BY distance;
+    efs := 500) RETURN node.id ORDER BY distance;
 -CHECK_ORDER
 ---- 3
 333

@@ -2,6 +2,7 @@
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
+#include "graph/graph_entry_set.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -12,11 +13,10 @@ namespace function {
 
 struct ProjectedGraphData {
     std::string name;
-    std::string nodeInfo;
-    std::string relInfo;
+    std::string type;
 
-    ProjectedGraphData(std::string name, std::string nodeInfo, std::string relInfo)
-        : name{std::move(name)}, nodeInfo{std::move(nodeInfo)}, relInfo{std::move(relInfo)} {}
+    ProjectedGraphData(std::string name, std::string type)
+        : name{std::move(name)}, type{std::move(type)} {}
 };
 
 struct ShowProjectedGraphBindData : public TableFuncBindData {
@@ -40,26 +40,9 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto graphData = projectedGraphData[morsel.startOffset + i];
         output.getValueVectorMutable(0).setValue(i, graphData.name);
-        output.getValueVectorMutable(1).setValue(i, graphData.nodeInfo);
-        output.getValueVectorMutable(2).setValue(i, graphData.relInfo);
+        output.getValueVectorMutable(1).setValue(i, graphData.type);
     }
     return numTablesToOutput;
-}
-
-static std::string getNodeOrRelInfo(const std::vector<graph::GraphEntryTableInfo>& tableInfo) {
-    if (tableInfo.empty()) {
-        return "";
-    }
-    std::string info = "[";
-    for (auto i = 0u; i < tableInfo.size(); i++) {
-        info += tableInfo[i].toString();
-        if (i == tableInfo.size() - 1) {
-            info += "]";
-        } else {
-            info += ",";
-        }
-    }
-    return info;
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
@@ -68,17 +51,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     std::vector<LogicalType> returnTypes;
     returnColumnNames.emplace_back("name");
     returnTypes.emplace_back(LogicalType::STRING());
-    returnColumnNames.emplace_back("nodes");
-    returnTypes.emplace_back(LogicalType::STRING());
-    returnColumnNames.emplace_back("rels");
+    returnColumnNames.emplace_back("type");
     returnTypes.emplace_back(LogicalType::STRING());
     returnColumnNames =
         TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     std::vector<ProjectedGraphData> projectedGraphData;
-    for (auto& [name, parsedGraphEntry] : context->getGraphEntrySet()) {
-        projectedGraphData.emplace_back(name, getNodeOrRelInfo(parsedGraphEntry.nodeInfos),
-            getNodeOrRelInfo(parsedGraphEntry.relInfos));
+    for (auto& [name, entry] : context->getGraphEntrySet().getNameToEntryMap()) {
+        projectedGraphData.emplace_back(name, graph::GraphEntryTypeUtils::toString(entry->type));
     }
     return std::make_unique<ShowProjectedGraphBindData>(std::move(projectedGraphData),
         std::move(columns));

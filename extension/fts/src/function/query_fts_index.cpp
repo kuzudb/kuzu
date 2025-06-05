@@ -230,7 +230,7 @@ static void initFrontier(FrontierPair& frontierPair, table_id_t termsTableID,
     }
 }
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto transaction = clientContext->getTransaction();
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
@@ -317,7 +317,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         FTSUtils::getDocsTableName(tableEntry->getTableID(), indexName));
     auto appearsInEntry = catalog->getTableCatalogEntry(transaction,
         FTSUtils::getAppearsInTableName(tableEntry->getTableID(), indexName));
-    auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
+    auto graphEntry = graph::NativeGraphEntry({termsEntry, docsEntry}, {appearsInEntry});
 
     expression_vector columns;
     auto& docsNode = nodeOutput->constCast<NodeExpression>();

@@ -1,7 +1,6 @@
-#include "common/exception/runtime.h"
 #include "function/table/bind_data.h"
 #include "function/table/standalone_call_function.h"
-#include "graph/graph_entry.h"
+#include "graph/graph_entry_set.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;
@@ -23,10 +22,7 @@ struct DropProjectedGraphBindData final : TableFuncBindData {
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto bindData = ku_dynamic_cast<DropProjectedGraphBindData*>(input.bindData);
     auto& graphEntrySet = input.context->clientContext->getGraphEntrySetUnsafe();
-    if (!graphEntrySet.hasGraph(bindData->graphName)) {
-        throw RuntimeException(
-            stringFormat("Project graph {} does not exists.", bindData->graphName));
-    }
+    graphEntrySet.validateGraphExist(bindData->graphName);
     graphEntrySet.dropGraph(bindData->graphName);
     return 0;
 }

@@ -80,7 +80,7 @@ std::unique_ptr<GDSConfig> LouvainOptionalParams::getConfig() const {
 }
 
 struct LouvainBindData final : public GDSBindData {
-    LouvainBindData(expression_vector columns, graph::GraphEntry graphEntry,
+    LouvainBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<Expression> nodeOutput,
         std::unique_ptr<LouvainOptionalParams> optionalParams)
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput),
