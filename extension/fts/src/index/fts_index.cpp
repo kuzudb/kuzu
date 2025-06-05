@@ -92,7 +92,7 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
         FTSUtils::normalizeQuery(content);
         auto termsInContent = StringUtils::split(content, " ");
         termsInContent = FTSUtils::stemTerms(termsInContent, config, mm, stopWordsTable,
-            transaction, false /* isConjunctive */);
+            transaction, true /* isConjunctive */);
         terms.insert(terms.end(), termsInContent.begin(), termsInContent.end());
     }
     return terms;

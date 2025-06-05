@@ -23,7 +23,6 @@ Alice wonderland|0.605243
 Learning Machines|0.659085
 The Quantum World|0.987801
 
-
 -CASE consecutiveInsertions
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
 ---- ok

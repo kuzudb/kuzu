@@ -56,7 +56,7 @@ std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
         auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
             term.length());
         std::string stemWord = std::string(reinterpret_cast<const char*>(stemData));
-        if (checker.isStopWord(stemWord)) {
+        if (isConjunctive && checker.isStopWord(stemWord)) {
             continue;
         }
         result.push_back(stemWord);

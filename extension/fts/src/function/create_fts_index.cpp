@@ -109,10 +109,14 @@ static std::string createStopWordsTable(const ClientContext& context,
         }
         query +=
             stringFormat("CREATE NODE TABLE `{}` (sw STRING, PRIMARY KEY(sw));", info.tableName);
-        for (auto i = 0u; i < FtsExtension::NUM_STOP_WORDS; i++) {
-            query += stringFormat("CREATE (s:`{}` {sw: \"{}\"});", info.tableName,
-                FtsExtension::EN_STOP_WORDS[i]);
+        std::string stopWordList = "[";
+        for (auto i = 0u; i < FtsExtension::NUM_STOP_WORDS - 1; i++) {
+            stopWordList += stringFormat("\"{}\", ", FtsExtension::EN_STOP_WORDS[i]);
         }
+        stopWordList +=
+            stringFormat("\"{}\"]", FtsExtension::EN_STOP_WORDS[FtsExtension::NUM_STOP_WORDS - 1]);
+        query += stringFormat("UNWIND {} AS word CREATE (s:`{}` {sw: word});", stopWordList,
+            info.tableName);
     } break;
     case StopWordsSource::TABLE: {
         query +=

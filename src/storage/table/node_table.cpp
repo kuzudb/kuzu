@@ -676,6 +676,17 @@ void NodeTable::addIndex(std::unique_ptr<Index> index) {
     indexes.push_back(IndexHolder{std::move(index)});
 }
 
+void NodeTable::dropIndex(const std::string& name) {
+    KU_ASSERT(getIndex(name) != nullptr);
+    for (auto it = indexes.begin(); it != indexes.end(); ++it) {
+        if (common::StringUtils::caseInsensitiveEquals(it->getName(), name)) {
+            KU_ASSERT(it->isLoaded());
+            indexes.erase(it);
+            return;
+        }
+    }
+}
+
 void NodeTable::serialize(Serializer& serializer) const {
     nodeGroups->serialize(serializer);
     serializer.write<uint64_t>(indexes.size());

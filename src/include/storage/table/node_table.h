@@ -144,6 +144,7 @@ public:
     }
 
     void addIndex(std::unique_ptr<Index> index);
+    void dropIndex(const std::string& name);
 
     common::column_id_t getPKColumnID() const { return pkColumnID; }
     PrimaryKeyIndex* getPKIndex() const {

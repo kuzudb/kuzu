@@ -1,12 +1,13 @@
 #include "function/drop_fts_index.h"
 
-#include "catalog/catalog.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_index_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
 #include "processor/execution_context.h"
+#include "storage/storage_manager.h"
+#include "storage/table/node_table.h"
 #include "utils/fts_utils.h"
 
 namespace kuzu {
@@ -45,6 +46,10 @@ static offset_t internalTableFunc(const TableFuncInput& input, TableFuncOutput& 
     auto& context = *input.context;
     context.clientContext->getCatalog()->dropIndex(input.context->clientContext->getTransaction(),
         ftsBindData.tableID, ftsBindData.indexName);
+    context.clientContext->getStorageManager()
+        ->getTable(ftsBindData.tableID)
+        ->cast<storage::NodeTable>()
+        .dropIndex(ftsBindData.indexName);
     return 0;
 }
 
