@@ -244,7 +244,7 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo ind
         if (!embeddings->isNull(i)) {
             const auto rand =
                 randomEngine.nextRandomInteger(INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND);
-            if (rand <= INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND * config.pu) {
+            if (rand <= INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND * this->config.pu) {
                 upperLayerSelectionMask->setNull(i, true);
             }
         }

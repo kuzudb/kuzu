@@ -176,7 +176,8 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, uint64_t numRels,
     common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
     common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition,
     common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
-    common::offset_t numNodesInTable, const NodeToGraphOffsetMap& selectedNodesMap) const {
+    [[maybe_unused]] common::offset_t numNodesInTable,
+    const NodeToGraphOffsetMap& selectedNodesMap) const {
     // BOUND_ID, NBR_ID, REL_ID.
     std::vector<common::LogicalType> columnTypes;
     columnTypes.push_back(common::LogicalType::INTERNAL_ID());
