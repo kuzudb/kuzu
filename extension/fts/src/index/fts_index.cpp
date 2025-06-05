@@ -2,6 +2,7 @@
 
 #include "catalog/fts_index_catalog_entry.h"
 #include "index/fts_internal_table_info.h"
+#include "index/fts_storage_info.h"
 #include "utils/fts_utils.h"
 
 namespace kuzu {
@@ -11,19 +12,25 @@ using namespace kuzu::storage;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
-FTSIndex::FTSIndex(IndexInfo indexInfo, FTSConfig config, main::ClientContext* context)
-    : Index{indexInfo, std::make_unique<IndexStorageInfo>()},
+FTSIndex::FTSIndex(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storageInfo,
+    FTSConfig config, main::ClientContext* context)
+    : Index{indexInfo, std::move(storageInfo)},
       internalTableInfo{context, indexInfo.tableID, indexInfo.name, config.stopWordsTableName},
-      config{std::move(config)}, context{context} {}
+      config{std::move(config)} {}
 
 std::unique_ptr<Index> FTSIndex::load(main::ClientContext* context,
     storage::StorageManager* /*storageManager*/, storage::IndexInfo indexInfo,
-    std::span<uint8_t> /*storageInfoBuffer*/) {
+    std::span<uint8_t> storageInfoBuffer) {
     auto catalog = context->getCatalog();
+    auto reader =
+        std::make_unique<common::BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
+    auto storageInfo = FTSStorageInfo::deserialize(std::move(reader));
+    auto& ftsStorageInfo = storageInfo->cast<FTSStorageInfo>();
     auto indexEntry =
         catalog->getIndex(&transaction::DUMMY_TRANSACTION, indexInfo.tableID, indexInfo.name);
     auto ftsConfig = indexEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config;
-    return std::make_unique<FTSIndex>(std::move(indexInfo), std::move(ftsConfig), context);
+    return std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
+        std::move(ftsConfig), context);
 }
 
 struct FTSInsertState : public storage::Index::InsertState {
@@ -117,14 +124,12 @@ void FTSIndex::insert(Transaction* transaction, const common::ValueVector& nodeI
         insertToAppearsInTable(transaction, tfCollection, ftsInsertState, insertedDocID,
             internalTableInfo.termsTable->getTableID());
     }
-    auto& ftsAuxInfo = context->getCatalog()
-                           ->getIndex(context->getTransaction(), indexInfo.tableID, indexInfo.name)
-                           ->getAuxInfoUnsafe()
-                           .cast<FTSIndexAuxInfo>();
+    auto& ftsStorageInfo = storageInfo->cast<FTSStorageInfo>();
     auto numInsertedDocs = nodeIDVector.state->getSelSize();
-    ftsAuxInfo.avgDocLen = (ftsAuxInfo.avgDocLen * ftsAuxInfo.numDocs + totalInsertedDocLen) /
-                           (ftsAuxInfo.numDocs + numInsertedDocs);
-    ftsAuxInfo.numDocs += numInsertedDocs;
+    ftsStorageInfo.avgDocLen =
+        (ftsStorageInfo.avgDocLen * ftsStorageInfo.numDocs + totalInsertedDocLen) /
+        (ftsStorageInfo.numDocs + numInsertedDocs);
+    ftsStorageInfo.numDocs += numInsertedDocs;
 }
 
 nodeID_t FTSIndex::insertToDocTable(Transaction* transaction, FTSInsertState& insertState,

@@ -16,6 +16,7 @@
 #include "graph/on_disk_graph.h"
 #include "index/fts_index.h"
 #include "index/fts_internal_table_info.h"
+#include "index/fts_storage_info.h"
 #include "main/fts_extension.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
@@ -304,8 +305,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         std::move(columnIDs), std::move(columnTypes),
         ftsIndexType.constraintType == storage::IndexConstraintType::PRIMARY,
         ftsIndexType.definitionType == storage::IndexDefinitionType::BUILTIN};
-    auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(ftsConfig),
-        context.clientContext);
+    auto storageInfo = std::make_unique<FTSStorageInfo>(numDocs, avgDocLen);
+    auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
+        std::move(ftsConfig), context.clientContext);
     nodeTable->addIndex(std::move(onDiskIndex));
     return 0;
 }

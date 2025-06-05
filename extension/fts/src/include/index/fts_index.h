@@ -13,7 +13,8 @@ struct TermInfo;
 class FTSIndex final : public storage::Index {
 
 public:
-    FTSIndex(storage::IndexInfo indexInfo, FTSConfig ftsConfig, main::ClientContext* context);
+    FTSIndex(storage::IndexInfo indexInfo, std::unique_ptr<storage::IndexStorageInfo> storageInfo,
+        FTSConfig ftsConfig, main::ClientContext* context);
 
     static std::unique_ptr<Index> load(main::ClientContext* context,
         storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
@@ -55,7 +56,6 @@ private:
 private:
     FTSInternalTableInfo internalTableInfo;
     FTSConfig config;
-    main::ClientContext* context;
 };
 
 } // namespace fts_extension
