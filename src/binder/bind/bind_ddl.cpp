@@ -247,7 +247,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
         BoundStatementResult::createSingleStringColumnResult());
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const CreateTable& createTable) {
+std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& statement) {
+    auto& createTable = statement.constCast<CreateTable>();
     auto boundInnerQuery = bindQuery(*createTable.getSource()->statement.get());
     auto innerQueryResult = boundInnerQuery->getStatementResult();
     auto columnNames = innerQueryResult->getColumnNames();

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/execution_context.h"
@@ -26,6 +25,7 @@ struct BoundSetPropertyInfo;
 
 namespace catalog {
 class TableCatalogEntry;
+class RelGroupCatalogEntry;
 }
 
 namespace planner {
