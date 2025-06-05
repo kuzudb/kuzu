@@ -21,13 +21,13 @@ TransactionContext::~TransactionContext() {
 }
 
 void TransactionContext::beginReadTransaction() {
-    std::unique_lock<std::mutex> lck{mtx};
+    std::unique_lock lck{mtx};
     mode = TransactionMode::MANUAL;
     beginTransactionInternal(TransactionType::READ_ONLY);
 }
 
 void TransactionContext::beginWriteTransaction() {
-    std::unique_lock<std::mutex> lck{mtx};
+    std::unique_lock lck{mtx};
     mode = TransactionMode::MANUAL;
     beginTransactionInternal(TransactionType::WRITE);
 }
@@ -41,7 +41,7 @@ void TransactionContext::beginAutoTransaction(bool readOnlyStatement) {
 }
 
 void TransactionContext::beginRecoveryTransaction() {
-    std::unique_lock<std::mutex> lck{mtx};
+    std::unique_lock lck{mtx};
     mode = TransactionMode::MANUAL;
     beginTransactionInternal(TransactionType::RECOVERY);
 }

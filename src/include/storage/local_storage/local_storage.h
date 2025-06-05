@@ -6,18 +6,23 @@
 #include "storage/local_storage/local_table.h"
 
 namespace kuzu {
-namespace main {
-class ClientContext;
-} // namespace main
-namespace storage {
+namespace catalog {
+class Catalog;
+} // namespace catalog
+namespace transaction {
+class Transaction;
+} // namespace transaction
 
+namespace storage {
 // Data structures in LocalStorage are not thread-safe.
 // For now, we only support single thread insertions and updates. Once we optimize them with
 // multiple threads, LocalStorage and its related data structures should be reworked to be
 // thread-safe.
 class LocalStorage {
 public:
-    explicit LocalStorage(main::ClientContext& clientContext) : clientContext{clientContext} {}
+    explicit LocalStorage(transaction::Transaction* transaction, catalog::Catalog* catalog,
+        StorageManager* storageManager)
+        : transaction{transaction}, catalog{catalog}, storageManager{storageManager} {}
     DELETE_COPY_AND_MOVE(LocalStorage);
 
     // Do nothing if the table already exists, otherwise create a new local table.
@@ -31,7 +36,9 @@ public:
     uint64_t getEstimatedMemUsage() const;
 
 private:
-    main::ClientContext& clientContext;
+    transaction::Transaction* transaction;
+    catalog::Catalog* catalog;
+    StorageManager* storageManager;
     std::unordered_map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
 };
 

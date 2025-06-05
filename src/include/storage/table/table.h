@@ -115,7 +115,7 @@ struct KUZU_API TableUpdateState {
 };
 
 struct KUZU_API TableDeleteState {
-    virtual ~TableDeleteState() = default;
+    virtual ~TableDeleteState();
 
     template<typename T>
     const T& constCast() const {
@@ -167,7 +167,8 @@ public:
 
     virtual void commit(transaction::Transaction* transaction,
         catalog::TableCatalogEntry* tableEntry, LocalTable* localTable) = 0;
-    virtual bool checkpoint(catalog::TableCatalogEntry* tableEntry) = 0;
+    virtual bool checkpoint(main::ClientContext* context,
+        catalog::TableCatalogEntry* tableEntry) = 0;
     virtual void rollbackCheckpoint() = 0;
     virtual void reclaimStorage(FileHandle& dataFH) = 0;
 

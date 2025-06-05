@@ -821,7 +821,7 @@ void InternalIDChunkData::copyVectorToBuffer(ValueVector* vector, offset_t start
         if (vector->isNull(pos)) {
             continue;
         }
-        // KU_ASSERT(relIDsInVector[pos].tableID == commonTableID);
+        KU_ASSERT(relIDsInVector[pos].tableID == commonTableID);
         memcpy(getData() + (startPosInChunk + i) * numBytesPerValue, &relIDsInVector[pos].offset,
             numBytesPerValue);
     }

@@ -27,8 +27,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-              ->getTable(bindData.tableEntry->getTableID())
-              ->cast<storage::NodeTable>()},
+                    ->getTable(bindData.tableEntry->getTableID())
+                    ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
         {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
@@ -277,7 +277,7 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     auto storageInfo = std::make_unique<HNSWStorageInfo>(
         upperTable->cast<catalog::RelGroupCatalogEntry>().getSingleRelEntryInfo().oid,
         lowerTable->cast<catalog::RelGroupCatalogEntry>().getSingleRelEntryInfo().oid,
-        index->getUpperEntryPoint(), index->getLowerEntryPoint());
+        index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->numRows);
     auto onDiskIndex = std::make_unique<OnDiskHNSWIndex>(context->clientContext, indexInfo,
         std::move(storageInfo), bindData->config.copy());
     auto nodeTable =

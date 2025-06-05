@@ -490,7 +490,7 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     }
 }
 
-bool RelTable::checkpoint(TableCatalogEntry* tableEntry) {
+bool RelTable::checkpoint(main::ClientContext*, TableCatalogEntry* tableEntry) {
     bool ret = hasChanges;
     if (hasChanges) {
         // Deleted columns are vacuumed and not checkpointed or serialized.

@@ -23,7 +23,7 @@ class Transaction;
 namespace storage {
 class NodeTable;
 
-struct KUZU_API NodeTableScanState final : public TableScanState {
+struct KUZU_API NodeTableScanState final : TableScanState {
     NodeTableScanState(common::ValueVector* nodeIDVector,
         std::vector<common::ValueVector*> outputVectors,
         std::shared_ptr<common::DataChunkState> outChunkState)
@@ -42,7 +42,7 @@ struct KUZU_API NodeTableScanState final : public TableScanState {
         common::offset_t numNodes);
 };
 
-struct KUZU_API NodeTableInsertState : public TableInsertState {
+struct KUZU_API NodeTableInsertState final : TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
     std::vector<std::unique_ptr<Index::InsertState>> indexInsertStates;
@@ -55,9 +55,9 @@ struct KUZU_API NodeTableInsertState : public TableInsertState {
     NodeTableInsertState(const NodeTableInsertState&) = delete;
 };
 
-struct KUZU_API NodeTableUpdateState : public TableUpdateState {
+struct KUZU_API NodeTableUpdateState final : TableUpdateState {
     common::ValueVector& nodeIDVector;
-    // pkVector is nullptr if we are not updating primary key column.
+    // pkVector is nullptr if we are not updating the primary key column.
     common::ValueVector* pkVector;
 
     NodeTableUpdateState(common::column_id_t columnID, common::ValueVector& nodeIDVector,
@@ -66,7 +66,7 @@ struct KUZU_API NodeTableUpdateState : public TableUpdateState {
           pkVector{nullptr} {}
 };
 
-struct NodeTableDeleteState final : TableDeleteState {
+struct KUZU_API NodeTableDeleteState final : TableDeleteState {
     common::ValueVector& nodeIDVector;
     common::ValueVector& pkVector;
 
@@ -191,7 +191,7 @@ public:
 
     void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
-    bool checkpoint(catalog::TableCatalogEntry* tableEntry) override;
+    bool checkpoint(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override;
     void reclaimStorage(FileHandle& dataFH) override;
 

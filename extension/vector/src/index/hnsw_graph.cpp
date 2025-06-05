@@ -76,6 +76,9 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     KU_UNUSED(result);
     KU_ASSERT(scanState.outputVectors.size() == 1 &&
               scanState.outputVectors[0]->state->getSelVector()[0] == 0);
+    if (scanState.outputVectors[0]->isNull(0)) {
+        return nullptr;
+    }
     const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(0);
     KU_ASSERT(value.size == typeInfo.getNumElements());
     KU_UNUSED(value);

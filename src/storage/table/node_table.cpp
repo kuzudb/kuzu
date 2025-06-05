@@ -246,8 +246,10 @@ NodeTable::NodeTable(const StorageManager* storageManager,
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
     auto numLocalRows = 0u;
-    if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID)) {
-        numLocalRows = localTable->getNumTotalRows();
+    if (transaction->getLocalStorage()) {
+        if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID)) {
+            numLocalRows = localTable->getNumTotalRows();
+        }
     }
     return numLocalRows + nodeGroups->getNumTotalRows();
 }
@@ -512,7 +514,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-        localNodeGroupIdx++) {
+         localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -554,7 +556,7 @@ visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {
         [this, transaction](offset_t offset_) -> bool { return isVisible(transaction, offset_); };
 }
 
-bool NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
+bool NodeTable::checkpoint(main::ClientContext* context, TableCatalogEntry* tableEntry) {
     const bool ret = hasChanges;
     if (hasChanges) {
         // Deleted columns are vacuumed and not checkpointed.
@@ -576,7 +578,7 @@ bool NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
             memoryManager};
         nodeGroups->checkpoint(*memoryManager, state);
         for (auto& index : indexes) {
-            index.checkpoint();
+            index.checkpoint(context);
         }
         hasChanges = false;
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
@@ -652,7 +654,7 @@ void NodeTable::scanIndexColumns(Transaction* transaction, IndexScanHelper& scan
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-        ++nodeGroupToScan) {
+         ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to

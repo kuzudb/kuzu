@@ -30,11 +30,10 @@ void TableScanState::setToTable(const transaction::Transaction*, Table* table_,
     nodeGroupScanState->chunkStates.resize(columnIDs.size());
 }
 
-TableInsertState::TableInsertState(std::vector<common::ValueVector*> propertyVectors)
+TableInsertState::TableInsertState(std::vector<ValueVector*> propertyVectors)
     : propertyVectors{std::move(propertyVectors)} {}
 TableInsertState::~TableInsertState() = default;
-TableUpdateState::TableUpdateState(common::column_id_t columnID,
-    common::ValueVector& propertyVector)
+TableUpdateState::TableUpdateState(column_id_t columnID, ValueVector& propertyVector)
     : columnID{columnID}, propertyVector{propertyVector} {}
 TableUpdateState::~TableUpdateState() = default;
 TableDeleteState::~TableDeleteState() = default;

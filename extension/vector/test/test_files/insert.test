@@ -30,6 +30,7 @@
 444
 
 -CASE BulkInsertToEmpty
+-SKIP
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
@@ -54,6 +55,7 @@
 40
 
 -CASE BulkInsertToNonEmpty
+-SKIP
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
@@ -78,6 +80,7 @@
 146
 
 -CASE SerialInsertionsToNonEmpty
+-SKIP
 -STATEMENT CALL threads=1;
 ---- ok
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';

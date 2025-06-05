@@ -294,6 +294,7 @@ std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {
     serializer.write<common::table_id_t>(lowerRelTableID);
     serializer.write<common::offset_t>(upperEntryPoint);
     serializer.write<common::offset_t>(lowerEntryPoint);
+    serializer.write<common::offset_t>(numCheckpointedNodes);
     return bufferWriter;
 }
 
@@ -303,24 +304,45 @@ std::unique_ptr<IndexStorageInfo> HNSWStorageInfo::deserialize(
     common::table_id_t lowerRelTableID = common::INVALID_TABLE_ID;
     common::offset_t upperEntryPoint = common::INVALID_OFFSET;
     common::offset_t lowerEntryPoint = common::INVALID_OFFSET;
+    common::offset_t checkpointedNodeOffset = common::INVALID_OFFSET;
     common::Deserializer deSer{std::move(reader)};
     deSer.deserializeValue<common::table_id_t>(upperRelTableID);
     deSer.deserializeValue<common::table_id_t>(lowerRelTableID);
     deSer.deserializeValue<common::offset_t>(upperEntryPoint);
     deSer.deserializeValue<common::offset_t>(lowerEntryPoint);
+    deSer.deserializeValue<common::offset_t>(checkpointedNodeOffset);
     return std::make_unique<HNSWStorageInfo>(upperRelTableID, lowerRelTableID, upperEntryPoint,
-        lowerEntryPoint);
+        lowerEntryPoint, checkpointedNodeOffset);
 }
 
-OnDiskHNSWIndex::InsertState::InsertState(const transaction::Transaction* transaction,
-    MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID, uint64_t degree)
-    : searchState{transaction, mm, nodeTable, columnID, nodeTable.getNumTotalRows(transaction),
-          degree, QueryHNSWConfig{}} {
+HNSWSearchState::HNSWSearchState(main::ClientContext* context,
+    catalog::TableCatalogEntry* nodeTableEntry, catalog::TableCatalogEntry* upperRelTableEntry,
+    catalog::TableCatalogEntry* lowerRelTableEntry, NodeTable& nodeTable,
+    common::column_id_t columnID, common::offset_t numNodes, uint64_t k, QueryHNSWConfig config)
+    : visited{numNodes}, embeddingScanState{context->getTransaction(), context->getMemoryManager(),
+                             nodeTable, columnID},
+      k{k}, config{config}, semiMask{nullptr}, upperRelTableEntry{upperRelTableEntry},
+      lowerRelTableEntry{lowerRelTableEntry}, searchType{SearchType::UNFILTERED},
+      nbrScanState{nullptr}, secondHopNbrScanState{nullptr} {
+    ef = std::max(k, static_cast<uint64_t>(config.efs));
+    graph::GraphEntry lowerGraphEntry{{nodeTableEntry}, {lowerRelTableEntry}};
+    lowerGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(lowerGraphEntry));
+    graph::GraphEntry upperGraphEntry{{nodeTableEntry}, {upperRelTableEntry}};
+    upperGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(upperGraphEntry));
+}
+
+OnDiskHNSWIndex::InsertState::InsertState(main::ClientContext* context,
+    catalog::TableCatalogEntry* nodeTableEntry, catalog::TableCatalogEntry* upperRelTableEntry,
+    catalog::TableCatalogEntry* lowerRelTableEntry, NodeTable& nodeTable,
+    common::column_id_t columnID, uint64_t degree)
+    : searchState{context, nodeTableEntry, upperRelTableEntry, lowerRelTableEntry, nodeTable,
+          columnID, nodeTable.getNumTotalRows(context->getTransaction()), degree,
+          QueryHNSWConfig{}} {
     std::vector<common::LogicalType> types;
     types.push_back(common::LogicalType::INTERNAL_ID());
     types.push_back(common::LogicalType::INTERNAL_ID());
     types.push_back(common::LogicalType::INTERNAL_ID());
-    insertChunk = Table::constructDataChunk(mm, std::move(types));
+    insertChunk = Table::constructDataChunk(context->getMemoryManager(), std::move(types));
     insertChunk.state->getSelVectorUnsafe().setToUnfiltered(1);
     std::vector dataVectors{&insertChunk.getValueVectorMutable(2)};
     relInsertState = std::make_unique<RelTableInsertState>(insertChunk.getValueVectorMutable(0),
@@ -335,6 +357,7 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, IndexInfo indexIn
           getArrayTypeInfo(
               context->getStorageManager()->getTable(indexInfo.tableID)->cast<NodeTable>(),
               indexInfo.columnIDs[0])},
+      mm{context->getMemoryManager()},
       nodeTable{context->getStorageManager()->getTable(indexInfo.tableID)->cast<NodeTable>()} {
     KU_ASSERT(this->indexInfo.columnIDs.size() == 1);
     KU_ASSERT(nodeTable.getColumn(this->indexInfo.columnIDs[0]).getDataType().getLogicalTypeID() ==
@@ -373,44 +396,102 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::search(transaction::Transaction* 
         entryPoint = hnswStorageInfo.lowerEntryPoint;
     }
     KU_ASSERT(entryPoint != common::INVALID_OFFSET);
-    return searchKNNInLowerLayer(transaction, queryVector, entryPoint, searchState);
+    auto result = searchKNNInLowerLayer(transaction, queryVector, entryPoint, searchState);
+    searchFromUnMerged(transaction, queryVector, *searchState.embeddingScanState.scanState, result);
+    result.resize(searchState.k);
+    return result;
 }
 
-std::unique_ptr<Index::InsertState> OnDiskHNSWIndex::initInsertState(
-    const transaction::Transaction* transaction, MemoryManager* mm, visible_func) {
-    KU_ASSERT(indexInfo.columnIDs.size() == 1);
-    return std::make_unique<InsertState>(transaction, mm, nodeTable, indexInfo.columnIDs[0],
-        config.ml);
-}
-
-void OnDiskHNSWIndex::insert(transaction::Transaction* transaction,
-    const common::ValueVector& nodeIDVector, const std::vector<common::ValueVector*>& indexVectors,
-    Index::InsertState& insertState) {
-    KU_ASSERT(indexVectors.size() == 1);
-    const auto dataVector = indexVectors[0];
-    KU_ASSERT(dataVector->state->getSelSize() == nodeIDVector.state->getSelSize());
-    auto& hnswInsertState = insertState.cast<InsertState>();
+void OnDiskHNSWIndex::searchFromUnMerged(transaction::Transaction* transaction,
+    const void* queryVector, NodeTableScanState& embeddingScanState,
+    std::vector<NodeWithDistance>& result) const {
+    const auto numTotalRows = nodeTable.getNumTotalRows(transaction);
     const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
-    for (auto i = 0u; i < dataVector->state->getSelSize(); i++) {
-        const auto nodeIDPos = nodeIDVector.state->getSelVector()[i];
-        const auto offset = nodeIDVector.readNodeOffset(nodeIDPos);
-        const auto dataPos = dataVector->state->getSelVector()[i];
-        if (dataVector->isNull(dataPos)) {
+    auto numUnCheckpointedTuples = numTotalRows - hnswStorageInfo.numCheckpointedNodes;
+    if (numUnCheckpointedTuples == 0) {
+        // If the index is fully checkpointed, we can skip brute force search.
+        return;
+    }
+    result.reserve(numUnCheckpointedTuples + result.size());
+    // TODO(Guodong): Perhaps should switch to scan instead of lookup here.
+    for (auto offset = hnswStorageInfo.numCheckpointedNodes; offset < numTotalRows; offset++) {
+        const auto vector = embeddings->getEmbedding(transaction, embeddingScanState, offset);
+        if (!vector) {
             continue; // Skip null values.
         }
-        auto queryList = dataVector->getValue<common::list_entry_t>(dataPos);
-        const auto queryVector = common::ListVector::getListValues(dataVector, queryList);
-        // Search fow lower layer entry point.
-        const auto entryPoint =
-            searchNNInUpperLayer(transaction, queryVector, hnswInsertState.searchState);
-        insertToLayer(transaction, offset, entryPoint, queryVector, hnswInsertState,
-            false /*isUpperLayer*/);
-        // Search the lower layer to insert new vector.
-        const auto rand = randomEngine.nextRandomInteger(INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND);
-        if (rand <= INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND * config.pu) {
-            insertToLayer(transaction, offset, hnswStorageInfo.upperEntryPoint, queryVector,
-                hnswInsertState, true /*isUpperLayer*/);
+        auto dist = metricFunc(queryVector, vector, embeddings->getDimension());
+        result.emplace_back(offset, dist);
+    }
+    std::ranges::sort(result, [](const NodeWithDistance& l, const NodeWithDistance& r) {
+        return l.distance < r.distance;
+    });
+}
+
+std::unique_ptr<Index::InsertState> OnDiskHNSWIndex::initInsertState(transaction::Transaction*,
+    MemoryManager*, visible_func) {
+    return std::make_unique<Index::InsertState>();
+}
+
+void OnDiskHNSWIndex::insert(transaction::Transaction*, const common::ValueVector&,
+    const std::vector<common::ValueVector*>&, Index::InsertState&) {
+    // DO NOTHING.
+}
+
+void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
+    // TODO(Guodong): Manually create a transaction here is a bit hacky.
+    auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+    const auto numTotalRows = nodeTable.getNumTotalRows(&transaction::DUMMY_CHECKPOINT_TRANSACTION);
+    if (numTotalRows == hnswStorageInfo.numCheckpointedNodes) {
+        return;
+    }
+    auto transaction = std::make_unique<transaction::Transaction>(*context,
+        transaction::TransactionType::CHECKPOINT, transaction::Transaction::DUMMY_TRANSACTION_ID,
+        transaction::Transaction::DUMMY_TRANSACTION_ID - 1);
+    context->getTransactionContext()->setActiveTransaction(std::move(transaction));
+    try {
+        const auto catalog = context->getCatalog();
+        auto nodeTableEntry =
+            catalog->getTableCatalogEntry(context->getTransaction(), indexInfo.tableID);
+        const auto upperRelTableName =
+            HNSWIndexUtils::getUpperGraphTableName(nodeTableEntry->getTableID(), indexInfo.name);
+        const auto lowerRelTableName =
+            HNSWIndexUtils::getLowerGraphTableName(nodeTableEntry->getTableID(), indexInfo.name);
+        auto upperRelTableEntry =
+            catalog->getTableCatalogEntry(context->getTransaction(), upperRelTableName, true);
+        auto lowerRelTableEntry =
+            catalog->getTableCatalogEntry(context->getTransaction(), lowerRelTableName, true);
+        auto scanState = std::make_unique<OnDiskEmbeddingScanState>(context->getTransaction(), mm,
+            nodeTable, indexInfo.columnIDs[0]);
+        auto insertState = std::make_unique<InsertState>(context, nodeTableEntry,
+            upperRelTableEntry, lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
+        // TODO(Guodong): Perhaps should switch to scan instead of lookup here.
+        for (auto offset = hnswStorageInfo.numCheckpointedNodes; offset < numTotalRows; offset++) {
+            const auto vector =
+                embeddings->getEmbedding(context->getTransaction(), *scanState->scanState, offset);
+            if (!vector) {
+                continue;
+            }
+            insertInternal(context->getTransaction(), offset, vector, *insertState);
         }
+        hnswStorageInfo.numCheckpointedNodes = numTotalRows;
+        context->getTransaction()->commit(nullptr /* wal */);
+    } catch ([[maybe_unused]] std::exception& e) {
+        context->getTransaction()->rollback(nullptr /* wal */);
+    }
+    context->getTransactionContext()->clearTransaction();
+}
+
+void OnDiskHNSWIndex::insertInternal(transaction::Transaction* transaction, common::offset_t offset,
+    const void* vector, InsertState& insertState) {
+    // Search fow lower layer entry point.
+    const auto entryPoint = searchNNInUpperLayer(transaction, vector, insertState.searchState);
+    insertToLayer(transaction, offset, entryPoint, vector, insertState, false /*isUpperLayer*/);
+    // Search the lower layer to insert new vector.
+    const auto rand = randomEngine.nextRandomInteger(INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND);
+    if (rand <= INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND * config.pu) {
+        const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+        insertToLayer(transaction, offset, hnswStorageInfo.upperEntryPoint, vector, insertState,
+            true /*isUpperLayer*/);
     }
 }
 
@@ -677,7 +758,6 @@ void OnDiskHNSWIndex::createRels(transaction::Transaction* transaction, common::
     const std::vector<NodeWithDistance>& nbrs, bool isUpperLayer, InsertState& insertState) {
     auto& relTable = isUpperLayer ? *upperRelTable : *lowerRelTable;
     const auto maxDegree = isUpperLayer ? config.mu : config.ml;
-    auto& relTableEntry = isUpperLayer ? upperRelTableEntry : lowerRelTableEntry;
     // TODO(Guodong): Should batch insertions.
     for (const auto& n : nbrs) {
         insertState.relInsertState->srcNodeIDVector.setValue(0,
@@ -686,27 +766,35 @@ void OnDiskHNSWIndex::createRels(transaction::Transaction* transaction, common::
             common::nodeID_t{n.nodeOffset, indexInfo.tableID});
         relTable.insert(transaction, *insertState.relInsertState);
     }
-    auto& relEntryInfo = relTableEntry->getSingleRelEntryInfo();
-    auto& graph = isUpperLayer ? upperGraph : lowerGraph;
-    auto scanState = graph->prepareRelScan(*relTableEntry, relEntryInfo.oid,
-        relEntryInfo.nodePair.dstTableID, {});
+    auto& searchState = insertState.searchState;
+    const auto relTableEntry =
+        isUpperLayer ? searchState.upperRelTableEntry : searchState.lowerRelTableEntry;
+    auto& graph = isUpperLayer ? searchState.upperGraph : searchState.lowerGraph;
+    const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+    const auto relTableID =
+        isUpperLayer ? hnswStorageInfo.upperRelTableID : hnswStorageInfo.lowerRelTableID;
+    auto scanState = graph->prepareRelScan(*relTableEntry, relTableID, indexInfo.tableID, {});
     auto itr = graph->scanFwd(common::nodeID_t{offset, indexInfo.tableID}, *scanState);
     auto numExistingRels = itr.count();
     if (numExistingRels + nbrs.size() > static_cast<uint64_t>(maxDegree)) {
         // If the number of existing rels exceeds mu, we need to shrink the rels.
-        shrinkForNode(transaction, offset, relTable, maxDegree, insertState);
+        shrinkForNode(transaction, offset, isUpperLayer, maxDegree, insertState);
     }
 }
 
 void OnDiskHNSWIndex::shrinkForNode(transaction::Transaction* transaction, common::offset_t offset,
-    RelTable& relTable, common::length_t maxDegree, InsertState& insertState) {
+    bool isUpperLayer, common::length_t maxDegree, InsertState& insertState) {
     std::vector<NodeWithDistance> nbrs;
     const auto vector = embeddings->getEmbedding(transaction,
         *insertState.searchState.embeddingScanState.scanState, offset);
-    const auto& relEntryInfo = lowerRelTableEntry->getSingleRelEntryInfo();
-    auto scanState = lowerGraph->prepareRelScan(*lowerRelTableEntry, relEntryInfo.oid,
-        relEntryInfo.nodePair.dstTableID, {});
-    auto itr = lowerGraph->scanFwd(common::nodeID_t{offset, indexInfo.tableID}, *scanState);
+    auto& searchState = insertState.searchState;
+    const auto& graph = isUpperLayer ? searchState.upperGraph : searchState.lowerGraph;
+    const auto relTableID = isUpperLayer ? storageInfo->cast<HNSWStorageInfo>().upperRelTableID :
+                                           storageInfo->cast<HNSWStorageInfo>().lowerRelTableID;
+    const auto relTableEntry =
+        isUpperLayer ? searchState.upperRelTableEntry : searchState.lowerRelTableEntry;
+    auto scanState = graph->prepareRelScan(*relTableEntry, relTableID, indexInfo.tableID, {});
+    auto itr = graph->scanFwd(common::nodeID_t{offset, indexInfo.tableID}, *scanState);
     for (const auto& neighborChunk : itr) {
         neighborChunk.forEachBreakWhenFalse([&](auto neighbors, auto i) -> bool {
             auto nbr = neighbors[i];
@@ -726,6 +814,7 @@ void OnDiskHNSWIndex::shrinkForNode(transaction::Transaction* transaction, commo
     // First, delete all existing rels for the node.
     insertState.relDeleteState->srcNodeIDVector.setValue(0,
         common::nodeID_t{offset, indexInfo.tableID});
+    auto& relTable = isUpperLayer ? *upperRelTable : *lowerRelTable;
     relTable.detachDelete(transaction, common::RelDataDirection::FWD,
         insertState.relDeleteState.get());
     // Perform the actual shrinking and insertion of shrinked rels.

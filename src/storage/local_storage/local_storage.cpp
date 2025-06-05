@@ -1,6 +1,5 @@
 #include "storage/local_storage/local_storage.h"
 
-#include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
@@ -19,14 +18,13 @@ LocalTable* LocalStorage::getOrCreateLocalTable(const Table& table) {
     if (!tables.contains(tableID)) {
         switch (table.getTableType()) {
         case TableType::NODE: {
-            auto tableEntry = clientContext.getCatalog()->getTableCatalogEntry(
-                clientContext.getTransaction(), table.getTableID());
+            auto tableEntry = catalog->getTableCatalogEntry(transaction, table.getTableID());
             tables[tableID] = std::make_unique<LocalNodeTable>(tableEntry, table);
         } break;
         case TableType::REL: {
             // We have to fetch the rel group entry from the catalog to based on the relGroupID.
-            auto tableEntry = clientContext.getCatalog()->getTableCatalogEntry(
-                clientContext.getTransaction(), table.cast<RelTable>().getRelGroupID());
+            auto tableEntry =
+                catalog->getTableCatalogEntry(transaction, table.cast<RelTable>().getRelGroupID());
             tables[tableID] = std::make_unique<LocalRelTable>(tableEntry, table);
         } break;
         default:
@@ -46,18 +44,17 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID) const {
 void LocalStorage::commit() {
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::NODE) {
-            const auto tableEntry = clientContext.getCatalog()->getTableCatalogEntry(
-                clientContext.getTransaction(), tableID);
-            const auto table = clientContext.getStorageManager()->getTable(tableID);
-            table->commit(clientContext.getTransaction(), tableEntry, localTable.get());
+            const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
+            const auto table = storageManager->getTable(tableID);
+            table->commit(transaction, tableEntry, localTable.get());
         }
     }
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::REL) {
-            const auto table = clientContext.getStorageManager()->getTable(tableID);
-            const auto tableEntry = clientContext.getCatalog()->getTableCatalogEntry(
-                clientContext.getTransaction(), table->cast<RelTable>().getRelGroupID());
-            table->commit(clientContext.getTransaction(), tableEntry, localTable.get());
+            const auto table = storageManager->getTable(tableID);
+            const auto tableEntry =
+                catalog->getTableCatalogEntry(transaction, table->cast<RelTable>().getRelGroupID());
+            table->commit(transaction, tableEntry, localTable.get());
         }
     }
 }
