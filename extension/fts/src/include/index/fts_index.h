@@ -1,15 +1,19 @@
 #pragma once
 
 #include "function/fts_config.h"
+#include "index/fts_internal_table_info.h"
 #include "storage/index/index.h"
 
 namespace kuzu {
 namespace fts_extension {
 
+struct FTSInsertState;
+struct TermInfo;
+
 class FTSIndex final : public storage::Index {
+
 public:
-    FTSIndex(storage::IndexInfo indexInfo, std::unique_ptr<storage::IndexStorageInfo> storageInfo,
-        FTSConfig ftsConfig);
+    FTSIndex(storage::IndexInfo indexInfo, FTSConfig ftsConfig, main::ClientContext* context);
 
     static std::unique_ptr<Index> load(main::ClientContext* context,
         storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
@@ -35,7 +39,23 @@ public:
     }
 
 private:
+    common::nodeID_t insertToDocTable(transaction::Transaction* transaction,
+        FTSInsertState& ftsInsertState, common::nodeID_t insertedNodeID,
+        const std::vector<std::string>& terms) const;
+
+    void updateTermsTable(transaction::Transaction* transaction,
+        std::unordered_map<std::string, TermInfo>& tfCollection,
+        FTSInsertState& ftsInsertState) const;
+
+    void insertToAppearsInTable(transaction::Transaction* transaction,
+        const std::unordered_map<std::string, TermInfo>& tfCollection,
+        FTSInsertState& ftsInsertState, common::nodeID_t docID,
+        common::table_id_t termsTableID) const;
+
+private:
+    FTSInternalTableInfo internalTableInfo;
     FTSConfig config;
+    main::ClientContext* context;
 };
 
 } // namespace fts_extension

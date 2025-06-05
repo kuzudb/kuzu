@@ -15,7 +15,7 @@
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "index/fts_index.h"
-#include "index/fts_storage_info.h"
+#include "index/fts_internal_table_info.h"
 #include "main/fts_extension.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
@@ -109,14 +109,10 @@ static std::string createStopWordsTable(const ClientContext& context,
         }
         query +=
             stringFormat("CREATE NODE TABLE `{}` (sw STRING, PRIMARY KEY(sw));", info.tableName);
-        std::string stopWordList = "[";
-        for (auto i = 0u; i < FtsExtension::NUM_STOP_WORDS - 1; i++) {
-            stopWordList += stringFormat("\"{}\", ", FtsExtension::EN_STOP_WORDS[i]);
+        for (auto i = 0u; i < FtsExtension::NUM_STOP_WORDS; i++) {
+            query += stringFormat("CREATE (s:`{}` {sw: \"{}\"});", info.tableName,
+                FtsExtension::EN_STOP_WORDS[i]);
         }
-        stopWordList +=
-            stringFormat("\"{}\"]", FtsExtension::EN_STOP_WORDS[FtsExtension::NUM_STOP_WORDS - 1]);
-        query += stringFormat("UNWIND {} AS word CREATE (s:`{}` {sw: word});", stopWordList,
-            info.tableName);
     } break;
     case StopWordsSource::TABLE: {
         query +=
@@ -304,10 +300,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         std::move(columnIDs), std::move(columnTypes),
         ftsIndexType.constraintType == storage::IndexConstraintType::PRIMARY,
         ftsIndexType.definitionType == storage::IndexDefinitionType::BUILTIN};
-    auto storageInfo = std::make_unique<FTSStorageInfo>(context.clientContext, indexInfo.tableID,
-        indexInfo.name, ftsConfig.stopWordsTableName);
-    auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
-        std::move(ftsConfig));
+    auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(ftsConfig),
+        context.clientContext);
     nodeTable->addIndex(std::move(onDiskIndex));
     return 0;
 }

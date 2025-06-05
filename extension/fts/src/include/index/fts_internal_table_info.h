@@ -7,14 +7,14 @@
 namespace kuzu {
 namespace fts_extension {
 
-struct FTSStorageInfo : public storage::IndexStorageInfo {
+struct FTSInternalTableInfo {
     storage::NodeTable* stopWordsTable;
     storage::NodeTable* docTable;
     storage::NodeTable* termsTable;
     storage::RelTable* appearsInfoTable;
     common::column_id_t dfColumnID;
 
-    FTSStorageInfo(main::ClientContext* context, common::table_id_t tableID,
+    FTSInternalTableInfo(main::ClientContext* context, common::table_id_t tableID,
         const std::string& indexName, std::string stopWordsTableName);
 };
 

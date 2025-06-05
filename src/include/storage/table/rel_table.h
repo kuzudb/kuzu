@@ -153,7 +153,7 @@ public:
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
-    void initInsertState(transaction::Transaction*, TableInsertState&) override {
+    void initInsertState(const transaction::Transaction*, TableInsertState&) override {
         // DO NOTHING.
     }
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
@@ -181,8 +181,7 @@ public:
     }
     common::column_id_t getNumColumns() const {
         KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
+        RUNTIME_CHECK(for (const auto& relData : directedRelData) {
             KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
         });
         return directedRelData[0]->getNumColumns();

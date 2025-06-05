@@ -1,4 +1,4 @@
-#include "index/fts_storage_info.h"
+#include "index/fts_internal_table_info.h"
 
 #include "storage/storage_manager.h"
 #include "utils/fts_utils.h"
@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace fts_extension {
 
-FTSStorageInfo::FTSStorageInfo(main::ClientContext* context, common::table_id_t tableID,
+FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common::table_id_t tableID,
     const std::string& indexName, std::string stopWordsTableName) {
     auto docTableName = FTSUtils::getDocsTableName(tableID, indexName);
     auto termsTableName = FTSUtils::getTermsTableName(tableID, indexName);
@@ -17,8 +17,8 @@ FTSStorageInfo::FTSStorageInfo(main::ClientContext* context, common::table_id_t 
     stopWordsTable =
         storageManager
             ->getTable(context->getCatalog()
-                           ->getTableCatalogEntry(context->getTransaction(), stopWordsTableName)
-                           ->getTableID())
+                    ->getTableCatalogEntry(context->getTransaction(), stopWordsTableName)
+                    ->getTableID())
             ->ptrCast<storage::NodeTable>();
     docTable =
         storageManager->getTable(catalog->getTableCatalogEntry(trx, docTableName)->getTableID())
