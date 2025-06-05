@@ -52,7 +52,7 @@ static httplib::Headers getHeaders(const std::string& provider) {
     }
 
     else if (provider == "google-gemini" || provider == "ollama") {
-        return httplib::Headers{{"Content-Type", "applications/json"}};
+        return httplib::Headers{{"Content-Type", "application/json"}};
     }
 
     // Invalid Provider Error Would Be Thrown By GetEmbeddingDimensions
