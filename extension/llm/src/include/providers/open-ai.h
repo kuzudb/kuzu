@@ -10,7 +10,7 @@ namespace kuzu {
 namespace llm_extension {
 
 class OpenAIEmbedding : public EmbeddingProvider {
-    OpenAIEmbedding();
+    OpenAIEmbedding() = default;
     DELETE_COPY_AND_MOVE(OpenAIEmbedding); 
     
     const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536}, {"text-embedding-ada-002", 1536}};

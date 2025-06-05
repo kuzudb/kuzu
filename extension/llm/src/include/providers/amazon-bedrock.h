@@ -10,7 +10,7 @@ namespace kuzu {
 namespace llm_extension {
 
 class BedrockEmbedding : public EmbeddingProvider {
-    BedrockEmbedding();
+    BedrockEmbedding() = default;
     DELETE_COPY_AND_MOVE(BedrockEmbedding); 
     
     const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"amazon.titan-embed-text-v1", 1024}};

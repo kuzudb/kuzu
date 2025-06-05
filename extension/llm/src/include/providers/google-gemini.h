@@ -10,7 +10,7 @@ namespace kuzu {
 namespace llm_extension {
 
 class GoogleGeminiEmbedding : public EmbeddingProvider {
-    GoogleGeminiEmbedding();
+    GoogleGeminiEmbedding() = default;
     DELETE_COPY_AND_MOVE(GoogleGeminiEmbedding); 
     
     const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};

@@ -10,7 +10,7 @@ namespace kuzu {
 namespace llm_extension {
 
 class VoyageAIEmbedding : public EmbeddingProvider {
-    VoyageAIEmbedding();
+    VoyageAIEmbedding() = default;
     DELETE_COPY_AND_MOVE(VoyageAIEmbedding); 
     
     const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024}, {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024}, {"voyage-code-2", 1536}};

@@ -10,7 +10,7 @@ namespace kuzu {
 namespace llm_extension {
 
 class OllamaEmbedding : public EmbeddingProvider {
-    OllamaEmbedding();
+    OllamaEmbedding() = default;
     DELETE_COPY_AND_MOVE(OllamaEmbedding); 
     
     const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}};

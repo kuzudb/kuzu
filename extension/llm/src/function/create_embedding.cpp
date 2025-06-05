@@ -1,7 +1,6 @@
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
-#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
