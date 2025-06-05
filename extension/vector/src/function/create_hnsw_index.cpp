@@ -189,18 +189,16 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
         partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
-        upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD,
-        nodeTableID, nodeTableID, columnIDs, LogicalType::copy(columnTypes),
-        planMapper->getOperatorID());
+        upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, nodeTableID, nodeTableID,
+        columnIDs, LogicalType::copy(columnTypes), planMapper->getOperatorID());
     binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableName, TableType::REL, nullptr, nullptr,
         {}, {}, nullptr);
     const auto lowerBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(lowerRelTable,
         fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelLower = planMapper->createRelBatchInsertOp(clientContext,
         partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
-        lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD,
-        nodeTableID, nodeTableID, columnIDs, LogicalType::copy(columnTypes),
-        planMapper->getOperatorID());
+        lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, nodeTableID, nodeTableID,
+        columnIDs, LogicalType::copy(columnTypes), planMapper->getOperatorID());
     physical_op_vector_t children;
     children.push_back(std::move(copyRelUpper));
     children.push_back(std::move(copyRelLower));
