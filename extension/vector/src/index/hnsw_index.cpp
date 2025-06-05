@@ -46,13 +46,12 @@ void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint
     }
 }
 
-common::offset_t InMemHNSWLayer::searchNN(common::offset_t node, common::offset_t entryNode) const {
+common::offset_t InMemHNSWLayer::searchNN(void* queryVector, common::offset_t entryNode) const {
     auto currentNodeOffset = entryNode;
     if (entryNode == common::INVALID_OFFSET) {
         return common::INVALID_OFFSET;
     }
     double lastMinDist = std::numeric_limits<float>::max();
-    const auto queryVector = info.getEmbedding(node);
     const auto currNodeVector = info.getEmbedding(currentNodeOffset);
     auto minDist = info.metricFunc(queryVector, currNodeVector, info.getDimension());
     KU_ASSERT(lastMinDist >= 0);
@@ -183,15 +182,15 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
 
 void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     const processor::PartitionerSharedState& partitionerSharedState,
-    const NodeToGraphOffsetMap* selectedNodesMap) const {
+    common::offset_t numNodesInTable, const NodeToGraphOffsetMap* selectedNodesMap) const {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto numNodesInGroup =
-        std::min(common::StorageConfig::NODE_GROUP_SIZE, info.numNodes - startNodeOffset);
+        std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodesInTable - startNodeOffset);
     for (auto i = 0u; i < numNodesInGroup; i++) {
-        if (selectedNodesMap && !selectedNodesMap->containsNodeOffset(i)) {
+        const auto nodeOffset = startNodeOffset + i;
+        if (selectedNodesMap && !selectedNodesMap->containsNodeOffset(nodeOffset)) {
             continue;
         }
-        const auto nodeOffset = startNodeOffset + i;
         const auto offsetInGraph =
             selectedNodesMap ? selectedNodesMap->nodeToGraphOffset(nodeOffset) : nodeOffset;
         const auto numNbrs = graph->getCSRLength(offsetInGraph);
@@ -200,7 +199,7 @@ void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGr
         }
         shrinkForNode(info, graph.get(), offsetInGraph, numNbrs);
     }
-    graph->finalize(mm, nodeGroupIdx, partitionerSharedState, selectedNodesMap);
+    graph->finalize(mm, nodeGroupIdx, partitionerSharedState, numNodesInTable, selectedNodesMap);
 }
 
 std::vector<NodeWithDistance> HNSWIndex::popTopK(max_node_priority_queue_t& result,
@@ -232,18 +231,14 @@ static common::ArrayTypeInfo getArrayTypeInfo(NodeTable& table, common::column_i
 }
 
 static std::unique_ptr<NodeToGraphOffsetMap> initOffsetMap(common::offset_t numNodesInTable,
-    std::optional<common::NullMask*> selectedNodes) {
-    if (!selectedNodes) {
-        return nullptr;
-    }
+    common::NullMask* selectedNodes) {
     auto ret = std::make_unique<NodeToGraphOffsetMap>();
-    const auto* selectedNodesMask = *selectedNodes;
-    const auto numNodesInGraph = selectedNodesMask->countNulls();
+    const auto numNodesInGraph = selectedNodes->countNulls();
     ret->graphToNodeMap = std::make_unique<common::offset_t[]>(numNodesInGraph);
     common::offset_t curOffset = 0;
     // TODO(Royi) can optimize this a bit
     for (common::offset_t i = 0; i < numNodesInTable; ++i) {
-        if (selectedNodesMask->isNull(i)) {
+        if (selectedNodes->isNull(i)) {
             ret->nodeToGraphMap.insert({i, curOffset});
             ret->graphToNodeMap[curOffset] = i;
             ++curOffset;
@@ -288,11 +283,12 @@ bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
     if (embeddings->isNull(offset)) {
         return false;
     }
-    const auto lowerEntryPoint = upperLayer->searchNN(offset, upperLayer->getEntryPoint());
+    const auto lowerEntryPoint =
+        upperLayer->searchNN(embeddings->getEmbedding(offset), upperLayer->getEntryPoint());
     lowerLayer->insert(offset, lowerEntryPoint, lowerVisited);
     if (upperLayerSelectionMask->isNull(offset)) {
-        upperLayer->insert(upperGraphSelectionMap->nodeToGraphOffset(offset),
-            upperLayer->getEntryPoint(), upperVisited);
+        const auto offsetInUpperGraph = upperGraphSelectionMap->nodeToGraphOffset(offset);
+        upperLayer->insert(offsetInUpperGraph, upperLayer->getEntryPoint(), upperVisited);
     }
     return true;
 }
@@ -300,9 +296,11 @@ bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWIndex::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     const HNSWIndexPartitionerSharedState& partitionerSharedState) {
+    const auto numNodesInTable = lowerLayer->getNumNodes();
     upperLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.upperPartitionerSharedState,
-        upperGraphSelectionMap.get());
-    lowerLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.lowerPartitionerSharedState);
+        numNodesInTable, upperGraphSelectionMap.get());
+    lowerLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.lowerPartitionerSharedState,
+        numNodesInTable);
 }
 
 std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {

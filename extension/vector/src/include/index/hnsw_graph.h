@@ -183,7 +183,7 @@ public:
 
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState,
-        const NodeToGraphOffsetMap* selectedNodesMap);
+        common::offset_t numNodesInTable, const NodeToGraphOffsetMap* selectedNodesMap);
 
     // In the current implementation, race conditions can result in dstNode entries being skipped
     // during insertion. Skipped entries will be marked with this value
@@ -195,7 +195,7 @@ private:
     void finalizeNodeGroup(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         uint64_t numRels, common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
         common::table_id_t relTableID, storage::InMemChunkedNodeGroupCollection& partition,
-        const NodeToGraphOffsetMap* selectedNodesMap) const;
+        common::offset_t numNodesInTable, const NodeToGraphOffsetMap* selectedNodesMap) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
         return dstNodes.getNodeOffset(csrOffset);

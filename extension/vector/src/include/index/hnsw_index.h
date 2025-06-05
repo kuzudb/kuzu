@@ -134,17 +134,18 @@ struct InMemHNSWLayerInfo {
     int64_t maxDegree;
     double alpha;
     int64_t efc;
-    NodeToGraphOffsetMap* offsetMap;
+    const NodeToGraphOffsetMap* offsetMap;
 
     InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings,
         metric_func_t metricFunc, int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha,
-        int64_t efc, NodeToGraphOffsetMap* offsetMap = nullptr)
+        int64_t efc, const NodeToGraphOffsetMap* offsetMap = nullptr)
         : numNodes{numNodes}, embeddings{embeddings}, metricFunc{std::move(metricFunc)},
           degreeThresholdToShrink{degreeThresholdToShrink}, maxDegree{maxDegree}, alpha{alpha},
           efc{efc}, offsetMap(offsetMap) {}
 
     uint64_t getDimension() const { return embeddings->getDimension(); }
     void* getEmbedding(common::offset_t offsetInGraph) const {
+        KU_ASSERT(offsetInGraph < numNodes);
         return embeddings->getEmbedding(
             offsetMap ? offsetMap->graphToNodeMap[offsetInGraph] : offsetInGraph);
     }
@@ -159,11 +160,13 @@ public:
         return oldOffset;
     }
     common::offset_t getEntryPoint() const { return entryPoint.load(); }
+    common::offset_t getNumNodes() const { return info.numNodes; }
 
     void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);
-    common::offset_t searchNN(common::offset_t node, common::offset_t entryNode) const;
+    common::offset_t searchNN(void* queryVector, common::offset_t entryNode) const;
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState,
+        common::offset_t numNodesInTable,
         const NodeToGraphOffsetMap* selectedNodesMap = nullptr) const;
 
 private:
@@ -186,7 +189,12 @@ public:
         std::unique_ptr<storage::IndexStorageInfo> storageInfo, storage::NodeTable& table,
         common::column_id_t columnID, HNSWIndexConfig config);
 
-    common::offset_t getUpperEntryPoint() const { return upperLayer->getEntryPoint(); }
+    common::offset_t getUpperEntryPoint() const {
+        const auto upperEntryPointInGraph = upperLayer->getEntryPoint();
+        return upperEntryPointInGraph == common::INVALID_OFFSET ?
+                   common::INVALID_OFFSET :
+                   upperGraphSelectionMap->graphToNodeMap[upperEntryPointInGraph];
+    }
     common::offset_t getLowerEntryPoint() const { return lowerLayer->getEntryPoint(); }
     common::offset_t getNumUpperLayerNodes() const {
         return upperGraphSelectionMap->nodeToGraphMap.size();
