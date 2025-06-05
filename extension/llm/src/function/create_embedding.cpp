@@ -201,8 +201,7 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload) {
                         << credentialScope << ", " << "SignedHeaders=" << signedHeaders << ", "
                         << "Signature=" << signature;
 
-    std::string authHeader = authorizationHeader.str();
-    headers.insert({"Authorization", authHeader});
+    headers.insert({"Authorization", authorizationHeader.str()});
     return headers;
 }
 
