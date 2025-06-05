@@ -76,6 +76,11 @@ struct KUZU_API IndexStorageInfo {
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
+
+    template<typename TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
+    }
 };
 
 class KUZU_API Index {
@@ -126,6 +131,7 @@ public:
         KU_ASSERT(!loaded);
         return std::span(storageInfoBuffer.get(), storageInfoBufferSize);
     }
+    const IndexStorageInfo& getStorageInfo() const { return *storageInfo; }
     virtual void serialize(common::Serializer& ser) const;
 
     template<typename TARGET>

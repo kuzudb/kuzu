@@ -10,15 +10,11 @@ namespace kuzu {
 namespace fts_extension {
 
 struct FTSIndexAuxInfo final : catalog::IndexAuxInfo {
-    common::idx_t numDocs = 0;
-    double avgDocLen = 0;
     FTSConfig config;
 
-    FTSIndexAuxInfo(common::idx_t numDocs, double avgDocLen, FTSConfig config)
-        : numDocs{numDocs}, avgDocLen{avgDocLen}, config{std::move(config)} {}
+    explicit FTSIndexAuxInfo(FTSConfig config) : config{std::move(config)} {}
 
-    FTSIndexAuxInfo(const FTSIndexAuxInfo& other)
-        : numDocs{other.numDocs}, avgDocLen{other.avgDocLen}, config{other.config} {}
+    FTSIndexAuxInfo(const FTSIndexAuxInfo& other) : config{other.config} {}
 
     std::shared_ptr<common::BufferedSerializer> serialize() const override;
     static std::unique_ptr<FTSIndexAuxInfo> deserialize(

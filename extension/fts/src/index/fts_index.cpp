@@ -25,7 +25,6 @@ std::unique_ptr<Index> FTSIndex::load(main::ClientContext* context,
     auto reader =
         std::make_unique<common::BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = FTSStorageInfo::deserialize(std::move(reader));
-    auto& ftsStorageInfo = storageInfo->cast<FTSStorageInfo>();
     auto indexEntry =
         catalog->getIndex(&transaction::DUMMY_TRANSACTION, indexInfo.tableID, indexInfo.name);
     auto ftsConfig = indexEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config;

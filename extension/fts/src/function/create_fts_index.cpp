@@ -285,7 +285,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         bindData.createFTSConfig.stopWordsTableInfo.stopWords};
     auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(FTSIndexCatalogEntry::TYPE_NAME,
         bindData.tableID, bindData.indexName, bindData.propertyIDs,
-        std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen, ftsConfig));
+        std::make_unique<FTSIndexAuxInfo>(ftsConfig));
     auto catalog = context.clientContext->getCatalog();
     catalog->createIndex(context.clientContext->getTransaction(), std::move(indexEntry));
 
