@@ -27,8 +27,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
         {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
@@ -63,8 +63,10 @@ static std::unique_ptr<TableFuncSharedState> initCreateInMemHNSWSharedState(
 
 static std::unique_ptr<TableFuncLocalState> initCreateInMemHNSWLocalState(
     const TableFuncInitLocalStateInput& input) {
-    const auto bindData = input.bindData.constPtrCast<CreateHNSWIndexBindData>();
-    return std::make_unique<CreateInMemHNSWLocalState>(bindData->numRows + 1);
+    const auto* bindData = input.bindData.constPtrCast<CreateHNSWIndexBindData>();
+    const auto& index = input.sharedState.ptrCast<CreateInMemHNSWSharedState>()->hnswIndex;
+    return std::make_unique<CreateInMemHNSWLocalState>(bindData->numRows + 1,
+        index->getNumUpperLayerNodes());
 }
 
 static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {

@@ -134,15 +134,20 @@ struct InMemHNSWLayerInfo {
     int64_t maxDegree;
     double alpha;
     int64_t efc;
+    NodeToGraphOffsetMap* offsetMap;
 
     InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings,
         metric_func_t metricFunc, int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha,
-        int64_t efc)
+        int64_t efc, NodeToGraphOffsetMap* offsetMap = nullptr)
         : numNodes{numNodes}, embeddings{embeddings}, metricFunc{std::move(metricFunc)},
           degreeThresholdToShrink{degreeThresholdToShrink}, maxDegree{maxDegree}, alpha{alpha},
-          efc{efc} {}
+          efc{efc}, offsetMap(offsetMap) {}
 
     uint64_t getDimension() const { return embeddings->getDimension(); }
+    void* getEmbedding(common::offset_t offsetInGraph) const {
+        return embeddings->getEmbedding(
+            offsetMap ? offsetMap->nodeToGraphMap[offsetInGraph] : offsetInGraph);
+    }
 };
 
 class InMemHNSWLayer {
@@ -158,7 +163,8 @@ public:
     void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);
     common::offset_t searchNN(common::offset_t node, common::offset_t entryNode) const;
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-        const processor::PartitionerSharedState& partitionerSharedState) const;
+        const processor::PartitionerSharedState& partitionerSharedState,
+        const NodeToGraphOffsetMap* selectedNodesMap = nullptr) const;
 
 private:
     std::vector<NodeWithDistance> searchKNN(const void* queryVector, common::offset_t entryNode,
@@ -182,6 +188,9 @@ public:
 
     common::offset_t getUpperEntryPoint() const { return upperLayer->getEntryPoint(); }
     common::offset_t getLowerEntryPoint() const { return lowerLayer->getEntryPoint(); }
+    common::offset_t getNumUpperLayerNodes() const {
+        return upperGraphSelectionMap->nodeToGraphMap.size();
+    }
 
     std::unique_ptr<InsertState> initInsertState(const transaction::Transaction*,
         storage::MemoryManager*, storage::visible_func) override {
@@ -199,9 +208,11 @@ public:
     void resetEmbeddings() { embeddings.reset(); }
 
 private:
+    std::unique_ptr<NodeToGraphOffsetMap> upperGraphSelectionMap;
     std::unique_ptr<InMemHNSWLayer> upperLayer;
     std::unique_ptr<InMemHNSWLayer> lowerLayer;
     std::unique_ptr<InMemEmbeddings> embeddings;
+    std::unique_ptr<common::NullMask> upperLayerSelectionMask;
 };
 
 enum class SearchType : uint8_t {
