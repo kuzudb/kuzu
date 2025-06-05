@@ -9,14 +9,14 @@
 namespace kuzu {
 namespace llm_extension {
 
-class GoogleGeminiEmbedding : public EmbeddingProvider {
-    GoogleGeminiEmbedding();
-    DELETE_COPY_AND_MOVE(GoogleGeminiEmbedding); 
+class BedrockEmbedding : public EmbeddingProvider {
+    BedrockEmbedding();
+    DELETE_COPY_AND_MOVE(BedrockEmbedding); 
     
-    const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};
+    const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"amazon.titan-embed-text-v1", 1024}};
 
     public:
-    ~GoogleGeminiEmbedding() override = default;
+    ~BedrockEmbedding() override = default;
     static EmbeddingProvider& getInstance();
     std::string getClient() override;
     std::string getPath(const std::string&) override;
