@@ -17,8 +17,8 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
     stopWordsTable =
         storageManager
             ->getTable(context->getCatalog()
-                    ->getTableCatalogEntry(context->getTransaction(), stopWordsTableName)
-                    ->getTableID())
+                           ->getTableCatalogEntry(context->getTransaction(), stopWordsTableName)
+                           ->getTableID())
             ->ptrCast<storage::NodeTable>();
     docTable =
         storageManager->getTable(catalog->getTableCatalogEntry(trx, docTableName)->getTableID())
