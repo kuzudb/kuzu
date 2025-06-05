@@ -73,6 +73,7 @@ tools/java_api/.idea
 tools/java_api/src/main/resources/libkuzu*
 tools/java_api/*.iml
 tools/java_api/example/.gradle
+tools/java_api/bin
 
 # Generated docs
 scripts/generate-cpp-docs/c/kuzu.h
