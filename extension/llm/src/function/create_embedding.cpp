@@ -128,9 +128,10 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload)
     }
     std::string method = "POST";
     std::string service = "bedrock";
+
+    //Hardcoded for now, needs to change when a configuration scheme is supported
     std::string region = "us-east-1";
     std::string host = "bedrock-runtime.us-east-1.amazonaws.com";
-    std::string uri = "/model/amazon.titan-embed-text-v1/invoke";
     time_t now = time(nullptr);
     tm tm_struct{};
     (void)gmtime_r(&now, &tm_struct);
@@ -138,7 +139,7 @@ static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload)
     (void)strftime(dateStamp, sizeof(dateStamp), "%Y%m%d", &tm_struct);
     char amzDate[17];
     (void)strftime(amzDate, sizeof(amzDate), "%Y%m%dT%H%M%SZ", &tm_struct);
-    std::string canonicalUri = uri;
+    std::string canonicalUri = "/model/amazon.titan-embed-text-v1/invoke";
     std::string canonicalQueryString = "";
     httplib::Headers headers {{"host", host}, {"x-amz-date", amzDate}};
     std::string canonicalHeaders;
