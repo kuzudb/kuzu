@@ -1,6 +1,8 @@
 add_library(kuzu_llm_providers
         OBJECT
-        open-ai.cpp)
+        open-ai.cpp
+        ollama.cpp
+)
 
 set(LLM_EXTENSION_OBJECT_FILES
         ${LLM_EXTENSION_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_llm_providers>

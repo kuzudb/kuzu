@@ -1,4 +1,3 @@
-
 #include "providers/open-ai.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
