@@ -100,7 +100,7 @@ public:
     BoundCreateTableInfo bindCreateNodeTableInfo(const parser::CreateTableInfo* info);
     BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCreateTableAs(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateTableAs(const parser::Statement& createTable);
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement) const;
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement) const;
 
@@ -128,6 +128,13 @@ public:
         const parser::options_t& parsingOptions,
         const std::vector<std::string>& expectedColumnNames,
         const std::vector<common::LogicalType>& expectedColumnTypes, bool byColumn);
+    BoundCopyFromInfo bindCopyRelFromInfo(std::string tableName,
+        const std::vector<PropertyDefinition>& properties, const parser::BaseScanSource* source,
+        const parser::options_t& parsingOptions,
+        const std::vector<std::string>& expectedColumnNames,
+        const std::vector<common::LogicalType>& expectedColumnTypes,
+        const catalog::NodeTableCatalogEntry* fromTable,
+        const catalog::NodeTableCatalogEntry* toTable);
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
         catalog::NodeTableCatalogEntry& nodeEntry);

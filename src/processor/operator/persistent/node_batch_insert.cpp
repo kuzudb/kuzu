@@ -50,7 +50,6 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     nodeSharedState->pkType = pkDefinition.getType().copy();
     nodeSharedState->initPKIndex(context);
 
-    info->tableEntry = nodeTableEntry;
     for (auto& property : nodeTableEntry->getProperties()) {
         info->insertColumnIDs.push_back(nodeTableEntry->getColumnID(property.getName()));
     }
@@ -262,7 +261,7 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
 
 void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
-        sharedState->getNumRows() - sharedState->getNumErroredRows(), info->tableEntry->getName());
+        sharedState->getNumRows() - sharedState->getNumErroredRows(), info->tableName);
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
         context->clientContext->getMemoryManager());
 

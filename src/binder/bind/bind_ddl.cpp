@@ -7,6 +7,7 @@
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/extend_direction_util.h"
@@ -237,11 +238,11 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
-    auto createTable = statement.constPtrCast<CreateTable>();
-    if (createTable->getSource()) {
-        return bindCreateTableAs(statement);
+    auto& createTable = statement.constCast<CreateTable>();
+    if (createTable.getSource()) {
+        return bindCreateTableAs(createTable);
     }
-    auto boundCreateInfo = bindCreateTableInfo(createTable->getInfo());
+    auto boundCreateInfo = bindCreateTableInfo(createTable.getInfo());
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo),
         BoundStatementResult::createSingleStringColumnResult());
 }
@@ -258,24 +259,57 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
         propertyDefinitions.emplace_back(
             ColumnDefinition(std::string(columnNames[i]), columnTypes[i].copy()));
     }
-
     if (columnNames.empty()) {
         throw BinderException("Subquery returns no columns");
     }
-    // first column is primary key column temporarily for now
-    auto pkName = columnNames[0];
     auto createInfo = createTable.getInfo();
-    auto boundCopyFromInfo = bindCopyNodeFromInfo(createInfo->tableName, propertyDefinitions,
-        createTable.getSource(), options_t{}, columnNames, columnTypes, false /* byColumn */);
-    auto boundExtraInfo =
-        std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
-    auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
-        createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
-        clientContext->useInternalCatalogEntry());
-    auto boundCreateTable = std::make_unique<BoundCreateTable>(std::move(boundCreateInfo),
-        BoundStatementResult::createEmptyResult());
-    boundCreateTable->setCopyInfo(std::move(boundCopyFromInfo));
-    return boundCreateTable;
+    switch (createInfo->type) {
+    case TableType::NODE: {
+        // first column is primary key column temporarily for now
+        auto pkName = columnNames[0];
+        auto boundCopyFromInfo = bindCopyNodeFromInfo(createInfo->tableName, propertyDefinitions,
+            createTable.getSource(), options_t{}, columnNames, columnTypes, false /* byColumn */);
+        auto boundExtraInfo =
+            std::make_unique<BoundExtraCreateNodeTableInfo>(pkName, std::move(propertyDefinitions));
+        auto boundCreateInfo = BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY,
+            createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
+            clientContext->useInternalCatalogEntry());
+        auto boundCreateTable = std::make_unique<BoundCreateTable>(std::move(boundCreateInfo),
+            BoundStatementResult::createEmptyResult());
+        boundCreateTable->setCopyInfo(std::move(boundCopyFromInfo));
+        return boundCreateTable;
+    }
+    case TableType::REL: {
+        auto& extraInfo = createInfo->extraInfo->constCast<ExtraCreateRelTableGroupInfo>();
+        // Currently we don't support multiple from/to pairs for create rel table as
+        if (extraInfo.srcDstTablePairs.size() > 1) {
+            throw BinderException(
+                "Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.");
+        }
+        propertyDefinitions.insert(propertyDefinitions.begin(),
+            PropertyDefinition(ColumnDefinition(InternalKeyword::ID, LogicalType::INTERNAL_ID())));
+        auto catalog = clientContext->getCatalog();
+        auto transaction = clientContext->getTransaction();
+        auto fromTable =
+            catalog->getTableCatalogEntry(transaction, extraInfo.srcDstTablePairs[0].first)
+                ->ptrCast<NodeTableCatalogEntry>();
+        auto toTable =
+            catalog->getTableCatalogEntry(transaction, extraInfo.srcDstTablePairs[0].second)
+                ->ptrCast<NodeTableCatalogEntry>();
+        auto boundCreateInfo = bindCreateRelTableGroupInfo(createInfo);
+        auto boundCopyFromInfo = bindCopyRelFromInfo(createInfo->tableName, propertyDefinitions,
+            createTable.getSource(), options_t{}, columnNames, columnTypes, fromTable, toTable);
+        boundCreateInfo.extraInfo->ptrCast<BoundExtraCreateTableInfo>()->propertyDefinitions =
+            std::move(propertyDefinitions);
+        auto boundCreateTable = std::make_unique<BoundCreateTable>(std::move(boundCreateInfo),
+            BoundStatementResult::createEmptyResult());
+        boundCreateTable->setCopyInfo(std::move(boundCopyFromInfo));
+        return boundCreateTable;
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) const {

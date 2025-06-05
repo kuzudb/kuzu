@@ -694,12 +694,14 @@ public:
     antlr4::tree::TerminalNode *TABLE();
     OC_SchemaNameContext *oC_SchemaName();
     KU_FromToConnectionsContext *kU_FromToConnections();
+    antlr4::tree::TerminalNode *AS();
+    OC_QueryContext *oC_Query();
     antlr4::tree::TerminalNode *GROUP();
     KU_IfNotExistsContext *kU_IfNotExists();
-    KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
-    OC_SymbolicNameContext *oC_SymbolicName();
     antlr4::tree::TerminalNode *WITH();
     KU_OptionsContext *kU_Options();
+    KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
+    OC_SymbolicNameContext *oC_SymbolicName();
 
    
   };

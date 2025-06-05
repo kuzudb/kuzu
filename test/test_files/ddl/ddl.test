@@ -560,7 +560,7 @@ Binder exception: Expression UPPER(abc) has data type STRING but expected INT64.
 ---- error
 Binder exception: Expression ABC has data type STRING but expected INT64[3]. Implicit cast is not supported.
 
--CASE CreateTableAs
+-CASE CreateNodeTableAs
 -STATEMENT CREATE NODE TABLE Test AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" WHERE ISStudent = True RETURN id, Gender, fname;
 ---- ok
 -STATEMENT MATCH (a:Test) RETURN a.*;
@@ -574,15 +574,43 @@ Binder exception: Expression ABC has data type STRING but expected INT64[3]. Imp
 0|Alice
 2|Bob
 
--CASE CreateTableAsDuplicateIntIDs
+-CASE CreateNodeTableAsDuplicateIntIDs
 -STATEMENT CREATE NODE TABLE Foo AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv" RETURN *;
 ---- error
 Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
 
--CASE CreateTableAsEmptyReturn
+-CASE CreateNodeTableAsEmptyReturn
 -STATEMENT CREATE NODE TABLE Bar AS RETURN *;
 ---- error
 Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.
 -STATEMENT CREATE NODE TABLE FooBar AS MATCH () RETURN *;
 ---- error
 Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.
+
+-CASE CreateRelTableAs
+-STATEMENT CREATE NODE TABLE Person2 AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" RETURN *;
+---- ok
+-STATEMENT COPY Person2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
+---- ok
+-STATEMENT CREATE REL TABLE Knows2 (FROM Person2 TO Person2) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
+---- ok
+-STATEMENT MATCH (a:Person2)-[k:Knows2]->(b:Person2) RETURN a.fname, b.fname;
+---- 6
+Alice|Dan
+Alice|Carol
+Alice|Bob
+Bob|Dan
+Bob|Carol
+Bob|Alice
+-STATEMENT CREATE REL TABLE Knows2 (FROM Person2 TO Person2) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
+---- error
+Binder exception: Knows2 already exists in catalog.
+-STATEMENT CREATE REL TABLE Failure (FROM Person2 TO Person2, FROM Person TO Test2) AS MATCH (:Person2)-[e:Knows2]->(:Person2) RETURN *;
+---- error
+Binder exception: Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.
+-STATEMENT CREATE REL TABLE Knows3 (FROM Person2 TO Person2) AS MATCH (a:Person2)-[e:Knows2]->(b:Person2) WHERE a.Gender = b.Gender RETURN a.id, b.id;
+---- ok
+-STATEMENT MATCH (a:Person2)-[e:Knows3]->(b:Person2) RETURN a.fname, b.fname;
+---- 2
+Alice|Carol
+Bob|Dan

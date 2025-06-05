@@ -12,7 +12,7 @@ class ChunkedNodeGroup;
 namespace processor {
 
 struct BatchInsertInfo {
-    catalog::TableCatalogEntry* tableEntry;
+    std::string tableName;
     bool compressionEnabled;
 
     std::vector<common::LogicalType> columnTypes;
@@ -21,10 +21,10 @@ struct BatchInsertInfo {
     std::vector<common::column_id_t> outputDataColumns;
     std::vector<common::column_id_t> warningDataColumns;
 
-    BatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
+    BatchInsertInfo(std::string tableName, bool compressionEnabled,
         std::vector<common::column_id_t> insertColumnIDs,
         std::vector<common::LogicalType> columnTypes, common::idx_t numWarningDataColumns)
-        : tableEntry{tableEntry}, compressionEnabled{compressionEnabled},
+        : tableName{std::move(tableName)}, compressionEnabled{compressionEnabled},
           columnTypes{std::move(columnTypes)}, insertColumnIDs{std::move(insertColumnIDs)} {
         auto i = 0u;
         for (; i < this->columnTypes.size() - numWarningDataColumns; ++i) {
@@ -35,7 +35,7 @@ struct BatchInsertInfo {
         }
     }
     BatchInsertInfo(const BatchInsertInfo& other)
-        : tableEntry{other.tableEntry}, compressionEnabled{other.compressionEnabled},
+        : tableName{other.tableName}, compressionEnabled{other.compressionEnabled},
           columnTypes{copyVector(other.columnTypes)}, insertColumnIDs{other.insertColumnIDs},
           outputDataColumns{other.outputDataColumns}, warningDataColumns{other.warningDataColumns} {
     }

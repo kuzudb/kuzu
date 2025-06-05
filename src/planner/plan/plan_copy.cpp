@@ -1,6 +1,8 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "main/client_context.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
@@ -23,10 +25,10 @@ static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan&
     plan.setLastOperator(std::move(indexScan));
 }
 
-static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
-    const auto* tableCatalogEntry = copyFromInfo.tableEntry->constPtrCast<RelGroupCatalogEntry>();
-    LogicalPartitionerInfo info(copyFromInfo.tableEntry, copyFromInfo.offset);
-    for (auto direction : tableCatalogEntry->getRelDataDirections()) {
+static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan,
+    const std::vector<RelDataDirection>& directions) {
+    LogicalPartitionerInfo info(copyFromInfo.offset);
+    for (auto& direction : directions) {
         info.partitioningInfos.push_back(
             LogicalPartitioningInfo(RelDirectionUtils::relDirectionToKeyIdx(direction)));
     }
@@ -108,8 +110,17 @@ LogicalPlan Planner::planCopyRelFrom(const BoundCopyFromInfo* info, expression_v
         KU_UNREACHABLE;
     }
     auto& extraInfo = info->extraInfo->constCast<ExtraBoundCopyRelInfo>();
+    // If the table entry doesn't exist, assume both directions
+    std::vector<RelDataDirection> directions = {RelDataDirection::FWD, RelDataDirection::BWD};
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
+    if (catalog->containsTable(transaction, info->tableName)) {
+        const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, info->tableName)
+                                        ->constCast<RelGroupCatalogEntry>();
+        directions = relGroupEntry.getRelDataDirections();
+    }
     appendIndexScan(extraInfo, plan);
-    appendPartitioner(*info, plan);
+    appendPartitioner(*info, plan, directions);
     appendCopyFrom(*info, results, plan);
     return plan;
 }

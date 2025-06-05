@@ -112,13 +112,13 @@ BoundCopyFromInfo Binder::bindCopyNodeFromInfo(std::string tableName,
     columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
     auto offset =
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    return BoundCopyFromInfo(tableName, std::move(boundSource), std::move(offset),
+    return BoundCopyFromInfo(tableName, TableType::NODE, std::move(boundSource), std::move(offset),
         std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
     NodeTableCatalogEntry& nodeTableEntry) {
-    auto& copyStatement = ku_dynamic_cast<const CopyFrom&>(statement);
+    auto& copyStatement = statement.constCast<CopyFrom>();
     // Bind expected columns based on catalog information.
     std::vector<std::string> expectedColumnNames;
     std::vector<LogicalType> expectedColumnTypes;
@@ -142,6 +142,53 @@ static options_t getScanSourceOptions(const CopyFrom& copyFrom) {
         options.emplace(option.first, option.second->copy());
     }
     return options;
+}
+
+BoundCopyFromInfo Binder::bindCopyRelFromInfo(std::string tableName,
+    const std::vector<PropertyDefinition>& properties, const BaseScanSource* source,
+    const options_t& parsingOptions, const std::vector<std::string>& expectedColumnNames,
+    const std::vector<LogicalType>& expectedColumnTypes, const NodeTableCatalogEntry* fromTable,
+    const NodeTableCatalogEntry* toTable) {
+    auto boundSource =
+        bindScanSource(source, parsingOptions, expectedColumnNames, expectedColumnTypes);
+    expression_vector warningDataExprs = boundSource->getWarningColumns();
+    auto columns = boundSource->getColumns();
+    auto offset =
+        createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
+    auto srcOffset = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalType::INT64());
+    auto dstOffset = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalType::INT64());
+    expression_vector columnExprs{srcOffset, dstOffset, offset};
+    std::vector<ColumnEvaluateType> evaluateTypes{ColumnEvaluateType::REFERENCE,
+        ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE};
+    for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
+        auto& property = properties[i];
+        auto [evaluateType, column] =
+            matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
+        columnExprs.push_back(column);
+        evaluateTypes.push_back(evaluateType);
+    }
+    columnExprs.insert(columnExprs.end(), warningDataExprs.begin(), warningDataExprs.end());
+    std::shared_ptr<Expression> srcKey = nullptr, dstKey = nullptr;
+    if (expectedColumnTypes[0] != columns[0]->getDataType()) {
+        srcKey = expressionBinder.forceCast(columns[0], expectedColumnTypes[0]);
+    } else {
+        srcKey = columns[0];
+    }
+    if (expectedColumnTypes[1] != columns[1]->getDataType()) {
+        dstKey = expressionBinder.forceCast(columns[1], expectedColumnTypes[1]);
+    } else {
+        dstKey = columns[1];
+    }
+    auto srcLookUpInfo =
+        IndexLookupInfo(fromTable->getTableID(), srcOffset, srcKey, warningDataExprs);
+    auto dstLookUpInfo =
+        IndexLookupInfo(toTable->getTableID(), dstOffset, dstKey, warningDataExprs);
+    auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
+    auto internalIDColumnIndices = std::vector<idx_t>{0, 1, 2};
+    auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>(fromTable->getName(),
+        toTable->getName(), internalIDColumnIndices, lookupInfos);
+    return BoundCopyFromInfo(tableName, TableType::REL, boundSource->copy(), offset,
+        std::move(columnExprs), std::move(evaluateTypes), std::move(extraCopyRelInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& statement,
@@ -169,47 +216,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     std::vector<LogicalType> expectedColumnTypes;
     bindExpectedRelColumns(relGroupEntry, *fromTable, *toTable, copyStatement.getCopyColumnInfo(),
         expectedColumnNames, expectedColumnTypes);
-    auto boundSource = bindScanSource(copyStatement.getSource(),
-        getScanSourceOptions(copyStatement), expectedColumnNames, expectedColumnTypes);
-    expression_vector warningDataExprs = boundSource->getWarningColumns();
-    auto columns = boundSource->getColumns();
-    auto offset =
-        createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
-    auto srcOffset = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalType::INT64());
-    auto dstOffset = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalType::INT64());
-    expression_vector columnExprs{srcOffset, dstOffset, offset};
-    std::vector<ColumnEvaluateType> evaluateTypes{ColumnEvaluateType::REFERENCE,
-        ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE};
-    auto properties = relGroupEntry.getProperties();
-    for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
-        auto& property = properties[i];
-        auto [evaluateType, column] =
-            matchColumnExpression(boundSource->getColumns(), property, expressionBinder);
-        columnExprs.push_back(column);
-        evaluateTypes.push_back(evaluateType);
-    }
-    columnExprs.insert(columnExprs.end(), warningDataExprs.begin(), warningDataExprs.end());
-    std::shared_ptr<Expression> srcKey = nullptr, dstKey = nullptr;
-    if (expectedColumnTypes[0] != columns[0]->getDataType()) {
-        srcKey = expressionBinder.forceCast(columns[0], expectedColumnTypes[0]);
-    } else {
-        srcKey = columns[0];
-    }
-    if (expectedColumnTypes[1] != columns[1]->getDataType()) {
-        dstKey = expressionBinder.forceCast(columns[1], expectedColumnTypes[1]);
-    } else {
-        dstKey = columns[1];
-    }
-    auto srcLookUpInfo =
-        IndexLookupInfo(fromTable->getTableID(), srcOffset, srcKey, warningDataExprs);
-    auto dstLookUpInfo =
-        IndexLookupInfo(toTable->getTableID(), dstOffset, dstKey, warningDataExprs);
-    auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
-    auto internalIDColumnIndices = std::vector<idx_t>{0, 1, 2};
-    auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>(fromTableName, toTableName,
-        internalIDColumnIndices, lookupInfos);
-    auto boundCopyFromInfo = BoundCopyFromInfo(&relGroupEntry, boundSource->copy(), offset,
-        std::move(columnExprs), std::move(evaluateTypes), std::move(extraCopyRelInfo));
+    // Bind info
+    auto boundCopyFromInfo =
+        bindCopyRelFromInfo(relGroupEntry.getName(), relGroupEntry.getProperties(),
+            copyStatement.getSource(), getScanSourceOptions(copyStatement), expectedColumnNames,
+            expectedColumnTypes, fromTable, toTable);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
