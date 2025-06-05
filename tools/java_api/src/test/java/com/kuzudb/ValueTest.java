@@ -14,11 +14,25 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ValueTest extends TestBase {
 
+    void checkValueConversion(Value val) {
+        Map<String, Value> parameters = Map.of("a", val);
+        try (PreparedStatement preparedStatement = conn.prepare("RETURN $a")) {
+            assertNotNull(preparedStatement);
+            assertTrue(preparedStatement.getErrorMessage().equals(""));
+            QueryResult result = conn.execute(preparedStatement, parameters);
+            if (result.hasNext()) {
+                Value cur = result.getNext().getValue(0);
+                assertTrue(val.isNull() && cur.isNull() || val.getValue().equals(cur.getValue()));
+            }
+        }
+    }
+
     @Test
     void ValueCreateNull() {
         Value value = Value.createNull();
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.ANY);
+        checkValueConversion(value);
         value.close();
     }
 
@@ -29,6 +43,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         type.close();
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
+        checkValueConversion(value);
         value.close();
     }
 
@@ -74,6 +89,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         assertTrue(value.getValue().equals(0L));
+        checkValueConversion(value);
         value.close();
 
         type = new DataType(DataTypeID.STRING, null, 0);
@@ -84,6 +100,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
         assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         assertTrue(value.getValue().equals(""));
+        checkValueConversion(value);
         value.close();
     }
 
@@ -115,12 +132,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.BOOL);
         assertTrue(value.getValue().equals(true));
+        checkValueConversion(value);
         value.close();
 
         value = new Value(false);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.BOOL);
         assertTrue(value.getValue().equals(false));
+        checkValueConversion(value);
         value.close();
     }
 
@@ -131,6 +150,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT16);
         assertTrue(value.getValue().equals((short) 123));
+        checkValueConversion(value);
         value.close();
     }
 
@@ -141,6 +161,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT32);
         assertTrue(value.getValue().equals(123));
+        checkValueConversion(value);
         value.close();
     }
 
@@ -151,6 +172,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         assertTrue(value.getValue().equals(123L));
+        checkValueConversion(value);
         value.close();
     }
 
@@ -161,6 +183,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.FLOAT);
         assertTrue(value.getValue().equals((float) 123.456));
+        checkValueConversion(value);
         value.close();
     }
 
@@ -171,6 +194,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.FLOAT);
         assertTrue(value.getValue().equals((float) 123.456));
+        checkValueConversion(value);
         value.close();
     }
 
@@ -182,6 +206,7 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), DataTypeID.DECIMAL);
         BigDecimal val = (BigDecimal) value.getValue();
         assertTrue(val.compareTo(new BigDecimal("-3.14")) == 0);
+        checkValueConversion(value);
         value.close();
     }
 
@@ -194,6 +219,7 @@ public class ValueTest extends TestBase {
         InternalID id = value.getValue();
         assertEquals(id.tableId, 1);
         assertEquals(id.offset, 123);
+        checkValueConversion(value);
         value.close();
     }
 
@@ -205,6 +231,7 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), DataTypeID.DATE);
         LocalDate date = value.getValue();
         assertEquals(date.toEpochDay(), 123);
+        checkValueConversion(value);
         value.close();
     }
 
@@ -217,6 +244,7 @@ public class ValueTest extends TestBase {
         Instant stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 0);
         assertEquals(stamp.getNano(), 123000);
+        checkValueConversion(value);
         value.close();
 
         value = new Value(Instant.ofEpochSecond(123123123L / 1000000L, 123123123L % 1000000 * 1000));
@@ -225,6 +253,7 @@ public class ValueTest extends TestBase {
         stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 123);
         assertEquals(stamp.getNano(), 123123000);
+        checkValueConversion(value);
         value.close();
     }
 
@@ -237,6 +266,7 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), DataTypeID.INTERVAL);
         Duration interval = value.getValue();
         assertEquals(interval.toMillis(), inputDuration.toMillis());
+        checkValueConversion(value);
         value.close();
     }
 
@@ -248,6 +278,7 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         String str = value.getValue();
         assertTrue(str.equals("abcdefg"));
+        checkValueConversion(value);
         value.close();
     }
 
