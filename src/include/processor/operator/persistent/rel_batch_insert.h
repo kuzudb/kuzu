@@ -93,15 +93,12 @@ public:
     void updateProgress(const ExecutionContext* context) const;
 
 private:
-    static void appendNodeGroup(const catalog::Catalog* catalog,
-        transaction::Transaction* transaction, storage::MemoryManager& mm,
+    static void appendNodeGroup(const catalog::RelGroupCatalogEntry& relGroupEntry, storage::MemoryManager& mm, transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
         const PartitionerSharedState& partitionerSharedState);
 
-    static void populateCSRHeaderAndRowIdx(const catalog::Catalog* catalog,
-        const transaction::Transaction* transaction,
-        storage::InMemChunkedNodeGroupCollection& partition, common::offset_t startNodeOffset,
+    static void populateCSRHeaderAndRowIdx(const catalog::RelGroupCatalogEntry& relGroupEntry, storage::InMemChunkedNodeGroupCollection& partition, common::offset_t startNodeOffset,
         const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
         common::offset_t numNodes, bool leaveGaps);
 
@@ -114,8 +111,7 @@ private:
     static void setRowIdxFromCSROffsets(storage::ColumnChunkData& rowIdxChunk,
         storage::ColumnChunkData& csrOffsetChunk);
 
-    static void checkRelMultiplicityConstraint(const catalog::Catalog* catalog,
-        const transaction::Transaction* transaction, const storage::ChunkedCSRHeader& csrHeader,
+    static void checkRelMultiplicityConstraint(const catalog::RelGroupCatalogEntry& relGroupEntry, const storage::ChunkedCSRHeader& csrHeader,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo);
 
 private:

@@ -92,6 +92,8 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     const auto relTable = sharedState->table->ptrCast<RelTable>();
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
+    const auto clientContext = context->clientContext;
+    const auto& relGroupEntry = context->clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(), relInfo->tableName)->constCast<RelGroupCatalogEntry>();
     while (true) {
         relLocalState->nodeGroupIdx = partitionerSharedState->getNextPartition(
             relInfo->partitioningIdx, *progressSharedState);
@@ -105,9 +107,7 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
                               ->getOrCreateNodeGroup(context->clientContext->getTransaction(),
                                   relLocalState->nodeGroupIdx, relInfo->direction)
                               ->cast<CSRNodeGroup>();
-        appendNodeGroup(context->clientContext->getCatalog(),
-            context->clientContext->getTransaction(), *context->clientContext->getMemoryManager(),
-            nodeGroup, *relInfo, *relLocalState, *sharedState, *partitionerSharedState);
+        appendNodeGroup(relGroupEntry, *clientContext->getMemoryManager(), clientContext->getTransaction(), nodeGroup, *relInfo, *relLocalState, *sharedState, *partitionerSharedState);
         updateProgress(context);
     }
 }
@@ -139,8 +139,7 @@ static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* t
     }
 }
 
-void RelBatchInsert::appendNodeGroup(const catalog::Catalog* catalog,
-    transaction::Transaction* transaction, MemoryManager& mm, CSRNodeGroup& nodeGroup,
+void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, MemoryManager& mm, transaction::Transaction* transaction, CSRNodeGroup& nodeGroup,
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
     BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
@@ -159,8 +158,7 @@ void RelBatchInsert::appendNodeGroup(const catalog::Catalog* catalog,
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
     const auto leaveGaps = nodeGroup.isEmpty();
-    populateCSRHeaderAndRowIdx(catalog, transaction, *partitioningBuffer, startNodeOffset, relInfo,
-        localState, numNodes, leaveGaps);
+    populateCSRHeaderAndRowIdx(relGroupEntry, *partitioningBuffer, startNodeOffset, relInfo, localState, numNodes, leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
     for (auto& chunkedGroup : partitioningBuffer->getChunkedGroups()) {
@@ -197,8 +195,7 @@ void RelBatchInsert::appendNodeGroup(const catalog::Catalog* catalog,
     localState.chunkedGroup->resetToEmpty();
 }
 
-void RelBatchInsert::populateCSRHeaderAndRowIdx(const catalog::Catalog* catalog,
-    const transaction::Transaction* transaction, InMemChunkedNodeGroupCollection& partition,
+void RelBatchInsert::populateCSRHeaderAndRowIdx(const RelGroupCatalogEntry& relGroupEntry, InMemChunkedNodeGroupCollection& partition,
     offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
     const RelBatchInsertLocalState& localState, offset_t numNodes, bool leaveGaps) {
     auto& csrNodeGroup = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>();
@@ -206,7 +203,7 @@ void RelBatchInsert::populateCSRHeaderAndRowIdx(const catalog::Catalog* catalog,
     csrHeader.setNumValues(numNodes);
     // Populate lengths for each node and check multiplicity constraint.
     populateCSRLengths(csrHeader, numNodes, partition, relInfo.boundNodeOffsetColumnID);
-    checkRelMultiplicityConstraint(catalog, transaction, csrHeader, startNodeOffset, relInfo);
+    checkRelMultiplicityConstraint(relGroupEntry, csrHeader, startNodeOffset, relInfo);
     const auto rightCSROffsetOfRegions = csrHeader.populateStartCSROffsetsFromLength(leaveGaps);
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID);
@@ -256,11 +253,8 @@ void RelBatchInsert::setRowIdxFromCSROffsets(ColumnChunkData& rowIdxChunk,
     }
 }
 
-void RelBatchInsert::checkRelMultiplicityConstraint(const catalog::Catalog* catalog,
-    const transaction::Transaction* transaction, const ChunkedCSRHeader& csrHeader,
+void RelBatchInsert::checkRelMultiplicityConstraint(const RelGroupCatalogEntry& relGroupEntry, const ChunkedCSRHeader& csrHeader,
     offset_t startNodeOffset, const RelBatchInsertInfo& relInfo) {
-    const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, relInfo.tableName)
-                                    ->constCast<RelGroupCatalogEntry>();
     if (!relGroupEntry.isSingleMultiplicity(relInfo.direction)) {
         return;
     }
