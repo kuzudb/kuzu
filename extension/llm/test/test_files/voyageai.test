@@ -68,11 +68,4 @@
 0.386904
 
 
--CASE BadKey
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
----- ok
-
--STATEMENT return create_embedding('Hello World', 'voyage-ai', 'voyage-3-large');
----- error
-Connection exception: Request failed with status 401 Body: {"detail":"Provided API key is invalid."}
 

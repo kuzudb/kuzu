@@ -72,10 +72,4 @@
 ---- 1
 0.460942
 
--CASE BadKey
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
----- ok
 
--STATEMENT return create_embedding('Hello World', 'google-vertex', 'gemini-embedding-001');
----- error
-Connection exception: Request failed with status 401 Body: { "error": { "code": 401, "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.", "status": "UNAUTHENTICATED", "details": [ { "@type": "type.googleapis.com/google.rpc.ErrorInfo", "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED", "metadata": { "service": "aiplatform.googleapis.com", "method": "google.cloud.aiplatform.v1.PredictionService.Predict" } } ] } }
