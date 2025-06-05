@@ -71,7 +71,8 @@ static std::string Hex(const unsigned char* data, size_t length) {
     return oss.str();
 }
 
-static std::vector<unsigned char> HMAC_SHA256_Raw(const std::string& key, const std::string& message) {
+static std::vector<unsigned char> HMAC_SHA256_Raw(const std::string& key,
+    const std::string& message) {
     unsigned int len = SHA256_DIGEST_LENGTH;
     std::vector<unsigned char> result(len);
     HMAC(EVP_sha256(), key.c_str(), key.length(),
@@ -86,8 +87,8 @@ static std::string SHA256Hash(const std::string& input) {
     return Hex(hash, SHA256_DIGEST_LENGTH);
 }
 
-static std::vector<unsigned char> GetSignatureKey(const std::string& key, const std::string& dateStamp,
-    const std::string& regionName, const std::string& serviceName) {
+static std::vector<unsigned char> GetSignatureKey(const std::string& key,
+    const std::string& dateStamp, const std::string& regionName, const std::string& serviceName) {
     auto kDate = HMAC_SHA256_Raw("AWS4" + key, dateStamp);
     auto kRegion = HMAC_SHA256_Raw(std::string(kDate.begin(), kDate.end()), regionName);
     auto kService = HMAC_SHA256_Raw(std::string(kRegion.begin(), kRegion.end()), serviceName);
