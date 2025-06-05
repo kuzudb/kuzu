@@ -7,7 +7,7 @@ namespace kuzu {
 namespace fts_extension {
 
 FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common::table_id_t tableID,
-    const std::string& indexName, std::string stopWordsTableName) {
+    const std::string& indexName, const std::string& stopWordsTableName) {
     auto docTableName = FTSUtils::getDocsTableName(tableID, indexName);
     auto termsTableName = FTSUtils::getTermsTableName(tableID, indexName);
     auto appearsInTableName = FTSUtils::getAppearsInTableName(tableID, indexName);
@@ -16,9 +16,7 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
     auto trx = context->getTransaction();
     stopWordsTable =
         storageManager
-            ->getTable(context->getCatalog()
-                           ->getTableCatalogEntry(context->getTransaction(), stopWordsTableName)
-                           ->getTableID())
+            ->getTable(catalog->getTableCatalogEntry(trx, stopWordsTableName)->getTableID())
             ->ptrCast<storage::NodeTable>();
     docTable =
         storageManager->getTable(catalog->getTableCatalogEntry(trx, docTableName)->getTableID())
@@ -32,8 +30,7 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
             ->getRelEntryInfo(termsTable->getTableID(), docTable->getTableID());
     appearsInfoTable =
         storageManager->getTable(appearsInTableEntry->oid)->ptrCast<storage::RelTable>();
-    dfColumnID =
-        catalog->getTableCatalogEntry(context->getTransaction(), termsTableName)->getColumnID("df");
+    dfColumnID = catalog->getTableCatalogEntry(trx, termsTableName)->getColumnID("df");
 }
 
 } // namespace fts_extension

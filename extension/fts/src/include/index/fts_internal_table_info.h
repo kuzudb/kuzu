@@ -15,7 +15,7 @@ struct FTSInternalTableInfo {
     common::column_id_t dfColumnID;
 
     FTSInternalTableInfo(main::ClientContext* context, common::table_id_t tableID,
-        const std::string& indexName, std::string stopWordsTableName);
+        const std::string& indexName, const std::string& stopWordsTableName);
 };
 
 } // namespace fts_extension
