@@ -189,14 +189,21 @@ void Column::scan(const Transaction* transaction, const ChunkState& state,
     uint64_t offsetInVector) const {
     state.rangeSegments(startOffsetInChunk, length,
         [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
-            if (nullColumn) {
-                KU_ASSERT(segmentState.nullState);
-                nullColumn->scanInternal(transaction, *segmentState.nullState, startOffsetInSegment,
-                    lengthInSegment, resultVector, offsetInVector + dstOffset);
-            }
-            scanInternal(transaction, segmentState, startOffsetInSegment, lengthInSegment,
+            scanSegment(transaction, segmentState, startOffsetInSegment, lengthInSegment,
                 resultVector, offsetInVector + dstOffset);
         });
+}
+
+void Column::scanSegment(const Transaction* transaction, const SegmentState& state,
+    offset_t startOffsetInSegment, row_idx_t numValuesToScan, ValueVector* resultVector,
+    offset_t offsetInVector) const {
+    if (nullColumn) {
+        KU_ASSERT(state.nullState);
+        nullColumn->scanInternal(transaction, *state.nullState, startOffsetInSegment,
+            numValuesToScan, resultVector, offsetInVector);
+    }
+    scanInternal(transaction, state, startOffsetInSegment, numValuesToScan, resultVector,
+        offsetInVector);
 }
 
 void Column::scanSegment(const Transaction* transaction, const SegmentState& state,
@@ -208,12 +215,12 @@ void Column::scanSegment(const Transaction* transaction, const SegmentState& sta
     }
 
     if (startLength + numValues > outputChunk->getCapacity()) {
-        outputChunk->resizeWithoutPreserve(std::bit_ceil(startLength + numValues));
+        outputChunk->resize(std::bit_ceil(startLength + numValues));
     }
 
     // FIXME(bmwinger): failing for certain null columns
     // KU_ASSERT((offsetInSegment + numValues) <= state.metadata.numValues);
-    scanInternal(transaction, state, offsetInSegment, numValues, outputChunk, startLength);
+    scanInternal(transaction, state, offsetInSegment, numValues, outputChunk);
     outputChunk->setNumValues(startLength + numValues);
 }
 
@@ -229,11 +236,10 @@ void Column::scan(const Transaction* transaction, const ChunkState& state,
 }
 
 void Column::scanInternal(const Transaction* transaction, const SegmentState& state,
-    offset_t startOffsetInSegment, row_idx_t numValuesToScan, ColumnChunkData* resultChunk,
-    offset_t offsetInResult) const {
+    offset_t startOffsetInSegment, row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const {
     if (getDataTypeSizeInChunk(dataType) > 0) {
         columnReadWriter->readCompressedValuesToPage(transaction, state, resultChunk->getData(),
-            offsetInResult, startOffsetInSegment, numValuesToScan, readToPageFunc);
+            resultChunk->getNumValues(), startOffsetInSegment, numValuesToScan, readToPageFunc);
     }
 }
 

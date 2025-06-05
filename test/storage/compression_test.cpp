@@ -1,13 +1,10 @@
 #include <algorithm>
-#include <numeric>
 
-#include "common/constants.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
 #include "common/serializer/buffered_reader.h"
 #include "common/serializer/buffered_serializer.h"
 #include "common/serializer/deserializer.h"
-#include "common/serializer/reader.h"
 #include "common/serializer/serializer.h"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"

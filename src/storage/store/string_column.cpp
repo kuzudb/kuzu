@@ -147,24 +147,21 @@ void StringColumn::scanInternal(const Transaction* transaction, const SegmentSta
 
 void StringColumn::scanInternal(const transaction::Transaction* transaction,
     const SegmentState& state, common::offset_t startOffsetInSegment,
-    common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk,
-    common::offset_t offsetInResult) const {
+    common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const {
+    auto startOffsetInResult = resultChunk->getNumValues();
     KU_ASSERT(resultChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING);
 
     auto* stringResultChunk = ku_dynamic_cast<StringChunkData*>(resultChunk);
 
-    indexColumn->scanInternal(transaction, getChildState(state, ChildStateIndex::INDEX),
-        startOffsetInSegment, numValuesToScan, stringResultChunk->getIndexColumnChunk(),
-        offsetInResult);
-    stringResultChunk->getIndexColumnChunk()->setNumValues(
-        stringResultChunk->getIndexColumnChunk()->getNumValues() + numValuesToScan);
+    indexColumn->scanSegment(transaction, getChildState(state, ChildStateIndex::INDEX),
+        stringResultChunk->getIndexColumnChunk(), startOffsetInSegment, numValuesToScan);
 
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < numValuesToScan; i++) {
-        if (!resultChunk->isNull(offsetInResult + i)) {
+        if (!resultChunk->isNull(startOffsetInResult + i)) {
             offsetsToScan.emplace_back(
                 stringResultChunk->getIndexColumnChunk()->getValue<string_index_t>(i),
-                offsetInResult + i);
+                startOffsetInResult + i);
         }
     }
 

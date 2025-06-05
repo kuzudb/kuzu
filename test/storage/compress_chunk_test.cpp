@@ -367,7 +367,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsets) {
         const size_t offsetInSrc = src.size() - numValuesToRead;
 
         reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), offsetInResult,
-            offsetInSrc, offsetInSrc + numValuesToRead, ReadCompressedValuesFromPage(dataType));
+            offsetInSrc, numValuesToRead, ReadCompressedValuesFromPage(dataType));
         EXPECT_THAT(std::vector<double>(out.begin() + offsetInResult,
                         out.begin() + offsetInResult + numValuesToRead),
             ::testing::ContainerEq(std::vector<double>(src.begin() + offsetInSrc,
@@ -391,7 +391,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialMultiPage) {
         static constexpr size_t numValuesToRead = 3 * 1024 + 5;
 
         reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, offsetInSrc,
-            offsetInSrc + numValuesToRead, ReadCompressedValuesFromPage(dataType),
+            numValuesToRead, ReadCompressedValuesFromPage(dataType),
             [](offset_t, offset_t) { return true; });
         EXPECT_THAT(std::vector<double>(out.begin(), out.begin() + numValuesToRead),
             ::testing::ContainerEq(std::vector<double>(src.begin() + offsetInSrc,
@@ -619,7 +619,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask
             // the non-null values match
             std::vector<double> out(numValuesToSet);
             reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0,
-                cpyOffset, cpyOffset + numValuesToSet, ReadCompressedValuesFromPage(dataType));
+                cpyOffset, numValuesToSet, ReadCompressedValuesFromPage(dataType));
             EXPECT_THAT(out, ::testing::ContainerEq(std::vector<double>(src.begin() + cpyOffset,
                                  src.begin() + cpyOffset + numValuesToSet)));
         });

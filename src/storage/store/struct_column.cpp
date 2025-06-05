@@ -43,15 +43,13 @@ std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkD
 
 void StructColumn::scanInternal(const transaction::Transaction* transaction,
     const SegmentState& state, common::offset_t startOffsetInSegment,
-    common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk,
-    common::offset_t offsetInResult) const {
+    common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const {
     KU_ASSERT(resultChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    Column::scanInternal(transaction, state, startOffsetInSegment, numValuesToScan, resultChunk,
-        offsetInResult);
+    Column::scanInternal(transaction, state, startOffsetInSegment, numValuesToScan, resultChunk);
     auto& structColumnChunk = resultChunk->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->scanInternal(transaction, state.childrenStates[i], startOffsetInSegment,
-            numValuesToScan, structColumnChunk.getChild(i), offsetInResult);
+        childColumns[i]->scanSegment(transaction, state.childrenStates[i],
+            structColumnChunk.getChild(i), startOffsetInSegment, numValuesToScan);
     }
 }
 

@@ -115,10 +115,14 @@ protected:
         common::row_idx_t numValuesToScan, common::ValueVector* resultVector,
         common::offset_t startOffsetInVector) const;
 
+    virtual void scanSegment(const transaction::Transaction* transaction, const SegmentState& state,
+        common::offset_t startOffsetInSegment, common::row_idx_t numValuesToScan,
+        common::ValueVector* resultVector, common::offset_t startOffsetInVector) const;
+
+    // Writes to the end of the result chunk
     virtual void scanInternal(const transaction::Transaction* transaction,
         const SegmentState& state, common::offset_t startOffsetInSegment,
-        common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk,
-        common::offset_t offsetInResult) const;
+        common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const;
 
     virtual void lookupInternal(const transaction::Transaction* transaction,
         const SegmentState& state, common::offset_t offsetInSegment,
