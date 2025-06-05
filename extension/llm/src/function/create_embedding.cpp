@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cstdlib>
+#include <ctime>
 #include <unordered_map>
 #include "common/assert.h"
 #include "common/exception/binder.h"
@@ -9,7 +10,6 @@
 #include "function/function.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
-#include "crypto.h"
 #include "json.hpp"
 #include "httplib.h"
 
@@ -42,140 +42,6 @@ static std::string getClient(const std::string& provider)
     return clientIter->second;
 }
 
-std::string getDateHeader(const timestamp_t& timestamp) {
-    auto date = Timestamp::getDate(timestamp);
-    int32_t year = 0, month = 0, day = 0;
-    Date::convert(date, year, month, day);
-    std::string formatStr = "{}";
-    if (month < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}";
-    if (day < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}";
-    return common::stringFormat(formatStr, year, month, day);
-}
-
-// Timestamp header is in the format: %Y%m%dT%H%M%SZ.
-std::string getDateTimeHeader(const timestamp_t& timestamp) {
-    auto formatStr = getDateHeader(timestamp);
-    auto time = Timestamp::getTime(timestamp);
-    formatStr += "T";
-    int32_t hours = 0, minutes = 0, seconds = 0, micros = 0;
-    Time::convert(time, hours, minutes, seconds, micros);
-    if (hours < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}";
-    if (minutes < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}";
-    if (seconds < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}Z";
-    return common::stringFormat(formatStr, hours, minutes, seconds);
-}
-
-std::string encodeURL(const std::string& input, bool encodeSlash) {
-    static const char* hex_digit = "0123456789ABCDEF";
-    std::string result;
-    result.reserve(input.size());
-    for (auto i = 0u; i < input.length(); i++) {
-        char ch = input[i];
-        if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
-            ch == '_' || ch == '-' || ch == '~' || ch == '.') {
-            result += ch;
-        } else if (ch == '/') {
-            if (encodeSlash) {
-                result += std::string("%2F");
-            } else {
-                result += ch;
-            }
-        } else {
-            result += std::string("%");
-            result += hex_digit[static_cast<unsigned char>(ch) >> 4];
-            result += hex_digit[static_cast<unsigned char>(ch) & 15];
-        }
-    }
-    return result;
-}
-
-
-//NOLINTNEXTLINE WIP
-static httplib::Headers createBedrockHeaders( const std::string& url, const std::string& query, const std::string& host, const std::string& region, const std::string& service, const std::string& method, std::string payloadHash, std::string contentType = "application/json") {
-    httplib::Headers headers;
-    headers.insert({"Host", host});
-
-    //NOLINTNEXTLINE Thread Safety Warning
-    const char* accessKey = std::getenv("AWS_ACCESS_KEY_ID");
-    //NOLINTNEXTLINE Thread Safety Warning
-    const char* secretKey = std::getenv("AWS_SECRET_ACCESS_KEY");
-
-    if (!accessKey || !secretKey) 
-    {
-        throw RuntimeException("Missing AWS credentials in environment variables.");
-    }
-
-    if (payloadHash.empty()) {
-        static constexpr char NULL_PAYLOAD_HASH[] =
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-        payloadHash = NULL_PAYLOAD_HASH;
-    }
-
-    const auto timestamp = common::Timestamp::getCurrentTimestamp();
-    const auto dateHeader = getDateHeader(timestamp);
-    const auto datetimeHeader = getDateTimeHeader(timestamp);
-
-    headers.insert({"x-amz-date", datetimeHeader});
-    headers.insert({"x-amz-content-sha256", payloadHash});
-    headers.insert({"content-type", "application/json"});
-
-    std::string signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
-
-    std::string canonicalHeaders;
-    canonicalHeaders +=
-        "content-type:" + contentType + "\n"
-        "host:" + host + "\n"
-        "x-amz-content-sha256:" + payloadHash + "\n"
-        "x-amz-date:" + datetimeHeader + "\n";
-
-    std::string canonicalRequest =
-        method + "\n" + encodeURL(url, false) + "\n" + query + "\n" +
-        canonicalHeaders + "\n" +
-        signedHeaders + "\n" +
-        payloadHash;
-
-    httpfs_extension::hash_bytes canonicalRequestHash;
-    httpfs_extension::hash_str canonicalRequestHashStr;
-    httpfs_extension::sha256(canonicalRequest.c_str(), canonicalRequest.length(), canonicalRequestHash);
-    httpfs_extension::hex256(canonicalRequestHash, canonicalRequestHashStr);
-
-    std::string credentialScope = dateHeader + "/" + region + "/" + service + "/aws4_request";
-    std::string stringToSign = "AWS4-HMAC-SHA256\n" + datetimeHeader + "\n" + credentialScope + "\n" + std::string((char*)canonicalRequestHashStr, sizeof(httpfs_extension::hash_str));
-
-    httpfs_extension::hash_bytes dateKey, regionKey, serviceKey, signingKey, signature;
-    httpfs_extension::hash_str signatureStr;
-
-    std::string secret = "AWS4" + std::string(secretKey);
-    httpfs_extension::hmac256(dateHeader, secret.c_str(), secret.length(), dateKey);
-    httpfs_extension::hmac256(region, dateKey, regionKey);
-    httpfs_extension::hmac256(service, regionKey, serviceKey);
-    httpfs_extension::hmac256("aws4_request", serviceKey, signingKey);
-    httpfs_extension::hmac256(stringToSign, signingKey, signature);
-    httpfs_extension::hex256(signature, signatureStr);
-
-    std::string authorization = "AWS4-HMAC-SHA256 Credential=" + std::string(accessKey) + "/" + credentialScope + ", SignedHeaders=" + signedHeaders + ", Signature=" + std::string((char*)signatureStr, sizeof(httpfs_extension::hash_str));
-
-    headers.insert({"Authorization", authorization});
-
-    return headers;
-}
-
-
 static httplib::Headers getHeaders(const std::string& provider)
 {
     static const std::unordered_map<std::string, std::string> providerAPIKeyMap = 
@@ -207,6 +73,116 @@ static httplib::Headers getHeaders(const std::string& provider)
     // AmazonBedrock Uses createBedrockHeaders
     KU_UNREACHABLE;
     return httplib::Headers{};
+}
+
+std::string Hex(const unsigned char *data, size_t length)
+{
+    std::ostringstream oss;
+    for (size_t i = 0; i < length; ++i)
+    {
+        oss << std::hex << std::setw(2) << std::setfill('0') << (int)data[i];
+    }
+    return oss.str();
+}
+
+std::vector<unsigned char> HMAC_SHA256_Raw(const std::string &key, const std::string &message)
+{
+    unsigned int len = SHA256_DIGEST_LENGTH;
+    std::vector<unsigned char> result(len);
+    HMAC(EVP_sha256(), key.c_str(), key.length(), reinterpret_cast<const unsigned char *>(message.c_str()), message.length(), result.data(), &len);
+    return result;
+}
+
+std::string SHA256Hash(const std::string &input)
+{
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char *>(input.c_str()), input.size(),
+           hash);
+    return Hex(hash, SHA256_DIGEST_LENGTH);
+}
+
+std::vector<unsigned char> GetSignatureKey(const std::string& key,
+                                           const std::string& dateStamp,
+                                           const std::string& regionName,
+                                           const std::string& serviceName) 
+{
+    auto kDate = HMAC_SHA256_Raw("AWS4" + key, dateStamp);
+    auto kRegion = HMAC_SHA256_Raw(std::string(kDate.begin(), kDate.end()), regionName);
+    auto kService = HMAC_SHA256_Raw(std::string(kRegion.begin(), kRegion.end()), serviceName);
+    auto kSigning = HMAC_SHA256_Raw(std::string(kService.begin(), kService.end()), "aws4_request");
+    return kSigning;
+}
+
+
+
+static httplib::Headers getAWSBedrockHeader(const nlohmann::json& payload)
+{
+    //NOLINTNEXTLINE Thread Safety Warning
+    auto envAWSAccessKey = std::getenv("AWS_ACCESS_KEY");
+    //NOLINTNEXTLINE Thread Safety Warning
+    auto envAWSSecretAccessKey = std::getenv("AWS_SECRET_ACCESS_KEY");
+    //TODO: Improve this error msg
+    if (envAWSAccessKey == nullptr || envAWSSecretAccessKey == nullptr)
+    {
+        throw(RuntimeException("Bad AWS Keys"));
+    }
+    std::string method = "POST";
+    std::string service = "bedrock";
+    std::string region = "us-east-1";
+    std::string host = "bedrock-runtime.us-east-1.amazonaws.com";
+    std::string uri = "/model/amazon.titan-embed-text-v1/invoke";
+    time_t now = time(nullptr);
+    tm tm_struct{};
+    (void)gmtime_r(&now, &tm_struct);
+    char dateStamp[9];
+    (void)strftime(dateStamp, sizeof(dateStamp), "%Y%m%d", &tm_struct);
+    char amzDate[17];
+    (void)strftime(amzDate, sizeof(amzDate), "%Y%m%dT%H%M%SZ", &tm_struct);
+    std::string canonicalUri = uri;
+    std::string canonicalQueryString = "";
+    httplib::Headers headers {{"host", host}, {"x-amz-date", amzDate}};
+    std::string canonicalHeaders;
+    std::string signedHeaders;
+    for (const auto& h : headers) {
+        canonicalHeaders += h.first + ":" + h.second + "\n";
+        if (!signedHeaders.empty()) signedHeaders += ";";
+        signedHeaders += h.first;
+    }
+    std::string payloadHash = SHA256Hash(payload.dump());
+    std::ostringstream canonicalRequest;
+    canonicalRequest << method << "\n"
+                     << canonicalUri << "\n"
+                     << canonicalQueryString << "\n"
+                     << canonicalHeaders << "\n"
+                     << signedHeaders << "\n"
+                     << payloadHash;
+    std::string canonicalRequestStr = canonicalRequest.str();
+    std::string algorithm = "AWS4-HMAC-SHA256";
+    std::string credentialScope = std::string(dateStamp) + "/" + region + "/" + service + "/" + "aws4_request";
+    std::string canonicalRequestHash = SHA256Hash(canonicalRequestStr);
+    std::ostringstream stringToSign;
+    stringToSign << algorithm << "\n"
+                 << amzDate << "\n"
+                 << credentialScope << "\n"
+                 << canonicalRequestHash;
+    std::string stringToSignStr = stringToSign.str();
+    auto signingKey = GetSignatureKey(std::string(envAWSSecretAccessKey), dateStamp, region, service);
+    unsigned int len = SHA256_DIGEST_LENGTH;
+    unsigned char signatureRaw[SHA256_DIGEST_LENGTH];
+    HMAC(EVP_sha256(),
+         signingKey.data(), signingKey.size(),
+         reinterpret_cast<const unsigned char*>(stringToSignStr.c_str()), stringToSignStr.size(),
+         signatureRaw, &len);
+    std::string signature = Hex(signatureRaw, len);
+    std::ostringstream authorizationHeader;
+    authorizationHeader << algorithm << " "
+                        << "Credential=" << std::string(envAWSAccessKey) << "/" << credentialScope << ", "
+                        << "SignedHeaders=" << signedHeaders << ", "
+                        << "Signature=" << signature;
+
+    std::string authHeader = authorizationHeader.str();
+    headers.insert({"Authorization", authHeader});
+    return headers;
 }
 
 static nlohmann::json getPayload(const std::string& provider, const std::string& model, const std::string& text)
@@ -368,7 +344,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 
         if (bedRock)
         {
-            //headers = createBedrockHeaders(const std::string &url, const std::string &query, const std::string &host, const std::string &region, const std::string &service, const std::string &method, std::string payloadHash);
+            headers = getAWSBedrockHeader(payload);
         }
         auto res = client.Post(path, headers, payload.dump(), "application/json");
 
