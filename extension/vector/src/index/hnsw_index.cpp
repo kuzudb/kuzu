@@ -182,24 +182,24 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
 
 void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     const processor::PartitionerSharedState& partitionerSharedState,
-    common::offset_t numNodesInTable, const NodeToGraphOffsetMap* selectedNodesMap) const {
+    common::offset_t numNodesInTable, const NodeToGraphOffsetMap& selectedNodesMap) const {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    const auto numNodesInGroup =
-        std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodesInTable - startNodeOffset);
-    for (auto i = 0u; i < numNodesInGroup; i++) {
-        const auto nodeOffset = startNodeOffset + i;
-        if (selectedNodesMap && !selectedNodesMap->containsNodeOffset(nodeOffset)) {
-            continue;
-        }
-        const auto offsetInGraph =
-            selectedNodesMap ? selectedNodesMap->nodeToGraphOffset(nodeOffset) : nodeOffset;
+    const auto endNodeOffset =
+        std::min(numNodesInTable, startNodeOffset + common::StorageConfig::NODE_GROUP_SIZE);
+    const auto startNodeInGraph = selectedNodesMap.nodeToGraphOffset(startNodeOffset);
+    const auto endNodeInGraph = selectedNodesMap.nodeToGraphOffset(endNodeOffset);
+    for (auto offsetInGraph = startNodeInGraph; offsetInGraph < endNodeInGraph; offsetInGraph++) {
+        KU_ASSERT(offsetInGraph < selectedNodesMap.getNumNodesInGraph() &&
+                  selectedNodesMap.graphToNodeOffset(offsetInGraph) >= startNodeInGraph &&
+                  selectedNodesMap.graphToNodeOffset(offsetInGraph) < endNodeOffset);
         const auto numNbrs = graph->getCSRLength(offsetInGraph);
         if (numNbrs <= info.maxDegree) {
             continue;
         }
         shrinkForNode(info, graph.get(), offsetInGraph, numNbrs);
     }
-    graph->finalize(mm, nodeGroupIdx, partitionerSharedState, numNodesInTable, selectedNodesMap);
+    graph->finalize(mm, nodeGroupIdx, partitionerSharedState, startNodeInGraph, endNodeInGraph,
+        numNodesInTable, selectedNodesMap);
 }
 
 std::vector<NodeWithDistance> HNSWIndex::popTopK(max_node_priority_queue_t& result,
@@ -230,23 +230,6 @@ static common::ArrayTypeInfo getArrayTypeInfo(NodeTable& table, common::column_i
     return common::ArrayTypeInfo{typeInfo->getChildType().copy(), typeInfo->getNumElements()};
 }
 
-static std::unique_ptr<NodeToGraphOffsetMap> initOffsetMap(common::offset_t numNodesInTable,
-    common::NullMask* selectedNodes) {
-    auto ret = std::make_unique<NodeToGraphOffsetMap>();
-    const auto numNodesInGraph = selectedNodes->countNulls();
-    ret->graphToNodeMap = std::make_unique<common::offset_t[]>(numNodesInGraph);
-    common::offset_t curOffset = 0;
-    // TODO(Royi) can optimize this a bit
-    for (common::offset_t i = 0; i < numNodesInTable; ++i) {
-        if (selectedNodes->isNull(i)) {
-            ret->nodeToGraphMap.insert({i, curOffset});
-            ret->graphToNodeMap[curOffset] = i;
-            ++curOffset;
-        }
-    }
-    return ret;
-}
-
 InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo indexInfo,
     std::unique_ptr<IndexStorageInfo> storageInfo, NodeTable& table, common::column_id_t columnID,
     HNSWIndexConfig config)
@@ -266,16 +249,18 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo ind
             }
         }
     }
-    upperGraphSelectionMap = initOffsetMap(numNodes, upperLayerSelectionMask.get());
+    lowerGraphSelectionMap = std::make_unique<NodeToGraphOffsetMap>(numNodes);
+    upperGraphSelectionMap =
+        std::make_unique<NodeToGraphOffsetMap>(numNodes, upperLayerSelectionMask.get());
     lowerLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
         InMemHNSWLayerInfo{numNodes, common::ku_dynamic_cast<InMemEmbeddings*>(embeddings.get()),
             this->metricFunc, getDegreeThresholdToShrink(this->config.ml), this->config.ml,
-            this->config.alpha, this->config.efc});
+            this->config.alpha, this->config.efc, *lowerGraphSelectionMap});
     upperLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
         InMemHNSWLayerInfo{upperLayerSelectionMask->countNulls(),
             common::ku_dynamic_cast<InMemEmbeddings*>(embeddings.get()), this->metricFunc,
             getDegreeThresholdToShrink(this->config.mu), this->config.mu, this->config.alpha,
-            this->config.efc, upperGraphSelectionMap.get()});
+            this->config.efc, *upperGraphSelectionMap});
 }
 
 bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
@@ -298,9 +283,9 @@ void InMemHNSWIndex::finalize(MemoryManager& mm, common::node_group_idx_t nodeGr
     const HNSWIndexPartitionerSharedState& partitionerSharedState) {
     const auto numNodesInTable = lowerLayer->getNumNodes();
     upperLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.upperPartitionerSharedState,
-        numNodesInTable, upperGraphSelectionMap.get());
+        numNodesInTable, *upperGraphSelectionMap);
     lowerLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.lowerPartitionerSharedState,
-        numNodesInTable);
+        numNodesInTable, *lowerGraphSelectionMap);
 }
 
 std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {

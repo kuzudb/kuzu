@@ -159,33 +159,24 @@ InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWGraph::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     const processor::PartitionerSharedState& partitionerSharedState,
-    common::offset_t numNodesInTable, const NodeToGraphOffsetMap* selectedNodesMap) {
+    common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
+    common::offset_t numNodesInTable, const NodeToGraphOffsetMap& selectedNodesMap) {
     const auto& partitionBuffers = partitionerSharedState.partitioningBuffers[0]->partitions;
     auto numRels = 0u;
-    const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    const auto numNodesInGroup =
-        std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodesInTable - startNodeOffset);
-    for (auto i = 0u; i < numNodesInGroup; i++) {
-        const auto nodeOffset = startNodeOffset + i;
-        if (!selectedNodesMap || selectedNodesMap->containsNodeOffset(nodeOffset)) {
-            const auto offsetInGraph =
-                selectedNodesMap ? selectedNodesMap->nodeToGraphOffset(nodeOffset) : nodeOffset;
-            numRels += getCSRLength(offsetInGraph);
-        }
+    for (auto offsetInGraph = startNodeInGraph; offsetInGraph < endNodeInGraph; offsetInGraph++) {
+        numRels += getCSRLength(offsetInGraph);
     }
-    finalizeNodeGroup(mm, nodeGroupIdx, numRels, partitionerSharedState.srcNodeTable->getTableID(),
+    finalizeNodeGroup(mm, numRels, partitionerSharedState.srcNodeTable->getTableID(),
         partitionerSharedState.dstNodeTable->getTableID(),
         partitionerSharedState.relTable->getTableID(), *partitionBuffers[nodeGroupIdx],
-        numNodesInTable, selectedNodesMap);
+        startNodeInGraph, endNodeInGraph, numNodesInTable, selectedNodesMap);
 }
 
-void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-    uint64_t numRels, common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
+void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, uint64_t numRels,
+    common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
     common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition,
-    common::offset_t numNodesInTable, const NodeToGraphOffsetMap* selectedNodesMap) const {
-    const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    const auto numNodesInGroup =
-        std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodesInTable - startNodeOffset);
+    common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
+    common::offset_t numNodesInTable, const NodeToGraphOffsetMap& selectedNodesMap) const {
     // BOUND_ID, NBR_ID, REL_ID.
     std::vector<common::LogicalType> columnTypes;
     columnTypes.push_back(common::LogicalType::INTERNAL_ID());
@@ -201,22 +192,15 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
     boundColumnChunk.cast<InternalIDChunkData>().setTableID(srcNodeTableID);
     nbrColumnChunk.cast<InternalIDChunkData>().setTableID(dstNodeTableID);
     relIDColumnChunk.cast<InternalIDChunkData>().setTableID(relTableID);
-    for (auto i = 0u; i < numNodesInGroup; i++) {
-        const auto currNodeOffset = startNodeOffset + i;
-        if (selectedNodesMap && !selectedNodesMap->containsNodeOffset(currNodeOffset)) {
-            continue;
-        }
-        const auto offsetInGraph =
-            selectedNodesMap ? selectedNodesMap->nodeToGraphOffset(currNodeOffset) : currNodeOffset;
+    for (auto offsetInGraph = startNodeInGraph; offsetInGraph < endNodeInGraph; offsetInGraph++) {
+        const auto currNodeOffset = selectedNodesMap.graphToNodeOffset(offsetInGraph);
         const auto csrLen = getCSRLength(offsetInGraph);
         const auto csrOffset = offsetInGraph * maxDegree;
         for (auto j = 0u; j < csrLen; j++) {
             boundColumnChunk.setValue<common::offset_t>(currNodeOffset, currNumRels);
             relIDColumnChunk.setValue<common::offset_t>(currNumRels, currNumRels);
             const auto nbrOffsetInGraph = getDstNode(csrOffset + j);
-            const auto nbrOffset = selectedNodesMap ?
-                                       selectedNodesMap->graphToNodeMap[nbrOffsetInGraph] :
-                                       nbrOffsetInGraph;
+            const auto nbrOffset = selectedNodesMap.graphToNodeOffset(nbrOffsetInGraph);
             KU_ASSERT(nbrOffset < numNodesInTable);
             nbrColumnChunk.setValue<common::offset_t>(nbrOffset, currNumRels);
             currNumRels++;
@@ -242,12 +226,30 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
     }
 }
 
-common::offset_t NodeToGraphOffsetMap::nodeToGraphOffset(common::offset_t nodeOffset) const {
-    return nodeToGraphMap.at(nodeOffset);
+NodeToGraphOffsetMap::NodeToGraphOffsetMap(common::offset_t numNodesInTable,
+    common::NullMask* selectedNodes)
+    : numNodes(selectedNodes->countNulls()),
+      graphToNodeMap(std::make_unique<common::offset_t[]>(numNodes)) {
+    common::offset_t curOffset = 0;
+    for (common::offset_t i = 0; i < numNodesInTable; ++i) {
+        if (selectedNodes->isNull(i)) {
+            graphToNodeMap[curOffset] = i;
+            ++curOffset;
+        }
+    }
 }
 
-bool NodeToGraphOffsetMap::containsNodeOffset(common::offset_t nodeOffset) const {
-    return nodeToGraphMap.contains(nodeOffset);
+common::offset_t NodeToGraphOffsetMap::nodeToGraphOffset(common::offset_t nodeOffset) const {
+    if (!isValid()) {
+        return nodeOffset;
+    }
+    auto it = std::lower_bound(graphToNodeMap.get(), graphToNodeMap.get() + numNodes, nodeOffset);
+    common::offset_t pos = it - graphToNodeMap.get();
+    return pos;
+}
+
+common::offset_t NodeToGraphOffsetMap::graphToNodeOffset(common::offset_t graphOffset) const {
+    return isValid() ? graphToNodeMap[graphOffset] : graphOffset;
 }
 
 } // namespace vector_extension
