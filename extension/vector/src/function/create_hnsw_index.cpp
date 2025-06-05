@@ -189,7 +189,7 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
         partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
-        upperCopyFromInfo, upperRelTableEntry, logicalOp->getSchema(), RelDataDirection::FWD,
+        upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD,
         nodeTableID, nodeTableID, columnIDs, LogicalType::copy(columnTypes),
         planMapper->getOperatorID());
     binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableName, TableType::REL, nullptr, nullptr,
@@ -198,7 +198,7 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelLower = planMapper->createRelBatchInsertOp(clientContext,
         partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
-        lowerCopyFromInfo, lowerRelTableEntry, logicalOp->getSchema(), RelDataDirection::FWD,
+        lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD,
         nodeTableID, nodeTableID, columnIDs, LogicalType::copy(columnTypes),
         planMapper->getOperatorID());
     physical_op_vector_t children;
