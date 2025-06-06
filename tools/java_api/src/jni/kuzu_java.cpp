@@ -144,7 +144,8 @@ static void throwJNIException(JNIEnv* env, const char* message) {
 }
 
 static std::string jstringToUtf8String(JNIEnv* env, jstring value) {
-    jbyteArray byteArr = (jbyteArray)env->CallObjectMethod(value, J_C_String_M_getBytes, env->NewStringUTF("UTF-8"));
+    jbyteArray byteArr =
+        (jbyteArray)env->CallObjectMethod(value, J_C_String_M_getBytes, env->NewStringUTF("UTF-8"));
     size_t length = env->GetArrayLength(byteArr);
     jbyte* bytes = env->GetByteArrayElements(byteArr, nullptr);
     std::string ret = std::string((char*)bytes, length);
@@ -155,7 +156,8 @@ static std::string jstringToUtf8String(JNIEnv* env, jstring value) {
 static jstring utf8StringToJstring(JNIEnv* env, std::string str) {
     jbyteArray byteArr = env->NewByteArray(str.size());
     env->SetByteArrayRegion(byteArr, 0, str.size(), reinterpret_cast<const jbyte*>(str.data()));
-    jstring ret = (jstring)env->NewObject(J_C_String, J_C_String_M_ctor, byteArr, env->NewStringUTF("UTF-8"));
+    jstring ret =
+        (jstring)env->NewObject(J_C_String, J_C_String_M_ctor, byteArr, env->NewStringUTF("UTF-8"));
     return ret;
 }
 
@@ -1778,7 +1780,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1struct(JNIEnv* en
         std::vector<std::unique_ptr<Value>> children;
         auto structFields = std::vector<StructField>{};
         for (jsize i = 0; i < len; ++i) {
-            auto fieldName = jstringToUtf8String(env, reinterpret_cast<jstring>(env->GetObjectArrayElement(fieldNames, i)));
+            auto fieldName = jstringToUtf8String(env,
+                reinterpret_cast<jstring>(env->GetObjectArrayElement(fieldNames, i)));
             auto fieldValue = getValue(env, env->GetObjectArrayElement(fieldValues, i))->copy();
             auto fieldType = fieldValue->getDataType().copy();
 
