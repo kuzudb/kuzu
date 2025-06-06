@@ -1,6 +1,7 @@
 #include "common/types/timestamp_t.h"
 
 #include <chrono>
+#include <string>
 
 #include "common/exception/conversion.h"
 #include "common/string_format.h"
@@ -227,39 +228,41 @@ std::string Timestamp::toString(timestamp_t timestamp) {
 std::string Timestamp::getDateHeader(const timestamp_t& timestamp) {
     auto date = Timestamp::getDate(timestamp);
     int32_t year = 0, month = 0, day = 0;
+    std::string yearStr, monthStr, dayStr;
     Date::convert(date, year, month, day);
-    std::string formatStr = "{}";
+    yearStr = std::to_string(year);
+    monthStr = std::to_string(month);
+    dayStr = std::to_string(day);
     if (month < 10) {
-        formatStr += "0";
+        monthStr = "0" + monthStr;
     }
-    formatStr += "{}";
     if (day < 10) {
-        formatStr += "0";
+        dayStr = "0" + dayStr;
     }
-    formatStr += "{}";
-    return stringFormat(formatStr, year, month, day);
+    return stringFormat("{}{}{}", yearStr, monthStr, dayStr);
 }
 
 // Timestamp header is in the format: %Y%m%dT%H%M%SZ.
 std::string Timestamp::getDateTimeHeader(const timestamp_t& timestamp) {
-    auto formatStr = getDateHeader(timestamp);
+    auto dateHeader = getDateHeader(timestamp);
     auto time = Timestamp::getTime(timestamp);
-    formatStr += "T";
     int32_t hours = 0, minutes = 0, seconds = 0, micros = 0;
+    std::string hoursStr, minutesStr, secondsStr;
     Time::convert(time, hours, minutes, seconds, micros);
+    hoursStr = std::to_string(hours);
+    minutesStr = std::to_string(minutes);
+    secondsStr = std::to_string(seconds);
+
     if (hours < 10) {
-        formatStr += "0";
+        hoursStr = "0" + hoursStr;
     }
-    formatStr += "{}";
     if (minutes < 10) {
-        formatStr += "0";
+        minutesStr = "0" + minutesStr;
     }
-    formatStr += "{}";
     if (seconds < 10) {
-        formatStr += "0";
+        secondsStr = "0" + secondsStr;
     }
-    formatStr += "{}Z";
-    return stringFormat(formatStr, hours, minutes, seconds);
+    return stringFormat("{}T{}{}{}Z", dateHeader, hours, minutes, seconds);
 }
 
 date_t Timestamp::getDate(timestamp_t timestamp) {
