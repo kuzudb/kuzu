@@ -160,7 +160,7 @@ InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
 void InMemHNSWGraph::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     const processor::PartitionerSharedState& partitionerSharedState,
     common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
-    common::offset_t numNodesInTable, const NodeToGraphOffsetMap& selectedNodesMap) {
+    common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) {
     const auto& partitionBuffers = partitionerSharedState.partitioningBuffers[0]->partitions;
     auto numRels = 0u;
     for (auto offsetInGraph = startNodeInGraph; offsetInGraph < endNodeInGraph; offsetInGraph++) {
@@ -177,7 +177,7 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, uint64_t numRels,
     common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition,
     common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
     [[maybe_unused]] common::offset_t numNodesInTable,
-    const NodeToGraphOffsetMap& selectedNodesMap) const {
+    const NodeToHNSWGraphOffsetMap& selectedNodesMap) const {
     // BOUND_ID, NBR_ID, REL_ID.
     std::vector<common::LogicalType> columnTypes;
     columnTypes.push_back(common::LogicalType::INTERNAL_ID());
@@ -227,7 +227,7 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
     }
 }
 
-NodeToGraphOffsetMap::NodeToGraphOffsetMap(common::offset_t numNodesInTable,
+NodeToHNSWGraphOffsetMap::NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
     common::NullMask* selectedNodes)
     : numNodes(selectedNodes->countNulls()),
       graphToNodeMap(std::make_unique<common::offset_t[]>(numNodes)) {
@@ -240,17 +240,19 @@ NodeToGraphOffsetMap::NodeToGraphOffsetMap(common::offset_t numNodesInTable,
     }
 }
 
-common::offset_t NodeToGraphOffsetMap::nodeToGraphOffset(common::offset_t nodeOffset) const {
-    if (!isValid()) {
+common::offset_t NodeToHNSWGraphOffsetMap::nodeToGraphOffset(common::offset_t nodeOffset,
+    [[maybe_unused]] bool exactMatch) const {
+    if (isTrivialMapping()) {
         return nodeOffset;
     }
     auto it = std::lower_bound(graphToNodeMap.get(), graphToNodeMap.get() + numNodes, nodeOffset);
     common::offset_t pos = it - graphToNodeMap.get();
+    KU_ASSERT(!exactMatch || pos >= numNodes || *it == nodeOffset);
     return pos;
 }
 
-common::offset_t NodeToGraphOffsetMap::graphToNodeOffset(common::offset_t graphOffset) const {
-    return isValid() ? graphToNodeMap[graphOffset] : graphOffset;
+common::offset_t NodeToHNSWGraphOffsetMap::graphToNodeOffset(common::offset_t graphOffset) const {
+    return isTrivialMapping() ? graphOffset : graphToNodeMap[graphOffset];
 }
 
 } // namespace vector_extension

@@ -134,11 +134,11 @@ struct InMemHNSWLayerInfo {
     int64_t maxDegree;
     double alpha;
     int64_t efc;
-    const NodeToGraphOffsetMap& offsetMap;
+    const NodeToHNSWGraphOffsetMap& offsetMap;
 
     InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings,
         metric_func_t metricFunc, int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha,
-        int64_t efc, const NodeToGraphOffsetMap& offsetMap)
+        int64_t efc, const NodeToHNSWGraphOffsetMap& offsetMap)
         : numNodes{numNodes}, embeddings{embeddings}, metricFunc{std::move(metricFunc)},
           degreeThresholdToShrink{degreeThresholdToShrink}, maxDegree{maxDegree}, alpha{alpha},
           efc{efc}, offsetMap(offsetMap) {}
@@ -165,7 +165,7 @@ public:
     common::offset_t searchNN(void* queryVector, common::offset_t entryNode) const;
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState,
-        common::offset_t numNodesInTable, const NodeToGraphOffsetMap& selectedNodesMap) const;
+        common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
 
 private:
     std::vector<NodeWithDistance> searchKNN(const void* queryVector, common::offset_t entryNode,
@@ -218,8 +218,8 @@ private:
     std::unique_ptr<InMemHNSWLayer> lowerLayer;
     std::unique_ptr<InMemEmbeddings> embeddings;
 
-    std::unique_ptr<NodeToGraphOffsetMap> lowerGraphSelectionMap; // this mapping is empty
-    std::unique_ptr<NodeToGraphOffsetMap> upperGraphSelectionMap;
+    std::unique_ptr<NodeToHNSWGraphOffsetMap> lowerGraphSelectionMap; // this mapping is trivial
+    std::unique_ptr<NodeToHNSWGraphOffsetMap> upperGraphSelectionMap;
     std::unique_ptr<common::NullMask> upperLayerSelectionMask;
 };
 

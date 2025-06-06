@@ -182,12 +182,12 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
 
 void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     const processor::PartitionerSharedState& partitionerSharedState,
-    common::offset_t numNodesInTable, const NodeToGraphOffsetMap& selectedNodesMap) const {
+    common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto endNodeOffset =
         std::min(numNodesInTable, startNodeOffset + common::StorageConfig::NODE_GROUP_SIZE);
-    const auto startNodeInGraph = selectedNodesMap.nodeToGraphOffset(startNodeOffset);
-    const auto endNodeInGraph = selectedNodesMap.nodeToGraphOffset(endNodeOffset);
+    const auto startNodeInGraph = selectedNodesMap.nodeToGraphOffset(startNodeOffset, false);
+    const auto endNodeInGraph = selectedNodesMap.nodeToGraphOffset(endNodeOffset, false);
     for (auto offsetInGraph = startNodeInGraph; offsetInGraph < endNodeInGraph; offsetInGraph++) {
         KU_ASSERT(offsetInGraph < selectedNodesMap.getNumNodesInGraph() &&
                   selectedNodesMap.graphToNodeOffset(offsetInGraph) >= startNodeInGraph &&
@@ -249,9 +249,9 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo ind
             }
         }
     }
-    lowerGraphSelectionMap = std::make_unique<NodeToGraphOffsetMap>(numNodes);
+    lowerGraphSelectionMap = std::make_unique<NodeToHNSWGraphOffsetMap>(numNodes);
     upperGraphSelectionMap =
-        std::make_unique<NodeToGraphOffsetMap>(numNodes, upperLayerSelectionMask.get());
+        std::make_unique<NodeToHNSWGraphOffsetMap>(numNodes, upperLayerSelectionMask.get());
     lowerLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
         InMemHNSWLayerInfo{numNodes, common::ku_dynamic_cast<InMemEmbeddings*>(embeddings.get()),
             this->metricFunc, getDegreeThresholdToShrink(this->config.ml), this->config.ml,
