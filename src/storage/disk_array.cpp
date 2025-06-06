@@ -223,9 +223,6 @@ void DiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
         clearWALPageVersionAndRemovePageFromFrameIfNecessary(newPIP.pipPageIdx);
         if (isCheckpoint) {
             pips.emplace_back(newPIP);
-        } else {
-            // These are newly inserted pages, so we can truncate the file handle.
-            this->fileHandle.removePageIdxAndTruncateIfNecessary(newPIP.pipPageIdx);
         }
     }
     // Note that we already updated the header to its correct state above.
