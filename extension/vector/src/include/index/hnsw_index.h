@@ -218,19 +218,18 @@ struct HNSWSearchState {
     QueryHNSWConfig config;
     uint64_t ef;
     common::SemiMask* semiMask;
+    std::unique_ptr<graph::OnDiskGraph> upperGraph;
+    std::unique_ptr<graph::OnDiskGraph> lowerGraph;
 
     SearchType searchType;
     std::unique_ptr<graph::NbrScanState> nbrScanState;
     std::unique_ptr<graph::NbrScanState> secondHopNbrScanState;
 
-    HNSWSearchState(const transaction::Transaction* transaction, storage::MemoryManager* mm,
-        storage::NodeTable& nodeTable, common::column_id_t columnID, common::offset_t numNodes,
-        uint64_t k, QueryHNSWConfig config)
-        : visited{numNodes}, embeddingScanState{transaction, mm, nodeTable, columnID}, k{k},
-          config{config}, semiMask{nullptr}, searchType{SearchType::UNFILTERED},
-          nbrScanState{nullptr}, secondHopNbrScanState{nullptr} {
-        ef = std::max(k, static_cast<uint64_t>(config.efs));
-    }
+    HNSWSearchState(main::ClientContext* context, catalog::TableCatalogEntry* nodeTableEntry,
+        catalog::TableCatalogEntry* upperRelTableEntry,
+        catalog::TableCatalogEntry* lowerRelTableEntry, storage::NodeTable& nodeTable,
+        common::column_id_t columnID, common::offset_t numNodes, uint64_t k,
+        QueryHNSWConfig config);
 
     bool isMasked(common::offset_t offset) const {
         return !hasMask() || semiMask->isMasked(offset);
@@ -270,7 +269,7 @@ public:
 
 private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
-        const void* queryVector, storage::NodeTableScanState& embeddingScanState) const;
+        const void* queryVector, HNSWSearchState& searchState) const;
     std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
         const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
 
@@ -308,11 +307,12 @@ private:
         uint64_t ef, HNSWSearchState& searchState, common::offset_t cand, int64_t& numVisitedNbrs,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
 
-    SearchType getFilteredSearchType(transaction::Transaction* transaction,
-        const HNSWSearchState& searchState) const;
     void initSearchCandidates(transaction::Transaction* transaction, const void* queryVector,
         HNSWSearchState& searchState, min_node_priority_queue_t& candidates,
         max_node_priority_queue_t& results) const;
+
+    static SearchType getFilteredSearchType(transaction::Transaction* transaction,
+        const HNSWSearchState& searchState);
 
 private:
     static constexpr uint64_t FILTERED_SEARCH_INITIAL_CANDIDATES = 10;
@@ -321,8 +321,8 @@ private:
     catalog::RelGroupCatalogEntry* upperRelTableEntry;
     catalog::RelGroupCatalogEntry* lowerRelTableEntry;
 
-    std::unique_ptr<graph::OnDiskGraph> upperGraph;
-    std::unique_ptr<graph::OnDiskGraph> lowerGraph;
+    // std::unique_ptr<graph::OnDiskGraph> upperGraph;
+    // std::unique_ptr<graph::OnDiskGraph> lowerGraph;
     storage::RelTable* upperRelTable;
     storage::RelTable* lowerRelTable;
     std::unique_ptr<OnDiskEmbeddings> embeddings;

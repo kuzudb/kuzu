@@ -293,6 +293,21 @@ std::unique_ptr<IndexStorageInfo> HNSWStorageInfo::deserialize(
         lowerEntryPoint);
 }
 
+HNSWSearchState::HNSWSearchState(main::ClientContext* context,
+    catalog::TableCatalogEntry* nodeTableEntry, catalog::TableCatalogEntry* upperRelTableEntry,
+    catalog::TableCatalogEntry* lowerRelTableEntry, NodeTable& nodeTable,
+    common::column_id_t columnID, common::offset_t numNodes, uint64_t k, QueryHNSWConfig config)
+    : visited{numNodes}, embeddingScanState{context->getTransaction(), context->getMemoryManager(),
+                             nodeTable, columnID},
+      k{k}, config{config}, semiMask{nullptr}, searchType{SearchType::UNFILTERED},
+      nbrScanState{nullptr}, secondHopNbrScanState{nullptr} {
+    ef = std::max(k, static_cast<uint64_t>(config.efs));
+    graph::GraphEntry lowerGraphEntry{{nodeTableEntry}, {lowerRelTableEntry}};
+    lowerGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(lowerGraphEntry));
+    graph::GraphEntry upperGraphEntry{{nodeTableEntry}, {upperRelTableEntry}};
+    upperGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(upperGraphEntry));
+}
+
 OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, IndexInfo indexInfo,
     std::unique_ptr<IndexStorageInfo> storageInfo, catalog::NodeTableCatalogEntry* nodeTableEntry,
     catalog::RelGroupCatalogEntry* upperRelTableEntry,
@@ -312,9 +327,9 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, IndexInfo indexIn
         common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()},
         nodeTable);
     graph::GraphEntry lowerGraphEntry{{nodeTableEntry}, {lowerRelTableEntry}};
-    lowerGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(lowerGraphEntry));
+    // lowerGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(lowerGraphEntry));
     graph::GraphEntry upperGraphEntry{{nodeTableEntry}, {upperRelTableEntry}};
-    upperGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(upperGraphEntry));
+    // upperGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(upperGraphEntry));
     const auto storageManager = context->getStorageManager();
     lowerRelTable = storageManager->getTable(lowerRelTableEntry->getSingleRelEntryInfo().oid)
                         ->ptrCast<RelTable>();
@@ -349,8 +364,7 @@ std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, Stora
 
 std::vector<NodeWithDistance> OnDiskHNSWIndex::search(transaction::Transaction* transaction,
     const void* queryVector, HNSWSearchState& searchState) const {
-    auto entryPoint =
-        searchNNInUpperLayer(transaction, queryVector, *searchState.embeddingScanState.scanState);
+    auto entryPoint = searchNNInUpperLayer(transaction, queryVector, searchState);
     const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
     if (entryPoint == common::INVALID_OFFSET) {
         if (hnswStorageInfo.lowerEntryPoint == common::INVALID_OFFSET) {
@@ -364,30 +378,30 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::search(transaction::Transaction* 
 }
 
 common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction* transaction,
-    const void* queryVector, NodeTableScanState& embeddingScanState) const {
+    const void* queryVector, HNSWSearchState& searchState) const {
     const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
     auto currentNodeOffset = hnswStorageInfo.upperEntryPoint;
     if (currentNodeOffset == common::INVALID_OFFSET) {
         return common::INVALID_OFFSET;
     }
     double lastMinDist = std::numeric_limits<float>::max();
-    const auto currNodeVector =
-        embeddings->getEmbedding(transaction, embeddingScanState, currentNodeOffset);
+    const auto currNodeVector = embeddings->getEmbedding(transaction,
+        *searchState.embeddingScanState.scanState, currentNodeOffset);
     auto minDist = metricFunc(queryVector, currNodeVector, embeddings->getDimension());
     KU_ASSERT(lastMinDist >= 0);
     KU_ASSERT(minDist >= 0);
     const auto relEntryInfo = upperRelTableEntry->getSingleRelEntryInfo();
-    const auto scanState = upperGraph->prepareRelScan(*upperRelTableEntry, relEntryInfo.oid,
-        relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
+    const auto scanState = searchState.upperGraph->prepareRelScan(*upperRelTableEntry,
+        relEntryInfo.oid, relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
     while (minDist < lastMinDist) {
         lastMinDist = minDist;
-        auto neighborItr =
-            upperGraph->scanFwd(common::nodeID_t{currentNodeOffset, indexInfo.tableID}, *scanState);
+        auto neighborItr = searchState.upperGraph->scanFwd(
+            common::nodeID_t{currentNodeOffset, indexInfo.tableID}, *scanState);
         for (const auto neighborChunk : neighborItr) {
             neighborChunk.forEach([&](auto neighbors, auto, auto i) {
                 auto neighbor = neighbors[i];
-                const auto nbrVector =
-                    embeddings->getEmbedding(transaction, embeddingScanState, neighbor.offset);
+                const auto nbrVector = embeddings->getEmbedding(transaction,
+                    *searchState.embeddingScanState.scanState, neighbor.offset);
                 const auto dist = metricFunc(queryVector, nbrVector, embeddings->getDimension());
                 if (dist < minDist) {
                     minDist = dist;
@@ -403,13 +417,14 @@ void OnDiskHNSWIndex::initLowerLayerSearchState(transaction::Transaction* transa
     HNSWSearchState& searchState) const {
     searchState.visited.reset();
     const auto relEntryInfo = lowerRelTableEntry->getSingleRelEntryInfo();
-    searchState.nbrScanState = lowerGraph->prepareRelScan(*lowerRelTableEntry, relEntryInfo.oid,
-        relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
+    searchState.nbrScanState = searchState.lowerGraph->prepareRelScan(*lowerRelTableEntry,
+        relEntryInfo.oid, relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
     searchState.searchType = getFilteredSearchType(transaction, searchState);
     if (searchState.searchType == SearchType::BLIND_TWO_HOP ||
         searchState.searchType == SearchType::DIRECTED_TWO_HOP) {
-        searchState.secondHopNbrScanState = lowerGraph->prepareRelScan(*lowerRelTableEntry,
-            relEntryInfo.oid, relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
+        searchState.secondHopNbrScanState =
+            searchState.lowerGraph->prepareRelScan(*lowerRelTableEntry, relEntryInfo.oid,
+                relEntryInfo.nodePair.dstTableID, {} /* relProperties */);
     }
 }
 
@@ -437,8 +452,8 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLowerLayer(
             break;
         }
         candidates.pop();
-        auto neighborItr = lowerGraph->scanFwd(common::nodeID_t{candidate, indexInfo.tableID},
-            *searchState.nbrScanState);
+        auto neighborItr = searchState.lowerGraph->scanFwd(
+            common::nodeID_t{candidate, indexInfo.tableID}, *searchState.nbrScanState);
         switch (searchState.searchType) {
         case SearchType::UNFILTERED:
         case SearchType::ONE_HOP_FILTERED: {
@@ -461,12 +476,12 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLowerLayer(
 }
 
 SearchType OnDiskHNSWIndex::getFilteredSearchType(transaction::Transaction* transaction,
-    const HNSWSearchState& searchState) const {
+    const HNSWSearchState& searchState) {
     if (!searchState.hasMask()) {
         return SearchType::UNFILTERED;
     }
-    const auto selectivity =
-        1.0 * searchState.semiMask->getNumMaskedNodes() / lowerGraph->getNumNodes(transaction);
+    const auto selectivity = 1.0 * searchState.semiMask->getNumMaskedNodes() /
+                             searchState.lowerGraph->getNumNodes(transaction);
     if (selectivity < searchState.config.blindSearchUpSelThreshold) {
         return SearchType::BLIND_TWO_HOP;
     }
@@ -634,8 +649,8 @@ bool OnDiskHNSWIndex::searchOverSecondHopNbrs(transaction::Transaction* transact
     }
     searchState.visited.add(cand);
     // Second hop lookups from the current node.
-    auto secondHopNbrItr = lowerGraph->scanFwd(common::nodeID_t{cand, indexInfo.tableID},
-        *searchState.secondHopNbrScanState);
+    auto secondHopNbrItr = searchState.lowerGraph->scanFwd(
+        common::nodeID_t{cand, indexInfo.tableID}, *searchState.secondHopNbrScanState);
     for (const auto& secondHopNbrChunk : secondHopNbrItr) {
         if (numVisitedNbrs >= config.ml) {
             return false;
