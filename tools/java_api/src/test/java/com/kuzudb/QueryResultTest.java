@@ -207,4 +207,13 @@ public class QueryResultTest extends TestBase {
             assertFalse(result.hasNextQueryResult());
         }
     }
+
+    @Test
+    void QueryResultSpecialString() {
+        QueryResult result = conn.query("MATCH (n:movies) WHERE n.name = 'The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie' RETURN n.name");
+        while (result.hasNext()) {
+            String got = result.getNext().getValue(0).getValue();
+            assertTrue(got.equals("The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie"));
+        }
+    }
 }
