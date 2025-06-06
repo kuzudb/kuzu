@@ -134,7 +134,7 @@ void Checkpointer::rollback() {
 }
 
 bool Checkpointer::canAutoCheckpoint(const main::ClientContext& clientContext) {
-    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
+    if (clientContext.isInMemory()) {
         return false;
     }
     if (!clientContext.getDBConfig()->autoCheckpoint) {

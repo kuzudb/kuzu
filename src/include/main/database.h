@@ -34,7 +34,6 @@ class StorageExtension;
 namespace main {
 struct ExtensionOption;
 class DatabaseManager;
-class ClientContext;
 
 /**
  * @brief Stores runtime configuration for creating or opening a Database

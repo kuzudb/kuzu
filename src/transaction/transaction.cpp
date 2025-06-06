@@ -56,18 +56,17 @@ Transaction::Transaction(TransactionType transactionType, common::transaction_t 
 }
 
 bool Transaction::shouldLogToWAL() const {
-    // When we are in recovery mode, we don't log to WAL.
-    return !isRecovery() && !main::DBConfig::isDBPathInMemory(clientContext->getDatabasePath());
+    return isWriteTransaction() && !clientContext->isInMemory();
 }
 
 bool Transaction::shouldForceCheckpoint() const {
-    return !main::DBConfig::isDBPathInMemory(clientContext->getDatabasePath()) && forceCheckpoint;
+    return !clientContext->isInMemory() && forceCheckpoint;
 }
 
 void Transaction::commit(storage::WAL* wal) {
     localStorage->commit();
     undoBuffer->commit(commitTS);
-    if (isWriteTransaction() && shouldLogToWAL()) {
+    if (shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logAndFlushCommit();
     }
@@ -80,7 +79,7 @@ void Transaction::commit(storage::WAL* wal) {
 void Transaction::rollback(storage::WAL* wal) {
     localStorage->rollback();
     undoBuffer->rollback(this);
-    if (isWriteTransaction() && shouldLogToWAL()) {
+    if (shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logRollback();
     }
@@ -105,11 +104,7 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY: {
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
-            auto& entry = newCatalogEntry->constCast<TableCatalogEntry>();
             KU_ASSERT(catalogEntry.isDeleted());
-            if (entry.hasParent()) { // TODO(Guodong): I don't think this is still needed
-                return;
-            }
             wal->logCreateCatalogEntryRecord(newCatalogEntry, isInternal);
         } else {
             throw common::RuntimeException("This shouldn't happen. Alter table is not supported.");
@@ -183,7 +178,7 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_
     const SequenceRollbackData& data) {
     undoBuffer->createSequenceChange(*sequenceEntry, data);
     hasCatalogChanges = true;
-    if (clientContext->getTransaction()->shouldLogToWAL()) {
+    if (shouldLogToWAL()) {
         clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getOID(), kCount);
     }
 }

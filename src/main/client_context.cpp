@@ -243,6 +243,14 @@ RandomEngine* ClientContext::getRandomEngine() const {
     return randomEngine.get();
 }
 
+bool ClientContext::isInMemory() const {
+    if (remoteDatabase != nullptr) {
+        // If we are connected to a remote database, we assume it is not in memory.
+        return false;
+    }
+    return localDatabase->storageManager->isInMemory();
+}
+
 std::string ClientContext::getEnvVariable(const std::string& name) {
 #if defined(_WIN32)
     auto envValue = WindowsUtils::utf8ToUnicode(name.c_str());

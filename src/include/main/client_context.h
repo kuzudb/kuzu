@@ -131,6 +131,7 @@ public:
     transaction::TransactionManager* getTransactionManagerUnsafe() const;
     common::VirtualFileSystem* getVFSUnsafe() const;
     common::RandomEngine* getRandomEngine() const;
+    bool isInMemory() const;
 
     static std::string getEnvVariable(const std::string& name);
 

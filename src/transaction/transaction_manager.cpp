@@ -98,7 +98,7 @@ void TransactionManager::rollback(main::ClientContext& clientContext, Transactio
 
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
     UniqLock lck{mtxForSerializingPublicFunctionCalls};
-    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
+    if (clientContext.isInMemory()) {
         return;
     }
     checkpointNoLock(clientContext);
