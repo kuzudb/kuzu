@@ -12,6 +12,7 @@
 #include "storage/store/column.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"
+#include "storage/store/null_column.h"
 #include "storage/store/string_chunk_data.h"
 #include "transaction/transaction.h"
 
@@ -117,8 +118,11 @@ void StringColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) co
 void StringColumn::scanSegment(const Transaction* transaction, const SegmentState& state,
     offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector,
     offset_t offsetInResult) const {
-    Column::scanSegment(transaction, state, startOffsetInChunk, numValuesToScan, resultVector,
-        offsetInResult);
+    if (nullColumn) {
+        KU_ASSERT(state.nullState);
+        nullColumn->scanSegment(transaction, *state.nullState, startOffsetInChunk, numValuesToScan,
+            resultVector, offsetInResult);
+    }
 
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {
@@ -137,26 +141,31 @@ void StringColumn::scanSegment(const transaction::Transaction* transaction,
     KU_ASSERT(resultChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING);
 
     auto* stringResultChunk = ku_dynamic_cast<StringChunkData*>(resultChunk);
+    // Revert change to numValues from Column::scanSegment (see note in list_column.cpp)
+    // This shouldn't be necessary in future
+    stringResultChunk->getIndexColumnChunk()->setNumValues(startOffsetInResult);
 
-    indexColumn->scanSegment(transaction, getChildState(state, ChildStateIndex::INDEX),
-        stringResultChunk->getIndexColumnChunk(), startOffsetInSegment, numValuesToScan);
-
-    std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
-    for (auto i = 0u; i < numValuesToScan; i++) {
-        if (!resultChunk->isNull(startOffsetInResult + i)) {
-            offsetsToScan.emplace_back(
-                stringResultChunk->getIndexColumnChunk()->getValue<string_index_t>(i),
-                startOffsetInResult + i);
-        }
+    auto* indexChunk = stringResultChunk->getIndexColumnChunk();
+    indexColumn->scanSegment(transaction, getChildState(state, ChildStateIndex::INDEX), indexChunk,
+        startOffsetInSegment, numValuesToScan);
+    // TODO(bmwinger): each index needs to be incremented by the initial size of the dictionary
+    auto initialDictSize = stringResultChunk->getDictionaryChunk().getOffsetChunk()->getNumValues();
+    for (row_idx_t i = 0; i < numValuesToScan; i++) {
+        indexChunk->setValue<string_index_t>(
+            indexChunk->getValue<string_index_t>(startOffsetInResult + i) + initialDictSize,
+            startOffsetInResult + i);
     }
-
-    if (offsetsToScan.size() == 0) {
-        // All scanned values are null
-        return;
-    }
+    auto initialDictDataSize =
+        stringResultChunk->getDictionaryChunk().getStringDataChunk()->getNumValues();
+    auto* offsetChunk = stringResultChunk->getDictionaryChunk().getOffsetChunk();
     // FIXME(bmwinger): this is temporary and will not perform well (scans everything to avoid
     // implementing partial scans to ColumnChunkData)
     dictionary.scan(transaction, state, stringResultChunk->getDictionaryChunk());
+    // Each offset needs to be incremented by the initial size of the dictionary data chunk
+    for (row_idx_t i = initialDictSize; i < offsetChunk->getNumValues(); i++) {
+        offsetChunk->setValue<string_offset_t>(
+            offsetChunk->getValue<string_offset_t>(i) + initialDictDataSize, i);
+    }
 }
 
 void StringColumn::scanUnfiltered(const Transaction* transaction, const SegmentState& state,
