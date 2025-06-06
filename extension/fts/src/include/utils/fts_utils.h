@@ -1,12 +1,23 @@
 #pragma once
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "function/fts_config.h"
 #include "main/client_context.h"
 
 namespace kuzu {
+namespace storage {
+class NodeTable;
+}
+
 namespace fts_extension {
 
 struct FTSUtils {
+
+    static void normalizeQuery(std::string& query);
+
+    static std::vector<std::string> stemTerms(std::vector<std::string> terms,
+        const FTSConfig& config, storage::MemoryManager* mm, storage::NodeTable* stopwordsTable,
+        transaction::Transaction* tx, bool isConjunctive);
 
     static std::string getDefaultStopWordsTableName() {
         return common::stringFormat("default_english_stopwords");

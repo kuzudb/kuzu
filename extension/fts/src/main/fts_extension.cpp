@@ -6,18 +6,28 @@
 #include "function/drop_fts_index.h"
 #include "function/query_fts_index.h"
 #include "function/stem.h"
+#include "index/fts_index.h"
 #include "main/client_context.h"
+#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace fts_extension {
 
 using namespace extension;
 
-static void initFTSEntries(const transaction::Transaction* transaction, catalog::Catalog& catalog) {
-    for (auto& indexEntry : catalog.getIndexEntries(transaction)) {
+static void initFTSEntries(main::ClientContext* context, catalog::Catalog& catalog) {
+    auto storageManager = context->getStorageManager();
+    for (auto& indexEntry : catalog.getIndexEntries(&transaction::DUMMY_TRANSACTION)) {
         if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME &&
             !indexEntry->isLoaded()) {
             indexEntry->setAuxInfo(FTSIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
+            auto& nodeTable =
+                storageManager->getTable(indexEntry->getTableID())->cast<storage::NodeTable>();
+            auto optionalIndex = nodeTable.getIndexHolder(indexEntry->getIndexName());
+            KU_ASSERT_UNCONDITIONAL(
+                optionalIndex.has_value() && !optionalIndex.value().get().isLoaded());
+            auto& unloadedIndex = optionalIndex.value().get();
+            unloadedIndex.load(context, storageManager);
         }
     }
 }
@@ -30,7 +40,8 @@ void FtsExtension::load(main::ClientContext* context) {
     ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(db);
     ExtensionUtils::addInternalStandaloneTableFunc<InternalDropFTSFunction>(db);
-    initFTSEntries(&transaction::DUMMY_TRANSACTION, *db.getCatalog());
+    ExtensionUtils::registerIndexType(db, FTSIndex::getIndexType());
+    initFTSEntries(context, *db.getCatalog());
 }
 
 } // namespace fts_extension

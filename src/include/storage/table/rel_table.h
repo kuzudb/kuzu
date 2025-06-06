@@ -91,7 +91,7 @@ struct LocalRelTableScanState final : RelTableScanState {
     }
 };
 
-struct RelTableInsertState final : TableInsertState {
+struct KUZU_API RelTableInsertState : TableInsertState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
 
@@ -153,6 +153,9 @@ public:
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
+    void initInsertState(const transaction::Transaction*, TableInsertState&) override {
+        // DO NOTHING.
+    }
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;

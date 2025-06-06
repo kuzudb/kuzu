@@ -23,7 +23,7 @@ class Transaction;
 namespace storage {
 class NodeTable;
 
-struct KUZU_API NodeTableScanState final : TableScanState {
+struct KUZU_API NodeTableScanState final : public TableScanState {
     NodeTableScanState(common::ValueVector* nodeIDVector,
         std::vector<common::ValueVector*> outputVectors,
         std::shared_ptr<common::DataChunkState> outChunkState)
@@ -42,17 +42,20 @@ struct KUZU_API NodeTableScanState final : TableScanState {
         common::offset_t numNodes);
 };
 
-struct NodeTableInsertState final : TableInsertState {
+struct KUZU_API NodeTableInsertState : public TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
+    std::vector<std::unique_ptr<Index::InsertState>> indexInsertStates;
 
     explicit NodeTableInsertState(common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector, std::vector<common::ValueVector*> propertyVectors)
         : TableInsertState{std::move(propertyVectors)}, nodeIDVector{nodeIDVector},
           pkVector{pkVector} {}
+
+    NodeTableInsertState(const NodeTableInsertState&) = delete;
 };
 
-struct NodeTableUpdateState final : TableUpdateState {
+struct KUZU_API NodeTableUpdateState : public TableUpdateState {
     common::ValueVector& nodeIDVector;
     // pkVector is nullptr if we are not updating primary key column.
     common::ValueVector* pkVector;
@@ -121,6 +124,8 @@ public:
     common::offset_t validateUniquenessConstraint(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& propertyVectors) const;
 
+    void initInsertState(const transaction::Transaction* transaction,
+        TableInsertState& insertState) override;
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
@@ -141,6 +146,7 @@ public:
     }
 
     void addIndex(std::unique_ptr<Index> index);
+    void dropIndex(const std::string& name);
 
     common::column_id_t getPKColumnID() const { return pkColumnID; }
     PrimaryKeyIndex* getPKIndex() const {
@@ -223,7 +229,8 @@ private:
         common::ValueVector* pkVector) const;
 
     visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
-    common::DataChunk constructDataChunkForPKColumn() const;
+    common::DataChunk constructDataChunkForColumns(
+        const std::vector<common::column_id_t>& columnIDs) const;
     void scanIndexColumns(transaction::Transaction* transaction, IndexScanHelper& scanHelper,
         const NodeGroupCollection& nodeGroups_) const;
 

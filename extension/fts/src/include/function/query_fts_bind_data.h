@@ -23,20 +23,25 @@ struct QueryFTSBindData final : function::GDSBindData {
     const catalog::IndexCatalogEntry& entry;
     QueryFTSOptionalParams optionalParams;
     common::table_id_t outputTableID;
+    common::idx_t numDocs;
+    double avgDocLen;
 
     QueryFTSBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
         std::shared_ptr<binder::Expression> docs, std::shared_ptr<binder::Expression> query,
-        const catalog::IndexCatalogEntry& entry, QueryFTSOptionalParams optionalParams)
+        const catalog::IndexCatalogEntry& entry, QueryFTSOptionalParams optionalParams,
+        common::idx_t numDocs, double avgDocLen)
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(docs)},
           query{std::move(query)}, entry{entry}, optionalParams{std::move(optionalParams)},
-          outputTableID{nodeOutput->constCast<binder::NodeExpression>().getTableIDs()[0]} {
+          outputTableID{nodeOutput->constCast<binder::NodeExpression>().getTableIDs()[0]},
+          numDocs{numDocs}, avgDocLen{avgDocLen} {
         auto& nodeExpr = nodeOutput->constCast<binder::NodeExpression>();
         KU_ASSERT(nodeExpr.getNumEntries() == 1);
         outputTableID = nodeExpr.getEntry(0)->getTableID();
     }
     QueryFTSBindData(const QueryFTSBindData& other)
         : GDSBindData{other}, query{other.query}, entry{other.entry},
-          optionalParams{other.optionalParams}, outputTableID{other.outputTableID} {}
+          optionalParams{other.optionalParams}, outputTableID{other.outputTableID},
+          numDocs{other.numDocs}, avgDocLen{other.avgDocLen} {}
 
     std::vector<std::string> getTerms(main::ClientContext& context) const;
 

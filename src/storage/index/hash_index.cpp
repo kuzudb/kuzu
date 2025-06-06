@@ -521,7 +521,7 @@ bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uin
     return retVal;
 }
 
-void PrimaryKeyIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
+void PrimaryKeyIndex::commitInsert(Transaction* transaction, const ValueVector& nodeIDVector,
     const std::vector<ValueVector*>& indexVectors, Index::InsertState& insertState) {
     KU_ASSERT(indexVectors.size() == 1);
     const auto& pkVector = *indexVectors[0];

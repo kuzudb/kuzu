@@ -9,6 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+TableScanState::~TableScanState() = default;
+
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void TableScanState::resetOutVectors() {
     for (const auto& outputVector : outputVectors) {
@@ -28,6 +30,15 @@ void TableScanState::setToTable(const transaction::Transaction*, Table* table_,
     nodeGroupScanState->chunkStates.resize(columnIDs.size());
 }
 
+TableInsertState::TableInsertState(std::vector<common::ValueVector*> propertyVectors)
+    : propertyVectors{std::move(propertyVectors)} {}
+TableInsertState::~TableInsertState() = default;
+TableUpdateState::TableUpdateState(common::column_id_t columnID,
+    common::ValueVector& propertyVector)
+    : columnID{columnID}, propertyVector{propertyVector} {}
+TableUpdateState::~TableUpdateState() = default;
+TableDeleteState::~TableDeleteState() = default;
+
 Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
     MemoryManager* memoryManager)
     : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
@@ -35,6 +46,8 @@ Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager*
       dataFH{storageManager->getDataFH()}, memoryManager{memoryManager},
       shadowFile{&storageManager->getShadowFile()}, hasChanges{false},
       inMemory{storageManager->isInMemory()}, readOnly{storageManager->isReadOnly()} {}
+
+Table::~Table() = default;
 
 bool Table::scan(transaction::Transaction* transaction, TableScanState& scanState) {
     return scanInternal(transaction, scanState);

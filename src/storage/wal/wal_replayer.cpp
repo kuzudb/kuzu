@@ -241,12 +241,13 @@ void WALReplayer::replayNodeTableInsertRecord(const WALRecord& walRecord) const 
     auto& pkVector = *insertionRecord.ownedVectors[table.getPKColumnID()];
     const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
     nodeIDVector->setState(anchorState);
+    const auto insertState =
+        std::make_unique<NodeTableInsertState>(*nodeIDVector, pkVector, propertyVectors);
+    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+    table.initInsertState(clientContext.getTransaction(), *insertState);
     anchorState->getSelVectorUnsafe().setToFiltered(1);
     for (auto i = 0u; i < numNodes; i++) {
         anchorState->getSelVectorUnsafe()[0] = i;
-        const auto insertState =
-            std::make_unique<NodeTableInsertState>(*nodeIDVector, pkVector, propertyVectors);
-        KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
         table.insert(clientContext.getTransaction(), *insertState);
     }
 }
@@ -270,12 +271,13 @@ void WALReplayer::replayRelTableInsertRecord(const WALRecord& walRecord) const {
         }
         propertyVectors.push_back(insertionRecord.ownedVectors[i].get());
     }
+    const auto insertState = std::make_unique<RelTableInsertState>(
+        *insertionRecord.ownedVectors[LOCAL_BOUND_NODE_ID_COLUMN_ID],
+        *insertionRecord.ownedVectors[LOCAL_NBR_NODE_ID_COLUMN_ID], propertyVectors);
+    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
     for (auto i = 0u; i < numRels; i++) {
         anchorState->getSelVectorUnsafe()[0] = i;
-        const auto insertState = std::make_unique<RelTableInsertState>(
-            *insertionRecord.ownedVectors[LOCAL_BOUND_NODE_ID_COLUMN_ID],
-            *insertionRecord.ownedVectors[LOCAL_NBR_NODE_ID_COLUMN_ID], propertyVectors);
-        KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+        table.initInsertState(clientContext.getTransaction(), *insertState);
         table.insert(clientContext.getTransaction(), *insertState);
     }
 }

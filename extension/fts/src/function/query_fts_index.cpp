@@ -7,12 +7,13 @@
 #include "common/exception/binder.h"
 #include "common/types/internal_id_util.h"
 #include "function/fts_index_utils.h"
-#include "function/fts_utils.h"
 #include "function/gds/gds_utils.h"
 #include "function/query_fts_bind_data.h"
+#include "index/fts_index.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
+#include "utils/fts_utils.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -123,8 +124,8 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
     }
     auto auxInfo = bindData.entry.getAuxInfo().cast<FTSIndexAuxInfo>();
     for (auto& scoreData : scoreInfo.scoreData) {
-        auto numDocs = auxInfo.numDocs;
-        auto avgDocLen = auxInfo.avgDocLen;
+        auto numDocs = bindData.numDocs;
+        auto avgDocLen = bindData.avgDocLen;
         auto df = scoreData.df;
         auto tf = scoreData.tf;
         score += log10((numDocs - df + 0.5) / (df + 0.5) + 1) *
@@ -327,9 +328,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
     auto scoreColumn = input->binder->createVariable(scoreColumnName, LogicalType::DOUBLE());
     columns.push_back(scoreColumn);
+    auto nodeTable =
+        context->getStorageManager()->getTable(ftsIndexEntry->getTableID())->ptrCast<NodeTable>();
+    auto index = nodeTable->getIndex(indexName);
+    KU_ASSERT(index.has_value());
+    auto& ftsIndex = index.value()->cast<FTSIndex>();
+    auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
     auto bindData =
         std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
-            std::move(query), *ftsIndexEntry, QueryFTSOptionalParams{input->optionalParamsLegacy});
+            std::move(query), *ftsIndexEntry, QueryFTSOptionalParams{input->optionalParamsLegacy},
+            ftsStorageInfo.numDocs, ftsStorageInfo.avgDocLen);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
 }

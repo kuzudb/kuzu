@@ -77,9 +77,11 @@ The Dragon's Call
 -STATEMENT CREATE (b:Book {abstract: 'A fantasy tale of dragons and magic.', author: 'J. K. Rowling', title: 'Harry Potter and the Goblet of Fire'});
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'goblet') RETURN node.title;
----- 0
+---- 1
+Harry Potter and the Goblet of Fire
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'dragons') RETURN node.title;
----- 0
+---- 1
+Harry Potter and the Goblet of Fire
 -STATEMENT CALL _DROP_FTS_INDEX('Book', 'book_index_small');
 ---- error
 Catalog exception: function _DROP_FTS_INDEX does not exist.

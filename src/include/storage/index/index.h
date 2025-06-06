@@ -67,7 +67,7 @@ struct KUZU_API IndexInfo {
 
 struct KUZU_API IndexStorageInfo {
     IndexStorageInfo() {}
-    virtual ~IndexStorageInfo() = default;
+    virtual ~IndexStorageInfo();
     DELETE_COPY_DEFAULT_MOVE(IndexStorageInfo);
 
     virtual std::shared_ptr<common::BufferedSerializer> serialize() const;
@@ -76,12 +76,17 @@ struct KUZU_API IndexStorageInfo {
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
+
+    template<typename TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
+    }
 };
 
 class KUZU_API Index {
 public:
     struct InsertState {
-        virtual ~InsertState() = default;
+        virtual ~InsertState();
         template<typename TARGET>
         TARGET& cast() {
             return common::ku_dynamic_cast<TARGET&>(*this);
@@ -95,7 +100,7 @@ public:
         : indexInfo{std::move(indexInfo)}, storageInfo{nullptr},
           storageInfoBuffer{std::move(storageBuffer)}, storageInfoBufferSize{storageBufferSize},
           loaded{false} {}
-    virtual ~Index() = default;
+    virtual ~Index();
 
     DELETE_COPY_AND_MOVE(Index);
 
@@ -108,6 +113,9 @@ public:
     virtual std::unique_ptr<InsertState> initInsertState(
         const transaction::Transaction* transaction, MemoryManager* mm, visible_func isVisible) = 0;
     virtual void insert(transaction::Transaction* transaction,
+        const common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
+    virtual void commitInsert(transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
 
@@ -123,6 +131,7 @@ public:
         KU_ASSERT(!loaded);
         return std::span(storageInfoBuffer.get(), storageInfoBufferSize);
     }
+    const IndexStorageInfo& getStorageInfo() const { return *storageInfo; }
     virtual void serialize(common::Serializer& ser) const;
 
     template<typename TARGET>

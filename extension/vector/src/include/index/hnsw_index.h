@@ -99,15 +99,19 @@ struct HNSWStorageInfo final : storage::IndexStorageInfo {
 
 class HNSWIndex : public storage::Index {
 public:
-    explicit HNSWIndex(storage::IndexInfo indexInfo,
-        std::unique_ptr<storage::IndexStorageInfo> storageInfo, HNSWIndexConfig config,
-        common::ArrayTypeInfo typeInfo)
+    HNSWIndex(storage::IndexInfo indexInfo, std::unique_ptr<storage::IndexStorageInfo> storageInfo,
+        HNSWIndexConfig config, common::ArrayTypeInfo typeInfo)
         : Index{std::move(indexInfo), std::move(storageInfo)}, config{std::move(config)},
           typeInfo{std::move(typeInfo)} {
         metricFunc =
             HNSWIndexUtils::getMetricsFunction(this->config.metric, this->typeInfo.getChildType());
     }
     ~HNSWIndex() override = default;
+
+    void commitInsert(transaction::Transaction*, const common::ValueVector&,
+        const std::vector<common::ValueVector*>&, InsertState&) override {
+        KU_UNREACHABLE;
+    }
 
     common::LogicalType getElementType() const { return typeInfo.getChildType().copy(); }
 
@@ -255,7 +259,7 @@ public:
         KU_UNREACHABLE;
     }
     void insert(transaction::Transaction*, const common::ValueVector&,
-        const std::vector<common::ValueVector*>&, Index::InsertState&) override {
+        const std::vector<common::ValueVector*>&, InsertState&) override {
         KU_UNREACHABLE;
     }
 

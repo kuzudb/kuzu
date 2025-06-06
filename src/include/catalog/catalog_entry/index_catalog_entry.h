@@ -92,6 +92,7 @@ public:
 
     void setAuxInfo(std::unique_ptr<IndexAuxInfo> auxInfo_);
     const IndexAuxInfo& getAuxInfo() const { return *auxInfo; }
+    IndexAuxInfo& getAuxInfoUnsafe() { return *auxInfo; }
 
     bool isLoaded() const { return auxBuffer == nullptr; }
 

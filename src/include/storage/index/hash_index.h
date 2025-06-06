@@ -376,9 +376,12 @@ public:
         MemoryManager*, visible_func isVisible) override {
         return std::make_unique<InsertState>(isVisible);
     }
-    void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
-        const std::vector<common::ValueVector*>& indexVectors,
-        Index::InsertState& insertState) override;
+    void insert(transaction::Transaction*, const common::ValueVector&,
+        const std::vector<common::ValueVector*>&, Index::InsertState&) override {
+        // DO NOTHING.
+        // For hash index, we don't need to do anything here because the insertions are handled when
+        // the transaction commits.
+    }
     bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
         common::offset_t value, visible_func isVisible) {
         return insert(transaction, key.getAsStringView(), value, isVisible);
@@ -391,6 +394,10 @@ public:
     }
     bool insert(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t value, visible_func isVisible);
+    void commitInsert(transaction::Transaction* transaction,
+        const common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& indexVectors,
+        Index::InsertState& insertState) override;
 
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // If a key fails to insert, it immediately returns without inserting any more values,

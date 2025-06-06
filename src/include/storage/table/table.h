@@ -51,7 +51,7 @@ struct KUZU_API TableScanState {
         : table{nullptr}, nodeIDVector(nullptr), outState{nullptr}, columnIDs{std::move(columnIDs)},
           semiMask{nullptr}, columns{std::move(columns)} {}
 
-    virtual ~TableScanState() = default;
+    virtual ~TableScanState();
     DELETE_COPY_DEFAULT_MOVE(TableScanState);
 
     virtual void setToTable(const transaction::Transaction* transaction, Table* table_,
@@ -81,12 +81,11 @@ struct KUZU_API TableScanState {
     }
 };
 
-struct TableInsertState {
+struct KUZU_API TableInsertState {
     std::vector<common::ValueVector*> propertyVectors;
 
-    explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors)
-        : propertyVectors{std::move(propertyVectors)} {}
-    virtual ~TableInsertState() = default;
+    explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors);
+    virtual ~TableInsertState();
 
     template<typename T>
     const T& constCast() const {
@@ -98,13 +97,12 @@ struct TableInsertState {
     }
 };
 
-struct TableUpdateState {
+struct KUZU_API TableUpdateState {
     common::column_id_t columnID;
     common::ValueVector& propertyVector;
 
-    TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector)
-        : columnID{columnID}, propertyVector{propertyVector} {}
-    virtual ~TableUpdateState() = default;
+    TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector);
+    virtual ~TableUpdateState();
 
     template<typename T>
     const T& constCast() const {
@@ -117,7 +115,7 @@ struct TableUpdateState {
 };
 
 struct TableDeleteState {
-    virtual ~TableDeleteState() = default;
+    virtual ~TableDeleteState();
 
     template<typename T>
     const T& constCast() const {
@@ -145,7 +143,7 @@ class KUZU_API Table {
 public:
     Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
         MemoryManager* memoryManager);
-    virtual ~Table() = default;
+    virtual ~Table();
 
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
@@ -157,6 +155,8 @@ public:
         bool resetCachedBoundNodeSelVec = true) const = 0;
     bool scan(transaction::Transaction* transaction, TableScanState& scanState);
 
+    virtual void initInsertState(const transaction::Transaction* transaction,
+        TableInsertState& insertState) = 0;
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
     virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
