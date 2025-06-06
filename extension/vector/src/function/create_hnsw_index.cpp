@@ -27,8 +27,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
         {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
@@ -266,20 +266,20 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
         bindData->tableEntry->getTableID(), bindData->indexName, std::vector{bindData->propertyID},
         std::move(auxInfo));
     catalog->createIndex(transaction, std::move(indexEntry));
-    auto nodeTable =
-        clientContext->getStorageManager()->getTable(nodeTableID)->ptrCast<storage::NodeTable>();
     auto columnID = bindData->tableEntry->getColumnID(bindData->propertyID);
-    auto hnswIndexType = OnDiskHNSWIndex::getIndexType();
+    const auto hnswIndexType = OnDiskHNSWIndex::getIndexType();
     storage::IndexInfo indexInfo{bindData->indexName, hnswIndexType.typeName, nodeTableID,
         {columnID}, {PhysicalTypeID::ARRAY},
         hnswIndexType.constraintType == storage::IndexConstraintType::PRIMARY,
         hnswIndexType.definitionType == storage::IndexDefinitionType::BUILTIN};
-    auto storageInfo = std::make_unique<HNSWStorageInfo>(upperTable->getTableID(),
-        lowerTable->getTableID(), index->getUpperEntryPoint(), index->getLowerEntryPoint());
+    auto storageInfo = std::make_unique<HNSWStorageInfo>(
+        upperTable->cast<catalog::RelGroupCatalogEntry>().getSingleRelEntryInfo().oid,
+        lowerTable->cast<catalog::RelGroupCatalogEntry>().getSingleRelEntryInfo().oid,
+        index->getUpperEntryPoint(), index->getLowerEntryPoint());
     auto onDiskIndex = std::make_unique<OnDiskHNSWIndex>(context->clientContext, indexInfo,
-        std::move(storageInfo), bindData->tableEntry->ptrCast<catalog::NodeTableCatalogEntry>(),
-        upperTable->ptrCast<catalog::RelGroupCatalogEntry>(),
-        lowerTable->ptrCast<catalog::RelGroupCatalogEntry>(), bindData->config.copy());
+        std::move(storageInfo), bindData->config.copy());
+    auto nodeTable =
+        clientContext->getStorageManager()->getTable(nodeTableID)->ptrCast<storage::NodeTable>();
     nodeTable->addIndex(std::move(onDiskIndex));
 }
 

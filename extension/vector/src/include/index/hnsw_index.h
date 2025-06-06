@@ -218,6 +218,8 @@ struct HNSWSearchState {
     QueryHNSWConfig config;
     uint64_t ef;
     common::SemiMask* semiMask;
+    catalog::TableCatalogEntry* upperRelTableEntry;
+    catalog::TableCatalogEntry* lowerRelTableEntry;
     std::unique_ptr<graph::OnDiskGraph> upperGraph;
     std::unique_ptr<graph::OnDiskGraph> lowerGraph;
 
@@ -240,10 +242,7 @@ struct HNSWSearchState {
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
     OnDiskHNSWIndex(main::ClientContext* context, storage::IndexInfo indexInfo,
-        std::unique_ptr<storage::IndexStorageInfo> storageInfo,
-        catalog::NodeTableCatalogEntry* nodeTableEntry,
-        catalog::RelGroupCatalogEntry* upperRelTableEntry,
-        catalog::RelGroupCatalogEntry* lowerRelTableEntry, HNSWIndexConfig config);
+        std::unique_ptr<storage::IndexStorageInfo> storageInfo, HNSWIndexConfig config);
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
         const void* queryVector, HNSWSearchState& searchState) const;
@@ -318,11 +317,6 @@ private:
     static constexpr uint64_t FILTERED_SEARCH_INITIAL_CANDIDATES = 10;
 
     storage::NodeTable& nodeTable;
-    catalog::RelGroupCatalogEntry* upperRelTableEntry;
-    catalog::RelGroupCatalogEntry* lowerRelTableEntry;
-
-    // std::unique_ptr<graph::OnDiskGraph> upperGraph;
-    // std::unique_ptr<graph::OnDiskGraph> lowerGraph;
     storage::RelTable* upperRelTable;
     storage::RelTable* lowerRelTable;
     std::unique_ptr<OnDiskEmbeddings> embeddings;
