@@ -1,7 +1,7 @@
 #include "index/fts_index.h"
 
 #include "catalog/fts_index_catalog_entry.h"
-#include "index/fts_internal_table_info.h"
+#include "index/fts_update_state.h"
 #include "utils/fts_utils.h"
 
 namespace kuzu {
@@ -29,48 +29,6 @@ std::unique_ptr<Index> FTSIndex::load(main::ClientContext* context,
         std::move(ftsConfig), context);
 }
 
-struct FTSInsertState final : Index::InsertState {
-    MemoryManager* mm;
-    std::shared_ptr<DataChunkState> dataChunkState;
-    ValueVector idVector;
-    ValueVector srcIDVector;
-    ValueVector dstIDVector;
-    ValueVector int64PKVector;
-    ValueVector stringPKVector;
-    ValueVector uint64PropVector;
-
-    NodeTableInsertState docTableInsertState;
-    NodeTableScanState termsTableScanState;
-    NodeTableUpdateState termsTableUpdateState;
-    NodeTableInsertState termsTableInsertState;
-    RelTableInsertState appearsInTableInsertState;
-
-    FTSInsertState(MemoryManager* mm, column_id_t dfColumnID, Transaction* transaction,
-        FTSInternalTableInfo& tableInfo);
-};
-
-FTSInsertState::FTSInsertState(MemoryManager* mm, column_id_t dfColumnID, Transaction* transaction,
-    FTSInternalTableInfo& tableInfo)
-    : mm{mm}, dataChunkState{DataChunkState::getSingleValueDataChunkState()},
-      idVector{LogicalType::INTERNAL_ID(), mm, dataChunkState},
-      srcIDVector{LogicalType::INTERNAL_ID(), mm, dataChunkState},
-      dstIDVector{LogicalType::INTERNAL_ID(), mm, dataChunkState},
-      int64PKVector{LogicalType::INT64(), mm, dataChunkState},
-      stringPKVector{LogicalType::STRING(), mm, dataChunkState},
-      uint64PropVector{LogicalType::UINT64(), mm, dataChunkState},
-      docTableInsertState{idVector, int64PKVector,
-          std::vector<ValueVector*>{&int64PKVector, &uint64PropVector}},
-      termsTableScanState{&idVector, std::vector{&uint64PropVector}, dataChunkState},
-      termsTableUpdateState{dfColumnID, idVector, uint64PropVector},
-      termsTableInsertState{idVector, stringPKVector,
-          std::vector<ValueVector*>{&stringPKVector, &uint64PropVector}},
-      appearsInTableInsertState{srcIDVector, dstIDVector, {&idVector, &uint64PropVector}} {
-    termsTableScanState.setToTable(transaction, tableInfo.termsTable, {tableInfo.dfColumnID}, {});
-    tableInfo.docTable->initInsertState(transaction, docTableInsertState);
-    tableInfo.termsTable->initInsertState(transaction, termsTableInsertState);
-    tableInfo.appearsInfoTable->initInsertState(transaction, appearsInTableInsertState);
-}
-
 struct TermInfo {
     offset_t offset;
     uint64_t tf;
@@ -96,8 +54,7 @@ std::unique_ptr<IndexStorageInfo> FTSStorageInfo::deserialize(
 
 std::unique_ptr<Index::InsertState> FTSIndex::initInsertState(Transaction* transaction,
     MemoryManager* mm, visible_func /*isVisible*/) {
-    return std::make_unique<FTSInsertState>(mm, internalTableInfo.dfColumnID, transaction,
-        internalTableInfo);
+    return std::make_unique<FTSInsertState>(mm, transaction, internalTableInfo);
 }
 
 static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& config,
@@ -119,23 +76,36 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
     return terms;
 }
 
+struct DocInfo {
+    std::unordered_map<std::string, TermInfo> termInfos;
+    uint64_t docLen;
+
+    DocInfo(Transaction* transaction, FTSConfig& config, NodeTable* stopWordsTable,
+        const std::vector<ValueVector*>& indexVectors, sel_t pos, MemoryManager* mm);
+};
+
+DocInfo::DocInfo(Transaction* transaction, FTSConfig& config, NodeTable* stopWordsTable,
+    const std::vector<ValueVector*>& indexVectors, sel_t pos, MemoryManager* mm) {
+    auto terms = getTerms(transaction, config, stopWordsTable, indexVectors, pos, mm);
+    for (auto& term : terms) {
+        termInfos[term].tf++;
+    }
+    docLen = terms.size();
+}
+
 void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
     const std::vector<ValueVector*>& indexVectors, Index::InsertState& insertState) {
     auto totalInsertedDocLen = 0u;
+    auto& ftsInsertState = insertState.cast<FTSInsertState>();
     for (auto i = 0u; i < nodeIDVector.state->getSelSize(); i++) {
-        auto& ftsInsertState = insertState.cast<FTSInsertState>();
         auto pos = nodeIDVector.state->getSelVector()[i];
-        auto insertedNodeID = nodeIDVector.getValue<nodeID_t>(pos);
-        auto terms = getTerms(transaction, config, internalTableInfo.stopWordsTable, indexVectors,
-            pos, ftsInsertState.mm);
-        totalInsertedDocLen += terms.size();
-        std::unordered_map<std::string, TermInfo> tfCollection;
-        for (auto& term : terms) {
-            tfCollection[term].tf++;
-        }
-        auto insertedDocID = insertToDocTable(transaction, ftsInsertState, insertedNodeID, terms);
-        updateTermsTable(transaction, tfCollection, ftsInsertState);
-        insertToAppearsInTable(transaction, tfCollection, ftsInsertState, insertedDocID,
+        DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable, indexVectors, pos,
+            ftsInsertState.updateVectors.mm};
+        auto insertedDocID = insertToDocTable(transaction, ftsInsertState,
+            nodeIDVector.getValue<nodeID_t>(pos), docInfo.docLen);
+        totalInsertedDocLen += docInfo.docLen;
+        insertToTermsTable(transaction, docInfo.termInfos, ftsInsertState);
+        insertToAppearsInTable(transaction, docInfo.termInfos, ftsInsertState, insertedDocID,
             internalTableInfo.termsTable->getTableID());
     }
     auto& ftsStorageInfo = storageInfo->cast<FTSStorageInfo>();
@@ -146,40 +116,56 @@ void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
     ftsStorageInfo.numDocs += numInsertedDocs;
 }
 
-nodeID_t FTSIndex::insertToDocTable(Transaction* transaction, FTSInsertState& insertState,
-    nodeID_t insertedNodeID, const std::vector<std::string>& terms) const {
-    auto& ftsInsertState = insertState.cast<FTSInsertState>();
-    ftsInsertState.int64PKVector.setValue(0, insertedNodeID.offset);
-    ftsInsertState.uint64PropVector.setValue(0, static_cast<uint64_t>(terms.size()));
-    auto docTable = internalTableInfo.docTable;
-    docTable->insert(transaction, ftsInsertState.docTableInsertState);
-    return ftsInsertState.idVector.getValue<nodeID_t>(
-        ftsInsertState.idVector.state->getSelVector()[0]);
+void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector,
+    const std::vector<ValueVector*>& indexVectors, Index::DeleteState& deleteState) {
+    auto& ftsDeleteState = deleteState.cast<FTSDeleteState>();
+    for (auto i = 0u; i < nodeIDVector.state->getSelSize(); i++) {
+        auto pos = nodeIDVector.state->getSelVector()[i];
+        auto deletedNodeID = nodeIDVector.getValue<nodeID_t>(pos);
+        deleteFromDocTable(transaction, ftsDeleteState, deletedNodeID);
+        DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable, indexVectors, pos,
+            ftsDeleteState.updateVectors.mm};
+        deleteFromTermsTable(transaction, docInfo.termInfos, ftsDeleteState);
+        deleteFromAppearsInTable(transaction, ftsDeleteState, deletedNodeID);
+    }
 }
 
-void FTSIndex::updateTermsTable(Transaction* transaction,
+nodeID_t FTSIndex::insertToDocTable(Transaction* transaction, FTSInsertState& insertState,
+    nodeID_t insertedNodeID, uint64_t docLen) const {
+    auto& ftsInsertState = insertState.cast<FTSInsertState>();
+    ftsInsertState.updateVectors.int64PKVector.setValue(0, insertedNodeID.offset);
+    ftsInsertState.updateVectors.uint64PropVector.setValue(0, static_cast<uint64_t>(docLen));
+    auto docTable = internalTableInfo.docTable;
+    docTable->insert(transaction, ftsInsertState.docTableInsertState);
+    auto& docIDVector = ftsInsertState.updateVectors.idVector;
+    return docIDVector.getValue<nodeID_t>(docIDVector.state->getSelVector()[0]);
+}
+
+void FTSIndex::insertToTermsTable(Transaction* transaction,
     std::unordered_map<std::string, TermInfo>& tfCollection, FTSInsertState& ftsInsertState) const {
     auto termsTable = internalTableInfo.termsTable;
     internalID_t termNodeID{INVALID_OFFSET, termsTable->getTableID()};
-    // Insert to terms table
     for (auto& [term, termInfo] : tfCollection) {
-        ftsInsertState.stringPKVector.setValue(0, term);
-        // If the word already exists in the dict table, we update the df. Otherwise, we
-        // insert a new word entry to the dict table.
-        if (termsTable->lookupPK(transaction, &ftsInsertState.stringPKVector, 0 /* vectorPos */,
+        auto& termPKVector = ftsInsertState.updateVectors.stringPKVector;
+        termPKVector.setValue(0, term);
+        // If the term already exists in the terms table, we update the df. Otherwise, we
+        // insert a new term entry to the terms table.
+        auto& termIDVector = ftsInsertState.updateVectors.idVector;
+        auto& dfVector = ftsInsertState.updateVectors.uint64PropVector;
+        if (termsTable->lookupPK(transaction, &termPKVector, 0 /* vectorPos */,
                 termNodeID.offset)) {
-            ftsInsertState.idVector.setValue(0, termNodeID);
-            termsTable->initScanState(transaction, ftsInsertState.termsTableScanState,
-                termNodeID.tableID, termNodeID.offset);
-            termsTable->lookup(transaction, ftsInsertState.termsTableScanState);
-            ftsInsertState.uint64PropVector.setValue(0,
-                ftsInsertState.uint64PropVector.getValue<uint64_t>(0) + 1);
-            termsTable->update(transaction, ftsInsertState.termsTableUpdateState);
+            termIDVector.setValue(0, termNodeID);
+            termsTable->initScanState(transaction,
+                ftsInsertState.termsTableState.termsTableScanState, termNodeID.tableID,
+                termNodeID.offset);
+            termsTable->lookup(transaction, ftsInsertState.termsTableState.termsTableScanState);
+            dfVector.setValue(0, dfVector.getValue<uint64_t>(0) + 1);
+            termsTable->update(transaction, ftsInsertState.termsTableState.termsTableUpdateState);
             termInfo.offset = termNodeID.offset;
         } else {
-            ftsInsertState.uint64PropVector.setValue(0, 1);
+            dfVector.setValue(0, 1);
             termsTable->insert(transaction, ftsInsertState.termsTableInsertState);
-            termInfo.offset = ftsInsertState.idVector.getValue<nodeID_t>(0).offset;
+            termInfo.offset = termIDVector.getValue<nodeID_t>(0).offset;
         }
     }
 }
@@ -187,13 +173,59 @@ void FTSIndex::updateTermsTable(Transaction* transaction,
 void FTSIndex::insertToAppearsInTable(Transaction* transaction,
     const std::unordered_map<std::string, TermInfo>& tfCollection, FTSInsertState& ftsInsertState,
     nodeID_t docID, table_id_t termsTableID) const {
-    ftsInsertState.dstIDVector.setValue(0, docID);
+    ftsInsertState.updateVectors.dstIDVector.setValue(0, docID);
     for (auto& [term, termInfo] : tfCollection) {
-        ftsInsertState.srcIDVector.setValue(0, nodeID_t{termInfo.offset, termsTableID});
-        ftsInsertState.uint64PropVector.setValue(0, termInfo.tf);
+        ftsInsertState.updateVectors.srcIDVector.setValue(0,
+            nodeID_t{termInfo.offset, termsTableID});
+        ftsInsertState.updateVectors.uint64PropVector.setValue(0, termInfo.tf);
         internalTableInfo.appearsInfoTable->insert(transaction,
             ftsInsertState.appearsInTableInsertState);
     }
+}
+
+nodeID_t FTSIndex::deleteFromDocTable(Transaction* transaction, FTSDeleteState& deleteState,
+    nodeID_t deletedNodeID) const {
+    auto& pkVector = deleteState.updateVectors.int64PKVector;
+    pkVector.setValue(0, deletedNodeID.offset);
+    nodeID_t docNodeID{INVALID_OFFSET, internalTableInfo.docTable->getTableID()};
+    internalTableInfo.docTable->lookupPK(transaction, &pkVector, 0 /* vectorPos */,
+        docNodeID.offset);
+    deleteState.updateVectors.idVector.setValue(0, docNodeID);
+    internalTableInfo.docTable->delete_(transaction, deleteState.docTableDeleteState);
+    return docNodeID;
+}
+
+void FTSIndex::deleteFromTermsTable(Transaction* transaction,
+    std::unordered_map<std::string, TermInfo>& tfCollection, FTSDeleteState& ftsInsertState) const {
+    auto termsTable = internalTableInfo.termsTable;
+    internalID_t termNodeID{INVALID_OFFSET, termsTable->getTableID()};
+    for (auto& [term, termInfo] : tfCollection) {
+        auto& termPKVector = ftsInsertState.updateVectors.stringPKVector;
+        termPKVector.setValue(0, term);
+        // If the df of the term is > 1, we decrement the df by 1. Otherwise, we delete the entry.
+        auto& termIDVector = ftsInsertState.updateVectors.idVector;
+        auto& dfVector = ftsInsertState.updateVectors.uint64PropVector;
+        termsTable->lookupPK(transaction, &termPKVector, 0 /* vectorPos */, termNodeID.offset);
+        termIDVector.setValue(0, termNodeID);
+        termsTable->initScanState(transaction, ftsInsertState.termsTableState.termsTableScanState,
+            termNodeID.tableID, termNodeID.offset);
+        termsTable->lookup(transaction, ftsInsertState.termsTableState.termsTableScanState);
+        termInfo.offset = termNodeID.offset;
+        auto df = dfVector.getValue<uint64_t>(0);
+        if (df == 1) {
+            termsTable->delete_(transaction, ftsInsertState.termsTableDeleteState);
+        } else {
+            dfVector.setValue(0, df - 1);
+            termsTable->update(transaction, ftsInsertState.termsTableState.termsTableUpdateState);
+        }
+    }
+}
+
+void FTSIndex::deleteFromAppearsInTable(Transaction* transaction, FTSDeleteState& ftsDeleteState,
+    nodeID_t docID) const {
+    ftsDeleteState.updateVectors.dstIDVector.setValue(0, docID);
+    internalTableInfo.appearsInfoTable->detachDelete(transaction, RelDataDirection::FWD,
+        &ftsDeleteState.appearsInTableDeleteState);
 }
 
 } // namespace fts_extension

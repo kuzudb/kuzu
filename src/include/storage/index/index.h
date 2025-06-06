@@ -93,6 +93,14 @@ public:
         }
     };
 
+    struct DeleteState {
+        virtual ~DeleteState();
+        template<typename TARGET>
+        TARGET& cast() {
+            return common::ku_dynamic_cast<TARGET&>(*this);
+        }
+    };
+
     Index(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storageInfo)
         : indexInfo{std::move(indexInfo)}, storageInfo{std::move(storageInfo)},
           storageInfoBuffer{nullptr}, storageInfoBufferSize{0}, loaded{true} {}
@@ -115,6 +123,9 @@ public:
     virtual void insert(transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
+    virtual void delete_(transaction::Transaction* transaction,
+        const common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& indexVectors, DeleteState& deleteState) = 0;
     virtual void commitInsert(transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
