@@ -1,17 +1,20 @@
 # required for tests
 networkx~=3.0
-numpy~=1.26
+numpy~=2.0
 pandas~=2.2
 polars~=1.30
 pyarrow~=20.0
 pybind11~=2.13
 pytest
-torch
-torch-geometric~=2.3.0
-setuptools~=80.8
 pytest-asyncio~=1.0
+setuptools~=70.2
 
 # required for lint/formatting
 ruff==0.11.12
 mypy==1.16.0
-uv==0.7.8
+
+# cpu version of torch
+--find-links https://data.pyg.org/whl/torch-2.2.0+cpu.html
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torch-geometric~=2.3.0

@@ -28,6 +28,8 @@ def run_query_then_kill(tmp_path: Path, build_dir: Path, queries: str):
     time.sleep(5)
     proc.kill()
     proc.wait(5)
+    # Force remove the lock file. Safe since proc.wait() ensures the process has terminated.
+    Path(f"{tmp_path!s}/.lock").unlink(missing_ok=True)
 
 
 # Kill the database while it's in the middle of executing a long persistent query

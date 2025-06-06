@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from tools.python_api.test.type_aliases import ConnDB
+try:
+    from tools.python_api.test.type_aliases import ConnDB
+except ImportError:
+    from type_aliases import ConnDB
 
 # required by python-lint
 
