@@ -9,6 +9,12 @@
 namespace kuzu {
 namespace storage {
 
+IndexStorageInfo::~IndexStorageInfo() = default;
+
+Index::InsertState::~InsertState() = default;
+
+Index::~Index() = default;
+
 void IndexInfo::serialize(common::Serializer& ser) const {
     ser.write<std::string>(name);
     ser.write<std::string>(indexType);

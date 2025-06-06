@@ -67,7 +67,7 @@ struct KUZU_API IndexInfo {
 
 struct KUZU_API IndexStorageInfo {
     IndexStorageInfo() {}
-    virtual ~IndexStorageInfo() = default;
+    virtual ~IndexStorageInfo();
     DELETE_COPY_DEFAULT_MOVE(IndexStorageInfo);
 
     virtual std::shared_ptr<common::BufferedSerializer> serialize() const;
@@ -86,7 +86,7 @@ struct KUZU_API IndexStorageInfo {
 class KUZU_API Index {
 public:
     struct InsertState {
-        virtual ~InsertState() = default;
+        virtual ~InsertState();
         template<typename TARGET>
         TARGET& cast() {
             return common::ku_dynamic_cast<TARGET&>(*this);
@@ -100,7 +100,7 @@ public:
         : indexInfo{std::move(indexInfo)}, storageInfo{nullptr},
           storageInfoBuffer{std::move(storageBuffer)}, storageInfoBufferSize{storageBufferSize},
           loaded{false} {}
-    virtual ~Index() = default;
+    virtual ~Index();
 
     DELETE_COPY_AND_MOVE(Index);
 
