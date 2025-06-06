@@ -28,7 +28,8 @@ httplib::Headers GoogleGeminiEmbedding::getHeaders(const nlohmann::json& /*paylo
 }
 nlohmann::json GoogleGeminiEmbedding::getPayload(const std::string& model,
     const std::string& text) const {
-    return nlohmann::json{{"model", "models/" + model}, {"content", {{"parts", {{{"text", text}}}}}}};
+    return nlohmann::json{{"model", "models/" + model},
+        {"content", {{"parts", {{{"text", text}}}}}}};
 }
 std::vector<float> GoogleGeminiEmbedding::parseResponse(const httplib::Result& res) const {
     return nlohmann::json::parse(res->body)["embedding"]["values"].get<std::vector<float>>();
