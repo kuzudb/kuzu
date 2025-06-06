@@ -41,7 +41,8 @@ struct KUZU_API NativeGraphEntry {
     void setRelPredicate(std::shared_ptr<binder::Expression> predicate);
 
 private:
-    NativeGraphEntry(const NativeGraphEntry& other) : nodeInfos{other.nodeInfos}, relInfos{other.relInfos} {}
+    NativeGraphEntry(const NativeGraphEntry& other)
+        : nodeInfos{other.nodeInfos}, relInfos{other.relInfos} {}
 };
 
 } // namespace graph

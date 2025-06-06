@@ -85,7 +85,8 @@ class KUZU_API GDSFunction {
     static constexpr char NODE_COLUMN_NAME[] = "node";
 
 public:
-    static graph::NativeGraphEntry bindGraphEntry(main::ClientContext& context, const std::string& name);
+    static graph::NativeGraphEntry bindGraphEntry(main::ClientContext& context,
+        const std::string& name);
     static graph::NativeGraphEntry bindGraphEntry(main::ClientContext& context,
         const graph::ParsedNativeGraphEntry& parsedGraphEntry);
     static std::shared_ptr<binder::Expression> bindNodeOutput(const TableFuncBindInput& bindInput,

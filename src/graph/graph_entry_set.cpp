@@ -1,4 +1,5 @@
 #include "graph/graph_entry_set.h"
+
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 
@@ -15,10 +16,9 @@ void GraphEntrySet::validateGraphNotExist(const std::string& name) const {
 
 void GraphEntrySet::validateGraphExist(const std::string& name) const {
     if (!hasGraph(name)) {
-        throw RuntimeException(
-            stringFormat("Projected graph {} does not exists.", name));
+        throw RuntimeException(stringFormat("Projected graph {} does not exists.", name));
     }
 }
 
-}
-}
+} // namespace graph
+} // namespace kuzu

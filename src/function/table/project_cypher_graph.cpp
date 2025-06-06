@@ -1,10 +1,10 @@
-#include "function/table/standalone_call_function.h"
+#include "binder/binder.h"
 #include "function/table/bind_data.h"
+#include "function/table/standalone_call_function.h"
 #include "function/table/table_function.h"
-#include "processor/execution_context.h"
 #include "graph/graph_entry_set.h"
 #include "parser/parser.h"
-#include "binder/binder.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::graph;
@@ -38,7 +38,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     return 0;
 }
 
-
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext*,
     const TableFuncBindInput* input) {
     auto graphName = input->getLiteralVal<std::string>(0);
@@ -59,5 +58,5 @@ function_set ProjectGraphCypherFunction::getFunctionSet() {
     return functionSet;
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu

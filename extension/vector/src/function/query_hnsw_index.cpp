@@ -10,6 +10,7 @@
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
+#include "graph/graph_entry_set.h"
 #include "index/hnsw_index.h"
 #include "index/hnsw_index_utils.h"
 #include "parser/parser.h"
@@ -21,7 +22,6 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
-#include "graph/graph_entry_set.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -85,10 +85,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         if (graphEntry->type == graph::GraphEntryType::NATIVE) {
             auto& nativeEntry = graphEntry->cast<graph::ParsedNativeGraphEntry>();
             if (!nativeEntry.relInfos.empty() || nativeEntry.nodeInfos.size() != 1) {
-                throw BinderException(stringFormat("In vector filtered search, projected graph {} must contain exactly one node table.", tableOrGraphName));
+                throw BinderException(stringFormat("In vector filtered search, projected graph {} "
+                                                   "must contain exactly one node table.",
+                    tableOrGraphName));
             }
             auto nodeInfo = nativeEntry.nodeInfos[0];
-            cypherQuery = stringFormat("MATCH (n:`{}`) WHERE {} RETURN n", nodeInfo.tableName, nodeInfo.predicate);
+            cypherQuery = stringFormat("MATCH (n:`{}`) WHERE {} RETURN n", nodeInfo.tableName,
+                nodeInfo.predicate);
         } else {
             KU_ASSERT(graphEntry->type == graph::GraphEntryType::CYPHER);
             cypherQuery = graphEntry->cast<graph::ParsedCypherGraphEntry>().cypherQuery;
@@ -125,7 +128,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
         tableName = node.getEntry(0)->getName();
     } else {
-        throw BinderException(stringFormat("Cannot find table or graph named as {}.", tableOrGraphName));
+        throw BinderException(
+            stringFormat("Cannot find table or graph named as {}.", tableOrGraphName));
     }
     auto nodeTableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
         HNSWIndexUtils::IndexOperation::QUERY);

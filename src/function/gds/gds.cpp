@@ -4,8 +4,8 @@
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "graph/on_disk_graph.h"
 #include "graph/graph_entry_set.h"
+#include "graph/on_disk_graph.h"
 #include "main/client_context.h"
 #include "parser/parser.h"
 #include "planner/operator/logical_table_function_call.h"
@@ -115,7 +115,8 @@ static NativeGraphEntryTableInfo bindRelEntry(ClientContext& context, const std:
     }
 }
 
-NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const ParsedNativeGraphEntry& entry) {
+NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context,
+    const ParsedNativeGraphEntry& entry) {
     auto catalog = context.getCatalog();
     auto transaction = context.getTransaction();
     auto result = NativeGraphEntry();

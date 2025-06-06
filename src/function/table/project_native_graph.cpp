@@ -21,7 +21,8 @@ struct ProjectGraphNativeBindData final : TableFuncBindData {
     std::vector<ParsedNativeGraphTableInfo> nodeInfos;
     std::vector<ParsedNativeGraphTableInfo> relInfos;
 
-    ProjectGraphNativeBindData(std::string graphName, std::vector<ParsedNativeGraphTableInfo> nodeInfos,
+    ProjectGraphNativeBindData(std::string graphName,
+        std::vector<ParsedNativeGraphTableInfo> nodeInfos,
         std::vector<ParsedNativeGraphTableInfo> relInfos)
         : TableFuncBindData{0}, graphName{std::move(graphName)}, nodeInfos{std::move(nodeInfos)},
           relInfos{std::move(relInfos)} {}

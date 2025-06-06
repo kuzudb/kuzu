@@ -16,7 +16,7 @@ struct ProjectedGraphData {
     std::string type;
 
     ProjectedGraphData(std::string name, std::string type)
-        : name{std::move(name)}, type {std::move(type)} {}
+        : name{std::move(name)}, type{std::move(type)} {}
 };
 
 struct ShowProjectedGraphBindData : public TableFuncBindData {
@@ -44,7 +44,6 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
     }
     return numTablesToOutput;
 }
-
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {

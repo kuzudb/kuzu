@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+
 #include "common/cast.h"
 
 namespace kuzu {
@@ -36,19 +37,22 @@ struct ParsedNativeGraphTableInfo {
         : tableName{std::move(tableName)}, predicate{std::move(predicate)} {}
 };
 
-struct KUZU_API ParsedNativeGraphEntry : ParsedGraphEntry  {
+struct KUZU_API ParsedNativeGraphEntry : ParsedGraphEntry {
     std::vector<ParsedNativeGraphTableInfo> nodeInfos;
     std::vector<ParsedNativeGraphTableInfo> relInfos;
 
-    ParsedNativeGraphEntry(std::vector<ParsedNativeGraphTableInfo> nodeInfos, std::vector<ParsedNativeGraphTableInfo> relInfos)
-        : ParsedGraphEntry{GraphEntryType::NATIVE}, nodeInfos{std::move(nodeInfos)}, relInfos{std::move(relInfos)} {}
+    ParsedNativeGraphEntry(std::vector<ParsedNativeGraphTableInfo> nodeInfos,
+        std::vector<ParsedNativeGraphTableInfo> relInfos)
+        : ParsedGraphEntry{GraphEntryType::NATIVE}, nodeInfos{std::move(nodeInfos)},
+          relInfos{std::move(relInfos)} {}
 };
 
 struct KUZU_API ParsedCypherGraphEntry : ParsedGraphEntry {
     std::string cypherQuery;
 
-    explicit ParsedCypherGraphEntry(std::string cypherQuery) : ParsedGraphEntry{GraphEntryType::CYPHER}, cypherQuery{std::move(cypherQuery)} {}
+    explicit ParsedCypherGraphEntry(std::string cypherQuery)
+        : ParsedGraphEntry{GraphEntryType::CYPHER}, cypherQuery{std::move(cypherQuery)} {}
 };
 
-}
-}
+} // namespace graph
+} // namespace kuzu

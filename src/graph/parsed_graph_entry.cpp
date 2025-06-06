@@ -1,4 +1,5 @@
 #include "graph/parsed_graph_entry.h"
+
 #include "common/string_format.h"
 
 using namespace kuzu::common;
@@ -17,6 +18,5 @@ std::string GraphEntryTypeUtils::toString(GraphEntryType type) {
     }
 }
 
-
-}
-}
+} // namespace graph
+} // namespace kuzu
