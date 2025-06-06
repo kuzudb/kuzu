@@ -669,7 +669,7 @@ void EmbeddedShell::run() {
     /* Don't even check the return value as it's too late. */
     if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1) {
         noEcho = false;
-}
+    }
 #else
     SetConsoleOutputCP(oldOutputCP);
 #endif
