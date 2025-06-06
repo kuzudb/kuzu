@@ -12,7 +12,7 @@ void ListTypeResolver<ListOp::Append>::anyEmpty(std::vector<common::LogicalType>
     targetType = types[1].copy();
     if (targetType.getLogicalTypeID() == LogicalTypeID::ANY) {
         targetType = LogicalType(LogicalTypeID::INT64);
-}
+    }
 }
 
 void ListTypeResolver<ListOp::Append>::bothNull(std::vector<common::LogicalType>& types,
@@ -71,7 +71,7 @@ void ListFunctionUtils::resolveEmptyList(const ScalarBindFuncInput& input,
         rightEmpty(types, targetType);
     } else {
         return;
-}
+    }
     finalEmptyListResolver(types, targetType);
 }
 
