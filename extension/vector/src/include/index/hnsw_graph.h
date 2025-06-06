@@ -129,6 +129,20 @@ private:
     std::unique_ptr<CompressedOffsetsView> view;
 };
 
+struct NodeToHNSWGraphOffsetMap {
+    explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
+        : numNodes(numNodesInTable){};
+    NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable, common::NullMask* selectedNodes);
+
+    common::offset_t getNumNodesInGraph() const { return numNodes; }
+    common::offset_t nodeToGraphOffset(common::offset_t nodeOffset, bool exactMatch = true) const;
+    common::offset_t graphToNodeOffset(common::offset_t graphOffset) const;
+    bool isTrivialMapping() const { return graphToNodeMap == nullptr; }
+
+    common::offset_t numNodes;
+    std::unique_ptr<common::offset_t[]> graphToNodeMap;
+};
+
 class InMemHNSWGraph {
 public:
     InMemHNSWGraph(storage::MemoryManager* mm, common::offset_t numNodes,
@@ -174,7 +188,9 @@ public:
     }
 
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-        const processor::PartitionerSharedState& partitionerSharedState);
+        const processor::PartitionerSharedState& partitionerSharedState,
+        common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
+        common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap);
 
     // In the current implementation, race conditions can result in dstNode entries being skipped
     // during insertion. Skipped entries will be marked with this value
@@ -183,9 +199,11 @@ public:
 private:
     void resetCSRLengthAndDstNodes();
 
-    void finalizeNodeGroup(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-        uint64_t numRels, common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
-        common::table_id_t relTableID, storage::InMemChunkedNodeGroupCollection& partition) const;
+    void finalizeNodeGroup(storage::MemoryManager& mm, uint64_t numRels,
+        common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
+        common::table_id_t relTableID, storage::InMemChunkedNodeGroupCollection& partition,
+        common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
+        common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
         return dstNodes.getNodeOffset(csrOffset);

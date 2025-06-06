@@ -63,8 +63,10 @@ static std::unique_ptr<TableFuncSharedState> initCreateInMemHNSWSharedState(
 
 static std::unique_ptr<TableFuncLocalState> initCreateInMemHNSWLocalState(
     const TableFuncInitLocalStateInput& input) {
-    const auto bindData = input.bindData.constPtrCast<CreateHNSWIndexBindData>();
-    return std::make_unique<CreateInMemHNSWLocalState>(bindData->numRows + 1);
+    const auto* bindData = input.bindData.constPtrCast<CreateHNSWIndexBindData>();
+    const auto& index = input.sharedState.ptrCast<CreateInMemHNSWSharedState>()->hnswIndex;
+    return std::make_unique<CreateInMemHNSWLocalState>(bindData->numRows + 1,
+        index->getNumUpperLayerNodes());
 }
 
 static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {

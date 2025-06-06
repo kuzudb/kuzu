@@ -45,8 +45,9 @@ struct CreateInMemHNSWLocalState final : function::TableFuncLocalState {
     VisitedState upperVisited;
     VisitedState lowerVisited;
 
-    explicit CreateInMemHNSWLocalState(common::offset_t numNodes)
-        : upperVisited{numNodes}, lowerVisited{numNodes} {}
+    explicit CreateInMemHNSWLocalState(common::offset_t numNodes,
+        common::offset_t numUpperLayerNodes)
+        : upperVisited{numUpperLayerNodes}, lowerVisited{numNodes} {}
 };
 
 struct FinalizeHNSWSharedState final : function::SimpleTableFuncSharedState {

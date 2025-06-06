@@ -138,15 +138,20 @@ struct InMemHNSWLayerInfo {
     int64_t maxDegree;
     double alpha;
     int64_t efc;
+    const NodeToHNSWGraphOffsetMap& offsetMap;
 
     InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings,
         metric_func_t metricFunc, int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha,
-        int64_t efc)
+        int64_t efc, const NodeToHNSWGraphOffsetMap& offsetMap)
         : numNodes{numNodes}, embeddings{embeddings}, metricFunc{std::move(metricFunc)},
           degreeThresholdToShrink{degreeThresholdToShrink}, maxDegree{maxDegree}, alpha{alpha},
-          efc{efc} {}
+          efc{efc}, offsetMap(offsetMap) {}
 
     uint64_t getDimension() const { return embeddings->getDimension(); }
+    void* getEmbedding(common::offset_t offsetInGraph) const {
+        KU_ASSERT(offsetInGraph < numNodes);
+        return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph));
+    }
 };
 
 class InMemHNSWLayer {
@@ -158,11 +163,13 @@ public:
         return oldOffset;
     }
     common::offset_t getEntryPoint() const { return entryPoint.load(); }
+    common::offset_t getNumNodes() const { return info.numNodes; }
 
     void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);
-    common::offset_t searchNN(common::offset_t node, common::offset_t entryNode) const;
+    common::offset_t searchNN(void* queryVector, common::offset_t entryNode) const;
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-        const processor::PartitionerSharedState& partitionerSharedState) const;
+        const processor::PartitionerSharedState& partitionerSharedState,
+        common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
 
 private:
     std::vector<NodeWithDistance> searchKNN(const void* queryVector, common::offset_t entryNode,
@@ -184,8 +191,18 @@ public:
         std::unique_ptr<storage::IndexStorageInfo> storageInfo, storage::NodeTable& table,
         common::column_id_t columnID, HNSWIndexConfig config);
 
-    common::offset_t getUpperEntryPoint() const { return upperLayer->getEntryPoint(); }
+    common::offset_t upperGraphOffsetToNodeOffset(common::offset_t upperOffset) const {
+        return upperOffset == common::INVALID_OFFSET ?
+                   common::INVALID_OFFSET :
+                   upperGraphSelectionMap->graphToNodeOffset(upperOffset);
+    }
+    common::offset_t getUpperEntryPoint() const {
+        return upperGraphOffsetToNodeOffset(upperLayer->getEntryPoint());
+    }
     common::offset_t getLowerEntryPoint() const { return lowerLayer->getEntryPoint(); }
+    common::offset_t getNumUpperLayerNodes() const {
+        return upperGraphSelectionMap->getNumNodesInGraph();
+    }
 
     std::unique_ptr<InsertState> initInsertState(const transaction::Transaction*,
         storage::MemoryManager*, storage::visible_func) override {
@@ -206,6 +223,10 @@ private:
     std::unique_ptr<InMemHNSWLayer> upperLayer;
     std::unique_ptr<InMemHNSWLayer> lowerLayer;
     std::unique_ptr<InMemEmbeddings> embeddings;
+
+    std::unique_ptr<NodeToHNSWGraphOffsetMap> lowerGraphSelectionMap; // this mapping is trivial
+    std::unique_ptr<NodeToHNSWGraphOffsetMap> upperGraphSelectionMap;
+    std::unique_ptr<common::NullMask> upperLayerSelectionMask;
 };
 
 enum class SearchType : uint8_t {
