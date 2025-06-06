@@ -371,13 +371,13 @@ void NodeGroup::rollbackInsert(row_idx_t startRow) {
     numRows = startRow;
 }
 
-void NodeGroup::reclaimStorage(FileHandle& dataFH) {
-    reclaimStorage(dataFH, chunkedGroups.lock());
+void NodeGroup::reclaimStorage(PageManager& pageManager) const {
+    reclaimStorage(pageManager, chunkedGroups.lock());
 }
 
-void NodeGroup::reclaimStorage(FileHandle& dataFH, const common::UniqLock& lock) const {
+void NodeGroup::reclaimStorage(PageManager& pageManager, const UniqLock& lock) const {
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->reclaimStorage(dataFH);
+        chunkedGroup->reclaimStorage(pageManager);
     }
 }
 
@@ -391,7 +391,7 @@ void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointStat
     std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
     if (checkpointedVersionInfo->getNumDeletions(&DUMMY_CHECKPOINT_TRANSACTION, 0, numRows) ==
         numRows - firstGroup->getStartRowIdx()) {
-        reclaimStorage(state.dataFH, lock);
+        reclaimStorage(*state.dataFH.getPageManager(), lock);
         // TODO(Royi) figure out how to make this rollback-friendly
         checkpointedChunkedGroup =
             std::make_unique<ChunkedNodeGroup>(memoryManager, dataTypes, enableCompression,
@@ -467,7 +467,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
     // The first chunked group is the only persistent one
     // The checkpointed columns have been moved to the checkpointedChunkedGroup, the
     // remaining must have been dropped
-    chunkedGroups.getGroup(lock, 0)->reclaimStorage(state.dataFH);
+    chunkedGroups.getGroup(lock, 0)->reclaimStorage(*state.dataFH.getPageManager());
     return checkpointedChunkedGroup;
 }
 

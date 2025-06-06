@@ -54,25 +54,21 @@ void Checkpointer::writeCheckpoint() {
     // Serialize the catalog if there are changes
     if (databaseHeader.catalogPageRange.startPageIdx == common::INVALID_PAGE_IDX ||
         catalog->changedSinceLastCheckpoint()) {
-        databaseHeader.catalogPageRange = serializeCatalog(*catalog, *storageManager);
+        databaseHeader.updateCatalogPageRange(*dataFH->getPageManager(),
+            serializeCatalog(*catalog, *storageManager));
     }
     // Serialize the storage metadata if there are changes
     if (databaseHeader.metadataPageRange.startPageIdx == common::INVALID_PAGE_IDX ||
         hasStorageChanges || catalog->changedSinceLastCheckpoint() ||
         dataFH->getPageManager()->changedSinceLastCheckpoint()) {
-        databaseHeader.metadataPageRange = serializeMetadata(*catalog, *storageManager);
+        databaseHeader.updateMetadataPageRange(*dataFH->getPageManager(),
+            serializeMetadata(*catalog, *storageManager));
     }
 
     writeDatabaseHeader(databaseHeader);
 
     // Flush the shadow file.
     shadowFile.flushAll();
-    // When a page is freed by the FSM, it evicts it from the BM. However, if the page is freed,
-    // then reused over and over, it can be appended to the eviction queue multiple times. To
-    // prevent multiple entries of the same page from existing in the eviction queue, at the end of
-    // each checkpoint we remove any already-evicted pages.
-    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
-    bufferManager->removeEvictedCandidates();
 
     // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
     // files (snapshots of catalog and metadata) have been written to disk. The part that is not
@@ -84,7 +80,17 @@ void Checkpointer::writeCheckpoint() {
     // Clear the wal and also shadowing files.
     wal->clearWAL();
     shadowFile.clearAll(clientContext);
+
+    // This function will evict all pages that were freed during this checkpoint
+    // It must be called before we remove all evicted candidates from the BM
+    // Or else the evicted pages may end up appearing multiple times in the eviction queue
     storageManager->finalizeCheckpoint();
+    // When a page is freed by the FSM, it evicts it from the BM. However, if the page is freed,
+    // then reused over and over, it can be appended to the eviction queue multiple times. To
+    // prevent multiple entries of the same page from existing in the eviction queue, at the end of
+    // each checkpoint we remove any already-evicted pages.
+    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    bufferManager->removeEvictedCandidates();
 
     catalog->resetVersion();
     dataFH->getPageManager()->resetVersion();
@@ -244,6 +250,20 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     storageManager->deserialize(context, catalog, deSer);
+}
+
+void DatabaseHeader::updateCatalogPageRange(PageManager& pageManager, PageRange newPageRange) {
+    if (catalogPageRange.startPageIdx != common::INVALID_PAGE_IDX) {
+        pageManager.freePageRange(catalogPageRange);
+    }
+    catalogPageRange = newPageRange;
+}
+
+void DatabaseHeader::updateMetadataPageRange(PageManager& pageManager, PageRange newPageRange) {
+    if (metadataPageRange.startPageIdx != common::INVALID_PAGE_IDX) {
+        pageManager.freePageRange(metadataPageRange);
+    }
+    metadataPageRange = newPageRange;
 }
 
 } // namespace storage

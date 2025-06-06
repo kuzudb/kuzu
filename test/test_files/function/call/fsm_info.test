@@ -61,6 +61,8 @@ True
 True
 
 -CASE FSMEmptyAfterFirstCopy
+-STATEMENT begin transaction
+---- ok
 -STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
@@ -69,11 +71,15 @@ True
 ---- ok
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
 ---- ok
+-STATEMENT commit
+---- ok
 -STATEMENT call fsm_info() return *
 ---- 0
 
 -CASE FSMReclaimRelNewTable
 -STATEMENT CALL threads=1
+---- ok
+-STATEMENT begin transaction
 ---- ok
 -STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
@@ -83,6 +89,8 @@ True
 ---- ok
 -STATEMENT copy person from ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv"](ignore_errors=true);
 ---- ok
+-STATEMENT commit
+---- ok
 -STATEMENT call fsm_info() return *
 ---- 0
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
@@ -90,14 +98,15 @@ True
 # second copy should trigger space reclaiming
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv";
 ---- ok
--STATEMENT CALL fsm_info() return sum(num_pages) > 0
+-STATEMENT call fsm_info() return sum(num_pages) >= 10
 ---- 1
 True
-# copying the same initial data to a new table should reuse most of the pages
+# copying the same initial data to a new table should reuse most of the pages so the db should not grow by much
 -STATEMENT COPY knows1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
 ---- ok
 # allow margin equal to the largest page range for a column chunk in the table
--STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages call storage_info('knows1') with num_free_pages, max(num_pages) as largest_range return num_free_pages is null or largest_range >= num_free_pages
+-STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages call storage_info('knows1') with num_free_pages, max(num_pages) as largest_range
+            return num_free_pages is null or largest_range >= num_free_pages or 5 >= num_free_pages
 ---- 1
 True
 

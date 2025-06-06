@@ -74,6 +74,9 @@ uint8_t* OverflowFileHandle::addANewPage() {
         memcpy(pageWriteCache[nextPosToWriteTo.pageIdx]->getData() + END_OF_PAGE, &newPageIdx,
             sizeof(page_idx_t));
     }
+    if (startPageIdx == INVALID_PAGE_IDX) {
+        startPageIdx = newPageIdx;
+    }
     pageWriteCache.emplace(newPageIdx,
         overflowFile.memoryManager.allocateBuffer(true /*initializeToZero*/, KUZU_PAGE_SIZE));
     nextPosToWriteTo.elemPosInPage = 0;
@@ -138,6 +141,32 @@ void OverflowFileHandle::checkpoint() {
     }
 }
 
+void OverflowFileHandle::reclaimStorage(PageManager& pageManager) {
+    if (startPageIdx == INVALID_PAGE_IDX) {
+        return;
+    }
+
+    auto pageIdx = startPageIdx;
+    while (true) {
+        if (pageIdx == 0 || pageIdx == INVALID_PAGE_IDX) [[unlikely]] {
+            throw RuntimeException(
+                "The overflow file has been corrupted, this should never happen.");
+        }
+        pageManager.freePage(pageIdx);
+
+        if (pageIdx == nextPosToWriteTo.pageIdx) {
+            break;
+        }
+
+        // reclaimStorage() is only called after the hash index is checkpointed
+        // so the page write cache should always be cleared
+        KU_ASSERT(!pageWriteCache.contains(pageIdx));
+        overflowFile.readFromDisk(TransactionType::CHECKPOINT, pageIdx, [&pageIdx](auto* frame) {
+            pageIdx = *reinterpret_cast<page_idx_t*>(frame + END_OF_PAGE);
+        });
+    }
+}
+
 void OverflowFileHandle::read(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
     auto cachedPage = pageWriteCache.find(pageIdx);
@@ -169,7 +198,7 @@ OverflowFile::OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager)
         numPagesOnDisk = fileHandle->getNumPages();
     }
     // Reserve a page for the header
-    getNewPageIdx();
+    this->headerPageIdx = getNewPageIdx();
     header = StringOverflowFileHeader();
 }
 
@@ -221,7 +250,16 @@ void OverflowFile::rollbackInMemory() {
     }
     for (auto i = 0u; i < handles.size(); i++) {
         auto& handle = handles[i];
-        handle->rollbackInMemory(header.cursors[i]);
+        handle->rollbackInMemory(header.entries[i].cursor);
+    }
+}
+
+void OverflowFile::reclaimStorage(PageManager& pageManager) const {
+    for (auto& handle : handles) {
+        handle->reclaimStorage(pageManager);
+    }
+    if (headerPageIdx != INVALID_PAGE_IDX) {
+        fileHandle->getPageManager()->freePage(headerPageIdx);
     }
 }
 

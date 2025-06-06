@@ -288,8 +288,8 @@ void RelTableData::rollbackGroupCollectionInsert(row_idx_t numRows_, bool isPers
     nodeGroups->rollbackInsert(numRows_, !isPersistent);
 }
 
-void RelTableData::reclaimStorage(FileHandle& dataFH) {
-    nodeGroups->reclaimStorage(dataFH);
+void RelTableData::reclaimStorage(PageManager& pageManager) const {
+    nodeGroups->reclaimStorage(pageManager);
 }
 
 } // namespace storage

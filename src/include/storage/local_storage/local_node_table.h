@@ -53,7 +53,7 @@ private:
 private:
     PageCursor overflowCursor;
     std::unique_ptr<OverflowFile> overflowFile;
-    std::unique_ptr<OverflowFileHandle> overflowFileHandle;
+    OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<LocalHashIndex> hashIndex;
     NodeGroupCollection nodeGroups;
 };

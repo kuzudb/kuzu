@@ -223,9 +223,6 @@ void DiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
         clearWALPageVersionAndRemovePageFromFrameIfNecessary(newPIP.pipPageIdx);
         if (isCheckpoint) {
             pips.emplace_back(newPIP);
-        } else {
-            // These are newly inserted pages, so we can truncate the file handle.
-            this->fileHandle.removePageIdxAndTruncateIfNecessary(newPIP.pipPageIdx);
         }
     }
     // Note that we already updated the header to its correct state above.
@@ -246,6 +243,19 @@ void DiskArrayInternal::checkpoint() {
     for (auto& newPIP : pipUpdates.newPIPs) {
         ShadowUtils::updatePage(fileHandle, newPIP.pipPageIdx, true, *shadowFile,
             [&](auto* frame) { memcpy(frame, &newPIP.pipContents, sizeof(PIP)); });
+    }
+}
+
+void DiskArrayInternal::reclaimStorage(PageManager& pageManager) const {
+    for (auto& pip : pips) {
+        for (auto pageIdx : pip.pipContents.pageIdxs) {
+            if (pageIdx != ShadowUtils::NULL_PAGE_IDX) {
+                pageManager.freePage(pageIdx);
+            }
+        }
+        if (pip.pipPageIdx != ShadowUtils::NULL_PAGE_IDX) {
+            pageManager.freePage(pip.pipPageIdx);
+        }
     }
 }
 
@@ -274,7 +284,7 @@ DiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
         KU_ASSERT(apIdx == getNumAPs(headerForWriteTrx));
         // We need to add a new AP. This may further cause a new pip to be inserted, which is
         // handled by the if/else-if/else branch below.
-        page_idx_t newAPPageIdx = fileHandle.addNewPage();
+        page_idx_t newAPPageIdx = fileHandle.getPageManager()->allocatePage();
         // We need to create a new array page and then add its apPageIdx (newAPPageIdx variable) to
         // an appropriate PIP.
         auto pipIdxAndOffsetOfNewAP =
@@ -296,7 +306,7 @@ DiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
             pip.pipContents.pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
         } else {
             // We need to create a new PIP and make the previous PIP (or the header) point to it.
-            auto pipPageIdx = fileHandle.addNewPage();
+            page_idx_t pipPageIdx = fileHandle.getPageManager()->allocatePage();
             pipUpdates.newPIPs.emplace_back(pipPageIdx);
             uint64_t pipIdxOfPreviousPIP = pipIdx - 1;
             setNextPIPPageIDxOfPIPNoLock(pipIdxOfPreviousPIP, pipPageIdx);

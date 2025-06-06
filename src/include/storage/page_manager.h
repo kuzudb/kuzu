@@ -27,7 +27,9 @@ public:
     void resetVersion() { version = 0; }
 
     PageRange allocatePageRange(common::page_idx_t numPages);
+    common::page_idx_t allocatePage() { return allocatePageRange(1).startPageIdx; }
     void freePageRange(PageRange block);
+    void freePage(common::page_idx_t pageIdx) { freePageRange(PageRange(pageIdx, 1)); }
 
     void serialize(common::Serializer& serializer);
     void deserialize(common::Deserializer& deSer);

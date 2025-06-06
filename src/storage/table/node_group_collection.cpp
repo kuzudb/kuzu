@@ -208,10 +208,10 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     types = std::move(typesAfterCheckpoint);
 }
 
-void NodeGroupCollection::reclaimStorage(FileHandle& dataFH) {
+void NodeGroupCollection::reclaimStorage(PageManager& pageManager) const {
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->reclaimStorage(dataFH);
+        nodeGroup->reclaimStorage(pageManager);
     }
 }
 

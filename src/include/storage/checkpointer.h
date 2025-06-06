@@ -10,9 +10,14 @@ class AttachedKuzuDatabase;
 
 namespace storage {
 
+class PageManager;
+
 struct DatabaseHeader {
     PageRange catalogPageRange;
     PageRange metadataPageRange;
+
+    void updateCatalogPageRange(PageManager& pageManager, PageRange newPageRange);
+    void updateMetadataPageRange(PageManager& pageManager, PageRange newPageRange);
 };
 
 class Checkpointer {

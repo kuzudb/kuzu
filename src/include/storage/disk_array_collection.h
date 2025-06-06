@@ -47,6 +47,8 @@ public:
         }
     }
 
+    void reclaimStorage(PageManager& pageManager, common::page_idx_t firstHeaderPage) const;
+
     template<typename T>
     std::unique_ptr<DiskArray<T>> getDiskArray(uint32_t idx) {
         KU_ASSERT(idx < numHeaders);
