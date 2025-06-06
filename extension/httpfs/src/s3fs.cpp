@@ -1,10 +1,10 @@
 #include "s3fs.h"
 
+#include "common/crypto.h"
 #include "common/exception/io.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "common/types/timestamp_t.h"
-#include "crypto.h"
 #include "main/client_context.h"
 
 namespace kuzu {
@@ -536,45 +536,6 @@ void S3FileSystem::finalizeMultipartUpload(S3FileInfo* fileInfo) {
     verifyUploadResult(result, *res);
 }
 
-// Date header is in the format: %Y%m%d.
-std::string getDateHeader(const timestamp_t& timestamp) {
-    auto date = Timestamp::getDate(timestamp);
-    int32_t year = 0, month = 0, day = 0;
-    Date::convert(date, year, month, day);
-    std::string formatStr = "{}";
-    if (month < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}";
-    if (day < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}";
-    return common::stringFormat(formatStr, year, month, day);
-}
-
-// Timestamp header is in the format: %Y%m%dT%H%M%SZ.
-std::string getDateTimeHeader(const timestamp_t& timestamp) {
-    auto formatStr = getDateHeader(timestamp);
-    auto time = Timestamp::getTime(timestamp);
-    formatStr += "T";
-    int32_t hours = 0, minutes = 0, seconds = 0, micros = 0;
-    Time::convert(time, hours, minutes, seconds, micros);
-    if (hours < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}";
-    if (minutes < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}";
-    if (seconds < 10) {
-        formatStr += "0";
-    }
-    formatStr += "{}Z";
-    return common::stringFormat(formatStr, hours, minutes, seconds);
-}
-
 HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::string host,
     std::string service, std::string method, const S3AuthParams& authParams,
     std::string payloadHash, std::string contentType) const {
@@ -588,9 +549,9 @@ HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::
     if (payloadHash.empty()) {
         payloadHash = NULL_PAYLOAD_HASH;
     }
-    auto timestamp = common::Timestamp::getCurrentTimestamp();
-    auto dateHeader = getDateHeader(timestamp);
-    auto datetimeHeader = getDateTimeHeader(timestamp);
+    auto timestamp = Timestamp::getCurrentTimestamp();
+    auto dateHeader = Timestamp::getDateHeader(timestamp);
+    auto datetimeHeader = Timestamp::getDateTimeHeader(timestamp);
     res["x-amz-date"] = datetimeHeader;
     res["x-amz-content-sha256"] = payloadHash;
     if (!authParams.sessionToken.empty()) {
@@ -616,20 +577,20 @@ HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::
         canonicalRequest += "\nx-amz-security-token:" + authParams.sessionToken;
     }
     canonicalRequest += "\n\n" + signedHeaders + "\n" + payloadHash;
-    sha256(canonicalRequest.c_str(), canonicalRequest.length(), canonicalRequestHash);
-    hex256(canonicalRequestHash, canonicalRequestHashStr);
+    CryptoUtils::sha256(canonicalRequest.c_str(), canonicalRequest.length(), canonicalRequestHash);
+    CryptoUtils::hex256(canonicalRequestHash, canonicalRequestHashStr);
     auto stringToSign = "AWS4-HMAC-SHA256\n" + datetimeHeader + "\n" + dateHeader + "/" +
                         authParams.region + "/" + service + "/aws4_request\n" +
                         std::string((char*)canonicalRequestHashStr, sizeof(hash_str));
     hash_bytes dateSignature, regionSignature, serviceSignature, signingKeySignature, signature;
     hash_str signatureStr;
     auto signKey = "AWS4" + authParams.secretAccessKey;
-    hmac256(dateHeader, signKey.c_str(), signKey.length(), dateSignature);
-    hmac256(authParams.region, dateSignature, regionSignature);
-    hmac256(service, regionSignature, serviceSignature);
-    hmac256("aws4_request", serviceSignature, signingKeySignature);
-    hmac256(stringToSign, signingKeySignature, signature);
-    hex256(signature, signatureStr);
+    CryptoUtils::hmac256(dateHeader, signKey.c_str(), signKey.length(), dateSignature);
+    CryptoUtils::hmac256(authParams.region, dateSignature, regionSignature);
+    CryptoUtils::hmac256(service, regionSignature, serviceSignature);
+    CryptoUtils::hmac256("aws4_request", serviceSignature, signingKeySignature);
+    CryptoUtils::hmac256(stringToSign, signingKeySignature, signature);
+    CryptoUtils::hex256(signature, signatureStr);
 
     res["Authorization"] = "AWS4-HMAC-SHA256 Credential=" + authParams.accessKeyID + "/" +
                            dateHeader + "/" + authParams.region + "/" + service +
@@ -688,8 +649,8 @@ std::string S3FileSystem::getPayloadHash(const uint8_t* buffer, uint64_t bufferL
     if (bufferLen > 0) {
         hash_bytes payloadHashBytes;
         hash_str payloadHashStr;
-        sha256(reinterpret_cast<const char*>(buffer), bufferLen, payloadHashBytes);
-        hex256(payloadHashBytes, payloadHashStr);
+        CryptoUtils::sha256(reinterpret_cast<const char*>(buffer), bufferLen, payloadHashBytes);
+        CryptoUtils::hex256(payloadHashBytes, payloadHashStr);
         return std::string((char*)payloadHashStr, sizeof(payloadHashStr));
     } else {
         return "";
