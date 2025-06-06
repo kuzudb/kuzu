@@ -4,7 +4,7 @@
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "common/types/timestamp_t.h"
-#include "crypto.h"
+#include "common/crypto.h"
 #include "main/client_context.h"
 
 namespace kuzu {
