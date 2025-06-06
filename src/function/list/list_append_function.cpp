@@ -43,9 +43,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         resolver::rightNull, resolver::finalResolver);
 
     if (types[0].getLogicalTypeID() != LogicalTypeID::ANY &&
-        types[1] != ListType::getChildType(types[0]))
+        types[1] != ListType::getChildType(types[0])) {
         throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
             ListAppendFunction::name, types[0].toString(), types[1].toString()));
+}
 
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     TypeUtils::visit(types[1].getPhysicalType(), [&scalarFunction]<typename T>(T) {

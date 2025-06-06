@@ -68,8 +68,9 @@ void DenseBFSGraph::addParent(uint16_t iter, nodeID_t boundNodeID, relID_t edgeI
     parent->setIter(iter);
     // Since by default the parentPtr of each node is nullptr, that's what we start with.
     ParentList* expected = nullptr;
-    while (!curData[nbrNodeID.offset].compare_exchange_strong(expected, parent))
+    while (!curData[nbrNodeID.offset].compare_exchange_strong(expected, parent)) {
         ;
+}
     parent->setNextPtr(expected);
 }
 

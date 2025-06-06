@@ -141,8 +141,9 @@ void MD5::MD5Update(const unsigned char* buf, unsigned int len) {
 
     uint32_t t = ctx.bits[0];
     ctx.bits[0] = t + ((uint32_t)len << 3);
-    if (ctx.bits[0] < t)
+    if (ctx.bits[0] < t) {
         ctx.bits[1]++; // Carry from low to high
+}
     ctx.bits[1] += len >> 29;
 
     t = (t >> 3) & 0x3f; // Bytes already in shsInfo->data
