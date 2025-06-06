@@ -30,7 +30,6 @@ std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
 // different requests. Refer to
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
 
-
 httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) const {
     static const std::string envVarAWSAccessKey = "AWS_ACCESS_KEY";
     static const std::string envVarAWSSecretAccessKey = "AWS_SECRET_ACCESS_KEY";
