@@ -3,7 +3,6 @@
 #include "common/crypto.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
-#include "common/string_format.h"
 #include "common/types/timestamp_t.h"
 #include "httplib.h"
 #include "json.hpp"
