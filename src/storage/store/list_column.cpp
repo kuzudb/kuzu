@@ -123,7 +123,8 @@ void ListColumn::scanInternal(const Transaction* transaction, const SegmentState
         resultVector, offsetInVector);
     auto listOffsetInfoInStorage =
         getListOffsetSizeInfo(transaction, state, startOffsetInGroup, endOffsetInGroup -
-startOffsetInGroup); offset_t listOffsetInVector = offsetInVector == 0 ? 0 :
+startOffsetInGroup);
+    offset_t listOffsetInVector = offsetInVector == 0 ? 0 :
                               resultVector->getValue<list_entry_t>(offsetInVector - 1).offset +
                                   resultVector->getValue<list_entry_t>(offsetInVector - 1).size;
     auto offsetToWriteListData = listOffsetInVector;
@@ -157,26 +158,32 @@ startOffsetInGroup); offset_t listOffsetInVector = offsetInVector == 0 ? 0 :
 }
 */
 
-void ListColumn::scanInternal(const transaction::Transaction* transaction,
-    const SegmentState& state, common::offset_t startOffsetInSegment,
-    common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const {
-    Column::scanInternal(transaction, state, startOffsetInSegment, numValuesToScan, resultChunk);
-    if (resultChunk->getNumValues() == 0) {
+void ListColumn::scanSegment(const transaction::Transaction* transaction, const SegmentState& state,
+    ColumnChunkData* resultChunk, common::offset_t startOffsetInSegment,
+    common::row_idx_t numValuesToScan) const {
+    auto startOffsetInResult = resultChunk->getNumValues();
+    Column::scanSegment(transaction, state, resultChunk, startOffsetInSegment, numValuesToScan);
+    if (numValuesToScan == 0) {
         return;
     }
-
+    // ListChunkData::setNumValues will modify the size of the offset/size chunks before we scan
+    // them Revert this so that they scan to the correct position
+    // FIXME(bmwinger): there should be a better solution to this, but it will probably be removed
+    // later anyway
     auto& listColumnChunk = resultChunk->cast<ListChunkData>();
-    // TODO: maybe scanSegment instead of scanInternal so that it sets the output numValues
-    // But we need an offsetInResult?
-    // Might not need an offsetInResult; this function always scans to the end of the result
+    listColumnChunk.getOffsetColumnChunk()->setNumValues(startOffsetInResult);
+    listColumnChunk.getSizeColumnChunk()->setNumValues(startOffsetInResult);
+
     offsetColumn->scanSegment(transaction, state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
         listColumnChunk.getOffsetColumnChunk(), startOffsetInSegment, numValuesToScan);
     sizeColumn->scanSegment(transaction, state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
         listColumnChunk.getSizeColumnChunk(), startOffsetInSegment, numValuesToScan);
     auto resizeNumValues = listColumnChunk.getDataColumnChunk()->getNumValues();
     bool isOffsetSortedAscending = true;
-    offset_t prevOffset = listColumnChunk.getListStartOffset(0);
-    for (auto i = 0u; i < resultChunk->getNumValues(); i++) {
+    KU_ASSERT(listColumnChunk.getSizeColumnChunk()->getNumValues() ==
+              startOffsetInResult + numValuesToScan);
+    offset_t prevOffset = listColumnChunk.getListStartOffset(startOffsetInResult);
+    for (auto i = startOffsetInResult; i < startOffsetInResult + numValuesToScan; i++) {
         auto currentEndOffset = listColumnChunk.getListEndOffset(i);
         auto appendSize = listColumnChunk.getListSize(i);
         prevOffset += appendSize;
@@ -187,15 +194,15 @@ void ListColumn::scanInternal(const transaction::Transaction* transaction,
     }
     if (isOffsetSortedAscending) {
         listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-        offset_t startListOffset = listColumnChunk.getListStartOffset(0);
-        offset_t endListOffset = listColumnChunk.getListStartOffset(resultChunk->getNumValues());
+        offset_t startListOffset = listColumnChunk.getListStartOffset(startOffsetInResult);
+        offset_t endListOffset =
+            listColumnChunk.getListStartOffset(startOffsetInResult + numValuesToScan);
         KU_ASSERT(endListOffset >= startListOffset);
         dataColumn->scanSegment(transaction, state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
             listColumnChunk.getDataColumnChunk(), startListOffset, endListOffset - startListOffset);
-        listColumnChunk.resetOffset();
     } else {
         listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-        for (auto i = 0u; i < resultChunk->getNumValues(); i++) {
+        for (auto i = startOffsetInResult; i < startOffsetInResult + numValuesToScan; i++) {
             offset_t startListOffset = listColumnChunk.getListStartOffset(i);
             offset_t endListOffset = listColumnChunk.getListEndOffset(i);
             dataColumn->scanSegment(transaction,
@@ -203,8 +210,8 @@ void ListColumn::scanInternal(const transaction::Transaction* transaction,
                 listColumnChunk.getDataColumnChunk(), startListOffset,
                 endListOffset - startListOffset);
         }
-        listColumnChunk.resetOffset();
     }
+    listColumnChunk.resetOffset();
 
     KU_ASSERT(listColumnChunk.sanityCheck());
 }
@@ -282,7 +289,7 @@ void ListColumn::scanFiltered(const Transaction* transaction, const SegmentState
             auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
             auto appendSize = listOffsetSizeInfo.getListSize(pos);
             auto dataVector = ListVector::getDataVector(resultVector);
-            dataColumn->scanInternal(transaction,
+            dataColumn->scanSegment(transaction,
                 state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX], startOffsetInStorageToScan,
                 appendSize, dataVector, listOffset);
             listOffset += resultVector->getValue<list_entry_t>(pos).size;

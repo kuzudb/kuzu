@@ -226,7 +226,7 @@ void Column::scanSegment(const Transaction* transaction, const SegmentState& sta
 
 void Column::scan(const Transaction* transaction, const ChunkState& state,
     ColumnChunkData* outputChunk, offset_t offsetInChunk, offset_t numValues) const {
-    auto startLength = outputChunk->getNumValues();
+    [[maybe_unused]] auto startLength = outputChunk->getNumValues();
     [[maybe_unused]] uint64_t numValuesScanned = state.rangeSegments(offsetInChunk, numValues,
         [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto) {
             scanSegment(transaction, segmentState, outputChunk, startOffsetInSegment,
@@ -235,6 +235,10 @@ void Column::scan(const Transaction* transaction, const ChunkState& state,
     KU_ASSERT(outputChunk->getNumValues() == startLength + numValuesScanned);
 }
 
+// FIXME: scanInternal functions can probably be removed in favour of scanSegment. Any chunk which
+// skips this scan in its specialization should have a data size of 0, so they can override
+// scanSegment instead and just call Column::scanSegment. That will reduce the chance of confusing
+// the two when used.
 void Column::scanInternal(const Transaction* transaction, const SegmentState& state,
     offset_t startOffsetInSegment, row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const {
     if (getDataTypeSizeInChunk(dataType) > 0) {

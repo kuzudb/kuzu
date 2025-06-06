@@ -68,7 +68,7 @@ public:
         common::offset_t numValues = UINT64_MAX) const;
     // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
     // Appends to the end of the columnChunk
-    void scanSegment(const transaction::Transaction* transaction, const SegmentState& state,
+    virtual void scanSegment(const transaction::Transaction* transaction, const SegmentState& state,
         ColumnChunkData* columnChunk, common::offset_t offsetInSegment,
         common::offset_t numValue) const;
     // Scan to raw data (does not scan any nested data and should only be used on primitive columns)
