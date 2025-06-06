@@ -1,10 +1,10 @@
 #include "s3fs.h"
 
+#include "common/crypto.h"
 #include "common/exception/io.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "common/types/timestamp_t.h"
-#include "common/crypto.h"
 #include "main/client_context.h"
 
 namespace kuzu {
