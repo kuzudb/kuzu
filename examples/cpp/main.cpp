@@ -8,9 +8,13 @@ int main() {
     auto connection = std::make_unique<Connection>(database.get());
 
     // Create schema.
-    auto result = connection->query("load llm;");
-    std::cout << result->toString();
-    result = connection->query("return create_embedding('hello world','amazon-bedrock','amazon.titan-embed-text-v1')");
-    std::cout << result->toString();
+    connection->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));");
+    // Create nodes.
+    connection->query("CREATE (:Person {name: 'Alice', age: 25});");
+    connection->query("CREATE (:Person {name: 'Bob', age: 30});");
 
+    // Execute a simple query.
+    auto result = connection->query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;");
+    // Print query result.
+    std::cout << result->toString();
 }
