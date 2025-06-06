@@ -1,4 +1,5 @@
 #include <unordered_map>
+
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
@@ -25,19 +26,16 @@ namespace llm_extension {
 
 static EmbeddingProvider& getInstance(const std::string& provider) {
 
-    static const std::unordered_map<std::string, std::function<EmbeddingProvider&()>> providerInstanceMap = 
-    {
-        {"open-ai",        &OpenAIEmbedding::getInstance },
-        {"voyage-ai",      &VoyageAIEmbedding::getInstance },
-        {"google-vertex",  &GoogleVertexEmbedding::getInstance },
-        {"google-gemini",  &GoogleGeminiEmbedding::getInstance },
-        {"amazon-bedrock", &BedrockEmbedding::getInstance },
-        {"ollama",         &OllamaEmbedding::getInstance } 
-    };
+    static const std::unordered_map<std::string, std::function<EmbeddingProvider&()>>
+        providerInstanceMap = {{"open-ai", &OpenAIEmbedding::getInstance},
+            {"voyage-ai", &VoyageAIEmbedding::getInstance},
+            {"google-vertex", &GoogleVertexEmbedding::getInstance},
+            {"google-gemini", &GoogleGeminiEmbedding::getInstance},
+            {"amazon-bedrock", &BedrockEmbedding::getInstance},
+            {"ollama", &OllamaEmbedding::getInstance}};
 
     auto providerInstanceIter = providerInstanceMap.find(provider);
-    if (providerInstanceIter == providerInstanceMap.end())
-    {
+    if (providerInstanceIter == providerInstanceMap.end()) {
         throw BinderException("Provider not found: " + provider + "\n");
     }
     return providerInstanceIter->second();
