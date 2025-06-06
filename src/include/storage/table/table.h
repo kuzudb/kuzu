@@ -98,7 +98,7 @@ struct KUZU_API TableInsertState {
     }
 };
 
-struct TableUpdateState {
+struct KUZU_API TableUpdateState {
     common::column_id_t columnID;
     common::ValueVector& propertyVector;
 
