@@ -42,6 +42,8 @@ struct KUZU_API NodeTableScanState final : public TableScanState {
         common::offset_t numNodes);
 };
 
+// There is a vtable bug related to the Apple clang v15.0.0+. Adding the `FINAL` specifier to
+// derived class causes casting failures in Apple platform.
 struct KUZU_API NodeTableInsertState : public TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
@@ -66,7 +68,7 @@ struct KUZU_API NodeTableUpdateState : public TableUpdateState {
           pkVector{nullptr} {}
 };
 
-struct NodeTableDeleteState final : TableDeleteState {
+struct KUZU_API NodeTableDeleteState : public TableDeleteState {
     common::ValueVector& nodeIDVector;
     common::ValueVector& pkVector;
 
