@@ -1,4 +1,5 @@
 #include "providers/google-vertex.h"
+
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
@@ -6,20 +7,19 @@
 namespace kuzu {
 namespace llm_extension {
 
-EmbeddingProvider &GoogleVertexEmbedding::getInstance()
-{
+EmbeddingProvider& GoogleVertexEmbedding::getInstance() {
     static GoogleVertexEmbedding instance;
     return instance;
 }
-std::string GoogleVertexEmbedding::getClient() const { return "https://aiplatform.googleapis.com"; }
-std::string GoogleVertexEmbedding::getPath(const std::string &model) const
-{
-    const char *envVar = "GOOGLE_CLOUD_PROJECT_ID";
+std::string GoogleVertexEmbedding::getClient() const {
+    return "https://aiplatform.googleapis.com";
+}
+std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
+    const char* envVar = "GOOGLE_CLOUD_PROJECT_ID";
 
     // NOLINTNEXTLINE thread safety warning
     auto env_project_id = std::getenv(envVar);
-    if (env_project_id == nullptr)
-    {
+    if (env_project_id == nullptr) {
         throw(common::RuntimeException(
             "Could not get project id from: " + std::string(envVar) + "\n"));
     }
@@ -27,38 +27,33 @@ std::string GoogleVertexEmbedding::getPath(const std::string &model) const
     // TODO: Location is hardcoded, this should be changed when configuration is
     // supported
     return "/v1/projects/" + std::string(env_project_id) +
-           "/locations/us-central1/publishers/google/models/" + model +
-           ":predict";
+           "/locations/us-central1/publishers/google/models/" + model + ":predict";
 }
-httplib::Headers GoogleVertexEmbedding::getHeaders() const
-{
-    const char *envVar = "GOOGLE_VERTEX_ACCESS_KEY";
+httplib::Headers GoogleVertexEmbedding::getHeaders() const {
+    const char* envVar = "GOOGLE_VERTEX_ACCESS_KEY";
     // NOLINTNEXTLINE
     auto env_key = std::getenv(envVar);
-    if (env_key == nullptr)
-    {
-        throw(common::RuntimeException(
-            "Could not get key from: " + std::string(envVar) + '\n'));
+    if (env_key == nullptr) {
+        throw(common::RuntimeException("Could not get key from: " + std::string(envVar) + '\n'));
     }
-    return httplib::Headers{
-        {"Content-Type", "application/json"},
+    return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + std::string(env_key)}};
 }
-nlohmann::json GoogleVertexEmbedding::getPayload(const std::string &, const std::string &text) const
-{
+nlohmann::json GoogleVertexEmbedding::getPayload(const std::string&,
+    const std::string& text) const {
     return nlohmann::json{{"instances", {{{"content", text}}}}};
 }
-std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result &res) const
-{
-    return nlohmann::json::parse(res->body)["predictions"][0]["embeddings"]["values"] .get<std::vector<float>>();
+std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& res) const {
+    return nlohmann::json::parse(res->body)["predictions"][0]["embeddings"]["values"]
+        .get<std::vector<float>>();
 }
-uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string &model)
-{
-   static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"gemini-embedding-001", 3072}, {"text-embedding-005", 768}, {"text-multilingual-embedding-002", 768}};
+uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string& model) {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
+        {"gemini-embedding-001", 3072}, {"text-embedding-005", 768},
+        {"text-multilingual-embedding-002", 768}};
 
     auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end())
-    {
+    if (modelDimensionMapIter == modelDimensionMap.end()) {
         throw(common::BinderException("Invalid Model: " + model));
     }
     return modelDimensionMapIter->second;

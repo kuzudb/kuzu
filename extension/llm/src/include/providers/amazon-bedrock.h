@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include "common/copy_constructors.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -10,10 +11,9 @@ namespace llm_extension {
 
 class BedrockEmbedding : public EmbeddingProvider {
     BedrockEmbedding() = default;
-    DELETE_COPY_AND_MOVE(BedrockEmbedding); 
-    
+    DELETE_COPY_AND_MOVE(BedrockEmbedding);
 
-    public:
+public:
     ~BedrockEmbedding() override = default;
     static EmbeddingProvider& getInstance();
     std::string getClient() const override;

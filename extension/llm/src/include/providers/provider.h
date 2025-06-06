@@ -2,13 +2,14 @@
 
 #include <string>
 #include <vector>
+
 #include "httplib.h"
 #include "json.hpp"
 namespace kuzu {
 namespace llm_extension {
 
 class EmbeddingProvider {
-    public:
+public:
     virtual ~EmbeddingProvider() = default;
     virtual std::string getClient() const = 0;
     virtual std::string getPath(const std::string&) const = 0;

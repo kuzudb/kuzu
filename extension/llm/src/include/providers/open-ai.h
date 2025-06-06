@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include "common/copy_constructors.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -10,10 +11,9 @@ namespace llm_extension {
 
 class OpenAIEmbedding : public EmbeddingProvider {
     OpenAIEmbedding() = default;
-    DELETE_COPY_AND_MOVE(OpenAIEmbedding); 
-    
+    DELETE_COPY_AND_MOVE(OpenAIEmbedding);
 
-    public:
+public:
     ~OpenAIEmbedding() override = default;
     static EmbeddingProvider& getInstance();
     std::string getClient() const override;
