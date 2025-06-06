@@ -36,6 +36,8 @@ Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager*
       shadowFile{&storageManager->getShadowFile()}, hasChanges{false},
       inMemory{storageManager->isInMemory()}, readOnly{storageManager->isReadOnly()} {}
 
+Table::~Table() = default;
+
 bool Table::scan(transaction::Transaction* transaction, TableScanState& scanState) {
     return scanInternal(transaction, scanState);
 }

@@ -29,7 +29,7 @@ std::unique_ptr<Index> FTSIndex::load(main::ClientContext* context,
         std::move(ftsConfig), context);
 }
 
-struct FTSInsertState : Index::InsertState {
+struct FTSInsertState final : Index::InsertState {
     MemoryManager* mm;
     std::shared_ptr<DataChunkState> dataChunkState;
     ValueVector idVector;
