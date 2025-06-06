@@ -182,8 +182,7 @@ public:
         if (deletedPos.has_value()) {
             // Find the last valid entry and move it into the deleted position
             auto newIter = iter;
-            while (nextChainedSlot(newIter))
-                ;
+            while (nextChainedSlot(newIter)) {}
             if (newIter.slotInfo != iter.slotInfo ||
                 *deletedPos != newIter.slot->header.numEntries() - 1) {
                 KU_ASSERT(newIter.slot->header.numEntries() > 0);
