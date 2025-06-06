@@ -68,6 +68,12 @@ public:
 
     // Convert a timestamp object to a std::string in the format "YYYY-MM-DD hh:mm:ss".
     KUZU_API static std::string toString(timestamp_t timestamp);
+    
+    // Date header is in the format: %Y%m%d.
+    KUZU_API static std::string getDateHeader(const timestamp_t& timestamp);
+
+    // Timestamp header is in the format: %Y%m%dT%H%M%SZ.
+    KUZU_API static std::string getDateTimeHeader(const timestamp_t& timestamp);
 
     KUZU_API static date_t getDate(timestamp_t timestamp);
 
