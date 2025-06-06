@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace llm_extension {
 
-class GoogleVertexEmbedding : public EmbeddingProvider {
+class GoogleVertexEmbedding final : public EmbeddingProvider {
     GoogleVertexEmbedding() = default;
     DELETE_COPY_AND_MOVE(GoogleVertexEmbedding);
 

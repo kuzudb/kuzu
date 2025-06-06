@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace llm_extension {
 
-class VoyageAIEmbedding : public EmbeddingProvider {
+class VoyageAIEmbedding final : public EmbeddingProvider {
     VoyageAIEmbedding() = default;
     DELETE_COPY_AND_MOVE(VoyageAIEmbedding);
 

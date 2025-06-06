@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace llm_extension {
 
-class OpenAIEmbedding : public EmbeddingProvider {
+class OpenAIEmbedding final : public EmbeddingProvider {
     OpenAIEmbedding() = default;
     DELETE_COPY_AND_MOVE(OpenAIEmbedding);
 

@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace llm_extension {
 
-class OllamaEmbedding : public EmbeddingProvider {
+class OllamaEmbedding final : public EmbeddingProvider {
     OllamaEmbedding() = default;
     DELETE_COPY_AND_MOVE(OllamaEmbedding);
 

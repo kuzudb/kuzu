@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace llm_extension {
 
-class BedrockEmbedding : public EmbeddingProvider {
+class BedrockEmbedding final : public EmbeddingProvider {
     BedrockEmbedding() = default;
     DELETE_COPY_AND_MOVE(BedrockEmbedding);
 

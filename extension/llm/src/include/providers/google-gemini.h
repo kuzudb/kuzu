@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace llm_extension {
 
-class GoogleGeminiEmbedding : public EmbeddingProvider {
+class GoogleGeminiEmbedding final : public EmbeddingProvider {
     GoogleGeminiEmbedding() = default;
     DELETE_COPY_AND_MOVE(GoogleGeminiEmbedding);
 
