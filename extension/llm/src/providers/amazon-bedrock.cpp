@@ -27,7 +27,7 @@ std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
 // different requests. Refer to
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
 
-std::string getDateHeader(const common::timestamp_t& timestamp) {
+static std::string getDateHeader(const common::timestamp_t& timestamp) {
     auto date = common::Timestamp::getDate(timestamp);
     int32_t year = 0, month = 0, day = 0;
     common::Date::convert(date, year, month, day);
@@ -44,7 +44,7 @@ std::string getDateHeader(const common::timestamp_t& timestamp) {
 }
 
 // Timestamp header is in the format: %Y%m%dT%H%M%SZ.
-std::string getDateTimeHeader(const common::timestamp_t& timestamp) {
+static std::string getDateTimeHeader(const common::timestamp_t& timestamp) {
     auto formatStr = getDateHeader(timestamp);
     auto time = common::Timestamp::getTime(timestamp);
     formatStr += "T";
