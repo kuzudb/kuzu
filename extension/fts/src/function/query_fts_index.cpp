@@ -330,7 +330,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columns.push_back(scoreColumn);
     auto nodeTable =
         context->getStorageManager()->getTable(ftsIndexEntry->getTableID())->ptrCast<NodeTable>();
-    auto& ftsIndex = nodeTable->getIndex(indexName).value()->cast<FTSIndex>();
+    auto index = nodeTable->getIndex(indexName);
+    KU_ASSERT(index.has_value());
+    auto& ftsIndex = index.value()->cast<FTSIndex>();
     auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
     auto bindData =
         std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
