@@ -132,6 +132,8 @@ static jclass J_C_Database;
 static jfieldID J_C_Database_db_ref;
 // String
 static jclass J_C_String;
+static jmethodID J_C_String_M_ctor;
+static jmethodID J_C_String_M_getBytes;
 
 static void throwJNIException(JNIEnv* env, const char* message) {
     jclass exClass = env->FindClass("java/lang/RuntimeException");
@@ -139,6 +141,22 @@ static void throwJNIException(JNIEnv* env, const char* message) {
         return;
     }
     env->ThrowNew(exClass, message);
+}
+
+static std::string jstringToUtf8String(JNIEnv* env, jstring value) {
+    jbyteArray byteArr = (jbyteArray)env->CallObjectMethod(value, J_C_String_M_getBytes, env->NewStringUTF("UTF-8"));
+    size_t length = env->GetArrayLength(byteArr);
+    jbyte* bytes = env->GetByteArrayElements(byteArr, nullptr);
+    std::string ret = std::string((char*)bytes, length);
+    env->ReleaseByteArrayElements(byteArr, bytes, 0);
+    return ret;
+}
+
+static jstring utf8StringToJstring(JNIEnv* env, std::string str) {
+    jbyteArray byteArr = env->NewByteArray(str.size());
+    env->SetByteArrayRegion(byteArr, 0, str.size(), reinterpret_cast<const jbyte*>(str.data()));
+    jstring ret = (jstring)env->NewObject(J_C_String, J_C_String_M_ctor, byteArr, env->NewStringUTF("UTF-8"));
+    return ret;
 }
 
 jobject createJavaObject(JNIEnv* env, void* memAddress, jclass javaClass, jfieldID refID) {
@@ -292,13 +310,12 @@ std::unordered_map<std::string, std::unique_ptr<Value>> javaMapToCPPMap(JNIEnv* 
             jobject entry = env->CallObjectMethod(iter, J_C_Iterator_M_next);
             jstring key = (jstring)env->CallObjectMethod(entry, J_C_Map$Entry_M_getKey);
             jobject value = env->CallObjectMethod(entry, J_C_Map$Entry_M_getValue);
-            const char* keyStr = env->GetStringUTFChars(key, JNI_FALSE);
+            std::string keyStr = jstringToUtf8String(env, key);
             const Value* v = getValue(env, value);
             // Java code can keep a reference to the value, so we cannot move.
             result.insert({keyStr, v->copy()});
 
             env->DeleteLocalRef(entry);
-            env->ReleaseStringUTFChars(key, keyStr);
             env->DeleteLocalRef(key);
             env->DeleteLocalRef(value);
         }
@@ -445,9 +462,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1connection_1query(JNIEnv*
     jobject thisConn, jstring query) {
     try {
         Connection* conn = getConnection(env, thisConn);
-        const char* CPPQuery = env->GetStringUTFChars(query, JNI_FALSE);
-        auto query_result = conn->query(CPPQuery).release();
-        env->ReleaseStringUTFChars(query, CPPQuery);
+        std::string cppQuery = jstringToUtf8String(env, query);
+        auto query_result = conn->query(cppQuery).release();
 
         uint64_t qrAddress = reinterpret_cast<uint64_t>(query_result);
         jlong qr_ref = static_cast<jlong>(qrAddress);
@@ -467,10 +483,9 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1connection_1prepare(JNIEn
     jobject thisConn, jstring query) {
     try {
         Connection* conn = getConnection(env, thisConn);
-        const char* cppquery = env->GetStringUTFChars(query, JNI_FALSE);
+        std::string cppQuery = jstringToUtf8String(env, query);
 
-        PreparedStatement* prepared_statement = conn->prepare(cppquery).release();
-        env->ReleaseStringUTFChars(query, cppquery);
+        PreparedStatement* prepared_statement = conn->prepare(cppQuery).release();
         if (prepared_statement == nullptr) {
             return nullptr;
         }
@@ -570,7 +585,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1prepared_1statement_1get_
     try {
         PreparedStatement* ps = getPreparedStatement(env, thisPS);
         std::string errorMessage = ps->getErrorMessage();
-        jstring msg = env->NewStringUTF(errorMessage.c_str());
+        jstring msg = utf8StringToJstring(env, errorMessage);
         return msg;
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -614,7 +629,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1error
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         std::string errorMessage = qr->getErrorMessage();
-        jstring msg = env->NewStringUTF(errorMessage.c_str());
+        jstring msg = utf8StringToJstring(env, errorMessage);
         return msg;
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -647,7 +662,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1colum
             return nullptr;
         }
         std::string column_name = column_names[idx];
-        jstring name = env->NewStringUTF(column_name.c_str());
+        jstring name = utf8StringToJstring(env, column_name);
         return name;
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -789,7 +804,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1to_1string
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         std::string result_string = qr->toString();
-        jstring ret = env->NewStringUTF(result_string.c_str());
+        jstring ret = utf8StringToJstring(env, result_string);
         return ret;
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -860,7 +875,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1to_1string(J
     try {
         FlatTuple* ft = getFlatTuple(env, thisFT);
         std::string result_string = ft->toString();
-        jstring ret = env->NewStringUTF(result_string.c_str());
+        jstring ret = utf8StringToJstring(env, result_string);
         return ret;
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -1107,7 +1122,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
         } else if (env->IsInstanceOf(val, J_C_BigDecimal)) {
             jstring value =
                 static_cast<jstring>(env->CallObjectMethod(val, J_C_BigDecimal_M_toString));
-            const char* str = env->GetStringUTFChars(value, JNI_FALSE);
+            std::string str = jstringToUtf8String(env, value);
             auto precision =
                 static_cast<int32_t>(env->CallIntMethod(val, J_C_BigDecimal_M_precision));
             auto scale = static_cast<int32_t>(env->CallIntMethod(val, J_C_BigDecimal_M_scale));
@@ -1120,14 +1135,13 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
             auto type = LogicalType::DECIMAL(precision, scale);
             auto tmp = Value::createDefaultValue(type);
             int128_t res = 0;
-            kuzu::function::decimalCast(str, std::strlen(str), res, type);
+            kuzu::function::decimalCast(str.c_str(), str.length(), res, type);
             tmp.val.int128Val = res;
             v = new Value(tmp);
         } else if (env->IsInstanceOf(val, J_C_String)) {
             jstring value = static_cast<jstring>(val);
-            const char* str = env->GetStringUTFChars(value, JNI_FALSE);
-            v = new Value(str);
-            env->ReleaseStringUTFChars(value, str);
+            std::string str = jstringToUtf8String(env, value);
+            v = new Value(str.c_str());
         } else if (env->IsInstanceOf(val, J_C_InternalID)) {
             long table_id = static_cast<long>(env->GetLongField(val, J_C_InternalID_F_tableId));
             long offset = static_cast<long>(env->GetLongField(val, J_C_InternalID_F_offset));
@@ -1331,7 +1345,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
             return ret;
         }
         case LogicalTypeID::UINT64: {
-            auto value = v->toString();
+            std::string value = v->toString();
             jstring val = env->NewStringUTF(value.c_str());
             jobject ret = env->NewObject(J_C_BigInteger, J_C_BigInteger_M_init, val);
             return ret;
@@ -1437,7 +1451,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
         }
         case LogicalTypeID::STRING: {
             std::string str = v->getValue<std::string>();
-            jstring ret = env->NewStringUTF(str.c_str());
+            jstring ret = utf8StringToJstring(env, str);
             return ret;
         }
         case LogicalTypeID::BLOB: {
@@ -1463,7 +1477,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1to_1string(JNIEnv*
     try {
         Value* v = getValue(env, thisValue);
         std::string result_string = v->toString();
-        jstring ret = env->NewStringUTF(result_string.c_str());
+        jstring ret = utf8StringToJstring(env, result_string);
         return ret;
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -1500,8 +1514,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1get_1label_1na
         if (labelVal == nullptr) {
             return NULL;
         }
-        auto label = labelVal->getValue<std::string>();
-        return env->NewStringUTF(label.c_str());
+        std::string label = labelVal->getValue<std::string>();
+        return utf8StringToJstring(env, label);
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
     } catch (...) {
@@ -1528,8 +1542,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1get_1property_
     JNIEnv* env, jclass, jobject thisNV, jlong index) {
     try {
         auto* nv = getValue(env, thisNV);
-        auto propertyName = NodeVal::getPropertyName(nv, index);
-        return env->NewStringUTF(propertyName.c_str());
+        std::string propertyName = NodeVal::getPropertyName(nv, index);
+        return utf8StringToJstring(env, propertyName);
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
     } catch (...) {
@@ -1559,7 +1573,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1to_1string(JNI
     try {
         auto* nv = getValue(env, thisNV);
         std::string result_string = NodeVal::toString(nv);
-        jstring ret = env->NewStringUTF(result_string.c_str());
+        jstring ret = utf8StringToJstring(env, result_string);
         return ret;
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -1634,8 +1648,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1label_1nam
         if (labelVal == nullptr) {
             return NULL;
         }
-        auto label = labelVal->getValue<std::string>();
-        return env->NewStringUTF(label.c_str());
+        std::string label = labelVal->getValue<std::string>();
+        return utf8StringToJstring(env, label);
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
     } catch (...) {
@@ -1662,8 +1676,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1property_1
     JNIEnv* env, jclass, jobject thisRV, jlong index) {
     try {
         auto* rv = getValue(env, thisRV);
-        auto name = RelVal::getPropertyName(rv, index);
-        return env->NewStringUTF(name.c_str());
+        std::string name = RelVal::getPropertyName(rv, index);
+        return utf8StringToJstring(env, name);
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
     } catch (...) {
@@ -1695,7 +1709,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1to_1string(JNIE
     try {
         auto* rv = getValue(env, thisRV);
         std::string result_string = RelVal::toString(rv);
-        jstring ret = env->NewStringUTF(result_string.c_str());
+        jstring ret = utf8StringToJstring(env, result_string);
         return ret;
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -1764,8 +1778,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1struct(JNIEnv* en
         std::vector<std::unique_ptr<Value>> children;
         auto structFields = std::vector<StructField>{};
         for (jsize i = 0; i < len; ++i) {
-            auto fieldName = std::string(env->GetStringUTFChars(
-                reinterpret_cast<jstring>(env->GetObjectArrayElement(fieldNames, i)), JNI_FALSE));
+            auto fieldName = jstringToUtf8String(env, reinterpret_cast<jstring>(env->GetObjectArrayElement(fieldNames, i)));
             auto fieldValue = getValue(env, env->GetObjectArrayElement(fieldValues, i))->copy();
             auto fieldType = fieldValue->getDataType().copy();
 
@@ -1793,8 +1806,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field
         if ((uint64_t)index >= fieldNames.size() || index < 0) {
             return nullptr;
         }
-        auto name = fieldNames[index];
-        return env->NewStringUTF(name.c_str());
+        std::string name = fieldNames[index];
+        return utf8StringToJstring(env, name);
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
     } catch (...) {
@@ -1807,10 +1820,9 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(J
     jobject thisSV, jstring field_name) {
     try {
         auto* sv = getValue(env, thisSV);
-        const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
+        std::string field_name_str = jstringToUtf8String(env, field_name);
         const auto& dataType = sv->getDataType();
-        auto index = StructType::getFieldIdx(dataType, field_name_cstr);
-        env->ReleaseStringUTFChars(field_name, field_name_cstr);
+        auto index = StructType::getFieldIdx(dataType, field_name_str);
         if (index == INVALID_STRUCT_FIELD_IDX) {
             return -1;
         } else {
@@ -1995,6 +2007,10 @@ void initGlobalMethodRef(JNIEnv* env) {
         J_C_BigDecimal_M_precision = env->GetMethodID(J_C_BigDecimal, "precision", "()I");
 
         J_C_BigDecimal_M_scale = env->GetMethodID(J_C_BigDecimal, "scale", "()I");
+
+        J_C_String_M_ctor = env->GetMethodID(J_C_String, "<init>", "([BLjava/lang/String;)V");
+
+        J_C_String_M_getBytes = env->GetMethodID(J_C_String, "getBytes", "(Ljava/lang/String;)[B");
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
     } catch (...) {

@@ -280,6 +280,10 @@ public class ValueTest extends TestBase {
         assertTrue(str.equals("abcdefg"));
         checkValueConversion(value);
         value.close();
+        Value special = new Value("12🍞x🚗😂😃🧘🏻‍♂️a🌍🍞🚗😂😃🧘🏻‍♂️aSóló🌍 xyz");
+        assertTrue(special.toString().equals("12🍞x🚗😂😃🧘🏻‍♂️a🌍🍞🚗😂😃🧘🏻‍♂️aSóló🌍 xyz"));
+        checkValueConversion(special);
+        special.close();
     }
 
     @Test
