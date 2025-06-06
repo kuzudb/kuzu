@@ -69,6 +69,10 @@ void Checkpointer::writeCheckpoint() {
 
     // Flush the shadow file.
     shadowFile.flushAll();
+    // This function will evict all pages that were freed during this checkpoint
+    // It must be called before we remove all evicted candidates from the BM
+    // Or else the evicted pages may end up appearing multiple times in the eviction queue
+    storageManager->finalizeCheckpoint();
     // When a page is freed by the FSM, it evicts it from the BM. However, if the page is freed,
     // then reused over and over, it can be appended to the eviction queue multiple times. To
     // prevent multiple entries of the same page from existing in the eviction queue, at the end of
@@ -86,7 +90,6 @@ void Checkpointer::writeCheckpoint() {
     // Clear the wal and also shadowing files.
     wal->clearWAL();
     shadowFile.clearAll(clientContext);
-    storageManager->finalizeCheckpoint();
 
     catalog->resetVersion();
     dataFH->getPageManager()->resetVersion();
