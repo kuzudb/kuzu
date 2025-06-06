@@ -112,8 +112,8 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     std::string payloadStr = payload.dump();
     kuzu::common::hash_bytes payloadHashBytes;
     kuzu::common::hash_str payloadHashHex;
-    kuzu::common::sha256(payloadStr.c_str(), payloadStr.size(), payloadHashBytes);
-    kuzu::common::hex256(payloadHashBytes, payloadHashHex);
+    kuzu::common::CryptoUtils::sha256(payloadStr.c_str(), payloadStr.size(), payloadHashBytes);
+    kuzu::common::CryptoUtils::hex256(payloadHashBytes, payloadHashHex);
 
     std::ostringstream canonicalRequest;
     canonicalRequest << "POST\n"
@@ -127,9 +127,9 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
 
     kuzu::common::hash_bytes canonicalRequestHashBytes;
     kuzu::common::hash_str canonicalRequestHashHex;
-    kuzu::common::sha256(canonicalRequestStr.c_str(), canonicalRequestStr.size(),
+    kuzu::common::CryptoUtils::sha256(canonicalRequestStr.c_str(), canonicalRequestStr.size(),
         canonicalRequestHashBytes);
-    kuzu::common::hex256(canonicalRequestHashBytes, canonicalRequestHashHex);
+    kuzu::common::CryptoUtils::hex256(canonicalRequestHashBytes, canonicalRequestHashHex);
 
     std::string algorithm = "AWS4-HMAC-SHA256";
     std::string credentialScope =
@@ -146,16 +146,16 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
 
     kuzu::common::hash_bytes kDate, kRegion, kService, kSigning;
     std::string kSecret = "AWS4" + std::string(envAWSSecretAccessKey);
-    kuzu::common::hmac256(dateHeader, kSecret.c_str(), kSecret.size(), kDate);
-    kuzu::common::hmac256(region, kDate, kRegion);
-    kuzu::common::hmac256(service, kRegion, kService);
-    kuzu::common::hmac256("aws4_request", kService, kSigning);
+    kuzu::common::CryptoUtils::hmac256(dateHeader, kSecret.c_str(), kSecret.size(), kDate);
+    kuzu::common::CryptoUtils::hmac256(region, kDate, kRegion);
+    kuzu::common::CryptoUtils::hmac256(service, kRegion, kService);
+    kuzu::common::CryptoUtils::hmac256("aws4_request", kService, kSigning);
 
     kuzu::common::hash_bytes signatureBytes;
     kuzu::common::hash_str signatureHex;
 
-    kuzu::common::hmac256(stringToSignStr, kSigning, signatureBytes);
-    kuzu::common::hex256(signatureBytes, signatureHex);
+    kuzu::common::CryptoUtils::hmac256(stringToSignStr, kSigning, signatureBytes);
+    kuzu::common::CryptoUtils::hex256(signatureBytes, signatureHex);
     std::ostringstream authorizationHeader;
     authorizationHeader << algorithm << " " << "Credential=" << std::string(envAWSAccessKey) << "/"
                         << credentialScope << ", " << "SignedHeaders=" << signedHeaders << ", "
