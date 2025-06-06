@@ -41,24 +41,31 @@ std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkD
     return flushedChunk;
 }
 
-void StructColumn::scanInternal(const transaction::Transaction* transaction,
-    const SegmentState& state, common::offset_t startOffsetInSegment,
-    common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const {
+void StructColumn::scanSegment(const transaction::Transaction* transaction,
+    const SegmentState& state, ColumnChunkData* resultChunk, common::offset_t startOffsetInSegment,
+    common::row_idx_t numValuesToScan) const {
     KU_ASSERT(resultChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    Column::scanInternal(transaction, state, startOffsetInSegment, numValuesToScan, resultChunk);
+    // Fix size since Column::scanSegment will adjust the size of the child chunks to be equal to
+    // the size of the main one (see note in list_column.cpp)
+    // TODO(bmwinger): eventually this shouldn't be necessary
+    auto sizeBeforeScan = resultChunk->getNumValues();
+    Column::scanSegment(transaction, state, resultChunk, startOffsetInSegment, numValuesToScan);
     auto& structColumnChunk = resultChunk->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
+        structColumnChunk.getChild(i)->setNumValues(sizeBeforeScan);
         childColumns[i]->scanSegment(transaction, state.childrenStates[i],
             structColumnChunk.getChild(i), startOffsetInSegment, numValuesToScan);
     }
 }
 
-void StructColumn::scanInternal(const Transaction* transaction, const SegmentState& state,
+void StructColumn::scanSegment(const Transaction* transaction, const SegmentState& state,
     offset_t startOffsetInSegment, row_idx_t numValuesToScan, ValueVector* resultVector,
     offset_t offsetInResult) const {
+    Column::scanSegment(transaction, state, startOffsetInSegment, numValuesToScan, resultVector,
+        offsetInResult);
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scanInternal(transaction, state.childrenStates[i], startOffsetInSegment,
+        childColumns[i]->scanSegment(transaction, state.childrenStates[i], startOffsetInSegment,
             numValuesToScan, fieldVector, offsetInResult);
     }
 }

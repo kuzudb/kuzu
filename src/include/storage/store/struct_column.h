@@ -26,10 +26,10 @@ public:
     void checkpointSegment(ColumnCheckpointState&& checkpointState) const override;
 
 protected:
-    void scanInternal(const transaction::Transaction* transaction, const SegmentState& state,
-        common::offset_t startOffsetInSegment, common::row_idx_t numValuesToScan,
-        ColumnChunkData* resultChunk) const override;
-    void scanInternal(const transaction::Transaction* transaction, const SegmentState& state,
+    void scanSegment(const transaction::Transaction* transaction, const SegmentState& state,
+        ColumnChunkData* resultChunk, common::offset_t startOffsetInSegment,
+        common::row_idx_t numValuesToScan) const override;
+    void scanSegment(const transaction::Transaction* transaction, const SegmentState& state,
         common::offset_t startOffsetInSegment, common::row_idx_t numValuesToScan,
         common::ValueVector* resultVector, common::offset_t offsetInResult) const override;
 

@@ -63,7 +63,7 @@ public:
         common::ValueVector* resultVector, uint64_t offsetInVector) const;
     // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
     // Appends to the end of the columnChunk
-    virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
+    void scan(const transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t offsetInChunk = 0,
         common::offset_t numValues = UINT64_MAX) const;
     // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
@@ -110,19 +110,9 @@ public:
     virtual void checkpointSegment(ColumnCheckpointState&& checkpointState) const;
 
 protected:
-    virtual void scanInternal(const transaction::Transaction* transaction,
-        const SegmentState& state, common::offset_t startOffsetInSegment,
-        common::row_idx_t numValuesToScan, common::ValueVector* resultVector,
-        common::offset_t startOffsetInVector) const;
-
     virtual void scanSegment(const transaction::Transaction* transaction, const SegmentState& state,
         common::offset_t startOffsetInSegment, common::row_idx_t numValuesToScan,
         common::ValueVector* resultVector, common::offset_t startOffsetInVector) const;
-
-    // Writes to the end of the result chunk
-    virtual void scanInternal(const transaction::Transaction* transaction,
-        const SegmentState& state, common::offset_t startOffsetInSegment,
-        common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const;
 
     virtual void lookupInternal(const transaction::Transaction* transaction,
         const SegmentState& state, common::offset_t offsetInSegment,

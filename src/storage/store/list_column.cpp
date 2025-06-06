@@ -100,9 +100,11 @@ std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkDat
     return flushedChunk;
 }
 
-void ListColumn::scanInternal(const Transaction* transaction, const SegmentState& state,
+void ListColumn::scanSegment(const Transaction* transaction, const SegmentState& state,
     offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector,
     offset_t offsetInResult) const {
+    Column::scanSegment(transaction, state, startOffsetInChunk, numValuesToScan, resultVector,
+        offsetInResult);
     auto listOffsetSizeInfo =
         getListOffsetSizeInfo(transaction, state, startOffsetInChunk, numValuesToScan);
     if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {

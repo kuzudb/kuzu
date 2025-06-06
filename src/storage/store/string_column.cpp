@@ -12,7 +12,6 @@
 #include "storage/store/column.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"
-#include "storage/store/null_column.h"
 #include "storage/store/string_chunk_data.h"
 #include "transaction/transaction.h"
 
@@ -61,24 +60,6 @@ std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkD
     flushedStringData.getDictionaryChunk().setStringDataChunk(
         Column::flushChunkData(*dictChunk.getStringDataChunk(), dataFH));
     return flushedChunkData;
-}
-
-// TODO(bmwinger): maybe move this into scanInternal
-void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t numValues) const {
-    Column::scan(transaction, state, columnChunk, startOffset, numValues);
-    if (columnChunk->getNumValues() == 0) {
-        return;
-    }
-
-    state.rangeSegments(startOffset, numValues,
-        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto) {
-            auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
-            indexColumn->scanSegment(transaction,
-                getChildState(segmentState, ChildStateIndex::INDEX),
-                stringColumnChunk.getIndexColumnChunk(), offsetInSegment, lengthInSegment);
-            dictionary.scan(transaction, segmentState, stringColumnChunk.getDictionaryChunk());
-        });
 }
 
 void StringColumn::lookupInternal(const Transaction* transaction, const SegmentState& state,
@@ -133,9 +114,12 @@ void StringColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) co
     persistentData.syncNumValues();
 }
 
-void StringColumn::scanInternal(const Transaction* transaction, const SegmentState& state,
+void StringColumn::scanSegment(const Transaction* transaction, const SegmentState& state,
     offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector,
     offset_t offsetInResult) const {
+    Column::scanSegment(transaction, state, startOffsetInChunk, numValuesToScan, resultVector,
+        offsetInResult);
+
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector,
@@ -145,10 +129,11 @@ void StringColumn::scanInternal(const Transaction* transaction, const SegmentSta
     }
 }
 
-void StringColumn::scanInternal(const transaction::Transaction* transaction,
-    const SegmentState& state, common::offset_t startOffsetInSegment,
-    common::row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const {
+void StringColumn::scanSegment(const transaction::Transaction* transaction,
+    const SegmentState& state, ColumnChunkData* resultChunk, common::offset_t startOffsetInSegment,
+    common::row_idx_t numValuesToScan) const {
     auto startOffsetInResult = resultChunk->getNumValues();
+    Column::scanSegment(transaction, state, resultChunk, startOffsetInSegment, numValuesToScan);
     KU_ASSERT(resultChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING);
 
     auto* stringResultChunk = ku_dynamic_cast<StringChunkData*>(resultChunk);

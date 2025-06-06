@@ -199,72 +199,9 @@ void Column::scanSegment(const Transaction* transaction, const SegmentState& sta
     offset_t offsetInVector) const {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
-        nullColumn->scanInternal(transaction, *state.nullState, startOffsetInSegment,
+        nullColumn->scanSegment(transaction, *state.nullState, startOffsetInSegment,
             numValuesToScan, resultVector, offsetInVector);
     }
-    scanInternal(transaction, state, startOffsetInSegment, numValuesToScan, resultVector,
-        offsetInVector);
-}
-
-void Column::scanSegment(const Transaction* transaction, const SegmentState& state,
-    ColumnChunkData* outputChunk, offset_t offsetInSegment, offset_t numValues) const {
-    auto startLength = outputChunk->getNumValues();
-    if (nullColumn) {
-        nullColumn->scanSegment(transaction, *state.nullState, outputChunk->getNullData(),
-            offsetInSegment, numValues);
-    }
-
-    if (startLength + numValues > outputChunk->getCapacity()) {
-        outputChunk->resize(std::bit_ceil(startLength + numValues));
-    }
-
-    // FIXME(bmwinger): failing for certain null columns
-    // KU_ASSERT((offsetInSegment + numValues) <= state.metadata.numValues);
-    scanInternal(transaction, state, offsetInSegment, numValues, outputChunk);
-    outputChunk->setNumValues(startLength + numValues);
-}
-
-void Column::scan(const Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* outputChunk, offset_t offsetInChunk, offset_t numValues) const {
-    [[maybe_unused]] auto startLength = outputChunk->getNumValues();
-    [[maybe_unused]] uint64_t numValuesScanned = state.rangeSegments(offsetInChunk, numValues,
-        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto) {
-            scanSegment(transaction, segmentState, outputChunk, startOffsetInSegment,
-                lengthInSegment);
-        });
-    KU_ASSERT(outputChunk->getNumValues() == startLength + numValuesScanned);
-}
-
-// FIXME: scanInternal functions can probably be removed in favour of scanSegment. Any chunk which
-// skips this scan in its specialization should have a data size of 0, so they can override
-// scanSegment instead and just call Column::scanSegment. That will reduce the chance of confusing
-// the two when used.
-void Column::scanInternal(const Transaction* transaction, const SegmentState& state,
-    offset_t startOffsetInSegment, row_idx_t numValuesToScan, ColumnChunkData* resultChunk) const {
-    if (getDataTypeSizeInChunk(dataType) > 0) {
-        columnReadWriter->readCompressedValuesToPage(transaction, state, resultChunk->getData(),
-            resultChunk->getNumValues(), startOffsetInSegment, numValuesToScan, readToPageFunc);
-    }
-}
-
-void Column::scan(const Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInGroup, offset_t length, uint8_t* result) {
-    state.rangeSegments(startOffsetInGroup, length,
-        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
-            columnReadWriter->readCompressedValuesToPage(transaction, segmentState, result,
-                dstOffset, startOffsetInSegment, lengthInSegment, readToPageFunc);
-        });
-}
-
-void Column::scanSegment(const Transaction* transaction, const SegmentState& state,
-    offset_t startOffsetInSegment, offset_t length, uint8_t* result) {
-    columnReadWriter->readCompressedValuesToPage(transaction, state, result, 0,
-        startOffsetInSegment, length, readToPageFunc);
-}
-
-void Column::scanInternal(const Transaction* transaction, const SegmentState& state,
-    offset_t startOffsetInSegment, row_idx_t numValuesToScan, ValueVector* resultVector,
-    offset_t offsetInVector) const {
     if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {
         columnReadWriter->readCompressedValuesToVector(transaction, state, resultVector,
             offsetInVector, startOffsetInSegment, numValuesToScan, readToVectorFunc);
@@ -289,6 +226,53 @@ void Column::scanInternal(const Transaction* transaction, const SegmentState& st
             offsetInVector, startOffsetInSegment, numValuesToScan, readToVectorFunc,
             Filterer{resultVector->state->getSelVector()});
     }
+}
+
+void Column::scanSegment(const Transaction* transaction, const SegmentState& state,
+    ColumnChunkData* outputChunk, offset_t offsetInSegment, offset_t numValues) const {
+    auto startLength = outputChunk->getNumValues();
+    if (nullColumn) {
+        nullColumn->scanSegment(transaction, *state.nullState, outputChunk->getNullData(),
+            offsetInSegment, numValues);
+    }
+
+    if (startLength + numValues > outputChunk->getCapacity()) {
+        outputChunk->resize(std::bit_ceil(startLength + numValues));
+    }
+
+    // FIXME(bmwinger): failing for certain null columns
+    // KU_ASSERT((offsetInSegment + numValues) <= state.metadata.numValues);
+    if (getDataTypeSizeInChunk(dataType) > 0) {
+        columnReadWriter->readCompressedValuesToPage(transaction, state, outputChunk->getData(),
+            outputChunk->getNumValues(), offsetInSegment, numValues, readToPageFunc);
+    }
+    outputChunk->setNumValues(startLength + numValues);
+}
+
+void Column::scan(const Transaction* transaction, const ChunkState& state,
+    ColumnChunkData* outputChunk, offset_t offsetInChunk, offset_t numValues) const {
+    [[maybe_unused]] auto startLength = outputChunk->getNumValues();
+    [[maybe_unused]] uint64_t numValuesScanned = state.rangeSegments(offsetInChunk, numValues,
+        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto) {
+            scanSegment(transaction, segmentState, outputChunk, startOffsetInSegment,
+                lengthInSegment);
+        });
+    KU_ASSERT(outputChunk->getNumValues() == startLength + numValuesScanned);
+}
+
+void Column::scan(const Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInGroup, offset_t length, uint8_t* result) {
+    state.rangeSegments(startOffsetInGroup, length,
+        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
+            columnReadWriter->readCompressedValuesToPage(transaction, segmentState, result,
+                dstOffset, startOffsetInSegment, lengthInSegment, readToPageFunc);
+        });
+}
+
+void Column::scanSegment(const Transaction* transaction, const SegmentState& state,
+    offset_t startOffsetInSegment, offset_t length, uint8_t* result) {
+    columnReadWriter->readCompressedValuesToPage(transaction, state, result, 0,
+        startOffsetInSegment, length, readToPageFunc);
 }
 
 void Column::lookupValue(const Transaction* transaction, const ChunkState& state,
