@@ -60,7 +60,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
         auto text = parameters[0]->getValue<ku_string_t>(selectedPos).getAsString();
 
         nlohmann::json payload = provider.getPayload(model, text);
-        httplib::Headers headers = provider.getHeaders();
+        httplib::Headers headers = provider.getHeaders(payload);
 
         auto res = client.Post(path, headers, payload.dump(), "application/json");
 
