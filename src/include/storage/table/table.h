@@ -18,7 +18,7 @@ class Table;
 
 enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = UINT8_MAX };
 
-struct TableScanState {
+struct KUZU_API TableScanState {
     Table* table;
     std::unique_ptr<common::ValueVector> rowIdxVector;
     // Node/Rel ID vector. We assume all output vectors are within the same DataChunk as this one.
@@ -81,11 +81,10 @@ struct TableScanState {
     }
 };
 
-struct TableInsertState {
+struct KUZU_API TableInsertState {
     std::vector<common::ValueVector*> propertyVectors;
 
-    explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors)
-        : propertyVectors{std::move(propertyVectors)} {}
+    explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors);
     virtual ~TableInsertState();
 
     template<typename T>
@@ -98,12 +97,11 @@ struct TableInsertState {
     }
 };
 
-struct TableUpdateState {
+struct KUZU_API TableUpdateState {
     common::column_id_t columnID;
     common::ValueVector& propertyVector;
 
-    TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector)
-        : columnID{columnID}, propertyVector{propertyVector} {}
+    TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector);
     virtual ~TableUpdateState();
 
     template<typename T>
