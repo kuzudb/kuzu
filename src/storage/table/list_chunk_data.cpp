@@ -71,7 +71,7 @@ bool ListChunkData::isOffsetsConsecutiveAndSortedAscending(uint64_t startPos,
 offset_t ListChunkData::getListStartOffset(offset_t offset) const {
     if (numValues == 0 || (offset != numValues && nullData->isNull(offset))) {
         return 0;
-}
+    }
     KU_ASSERT(offset == numValues || getListEndOffset(offset) >= getListSize(offset));
     return offset == numValues ? getListEndOffset(offset - 1) :
                                  getListEndOffset(offset) - getListSize(offset);
@@ -80,7 +80,7 @@ offset_t ListChunkData::getListStartOffset(offset_t offset) const {
 offset_t ListChunkData::getListEndOffset(offset_t offset) const {
     if (numValues == 0 || nullData->isNull(offset)) {
         return 0;
-}
+    }
     KU_ASSERT(offset < numValues);
     return offsetColumnChunk->getValue<uint64_t>(offset);
 }
@@ -88,7 +88,7 @@ offset_t ListChunkData::getListEndOffset(offset_t offset) const {
 list_size_t ListChunkData::getListSize(offset_t offset) const {
     if (numValues == 0 || nullData->isNull(offset)) {
         return 0;
-}
+    }
     KU_ASSERT(offset < sizeColumnChunk->getNumValues());
     return sizeColumnChunk->getValue<list_size_t>(offset);
 }

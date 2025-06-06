@@ -192,7 +192,7 @@ std::vector<std::string> LocalFileSystem::glob(main::ClientContext* context,
 void LocalFileSystem::overwriteFile(const std::string& from, const std::string& to) {
     if (!fileOrPathExists(from) || !fileOrPathExists(to)) {
         return;
-}
+    }
     std::error_code errorCode;
     if (!std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing,
             errorCode)) {
@@ -206,7 +206,7 @@ void LocalFileSystem::overwriteFile(const std::string& from, const std::string& 
 void LocalFileSystem::copyFile(const std::string& from, const std::string& to) {
     if (!fileOrPathExists(from)) {
         return;
-}
+    }
     std::error_code errorCode;
     if (!std::filesystem::copy_file(from, to, std::filesystem::copy_options::none, errorCode)) {
         // LCOV_EXCL_START

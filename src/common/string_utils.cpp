@@ -106,7 +106,7 @@ std::vector<std::string> StringUtils::splitBySpace(const std::string& input) {
     std::string token;
     while (iss >> token) {
         result.push_back(token);
-}
+    }
     return result;
 }
 

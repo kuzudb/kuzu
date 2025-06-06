@@ -184,7 +184,7 @@ public:
             auto newIter = iter;
             while (nextChainedSlot(newIter)) {
                 ;
-}
+            }
             if (newIter.slotInfo != iter.slotInfo ||
                 *deletedPos != newIter.slot->header.numEntries() - 1) {
                 KU_ASSERT(newIter.slot->header.numEntries() > 0);

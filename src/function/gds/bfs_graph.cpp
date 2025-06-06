@@ -70,7 +70,7 @@ void DenseBFSGraph::addParent(uint16_t iter, nodeID_t boundNodeID, relID_t edgeI
     ParentList* expected = nullptr;
     while (!curData[nbrNodeID.offset].compare_exchange_strong(expected, parent)) {
         ;
-}
+    }
     parent->setNextPtr(expected);
 }
 
