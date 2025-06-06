@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <unordered_map>
 #include "common/copy_constructors.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -13,16 +12,15 @@ class BedrockEmbedding : public EmbeddingProvider {
     BedrockEmbedding() = default;
     DELETE_COPY_AND_MOVE(BedrockEmbedding); 
     
-    const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"amazon.titan-embed-text-v1", 1024}};
 
     public:
     ~BedrockEmbedding() override = default;
     static EmbeddingProvider& getInstance();
-    std::string getClient() override;
-    std::string getPath(const std::string&) override;
-    httplib::Headers getHeaders() override;
-    nlohmann::json getPayload(const std::string&, const std::string&) override;
-    std::vector<float> parseResponse(const httplib::Result&) override;
+    std::string getClient() const override;
+    std::string getPath(const std::string&) const override;
+    httplib::Headers getHeaders() const override;
+    nlohmann::json getPayload(const std::string&, const std::string&) const override;
+    std::vector<float> parseResponse(const httplib::Result&) const override;
     uint64_t getEmbeddingDimension(const std::string&) override;
 };
 

@@ -11,9 +11,9 @@ EmbeddingProvider &VoyageAIEmbedding::getInstance()
     static VoyageAIEmbedding instance;
     return instance;
 }
-std::string VoyageAIEmbedding::getClient() { return "https://api.voyageai.com"; }
-std::string VoyageAIEmbedding::getPath(const std::string&) { return "/v1/embeddings"; }
-httplib::Headers VoyageAIEmbedding::getHeaders()
+std::string VoyageAIEmbedding::getClient() const { return "https://api.voyageai.com"; }
+std::string VoyageAIEmbedding::getPath(const std::string&) const { return "/v1/embeddings"; }
+httplib::Headers VoyageAIEmbedding::getHeaders() const
 {
     const char * envVar = "VOYAGE_API_KEY";
     //NOLINTNEXTLINE
@@ -26,16 +26,17 @@ httplib::Headers VoyageAIEmbedding::getHeaders()
         {"Content-Type", "application/json"},
         {"Authorization", "Bearer " + std::string(env_key)}};
 }
-nlohmann::json VoyageAIEmbedding::getPayload(const std::string& model, const std::string& text) 
+nlohmann::json VoyageAIEmbedding::getPayload(const std::string& model, const std::string& text) const
 {
     return nlohmann::json{{"model", model}, {"input", text}};
 }
-std::vector<float> VoyageAIEmbedding::parseResponse(const httplib::Result& res) 
+std::vector<float> VoyageAIEmbedding::parseResponse(const httplib::Result& res) const
 {
     return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
 }
 uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string& model) 
 {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024}, {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024}, {"voyage-code-2", 1536}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end())
     {

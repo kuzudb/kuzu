@@ -11,8 +11,8 @@ EmbeddingProvider &GoogleVertexEmbedding::getInstance()
     static GoogleVertexEmbedding instance;
     return instance;
 }
-std::string GoogleVertexEmbedding::getClient() { return "https://aiplatform.googleapis.com"; }
-std::string GoogleVertexEmbedding::getPath(const std::string &model)
+std::string GoogleVertexEmbedding::getClient() const { return "https://aiplatform.googleapis.com"; }
+std::string GoogleVertexEmbedding::getPath(const std::string &model) const
 {
     const char *envVar = "GOOGLE_CLOUD_PROJECT_ID";
 
@@ -30,7 +30,7 @@ std::string GoogleVertexEmbedding::getPath(const std::string &model)
            "/locations/us-central1/publishers/google/models/" + model +
            ":predict";
 }
-httplib::Headers GoogleVertexEmbedding::getHeaders()
+httplib::Headers GoogleVertexEmbedding::getHeaders() const
 {
     const char *envVar = "GOOGLE_VERTEX_ACCESS_KEY";
     // NOLINTNEXTLINE
@@ -44,16 +44,18 @@ httplib::Headers GoogleVertexEmbedding::getHeaders()
         {"Content-Type", "application/json"},
         {"Authorization", "Bearer " + std::string(env_key)}};
 }
-nlohmann::json GoogleVertexEmbedding::getPayload(const std::string &, const std::string &text)
+nlohmann::json GoogleVertexEmbedding::getPayload(const std::string &, const std::string &text) const
 {
     return nlohmann::json{{"instances", {{{"content", text}}}}};
 }
-std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result &res)
+std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result &res) const
 {
     return nlohmann::json::parse(res->body)["predictions"][0]["embeddings"]["values"] .get<std::vector<float>>();
 }
 uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string &model)
 {
+   static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {{"gemini-embedding-001", 3072}, {"text-embedding-005", 768}, {"text-multilingual-embedding-002", 768}};
+
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end())
     {
