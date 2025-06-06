@@ -3,6 +3,8 @@
 #include "common/crypto.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "common/string_format.h"
+#include "common/types/timestamp_t.h"
 #include "httplib.h"
 #include "json.hpp"
 namespace kuzu {
@@ -24,6 +26,46 @@ std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
 // signature. This is one of the reasons the same header cannot be used accross
 // different requests. Refer to
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
+
+
+std::string getDateHeader(const common::timestamp_t& timestamp) {
+    auto date = common::Timestamp::getDate(timestamp);
+    int32_t year = 0, month = 0, day = 0;
+    common::Date::convert(date, year, month, day);
+    std::string formatStr = "{}";
+    if (month < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}";
+    if (day < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}";
+    return common::stringFormat(formatStr, year, month, day);
+}
+
+// Timestamp header is in the format: %Y%m%dT%H%M%SZ.
+std::string getDateTimeHeader(const common::timestamp_t& timestamp) {
+    auto formatStr = getDateHeader(timestamp);
+    auto time = common::Timestamp::getTime(timestamp);
+    formatStr += "T";
+    int32_t hours = 0, minutes = 0, seconds = 0, micros = 0;
+    common::Time::convert(time, hours, minutes, seconds, micros);
+    if (hours < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}";
+    if (minutes < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}";
+    if (seconds < 10) {
+        formatStr += "0";
+    }
+    formatStr += "{}Z";
+    return common::stringFormat(formatStr, hours, minutes, seconds);
+}
+
 
 httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) const {
     static const std::string envVarAWSAccessKey = "AWS_ACCESS_KEY";
@@ -51,39 +93,14 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     std::string region = "us-east-1";
     std::string host = "bedrock-runtime.us-east-1.amazonaws.com";
 
-    time_t now = time(nullptr);
-    tm tm_struct{};
 
-    {
-        auto status = gmtime_r(&now, &tm_struct);
-        if (status == nullptr) {
-            throw(kuzu::common::RuntimeException("Failure to convert the specified time to UTC"));
-        }
-    }
-
-    char dateStamp[9];
-    char amzDate[17];
-    {
-        const char* dateStampPattern = "%Y%m%d";
-        const char* amzDatePattern = "%Y%m%dT%H%M%SZ";
-        auto status = strftime(dateStamp, sizeof(dateStamp), dateStampPattern, &tm_struct);
-        if (status == 0) {
-            throw(kuzu::common::RuntimeException("Unable to format dateStamp with pattern " +
-                                                 std::string(dateStampPattern) +
-                                                 " (UTC time conversion failed)"));
-        }
-
-        status = strftime(amzDate, sizeof(amzDate), amzDatePattern, &tm_struct);
-        if (status == 0) {
-            throw(kuzu::common::RuntimeException("Unable to format amzDate with pattern " +
-                                                 std::string(amzDatePattern) +
-                                                 " (UTC time conversion failed)"));
-        }
-    }
+    auto timestamp = common::Timestamp::getCurrentTimestamp();
+    auto dateHeader = getDateHeader(timestamp);
+    auto datetimeHeader = getDateTimeHeader(timestamp);
 
     std::string canonicalUri = "/model/amazon.titan-embed-text-v1/invoke";
     std::string canonicalQueryString = "";
-    httplib::Headers headers{{"host", host}, {"x-amz-date", amzDate}};
+    httplib::Headers headers{{"host", host}, {"x-amz-date", datetimeHeader}};
     std::string canonicalHeaders;
     std::string signedHeaders;
     for (const auto& h : headers) {
@@ -118,11 +135,11 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
 
     std::string algorithm = "AWS4-HMAC-SHA256";
     std::string credentialScope =
-        std::string(dateStamp) + "/" + region + "/" + service + "/" + "aws4_request";
+        std::string(dateHeader) + "/" + region + "/" + service + "/" + "aws4_request";
 
     std::ostringstream stringToSign;
     stringToSign << algorithm << "\n"
-                 << amzDate << "\n"
+                 << datetimeHeader << "\n"
                  << credentialScope << "\n"
                  << std::string(reinterpret_cast<char*>(canonicalRequestHashHex),
                         sizeof(kuzu::common::hash_str));
@@ -131,7 +148,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
 
     kuzu::common::hash_bytes kDate, kRegion, kService, kSigning;
     std::string kSecret = "AWS4" + std::string(envAWSSecretAccessKey);
-    kuzu::common::hmac256(dateStamp, kSecret.c_str(), kSecret.size(), kDate);
+    kuzu::common::hmac256(dateHeader, kSecret.c_str(), kSecret.size(), kDate);
     kuzu::common::hmac256(region, kDate, kRegion);
     kuzu::common::hmac256(service, kRegion, kService);
     kuzu::common::hmac256("aws4_request", kService, kSigning);
