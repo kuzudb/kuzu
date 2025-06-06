@@ -57,7 +57,7 @@ Table* StorageManager::getTable(table_id_t tableID) {
 }
 
 void StorageManager::recover(main::ClientContext& clientContext) {
-    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
+    if (clientContext.isInMemory()) {
         // In-memory mode. Nothing to recover from.
         return;
     }

@@ -20,7 +20,7 @@ void HTTPConfigEnvProvider::setOptionValue(main::ClientContext* context) {
         function::CastString::operation(
             ku_string_t{cacheFileOptionStrVal.c_str(), cacheFileOptionStrVal.length()},
             enableCacheFile);
-        if (enableCacheFile && main::DBConfig::isDBPathInMemory(context->getDatabasePath())) {
+        if (enableCacheFile && context->isInMemory()) {
             throw Exception("Cannot enable HTTP file cache when database is in memory");
         }
         context->setExtensionOption(HTTPCacheFileConfig::HTTP_CACHE_FILE_OPTION,

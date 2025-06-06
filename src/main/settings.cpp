@@ -15,7 +15,7 @@ void SpillToDiskSetting::setContext(ClientContext* context, const common::Value&
     const auto& dbConfig = *context->getDBConfig();
     std::string spillPath;
     if (dbConfig.enableSpillingToDisk) {
-        if (dbConfig.isDBPathInMemory(context->getDatabasePath())) {
+        if (context->isInMemory()) {
             throw common::RuntimeException(
                 "Cannot set spill_to_disk to true for an in-memory database!");
         }
