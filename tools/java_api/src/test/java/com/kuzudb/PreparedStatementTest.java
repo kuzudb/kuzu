@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Map;
 
-import javax.management.Query;
-
 public class PreparedStatementTest extends TestBase {
 
     @Test

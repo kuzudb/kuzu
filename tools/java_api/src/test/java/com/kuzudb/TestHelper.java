@@ -3,11 +3,6 @@ package com.kuzudb;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Files;
-
-
-import com.kuzudb.*;
 
 public class TestHelper {
     private static Database db;
