@@ -42,7 +42,7 @@ struct KUZU_API NodeTableScanState final : public TableScanState {
         common::offset_t numNodes);
 };
 
-struct KUZU_API NodeTableInsertState final : public TableInsertState {
+struct KUZU_API NodeTableInsertState : public TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
     std::vector<std::unique_ptr<Index::InsertState>> indexInsertStates;
@@ -55,7 +55,7 @@ struct KUZU_API NodeTableInsertState final : public TableInsertState {
     NodeTableInsertState(const NodeTableInsertState&) = delete;
 };
 
-struct KUZU_API NodeTableUpdateState final : public TableUpdateState {
+struct KUZU_API NodeTableUpdateState : public TableUpdateState {
     common::ValueVector& nodeIDVector;
     // pkVector is nullptr if we are not updating primary key column.
     common::ValueVector* pkVector;
