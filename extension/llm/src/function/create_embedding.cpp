@@ -1,5 +1,3 @@
-#include <unordered_map>
-
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
