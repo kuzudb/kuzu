@@ -9,6 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+TableScanState::~TableScanState() = default;
+
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void TableScanState::resetOutVectors() {
     for (const auto& outputVector : outputVectors) {
@@ -27,6 +29,10 @@ void TableScanState::setToTable(const transaction::Transaction*, Table* table_,
     columnPredicateSets = std::move(columnPredicateSets_);
     nodeGroupScanState->chunkStates.resize(columnIDs.size());
 }
+
+TableInsertState::~TableInsertState() = default;
+TableUpdateState::~TableUpdateState() = default;
+TableDeleteState::~TableDeleteState() = default;
 
 Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
     MemoryManager* memoryManager)

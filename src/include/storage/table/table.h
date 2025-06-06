@@ -51,7 +51,7 @@ struct KUZU_API TableScanState {
         : table{nullptr}, nodeIDVector(nullptr), outState{nullptr}, columnIDs{std::move(columnIDs)},
           semiMask{nullptr}, columns{std::move(columns)} {}
 
-    virtual ~TableScanState() = default;
+    virtual ~TableScanState();
     DELETE_COPY_DEFAULT_MOVE(TableScanState);
 
     virtual void setToTable(const transaction::Transaction* transaction, Table* table_,
@@ -86,7 +86,7 @@ struct KUZU_API TableInsertState {
 
     explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors)
         : propertyVectors{std::move(propertyVectors)} {}
-    virtual ~TableInsertState() = default;
+    virtual ~TableInsertState();
 
     template<typename T>
     const T& constCast() const {
@@ -104,7 +104,7 @@ struct TableUpdateState {
 
     TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector)
         : columnID{columnID}, propertyVector{propertyVector} {}
-    virtual ~TableUpdateState() = default;
+    virtual ~TableUpdateState();
 
     template<typename T>
     const T& constCast() const {
@@ -117,7 +117,7 @@ struct TableUpdateState {
 };
 
 struct TableDeleteState {
-    virtual ~TableDeleteState() = default;
+    virtual ~TableDeleteState();
 
     template<typename T>
     const T& constCast() const {
