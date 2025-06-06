@@ -10,8 +10,9 @@ namespace function {
 void ListTypeResolver<ListOp::Append>::anyEmpty(std::vector<common::LogicalType>& types,
     common::LogicalType& targetType) {
     targetType = types[1].copy();
-    if (targetType.getLogicalTypeID() == LogicalTypeID::ANY)
+    if (targetType.getLogicalTypeID() == LogicalTypeID::ANY) {
         targetType = LogicalType(LogicalTypeID::INT64);
+}
 }
 
 void ListTypeResolver<ListOp::Append>::bothNull(std::vector<common::LogicalType>& types,
@@ -68,8 +69,9 @@ void ListFunctionUtils::resolveEmptyList(const ScalarBindFuncInput& input,
         leftEmpty(types, targetType);
     } else if (isArg1Empty) {
         rightEmpty(types, targetType);
-    } else
+    } else {
         return;
+}
     finalEmptyListResolver(types, targetType);
 }
 
