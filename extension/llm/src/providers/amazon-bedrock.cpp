@@ -27,7 +27,6 @@ std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
 // different requests. Refer to
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
 
-
 std::string getDateHeader(const common::timestamp_t& timestamp) {
     auto date = common::Timestamp::getDate(timestamp);
     int32_t year = 0, month = 0, day = 0;
@@ -66,7 +65,6 @@ std::string getDateTimeHeader(const common::timestamp_t& timestamp) {
     return common::stringFormat(formatStr, hours, minutes, seconds);
 }
 
-
 httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) const {
     static const std::string envVarAWSAccessKey = "AWS_ACCESS_KEY";
     static const std::string envVarAWSSecretAccessKey = "AWS_SECRET_ACCESS_KEY";
@@ -92,7 +90,6 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     // supported
     std::string region = "us-east-1";
     std::string host = "bedrock-runtime.us-east-1.amazonaws.com";
-
 
     auto timestamp = common::Timestamp::getCurrentTimestamp();
     auto dateHeader = getDateHeader(timestamp);
