@@ -187,11 +187,13 @@ public:
         std::unique_ptr<storage::IndexStorageInfo> storageInfo, storage::NodeTable& table,
         common::column_id_t columnID, HNSWIndexConfig config);
 
-    common::offset_t getUpperEntryPoint() const {
-        const auto upperEntryPointInGraph = upperLayer->getEntryPoint();
-        return upperEntryPointInGraph == common::INVALID_OFFSET ?
+    common::offset_t upperGraphOffsetToNodeOffset(common::offset_t upperOffset) const {
+        return upperOffset == common::INVALID_OFFSET ?
                    common::INVALID_OFFSET :
-                   upperGraphSelectionMap->graphToNodeOffset(upperEntryPointInGraph);
+                   upperGraphSelectionMap->graphToNodeOffset(upperOffset);
+    }
+    common::offset_t getUpperEntryPoint() const {
+        return upperGraphOffsetToNodeOffset(upperLayer->getEntryPoint());
     }
     common::offset_t getLowerEntryPoint() const { return lowerLayer->getEntryPoint(); }
     common::offset_t getNumUpperLayerNodes() const {

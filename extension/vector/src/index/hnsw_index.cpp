@@ -268,8 +268,8 @@ bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
     if (embeddings->isNull(offset)) {
         return false;
     }
-    const auto lowerEntryPoint =
-        upperLayer->searchNN(embeddings->getEmbedding(offset), upperLayer->getEntryPoint());
+    const auto lowerEntryPoint = upperGraphOffsetToNodeOffset(
+        upperLayer->searchNN(embeddings->getEmbedding(offset), upperLayer->getEntryPoint()));
     lowerLayer->insert(offset, lowerEntryPoint, lowerVisited);
     if (upperLayerSelectionMask->isNull(offset)) {
         const auto offsetInUpperGraph = upperGraphSelectionMap->nodeToGraphOffset(offset);
