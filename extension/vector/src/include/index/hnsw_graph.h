@@ -131,7 +131,7 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodes(numNodesInTable) {};
+        : numNodes(numNodesInTable){};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable, common::NullMask* selectedNodes);
 
     common::offset_t getNumNodesInGraph() const { return numNodes; }
