@@ -16,7 +16,7 @@ std::string OllamaEmbedding::getClient() const {
 std::string OllamaEmbedding::getPath(const std::string& /*model*/) const {
     return "/api/embeddings";
 }
-httplib::Headers OllamaEmbedding::getHeaders() const {
+httplib::Headers OllamaEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
     return httplib::Headers{{"Content-Type", "application/json"}};
 }
 nlohmann::json OllamaEmbedding::getPayload(const std::string& model,

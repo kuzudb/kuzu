@@ -29,7 +29,7 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
     return "/v1/projects/" + std::string(env_project_id) +
            "/locations/us-central1/publishers/google/models/" + model + ":predict";
 }
-httplib::Headers GoogleVertexEmbedding::getHeaders() const {
+httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
     const char* envVar = "GOOGLE_VERTEX_ACCESS_KEY";
     // NOLINTNEXTLINE
     auto env_key = std::getenv(envVar);

@@ -23,7 +23,7 @@ std::string GoogleGeminiEmbedding::getPath(const std::string& model) const {
     }
     return "/v1beta/models/" + model + ":embedContent?key=" + std::string(env_key);
 }
-httplib::Headers GoogleGeminiEmbedding::getHeaders() const {
+httplib::Headers GoogleGeminiEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
     return httplib::Headers{{"Content-Type", "application/json"}};
 }
 nlohmann::json GoogleGeminiEmbedding::getPayload(const std::string& model,

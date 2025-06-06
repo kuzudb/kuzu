@@ -17,7 +17,7 @@ std::string OpenAIEmbedding::getClient() const {
 std::string OpenAIEmbedding::getPath(const std::string& /*model*/) const {
     return "/v1/embeddings";
 }
-httplib::Headers OpenAIEmbedding::getHeaders() const {
+httplib::Headers OpenAIEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
     const char* envVar = "OPENAI_API_KEY";
     // NOLINTNEXTLINE
     auto env_key = std::getenv(envVar);
