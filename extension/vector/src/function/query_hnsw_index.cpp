@@ -239,9 +239,20 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(
     auto val = evaluateParamExpr(hnswBindData->kExpression, context, LogicalType::INT64());
     auto k = ExpressionUtil::getExpressionVal<int64_t>(*hnswBindData->kExpression, val,
         LogicalType::INT64(), validateK);
-    HNSWSearchState searchState{context->getTransaction(), context->getMemoryManager(),
-        *hnswSharedState->nodeTable, hnswBindData->indexColumnID, hnswSharedState->numNodes,
-        static_cast<uint64_t>(k), hnswBindData->config};
+    auto upperRelTableName = HNSWIndexUtils::getUpperGraphTableName(
+        hnswBindData->nodeTableEntry->getTableID(), hnswBindData->indexEntry->getIndexName());
+    auto lowerRelTableName = HNSWIndexUtils::getLowerGraphTableName(
+        hnswBindData->nodeTableEntry->getTableID(), hnswBindData->indexEntry->getIndexName());
+    auto catalog = context->getCatalog();
+    auto upperRelTableEntry =
+        catalog->getTableCatalogEntry(context->getTransaction(), upperRelTableName, true)
+            ->ptrCast<RelGroupCatalogEntry>();
+    auto lowerRelTableEntry =
+        catalog->getTableCatalogEntry(context->getTransaction(), lowerRelTableName, true)
+            ->ptrCast<RelGroupCatalogEntry>();
+    HNSWSearchState searchState{context, hnswBindData->nodeTableEntry, upperRelTableEntry,
+        lowerRelTableEntry, *hnswSharedState->nodeTable, hnswBindData->indexColumnID,
+        hnswSharedState->numNodes, static_cast<uint64_t>(k), hnswBindData->config};
     const auto tableID = hnswBindData->nodeTableEntry->getTableID();
     auto& semiMasks = hnswSharedState->semiMasks;
     if (semiMasks.containsTableID(tableID)) {
