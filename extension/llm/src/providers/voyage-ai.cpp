@@ -11,12 +11,15 @@ EmbeddingProvider& VoyageAIEmbedding::getInstance() {
     static VoyageAIEmbedding instance;
     return instance;
 }
-std::string VoyageAIEmbedding::getClient() const { return "https://api.voyageai.com"; }
-std::string VoyageAIEmbedding::getPath(const std::string& /*model*/) const { return "/v1/embeddings"; }
-httplib::Headers VoyageAIEmbedding::getHeaders() const
-{
-    const char * envVar = "VOYAGE_API_KEY";
-    //NOLINTNEXTLINE
+std::string VoyageAIEmbedding::getClient() const {
+    return "https://api.voyageai.com";
+}
+std::string VoyageAIEmbedding::getPath(const std::string& /*model*/) const {
+    return "/v1/embeddings";
+}
+httplib::Headers VoyageAIEmbedding::getHeaders() const {
+    const char* envVar = "VOYAGE_API_KEY";
+    // NOLINTNEXTLINE
     auto env_key = std::getenv(envVar);
     if (env_key == nullptr) {
         throw(common::RuntimeException("Could not get key from: " + std::string(envVar) + '\n'));

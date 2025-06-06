@@ -11,12 +11,15 @@ EmbeddingProvider& OpenAIEmbedding::getInstance() {
     static OpenAIEmbedding instance;
     return instance;
 }
-std::string OpenAIEmbedding::getClient() const { return "https://api.openai.com"; }
-std::string OpenAIEmbedding::getPath(const std::string& /*model*/) const { return "/v1/embeddings"; }
-httplib::Headers OpenAIEmbedding::getHeaders() const
-{
-    const char * envVar = "OPENAI_API_KEY";
-    //NOLINTNEXTLINE
+std::string OpenAIEmbedding::getClient() const {
+    return "https://api.openai.com";
+}
+std::string OpenAIEmbedding::getPath(const std::string& /*model*/) const {
+    return "/v1/embeddings";
+}
+httplib::Headers OpenAIEmbedding::getHeaders() const {
+    const char* envVar = "OPENAI_API_KEY";
+    // NOLINTNEXTLINE
     auto env_key = std::getenv(envVar);
     if (env_key == nullptr) {
         throw(common::RuntimeException("Could not get key from: " + std::string(envVar) + '\n'));

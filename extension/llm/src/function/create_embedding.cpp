@@ -42,12 +42,12 @@ EmbeddingProvider& getInstance(const std::string& provider) {
     return OllamaEmbedding::getInstance();
 }
 
-
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     const std::vector<common::SelectionVector*>& /*parameterSelVectors*/,
     common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
 
-    auto& provider = getInstance(StringUtils::getLower(parameters[1]->getValue<ku_string_t>(0).getAsString()));
+    auto& provider =
+        getInstance(StringUtils::getLower(parameters[1]->getValue<ku_string_t>(0).getAsString()));
     auto model = StringUtils::getLower(parameters[2]->getValue<ku_string_t>(0).getAsString());
     httplib::Client client(provider.getClient());
     client.set_connection_timeout(30, 0);
@@ -59,7 +59,6 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
 
         auto text = parameters[0]->getValue<ku_string_t>(selectedPos).getAsString();
-
 
         nlohmann::json payload = provider.getPayload(model, text);
         httplib::Headers headers = provider.getHeaders();

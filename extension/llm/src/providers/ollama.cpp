@@ -10,10 +10,13 @@ EmbeddingProvider& OllamaEmbedding::getInstance() {
     static OllamaEmbedding instance;
     return instance;
 }
-std::string OllamaEmbedding::getClient() const { return "http://localhost:11434"; }
-std::string OllamaEmbedding::getPath(const std::string& /*model*/) const { return "/api/embeddings"; }
-httplib::Headers OllamaEmbedding::getHeaders() const
-{
+std::string OllamaEmbedding::getClient() const {
+    return "http://localhost:11434";
+}
+std::string OllamaEmbedding::getPath(const std::string& /*model*/) const {
+    return "/api/embeddings";
+}
+httplib::Headers OllamaEmbedding::getHeaders() const {
     return httplib::Headers{{"Content-Type", "application/json"}};
 }
 nlohmann::json OllamaEmbedding::getPayload(const std::string& model,
