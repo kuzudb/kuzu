@@ -17,11 +17,11 @@ public:
     ~BedrockEmbedding() override = default;
     static EmbeddingProvider& getInstance();
     std::string getClient() const override;
-    std::string getPath(const std::string&) const override;
+    std::string getPath(const std::string& model) const override;
     httplib::Headers getHeaders() const override;
-    nlohmann::json getPayload(const std::string&, const std::string&) const override;
-    std::vector<float> parseResponse(const httplib::Result&) const override;
-    uint64_t getEmbeddingDimension(const std::string&) override;
+    nlohmann::json getPayload(const std::string& model, const std::string& text) const override;
+    std::vector<float> parseResponse(const httplib::Result& res) const override;
+    uint64_t getEmbeddingDimension(const std::string& model) override;
 };
 
 } // namespace llm_extension

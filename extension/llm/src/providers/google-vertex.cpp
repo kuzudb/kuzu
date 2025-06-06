@@ -39,8 +39,8 @@ httplib::Headers GoogleVertexEmbedding::getHeaders() const {
     return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + std::string(env_key)}};
 }
-nlohmann::json GoogleVertexEmbedding::getPayload(const std::string&,
-    const std::string& text) const {
+nlohmann::json GoogleVertexEmbedding::getPayload(const std::string & /*model*/, const std::string &text) const
+{
     return nlohmann::json{{"instances", {{{"content", text}}}}};
 }
 std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& res) const {
