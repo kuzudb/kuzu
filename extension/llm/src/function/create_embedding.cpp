@@ -1,4 +1,4 @@
-#include "common/assert.h"
+#include <unordered_map>
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
@@ -23,23 +23,24 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace llm_extension {
 
-EmbeddingProvider& getInstance(const std::string& provider) {
-    if (provider == "open-ai") {
-        return OpenAIEmbedding::getInstance();
-    } else if (provider == "voyage-ai") {
-        return VoyageAIEmbedding::getInstance();
-    } else if (provider == "google-vertex") {
-        return GoogleVertexEmbedding::getInstance();
-    } else if (provider == "google-gemini") {
-        return GoogleGeminiEmbedding::getInstance();
-    } else if (provider == "amazon-bedrock") {
-        return BedrockEmbedding::getInstance();
-    } else if (provider == "ollama") {
-        return OllamaEmbedding::getInstance();
+static EmbeddingProvider& getInstance(const std::string& provider) {
+
+    static const std::unordered_map<std::string, std::function<EmbeddingProvider&()>> providerInstanceMap = 
+    {
+        {"open-ai",        &OpenAIEmbedding::getInstance },
+        {"voyage-ai",      &VoyageAIEmbedding::getInstance },
+        {"google-vertex",  &GoogleVertexEmbedding::getInstance },
+        {"google-gemini",  &GoogleGeminiEmbedding::getInstance },
+        {"amazon-bedrock", &BedrockEmbedding::getInstance },
+        {"ollama",         &OllamaEmbedding::getInstance } 
+    };
+
+    auto providerInstanceIter = providerInstanceMap.find(provider);
+    if (providerInstanceIter == providerInstanceMap.end())
+    {
+        throw BinderException("Provider not found: " + provider + "\n");
     }
-    throw BinderException("Provider not found: " + provider + "\n");
-    KU_UNREACHABLE;
-    return OllamaEmbedding::getInstance();
+    return providerInstanceIter->second();
 }
 
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
