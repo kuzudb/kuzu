@@ -124,8 +124,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
                      << canonicalQueryString << "\n"
                      << canonicalHeaders << "\n"
                      << signedHeaders << "\n"
-                     << std::string(reinterpret_cast<char*>(payloadHashHex),
-                            sizeof(hash_str));
+                     << std::string(reinterpret_cast<char*>(payloadHashHex), sizeof(hash_str));
     std::string canonicalRequestStr = canonicalRequest.str();
 
     hash_bytes canonicalRequestHashBytes;
@@ -142,8 +141,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     stringToSign << algorithm << "\n"
                  << datetimeHeader << "\n"
                  << credentialScope << "\n"
-                 << std::string(reinterpret_cast<char*>(canonicalRequestHashHex),
-                        sizeof(hash_str));
+                 << std::string(reinterpret_cast<char*>(canonicalRequestHashHex), sizeof(hash_str));
 
     std::string stringToSignStr = stringToSign.str();
 

@@ -18,7 +18,8 @@ void CryptoUtils::sha256(const char* in, size_t inLen, hash_bytes& out) {
     mbedtls_sha256_free(&shaContext);
 }
 
-void CryptoUtils::hmac256(const std::string& message, const char* secret, size_t secretLen, hash_bytes& out) {
+void CryptoUtils::hmac256(const std::string& message, const char* secret, size_t secretLen,
+    hash_bytes& out) {
     mbedtls_md_context_t hmacCtx;
     const mbedtls_md_info_t* mdType = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
     if (!mdType) {
