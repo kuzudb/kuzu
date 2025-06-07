@@ -4,10 +4,6 @@
 #include "common/in_mem_overflow_buffer.h"
 #include "common/types/types.h"
 
-namespace arrow {
-class ChunkedArray;
-} // namespace arrow
-
 namespace kuzu {
 namespace common {
 
@@ -60,13 +56,6 @@ public:
 
 private:
     std::vector<std::shared_ptr<ValueVector>> childrenVectors;
-};
-
-class ArrowColumnAuxiliaryBuffer : public AuxiliaryBuffer {
-    friend class ArrowColumnVector;
-
-private:
-    std::shared_ptr<arrow::ChunkedArray> column;
 };
 
 // ListVector layout:
