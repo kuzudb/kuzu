@@ -106,3 +106,15 @@ True
 -STATEMENT RETURN left(uuid('A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11'), 36);
 ---- 1
 a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+-CASE ImplicitCastWithInsertion
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',') CREATE (:embeddings {id: column0, vec: column1});
+---- ok
+-STATEMENT MATCH (e:embeddings) RETURN count(e);
+---- 1
+1000
+-STATEMENT MATCH (e:embeddings) WHERE e.id = 294 RETURN e.*
+---- 1
+294|[0.278900,0.282000,0.226800,0.219700,0.607500,0.044000,0.306900,0.426000]

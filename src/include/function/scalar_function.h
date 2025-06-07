@@ -198,15 +198,16 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
             *params[0], paramSelVectors[0], result, resultSelVector, dataPtr);
     }
 
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
+        typename EXECUTOR = UnaryFunctionExecutor>
     static void UnaryExecNestedTypeFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
-        common::SelectionVector* resultSelVector, void* /*dataPtr*/ = nullptr) {
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+        EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
             UnaryNestedTypeFunctionWrapper>(*params[0], paramSelVectors[0], result, resultSelVector,
-            nullptr /* dataPtr */);
+            dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>

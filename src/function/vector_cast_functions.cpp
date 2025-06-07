@@ -572,16 +572,20 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(const std::stri
         switch (sourceType.getPhysicalType()) {
         // note: this cannot handle decimal -> decimal casting.
         case PhysicalTypeID::INT16:
-            func = ScalarFunction::UnaryExecNestedTypeFunction<int16_t, DST_TYPE, CastDecimalTo>;
+            func = ScalarFunction::UnaryExecNestedTypeFunction<int16_t, DST_TYPE, CastDecimalTo,
+                EXECUTOR>;
             break;
         case PhysicalTypeID::INT32:
-            func = ScalarFunction::UnaryExecNestedTypeFunction<int32_t, DST_TYPE, CastDecimalTo>;
+            func = ScalarFunction::UnaryExecNestedTypeFunction<int32_t, DST_TYPE, CastDecimalTo,
+                EXECUTOR>;
             break;
         case PhysicalTypeID::INT64:
-            func = ScalarFunction::UnaryExecNestedTypeFunction<int64_t, DST_TYPE, CastDecimalTo>;
+            func = ScalarFunction::UnaryExecNestedTypeFunction<int64_t, DST_TYPE, CastDecimalTo,
+                EXECUTOR>;
             break;
         case PhysicalTypeID::INT128:
-            func = ScalarFunction::UnaryExecNestedTypeFunction<int128_t, DST_TYPE, CastDecimalTo>;
+            func = ScalarFunction::UnaryExecNestedTypeFunction<int128_t, DST_TYPE, CastDecimalTo,
+                EXECUTOR>;
             break;
         default:
             KU_UNREACHABLE;

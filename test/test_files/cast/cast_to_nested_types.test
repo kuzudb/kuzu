@@ -366,3 +366,11 @@ Conversion exception: Map does not allow null as key.
 -STATEMENT RETURN CAST(CAST([2.7,3.8,4.4], 'DECIMAL(5,2)[3]'), 'DECIMAL(6,2)[3]')
 ---- 1
 [2.70,3.80,4.40]
+
+-CASE CASTNestedDecimal
+-STATEMENT RETURN cast(cast([1], "decimal(2,1)[]"), "int16[1]")
+---- 1
+[1]
+-STATEMENT RETURN cast(cast([220], "decimal(21,4)[]"), "int[1]")
+---- 1
+[220]
