@@ -271,7 +271,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto docTableName = FTSUtils::getDocsTableName(bindData.tableID, bindData.indexName);
     auto docTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
         context.clientContext->getTransaction(), docTableName);
-    graph::GraphEntry entry{{docTableEntry}, {} /* relTableEntries */};
+    graph::NativeGraphEntry entry{{docTableEntry}, {} /* relTableEntries */};
     graph::OnDiskGraph graph(context.clientContext, std::move(entry));
     auto sharedState = LenComputeSharedState{};
     LenCompute lenCompute{&sharedState};

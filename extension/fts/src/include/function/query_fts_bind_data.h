@@ -26,7 +26,7 @@ struct QueryFTSBindData final : function::GDSBindData {
     common::idx_t numDocs;
     double avgDocLen;
 
-    QueryFTSBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
+    QueryFTSBindData(binder::expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<binder::Expression> docs, std::shared_ptr<binder::Expression> query,
         const catalog::IndexCatalogEntry& entry, QueryFTSOptionalParams optionalParams,
         common::idx_t numDocs, double avgDocLen)

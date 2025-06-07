@@ -12,7 +12,7 @@ namespace kuzu {
 namespace function {
 
 struct RJBindData {
-    graph::GraphEntry graphEntry;
+    graph::NativeGraphEntry graphEntry;
 
     std::shared_ptr<binder::Expression> nodeInput = nullptr;
     std::shared_ptr<binder::Expression> nodeOutput = nullptr;
@@ -35,7 +35,7 @@ struct RJBindData {
     std::shared_ptr<binder::Expression> weightPropertyExpr = nullptr;
     std::shared_ptr<binder::Expression> weightOutputExpr = nullptr;
 
-    explicit RJBindData(graph::GraphEntry graphEntry) : graphEntry{std::move(graphEntry)} {}
+    explicit RJBindData(graph::NativeGraphEntry graphEntry) : graphEntry{std::move(graphEntry)} {}
     RJBindData(const RJBindData& other);
 
     PathsOutputWriterInfo getPathWriterInfo() const;

@@ -10,6 +10,7 @@
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
+#include "graph/graph_entry_set.h"
 #include "index/hnsw_index.h"
 #include "index/hnsw_index_utils.h"
 #include "parser/parser.h"
@@ -71,11 +72,64 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
-    const auto tableName = input->getLiteralVal<std::string>(0);
+    const auto tableOrGraphName = input->getLiteralVal<std::string>(0);
     auto indexName = input->getLiteralVal<std::string>(1);
     // Bind graph entry and node table entry
-    if (!catalog->containsTable(transaction, tableName)) {
-        throw BinderException{stringFormat("Cannot find table named as {}.", tableName)};
+    std::string tableName;
+    std::unique_ptr<BoundStatement> boundStatement;
+    if (catalog->containsTable(transaction, tableOrGraphName)) {
+        tableName = tableOrGraphName;
+    } else if (context->getGraphEntrySetUnsafe().hasGraph(tableOrGraphName)) {
+        auto graphEntry = context->getGraphEntrySetUnsafe().getEntry(tableOrGraphName);
+        std::string cypherQuery;
+        if (graphEntry->type == graph::GraphEntryType::NATIVE) {
+            auto& nativeEntry = graphEntry->cast<graph::ParsedNativeGraphEntry>();
+            if (!nativeEntry.relInfos.empty() || nativeEntry.nodeInfos.size() != 1) {
+                throw BinderException(stringFormat("In vector filtered search, projected graph {} "
+                                                   "must contain exactly one node table.",
+                    tableOrGraphName));
+            }
+            auto nodeInfo = nativeEntry.nodeInfos[0];
+            cypherQuery = stringFormat("MATCH (n:`{}`) WHERE {} RETURN n", nodeInfo.tableName,
+                nodeInfo.predicate);
+        } else {
+            KU_ASSERT(graphEntry->type == graph::GraphEntryType::CYPHER);
+            cypherQuery = graphEntry->cast<graph::ParsedCypherGraphEntry>().cypherQuery;
+        }
+        try {
+            auto parsedStatements = parser::Parser::parseQuery(cypherQuery);
+            KU_ASSERT(parsedStatements.size() == 1);
+            auto binder = Binder(context);
+            boundStatement = binder.bind(*parsedStatements[0]);
+        } catch (Exception& e) {
+            // LCOV_EXCL_START
+            throw BinderException{
+                stringFormat("Failed to bind the filter query. Found error: {}", e.what())};
+            // LCOV_EXCL_STOP
+        }
+        auto resultColumns = boundStatement->getStatementResult()->getColumns();
+        if (resultColumns.size() != 1) {
+            throw BinderException(
+                stringFormat("The return clause of a filter query should contain "
+                             "exactly one node expression. Found more than one expressions: {}.",
+                    ExpressionUtil::toString(resultColumns)));
+        }
+        auto resultColumn = resultColumns[0];
+        if (resultColumn->getDataType().getLogicalTypeID() != LogicalTypeID::NODE) {
+            throw BinderException(stringFormat("The return clause of a filter query should be of "
+                                               "type NODE. Found type {} instead.",
+                resultColumn->getDataType().toString()));
+        }
+        auto& node = resultColumn->constCast<NodeExpression>();
+        if (node.getNumEntries() != 1) {
+            throw BinderException(stringFormat(
+                "Node {} in the return clause of the filter query should have one label.",
+                node.toString()));
+        }
+        tableName = node.getEntry(0)->getName();
+    } else {
+        throw BinderException(
+            stringFormat("Cannot find table or graph named as {}.", tableOrGraphName));
     }
     auto nodeTableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
         HNSWIndexUtils::IndexOperation::QUERY);
@@ -102,39 +156,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     bindData->kExpression = input->params[3];
     bindData->outputNode = outputNode;
     bindData->config = QueryHNSWConfig{input->optionalParams};
-    if (!bindData->config.filter.empty()) { // Bind search filter statement
-        std::unique_ptr<BoundStatement> boundStatement;
-        try {
-            auto parsedStatements = parser::Parser::parseQuery(bindData->config.filter);
-            KU_ASSERT(parsedStatements.size() == 1);
-            auto binder = Binder(context);
-            boundStatement = binder.bind(*parsedStatements[0]);
-        } catch (Exception& e) {
-            throw BinderException{
-                stringFormat("Failed to bind the filter query. Found error: {}", e.what())};
-        }
-        auto resultColumns = boundStatement->getStatementResult()->getColumns();
-        if (resultColumns.size() != 1) {
-            throw BinderException(
-                stringFormat("The return clause of a filter query should contain "
-                             "exactly one node expression. Found more than one expressions: {}.",
-                    ExpressionUtil::toString(resultColumns)));
-        }
-        auto resultColumn = resultColumns[0];
-        if (resultColumn->getDataType().getLogicalTypeID() != LogicalTypeID::NODE) {
-            throw BinderException(stringFormat("The return clause of a filter query should be of "
-                                               "type NODE. Found type {} instead.",
-                resultColumn->getDataType().toString()));
-        }
-        auto& node = resultColumn->constCast<NodeExpression>();
-        if (node.getNumEntries() != 1 ||
-            node.getEntry(0)->getTableID() != bindData->nodeTableEntry->getTableID()) {
-            throw BinderException(stringFormat(
-                "Node {} in the return clause of the filter query should be labeled as {}.",
-                node.toString(), bindData->nodeTableEntry->getName()));
-        }
-        bindData->filterStatement = std::move(boundStatement);
-    }
+    bindData->filterStatement = std::move(boundStatement);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
 }
