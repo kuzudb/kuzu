@@ -60,6 +60,8 @@ struct NodeWithDistance {
     common::offset_t nodeOffset;
     double_t distance;
 
+    NodeWithDistance()
+        : nodeOffset{common::INVALID_OFFSET}, distance{std::numeric_limits<double_t>::max()} {}
     NodeWithDistance(common::offset_t nodeOffset, double_t distance)
         : nodeOffset{nodeOffset}, distance{distance} {}
 };

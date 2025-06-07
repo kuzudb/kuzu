@@ -274,9 +274,9 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
     if (std::ranges::count(getStorageDirections(), direction) == 0) {
-        throw RuntimeException(common::stringFormat(
-            "Cannot delete edges of direction {} from table {} as they do not exist.",
-            RelDirectionUtils::relDirectionToString(direction), tableName));
+        throw RuntimeException(
+            stringFormat("Cannot delete edges of direction {} from table {} as they do not exist.",
+                RelDirectionUtils::relDirectionToString(direction), tableName));
     }
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData = getDirectedTableData(direction);
@@ -490,7 +490,7 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     }
 }
 
-bool RelTable::checkpoint(TableCatalogEntry* tableEntry) {
+bool RelTable::checkpoint(main::ClientContext*, TableCatalogEntry* tableEntry) {
     bool ret = hasChanges;
     if (hasChanges) {
         // Deleted columns are vacuumed and not checkpointed or serialized.

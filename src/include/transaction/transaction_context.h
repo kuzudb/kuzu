@@ -49,6 +49,11 @@ public:
     TransactionMode getTransactionMode() const { return mode; }
     bool hasActiveTransaction() const { return activeTransaction != nullptr; }
     Transaction* getActiveTransaction() const { return activeTransaction.get(); }
+    void setActiveTransaction(std::unique_ptr<Transaction> transaction) {
+        KU_ASSERT(!activeTransaction);
+        activeTransaction = std::move(transaction);
+        mode = TransactionMode::MANUAL;
+    }
 
     void clearTransaction();
 

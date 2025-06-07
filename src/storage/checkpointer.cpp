@@ -46,7 +46,7 @@ void Checkpointer::writeCheckpoint() {
 
     // Checkpoint storage. Note that we first checkpoint storage before serializing the catalog, as
     // checkpointing storage may overwrite columnIDs in the catalog.
-    bool hasStorageChanges = storageManager->checkpoint(*catalog);
+    bool hasStorageChanges = storageManager->checkpoint(&clientContext);
 
     auto& shadowFile = storageManager->getShadowFile();
     auto* dataFH = storageManager->getDataFH();

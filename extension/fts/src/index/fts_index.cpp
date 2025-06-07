@@ -45,12 +45,12 @@ struct FTSInsertState final : Index::InsertState {
     NodeTableInsertState termsTableInsertState;
     RelTableInsertState appearsInTableInsertState;
 
-    FTSInsertState(MemoryManager* mm, column_id_t dfColumnID, const Transaction* transaction,
+    FTSInsertState(MemoryManager* mm, column_id_t dfColumnID, Transaction* transaction,
         FTSInternalTableInfo& tableInfo);
 };
 
-FTSInsertState::FTSInsertState(MemoryManager* mm, column_id_t dfColumnID,
-    const Transaction* transaction, FTSInternalTableInfo& tableInfo)
+FTSInsertState::FTSInsertState(MemoryManager* mm, column_id_t dfColumnID, Transaction* transaction,
+    FTSInternalTableInfo& tableInfo)
     : mm{mm}, dataChunkState{DataChunkState::getSingleValueDataChunkState()},
       idVector{LogicalType::INTERNAL_ID(), mm, dataChunkState},
       srcIDVector{LogicalType::INTERNAL_ID(), mm, dataChunkState},
@@ -94,7 +94,7 @@ std::unique_ptr<IndexStorageInfo> FTSStorageInfo::deserialize(
     return std::make_unique<FTSStorageInfo>(numDocs, avgDocLen);
 }
 
-std::unique_ptr<Index::InsertState> FTSIndex::initInsertState(const Transaction* transaction,
+std::unique_ptr<Index::InsertState> FTSIndex::initInsertState(Transaction* transaction,
     MemoryManager* mm, visible_func /*isVisible*/) {
     return std::make_unique<FTSInsertState>(mm, internalTableInfo.dfColumnID, transaction,
         internalTableInfo);

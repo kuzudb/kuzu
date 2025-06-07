@@ -32,7 +32,7 @@ public:
         storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
         std::span<uint8_t> storageInfoBuffer);
 
-    std::unique_ptr<InsertState> initInsertState(const transaction::Transaction* transaction,
+    std::unique_ptr<InsertState> initInsertState(transaction::Transaction* transaction,
         storage::MemoryManager* mm, storage::visible_func isVisible) override;
 
     void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,

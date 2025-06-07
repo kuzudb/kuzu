@@ -114,7 +114,7 @@ struct KUZU_API TableUpdateState {
     }
 };
 
-struct TableDeleteState {
+struct KUZU_API TableDeleteState {
     virtual ~TableDeleteState();
 
     template<typename T>
@@ -155,7 +155,7 @@ public:
         bool resetCachedBoundNodeSelVec = true) const = 0;
     bool scan(transaction::Transaction* transaction, TableScanState& scanState);
 
-    virtual void initInsertState(const transaction::Transaction* transaction,
+    virtual void initInsertState(transaction::Transaction* transaction,
         TableInsertState& insertState) = 0;
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
@@ -167,7 +167,8 @@ public:
 
     virtual void commit(transaction::Transaction* transaction,
         catalog::TableCatalogEntry* tableEntry, LocalTable* localTable) = 0;
-    virtual bool checkpoint(catalog::TableCatalogEntry* tableEntry) = 0;
+    virtual bool checkpoint(main::ClientContext* context,
+        catalog::TableCatalogEntry* tableEntry) = 0;
     virtual void rollbackCheckpoint() = 0;
     virtual void reclaimStorage(FileHandle& dataFH) = 0;
 

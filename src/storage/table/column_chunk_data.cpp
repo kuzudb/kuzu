@@ -1,7 +1,6 @@
 #include "storage/table/column_chunk_data.h"
 
 #include <algorithm>
-#include <cstring>
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/exception/copy.h"
@@ -124,7 +123,7 @@ ColumnChunkData::ColumnChunkData(MemoryManager& mm, PhysicalTypeID dataType, boo
     : ColumnChunkData(mm, LogicalType::ANY(dataType), enableCompression, metadata, hasNullData,
           initializeToZero) {}
 
-void ColumnChunkData::initializeBuffer(common::PhysicalTypeID physicalType, MemoryManager& mm,
+void ColumnChunkData::initializeBuffer(PhysicalTypeID physicalType, MemoryManager& mm,
     bool initializeToZero) {
     numBytesPerValue = getDataTypeSizeInChunk(physicalType);
 
@@ -214,7 +213,7 @@ MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
     ColumnChunkStats stats = inMemoryStats;
     const auto physicalType = getDataType().getPhysicalType();
     const bool isStorageValueType =
-        common::TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; });
+        TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; });
     if (isStorageValueType) {
         stats.update(onDiskMetadata.min, onDiskMetadata.max, physicalType);
     }
@@ -222,8 +221,7 @@ MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
         nullData && nullData->haveAllNullsGuaranteed()};
 }
 
-void ColumnChunkData::updateStats(const common::ValueVector* vector,
-    const common::SelectionView& selView) {
+void ColumnChunkData::updateStats(const ValueVector* vector, const SelectionView& selView) {
     if (selView.isUnfiltered()) {
         updateInMemoryStats(inMemoryStats, *vector);
     } else {
@@ -712,9 +710,8 @@ void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
 }
 
 NullMask NullChunkData::getNullMask() const {
-    return common::NullMask(
-        std::span(getData<uint64_t>(),
-            common::ceilDiv(capacity, common::NullMask::NUM_BITS_PER_NULL_ENTRY)),
+    return NullMask(
+        std::span(getData<uint64_t>(), ceilDiv(capacity, NullMask::NUM_BITS_PER_NULL_ENTRY)),
         !noNullsGuaranteedInMem());
 }
 
@@ -784,8 +781,8 @@ void NullChunkData::scan(ValueVector& output, offset_t offset, length_t length,
     output.setNullFromBits(getNullMask().getData(), offset, posInOutputVector, length);
 }
 
-void NullChunkData::appendNulls(const common::ValueVector* vector,
-    const common::SelectionView& selView, common::offset_t startPosInChunk) {
+void NullChunkData::appendNulls(const ValueVector* vector, const SelectionView& selView,
+    offset_t startPosInChunk) {
     if (selView.isUnfiltered()) {
         copyFromBuffer(vector->getNullMask().getData(), 0, startPosInChunk, selView.getSelSize());
         numValues += selView.getSelSize();

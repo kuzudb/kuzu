@@ -258,7 +258,7 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     const auto index = hnswSharedState->hnswIndex.get();
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
     const auto catalog = clientContext->getCatalog();
-    auto nodeTableID = bindData->tableEntry->getTableID();
+    const auto nodeTableID = bindData->tableEntry->getTableID();
     const auto upperTable = catalog->getTableCatalogEntry(transaction,
         HNSWIndexUtils::getUpperGraphTableName(nodeTableID, bindData->indexName));
     const auto lowerTable = catalog->getTableCatalogEntry(transaction,
@@ -277,7 +277,7 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     auto storageInfo = std::make_unique<HNSWStorageInfo>(
         upperTable->cast<catalog::RelGroupCatalogEntry>().getSingleRelEntryInfo().oid,
         lowerTable->cast<catalog::RelGroupCatalogEntry>().getSingleRelEntryInfo().oid,
-        index->getUpperEntryPoint(), index->getLowerEntryPoint());
+        index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->numRows);
     auto onDiskIndex = std::make_unique<OnDiskHNSWIndex>(context->clientContext, indexInfo,
         std::move(storageInfo), bindData->config.copy());
     auto nodeTable =
@@ -326,9 +326,9 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     auto indexName = hnswBindData->indexName;
     auto tableName = hnswBindData->tableEntry->getName();
     auto tableID = hnswBindData->tableEntry->getTableID();
-    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
+    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {}) WITH (storage_direction='fwd');",
         HNSWIndexUtils::getUpperGraphTableName(tableID, indexName), tableName, tableName);
-    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
+    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {}) WITH (storage_direction='fwd');",
         HNSWIndexUtils::getLowerGraphTableName(tableID, indexName), tableName, tableName);
     std::string params;
     auto& config = hnswBindData->config;

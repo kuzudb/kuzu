@@ -73,7 +73,7 @@ private:
     std::mutex mtx;
 };
 
-class Transaction {
+class KUZU_API Transaction {
     friend class TransactionManager;
 
 public:

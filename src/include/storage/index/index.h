@@ -110,8 +110,8 @@ public:
     std::string getName() const { return indexInfo.name; }
     IndexInfo getIndexInfo() const { return indexInfo; }
 
-    virtual std::unique_ptr<InsertState> initInsertState(
-        const transaction::Transaction* transaction, MemoryManager* mm, visible_func isVisible) = 0;
+    virtual std::unique_ptr<InsertState> initInsertState(transaction::Transaction* transaction,
+        MemoryManager* mm, visible_func isVisible) = 0;
     virtual void insert(transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
@@ -122,7 +122,9 @@ public:
     virtual void checkpointInMemory() {
         // DO NOTHING.
     };
-    virtual void checkpoint(bool forceCheckpointAll = false) { KU_UNUSED(forceCheckpointAll); }
+    virtual void checkpoint(main::ClientContext*, bool forceCheckpointAll = false) {
+        KU_UNUSED(forceCheckpointAll);
+    }
     virtual void rollbackCheckpoint() {
         // DO NOTHING.
     }
@@ -159,10 +161,10 @@ public:
     void serialize(common::Serializer& ser) const;
     KUZU_API void load(main::ClientContext* context, StorageManager* storageManager);
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    void checkpoint() {
+    void checkpoint(main::ClientContext* context) {
         if (loaded) {
             KU_ASSERT(index);
-            index->checkpoint();
+            index->checkpoint(context);
         }
     }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
