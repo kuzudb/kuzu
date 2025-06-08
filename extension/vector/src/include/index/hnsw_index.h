@@ -271,6 +271,7 @@ public:
         // State for searching neighbors and reading vectors in the HNSW graph.
         HNSWSearchState searchState;
         // State for inserting rels.
+        common::DataChunk srcNodeIDChunk;
         common::DataChunk insertChunk;
         std::unique_ptr<storage::RelTableInsertState> relInsertState;
         // State for detaching delete.

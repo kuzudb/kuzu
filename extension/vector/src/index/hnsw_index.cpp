@@ -340,17 +340,21 @@ OnDiskHNSWIndex::CheckpointInsertionState::CheckpointInsertionState(main::Client
     : searchState{context, nodeTableEntry, upperRelTableEntry, lowerRelTableEntry, nodeTable,
           columnID, nodeTable.getNumTotalRows(context->getTransaction()), degree,
           QueryHNSWConfig{}} {
-    std::vector<common::LogicalType> types;
-    types.push_back(common::LogicalType::INTERNAL_ID());
-    types.push_back(common::LogicalType::INTERNAL_ID());
-    types.push_back(common::LogicalType::INTERNAL_ID());
-    insertChunk = Table::constructDataChunk(context->getMemoryManager(), std::move(types));
+    std::vector<common::LogicalType> insertTypes;
+    insertTypes.push_back(common::LogicalType::INTERNAL_ID());
+    insertTypes.push_back(common::LogicalType::INTERNAL_ID());
+    insertChunk = Table::constructDataChunk(context->getMemoryManager(), std::move(insertTypes));
     insertChunk.state->getSelVectorUnsafe().setToUnfiltered(1);
-    std::vector dataVectors{&insertChunk.getValueVectorMutable(2)};
-    relInsertState = std::make_unique<RelTableInsertState>(insertChunk.getValueVectorMutable(0),
-        insertChunk.getValueVectorMutable(1), std::move(dataVectors));
-    relDeleteState = std::make_unique<RelTableDeleteState>(insertChunk.getValueVectorMutable(0),
-        insertChunk.getValueVectorMutable(1), insertChunk.getValueVectorMutable(2));
+    std::vector<common::LogicalType> srcNodeIDTypes;
+    srcNodeIDTypes.push_back(common::LogicalType::INTERNAL_ID());
+    srcNodeIDChunk =
+        Table::constructDataChunk(context->getMemoryManager(), std::move(srcNodeIDTypes));
+    srcNodeIDChunk.state->getSelVectorUnsafe().setToUnfiltered(1);
+    std::vector dataVectors{&insertChunk.getValueVectorMutable(1)};
+    relInsertState = std::make_unique<RelTableInsertState>(srcNodeIDChunk.getValueVectorMutable(0),
+        insertChunk.getValueVectorMutable(0), std::move(dataVectors));
+    relDeleteState = std::make_unique<RelTableDeleteState>(srcNodeIDChunk.getValueVectorMutable(0),
+        insertChunk.getValueVectorMutable(0), insertChunk.getValueVectorMutable(1));
 }
 
 OnDiskHNSWIndex::OnDiskHNSWIndex(const main::ClientContext* context, IndexInfo indexInfo,
@@ -482,10 +486,10 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
             insertInternal(context->getTransaction(), offset, vector, *insertState);
         }
         for (const auto offset : insertState->upperNodesToShrink) {
-            shrinkForNode(transaction.get(), offset, true, config.mu, *insertState);
+            shrinkForNode(context->getTransaction(), offset, true, config.mu, *insertState);
         }
         for (const auto offset : insertState->lowerNodesToShrink) {
-            shrinkForNode(transaction.get(), offset, false, config.ml, *insertState);
+            shrinkForNode(context->getTransaction(), offset, false, config.ml, *insertState);
         }
         hnswStorageInfo.numCheckpointedNodes = numTotalRows;
         context->getTransaction()->commit(nullptr /* wal */);
@@ -797,7 +801,7 @@ void OnDiskHNSWIndex::createRels(transaction::Transaction* transaction, common::
     const auto itr = graph->scanFwd(common::nodeID_t{offset, indexInfo.tableID}, *scanState);
     const auto numRels = itr.count();
     if (numRels > static_cast<uint64_t>(maxDegree)) {
-        if (numRels > static_cast<uint64_t>(getDegreeThresholdToShrink(maxDegree))) {
+        if (numRels >= static_cast<uint64_t>(getDegreeThresholdToShrink(maxDegree))) {
             // If the number of existing rels exceeds the threshold, we need to shrink the rels
             // right away.
             shrinkForNode(transaction, offset, isUpperLayer, maxDegree, insertState);
@@ -844,6 +848,7 @@ void OnDiskHNSWIndex::shrinkForNode(transaction::Transaction* transaction, commo
     relTable.detachDelete(transaction, common::RelDataDirection::FWD,
         insertState.relDeleteState.get());
     // Perform the actual shrinking and insertion of shrinked rels.
+    uint16_t newSize = 0;
     for (auto i = 1u; i < nbrs.size(); i++) {
         bool keepNbr = true;
         for (auto j = i + 1; j < nbrs.size(); j++) {
@@ -863,9 +868,10 @@ void OnDiskHNSWIndex::shrinkForNode(transaction::Transaction* transaction, commo
             insertState.relInsertState->dstNodeIDVector.setValue(0,
                 common::nodeID_t{nbrs[i].nodeOffset, indexInfo.tableID});
             relTable.insert(transaction, *insertState.relInsertState);
-        }
-        if (nbrs.size() == maxDegree) {
-            break;
+            newSize++;
+            if (newSize == maxDegree) {
+                break;
+            }
         }
     }
 }
