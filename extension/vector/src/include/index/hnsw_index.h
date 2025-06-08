@@ -167,7 +167,7 @@ public:
     common::offset_t getNumNodes() const { return info.numNodes; }
 
     void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);
-    common::offset_t searchNN(void* queryVector, common::offset_t entryNode) const;
+    common::offset_t searchNN(const void* queryVector, common::offset_t entryNode) const;
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState,
         common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
@@ -267,7 +267,7 @@ struct HNSWSearchState {
 
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
-    struct InsertState final : Index::InsertState {
+    struct CheckpointInsertionState {
         // State for searching neighbors and reading vectors in the HNSW graph.
         HNSWSearchState searchState;
         // State for inserting rels.
@@ -275,14 +275,18 @@ public:
         std::unique_ptr<storage::RelTableInsertState> relInsertState;
         // State for detaching delete.
         std::unique_ptr<storage::RelTableDeleteState> relDeleteState;
+        // Nodes to shrink at the end of insertions.
+        std::unordered_set<common::offset_t> upperNodesToShrink;
+        std::unordered_set<common::offset_t> lowerNodesToShrink;
 
-        InsertState(main::ClientContext* context, catalog::TableCatalogEntry* nodeTableEntry,
+        CheckpointInsertionState(main::ClientContext* context,
+            catalog::TableCatalogEntry* nodeTableEntry,
             catalog::TableCatalogEntry* upperRelTableEntry,
             catalog::TableCatalogEntry* lowerRelTableEntry, storage::NodeTable& nodeTable,
             common::column_id_t columnID, uint64_t degree);
     };
 
-    OnDiskHNSWIndex(main::ClientContext* context, storage::IndexInfo indexInfo,
+    OnDiskHNSWIndex(const main::ClientContext* context, storage::IndexInfo indexInfo,
         std::unique_ptr<storage::IndexStorageInfo> storageInfo, HNSWIndexConfig config);
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
@@ -308,10 +312,12 @@ public:
 
 private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
-        const void* queryVector, HNSWSearchState& searchState) const;
+        const void* queryVector, const HNSWSearchState& searchState) const;
     std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
         const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
-    void searchFromUnMerged(transaction::Transaction* transaction, const void* queryVector,
+    std::vector<NodeWithDistance> searchFromCheckpointed(transaction::Transaction* transaction,
+        const void* queryVector, HNSWSearchState& searchState) const;
+    void searchFromUnCheckpointed(transaction::Transaction* transaction, const void* queryVector,
         storage::NodeTableScanState& embeddingScanState,
         std::vector<NodeWithDistance>& result) const;
 
@@ -327,14 +333,15 @@ private:
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
     void insertInternal(transaction::Transaction* transaction, common::offset_t offset,
-        const void* vector, InsertState& insertState);
+        const void* vector, CheckpointInsertionState& insertState);
     void insertToLayer(transaction::Transaction* transaction, common::offset_t offset,
-        common::offset_t entryPoint, const void* queryVector, InsertState& insertState,
+        common::offset_t entryPoint, const void* queryVector, CheckpointInsertionState& insertState,
         bool isUpperLayer);
     void createRels(transaction::Transaction* transaction, common::offset_t offset,
-        const std::vector<NodeWithDistance>& nbrs, bool isUpperLayer, InsertState& insertState);
+        const std::vector<NodeWithDistance>& nbrs, bool isUpperLayer,
+        CheckpointInsertionState& insertState);
     void shrinkForNode(transaction::Transaction* transaction, common::offset_t offset,
-        bool isUpperLayer, common::length_t maxDegree, InsertState& insertState);
+        bool isUpperLayer, common::length_t maxDegree, CheckpointInsertionState& insertState);
 
     void processSecondHopCandidates(transaction::Transaction* transaction, const void* queryVector,
         HNSWSearchState& searchState, int64_t& numVisitedNbrs,
