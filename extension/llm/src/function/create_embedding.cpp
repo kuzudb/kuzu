@@ -23,7 +23,6 @@ namespace kuzu {
 namespace llm_extension {
 
 static EmbeddingProvider& getInstance(const std::string& provider) {
-
     static const std::unordered_map<std::string, std::function<EmbeddingProvider&()>>
         providerInstanceMap = {{"open-ai", &OpenAIEmbedding::getInstance},
             {"voyage-ai", &VoyageAIEmbedding::getInstance},
@@ -42,7 +41,6 @@ static EmbeddingProvider& getInstance(const std::string& provider) {
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     const std::vector<common::SelectionVector*>& /*parameterSelVectors*/,
     common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
-
     auto& provider =
         getInstance(StringUtils::getLower(parameters[1]->getValue<ku_string_t>(0).getAsString()));
     auto model = StringUtils::getLower(parameters[2]->getValue<ku_string_t>(0).getAsString());
