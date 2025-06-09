@@ -11,13 +11,14 @@ EmbeddingProvider& GoogleVertexEmbedding::getInstance() {
     static GoogleVertexEmbedding instance;
     return instance;
 }
+
 std::string GoogleVertexEmbedding::getClient() const {
     return "https://aiplatform.googleapis.com";
 }
+
 std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
     const char* envVar = "GOOGLE_CLOUD_PROJECT_ID";
 
-    // NOLINTNEXTLINE thread safety warning
     auto env_project_id = std::getenv(envVar);
     if (env_project_id == nullptr) {
         throw(common::RuntimeException(
@@ -29,9 +30,9 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
     return "/v1/projects/" + std::string(env_project_id) +
            "/locations/us-central1/publishers/google/models/" + model + ":predict";
 }
+
 httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
     const char* envVar = "GOOGLE_VERTEX_ACCESS_KEY";
-    // NOLINTNEXTLINE
     auto env_key = std::getenv(envVar);
     if (env_key == nullptr) {
         throw(common::RuntimeException("Could not get key from: " + std::string(envVar) + '\n'));
@@ -39,14 +40,17 @@ httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*paylo
     return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + std::string(env_key)}};
 }
+
 nlohmann::json GoogleVertexEmbedding::getPayload(const std::string& /*model*/,
     const std::string& text) const {
     return nlohmann::json{{"instances", {{{"content", text}}}}};
 }
+
 std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& res) const {
     return nlohmann::json::parse(res->body)["predictions"][0]["embeddings"]["values"]
         .get<std::vector<float>>();
 }
+
 uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string& model) {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"gemini-embedding-001", 3072}, {"text-embedding-005", 768},

@@ -16,9 +16,11 @@ EmbeddingProvider& BedrockEmbedding::getInstance() {
     static BedrockEmbedding instance;
     return instance;
 }
+
 std::string BedrockEmbedding::getClient() const {
     return "https://bedrock-runtime.us-east-1.amazonaws.com";
 }
+
 std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
     return "/model/amazon.titan-embed-text-v1/invoke";
 }
@@ -28,13 +30,10 @@ std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
 // signature. This is one of the reasons the same header cannot be used accross
 // different requests. Refer to
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
-
 httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) const {
     static const std::string envVarAWSAccessKey = "AWS_ACCESS_KEY";
     static const std::string envVarAWSSecretAccessKey = "AWS_SECRET_ACCESS_KEY";
-    // NOLINTNEXTLINE Thread Safety Warning
     auto envAWSAccessKey = std::getenv(envVarAWSAccessKey.c_str());
-    // NOLINTNEXTLINE Thread Safety Warning
     auto envAWSSecretAccessKey = std::getenv(envVarAWSSecretAccessKey.c_str());
     if (envAWSAccessKey == nullptr || envAWSSecretAccessKey == nullptr) {
         std::string errMsg = "The following key(s) could not be read from the environment:\n";
@@ -127,13 +126,16 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     headers.insert({"Authorization", authorizationHeader.str()});
     return headers;
 }
+
 nlohmann::json BedrockEmbedding::getPayload(const std::string& /*model*/,
     const std::string& text) const {
     return nlohmann::json{{"inputText", text}};
 }
+
 std::vector<float> BedrockEmbedding::parseResponse(const httplib::Result& res) const {
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
+
 uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string& model) {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"amazon.titan-embed-text-v1", 1024}};

@@ -17,9 +17,6 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/third_party/simsimd/include
         ${OPENSSL_INCLUDE_DIR})
 
-
-
-
 add_subdirectory(src/function)
 add_subdirectory(src/main)
 add_subdirectory(src/providers)
@@ -32,7 +29,6 @@ target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         OpenSSL::SSL
         mbedtls
 )
-
 
 target_sources(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
