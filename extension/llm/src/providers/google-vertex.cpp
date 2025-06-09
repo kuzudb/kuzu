@@ -22,14 +22,13 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
 
     auto env_project_id = main::ClientContext::getEnvVariable(envVar);
     if (env_project_id.empty()) {
-        throw(common::RuntimeException(
-            "Could not get project id from: " + envVar + "\n"));
+        throw(common::RuntimeException("Could not get project id from: " + envVar + "\n"));
     }
 
     // TODO: Location is hardcoded, this should be changed when configuration is
     // supported
-    return "/v1/projects/" + env_project_id +
-           "/locations/us-central1/publishers/google/models/" + model + ":predict";
+    return "/v1/projects/" + env_project_id + "/locations/us-central1/publishers/google/models/" +
+           model + ":predict";
 }
 
 httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
