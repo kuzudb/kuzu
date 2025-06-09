@@ -72,7 +72,7 @@ private:
         common::table_id_t termsTableID) const;
 
     common::nodeID_t deleteFromDocTable(transaction::Transaction* transaction,
-        FTSDeleteState& deleteState, common::nodeID_t deletedNodeID) const;
+        FTSDeleteState& deleteState, common::nodeID_t deletedNodeID, double& totalDocLen) const;
 
     void deleteFromTermsTable(transaction::Transaction* transaction,
         std::unordered_map<std::string, TermInfo>& tfCollection,

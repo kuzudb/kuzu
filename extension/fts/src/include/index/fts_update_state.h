@@ -54,6 +54,7 @@ struct FTSDeleteState final : storage::Index::DeleteState {
     FTSUpdateVectors updateVectors;
 
     storage::NodeTableDeleteState docTableDeleteState;
+    storage::NodeTableScanState docTableScanState;
     TermsTableState termsTableState;
     storage::NodeTableDeleteState termsTableDeleteState;
     storage::RelTableDeleteState appearsInTableDeleteState;

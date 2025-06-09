@@ -65,12 +65,16 @@ FTSDeleteState::FTSDeleteState(MemoryManager* mm, const Transaction* transaction
     FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs)
 >>>>>>> 8c3f70b16 (update)
     : updateVectors{mm}, docTableDeleteState{updateVectors.idVector, updateVectors.int64PKVector},
+      docTableScanState{&updateVectors.idVector, std::vector{&updateVectors.uint64PropVector},
+          updateVectors.dataChunkState},
       termsTableState{transaction, updateVectors, tableInfo},
       termsTableDeleteState{updateVectors.idVector, updateVectors.stringPKVector},
       appearsInTableDeleteState{updateVectors.srcIDVector, updateVectors.dstIDVector,
           updateVectors.idVector},
       indexTableState{mm, transaction, tableInfo, std::move(columnIDs), updateVectors.idVector,
-          updateVectors.dataChunkState} {}
+          updateVectors.dataChunkState} {
+    docTableScanState.setToTable(transaction, tableInfo.docTable, {tableInfo.dfColumnID}, {});
+}
 
 } // namespace fts_extension
 } // namespace kuzu

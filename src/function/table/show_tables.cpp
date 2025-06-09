@@ -71,7 +71,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     if (!context->hasDefaultDatabase()) {
         auto catalog = context->getCatalog();
         for (auto& entry :
-            catalog->getTableEntries(transaction, context->useInternalCatalogEntry())) {
+            catalog->getTableEntries(transaction, true)) {
             tableInfos.emplace_back(entry->getName(), entry->getTableID(),
                 TableTypeUtils::toString(entry->getTableType()), LOCAL_DB_NAME,
                 entry->getComment());
