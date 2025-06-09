@@ -96,15 +96,16 @@
 ---- ok
 -STATEMENT create node table other(id serial, val INT64, PRIMARY KEY (id))
 ---- ok
-# preallocate rows for other table so that hash index storage isn't allocated later
-# the val column will be constant so will take up no space
--STATEMENT unwind range(1, 100000) as i create (:other)
----- ok
 # table used to store some intermediate results
 -STATEMENT create node table stats(id SERIAL, numPages INT64, PRIMARY KEY(id))
 ---- ok
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 -PARALLELISM 1
+---- ok
+# preallocate rows for other table so that hash index storage isn't allocated later
+# the val column will be constant so will take up no space
+-STATEMENT call storage_info('Post') where node_group_id = 0 with num_values as node_group_capacity limit 1
+    unwind range(1, node_group_capacity) as i create (:other)
 ---- ok
 -STATEMENT call storage_info('Post') where node_group_id = 0 with num_values as node_group_capacity limit 1
            match (p:Post) where ID(p) < internal_id(0, node_group_capacity) delete p with count(*) as num_deleted, node_group_capacity
