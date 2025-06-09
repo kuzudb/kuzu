@@ -2,7 +2,8 @@
 
 #include <cmath>
 
-#include "processor/operator/partitioner.h"
+#include "common/data_chunk/data_chunk.h"
+#include "processor/operator/base_partitioner_shared_state.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_cached_column.h"
 #include "storage/table/column_chunk_data.h"
@@ -136,7 +137,7 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodes(numNodesInTable){};
+        : numNodes(numNodesInTable) {};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 
