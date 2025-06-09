@@ -2,7 +2,6 @@
 
 #include "binder/expression/expression_util.h"
 #include "processor/execution_context.h"
-#include "processor/operator/persistent/rel_batch_insert.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
@@ -30,7 +29,7 @@ void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* parti
     }
 }
 
-static partition_idx_t getNumPartitions(offset_t numRows) {
+partition_idx_t BasePartitionerSharedState::getNumPartitionsFromRows(offset_t numRows) {
     return (numRows + StorageConfig::NODE_GROUP_SIZE - 1) / StorageConfig::NODE_GROUP_SIZE;
 }
 
@@ -41,21 +40,19 @@ void PartitionerSharedState::initialize(const logical_type_vec_t& columnTypes,
     if (numPartitioners > 1) {
         numNodes[1] = dstNodeTable->getNumTotalRows(clientContext->getTransaction());
     }
-    numPartitions[0] = getNumPartitions(numNodes[0]);
+    numPartitions[0] = getNumPartitionsFromRows(numNodes[0]);
     if (numPartitioners > 1) {
-        numPartitions[1] = getNumPartitions(numNodes[1]);
+        numPartitions[1] = getNumPartitionsFromRows(numNodes[1]);
     }
     Partitioner::initializePartitioningStates(columnTypes, partitioningBuffers, numPartitions,
         numPartitioners);
 }
 
-partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
-    RelBatchInsertProgressSharedState& progressSharedState) {
+partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx) {
     auto nextPartitionIdxToReturn = nextPartitionIdx++;
     if (nextPartitionIdxToReturn >= numPartitions[partitioningIdx]) {
         return INVALID_PARTITION_IDX;
     }
-    ++progressSharedState.partitionsDone;
     return nextPartitionIdxToReturn;
 }
 
@@ -68,7 +65,7 @@ void PartitionerSharedState::merge(
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-         partitioningIdx++) {
+        partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(*localPartitioningStates[partitioningIdx]);
     }
 }

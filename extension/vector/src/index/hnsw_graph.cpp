@@ -206,24 +206,22 @@ InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void InMemHNSWGraph::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-    const processor::PartitionerSharedState& partitionerSharedState,
-    common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
-    common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) {
-    const auto& partitionBuffers = partitionerSharedState.partitioningBuffers[0]->partitions;
+std::unique_ptr<storage::InMemChunkedNodeGroupCollection> InMemHNSWGraph::getAsPartition(
+    MemoryManager& mm, common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
+    common::table_id_t relTableID, common::offset_t startNodeInGraph,
+    common::offset_t endNodeInGraph, common::offset_t numNodesInTable,
+    const NodeToHNSWGraphOffsetMap& selectedNodesMap) {
     auto numRels = 0u;
     for (auto offsetInGraph = startNodeInGraph; offsetInGraph < endNodeInGraph; offsetInGraph++) {
         numRels += getCSRLength(offsetInGraph);
     }
-    finalizeNodeGroup(mm, numRels, partitionerSharedState.srcNodeTable->getTableID(),
-        partitionerSharedState.dstNodeTable->getTableID(),
-        partitionerSharedState.relTable->getTableID(), *partitionBuffers[nodeGroupIdx],
+    return getNodeGroupsForPartition(mm, numRels, srcNodeTableID, dstNodeTableID, relTableID,
         startNodeInGraph, endNodeInGraph, numNodesInTable, selectedNodesMap);
 }
 
-void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, uint64_t numRels,
-    common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
-    common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition,
+std::unique_ptr<storage::InMemChunkedNodeGroupCollection> InMemHNSWGraph::getNodeGroupsForPartition(
+    MemoryManager& mm, uint64_t numRels, common::table_id_t srcNodeTableID,
+    common::table_id_t dstNodeTableID, common::table_id_t relTableID,
     common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
     [[maybe_unused]] common::offset_t numNodesInTable,
     const NodeToHNSWGraphOffsetMap& selectedNodesMap) const {
@@ -264,7 +262,10 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, uint64_t numRels,
         KU_UNUSED(offset);
     }
     chunkedNodeGroup->setUnused(mm);
-    partition.merge(std::move(chunkedNodeGroup));
+
+    auto ret = std::make_unique<storage::InMemChunkedNodeGroupCollection>(copyVector(columnTypes));
+    ret->merge(std::move(chunkedNodeGroup));
+    return ret;
 }
 
 void InMemHNSWGraph::resetCSRLengthAndDstNodes() {

@@ -27,8 +27,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
         {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
@@ -236,7 +236,6 @@ static std::unique_ptr<TableFuncSharedState> initFinalizeHNSWSharedState(
 }
 
 static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {
-    const auto& context = *input.context->clientContext;
     const auto sharedState = input.sharedState->ptrCast<FinalizeHNSWSharedState>();
     const auto& hnswIndex = input.sharedState->ptrCast<FinalizeHNSWSharedState>()->hnswIndex;
     const auto morsel = sharedState->getMorsel();
@@ -244,7 +243,7 @@ static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutp
         return 0;
     }
     for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
-        hnswIndex->finalize(*context.getMemoryManager(), i, *sharedState->partitionerSharedState);
+        hnswIndex->finalize(i);
     }
     sharedState->numNodeGroupsFinalized.fetch_add(morsel.endOffset - morsel.startOffset);
     return morsel.endOffset - morsel.startOffset;
@@ -286,6 +285,7 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     // Force checkpoint is needed to ensure that the index is persisted before we can support the
     // replay of index creation.
     transaction->setForceCheckpoint();
+    index->moveToPartitionState(*hnswSharedState->partitionerSharedState);
 }
 
 static double finalizeHNSWProgressFunc(TableFuncSharedState* sharedState) {

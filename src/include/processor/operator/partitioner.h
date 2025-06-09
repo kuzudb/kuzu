@@ -39,16 +39,41 @@ struct PartitioningInfo;
 struct PartitionerDataInfo;
 struct PartitionerInfo;
 struct RelBatchInsertProgressSharedState;
-struct KUZU_API PartitionerSharedState {
-    std::mutex mtx;
+
+struct KUZU_API BasePartitionerSharedState {
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;
     storage::RelTable* relTable;
+
+    explicit BasePartitionerSharedState()
+        : srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr) {}
+    virtual ~BasePartitionerSharedState() = default;
+
+    virtual void initialize(const common::logical_type_vec_t& columnTypes,
+        common::idx_t numPartitioners, const main::ClientContext* clientContext) = 0;
+
+    virtual common::partition_idx_t getNextPartition(common::idx_t partitioningIdx) = 0;
+    virtual common::partition_idx_t getNumPartitions(common::idx_t partitioningIdx) const = 0;
+    virtual common::offset_t getNumNodes(common::idx_t partitioningIdx) const = 0;
+
+    virtual void resetState() = 0;
+    virtual void resetBuffers(common::idx_t partitioningIdx) = 0;
+
+    // Must only be called once for any given parameters.
+    // The data gets moved out of the shared state since some of it may be spilled to disk and will
+    // need to be freed after its processed.
+    virtual std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getPartitionBuffer(
+        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const = 0;
+
+    static common::partition_idx_t getNumPartitionsFromRows(common::offset_t numRows);
+};
+
+struct PartitionerSharedState : BasePartitionerSharedState {
+    std::mutex mtx;
     storage::MemoryManager& mm;
 
     explicit PartitionerSharedState(storage::MemoryManager& mm)
-        : srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr), mm{mm}, numNodes{0, 0},
-          numPartitions{0, 0}, nextPartitionIdx{0} {}
+        : mm{mm}, numNodes{0, 0}, numPartitions{0, 0}, nextPartitionIdx{0} {}
 
     static constexpr size_t DIRECTIONS = 2;
     std::array<common::offset_t, DIRECTIONS> numNodes;
@@ -58,19 +83,27 @@ struct KUZU_API PartitionerSharedState {
     std::atomic<common::partition_idx_t> nextPartitionIdx;
 
     void initialize(const common::logical_type_vec_t& columnTypes, common::idx_t numPartitioners,
-        const main::ClientContext* clientContext);
+        const main::ClientContext* clientContext) override;
 
-    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx,
-        RelBatchInsertProgressSharedState& progressSharedState);
+    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx) override;
+    common::partition_idx_t getNumPartitions(common::idx_t partitioningIdx) const override {
+        return numPartitions[partitioningIdx];
+    }
+    common::offset_t getNumNodes(common::idx_t partitioningIdx) const override {
+        return numNodes[partitioningIdx];
+    }
 
-    void resetState();
+    void resetState() override;
+    void resetBuffers(common::idx_t partitioningIdx) override {
+        partitioningBuffers[partitioningIdx].reset();
+    }
     void merge(const std::vector<std::unique_ptr<PartitioningBuffer>>& localPartitioningStates);
 
     // Must only be called once for any given parameters.
     // The data gets moved out of the shared state since some of it may be spilled to disk and will
     // need to be freed after its processed.
     std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getPartitionBuffer(
-        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const {
+        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const override {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
 

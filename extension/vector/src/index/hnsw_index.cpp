@@ -22,6 +22,58 @@ void HNSWIndexPartitionerSharedState::setTables(NodeTable* nodeTable, RelTable* 
     upperPartitionerSharedState->relTable = relTable;
 }
 
+void HNSWLayerPartitionerSharedState::initialize(const common::logical_type_vec_t&,
+    [[maybe_unused]] common::idx_t numPartitioners, const main::ClientContext* clientContext) {
+    KU_ASSERT(numPartitioners == 1);
+    numNodes = srcNodeTable->getNumTotalRows(clientContext->getTransaction());
+    numPartitions = getNumPartitionsFromRows(numNodes);
+}
+
+void HNSWLayerPartitionerSharedState::setLayer(std::unique_ptr<InMemHNSWLayer> newLayer,
+    std::unique_ptr<NodeToHNSWGraphOffsetMap> selectionMap) {
+    layer = std::move(newLayer);
+    graphSelectionMap = std::move(selectionMap);
+}
+
+common::partition_idx_t HNSWLayerPartitionerSharedState::getNextPartition(
+    [[maybe_unused]] common::idx_t partitioningIdx) {
+    KU_ASSERT(partitioningIdx == 0);
+    auto nextPartitionIdxToReturn = nextPartitionIdx++;
+    if (nextPartitionIdxToReturn >= numPartitions) {
+        return common::INVALID_PARTITION_IDX;
+    }
+    return nextPartitionIdxToReturn;
+}
+
+common::partition_idx_t HNSWLayerPartitionerSharedState::getNumPartitions(
+    [[maybe_unused]] common::idx_t partitioningIdx) const {
+    KU_ASSERT(partitioningIdx == 0);
+    return numPartitions;
+}
+common::offset_t HNSWLayerPartitionerSharedState::getNumNodes(
+    [[maybe_unused]] common::idx_t partitioningIdx) const {
+    KU_ASSERT(partitioningIdx == 0);
+    return numNodes;
+}
+
+void HNSWLayerPartitionerSharedState::resetState() {
+    layer.reset();
+    graphSelectionMap.reset();
+    nextPartitionIdx = 0;
+    numNodes = 0;
+    numPartitions = 0;
+}
+
+void HNSWLayerPartitionerSharedState::resetBuffers(common::idx_t) {}
+
+std::unique_ptr<storage::InMemChunkedNodeGroupCollection>
+HNSWLayerPartitionerSharedState::getPartitionBuffer([[maybe_unused]] common::idx_t partitioningIdx,
+    common::partition_idx_t partitionIdx) const {
+    KU_ASSERT(partitioningIdx == 0);
+    return layer->getAsPartition(mm, srcNodeTable->getTableID(), dstNodeTable->getTableID(),
+        relTable->getTableID(), partitionIdx, numNodes, *graphSelectionMap);
+}
+
 InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info)
     : entryPoint{common::INVALID_OFFSET}, info{info} {
     graph = std::make_unique<InMemHNSWGraph>(mm, info.numNodes, info.degreeThresholdToShrink);
@@ -180,8 +232,7 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     graph->setCSRLength(nodeOffset, newSize);
 }
 
-void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-    const processor::PartitionerSharedState& partitionerSharedState,
+void InMemHNSWLayer::finalize(common::node_group_idx_t nodeGroupIdx,
     common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto endNodeOffset =
@@ -198,8 +249,27 @@ void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGr
         }
         shrinkForNode(info, graph.get(), offsetInGraph, numNbrs);
     }
-    graph->finalize(mm, nodeGroupIdx, partitionerSharedState, startNodeInGraph, endNodeInGraph,
-        numNodesInTable, selectedNodesMap);
+}
+
+void InMemHNSWIndex::moveToPartitionState(HNSWIndexPartitionerSharedState& partitionState) {
+    partitionState.lowerPartitionerSharedState->setLayer(std::move(lowerLayer),
+        std::move(lowerGraphSelectionMap));
+    partitionState.upperPartitionerSharedState->setLayer(std::move(upperLayer),
+        std::move(upperGraphSelectionMap));
+}
+
+std::unique_ptr<storage::InMemChunkedNodeGroupCollection> InMemHNSWLayer::getAsPartition(
+    storage::MemoryManager& mm, common::table_id_t srcNodeTableID,
+    common::table_id_t dstNodeTableID, common::table_id_t relTableID,
+    common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
+    const NodeToHNSWGraphOffsetMap& selectedNodesMap) {
+    const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    const auto endNodeOffset =
+        std::min(numNodesInTable, startNodeOffset + common::StorageConfig::NODE_GROUP_SIZE);
+    const auto startNodeInGraph = selectedNodesMap.nodeToGraphOffset(startNodeOffset, false);
+    const auto endNodeInGraph = selectedNodesMap.nodeToGraphOffset(endNodeOffset, false);
+    return graph->getAsPartition(mm, srcNodeTableID, dstNodeTableID, relTableID, startNodeInGraph,
+        endNodeInGraph, numNodesInTable, selectedNodesMap);
 }
 
 std::vector<NodeWithDistance> HNSWIndex::popTopK(max_node_priority_queue_t& result,
@@ -280,13 +350,10 @@ bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void InMemHNSWIndex::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-    const HNSWIndexPartitionerSharedState& partitionerSharedState) {
+void InMemHNSWIndex::finalize(common::node_group_idx_t nodeGroupIdx) {
     const auto numNodesInTable = lowerLayer->getNumNodes();
-    upperLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.upperPartitionerSharedState,
-        numNodesInTable, *upperGraphSelectionMap);
-    lowerLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.lowerPartitionerSharedState,
-        numNodesInTable, *lowerGraphSelectionMap);
+    upperLayer->finalize(nodeGroupIdx, numNodesInTable, *upperGraphSelectionMap);
+    lowerLayer->finalize(nodeGroupIdx, numNodesInTable, *lowerGraphSelectionMap);
 }
 
 std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {

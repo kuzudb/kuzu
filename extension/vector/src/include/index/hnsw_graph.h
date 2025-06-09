@@ -136,7 +136,7 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodes(numNodesInTable){};
+        : numNodes(numNodesInTable) {};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 
@@ -193,8 +193,9 @@ public:
         dstNodes.setNodeOffset(csrOffset, dstNode);
     }
 
-    void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-        const processor::PartitionerSharedState& partitionerSharedState,
+    std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getAsPartition(
+        storage::MemoryManager& mm, common::table_id_t srcNodeTableID,
+        common::table_id_t dstNodeTableID, common::table_id_t relTableID,
         common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
         common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap);
 
@@ -205,9 +206,9 @@ public:
 private:
     void resetCSRLengthAndDstNodes();
 
-    void finalizeNodeGroup(storage::MemoryManager& mm, uint64_t numRels,
-        common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
-        common::table_id_t relTableID, storage::InMemChunkedNodeGroupCollection& partition,
+    std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getNodeGroupsForPartition(
+        storage::MemoryManager& mm, uint64_t numRels, common::table_id_t srcNodeTableID,
+        common::table_id_t dstNodeTableID, common::table_id_t relTableID,
         common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
         common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
 
