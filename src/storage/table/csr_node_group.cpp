@@ -862,7 +862,8 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
             }
             scanChunk.state->getSelVectorUnsafe().setSelSize(numRowsToAppend);
             if (numRowsToAppend > 0) {
-                [[maybe_unused]] auto res = lookup(lock, &DUMMY_CHECKPOINT_TRANSACTION, *scanState);
+                [[maybe_unused]] auto res =
+                    lookupMultiple(lock, &DUMMY_CHECKPOINT_TRANSACTION, *scanState);
                 for (auto idx = 0u; idx < numColumnsToCheckpoint; idx++) {
                     dataChunksToFlush[idx]->getData().append(scanChunk.valueVectors[idx].get(),
                         scanChunk.state->getSelVector());

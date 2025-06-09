@@ -226,7 +226,8 @@ bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) 
                 localScanState.rowIndices[localScanState.nextRowToScan + i]);
         }
         localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
-        [[maybe_unused]] auto lookupRes = localNodeGroup->lookup(transaction, localScanState);
+        [[maybe_unused]] auto lookupRes =
+            localNodeGroup->lookupMultiple(transaction, localScanState);
         localScanState.nextRowToScan += numToScan;
         relScanState.setNodeIDVectorToFlat(
             relScanState.cachedBoundNodeSelVector[relScanState.currBoundNodeIdx]);
@@ -276,7 +277,7 @@ row_idx_t LocalRelTable::findMatchingRow(const Transaction* transaction,
         const auto scanState = setupLocalTableScanState(scanChunk, currentRowsToCheck);
 
         auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
-        [[maybe_unused]] auto lookupRes = localNodeGroup->lookup(&dummyTrx, *scanState);
+        [[maybe_unused]] auto lookupRes = localNodeGroup->lookupMultiple(&dummyTrx, *scanState);
         const auto scannedRelIDVector = scanState->outputVectors[0];
         KU_ASSERT(
             scannedRelIDVector->state->getSelVector().getSelSize() == currentRowsToCheck.size());

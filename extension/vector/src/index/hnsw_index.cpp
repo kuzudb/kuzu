@@ -784,6 +784,9 @@ void OnDiskHNSWIndex::createRels(transaction::Transaction* transaction, common::
     const auto maxDegree = isUpperLayer ? config.mu : config.ml;
     // TODO(Guodong): Should add the optimization for batch insertions.
     for (const auto& n : nbrs) {
+        if (n.nodeOffset == offset) {
+            continue;
+        }
         insertState.relInsertState->srcNodeIDVector.setValue(0,
             common::nodeID_t{offset, indexInfo.tableID});
         insertState.relInsertState->dstNodeIDVector.setValue(0,
@@ -814,7 +817,6 @@ void OnDiskHNSWIndex::createRels(transaction::Transaction* transaction, common::
 
 void OnDiskHNSWIndex::shrinkForNode(transaction::Transaction* transaction, common::offset_t offset,
     bool isUpperLayer, common::length_t maxDegree, CheckpointInsertionState& insertState) {
-    std::vector<NodeWithDistance> nbrs;
     const auto vector = embeddings->getEmbedding(transaction,
         *insertState.searchState.embeddingScanState.scanState, offset);
     const auto& searchState = insertState.searchState;
@@ -825,18 +827,24 @@ void OnDiskHNSWIndex::shrinkForNode(transaction::Transaction* transaction, commo
         isUpperLayer ? searchState.upperRelTableEntry : searchState.lowerRelTableEntry;
     const auto scanState = graph->prepareRelScan(*relTableEntry, relTableID, indexInfo.tableID, {});
     auto itr = graph->scanFwd(common::nodeID_t{offset, indexInfo.tableID}, *scanState);
+    std::vector<common::offset_t> nbrOffsets;
     for (const auto& neighborChunk : itr) {
         neighborChunk.forEachBreakWhenFalse([&](auto neighbors, auto i) -> bool {
             auto nbr = neighbors[i];
             if (nbr.offset == common::INVALID_OFFSET) {
                 return false; // End of neighbors.
             }
-            const auto nbrVector = embeddings->getEmbedding(transaction,
-                *insertState.searchState.embeddingScanState.scanState, nbr.offset);
-            auto dist = metricFunc(vector, nbrVector, embeddings->getDimension());
-            nbrs.emplace_back(nbr.offset, dist);
+            nbrOffsets.push_back(nbr.offset);
             return true;
         });
+    }
+    const auto nbrVectors = embeddings->getEmbeddings(transaction,
+        *insertState.searchState.embeddingScanState.scanState, nbrOffsets);
+    std::vector<NodeWithDistance> nbrs;
+    nbrs.reserve(nbrOffsets.size());
+    for (size_t i = 0; i < nbrOffsets.size(); i++) {
+        auto dist = metricFunc(vector, nbrVectors[i], embeddings->getDimension());
+        nbrs.emplace_back(nbrOffsets[i], dist);
     }
     std::ranges::sort(nbrs, [](const NodeWithDistance& n1, const NodeWithDistance& n2) {
         return n1.distance < n2.distance;
@@ -852,10 +860,12 @@ void OnDiskHNSWIndex::shrinkForNode(transaction::Transaction* transaction, commo
     for (auto i = 1u; i < nbrs.size(); i++) {
         bool keepNbr = true;
         for (auto j = i + 1; j < nbrs.size(); j++) {
-            const auto nbrIVector = embeddings->getEmbedding(transaction,
-                *insertState.searchState.embeddingScanState.scanState, nbrs[i].nodeOffset);
-            const auto nbrJVector = embeddings->getEmbedding(transaction,
-                *insertState.searchState.embeddingScanState.scanState, nbrs[j].nodeOffset);
+            auto posInNbrVectors =
+                std::ranges::find(nbrOffsets, nbrs[i].nodeOffset) - nbrOffsets.begin();
+            const auto nbrIVector = nbrVectors[posInNbrVectors];
+            posInNbrVectors =
+                std::ranges::find(nbrOffsets, nbrs[j].nodeOffset) - nbrOffsets.begin();
+            const auto nbrJVector = nbrVectors[posInNbrVectors];
             const auto dist = metricFunc(nbrIVector, nbrJVector, embeddings->getDimension());
             if (config.alpha * dist < nbrs[i].distance) {
                 keepNbr = false;

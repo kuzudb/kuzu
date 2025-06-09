@@ -52,6 +52,9 @@ public:
     void* getEmbedding(transaction::Transaction* transaction,
         storage::NodeTableScanState& scanState, common::offset_t offset) const;
 
+    std::vector<void*> getEmbeddings(transaction::Transaction* transaction,
+        storage::NodeTableScanState& scanState, const std::vector<common::offset_t>& offsets) const;
+
 private:
     storage::NodeTable& nodeTable;
 };
@@ -134,7 +137,8 @@ private:
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
         : numNodes(numNodesInTable){};
-    NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable, common::NullMask* selectedNodes);
+    NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
+        const common::NullMask* selectedNodes);
 
     common::offset_t getNumNodesInGraph() const { return numNodes; }
     common::offset_t nodeToGraphOffset(common::offset_t nodeOffset, bool exactMatch = true) const;

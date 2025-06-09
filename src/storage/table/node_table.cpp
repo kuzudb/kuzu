@@ -312,6 +312,38 @@ bool NodeTable::lookup(const Transaction* transaction, const TableScanState& sca
     return scanState.nodeGroup->lookup(transaction, scanState);
 }
 
+void NodeTable::lookupMultiple(Transaction* transaction, TableScanState& scanState) const {
+    const auto numRowsToRead = scanState.nodeIDVector->state->getSelSize();
+    for (auto i = 0u; i < numRowsToRead; i++) {
+        const auto nodeIDPos = scanState.nodeIDVector->state->getSelVector()[i];
+        if (scanState.nodeIDVector->isNull(nodeIDPos)) {
+            continue;
+        }
+        const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
+        const auto isUnCommitted = transaction->isUnCommitted(tableID, nodeOffset);
+        const auto source =
+            isUnCommitted ? TableScanSource::UNCOMMITTED : TableScanSource::COMMITTED;
+        const auto nodeGroupIdx =
+            isUnCommitted ?
+                StorageUtils::getNodeGroupIdx(transaction->getLocalRowIdx(tableID, nodeOffset)) :
+                StorageUtils::getNodeGroupIdx(nodeOffset);
+        const offset_t rowIdxInGroup =
+            isUnCommitted ? transaction->getLocalRowIdx(tableID, nodeOffset) -
+                                StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) :
+                            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        if (scanState.source == source && scanState.nodeGroupIdx == nodeGroupIdx) {
+            // If the scan state is already initialized for the same source and node group, we can
+            // skip re-initialization.
+        } else {
+            scanState.source = source;
+            scanState.nodeGroupIdx = nodeGroupIdx;
+            initScanState(transaction, scanState);
+        }
+        scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
+        [[maybe_unused]] auto res = scanState.nodeGroup->lookup(transaction, scanState, i);
+    }
+}
+
 offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
     const std::vector<ValueVector*>& propertyVectors) const {
     const auto pkVector = propertyVectors[pkColumnID];
