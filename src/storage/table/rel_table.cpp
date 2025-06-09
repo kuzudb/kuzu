@@ -193,7 +193,7 @@ void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
     KU_ASSERT(transaction->getLocalStorage());
     const auto localTable = transaction->getLocalStorage()->getOrCreateLocalTable(*this);
     localTable->insert(transaction, insertState);
-    if (transaction->shouldLogToWAL()) {
+    if (insertState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();

@@ -85,6 +85,7 @@ struct KUZU_API TableScanState {
 
 struct KUZU_API TableInsertState {
     std::vector<common::ValueVector*> propertyVectors;
+    bool logToWAL = true;
 
     explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors);
     virtual ~TableInsertState();
@@ -102,6 +103,7 @@ struct KUZU_API TableInsertState {
 struct KUZU_API TableUpdateState {
     common::column_id_t columnID;
     common::ValueVector& propertyVector;
+    bool logToWAL = true;
 
     TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector);
     virtual ~TableUpdateState();
