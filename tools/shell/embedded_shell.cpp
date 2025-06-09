@@ -283,11 +283,11 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
     std::vector<std::string> tempTableNames;
     std::vector<std::string> foundTableNames;
     for (auto& node : nodeTableNames) {
-        std::regex nodeTableRegex("\\(([^:]+):(" + node + ")\\)");
+        std::regex nodeTableRegex("\\(([^:\\(]+):(" + node + ")\\)");
         findTableVariableNames(buf, nodeTableRegex, tempTableNames, foundTableNames);
     }
     for (auto& rel : relTableNames) {
-        std::regex relTableRegex("\\[([^:]+):(" + rel + ")\\]");
+        std::regex relTableRegex("\\[([^:\\[]+):(" + rel + ")\\]");
         findTableVariableNames(buf, relTableRegex, tempTableNames, foundTableNames);
     }
 
