@@ -25,7 +25,8 @@ httplib::Headers VoyageAIEmbedding::getHeaders(const nlohmann::json& /*payload*/
     static const std::string envVar = "VOYAGE_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(common::RuntimeException("Could not get key from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
+        throw(common::RuntimeException(
+            "Could not get key from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + env_key}};
@@ -47,7 +48,8 @@ uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string& model) {
         {"voyage-code-2", 1536}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+        throw(common::BinderException(
+            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }

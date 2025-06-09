@@ -21,7 +21,8 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
     static const std::string envVar = "GOOGLE_CLOUD_PROJECT_ID";
     auto env_project_id = main::ClientContext::getEnvVariable(envVar);
     if (env_project_id.empty()) {
-        throw(common::RuntimeException("Could not get project id from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
+        throw(common::RuntimeException(
+            "Could not get project id from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
     // TODO(Tanvir): Location is hardcoded, this should be changed when configuration is
     // supported
@@ -33,7 +34,8 @@ httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*paylo
     static const std::string envVar = "GOOGLE_VERTEX_ACCESS_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(common::RuntimeException("Could not get key from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
+        throw(common::RuntimeException(
+            "Could not get key from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + env_key}};
@@ -56,7 +58,8 @@ uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string& model) 
 
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+        throw(common::BinderException(
+            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }

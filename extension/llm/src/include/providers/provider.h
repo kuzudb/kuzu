@@ -8,7 +8,9 @@
 namespace kuzu {
 namespace llm_extension {
 
-static constexpr const char* referenceKuzuDocs = "For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/\n";
+static constexpr const char* referenceKuzuDocs =
+    "For more information, please refer to the official Kuzu documentation: "
+    "https://docs.kuzudb.com/extensions/llm/\n";
 class EmbeddingProvider {
 public:
     virtual ~EmbeddingProvider() = default;

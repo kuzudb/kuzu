@@ -133,8 +133,7 @@ uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string& model) {
         {"amazon.titan-embed-text-v1", 1024}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + model + '\n'+ std::string(referenceKuzuDocs)));
-
+        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }
