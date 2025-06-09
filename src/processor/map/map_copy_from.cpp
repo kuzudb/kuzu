@@ -24,7 +24,7 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
     const main::ClientContext* clientContext,
-    std::shared_ptr<PartitionerSharedState> partitionerSharedState,
+    std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
     std::shared_ptr<BatchInsertSharedState> sharedState, const BoundCopyFromInfo& copyFromInfo,
     Schema* outFSchema, RelDataDirection direction, table_id_t fromTableID, table_id_t toTableID,
     std::vector<column_id_t> columnIDs, std::vector<LogicalType> columnTypes, uint32_t operatorID) {

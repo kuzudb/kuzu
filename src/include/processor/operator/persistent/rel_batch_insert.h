@@ -68,7 +68,7 @@ struct RelBatchInsertLocalState final : BatchInsertLocalState {
 class RelBatchInsert final : public BatchInsert {
 public:
     RelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
-        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
+        std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
@@ -97,7 +97,7 @@ private:
         storage::MemoryManager& mm, transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const PartitionerSharedState& partitionerSharedState);
+        const BasePartitionerSharedState& partitionerSharedState);
 
     static void populateCSRHeaderAndRowIdx(const catalog::RelGroupCatalogEntry& relGroupEntry,
         storage::InMemChunkedNodeGroupCollection& partition, common::offset_t startNodeOffset,
@@ -118,7 +118,7 @@ private:
         const RelBatchInsertInfo& relInfo);
 
 private:
-    std::shared_ptr<PartitionerSharedState> partitionerSharedState;
+    std::shared_ptr<BasePartitionerSharedState> partitionerSharedState;
     std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState;
 };
 

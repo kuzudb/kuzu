@@ -85,7 +85,7 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
     progressSharedState->partitionsDone = 0;
     progressSharedState->partitionsTotal =
-        partitionerSharedState->numPartitions[relBatchInsertInfo->partitioningIdx];
+        partitionerSharedState->getNumPartitions(relBatchInsertInfo->partitioningIdx);
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
@@ -98,8 +98,9 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
             ->getTableCatalogEntry(clientContext->getTransaction(), relInfo->tableName)
             ->constCast<RelGroupCatalogEntry>();
     while (true) {
-        relLocalState->nodeGroupIdx = partitionerSharedState->getNextPartition(
-            relInfo->partitioningIdx, *progressSharedState);
+        relLocalState->nodeGroupIdx =
+            partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
+        ++progressSharedState->partitionsDone;
         if (relLocalState->nodeGroupIdx == INVALID_PARTITION_IDX) {
             // No more partitions left in the partitioning buffer.
             break;
@@ -147,7 +148,7 @@ static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* t
 void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, MemoryManager& mm,
     transaction::Transaction* transaction, CSRNodeGroup& nodeGroup,
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
-    BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState) {
+    BatchInsertSharedState& sharedState, const BasePartitionerSharedState& partitionerSharedState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
     auto partitioningBuffer =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
@@ -160,7 +161,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     // Calculate num of source nodes in this node group.
     // This will be used to set the num of values of the node group.
     const auto numNodes = std::min(StorageConfig::NODE_GROUP_SIZE,
-        partitionerSharedState.numNodes[relInfo.partitioningIdx] - startNodeOffset);
+        partitionerSharedState.getNumNodes(relInfo.partitioningIdx) - startNodeOffset);
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
     const auto leaveGaps = nodeGroup.isEmpty();
@@ -302,7 +303,7 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     sharedState->numRows.store(0);
     sharedState->table->cast<RelTable>().setHasChanges();
     partitionerSharedState->resetState();
-    partitionerSharedState->partitioningBuffers[relInfo->partitioningIdx].reset();
+    partitionerSharedState->resetBuffers(relInfo->partitioningIdx);
 }
 
 void RelBatchInsert::updateProgress(const ExecutionContext* context) const {
