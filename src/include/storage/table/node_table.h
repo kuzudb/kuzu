@@ -23,7 +23,7 @@ class Transaction;
 namespace storage {
 class NodeTable;
 
-struct KUZU_API NodeTableScanState final : TableScanState {
+struct KUZU_API NodeTableScanState : TableScanState {
     NodeTableScanState(common::ValueVector* nodeIDVector,
         std::vector<common::ValueVector*> outputVectors,
         std::shared_ptr<common::DataChunkState> outChunkState)
@@ -42,7 +42,7 @@ struct KUZU_API NodeTableScanState final : TableScanState {
         common::offset_t numNodes);
 };
 
-struct KUZU_API NodeTableInsertState final : TableInsertState {
+struct KUZU_API NodeTableInsertState : TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
     std::vector<std::unique_ptr<Index::InsertState>> indexInsertStates;
@@ -55,7 +55,7 @@ struct KUZU_API NodeTableInsertState final : TableInsertState {
     NodeTableInsertState(const NodeTableInsertState&) = delete;
 };
 
-struct KUZU_API NodeTableUpdateState final : TableUpdateState {
+struct KUZU_API NodeTableUpdateState : TableUpdateState {
     common::ValueVector& nodeIDVector;
     // pkVector is nullptr if we are not updating the primary key column.
     common::ValueVector* pkVector;
@@ -66,7 +66,7 @@ struct KUZU_API NodeTableUpdateState final : TableUpdateState {
           pkVector{nullptr} {}
 };
 
-struct KUZU_API NodeTableDeleteState final : TableDeleteState {
+struct KUZU_API NodeTableDeleteState : TableDeleteState {
     common::ValueVector& nodeIDVector;
     common::ValueVector& pkVector;
 
