@@ -19,12 +19,10 @@ std::string GoogleVertexEmbedding::getClient() const {
 
 std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
     static const std::string envVar = "GOOGLE_CLOUD_PROJECT_ID";
-
     auto env_project_id = main::ClientContext::getEnvVariable(envVar);
     if (env_project_id.empty()) {
         throw(common::RuntimeException("Could not get project id from: " + envVar + "\n"));
     }
-
     // TODO: Location is hardcoded, this should be changed when configuration is
     // supported
     return "/v1/projects/" + env_project_id + "/locations/us-central1/publishers/google/models/" +
