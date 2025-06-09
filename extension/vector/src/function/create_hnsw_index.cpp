@@ -165,7 +165,7 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     auto lowerRelTable = storageManager->getTable(lowerRelTableEntry->getSingleRelEntryInfo().oid)
                              ->ptrCast<storage::RelTable>();
     // Initialize partitioner shared state.
-    const auto partitionerSharedState = finalizeFuncSharedState->partitionerSharedState;
+    auto& partitionerSharedState = finalizeFuncSharedState->partitionerSharedState;
     partitionerSharedState->setTables(nodeTable, upperRelTable);
     logical_type_vec_t callColumnTypes;
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());
