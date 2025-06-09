@@ -57,14 +57,13 @@ common::offset_t HNSWLayerPartitionerSharedState::getNumNodes(
 }
 
 void HNSWLayerPartitionerSharedState::resetState() {
-    layer.reset();
-    graphSelectionMap.reset();
     nextPartitionIdx = 0;
-    numNodes = 0;
-    numPartitions = 0;
 }
 
-void HNSWLayerPartitionerSharedState::resetBuffers(common::idx_t) {}
+void HNSWLayerPartitionerSharedState::resetBuffers(common::idx_t) {
+    layer.reset();
+    graphSelectionMap.reset();
+}
 
 std::unique_ptr<storage::InMemChunkedNodeGroupCollection>
 HNSWLayerPartitionerSharedState::getPartitionBuffer([[maybe_unused]] common::idx_t partitioningIdx,
