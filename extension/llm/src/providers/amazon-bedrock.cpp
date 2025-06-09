@@ -6,6 +6,7 @@
 #include "common/types/timestamp_t.h"
 #include "httplib.h"
 #include "json.hpp"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 
@@ -33,14 +34,14 @@ std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
 httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) const {
     static const std::string envVarAWSAccessKey = "AWS_ACCESS_KEY";
     static const std::string envVarAWSSecretAccessKey = "AWS_SECRET_ACCESS_KEY";
-    auto envAWSAccessKey = std::getenv(envVarAWSAccessKey.c_str());
-    auto envAWSSecretAccessKey = std::getenv(envVarAWSSecretAccessKey.c_str());
-    if (envAWSAccessKey == nullptr || envAWSSecretAccessKey == nullptr) {
+    auto envAWSAccessKey = main::ClientContext::getEnvVariable(envVarAWSAccessKey);
+    auto envAWSSecretAccessKey = main::ClientContext::getEnvVariable(envVarAWSSecretAccessKey);
+    if (envAWSAccessKey.empty() || envAWSSecretAccessKey.empty()) {
         std::string errMsg = "The following key(s) could not be read from the environment:\n";
-        if (!envAWSAccessKey) {
+        if (envAWSAccessKey.empty()) {
             errMsg += envVarAWSAccessKey + '\n';
         }
-        if (!envAWSSecretAccessKey) {
+        if (envAWSSecretAccessKey.empty()) {
             errMsg += envVarAWSSecretAccessKey + '\n';
         }
         throw(RuntimeException(errMsg));
@@ -99,7 +100,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     std::string stringToSignStr = stringToSign.str();
 
     hash_bytes kDate, kRegion, kService, kSigning;
-    std::string kSecret = "AWS4" + std::string(envAWSSecretAccessKey);
+    std::string kSecret = "AWS4" + envAWSSecretAccessKey;
     CryptoUtils::hmac256(dateHeader, kSecret.c_str(), kSecret.size(), kDate);
     CryptoUtils::hmac256(region, kDate, kRegion);
     CryptoUtils::hmac256(service, kRegion, kService);
@@ -109,7 +110,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     CryptoUtils::hmac256(stringToSignStr, kSigning, signatureBytes);
     CryptoUtils::hex256(signatureBytes, signatureHex);
     std::ostringstream authorizationHeader;
-    authorizationHeader << algorithm << " " << "Credential=" << std::string(envAWSAccessKey) << "/"
+    authorizationHeader << algorithm << " " << "Credential=" << envAWSAccessKey << "/"
                         << credentialScope << ", " << "SignedHeaders=" << signedHeaders << ", "
                         << "Signature="
                         << std::string(reinterpret_cast<const char*>(signatureHex),

@@ -4,6 +4,7 @@
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
+#include "main/client_context.h"
 namespace kuzu {
 namespace llm_extension {
 
@@ -17,12 +18,12 @@ std::string GoogleGeminiEmbedding::getClient() const {
 }
 
 std::string GoogleGeminiEmbedding::getPath(const std::string& model) const {
-    const char* envVar = "GEMINI_API_KEY";
-    auto env_key = std::getenv(envVar);
-    if (env_key == nullptr) {
-        throw(common::RuntimeException("Could not get key from: " + std::string(envVar) + "\n"));
+    static const std::string envVar = "GEMINI_API_KEY";
+    auto env_key = main::ClientContext::getEnvVariable(envVar);
+    if (env_key.empty()) {
+        throw(common::RuntimeException("Could not get key from: " + envVar + "\n"));
     }
-    return "/v1beta/models/" + model + ":embedContent?key=" + std::string(env_key);
+    return "/v1beta/models/" + model + ":embedContent?key=" + env_key;
 }
 
 httplib::Headers GoogleGeminiEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {

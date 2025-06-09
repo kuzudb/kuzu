@@ -4,6 +4,7 @@
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
+#include "main/client_context.h"
 namespace kuzu {
 namespace llm_extension {
 
@@ -17,28 +18,28 @@ std::string GoogleVertexEmbedding::getClient() const {
 }
 
 std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
-    const char* envVar = "GOOGLE_CLOUD_PROJECT_ID";
+    static const std::string envVar = "GOOGLE_CLOUD_PROJECT_ID";
 
-    auto env_project_id = std::getenv(envVar);
-    if (env_project_id == nullptr) {
+    auto env_project_id = main::ClientContext::getEnvVariable(envVar);
+    if (env_project_id.empty()) {
         throw(common::RuntimeException(
-            "Could not get project id from: " + std::string(envVar) + "\n"));
+            "Could not get project id from: " + envVar + "\n"));
     }
 
     // TODO: Location is hardcoded, this should be changed when configuration is
     // supported
-    return "/v1/projects/" + std::string(env_project_id) +
+    return "/v1/projects/" + env_project_id +
            "/locations/us-central1/publishers/google/models/" + model + ":predict";
 }
 
 httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
-    const char* envVar = "GOOGLE_VERTEX_ACCESS_KEY";
-    auto env_key = std::getenv(envVar);
-    if (env_key == nullptr) {
-        throw(common::RuntimeException("Could not get key from: " + std::string(envVar) + '\n'));
+    static const std::string envVar = "GOOGLE_VERTEX_ACCESS_KEY";
+    auto env_key = main::ClientContext::getEnvVariable(envVar);
+    if (env_key.empty()) {
+        throw(common::RuntimeException("Could not get key from: " + envVar + '\n'));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
-        {"Authorization", "Bearer " + std::string(env_key)}};
+        {"Authorization", "Bearer " + env_key}};
 }
 
 nlohmann::json GoogleVertexEmbedding::getPayload(const std::string& /*model*/,
