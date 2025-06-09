@@ -97,6 +97,7 @@ struct UncommittedIndexInserter final : IndexScanHelper {
     row_idx_t startNodeOffset;
     ValueVector nodeIDVector;
     visible_func isVisible;
+    std::unique_ptr<Index::InsertState> insertState;
 };
 
 struct RollbackPKDeleter final : IndexScanHelper {
@@ -133,7 +134,9 @@ bool UncommittedIndexInserter::processScanOutput(Transaction* transaction, Memor
     for (auto i = 0u; i < scanResult.numRows; i++) {
         nodeIDVector.setValue(i, nodeID_t{startNodeOffset + i, table->getTableID()});
     }
-    const auto insertState = index->initInsertState(transaction, mm, isVisible);
+    if (!insertState) {
+        insertState = index->initInsertState(transaction, mm, isVisible);
+    }
     index->commitInsert(transaction, nodeIDVector, {scannedVectors}, *insertState);
     startNodeOffset += scanResult.numRows;
     return true;
@@ -243,8 +246,10 @@ NodeTable::NodeTable(const StorageManager* storageManager,
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
     auto numLocalRows = 0u;
-    if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID)) {
-        numLocalRows = localTable->getNumTotalRows();
+    if (transaction->getLocalStorage()) {
+        if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID)) {
+            numLocalRows = localTable->getNumTotalRows();
+        }
     }
     return numLocalRows + nodeGroups->getNumTotalRows();
 }
@@ -307,6 +312,38 @@ bool NodeTable::lookup(const Transaction* transaction, const TableScanState& sca
     return scanState.nodeGroup->lookup(transaction, scanState);
 }
 
+void NodeTable::lookupMultiple(Transaction* transaction, TableScanState& scanState) const {
+    const auto numRowsToRead = scanState.nodeIDVector->state->getSelSize();
+    for (auto i = 0u; i < numRowsToRead; i++) {
+        const auto nodeIDPos = scanState.nodeIDVector->state->getSelVector()[i];
+        if (scanState.nodeIDVector->isNull(nodeIDPos)) {
+            continue;
+        }
+        const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
+        const auto isUnCommitted = transaction->isUnCommitted(tableID, nodeOffset);
+        const auto source =
+            isUnCommitted ? TableScanSource::UNCOMMITTED : TableScanSource::COMMITTED;
+        const auto nodeGroupIdx =
+            isUnCommitted ?
+                StorageUtils::getNodeGroupIdx(transaction->getLocalRowIdx(tableID, nodeOffset)) :
+                StorageUtils::getNodeGroupIdx(nodeOffset);
+        const offset_t rowIdxInGroup =
+            isUnCommitted ? transaction->getLocalRowIdx(tableID, nodeOffset) -
+                                StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) :
+                            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        if (scanState.source == source && scanState.nodeGroupIdx == nodeGroupIdx) {
+            // If the scan state is already initialized for the same source and node group, we can
+            // skip re-initialization.
+        } else {
+            scanState.source = source;
+            scanState.nodeGroupIdx = nodeGroupIdx;
+            initScanState(transaction, scanState);
+        }
+        scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
+        [[maybe_unused]] auto res = scanState.nodeGroup->lookup(transaction, scanState, i);
+    }
+}
+
 offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
     const std::vector<ValueVector*>& propertyVectors) const {
     const auto pkVector = propertyVectors[pkColumnID];
@@ -338,7 +375,7 @@ void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector*
     }
 }
 
-void NodeTable::initInsertState(const Transaction* transaction, TableInsertState& insertState) {
+void NodeTable::initInsertState(Transaction* transaction, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.cast<NodeTableInsertState>();
     nodeInsertState.indexInsertStates.resize(indexes.size());
     for (auto i = 0u; i < indexes.size(); i++) {
@@ -551,7 +588,7 @@ visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {
         [this, transaction](offset_t offset_) -> bool { return isVisible(transaction, offset_); };
 }
 
-bool NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
+bool NodeTable::checkpoint(main::ClientContext* context, TableCatalogEntry* tableEntry) {
     const bool ret = hasChanges;
     if (hasChanges) {
         // Deleted columns are vacuumed and not checkpointed.
@@ -573,7 +610,7 @@ bool NodeTable::checkpoint(TableCatalogEntry* tableEntry) {
             memoryManager};
         nodeGroups->checkpoint(*memoryManager, state);
         for (auto& index : indexes) {
-            index.checkpoint();
+            index.checkpoint(context);
         }
         hasChanges = false;
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);

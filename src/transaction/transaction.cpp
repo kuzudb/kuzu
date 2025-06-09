@@ -16,7 +16,7 @@ namespace transaction {
 
 bool LocalCacheManager::put(std::unique_ptr<LocalCacheObject> object) {
     std::unique_lock lck{mtx};
-    auto key = object->getKey();
+    const auto key = object->getKey();
     if (cachedObjects.contains(key)) {
         return false;
     }
@@ -33,7 +33,7 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext.getMemoryManager());
     currentTS = common::Timestamp::getCurrentTimestamp().value;
     // Note that the use of `this` should be safe here as there is no inheritance.
-    for (auto entry : clientContext.getCatalog()->getNodeTableEntries(this)) {
+    for (const auto entry : clientContext.getCatalog()->getNodeTableEntries(this)) {
         auto id = entry->getTableID();
         minUncommittedNodeOffsets[id] =
             clientContext.getStorageManager()->getTable(id)->getNumTotalRows(this);

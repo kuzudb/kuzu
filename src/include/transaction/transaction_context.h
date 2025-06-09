@@ -49,6 +49,12 @@ public:
     TransactionMode getTransactionMode() const { return mode; }
     bool hasActiveTransaction() const { return activeTransaction != nullptr; }
     Transaction* getActiveTransaction() const { return activeTransaction.get(); }
+    // TODO(Guodong): This interface should be removed once we have a design to not manually create
+    // a transaction during HNSWIndex checkpoint.
+    void setActiveTransaction(std::unique_ptr<Transaction> transaction) {
+        activeTransaction = std::move(transaction);
+        mode = TransactionMode::MANUAL;
+    }
 
     void clearTransaction();
 

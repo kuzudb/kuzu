@@ -16,7 +16,7 @@ InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction,
     common::ArrayTypeInfo typeInfo, common::table_id_t tableID, common::column_id_t columnID)
     : EmbeddingColumn{std::move(typeInfo)} {
     auto& cacheManager = transaction->getLocalCacheManager();
-    auto key = CachedColumn::getKey(tableID, columnID);
+    const auto key = CachedColumn::getKey(tableID, columnID);
     if (cacheManager.contains(key)) {
         data = transaction->getLocalCacheManager().at(key).cast<CachedColumn>();
     } else {
@@ -62,14 +62,28 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     NodeTableScanState& scanState, common::offset_t offset) const {
     scanState.nodeIDVector->setValue(0, common::internalID_t{offset, nodeTable.getTableID()});
     scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(1);
-    scanState.source = TableScanSource::COMMITTED;
-    scanState.nodeGroupIdx = StorageUtils::getNodeGroupIdx(offset);
-    nodeTable.initScanState(transaction, scanState);
-    const auto result = nodeTable.lookup(transaction, scanState);
-    KU_ASSERT(result);
-    KU_UNUSED(result);
+    const auto source = scanState.source;
+    const auto nodeGroupIdx = scanState.nodeGroupIdx;
+    if (transaction->isUnCommitted(nodeTable.getTableID(), offset)) {
+        scanState.source = TableScanSource::UNCOMMITTED;
+        scanState.nodeGroupIdx = StorageUtils::getNodeGroupIdx(
+            transaction->getLocalRowIdx(nodeTable.getTableID(), offset));
+    } else {
+        scanState.source = TableScanSource::COMMITTED;
+        scanState.nodeGroupIdx = StorageUtils::getNodeGroupIdx(offset);
+    }
+    if (source == scanState.source && nodeGroupIdx == scanState.nodeGroupIdx) {
+        // If the scan state is already initialized for the same source and node group, we can skip
+        // re-initialization.
+    } else {
+        nodeTable.initScanState(transaction, scanState);
+    }
+    nodeTable.lookup(transaction, scanState);
     KU_ASSERT(scanState.outputVectors.size() == 1 &&
               scanState.outputVectors[0]->state->getSelVector()[0] == 0);
+    if (scanState.outputVectors[0]->isNull(0)) {
+        return nullptr;
+    }
     const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(0);
     KU_ASSERT(value.size == typeInfo.getNumElements());
     KU_UNUSED(value);
@@ -82,6 +96,41 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
         [&](auto) { KU_UNREACHABLE; });
     KU_ASSERT(val != nullptr);
     return val;
+}
+
+std::vector<void*> OnDiskEmbeddings::getEmbeddings(transaction::Transaction* transaction,
+    NodeTableScanState& scanState, const std::vector<common::offset_t>& offsets) const {
+    for (auto i = 0u; i < offsets.size(); i++) {
+        scanState.nodeIDVector->setValue(i,
+            common::internalID_t{offsets[i], nodeTable.getTableID()});
+    }
+    scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(offsets.size());
+    KU_ASSERT(
+        scanState.outputVectors[0]->dataType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
+    common::ListVector::resizeDataVector(scanState.outputVectors[0],
+        offsets.size() * typeInfo.getNumElements());
+    scanState.outputVectors[0]->resetAuxiliaryBuffer();
+    nodeTable.lookupMultiple(transaction, scanState);
+    std::vector<void*> embeddings;
+    embeddings.reserve(offsets.size());
+    for (auto i = 0u; i < offsets.size(); i++) {
+        if (scanState.outputVectors[0]->isNull(i)) {
+            embeddings.push_back(nullptr);
+        } else {
+            const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(i);
+            KU_ASSERT(value.size == typeInfo.getNumElements());
+            const auto dataVector = common::ListVector::getDataVector(scanState.outputVectors[0]);
+            void* val = nullptr;
+            common::TypeUtils::visit(
+                typeInfo.getChildType(),
+                [&]<VectorElementType T>(
+                    T) { val = reinterpret_cast<T*>(dataVector->getData()) + value.offset; },
+                [&](auto) { KU_UNREACHABLE; });
+            KU_ASSERT(val != nullptr);
+            embeddings.push_back(val);
+        }
+    }
+    return embeddings;
 }
 
 namespace {
@@ -142,7 +191,7 @@ CompressedNodeOffsetBuffer::CompressedNodeOffsetBuffer(MemoryManager* mm, common
 
 compressed_offsets_t CompressedNodeOffsetBuffer::getNeighbors(common::offset_t nodeOffset,
     common::offset_t maxDegree, common::offset_t numNbrs) const {
-    auto startOffset = nodeOffset * maxDegree;
+    const auto startOffset = nodeOffset * maxDegree;
     return compressed_offsets_t{*view, startOffset, startOffset + numNbrs};
 }
 
@@ -228,7 +277,7 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
 }
 
 NodeToHNSWGraphOffsetMap::NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
-    common::NullMask* selectedNodes)
+    const common::NullMask* selectedNodes)
     : numNodes(selectedNodes->countNulls()),
       graphToNodeMap(std::make_unique<common::offset_t[]>(numNodes)) {
     common::offset_t curOffset = 0;
@@ -245,8 +294,9 @@ common::offset_t NodeToHNSWGraphOffsetMap::nodeToGraphOffset(common::offset_t no
     if (isTrivialMapping()) {
         return nodeOffset;
     }
-    auto it = std::lower_bound(graphToNodeMap.get(), graphToNodeMap.get() + numNodes, nodeOffset);
-    common::offset_t pos = it - graphToNodeMap.get();
+    const auto it =
+        std::lower_bound(graphToNodeMap.get(), graphToNodeMap.get() + numNodes, nodeOffset);
+    const common::offset_t pos = it - graphToNodeMap.get();
     KU_ASSERT(!exactMatch || pos >= numNodes || *it == nodeOffset);
     return pos;
 }

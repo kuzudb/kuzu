@@ -10,7 +10,6 @@ namespace main {
 class ClientContext;
 } // namespace main
 namespace storage {
-
 // Data structures in LocalStorage are not thread-safe.
 // For now, we only support single thread insertions and updates. Once we optimize them with
 // multiple threads, LocalStorage and its related data structures should be reworked to be

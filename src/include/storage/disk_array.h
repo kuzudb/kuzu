@@ -370,7 +370,6 @@ private:
         return (numElements + this->storageInfo.numElementsPerPage - 1) /
                this->storageInfo.numElementsPerPage;
     }
-    void addNewArrayPageForBuilding();
 
 protected:
     std::vector<std::unique_ptr<MemoryBuffer>> inMemArrayPages;

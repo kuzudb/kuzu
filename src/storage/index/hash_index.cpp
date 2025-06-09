@@ -629,7 +629,7 @@ void PrimaryKeyIndex::rollbackCheckpoint() {
     }
 }
 
-void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
+void PrimaryKeyIndex::checkpoint(main::ClientContext*, bool forceCheckpointAll) {
     bool indexChanged = false;
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
         if (hashIndices[i]->checkpoint()) {

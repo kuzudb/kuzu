@@ -13,10 +13,6 @@ namespace kuzu {
 namespace catalog {
 class IndexCatalogEntry;
 }
-namespace function {
-struct HNSWSearchState;
-struct QueryHNSWLocalState;
-} // namespace function
 namespace processor {
 struct PartitionerSharedState;
 } // namespace processor
@@ -81,15 +77,18 @@ struct HNSWStorageInfo final : storage::IndexStorageInfo {
     common::table_id_t lowerRelTableID;
     common::offset_t upperEntryPoint;
     common::offset_t lowerEntryPoint;
+    common::offset_t numCheckpointedNodes;
 
     HNSWStorageInfo()
         : upperRelTableID{common::INVALID_TABLE_ID}, lowerRelTableID{common::INVALID_TABLE_ID},
-          upperEntryPoint{common::INVALID_OFFSET}, lowerEntryPoint{common::INVALID_OFFSET} {}
-    HNSWStorageInfo(const common::table_id_t& upperRelTableID,
-        const common::table_id_t& lowerRelTableID, common::offset_t upperEntryPoint,
-        common::offset_t lowerEntryPoint)
+          upperEntryPoint{common::INVALID_OFFSET}, lowerEntryPoint{common::INVALID_OFFSET},
+          numCheckpointedNodes{0} {}
+    HNSWStorageInfo(common::table_id_t upperRelTableID, common::table_id_t lowerRelTableID,
+        common::offset_t upperEntryPoint, common::offset_t lowerEntryPoint,
+        common::offset_t numCheckpointedNodes)
         : upperRelTableID{upperRelTableID}, lowerRelTableID{lowerRelTableID},
-          upperEntryPoint{upperEntryPoint}, lowerEntryPoint{lowerEntryPoint} {}
+          upperEntryPoint{upperEntryPoint}, lowerEntryPoint{lowerEntryPoint},
+          numCheckpointedNodes{numCheckpointedNodes} {}
 
     std::shared_ptr<common::BufferedSerializer> serialize() const override;
 
@@ -110,7 +109,9 @@ public:
 
     void commitInsert(transaction::Transaction*, const common::ValueVector&,
         const std::vector<common::ValueVector*>&, InsertState&) override {
-        KU_UNREACHABLE;
+        // DO NOTHING.
+        // For HNSW index, insertions are handled when the new tuples are inserted into the base
+        // table being indexed.
     }
 
     common::LogicalType getElementType() const { return typeInfo.getChildType().copy(); }
@@ -166,7 +167,7 @@ public:
     common::offset_t getNumNodes() const { return info.numNodes; }
 
     void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);
-    common::offset_t searchNN(void* queryVector, common::offset_t entryNode) const;
+    common::offset_t searchNN(const void* queryVector, common::offset_t entryNode) const;
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState,
         common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
@@ -204,8 +205,8 @@ public:
         return upperGraphSelectionMap->getNumNodesInGraph();
     }
 
-    std::unique_ptr<InsertState> initInsertState(const transaction::Transaction*,
-        storage::MemoryManager*, storage::visible_func) override {
+    std::unique_ptr<InsertState> initInsertState(transaction::Transaction*, storage::MemoryManager*,
+        storage::visible_func) override {
         KU_UNREACHABLE;
     }
     void insert(transaction::Transaction*, const common::ValueVector&,
@@ -266,7 +267,27 @@ struct HNSWSearchState {
 
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
-    OnDiskHNSWIndex(main::ClientContext* context, storage::IndexInfo indexInfo,
+    struct CheckpointInsertionState {
+        // State for searching neighbors and reading vectors in the HNSW graph.
+        HNSWSearchState searchState;
+        // State for inserting rels.
+        common::DataChunk srcNodeIDChunk;
+        common::DataChunk insertChunk;
+        std::unique_ptr<storage::RelTableInsertState> relInsertState;
+        // State for detaching delete.
+        std::unique_ptr<storage::RelTableDeleteState> relDeleteState;
+        // Nodes to shrink at the end of insertions.
+        std::unordered_set<common::offset_t> upperNodesToShrink;
+        std::unordered_set<common::offset_t> lowerNodesToShrink;
+
+        CheckpointInsertionState(main::ClientContext* context,
+            catalog::TableCatalogEntry* nodeTableEntry,
+            catalog::TableCatalogEntry* upperRelTableEntry,
+            catalog::TableCatalogEntry* lowerRelTableEntry, storage::NodeTable& nodeTable,
+            common::column_id_t columnID, uint64_t degree);
+    };
+
+    OnDiskHNSWIndex(const main::ClientContext* context, storage::IndexInfo indexInfo,
         std::unique_ptr<storage::IndexStorageInfo> storageInfo, HNSWIndexConfig config);
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
@@ -275,14 +296,11 @@ public:
     static std::unique_ptr<Index> load(main::ClientContext* context,
         storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
         std::span<uint8_t> storageInfoBuffer);
-    std::unique_ptr<InsertState> initInsertState(const transaction::Transaction*,
-        storage::MemoryManager*, storage::visible_func) override {
-        KU_UNREACHABLE;
-    }
-    void insert(transaction::Transaction*, const common::ValueVector&,
-        const std::vector<common::ValueVector*>&, InsertState&) override {
-        KU_UNREACHABLE;
-    }
+    std::unique_ptr<Index::InsertState> initInsertState(transaction::Transaction*,
+        storage::MemoryManager* mm, storage::visible_func) override;
+    void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
+        const std::vector<common::ValueVector*>& indexVectors,
+        Index::InsertState& insertState) override;
 
     static storage::IndexType getIndexType() {
         static const storage::IndexType HNSW_INDEX_TYPE{"HNSW",
@@ -291,11 +309,18 @@ public:
         return HNSW_INDEX_TYPE;
     }
 
+    void checkpoint(main::ClientContext* context, bool forceCheckpointAll) override;
+
 private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
-        const void* queryVector, HNSWSearchState& searchState) const;
+        const void* queryVector, const HNSWSearchState& searchState) const;
     std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
         const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
+    std::vector<NodeWithDistance> searchFromCheckpointed(transaction::Transaction* transaction,
+        const void* queryVector, HNSWSearchState& searchState) const;
+    void searchFromUnCheckpointed(transaction::Transaction* transaction, const void* queryVector,
+        storage::NodeTableScanState& embeddingScanState,
+        std::vector<NodeWithDistance>& result) const;
 
     void initLowerLayerSearchState(transaction::Transaction* transaction,
         HNSWSearchState& searchState) const;
@@ -308,6 +333,16 @@ private:
     void blindTwoHopFilteredSearch(transaction::Transaction* transaction, const void* queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
+    void insertInternal(transaction::Transaction* transaction, common::offset_t offset,
+        const void* vector, CheckpointInsertionState& insertState);
+    void insertToLayer(transaction::Transaction* transaction, common::offset_t offset,
+        common::offset_t entryPoint, const void* queryVector, CheckpointInsertionState& insertState,
+        bool isUpperLayer);
+    void createRels(transaction::Transaction* transaction, common::offset_t offset,
+        const std::vector<NodeWithDistance>& nbrs, bool isUpperLayer,
+        CheckpointInsertionState& insertState);
+    void shrinkForNode(transaction::Transaction* transaction, common::offset_t offset,
+        bool isUpperLayer, common::length_t maxDegree, CheckpointInsertionState& insertState);
 
     void processSecondHopCandidates(transaction::Transaction* transaction, const void* queryVector,
         HNSWSearchState& searchState, int64_t& numVisitedNbrs,
@@ -340,7 +375,9 @@ private:
 
 private:
     static constexpr uint64_t FILTERED_SEARCH_INITIAL_CANDIDATES = 10;
+    static constexpr uint64_t INSERTION_BATCH_MERGE_THRESHOLD = 2000;
 
+    storage::MemoryManager* mm;
     storage::NodeTable& nodeTable;
     storage::RelTable* upperRelTable;
     storage::RelTable* lowerRelTable;

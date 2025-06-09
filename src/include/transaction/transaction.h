@@ -73,7 +73,7 @@ private:
     std::mutex mtx;
 };
 
-class Transaction {
+class KUZU_API Transaction {
     friend class TransactionManager;
 
 public:
@@ -115,7 +115,7 @@ public:
 
     bool shouldForceCheckpoint() const;
 
-    KUZU_API void commit(storage::WAL* wal);
+    void commit(storage::WAL* wal);
     void rollback(storage::WAL* wal);
 
     uint64_t getEstimatedMemUsage() const;

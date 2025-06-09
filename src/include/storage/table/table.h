@@ -31,8 +31,8 @@ struct KUZU_API TableScanState {
     // Only used when scan from persistent data.
     std::vector<const Column*> columns;
 
-    TableScanSource source = TableScanSource::NONE;
-    common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    TableScanSource source;
+    common::node_group_idx_t nodeGroupIdx;
     NodeGroup* nodeGroup = nullptr;
     std::unique_ptr<NodeGroupScanState> nodeGroupScanState;
 
@@ -42,14 +42,16 @@ struct KUZU_API TableScanState {
         std::vector<common::ValueVector*> outputVectors,
         std::shared_ptr<common::DataChunkState> outChunkState)
         : table{nullptr}, nodeIDVector(nodeIDVector), outputVectors{std::move(outputVectors)},
-          outState{std::move(outChunkState)}, semiMask{nullptr} {
+          outState{std::move(outChunkState)}, semiMask{nullptr}, source{TableScanSource::NONE},
+          nodeGroupIdx{common::INVALID_NODE_GROUP_IDX} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
         rowIdxVector->state = outState;
     }
 
     TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<const Column*> columns)
         : table{nullptr}, nodeIDVector(nullptr), outState{nullptr}, columnIDs{std::move(columnIDs)},
-          semiMask{nullptr}, columns{std::move(columns)} {}
+          semiMask{nullptr}, columns{std::move(columns)}, source{TableScanSource::NONE},
+          nodeGroupIdx{common::INVALID_NODE_GROUP_IDX} {}
 
     virtual ~TableScanState();
     DELETE_COPY_DEFAULT_MOVE(TableScanState);
@@ -114,7 +116,7 @@ struct KUZU_API TableUpdateState {
     }
 };
 
-struct TableDeleteState {
+struct KUZU_API TableDeleteState {
     virtual ~TableDeleteState();
 
     template<typename T>
@@ -155,7 +157,7 @@ public:
         bool resetCachedBoundNodeSelVec = true) const = 0;
     bool scan(transaction::Transaction* transaction, TableScanState& scanState);
 
-    virtual void initInsertState(const transaction::Transaction* transaction,
+    virtual void initInsertState(transaction::Transaction* transaction,
         TableInsertState& insertState) = 0;
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
@@ -167,7 +169,8 @@ public:
 
     virtual void commit(transaction::Transaction* transaction,
         catalog::TableCatalogEntry* tableEntry, LocalTable* localTable) = 0;
-    virtual bool checkpoint(catalog::TableCatalogEntry* tableEntry) = 0;
+    virtual bool checkpoint(main::ClientContext* context,
+        catalog::TableCatalogEntry* tableEntry) = 0;
     virtual void rollbackCheckpoint() = 0;
     virtual void reclaimStorage(PageManager& pageManager) const = 0;
 

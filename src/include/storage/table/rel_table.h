@@ -121,7 +121,7 @@ struct RelTableUpdateState final : TableUpdateState {
           dstNodeIDVector{dstNodeIDVector}, relIDVector{relIDVector} {}
 };
 
-struct RelTableDeleteState final : TableDeleteState {
+struct KUZU_API RelTableDeleteState final : TableDeleteState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
     common::ValueVector& relIDVector;
@@ -153,7 +153,7 @@ public:
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
-    void initInsertState(const transaction::Transaction*, TableInsertState&) override {
+    void initInsertState(transaction::Transaction*, TableInsertState&) override {
         // DO NOTHING.
     }
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
@@ -196,7 +196,7 @@ public:
 
     void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
-    bool checkpoint(catalog::TableCatalogEntry* tableEntry) override;
+    bool checkpoint(main::ClientContext*, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override {};
     void reclaimStorage(PageManager& pageManager) const override;
 
