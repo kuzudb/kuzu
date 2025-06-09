@@ -78,10 +78,10 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     } else {
         nodeTable.initScanState(transaction, scanState);
     }
-    nodeTable.lookup(transaction, scanState);
+    const auto result = nodeTable.lookup(transaction, scanState);
     KU_ASSERT(scanState.outputVectors.size() == 1 &&
               scanState.outputVectors[0]->state->getSelVector()[0] == 0);
-    if (scanState.outputVectors[0]->isNull(0)) {
+    if (!result || scanState.outputVectors[0]->isNull(0)) {
         return nullptr;
     }
     const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(0);
