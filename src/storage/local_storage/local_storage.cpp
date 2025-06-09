@@ -1,5 +1,6 @@
 #include "storage/local_storage/local_storage.h"
 
+#include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
@@ -15,6 +16,8 @@ namespace storage {
 
 LocalTable* LocalStorage::getOrCreateLocalTable(const Table& table) {
     const auto tableID = table.getTableID();
+    auto catalog = clientContext.getCatalog();
+    auto transaction = clientContext.getTransaction();
     if (!tables.contains(tableID)) {
         switch (table.getTableType()) {
         case TableType::NODE: {
@@ -42,6 +45,9 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID) const {
 }
 
 void LocalStorage::commit() {
+    auto catalog = clientContext.getCatalog();
+    auto transaction = clientContext.getTransaction();
+    auto storageManager = clientContext.getStorageManager();
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::NODE) {
             const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);

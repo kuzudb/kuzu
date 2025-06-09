@@ -146,6 +146,7 @@ public:
         const TableScanState& state, common::sel_t posInSel) const;
     bool lookup(const transaction::Transaction* transaction, const TableScanState& state,
         common::sel_t posInSel = 0) const;
+    // TODO(Guodong): These should be merged together with `lookup`.
     bool lookupMultiple(const common::UniqLock& lock, const transaction::Transaction* transaction,
         const TableScanState& state) const;
     bool lookupMultiple(const transaction::Transaction* transaction,

@@ -119,6 +119,7 @@ public:
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
     bool lookup(const transaction::Transaction* transaction, const TableScanState& scanState) const;
+    // TODO(Guodong): This should be merged together with `lookup`.
     void lookupMultiple(transaction::Transaction* transaction, TableScanState& scanState) const;
 
     // Return the max node offset during insertions.

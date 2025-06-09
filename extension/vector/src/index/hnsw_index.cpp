@@ -450,7 +450,8 @@ void OnDiskHNSWIndex::insert(transaction::Transaction*, const common::ValueVecto
 }
 
 void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
-    // TODO(Guodong): Manually create a transaction here is a bit hacky.
+    // TODO(Guodong): Manually create a transaction here is a bit hacky. Should find a better
+    // solution.
     auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
     const auto numTotalRows = nodeTable.getNumTotalRows(&transaction::DUMMY_CHECKPOINT_TRANSACTION);
     if (numTotalRows == hnswStorageInfo.numCheckpointedNodes) {
