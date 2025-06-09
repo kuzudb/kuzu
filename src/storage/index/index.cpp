@@ -13,6 +13,8 @@ IndexStorageInfo::~IndexStorageInfo() = default;
 
 Index::InsertState::~InsertState() = default;
 
+Index::DeleteState::~DeleteState() = default;
+
 Index::~Index() = default;
 
 void IndexInfo::serialize(common::Serializer& ser) const {

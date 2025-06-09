@@ -116,15 +116,25 @@ void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
     ftsStorageInfo.numDocs += numInsertedDocs;
 }
 
+std::unique_ptr<Index::DeleteState> FTSIndex::initDeleteState(const Transaction* transaction,
+    MemoryManager* mm, visible_func /*isVisible*/) {
+    return std::make_unique<FTSDeleteState>(mm, transaction, internalTableInfo,
+        indexInfo.columnIDs);
+}
+
 void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector,
-    const std::vector<ValueVector*>& indexVectors, Index::DeleteState& deleteState) {
+    Index::DeleteState& deleteState) {
     auto& ftsDeleteState = deleteState.cast<FTSDeleteState>();
     for (auto i = 0u; i < nodeIDVector.state->getSelSize(); i++) {
         auto pos = nodeIDVector.state->getSelVector()[i];
         auto deletedNodeID = nodeIDVector.getValue<nodeID_t>(pos);
         deleteFromDocTable(transaction, ftsDeleteState, deletedNodeID);
-        DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable, indexVectors, pos,
-            ftsDeleteState.updateVectors.mm};
+        ftsDeleteState.updateVectors.idVector.setValue(0, deletedNodeID);
+        internalTableInfo.table->initScanState(transaction,
+            *ftsDeleteState.indexTableState.scanState, deletedNodeID.tableID, deletedNodeID.offset);
+        internalTableInfo.table->lookup(transaction, *ftsDeleteState.indexTableState.scanState);
+        DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable,
+            ftsDeleteState.indexTableState.indexVectors, pos, ftsDeleteState.updateVectors.mm};
         deleteFromTermsTable(transaction, docInfo.termInfos, ftsDeleteState);
         deleteFromAppearsInTable(transaction, ftsDeleteState, deletedNodeID);
     }
@@ -224,8 +234,34 @@ void FTSIndex::deleteFromTermsTable(Transaction* transaction,
 void FTSIndex::deleteFromAppearsInTable(Transaction* transaction, FTSDeleteState& ftsDeleteState,
     nodeID_t docID) const {
     ftsDeleteState.updateVectors.dstIDVector.setValue(0, docID);
-    internalTableInfo.appearsInfoTable->detachDelete(transaction, RelDataDirection::FWD,
-        &ftsDeleteState.appearsInTableDeleteState);
+    RelTableScanState relScanState{*transaction->getClientContext()->getMemoryManager(),
+        &ftsDeleteState.updateVectors.srcIDVector,
+        std::vector{
+            &ftsDeleteState.updateVectors.idVector,
+        },
+        ftsDeleteState.updateVectors.dataChunkState, false /*randomLookup*/};
+
+    //    const auto tableData = getDirectedTableData(direction);
+    //    const auto reverseTableData =
+    //        directedRelData.size() == NUM_REL_DIRECTIONS ?
+    //            getDirectedTableData(RelDirectionUtils::getOppositeDirection(direction)) :
+    //            nullptr;
+    //    auto relReadState = std::make_unique<RelTableScanState>(
+    //        *transaction->getClientContext()->getMemoryManager(), &deleteState->srcNodeIDVector,
+    //        std::vector{&deleteState->dstNodeIDVector, &deleteState->relIDVector},
+    //        deleteState->dstNodeIDVector.state, true /*randomLookup*/);
+    //    relReadState->setToTable(transaction, this, {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID}, {},
+    //        direction);
+    //    initScanState(transaction, *relReadState);
+    //    detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),
+    //        deleteState);
+    //    if (transaction->shouldLogToWAL()) {
+    //        KU_ASSERT(transaction->isWriteTransaction());
+    //        KU_ASSERT(transaction->getClientContext());
+    //        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+    //        wal.logRelDetachDelete(tableID, direction, &deleteState->srcNodeIDVector);
+    //    }
+    //    hasChanges = true;
 }
 
 } // namespace fts_extension

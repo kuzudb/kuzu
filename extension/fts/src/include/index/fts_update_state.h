@@ -28,15 +28,6 @@ struct TermsTableState {
         FTSInternalTableInfo& tableInfo);
 };
 
-TermsTableState::TermsTableState(const transaction::Transaction* transaction,
-    FTSUpdateVectors& updateVectors, FTSInternalTableInfo& tableInfo)
-    : termsTableScanState{&updateVectors.idVector, std::vector{&updateVectors.uint64PropVector},
-          updateVectors.dataChunkState},
-      termsTableUpdateState{tableInfo.dfColumnID, updateVectors.idVector,
-          updateVectors.uint64PropVector} {
-    termsTableScanState.setToTable(transaction, tableInfo.termsTable, {tableInfo.dfColumnID}, {});
-}
-
 struct FTSInsertState final : storage::Index::InsertState {
     FTSUpdateVectors updateVectors;
 
@@ -49,6 +40,16 @@ struct FTSInsertState final : storage::Index::InsertState {
         FTSInternalTableInfo& tableInfo);
 };
 
+struct IndexTableState {
+    std::vector<std::unique_ptr<common::ValueVector>> stringVectors;
+    std::vector<common::ValueVector*> indexVectors;
+    std::unique_ptr<storage::NodeTableScanState> scanState;
+
+    IndexTableState(storage::MemoryManager* mm, const transaction::Transaction* transaction,
+        FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs,
+        common::ValueVector& idVector, std::shared_ptr<common::DataChunkState> dataChunkState);
+};
+
 struct FTSDeleteState final : storage::Index::DeleteState {
     FTSUpdateVectors updateVectors;
 
@@ -56,9 +57,15 @@ struct FTSDeleteState final : storage::Index::DeleteState {
     TermsTableState termsTableState;
     storage::NodeTableDeleteState termsTableDeleteState;
     storage::RelTableDeleteState appearsInTableDeleteState;
+    IndexTableState indexTableState;
 
+<<<<<<< HEAD
     FTSDeleteState(storage::MemoryManager* mm, transaction::Transaction* transaction,
         FTSInternalTableInfo& tableInfo);
+=======
+    FTSDeleteState(storage::MemoryManager* mm, const transaction::Transaction* transaction,
+        FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs);
+>>>>>>> 8c3f70b16 (update)
 };
 
 } // namespace fts_extension

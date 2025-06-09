@@ -38,8 +38,12 @@ public:
 
     void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) override;
+
+    std::unique_ptr<DeleteState> initDeleteState(const transaction::Transaction* transaction,
+        storage::MemoryManager* mm, storage::visible_func isVisible) override;
+
     void delete_(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
-        const std::vector<common::ValueVector*>& indexVectors, DeleteState& deleteState) override;
+        DeleteState& deleteState) override;
     void commitInsert(transaction::Transaction*, const common::ValueVector&,
         const std::vector<common::ValueVector*>&, InsertState&) override {
         // DO NOTHING.

@@ -123,9 +123,10 @@ public:
     virtual void insert(transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
+    virtual std::unique_ptr<DeleteState> initDeleteState(
+        const transaction::Transaction* transaction, MemoryManager* mm, visible_func isVisible) = 0;
     virtual void delete_(transaction::Transaction* transaction,
-        const common::ValueVector& nodeIDVector,
-        const std::vector<common::ValueVector*>& indexVectors, DeleteState& deleteState) = 0;
+        const common::ValueVector& nodeIDVector, DeleteState& deleteState) = 0;
     virtual void commitInsert(transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
