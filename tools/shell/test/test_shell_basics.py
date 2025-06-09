@@ -223,8 +223,8 @@ def test_shell_auto_completion(temp_db) -> None:
     test.send_statement("match (a:coolTable)-[]->()-[]->(a:coolTable) ")
     test.send_statement("r")
     test.send_statement("eturn a.lon\t")
-    test.send_finished_statement(";")
-    assert test.shell_process.expect_exact(["tuples)", pexpect.EOF]) == 0
+    test.send_finished_statement(";\n")
+    assert test.shell_process.expect_exact(["(0 tuples)", pexpect.EOF]) == 0
 
 def test_shell_unicode_input(temp_db) -> None:
     test = (
