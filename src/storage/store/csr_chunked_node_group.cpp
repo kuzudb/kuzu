@@ -396,6 +396,12 @@ void InMemChunkedCSRHeader::copyFrom(const InMemChunkedCSRHeader& other) const {
     KU_ASSERT(offset->getNumValues() == length->getNumValues());
     KU_ASSERT(other.offset->getNumValues() == other.length->getNumValues());
     const auto numOtherValues = other.offset->getNumValues();
+    if (other.offset->getNumValues() > offset->getCapacity()) {
+        offset->resizeWithoutPreserve(other.offset->getNumValues());
+    }
+    if (other.length->getNumValues() > length->getCapacity()) {
+        length->resizeWithoutPreserve(other.length->getNumValues());
+    }
     memcpy(offset->getData(), other.offset->getData(), numOtherValues * sizeof(offset_t));
     memcpy(length->getData(), other.length->getData(), numOtherValues * sizeof(length_t));
     const auto lastOffsetInOtherHeader = other.getEndCSROffset(numOtherValues);
