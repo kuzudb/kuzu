@@ -21,7 +21,7 @@ std::string GoogleGeminiEmbedding::getPath(const std::string& model) const {
     static const std::string envVar = "GEMINI_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(common::RuntimeException("Could not get key from: " + envVar + "\n"));
+        throw(common::RuntimeException("Could not get key from: " + envVar + "\n" + std::string(referenceKuzuDocs)));
     }
     return "/v1beta/models/" + model + ":embedContent?key=" + env_key;
 }
@@ -45,7 +45,7 @@ uint64_t GoogleGeminiEmbedding::getEmbeddingDimension(const std::string& model) 
         {"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException("Invalid Model: " + model));
+        throw(common::BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }

@@ -44,7 +44,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
         if (envAWSSecretAccessKey.empty()) {
             errMsg += envVarAWSSecretAccessKey + '\n';
         }
-        throw(RuntimeException(errMsg));
+        throw(RuntimeException(errMsg + std::string(referenceKuzuDocs)));
     }
     std::string service = "bedrock";
     // TODO(Tanvir): Hardcoded for now, needs to change when a configuration scheme is
@@ -133,7 +133,8 @@ uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string& model) {
         {"amazon.titan-embed-text-v1", 1024}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + model));
+        throw(BinderException("Invalid Model: " + model + '\n'+ std::string(referenceKuzuDocs)));
+
     }
     return modelDimensionMapIter->second;
 }

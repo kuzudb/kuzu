@@ -25,7 +25,7 @@ httplib::Headers OpenAIEmbedding::getHeaders(const nlohmann::json& /*payload*/) 
     static const std::string envVar = "OPENAI_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(common::RuntimeException("Could not get key from: " + envVar + '\n'));
+        throw(common::RuntimeException("Could not get key from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + env_key}};
@@ -47,7 +47,7 @@ uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string& model) {
 
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException("Invalid Model: " + model));
+        throw(common::BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }

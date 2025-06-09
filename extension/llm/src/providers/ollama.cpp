@@ -37,7 +37,7 @@ uint64_t OllamaEmbedding::getEmbeddingDimension(const std::string& model) {
         {"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException("Invalid Model: " + model));
+        throw(common::BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }
