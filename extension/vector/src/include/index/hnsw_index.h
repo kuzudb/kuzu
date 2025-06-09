@@ -238,7 +238,7 @@ struct HNSWLayerPartitionerSharedState : processor::BasePartitionerSharedState {
     common::offset_t numPartitions;
 
     explicit HNSWLayerPartitionerSharedState(storage::MemoryManager& mm)
-        : mm(mm), numNodes(0), numPartitions(0) {};
+        : mm(mm), numNodes(0), numPartitions(0){};
 
     void initialize(const common::logical_type_vec_t& columnTypes, common::idx_t numPartitioners,
         const main::ClientContext* clientContext) override;
