@@ -36,6 +36,11 @@ target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         mbedtls
         ${OPENSSL_LIBRARIES})
 
+target_sources(kuzu_${EXTENSION_LIB_NAME}_extension
+        PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/common/crypto.cpp
+)
+
 if (${BUILD_EXTENSION_TESTS})
     add_subdirectory(test)
 endif ()

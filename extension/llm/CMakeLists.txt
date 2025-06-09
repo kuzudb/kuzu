@@ -32,3 +32,9 @@ target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         OpenSSL::SSL
         mbedtls
 )
+
+
+target_sources(kuzu_${EXTENSION_LIB_NAME}_extension
+        PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/common/crypto.cpp
+)

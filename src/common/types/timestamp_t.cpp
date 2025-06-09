@@ -262,7 +262,7 @@ std::string Timestamp::getDateTimeHeader(const timestamp_t& timestamp) {
     if (seconds < 10) {
         secondsStr = "0" + secondsStr;
     }
-    return stringFormat("{}T{}{}{}Z", dateHeader, hours, minutes, seconds);
+    return stringFormat("{}T{}{}{}Z", dateHeader, hoursStr, minutesStr, secondsStr);
 }
 
 date_t Timestamp::getDate(timestamp_t timestamp) {
