@@ -46,7 +46,7 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
     }
     if (dataFH->getNumPages() == 0) {
         // Reserve the first page for the database header.
-        dataFH->addNewPage();
+        dataFH->getPageManager()->allocatePage();
     }
 }
 
@@ -126,7 +126,7 @@ void StorageManager::reclaimDroppedTables(const Catalog& catalog) {
         switch (table->getTableType()) {
         case TableType::NODE: {
             if (!catalog.containsTable(&DUMMY_CHECKPOINT_TRANSACTION, tableID, true)) {
-                table->reclaimStorage(*dataFH);
+                table->reclaimStorage(*dataFH->getPageManager());
                 droppedTables.push_back(tableID);
             }
         } break;
@@ -134,14 +134,14 @@ void StorageManager::reclaimDroppedTables(const Catalog& catalog) {
             auto& relTable = table->cast<RelTable>();
             auto relGroupID = relTable.getRelGroupID();
             if (!catalog.containsTable(&DUMMY_CHECKPOINT_TRANSACTION, relGroupID, true)) {
-                table->reclaimStorage(*dataFH);
+                table->reclaimStorage(*dataFH->getPageManager());
                 droppedTables.push_back(tableID);
             } else {
                 auto relGroupEntry =
                     catalog.getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION, relGroupID);
                 if (!relGroupEntry->cast<RelGroupCatalogEntry>().getRelEntryInfo(
                         relTable.getFromNodeTableID(), relTable.getToNodeTableID())) {
-                    table->reclaimStorage(*dataFH);
+                    table->reclaimStorage(*dataFH->getPageManager());
                     droppedTables.push_back(tableID);
                 }
             }

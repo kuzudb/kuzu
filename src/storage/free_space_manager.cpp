@@ -162,6 +162,7 @@ void FreeSpaceManager::mergePageRanges(free_list_t newInitialEntries, FileHandle
     PageRange prevEntry = allEntries[0];
     for (common::row_idx_t i = 1; i < allEntries.size(); ++i) {
         const auto& entry = allEntries[i];
+        KU_ASSERT(prevEntry.startPageIdx + prevEntry.numPages <= entry.startPageIdx);
         if (prevEntry.startPageIdx + prevEntry.numPages == entry.startPageIdx) {
             prevEntry.numPages += entry.numPages;
         } else {

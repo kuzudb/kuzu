@@ -226,7 +226,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(StatsInfoFunction), TABLE_FUNCTION(StorageInfoFunction),
         TABLE_FUNCTION(ShowAttachedDatabasesFunction), TABLE_FUNCTION(ShowSequencesFunction),
         TABLE_FUNCTION(ShowFunctionsFunction), TABLE_FUNCTION(BMInfoFunction),
-        TABLE_FUNCTION(ShowLoadedExtensionsFunction),
+        TABLE_FUNCTION(FileInfoFunction), TABLE_FUNCTION(ShowLoadedExtensionsFunction),
         TABLE_FUNCTION(ShowOfficialExtensionsFunction), TABLE_FUNCTION(ShowIndexesFunction),
         TABLE_FUNCTION(ShowProjectedGraphsFunction),
 

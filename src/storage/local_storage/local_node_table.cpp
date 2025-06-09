@@ -24,7 +24,7 @@ std::vector<LogicalType> LocalNodeTable::getNodeTableColumnTypes(
 }
 
 LocalNodeTable::LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, const Table& table)
-    : LocalTable{table},
+    : LocalTable{table}, overflowFileHandle(nullptr),
       nodeGroups{getNodeTableColumnTypes(*tableEntry), false /*enableCompression*/} {
     initLocalHashIndex();
 }
@@ -32,10 +32,10 @@ LocalNodeTable::LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, con
 void LocalNodeTable::initLocalHashIndex() {
     auto& nodeTable = ku_dynamic_cast<const NodeTable&>(table);
     overflowFile = std::make_unique<InMemOverflowFile>(nodeTable.getMemoryManager());
-    overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, overflowCursor);
+    overflowFileHandle = overflowFile->addHandle();
     hashIndex = std::make_unique<LocalHashIndex>(table.getMemoryManager(),
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
-        overflowFileHandle.get());
+        overflowFileHandle);
 }
 
 bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) const {
@@ -119,7 +119,7 @@ void LocalNodeTable::clear() {
     auto& nodeTable = ku_dynamic_cast<const NodeTable&>(table);
     hashIndex = std::make_unique<LocalHashIndex>(table.getMemoryManager(),
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
-        overflowFileHandle.get());
+        overflowFileHandle);
     nodeGroups.clear();
 }
 

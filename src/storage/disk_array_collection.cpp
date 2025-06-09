@@ -65,7 +65,7 @@ size_t DiskArrayCollection::addDiskArray() {
     // empty
     auto pageIdx = numHeaders % HeaderPage::NUM_HEADERS_PER_PAGE;
     if (pageIdx >= headersForWriteTrx.size()) {
-        auto nextHeaderPage = fileHandle.addNewPage();
+        auto nextHeaderPage = fileHandle.getPageManager()->allocatePage();
         headersForWriteTrx.back()->nextHeaderPage = nextHeaderPage;
         // We can't really roll back the structural changes in the PKIndex (the disk arrays are
         // created in the destructor and there are a fixed number which does not change after that
@@ -86,6 +86,18 @@ size_t DiskArrayCollection::addDiskArray() {
     headerPage.numHeaders++;
     headersForReadTrx[pageIdx]->numHeaders++;
     return oldSize;
+}
+
+void DiskArrayCollection::reclaimStorage(PageManager& pageManager,
+    common::page_idx_t firstHeaderPage) const {
+    page_idx_t headerPage = firstHeaderPage;
+    for (page_idx_t indexInMemory = 0; indexInMemory < headersForReadTrx.size(); indexInMemory++) {
+        if (headerPage != INVALID_PAGE_IDX) {
+            pageManager.freePage(headerPage);
+
+            headerPage = headersForReadTrx[indexInMemory]->nextHeaderPage;
+        }
+    }
 }
 
 } // namespace storage

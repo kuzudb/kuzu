@@ -76,7 +76,7 @@ public:
     uint64_t getEstimatedMemoryUsage() const;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
-    void reclaimStorage(FileHandle& dataFH);
+    void reclaimStorage(PageManager& pageManager) const;
 
     TableStats getStats() const {
         auto lock = nodeGroups.lock();

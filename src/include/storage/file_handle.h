@@ -78,8 +78,11 @@ public:
     uint8_t* getFrame(common::page_idx_t pageIdx);
     PageState* getPageState(common::page_idx_t pageIdx) { return &pageStates[pageIdx]; }
 
+    // Pages added through these APIs are not tracked by the FSM
+    // If allocating pages from the data.kz file it's recommended to do so using the PageManager
     common::page_idx_t addNewPage();
     common::page_idx_t addNewPages(common::page_idx_t numNewPages);
+
     void removePageIdxAndTruncateIfNecessary(common::page_idx_t pageIdx);
     void removePageFromFrameIfNecessary(common::page_idx_t pageIdx);
     void flushAllDirtyPagesInFrames();

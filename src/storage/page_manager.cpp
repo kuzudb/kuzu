@@ -2,7 +2,6 @@
 
 #include "common/uniq_lock.h"
 #include "storage/file_handle.h"
-#include "storage/shadow_utils.h"
 
 namespace kuzu::storage {
 static constexpr bool ENABLE_FSM = true;
