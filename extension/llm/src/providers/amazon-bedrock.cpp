@@ -47,7 +47,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
         throw(RuntimeException(errMsg));
     }
     std::string service = "bedrock";
-    // Hardcoded for now, needs to change when a configuration scheme is
+    // TODO(Tanvir): Hardcoded for now, needs to change when a configuration scheme is
     // supported
     std::string region = "us-east-1";
     std::string host = "bedrock-runtime.us-east-1.amazonaws.com";
