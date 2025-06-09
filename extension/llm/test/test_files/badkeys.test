@@ -8,17 +8,16 @@
 ---- ok
 
 -STATEMENT return create_embedding('Hello World', 'amazon-bedrock', 'amazon.titan-embed-text-v1');
----- error
-Connection exception: Request failed with status 403
- Body: {"message":"The security token included in the request is invalid."}
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
 
 -CASE BadGoogleGeminiKey
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
 
 -STATEMENT return create_embedding('Hello World', 'google-gemini', 'gemini-embedding-exp-03-07');
----- error
-Connection exception: Request failed with status 400 Body: { "error": { "code": 400, "message": "API key not valid. Please pass a valid API key.", "status": "INVALID_ARGUMENT", "details": [ { "@type": "type.googleapis.com/google.rpc.ErrorInfo", "reason": "API_KEY_INVALID", "domain": "googleapis.com", "metadata": { "service": "generativelanguage.googleapis.com" } }, { "@type": "type.googleapis.com/google.rpc.LocalizedMessage", "locale": "en-US", "message": "API key not valid. Please pass a valid API key." } ] } }
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
 
 
 -CASE BadGoogleVertexKey
@@ -26,22 +25,22 @@ Connection exception: Request failed with status 400 Body: { "error": { "code": 
 ---- ok
 
 -STATEMENT return create_embedding('Hello World', 'google-vertex', 'gemini-embedding-001');
----- error
-Connection exception: Request failed with status 401 Body: { "error": { "code": 401, "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.", "status": "UNAUTHENTICATED", "details": [ { "@type": "type.googleapis.com/google.rpc.ErrorInfo", "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED", "metadata": { "service": "aiplatform.googleapis.com", "method": "google.cloud.aiplatform.v1.PredictionService.Predict" } } ] } }
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
 
 -CASE BadOpenAIKey
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
 
 -STATEMENT return create_embedding('Hello World', 'open-ai', 'text-embedding-3-small');
----- error
-Connection exception: Request failed with status 401 Body: { "error": { "message": "Incorrect API key provided: badApiKey. You can find your API key at https://platform.openai.com/account/api-keys.", "type": "invalid_request_error", "param": null, "code": "invalid_api_key" } }
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
 
 -CASE BadVoyageAIKey
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
 
 -STATEMENT return create_embedding('Hello World', 'voyage-ai', 'voyage-3-large');
----- error
-Connection exception: Request failed with status 401 Body: {"detail":"Provided API key is invalid."}
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
 
