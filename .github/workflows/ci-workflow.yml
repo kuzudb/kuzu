@@ -904,7 +904,7 @@ jobs:
           make example
 
       - name: Ensure Python dependencies
-        run: pip install --user -r tools/python_api/requirements_dev.txt
+        run: pip3 install --user -r tools/python_api/requirements_dev.txt
 
       - name: Python test
         env:
