@@ -38,11 +38,11 @@ httplib::Headers OpenAIEmbedding::getHeaders(const nlohmann::json& /*payload*/) 
 
 nlohmann::json OpenAIEmbedding::getPayload(const std::string& model,
     const std::string& text) const {
-    nlohmann::json header{{"model", model}, {"input", text}};
+    nlohmann::json payload{{"model", model}, {"input", text}};
     if (dimensions.has_value()) {
-        header["dimensions"] = dimensions.value();
+        payload["dimensions"] = dimensions.value();
     }
-    return header;
+    return payload;
 }
 
 std::vector<float> OpenAIEmbedding::parseResponse(const httplib::Result& res) const {

@@ -13,6 +13,7 @@ namespace llm_extension {
 class VoyageAIEmbedding final : public EmbeddingProvider {
     VoyageAIEmbedding() = default;
     DELETE_COPY_AND_MOVE(VoyageAIEmbedding);
+    std::optional<uint64_t> dimensions;
 
 public:
     ~VoyageAIEmbedding() override = default;
