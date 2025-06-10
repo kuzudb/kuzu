@@ -74,13 +74,13 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     auto& provider =
         getInstance(StringUtils::getLower(parameters[1]->getValue<ku_string_t>(0).getAsString()));
+    configureModel(parameters, provider);
     auto model = StringUtils::getLower(parameters[2]->getValue<ku_string_t>(0).getAsString());
     httplib::Client client(provider.getClient());
     client.set_connection_timeout(30);
     client.set_read_timeout(30);
     client.set_write_timeout(30);
     std::string path = provider.getPath(model);
-    configureModel(parameters, provider);
 
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
