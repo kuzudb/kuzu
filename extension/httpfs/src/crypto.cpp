@@ -1,13 +1,13 @@
-#include "common/crypto.h"
+#include "crypto.h"
 
 #include "common/exception/runtime.h"
 #include "mbedtls/md.h"
 #include "mbedtls/sha256.h"
 
 namespace kuzu {
-namespace common {
+namespace httpfs_extension {
 
-void CryptoUtils::sha256(const char* in, size_t inLen, hash_bytes& out) {
+void sha256(const char* in, size_t inLen, hash_bytes& out) {
     mbedtls_sha256_context shaContext;
     mbedtls_sha256_init(&shaContext);
     if (mbedtls_sha256_starts(&shaContext, false) ||
@@ -18,8 +18,7 @@ void CryptoUtils::sha256(const char* in, size_t inLen, hash_bytes& out) {
     mbedtls_sha256_free(&shaContext);
 }
 
-void CryptoUtils::hmac256(const std::string& message, const char* secret, size_t secretLen,
-    hash_bytes& out) {
+void hmac256(const std::string& message, const char* secret, size_t secretLen, hash_bytes& out) {
     mbedtls_md_context_t hmacCtx;
     const mbedtls_md_info_t* mdType = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
     if (!mdType) {
@@ -37,11 +36,11 @@ void CryptoUtils::hmac256(const std::string& message, const char* secret, size_t
     mbedtls_md_free(&hmacCtx);
 }
 
-void CryptoUtils::hmac256(std::string message, hash_bytes secret, hash_bytes& out) {
-    CryptoUtils::hmac256(message, (char*)secret, sizeof(hash_bytes), out);
+void hmac256(std::string message, hash_bytes secret, hash_bytes& out) {
+    hmac256(message, (char*)secret, sizeof(hash_bytes), out);
 }
 
-void CryptoUtils::hex256(hash_bytes& in, hash_str& out) {
+void hex256(hash_bytes& in, hash_str& out) {
     const char* hex = "0123456789abcdef";
     unsigned char* pin = in;
     unsigned char* pout = out;
@@ -51,5 +50,5 @@ void CryptoUtils::hex256(hash_bytes& in, hash_str& out) {
     }
 }
 
-} // namespace common
+} // namespace httpfs_extension
 } // namespace kuzu
