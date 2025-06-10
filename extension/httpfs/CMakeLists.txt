@@ -22,6 +22,7 @@ add_library(httpfs_extension_source
         src/httpfs.cpp
         src/httpfs_extension.cpp
         src/s3fs.cpp
+        src/crypto.cpp
         src/http_config.cpp
         src/cached_file_manager.cpp
         src/s3fs_config.cpp)
@@ -35,13 +36,6 @@ target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
         mbedtls
         ${OPENSSL_LIBRARIES})
-
-#TODO(Tanvir) target_sources is not used in any other makefile
-#this should be revisted
-target_sources(kuzu_${EXTENSION_LIB_NAME}_extension
-        PRIVATE
-        ${PROJECT_SOURCE_DIR}/src/common/crypto.cpp
-)
 
 if (${BUILD_EXTENSION_TESTS})
     add_subdirectory(test)

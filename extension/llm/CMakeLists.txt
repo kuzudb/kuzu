@@ -12,10 +12,14 @@ find_package(OpenSSL REQUIRED)
 add_compile_definitions(CPPHTTPLIB_OPENSSL_SUPPORT)
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/include
         ${CMAKE_BINARY_DIR}/src/include
         src/include
         ${PROJECT_SOURCE_DIR}/third_party/simsimd/include
         ${OPENSSL_INCLUDE_DIR})
+
+#Used by the AmazonBedrock provider for signing
+add_library(httpfs_crypto OBJECT ${PROJECT_SOURCE_DIR}/extension/httpfs/src/crypto.cpp)
 
 add_subdirectory(src/function)
 add_subdirectory(src/main)
@@ -28,11 +32,5 @@ target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         simsimd
         OpenSSL::SSL
         mbedtls
-)
-
-#TODO(Tanvir) target_sources is not used in any other makefile
-#this should be revisted
-target_sources(kuzu_${EXTENSION_LIB_NAME}_extension
-        PRIVATE
-        ${PROJECT_SOURCE_DIR}/src/common/crypto.cpp
+        $<TARGET_OBJECTS:httpfs_crypto>
 )

@@ -1,6 +1,6 @@
 #include "providers/amazon-bedrock.h"
 
-#include "common/crypto.h"
+#include "crypto.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/timestamp_t.h"
@@ -70,11 +70,13 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
         signedHeaders += header.first;
     }
 
+    // For crypto related functionality
+    using namespace httpfs_extension;
     std::string payloadStr = payload.dump();
     hash_bytes payloadHashBytes;
     hash_str payloadHashHex;
-    CryptoUtils::sha256(payloadStr.c_str(), payloadStr.size(), payloadHashBytes);
-    CryptoUtils::hex256(payloadHashBytes, payloadHashHex);
+    sha256(payloadStr.c_str(), payloadStr.size(), payloadHashBytes);
+    hex256(payloadHashBytes, payloadHashHex);
     std::ostringstream canonicalRequest;
     canonicalRequest << "POST\n"
                      << canonicalUri << "\n"
@@ -86,9 +88,9 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
 
     hash_bytes canonicalRequestHashBytes;
     hash_str canonicalRequestHashHex;
-    CryptoUtils::sha256(canonicalRequestStr.c_str(), canonicalRequestStr.size(),
+    sha256(canonicalRequestStr.c_str(), canonicalRequestStr.size(),
         canonicalRequestHashBytes);
-    CryptoUtils::hex256(canonicalRequestHashBytes, canonicalRequestHashHex);
+    hex256(canonicalRequestHashBytes, canonicalRequestHashHex);
     std::string algorithm = "AWS4-HMAC-SHA256";
     std::string credentialScope =
         std::string(dateHeader) + "/" + region + "/" + service + "/" + "aws4_request";
@@ -101,14 +103,14 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
 
     hash_bytes kDate, kRegion, kService, kSigning;
     std::string kSecret = "AWS4" + envAWSSecretAccessKey;
-    CryptoUtils::hmac256(dateHeader, kSecret.c_str(), kSecret.size(), kDate);
-    CryptoUtils::hmac256(region, kDate, kRegion);
-    CryptoUtils::hmac256(service, kRegion, kService);
-    CryptoUtils::hmac256("aws4_request", kService, kSigning);
+    hmac256(dateHeader, kSecret.c_str(), kSecret.size(), kDate);
+    hmac256(region, kDate, kRegion);
+    hmac256(service, kRegion, kService);
+    hmac256("aws4_request", kService, kSigning);
     hash_bytes signatureBytes;
     hash_str signatureHex;
-    CryptoUtils::hmac256(stringToSignStr, kSigning, signatureBytes);
-    CryptoUtils::hex256(signatureBytes, signatureHex);
+    hmac256(stringToSignStr, kSigning, signatureBytes);
+    hex256(signatureBytes, signatureHex);
     std::ostringstream authorizationHeader;
     authorizationHeader << algorithm << " " << "Credential=" << envAWSAccessKey << "/"
                         << credentialScope << ", " << "SignedHeaders=" << signedHeaders << ", "

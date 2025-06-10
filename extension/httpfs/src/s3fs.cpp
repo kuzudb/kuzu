@@ -1,6 +1,6 @@
 #include "s3fs.h"
 
-#include "common/crypto.h"
+#include "crypto.h"
 #include "common/exception/io.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
@@ -577,20 +577,20 @@ HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::
         canonicalRequest += "\nx-amz-security-token:" + authParams.sessionToken;
     }
     canonicalRequest += "\n\n" + signedHeaders + "\n" + payloadHash;
-    CryptoUtils::sha256(canonicalRequest.c_str(), canonicalRequest.length(), canonicalRequestHash);
-    CryptoUtils::hex256(canonicalRequestHash, canonicalRequestHashStr);
+    sha256(canonicalRequest.c_str(), canonicalRequest.length(), canonicalRequestHash);
+    hex256(canonicalRequestHash, canonicalRequestHashStr);
     auto stringToSign = "AWS4-HMAC-SHA256\n" + datetimeHeader + "\n" + dateHeader + "/" +
                         authParams.region + "/" + service + "/aws4_request\n" +
                         std::string((char*)canonicalRequestHashStr, sizeof(hash_str));
     hash_bytes dateSignature, regionSignature, serviceSignature, signingKeySignature, signature;
     hash_str signatureStr;
     auto signKey = "AWS4" + authParams.secretAccessKey;
-    CryptoUtils::hmac256(dateHeader, signKey.c_str(), signKey.length(), dateSignature);
-    CryptoUtils::hmac256(authParams.region, dateSignature, regionSignature);
-    CryptoUtils::hmac256(service, regionSignature, serviceSignature);
-    CryptoUtils::hmac256("aws4_request", serviceSignature, signingKeySignature);
-    CryptoUtils::hmac256(stringToSign, signingKeySignature, signature);
-    CryptoUtils::hex256(signature, signatureStr);
+    hmac256(dateHeader, signKey.c_str(), signKey.length(), dateSignature);
+    hmac256(authParams.region, dateSignature, regionSignature);
+    hmac256(service, regionSignature, serviceSignature);
+    hmac256("aws4_request", serviceSignature, signingKeySignature);
+    hmac256(stringToSign, signingKeySignature, signature);
+    hex256(signature, signatureStr);
 
     res["Authorization"] = "AWS4-HMAC-SHA256 Credential=" + authParams.accessKeyID + "/" +
                            dateHeader + "/" + authParams.region + "/" + service +
@@ -649,8 +649,8 @@ std::string S3FileSystem::getPayloadHash(const uint8_t* buffer, uint64_t bufferL
     if (bufferLen > 0) {
         hash_bytes payloadHashBytes;
         hash_str payloadHashStr;
-        CryptoUtils::sha256(reinterpret_cast<const char*>(buffer), bufferLen, payloadHashBytes);
-        CryptoUtils::hex256(payloadHashBytes, payloadHashStr);
+        sha256(reinterpret_cast<const char*>(buffer), bufferLen, payloadHashBytes);
+        hex256(payloadHashBytes, payloadHashStr);
         return std::string((char*)payloadHashStr, sizeof(payloadHashStr));
     } else {
         return "";
