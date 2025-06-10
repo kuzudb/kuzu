@@ -1,6 +1,5 @@
 #include "providers/google-gemini.h"
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -48,11 +47,11 @@ void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
 {
     if (dimensions.has_value())
     {
-        throw(BinderException("Google-Gemini does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Google-Gemini does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
     if (region.has_value())
     {
-        throw(BinderException("Google-Gemini does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Google-Gemini does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
 }
 

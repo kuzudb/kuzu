@@ -1,6 +1,5 @@
 #include "providers/voyage-ai.h"
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -53,7 +52,7 @@ void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions, con
 {
     if (region.has_value())
     {
-        throw(BinderException("Voyage-AI does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Voyage-AI does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
 }

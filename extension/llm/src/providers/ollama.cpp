@@ -1,6 +1,6 @@
 #include "providers/ollama.h"
 
-#include "common/exception/binder.h"
+#include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
 
@@ -39,11 +39,11 @@ void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions, const
 {
     if (dimensions.has_value())
     {
-        throw(BinderException("Ollama does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Ollama does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
     if (region.has_value())
     {
-        throw(BinderException("Ollama does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Ollama does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
 }
 
