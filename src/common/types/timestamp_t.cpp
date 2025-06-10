@@ -1,8 +1,10 @@
 #include "common/types/timestamp_t.h"
 
 #include <chrono>
+#include <string>
 
 #include "common/exception/conversion.h"
+#include "common/string_format.h"
 #include "function/arithmetic/multiply.h"
 
 namespace kuzu {
@@ -220,6 +222,47 @@ std::string Timestamp::toString(timestamp_t timestamp) {
     dtime_t time;
     Timestamp::convert(timestamp, date, time);
     return Date::toString(date) + " " + Time::toString(time);
+}
+
+// Date header is in the format: %Y%m%d.
+std::string Timestamp::getDateHeader(const timestamp_t& timestamp) {
+    auto date = Timestamp::getDate(timestamp);
+    int32_t year = 0, month = 0, day = 0;
+    std::string yearStr, monthStr, dayStr;
+    Date::convert(date, year, month, day);
+    yearStr = std::to_string(year);
+    monthStr = std::to_string(month);
+    dayStr = std::to_string(day);
+    if (month < 10) {
+        monthStr = "0" + monthStr;
+    }
+    if (day < 10) {
+        dayStr = "0" + dayStr;
+    }
+    return stringFormat("{}{}{}", yearStr, monthStr, dayStr);
+}
+
+// Timestamp header is in the format: %Y%m%dT%H%M%SZ.
+std::string Timestamp::getDateTimeHeader(const timestamp_t& timestamp) {
+    auto dateHeader = getDateHeader(timestamp);
+    auto time = Timestamp::getTime(timestamp);
+    int32_t hours = 0, minutes = 0, seconds = 0, micros = 0;
+    std::string hoursStr, minutesStr, secondsStr;
+    Time::convert(time, hours, minutes, seconds, micros);
+    hoursStr = std::to_string(hours);
+    minutesStr = std::to_string(minutes);
+    secondsStr = std::to_string(seconds);
+
+    if (hours < 10) {
+        hoursStr = "0" + hoursStr;
+    }
+    if (minutes < 10) {
+        minutesStr = "0" + minutesStr;
+    }
+    if (seconds < 10) {
+        secondsStr = "0" + secondsStr;
+    }
+    return stringFormat("{}T{}{}{}Z", dateHeader, hoursStr, minutesStr, secondsStr);
 }
 
 date_t Timestamp::getDate(timestamp_t timestamp) {

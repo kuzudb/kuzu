@@ -1,0 +1,46 @@
+-SKIP
+-DATASET CSV empty
+
+--
+
+-CASE BadKey
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT return create_embedding('Hello World', 'amazon-bedrock', 'amazon.titan-embed-text-v1');
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
+
+-CASE BadGoogleGeminiKey
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT return create_embedding('Hello World', 'google-gemini', 'gemini-embedding-exp-03-07');
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
+
+
+-CASE BadGoogleVertexKey
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT return create_embedding('Hello World', 'google-vertex', 'gemini-embedding-001');
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
+
+-CASE BadOpenAIKey
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT return create_embedding('Hello World', 'open-ai', 'text-embedding-3-small');
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
+
+-CASE BadVoyageAIKey
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT return create_embedding('Hello World', 'voyage-ai', 'voyage-3-large');
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: .+$
+
