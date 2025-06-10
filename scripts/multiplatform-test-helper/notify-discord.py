@@ -37,26 +37,22 @@ if __name__ == "__main__":
                 sys.exit(1)
         await client.close()
 
-    message = ""
-    message += "## Multiplatform test result:\n"
+    message = "## Multiplatform test result:\n"
     with open(sys.argv[1], "r") as f:
         result = json.load(f)
         failures = {}
-        message += "### Success:\n"
+        stages = []
         for platform in sorted(result.keys()):
-            if len(message) >= 1500:
-                messages.append(message)
-                message = ""
-            message += f"- **{platform}**:\n"
             for r in result[platform]:
-                # Only show success status first.
-                if r['status'] == "✅":
-                    message += f"  - {r['stage']}: {r['status']}\n"
-                else:
+                if r['stage'] not in stages:
+                    stages.append(r['stage'])
+                if r['status'] != "✅":
                     failures.setdefault(platform, list()).append(r)
+        message += f"- Platforms:\n  - {', '.join(result.keys())}\n"
+        message += f"- Stages:\n  - {', '.join(stages)}\n"
+        # Add only the failures.
         if len(failures) > 0:
-            # Show all failures at the end.
-            message += "### Failure:\n"
+            message += "### Failures:\n"
             for platform in sorted(failures.keys()):
                 if len(message) >= 1500:
                     messages.append(message)
