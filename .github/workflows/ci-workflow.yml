@@ -183,11 +183,17 @@ jobs:
         run: |
           make test
 
+      - name: Ensure Python dependencies
+        run: pip install --user -r tools/python_api/requirements_dev.txt
+
       - name: Python test
-        run: make pytest-venv
+        run: make pytest
+
+      - name: Ensure Node.js dependencies
+        run: make nodejs-deps
 
       - name: Node.js test
-        run: make nodejstest-deps
+        run: make nodejstest
 
       - name: Java test
         run: make javatest
@@ -462,11 +468,17 @@ jobs:
         run: |
           make test DEFAULT_REL_STORAGE_DIRECTION=BOTH
 
+      - name: Ensure Python dependencies
+        run: pip install --user -r tools/python_api/requirements_dev.txt
+
       - name: Python test
-        run: make pytest-venv
+        run: make pytest
+
+      - name: Ensure Node.js dependencies
+        run: make nodejs-deps
 
       - name: Node.js test
-        run: make nodejstest-deps
+        run: make nodejstest
 
       - name: Java test
         run: make javatest
@@ -640,17 +652,23 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
 
+      - name: Ensure Python dependencies
+        run: pip install --user -r tools/python_api/requirements_dev.txt
+
       - name: Python test
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make pytest-venv
+          make pytest
+
+      - name: Ensure Node.js dependencies
+        run: make nodejs-deps
 
       - name: Node.js test
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make nodejstest-deps
+          make nodejstest
 
       - name: Java test
         shell: cmd
@@ -880,22 +898,28 @@ jobs:
         run: |
           make test
 
-      - name: Python test
-        env:
-          PYBIND11_PYTHON_VERSION: 3.12
-        run: |
-          ulimit -n 10240
-          make pytest-venv
-
       - name: C and C++ Examples
         run: |
           ulimit -n 10240
           make example
 
+      - name: Ensure Python dependencies
+        run: pip install --user -r tools/python_api/requirements_dev.txt
+
+      - name: Python test
+        env:
+          PYBIND11_PYTHON_VERSION: 3.12
+        run: |
+          ulimit -n 10240
+          make pytest
+
+      - name: Ensure Node.js dependencies
+        run: make nodejs-deps
+
       - name: Node.js test
         run: |
           ulimit -n 10240
-          make nodejstest-deps
+          make nodejstest
 
       - name: Java test
         run: |
@@ -944,7 +968,9 @@ jobs:
 
       - name: Test
         working-directory: tools/shell/test
-        run: make test
+        run: |
+          pip3 install pytest pexpect
+          python3 -m pytest -v .
 
   linux-extension-test:
     name: linux extension test
