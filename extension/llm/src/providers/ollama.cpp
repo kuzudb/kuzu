@@ -35,6 +35,16 @@ std::vector<float> OllamaEmbedding::parseResponse(const httplib::Result& res) co
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
 
+void OllamaEmbedding::checkModel(const std::string& model) const 
+{
+    static const std::unordered_set<std::string> validModels = {"nomic-embed-text", "all-minilm:l6-v2"};
+    if (validModels.contains(model))
+    {
+        return;
+    }
+    throw(RuntimeException("Invalid Model: " + model));
+}
+
 void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
 {
     if (dimensions.has_value())

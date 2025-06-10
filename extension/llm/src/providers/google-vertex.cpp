@@ -51,6 +51,16 @@ std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& r
         .get<std::vector<float>>();
 }
 
+void GoogleVertexEmbedding::checkModel(const std::string& model) const 
+{
+    static const std::unordered_set<std::string> validModels = {"gemini-embedding-001", "text-embedding-005", "text-multilingual-embedding-002"};
+    if (validModels.contains(model))
+    {
+        return;
+    }
+    throw(RuntimeException("Invalid Model: " + model));
+}
+
 void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
 {
     if (dimensions.has_value())

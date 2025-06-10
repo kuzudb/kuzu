@@ -43,6 +43,16 @@ std::vector<float> GoogleGeminiEmbedding::parseResponse(const httplib::Result& r
     return nlohmann::json::parse(res->body)["embedding"]["values"].get<std::vector<float>>();
 }
 
+void GoogleGeminiEmbedding::checkModel(const std::string& model) const 
+{
+    static const std::unordered_set<std::string> validModels = {"gemini-embedding-exp-03-07", "text-embedding-004", "embedding-001"};
+    if (validModels.contains(model))
+    {
+        return;
+    }
+    throw(RuntimeException("Invalid Model: " + model));
+}
+
 void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
 {
     if (dimensions.has_value())

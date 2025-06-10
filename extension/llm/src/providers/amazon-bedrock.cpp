@@ -1,7 +1,7 @@
 #include "providers/amazon-bedrock.h"
 #include <string>
+#include <unordered_set>
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/timestamp_t.h"
 #include "crypto.h"
@@ -126,6 +126,16 @@ nlohmann::json BedrockEmbedding::getPayload(const std::string& /*model*/,
 
 std::vector<float> BedrockEmbedding::parseResponse(const httplib::Result& res) const {
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
+}
+
+void BedrockEmbedding::checkModel(const std::string& model) const 
+{
+    static const std::unordered_set<std::string> validModels = {"amazon.titan-embed-text-v1"};
+    if (validModels.contains(model))
+    {
+        return;
+    }
+    throw(RuntimeException("Invalid Model: " + model));
 }
 
 void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 

@@ -44,6 +44,16 @@ nlohmann::json OpenAIEmbedding::getPayload(const std::string& model,
     return payload;
 }
 
+void OpenAIEmbedding::checkModel(const std::string& model) const 
+{
+    static const std::unordered_set<std::string> validModels = {"text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"};
+    if (validModels.contains(model))
+    {
+        return;
+    }
+    throw(RuntimeException("Invalid Model: " + model));
+}
+
 std::vector<float> OpenAIEmbedding::parseResponse(const httplib::Result& res) const {
     return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
 }
