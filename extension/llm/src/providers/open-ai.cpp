@@ -1,4 +1,5 @@
 #include "providers/open-ai.h"
+
 #include <string>
 
 #include "common/exception/runtime.h"
@@ -44,11 +45,10 @@ nlohmann::json OpenAIEmbedding::getPayload(const std::string& model,
     return payload;
 }
 
-void OpenAIEmbedding::checkModel(const std::string& model) const 
-{
-    static const std::unordered_set<std::string> validModels = {"text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"};
-    if (validModels.contains(model))
-    {
+void OpenAIEmbedding::checkModel(const std::string& model) const {
+    static const std::unordered_set<std::string> validModels = {"text-embedding-3-large",
+        "text-embedding-3-small", "text-embedding-ada-002"};
+    if (validModels.contains(model)) {
         return;
     }
     throw(RuntimeException("Invalid Model: " + model));
@@ -58,11 +58,11 @@ std::vector<float> OpenAIEmbedding::parseResponse(const httplib::Result& res) co
     return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
 }
 
-void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
-{
-    if (region.has_value())
-    {
-        throw(RuntimeException("OPEN-AI does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
+    const std::optional<std::string>& region) {
+    if (region.has_value()) {
+        throw(RuntimeException("OPEN-AI does not support the region argument: " + region.value() +
+                               '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
 }

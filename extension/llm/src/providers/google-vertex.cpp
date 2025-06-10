@@ -26,8 +26,8 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
         throw(RuntimeException(
             "Could not get project id from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
-    return "/v1/projects/" + env_project_id + "/locations/"+region.value_or("us-central1")+"/publishers/google/models/" +
-           model + ":predict";
+    return "/v1/projects/" + env_project_id + "/locations/" + region.value_or("us-central1") +
+           "/publishers/google/models/" + model + ":predict";
 }
 
 httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
@@ -51,21 +51,21 @@ std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& r
         .get<std::vector<float>>();
 }
 
-void GoogleVertexEmbedding::checkModel(const std::string& model) const 
-{
-    static const std::unordered_set<std::string> validModels = {"gemini-embedding-001", "text-embedding-005", "text-multilingual-embedding-002"};
-    if (validModels.contains(model))
-    {
+void GoogleVertexEmbedding::checkModel(const std::string& model) const {
+    static const std::unordered_set<std::string> validModels = {"gemini-embedding-001",
+        "text-embedding-005", "text-multilingual-embedding-002"};
+    if (validModels.contains(model)) {
         return;
     }
     throw(RuntimeException("Invalid Model: " + model));
 }
 
-void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
-{
-    if (dimensions.has_value())
-    {
-        throw(RuntimeException("Google-Vertex does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
+    const std::optional<std::string>& region) {
+    if (dimensions.has_value()) {
+        throw(RuntimeException("Google-Vertex does not support the dimensions argument: " +
+                               std::to_string(dimensions.value()) + '\n' +
+                               std::string(referenceKuzuDocs)));
     }
     this->region = region;
 }

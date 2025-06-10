@@ -35,25 +35,25 @@ std::vector<float> OllamaEmbedding::parseResponse(const httplib::Result& res) co
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
 
-void OllamaEmbedding::checkModel(const std::string& model) const 
-{
-    static const std::unordered_set<std::string> validModels = {"nomic-embed-text", "all-minilm:l6-v2"};
-    if (validModels.contains(model))
-    {
+void OllamaEmbedding::checkModel(const std::string& model) const {
+    static const std::unordered_set<std::string> validModels = {"nomic-embed-text",
+        "all-minilm:l6-v2"};
+    if (validModels.contains(model)) {
         return;
     }
     throw(RuntimeException("Invalid Model: " + model));
 }
 
-void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
-{
-    if (dimensions.has_value())
-    {
-        throw(RuntimeException("Ollama does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
+    const std::optional<std::string>& region) {
+    if (dimensions.has_value()) {
+        throw(RuntimeException("Ollama does not support the dimensions argument: " +
+                               std::to_string(dimensions.value()) + '\n' +
+                               std::string(referenceKuzuDocs)));
     }
-    if (region.has_value())
-    {
-        throw(RuntimeException("Ollama does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+    if (region.has_value()) {
+        throw(RuntimeException("Ollama does not support the region argument: " + region.value() +
+                               '\n' + std::string(referenceKuzuDocs)));
     }
 }
 
