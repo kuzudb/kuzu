@@ -1,11 +1,6 @@
-#include <cstdint>
-#include <optional>
-#include <string>
-#include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
-#include "common/types/types.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
 #include "httplib.h"
