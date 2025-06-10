@@ -54,10 +54,16 @@ uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string& model) {
         {"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024},
         {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024},
         {"voyage-code-2", 1536}};
+
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
         throw(BinderException(
             "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+    }
+    // We don't return early so that we may catch an invalid model error
+    if (dimensions.has_value())
+    {
+        return dimensions.value();
     }
     return modelDimensionMapIter->second;
 }

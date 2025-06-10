@@ -54,15 +54,15 @@ uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string& model) {
         {"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536},
         {"text-embedding-ada-002", 1536}};
 
-    if (dimensions.has_value())
-    {
-        return dimensions.value();
-    }
-
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
         throw(BinderException(
             "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+    }
+    // We don't return early so that we may catch an invalid model error
+    if (dimensions.has_value())
+    {
+        return dimensions.value();
     }
     return modelDimensionMapIter->second;
 }
