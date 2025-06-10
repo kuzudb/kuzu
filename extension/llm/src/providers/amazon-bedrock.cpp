@@ -1,9 +1,9 @@
 #include "providers/amazon-bedrock.h"
 
-#include "crypto.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/timestamp_t.h"
+#include "crypto.h"
 #include "httplib.h"
 #include "json.hpp"
 #include "main/client_context.h"
@@ -88,8 +88,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
 
     hash_bytes canonicalRequestHashBytes;
     hash_str canonicalRequestHashHex;
-    sha256(canonicalRequestStr.c_str(), canonicalRequestStr.size(),
-        canonicalRequestHashBytes);
+    sha256(canonicalRequestStr.c_str(), canonicalRequestStr.size(), canonicalRequestHashBytes);
     hex256(canonicalRequestHashBytes, canonicalRequestHashHex);
     std::string algorithm = "AWS4-HMAC-SHA256";
     std::string credentialScope =
