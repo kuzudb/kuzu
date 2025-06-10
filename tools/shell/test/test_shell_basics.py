@@ -46,6 +46,13 @@ def test_invalid_cast(temp_db) -> None:
         'Error: Conversion exception: Cast failed. Could not convert "****" to INT8.',
     )
 
+def test_enter_in_between_input(temp_db) -> None:
+    test = ShellTest().add_argument(temp_db)
+    test.start()
+    test.send_statement("CREATE NODE TABLE Test (id INT64 PRIMARY KEY);")
+    test.send_statement("\x1b[D" * 5) # left arrow
+    test.send_control_statement("j") # ctrl + j
+    assert test.shell_process.expect_exact(["\u2502 Table Test has been created. \u2502", pexpect.EOF]) == 0
 
 def test_multiline(temp_db) -> None:
     test = (
@@ -59,7 +66,6 @@ def test_multiline(temp_db) -> None:
     )
     result = test.run()
     result.check_stdout("\u2502 databases rule \u2502")
-
 
 def test_multi_queries_one_line(temp_db) -> None:
     # two successful queries
