@@ -53,7 +53,7 @@ IndexTableState::IndexTableState(MemoryManager* mm, const transaction::Transacti
     scanState->setToTable(transaction, tableInfo.table, columnIDs, {});
 }
 
-FTSDeleteState::FTSDeleteState(MemoryManager* mm, Transaction* transaction,
+FTSDeleteState::FTSDeleteState(MemoryManager* mm, const Transaction* transaction,
     FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs)
     : updateVectors{mm}, docTableDeleteState{updateVectors.idVector, updateVectors.int64PKVector},
       docTableScanState{&updateVectors.idVector, std::vector{&updateVectors.uint64PropVector},

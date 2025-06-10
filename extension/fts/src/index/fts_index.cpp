@@ -143,9 +143,7 @@ void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector
         ftsDeleteState.updateVectors.idVector.setValue(0, deletedNodeID);
         internalTableInfo.table->initScanState(transaction,
             *ftsDeleteState.indexTableState.scanState, deletedNodeID.tableID, deletedNodeID.offset);
-        auto result =
-            internalTableInfo.table->lookup(transaction, *ftsDeleteState.indexTableState.scanState);
-        KU_ASSERT(result);
+        internalTableInfo.table->lookup(transaction, *ftsDeleteState.indexTableState.scanState);
         DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable,
             ftsDeleteState.indexTableState.indexVectors, 0, ftsDeleteState.updateVectors.mm};
         deleteFromTermsTable(transaction, docInfo.termInfos, ftsDeleteState);
@@ -235,9 +233,7 @@ void FTSIndex::deleteFromTermsTable(Transaction* transaction,
         // If the df of the term is > 1, we decrement the df by 1. Otherwise, we delete the entry.
         auto& termIDVector = ftsInsertState.updateVectors.idVector;
         auto& dfVector = ftsInsertState.updateVectors.uint64PropVector;
-        auto result =
-            termsTable->lookupPK(transaction, &termPKVector, 0 /* vectorPos */, termNodeID.offset);
-        KU_ASSERT(result);
+        termsTable->lookupPK(transaction, &termPKVector, 0 /* vectorPos */, termNodeID.offset);
         termIDVector.setValue(0, termNodeID);
         termsTable->initScanState(transaction, ftsInsertState.termsTableState.termsTableScanState,
             termNodeID.tableID, termNodeID.offset);
