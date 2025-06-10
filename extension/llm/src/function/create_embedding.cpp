@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
@@ -40,6 +41,33 @@ static EmbeddingProvider& getInstance(const std::string& provider) {
     return providerInstanceIter->second();
 }
 
+static void configureModel(const std::vector<std::shared_ptr<common::ValueVector>>& parameters, EmbeddingProvider& provider)
+{
+    static constexpr size_t dimensionsOrRegionSpecified = 4;
+    static constexpr size_t dimensionsAndRegionSpecified = 5;
+    std::optional<uint64_t> dimensions = std::nullopt;
+    std::optional<std::string> region = std::nullopt;
+    
+    if (parameters.size() == dimensionsAndRegionSpecified)
+    {
+        dimensions = parameters[3]->getValue<uint64_t>(0);
+        region = parameters[4]->getValue<ku_string_t>(0).getAsString();
+    }
+    else if (parameters.size() == dimensionsOrRegionSpecified)
+    {
+        if (parameters[3]->dataType == LogicalType(LogicalTypeID::STRING))
+        {
+            region = parameters[3]->getValue<ku_string_t>(0).getAsString();
+        }
+        else
+        {
+            dimensions = parameters[3]->getValue<uint64_t>(0);
+        }
+    } 
+    provider.configure(dimensions, region);
+}
+
+
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     const std::vector<common::SelectionVector*>& /*parameterSelVectors*/,
     common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
@@ -51,6 +79,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     client.set_read_timeout(30);
     client.set_write_timeout(30);
     std::string path = provider.getPath(model);
+    configureModel(parameters, provider);
 
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
@@ -80,65 +109,29 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    static constexpr size_t dimensionsOrRegionSpecified = 4;
-    static constexpr size_t dimensionsAndRegionSpecified = 5;
-    std::optional<uint64_t> dimensions = std::nullopt;
-    std::optional<std::string> region = std::nullopt;
-    
-    if (input.arguments.size() == dimensionsAndRegionSpecified)
-    {
-        try {
-            dimensions = std::stoull(input.arguments[3]->toString());
-        } 
-        catch (...) {
-            throw(BinderException("Failed to parse dimensions: -> " + input.arguments[3]->toString()));
-        }
-        region = input.arguments[4]->toString();
-    }
-    else if (input.arguments.size() == dimensionsOrRegionSpecified)
-    {
-        if (input.arguments[3]->getDataType() == LogicalType(LogicalTypeID::STRING))
-        {
-            region = input.arguments[3]->toString();
-        }
-        else
-        {
-            try {
-                dimensions = std::stoull(input.arguments[3]->toString());
-            } 
-            catch (...) {
-                throw(BinderException("Failed to parse dimensions: -> " + input.arguments[3]->toString()));
-            }
-        }
-    } 
-
-    auto& provider = getInstance(StringUtils::getLower(input.arguments[1]->toString()));
-    provider.configure(dimensions, region);
-
-    uint64_t embeddingDimensions = provider.getEmbeddingDimension(StringUtils::getLower(input.arguments[2]->toString()));
-    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
+    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
 
     // Prompt, Provider, Model -> Vector Embedding
-    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING}, LogicalTypeID::ARRAY, execFunc);
+    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING}, LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
     // Prompt, Provider, Model, Region -> Vector Embedding
-    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING}, LogicalTypeID::ARRAY, execFunc);
+    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING}, LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
     // Prompt, Provider, Model, Dimensions -> Vector Embedding
-    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64}, LogicalTypeID::ARRAY, execFunc);
+    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64}, LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
     // Prompt, Provider, Model, Dimensions, Region -> Vector Embedding
-    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64, LogicalTypeID::STRING}, LogicalTypeID::ARRAY, execFunc);
+    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64, LogicalTypeID::STRING}, LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
