@@ -6,6 +6,8 @@
 #include "json.hpp"
 #include "main/client_context.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace llm_extension {
 
@@ -26,7 +28,7 @@ httplib::Headers OpenAIEmbedding::getHeaders(const nlohmann::json& /*payload*/) 
     static const std::string envVar = "OPENAI_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(common::RuntimeException(
+        throw(RuntimeException(
             "Could not get key from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
@@ -49,10 +51,19 @@ uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string& model) {
 
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException(
+        throw(BinderException(
             "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
+}
+
+void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
+{
+    if (region.has_value())
+    {
+        throw(BinderException("Google-Gemini does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+    }
+    this->dimensions = dimensions;
 }
 
 } // namespace llm_extension

@@ -6,6 +6,8 @@
 #include "json.hpp"
 #include "main/client_context.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace llm_extension {
 
@@ -22,7 +24,7 @@ std::string GoogleGeminiEmbedding::getPath(const std::string& model) const {
     static const std::string envVar = "GEMINI_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(common::RuntimeException(
+        throw(RuntimeException(
             "Could not get key from: " + envVar + "\n" + std::string(referenceKuzuDocs)));
     }
     return "/v1beta/models/" + model + ":embedContent?key=" + env_key;
@@ -47,10 +49,22 @@ uint64_t GoogleGeminiEmbedding::getEmbeddingDimension(const std::string& model) 
         {"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException(
+        throw(BinderException(
             "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
+}
+
+void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
+{
+    if (dimensions.has_value())
+    {
+        throw(BinderException("Google-Gemini does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+    }
+    if (region.has_value())
+    {
+        throw(BinderException("Google-Gemini does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+    }
 }
 
 } // namespace llm_extension

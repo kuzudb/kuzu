@@ -4,6 +4,8 @@
 #include "httplib.h"
 #include "json.hpp"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace llm_extension {
 
@@ -38,10 +40,22 @@ uint64_t OllamaEmbedding::getEmbeddingDimension(const std::string& model) {
         {"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException(
+        throw(BinderException(
             "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
+}
+
+void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
+{
+    if (dimensions.has_value())
+    {
+        throw(BinderException("Google-Gemini does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+    }
+    if (region.has_value())
+    {
+        throw(BinderException("Google-Gemini does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+    }
 }
 
 } // namespace llm_extension
