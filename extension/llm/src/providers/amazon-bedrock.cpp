@@ -128,16 +128,6 @@ std::vector<float> BedrockEmbedding::parseResponse(const httplib::Result& res) c
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
 
-uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string& model) {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"amazon.titan-embed-text-v1", 1024}};
-    auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
-    }
-    return modelDimensionMapIter->second;
-}
-
 void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
 {
     if (dimensions.has_value())

@@ -24,7 +24,6 @@ public:
     httplib::Headers getHeaders(const nlohmann::json& payload) const override;
     nlohmann::json getPayload(const std::string& model, const std::string& text) const override;
     std::vector<float> parseResponse(const httplib::Result& res) const override;
-    uint64_t getEmbeddingDimension(const std::string& model) override;
     void configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) override;
 };
 
