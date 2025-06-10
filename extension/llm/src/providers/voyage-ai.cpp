@@ -6,6 +6,8 @@
 #include "json.hpp"
 #include "main/client_context.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace llm_extension {
 
@@ -26,7 +28,7 @@ httplib::Headers VoyageAIEmbedding::getHeaders(const nlohmann::json& /*payload*/
     static const std::string envVar = "VOYAGE_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(common::RuntimeException(
+        throw(RuntimeException(
             "Could not get key from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
@@ -49,10 +51,22 @@ uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string& model) {
         {"voyage-code-2", 1536}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException(
+        throw(BinderException(
             "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
+}
+
+void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
+{
+    if (dimensions.has_value())
+    {
+        throw(BinderException("Google-Gemini does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+    }
+    if (region.has_value())
+    {
+        throw(BinderException("Google-Gemini does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+    }
 }
 
 } // namespace llm_extension
