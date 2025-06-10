@@ -11,6 +11,7 @@ namespace llm_extension {
 
 class EmbeddingProvider {
 public:
+    //TODO(Tanvir) When docs are created validate the url in the string
     static constexpr const char* referenceKuzuDocs =
     "For more information, please refer to the official Kuzu documentation: "
     "https://docs.kuzudb.com/extensions/llm/\n";
