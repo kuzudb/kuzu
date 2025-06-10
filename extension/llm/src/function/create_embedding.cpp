@@ -34,7 +34,7 @@ static EmbeddingProvider& getInstance(const std::string& provider) {
     auto providerInstanceIter = providerInstanceMap.find(provider);
     if (providerInstanceIter == providerInstanceMap.end()) {
         throw BinderException(
-            "Provider not found: " + provider + "\n" + std::string(referenceKuzuDocs));
+            "Provider not found: " + provider + "\n" + std::string(EmbeddingProvider::referenceKuzuDocs));
     }
     return providerInstanceIter->second();
 }
@@ -59,11 +59,11 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
         auto res = client.Post(path, headers, payload.dump(), "application/json");
         if (!res) {
             throw ConnectionException(
-                "Request failed: Could not connect to server\n" + std::string(referenceKuzuDocs));
+                "Request failed: Could not connect to server\n" + std::string(EmbeddingProvider::referenceKuzuDocs));
         } else if (res->status != 200) {
             throw ConnectionException("Request failed with status " + std::to_string(res->status) +
                                       "\n Body: " + res->body + "\n" +
-                                      std::string(referenceKuzuDocs));
+                                      std::string(EmbeddingProvider::referenceKuzuDocs));
         }
         auto embeddingVec = provider.parseResponse(res);
         auto pos = (*resultSelVector)[selectedPos];

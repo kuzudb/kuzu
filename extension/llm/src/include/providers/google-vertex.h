@@ -6,6 +6,7 @@
 #include "httplib.h"
 #include "json.hpp"
 #include "provider.h"
+
 namespace kuzu {
 namespace llm_extension {
 

@@ -5,6 +5,7 @@
 #include "httplib.h"
 #include "json.hpp"
 #include "main/client_context.h"
+
 namespace kuzu {
 namespace llm_extension {
 

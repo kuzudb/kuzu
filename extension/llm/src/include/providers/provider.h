@@ -5,14 +5,15 @@
 
 #include "httplib.h"
 #include "json.hpp"
+
 namespace kuzu {
 namespace llm_extension {
 
-static constexpr const char* referenceKuzuDocs =
-    "For more information, please refer to the official Kuzu documentation: "
-    "https://docs.kuzudb.com/extensions/llm/\n";
 class EmbeddingProvider {
 public:
+    static constexpr const char* referenceKuzuDocs =
+    "For more information, please refer to the official Kuzu documentation: "
+    "https://docs.kuzudb.com/extensions/llm/\n";
     virtual ~EmbeddingProvider() = default;
     virtual std::string getClient() const = 0;
     virtual std::string getPath(const std::string& model) const = 0;

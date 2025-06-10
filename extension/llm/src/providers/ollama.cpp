@@ -3,6 +3,7 @@
 #include "common/exception/binder.h"
 #include "httplib.h"
 #include "json.hpp"
+
 namespace kuzu {
 namespace llm_extension {
 
