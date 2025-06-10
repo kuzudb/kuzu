@@ -44,6 +44,16 @@ nlohmann::json VoyageAIEmbedding::getPayload(const std::string& model,
     return payload;
 }
 
+void VoyageAIEmbedding::checkModel(const std::string& model) const 
+{
+    static const std::unordered_set<std::string> validModels = {"voyage-3-large", "voyage-3.5", "voyage-3.5-lite", "voyage-code-3", "voyage-finance-2", "voyage-law-2", "voyage-code-2"};
+    if (validModels.contains(model))
+    {
+        return;
+    }
+    throw(RuntimeException("Invalid Model: " + model));
+}
+
 std::vector<float> VoyageAIEmbedding::parseResponse(const httplib::Result& res) const {
     return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
 }
