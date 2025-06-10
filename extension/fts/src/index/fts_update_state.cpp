@@ -16,9 +16,6 @@ FTSUpdateVectors::FTSUpdateVectors(MemoryManager* mm)
       stringPKVector{LogicalType::STRING(), mm, dataChunkState},
       uint64PropVector{LogicalType::UINT64(), mm, dataChunkState} {}
 
-<<<<<<< HEAD
-FTSInsertState::FTSInsertState(MemoryManager* mm, Transaction* transaction,
-=======
 TermsTableState::TermsTableState(const transaction::Transaction* transaction,
     FTSUpdateVectors& updateVectors, FTSInternalTableInfo& tableInfo)
     : termsTableScanState{&updateVectors.idVector, std::vector{&updateVectors.uint64PropVector},
@@ -28,8 +25,7 @@ TermsTableState::TermsTableState(const transaction::Transaction* transaction,
     termsTableScanState.setToTable(transaction, tableInfo.termsTable, {tableInfo.dfColumnID}, {});
 }
 
-FTSInsertState::FTSInsertState(MemoryManager* mm, const Transaction* transaction,
->>>>>>> 8c3f70b16 (update)
+FTSInsertState::FTSInsertState(MemoryManager* mm, Transaction* transaction,
     FTSInternalTableInfo& tableInfo)
     : updateVectors{mm},
       docTableInsertState{updateVectors.idVector, updateVectors.int64PKVector,
@@ -45,10 +41,6 @@ FTSInsertState::FTSInsertState(MemoryManager* mm, const Transaction* transaction
     tableInfo.appearsInfoTable->initInsertState(transaction, appearsInTableInsertState);
 }
 
-<<<<<<< HEAD
-FTSDeleteState::FTSDeleteState(MemoryManager* mm, Transaction* transaction,
-    FTSInternalTableInfo& tableInfo)
-=======
 IndexTableState::IndexTableState(MemoryManager* mm, const transaction::Transaction* transaction,
     FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs,
     common::ValueVector& idVector, std::shared_ptr<common::DataChunkState> dataChunkState) {
@@ -61,9 +53,8 @@ IndexTableState::IndexTableState(MemoryManager* mm, const transaction::Transacti
     scanState->setToTable(transaction, tableInfo.table, columnIDs, {});
 }
 
-FTSDeleteState::FTSDeleteState(MemoryManager* mm, const Transaction* transaction,
+FTSDeleteState::FTSDeleteState(MemoryManager* mm, Transaction* transaction,
     FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs)
->>>>>>> 8c3f70b16 (update)
     : updateVectors{mm}, docTableDeleteState{updateVectors.idVector, updateVectors.int64PKVector},
       docTableScanState{&updateVectors.idVector, std::vector{&updateVectors.uint64PropVector},
           updateVectors.dataChunkState},

@@ -60,13 +60,8 @@ struct FTSDeleteState final : storage::Index::DeleteState {
     storage::RelTableDeleteState appearsInTableDeleteState;
     IndexTableState indexTableState;
 
-<<<<<<< HEAD
     FTSDeleteState(storage::MemoryManager* mm, transaction::Transaction* transaction,
-        FTSInternalTableInfo& tableInfo);
-=======
-    FTSDeleteState(storage::MemoryManager* mm, const transaction::Transaction* transaction,
         FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs);
->>>>>>> 8c3f70b16 (update)
 };
 
 } // namespace fts_extension
