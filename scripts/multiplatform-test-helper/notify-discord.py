@@ -48,7 +48,7 @@ if __name__ == "__main__":
                     stages.append(r['stage'])
                 if r['status'] != "✅":
                     failures.setdefault(platform, list()).append(r)
-        message += f"- Platforms:\n  - {', '.join(result.keys())}\n"
+        message += f"- Platforms:\n  - {', '.join(sorted(result.keys()))}\n"
         message += f"- Stages:\n  - {', '.join(stages)}\n"
         # Add only the failures.
         if len(failures) > 0:
