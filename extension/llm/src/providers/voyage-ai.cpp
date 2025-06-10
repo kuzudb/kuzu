@@ -37,7 +37,12 @@ httplib::Headers VoyageAIEmbedding::getHeaders(const nlohmann::json& /*payload*/
 
 nlohmann::json VoyageAIEmbedding::getPayload(const std::string& model,
     const std::string& text) const {
-    return nlohmann::json{{"model", model}, {"input", text}};
+    nlohmann::json payload = {{"model", model}, {"input", text}};
+    if (dimensions.has_value())
+    {
+        payload["output_dimension"] = dimensions.value();
+    }
+    return payload;
 }
 
 std::vector<float> VoyageAIEmbedding::parseResponse(const httplib::Result& res) const {
@@ -59,14 +64,11 @@ uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string& model) {
 
 void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
 {
-    if (dimensions.has_value())
-    {
-        throw(BinderException("Voyage-AI does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
-    }
     if (region.has_value())
     {
         throw(BinderException("Voyage-AI does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
+    this->dimensions = dimensions;
 }
 
 } // namespace llm_extension
