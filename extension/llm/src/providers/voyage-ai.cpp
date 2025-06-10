@@ -61,11 +61,11 @@ void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions, con
 {
     if (dimensions.has_value())
     {
-        throw(BinderException("Google-Gemini does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException("Voyage-AI does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
     if (region.has_value())
     {
-        throw(BinderException("Google-Gemini does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException("Voyage-AI does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
 }
 

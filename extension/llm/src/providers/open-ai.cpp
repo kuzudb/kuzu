@@ -71,7 +71,7 @@ void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions, const
 {
     if (region.has_value())
     {
-        throw(BinderException("Google-Gemini does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException("OPEN-AI does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
 }
