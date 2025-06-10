@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
+
 #include "common/cast.h"
 
 namespace kuzu {
