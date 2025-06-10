@@ -227,6 +227,9 @@ benchmark:
 example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
+extension-build:
+	$(call run-cmake-relwithdebinfo,-DBUILD_EXTENSIONS="$(EXTENSION_LIST)")
+
 extension-test-build:
 	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_EXTENSIONS="$(EXTENSION_LIST)" \
