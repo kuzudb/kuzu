@@ -69,7 +69,7 @@ void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
 {
     if (dimensions.has_value())
     {
-        throw(BinderException("Google-Gemini does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException("Google-Vertex does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
     this->region = region;
 }
