@@ -4,6 +4,7 @@
 #include "processor/expression_mapper.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/operator/partitioner.h"
+#include "processor/operator/persistent/copy_rel_batch_insert.h"
 #include "processor/operator/persistent/node_batch_insert.h"
 #include "processor/operator/persistent/rel_batch_insert.h"
 #include "processor/operator/table_function_call.h"
@@ -43,9 +44,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
         direction, fromTableID, toTableID, partitioningIdx, offsetVectorIdx, std::move(columnIDs),
         std::move(columnTypes), numWarningDataColumns);
     auto printInfo = std::make_unique<RelBatchInsertPrintInfo>(tableName);
-    auto batchInsert = std::make_unique<RelBatchInsert>(tableName, std::move(relBatchInsertInfo),
-        std::move(partitionerSharedState), std::move(sharedState), operatorID, std::move(printInfo),
-        nullptr);
+    auto batchInsert = std::make_unique<CopyRelBatchInsert>(tableName,
+        std::move(relBatchInsertInfo), std::move(partitionerSharedState), std::move(sharedState),
+        operatorID, std::move(printInfo), nullptr);
     batchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(outFSchema));
     return batchInsert;
 }
@@ -65,7 +66,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(const LogicalOperator*
     } break;
     case TableType::REL: {
         children = mapCopyRelFrom(logicalOperator);
-        const auto relBatchInsert = children[0]->ptrCast<RelBatchInsert>();
+        const auto relBatchInsert = children[0]->ptrCast<CopyRelBatchInsert>();
         fTable = relBatchInsert->getSharedState()->fTable;
     } break;
     default:
