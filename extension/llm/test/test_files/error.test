@@ -21,11 +21,13 @@ Binder exception: Cannot match a built-in function for given function CREATE_EMB
 
 -STATEMENT return create_embedding('hello', 'olama', 'nomic-text-embed')
 ---- error
-Binder exception: Invalid Provider: olama
+Binder exception: Provider not found: olama
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 -STATEMENT return create_embedding('hello', 'ollama', 'MODEL_DNE')
 ---- error
 Binder exception: Invalid Model: model_dne
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 
 -CASE BadCast
@@ -57,5 +59,6 @@ Binder exception: Data type of expression emb should not be modified.
 -LOG Run Without Having Ollama at http://localhost:11434
 -STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'ollama', 'nomic-embed-text') AS emb SET b.title_embedding = emb;
 ---- error
-Connection exception: Request failed: Could not connect to server: <url>.
+Connection exception: Request failed: Could not connect to server <http://localhost:11434> 
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
