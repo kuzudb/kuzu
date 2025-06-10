@@ -1,6 +1,11 @@
+#include <cstdint>
+#include <optional>
+#include <string>
+#include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
+#include "common/types/types.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
 #include "httplib.h"
@@ -79,26 +84,80 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
+    static constexpr size_t promptIdx = 0;
+    static constexpr size_t providerIdx = 1;
+    static constexpr size_t modelIdx = 2;
+    static constexpr size_t dimensionsOrRegionSpecified = 4;
+    static constexpr size_t dimensionsAndRegionSpecified = 5;
     std::vector<LogicalType> types;
-    types.push_back(input.arguments[0]->getDataType().copy());
-    types.push_back(input.arguments[1]->getDataType().copy());
-    types.push_back(input.arguments[2]->getDataType().copy());
-    uint64_t embeddingDimensions =
-        getInstance(StringUtils::getLower(input.arguments[1]->toString()))
-            .getEmbeddingDimension(StringUtils::getLower(input.arguments[2]->toString()));
+    types.push_back(input.arguments[promptIdx]->getDataType().copy());
+    types.push_back(input.arguments[providerIdx]->getDataType().copy());
+    types.push_back(input.arguments[modelIdx]->getDataType().copy());
+    std::optional<uint64_t> dimensions = std::nullopt;
+    std::optional<std::string> region = std::nullopt;
+    
+    if (input.arguments.size() == dimensionsAndRegionSpecified)
+    {
+        try {
+            dimensions = std::stoull(input.arguments[4]->toString());
+        } 
+        catch (...) {
+            throw(BinderException("Failed to parse dimensions: -> " + input.arguments[4]->toString()));
+        }
+        region = input.arguments[5]->toString();
+    }
+    else if (input.arguments.size() == dimensionsOrRegionSpecified)
+    {
+        if (input.arguments[4]->getDataType() == LogicalType(LogicalTypeID::STRING))
+        {
+            region = input.arguments[5]->toString();
+        }
+        else
+        {
+            KU_ASSERT_UNCONDITIONAL(input.arguments[4]->getDataType() == LogicalType(LogicalTypeID::UINT64));
+            try {
+                dimensions = std::stoull(input.arguments[4]->toString());
+            } 
+            catch (...) {
+                throw(BinderException("Failed to parse dimensions: -> " + input.arguments[4]->toString()));
+            }
+        }
+    } 
+
+    auto& provider = getInstance(StringUtils::getLower(input.arguments[1]->toString()));
+    //TODO(Tanvir)
+    //provider.configure(dimensions, region)
+
+    uint64_t embeddingDimensions = provider.getEmbeddingDimension(StringUtils::getLower(input.arguments[2]->toString()));
     return std::make_unique<FunctionBindData>(std::move(types),
         LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
+
     // Prompt, Provider, Model -> Vector Embedding
-    auto function = std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
-            LogicalTypeID::STRING},
-        LogicalTypeID::ARRAY, execFunc);
+    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING}, LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
+
+    // Prompt, Provider, Model, Region -> Vector Embedding
+    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING}, LogicalTypeID::ARRAY, execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
+
+    // Prompt, Provider, Model, Dimensions -> Vector Embedding
+    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64}, LogicalTypeID::ARRAY, execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
+
+    // Prompt, Provider, Model, Dimensions, Region -> Vector Embedding
+    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64, LogicalTypeID::STRING}, LogicalTypeID::ARRAY, execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
+
+
+
     return functionSet;
 }
 
