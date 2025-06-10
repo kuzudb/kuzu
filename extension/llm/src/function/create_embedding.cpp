@@ -1,6 +1,7 @@
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
+#include "common/types/types.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
 #include "httplib.h"
@@ -94,34 +95,32 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     if (input.arguments.size() == dimensionsAndRegionSpecified)
     {
         try {
-            dimensions = std::stoull(input.arguments[4]->toString());
+            dimensions = std::stoull(input.arguments[3]->toString());
         } 
         catch (...) {
-            throw(BinderException("Failed to parse dimensions: -> " + input.arguments[4]->toString()));
+            throw(BinderException("Failed to parse dimensions: -> " + input.arguments[3]->toString()));
         }
-        region = input.arguments[5]->toString();
+        region = input.arguments[4]->toString();
     }
     else if (input.arguments.size() == dimensionsOrRegionSpecified)
     {
-        if (input.arguments[4]->getDataType() == LogicalType(LogicalTypeID::STRING))
+        if (input.arguments[3]->getDataType() == LogicalType(LogicalTypeID::STRING))
         {
-            region = input.arguments[5]->toString();
+            region = input.arguments[3]->toString();
         }
         else
         {
-            KU_ASSERT_UNCONDITIONAL(input.arguments[4]->getDataType() == LogicalType(LogicalTypeID::UINT64));
             try {
-                dimensions = std::stoull(input.arguments[4]->toString());
+                dimensions = std::stoull(input.arguments[3]->toString());
             } 
             catch (...) {
-                throw(BinderException("Failed to parse dimensions: -> " + input.arguments[4]->toString()));
+                throw(BinderException("Failed to parse dimensions: -> " + input.arguments[3]->toString()));
             }
         }
     } 
 
     auto& provider = getInstance(StringUtils::getLower(input.arguments[1]->toString()));
-    //TODO(Tanvir)
-    //provider.configure(dimensions, region)
+    provider.configure(dimensions, region);
 
     uint64_t embeddingDimensions = provider.getEmbeddingDimension(StringUtils::getLower(input.arguments[2]->toString()));
     return std::make_unique<FunctionBindData>(std::move(types),

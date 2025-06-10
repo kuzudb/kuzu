@@ -1,4 +1,5 @@
 #include "providers/open-ai.h"
+#include <string>
 
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
@@ -37,7 +38,11 @@ httplib::Headers OpenAIEmbedding::getHeaders(const nlohmann::json& /*payload*/) 
 
 nlohmann::json OpenAIEmbedding::getPayload(const std::string& model,
     const std::string& text) const {
-    return nlohmann::json{{"model", model}, {"input", text}};
+    nlohmann::json header{{"model", model}, {"input", text}};
+    if (dimensions.has_value()) {
+        header["dimensions"] = dimensions.value();
+    }
+    return header;
 }
 
 std::vector<float> OpenAIEmbedding::parseResponse(const httplib::Result& res) const {
@@ -48,6 +53,11 @@ uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string& model) {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536},
         {"text-embedding-ada-002", 1536}};
+
+    if (dimensions.has_value())
+    {
+        return dimensions.value();
+    }
 
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
