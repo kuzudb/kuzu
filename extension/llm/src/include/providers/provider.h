@@ -11,10 +11,10 @@ namespace llm_extension {
 
 class EmbeddingProvider {
 public:
-    //TODO(Tanvir) When docs are created validate the url in the string
+    // TODO(Tanvir) When docs are created validate the url in the string
     static constexpr const char* referenceKuzuDocs =
-    "For more information, please refer to the official Kuzu documentation: "
-    "https://docs.kuzudb.com/extensions/llm/\n";
+        "For more information, please refer to the official Kuzu documentation: "
+        "https://docs.kuzudb.com/extensions/llm/\n";
     virtual ~EmbeddingProvider() = default;
     virtual std::string getClient() const = 0;
     virtual std::string getPath(const std::string& model) const = 0;
