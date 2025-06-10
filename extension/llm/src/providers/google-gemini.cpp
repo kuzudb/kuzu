@@ -44,17 +44,6 @@ std::vector<float> GoogleGeminiEmbedding::parseResponse(const httplib::Result& r
     return nlohmann::json::parse(res->body)["embedding"]["values"].get<std::vector<float>>();
 }
 
-uint64_t GoogleGeminiEmbedding::getEmbeddingDimension(const std::string& model) {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};
-    auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException(
-            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
-    }
-    return modelDimensionMapIter->second;
-}
-
 void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
 {
     if (dimensions.has_value())
