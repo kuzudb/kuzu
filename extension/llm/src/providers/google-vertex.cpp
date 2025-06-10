@@ -1,6 +1,5 @@
 #include "providers/google-vertex.h"
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -56,7 +55,7 @@ void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
 {
     if (dimensions.has_value())
     {
-        throw(BinderException("Google-Vertex does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Google-Vertex does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
     this->region = region;
 }

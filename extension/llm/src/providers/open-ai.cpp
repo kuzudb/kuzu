@@ -1,7 +1,6 @@
 #include "providers/open-ai.h"
 #include <string>
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -53,7 +52,7 @@ void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions, const
 {
     if (region.has_value())
     {
-        throw(BinderException("OPEN-AI does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("OPEN-AI does not support the region argument: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
 }

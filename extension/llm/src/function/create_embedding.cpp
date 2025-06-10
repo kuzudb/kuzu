@@ -1,6 +1,7 @@
 #include <cstdint>
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
+#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "common/types/types.h"
 #include "function/llm_functions.h"
@@ -35,7 +36,7 @@ static EmbeddingProvider& getInstance(const std::string& provider) {
 
     auto providerInstanceIter = providerInstanceMap.find(provider);
     if (providerInstanceIter == providerInstanceMap.end()) {
-        throw BinderException("Provider not found: " + provider + "\n" +
+        throw RuntimeException("Provider not found: " + provider + "\n" +
                               std::string(EmbeddingProvider::referenceKuzuDocs));
     }
     return providerInstanceIter->second();

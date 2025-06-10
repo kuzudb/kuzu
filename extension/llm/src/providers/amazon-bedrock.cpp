@@ -132,7 +132,7 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions, cons
 {
     if (dimensions.has_value())
     {
-        throw(BinderException("Bedrock does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Bedrock does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
     this->region = region;
 }
