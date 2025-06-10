@@ -119,6 +119,15 @@ public:
     static std::vector<NodeWithDistance> popTopK(max_node_priority_queue_t& result,
         common::length_t k);
 
+    std::unique_ptr<DeleteState> initDeleteState(const transaction::Transaction* /*transaction*/,
+        storage::MemoryManager* /*mm*/, storage::visible_func /*isVisible*/) override {
+        KU_UNREACHABLE;
+    }
+    void delete_(transaction::Transaction* /*transaction*/,
+        const common::ValueVector& /*nodeIDVector*/, DeleteState& /*deleteState*/) override {
+        KU_UNREACHABLE;
+    }
+
 protected:
     static constexpr int64_t INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND = 100;
 

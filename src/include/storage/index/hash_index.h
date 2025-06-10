@@ -425,12 +425,12 @@ public:
     }
 
     void delete_(common::ku_string_t key) { return delete_(key.getAsStringView()); }
-    std::unique_ptr<DeleteState> initDeleteState(const transaction::Transaction* transaction,
-        MemoryManager* mm, visible_func isVisible) override {
+    std::unique_ptr<DeleteState> initDeleteState(const transaction::Transaction* /*transaction*/,
+        MemoryManager* /*mm*/, visible_func /*isVisible*/) override {
         KU_UNREACHABLE;
     }
-    void delete_(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
-        DeleteState& deleteState) override {
+    void delete_(transaction::Transaction* /*transaction*/,
+        const common::ValueVector& /*nodeIDVector*/, DeleteState& /*deleteState*/) override {
         KU_UNREACHABLE;
     }
     template<common::IndexHashable T>

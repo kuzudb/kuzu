@@ -659,7 +659,7 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
 TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
-    auto useInternal = true; // clientContext->useInternalCatalogEntry();
+    auto useInternal = clientContext->useInternalCatalogEntry();
     if (!catalog->containsTable(transaction, name, useInternal)) {
         throw BinderException(stringFormat("Table {} does not exist.", name));
     }

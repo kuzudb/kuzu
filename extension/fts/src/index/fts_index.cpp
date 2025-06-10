@@ -68,10 +68,18 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
         }
         content = indexVector->getValue<ku_string_t>(pos).getAsString();
         FTSUtils::normalizeQuery(content);
-        auto termsInContent = StringUtils::split(content, " ");
+        auto termsInContent =
+            StringUtils::split(content, " " /* delimiter */, true /* ignoreEmptyStringParts */);
         termsInContent = FTSUtils::stemTerms(termsInContent, config, mm, stopWordsTable,
             transaction, true /* isConjunctive */);
-        terms.insert(terms.end(), termsInContent.begin(), termsInContent.end());
+        // TODO(Ziyi): StringUtils::split() has a bug which doesn't ignore empty parts even
+        // ignoreEmptyStringParts is set to true.
+        for (auto& term : termsInContent) {
+            if (term.empty()) {
+                continue;
+            }
+            terms.push_back(term);
+        }
     }
     return terms;
 }
@@ -130,15 +138,18 @@ void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector
     for (auto i = 0u; i < nodeIDVector.state->getSelSize(); i++) {
         auto pos = nodeIDVector.state->getSelVector()[i];
         auto deletedNodeID = nodeIDVector.getValue<nodeID_t>(pos);
-        deleteFromDocTable(transaction, ftsDeleteState, deletedNodeID, totalDocLen);
+        auto deletedDocID =
+            deleteFromDocTable(transaction, ftsDeleteState, deletedNodeID, totalDocLen);
         ftsDeleteState.updateVectors.idVector.setValue(0, deletedNodeID);
         internalTableInfo.table->initScanState(transaction,
             *ftsDeleteState.indexTableState.scanState, deletedNodeID.tableID, deletedNodeID.offset);
-        internalTableInfo.table->lookup(transaction, *ftsDeleteState.indexTableState.scanState);
+        auto result =
+            internalTableInfo.table->lookup(transaction, *ftsDeleteState.indexTableState.scanState);
+        KU_ASSERT(result);
         DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable,
-            ftsDeleteState.indexTableState.indexVectors, pos, ftsDeleteState.updateVectors.mm};
+            ftsDeleteState.indexTableState.indexVectors, 0, ftsDeleteState.updateVectors.mm};
         deleteFromTermsTable(transaction, docInfo.termInfos, ftsDeleteState);
-        deleteFromAppearsInTable(transaction, ftsDeleteState, deletedNodeID);
+        deleteFromAppearsInTable(transaction, ftsDeleteState, deletedDocID);
     }
     auto numDeletedDocs = nodeIDVector.state->getSelSize();
     ftsStorageInfo.avgDocLen = totalDocLen / (ftsStorageInfo.numDocs - numDeletedDocs);
@@ -224,7 +235,9 @@ void FTSIndex::deleteFromTermsTable(Transaction* transaction,
         // If the df of the term is > 1, we decrement the df by 1. Otherwise, we delete the entry.
         auto& termIDVector = ftsInsertState.updateVectors.idVector;
         auto& dfVector = ftsInsertState.updateVectors.uint64PropVector;
-        termsTable->lookupPK(transaction, &termPKVector, 0 /* vectorPos */, termNodeID.offset);
+        auto result =
+            termsTable->lookupPK(transaction, &termPKVector, 0 /* vectorPos */, termNodeID.offset);
+        KU_ASSERT(result);
         termIDVector.setValue(0, termNodeID);
         termsTable->initScanState(transaction, ftsInsertState.termsTableState.termsTableScanState,
             termNodeID.tableID, termNodeID.offset);
