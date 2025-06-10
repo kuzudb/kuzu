@@ -80,15 +80,8 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    static constexpr size_t promptIdx = 0;
-    static constexpr size_t providerIdx = 1;
-    static constexpr size_t modelIdx = 2;
     static constexpr size_t dimensionsOrRegionSpecified = 4;
     static constexpr size_t dimensionsAndRegionSpecified = 5;
-    std::vector<LogicalType> types;
-    types.push_back(input.arguments[promptIdx]->getDataType().copy());
-    types.push_back(input.arguments[providerIdx]->getDataType().copy());
-    types.push_back(input.arguments[modelIdx]->getDataType().copy());
     std::optional<uint64_t> dimensions = std::nullopt;
     std::optional<std::string> region = std::nullopt;
     
@@ -123,8 +116,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     provider.configure(dimensions, region);
 
     uint64_t embeddingDimensions = provider.getEmbeddingDimension(StringUtils::getLower(input.arguments[2]->toString()));
-    return std::make_unique<FunctionBindData>(std::move(types),
-        LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
+    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
