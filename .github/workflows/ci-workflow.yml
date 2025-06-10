@@ -77,20 +77,30 @@ jobs:
       - name: Build
         run: make release
 
+      # Generate the binary db once to test that it can be read on all platforms.
       - name: Generate datasets
         run: bash scripts/generate_binary_demo.sh
 
+      - name: Upload binary-demo
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
+
       - name: Generate and upload tinysnb
         run: |
-          bash scripts/generate_binary_tinysnb.sh
-          s3cmd get s3://kuzu-test/tinysnb/version.txt || echo "0" > version.txt
-          s3cmd --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" get s3://kuzudb-test/tinysnb/version.txt || echo "0" > version_gcs.txt
-          if [ "$(cat tinysnb/version.txt)" == "$(cat version.txt)" ] && [ "$(cat tinysnb/version.txt)" == "$(cat version_gcs.txt)" ]; then
+          version_current="$(python3 benchmark/version.py)"
+          echo "0" > version_s3.txt
+          echo "0" > version_gcs.txt
+          s3cmd get --force s3://kuzu-test/tinysnb/version.txt version_s3.txt || true
+          s3cmd --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" get --force s3://kuzudb-test/tinysnb/version.txt version_gcs.txt || true
+          if [[ "$version_current" == "$(cat version_s3.txt)" ]] && [[ "$version_current" == "$(cat version_gcs.txt)" ]]; then
             echo "TinySNB dataset is up to date, skipping upload"
-            rm -rf tinysnb version.txt
+            rm -rf tinysnb version_s3.txt version_gcs.txt
             exit 0
           fi
           echo "TinySNB dataset is outdated, uploading..."
+          bash scripts/generate_binary_tinysnb.sh
           s3cmd del -r s3://kuzu-test/tinysnb/
           s3cmd sync ./tinysnb s3://kuzu-test/
           # s3cmd del -r doesn't work on GCS so we individually delete each object in the directory
@@ -99,27 +109,23 @@ jobs:
               s3cmd --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" del ${gcs_file}
           done
           s3cmd --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" sync ./tinysnb s3://kuzudb-test/
-          rm -rf tinysnb version.txt version_gcs.txt
+          rm -rf tinysnb version_s3.txt version_gcs.txt
 
       - name: Generate and upload ldbc-sf01
         run: |
-          bash scripts/generate_binary_ldbc-sf01.sh
-          s3cmd get s3://kuzu-test/ldbc01/version.txt || echo "0" > version.txt
-          if [ "$(cat ldbc01/version.txt)" == "$(cat version.txt)" ]; then
+          version_current="$(python3 benchmark/version.py)"
+          echo "0" > version_s3.txt
+          s3cmd get --force s3://kuzu-test/ldbc01/version.txt version_s3.txt || true
+          if [[ "$version_current" == "$(cat version_s3.txt)" ]]; then
             echo "LDBC-SF01 dataset is up to date, skipping upload"
-            rm -rf ldbc01 version.txt
+            rm -rf ldbc01 version_s3.txt
             exit 0
           fi
           echo "LDBC-SF01 dataset is outdated, uploading..."
+          bash scripts/generate_binary_ldbc-sf01.sh
           s3cmd del -r s3://kuzu-test/ldbc01/
           s3cmd sync ./ldbc01 s3://kuzu-test/
-          rm -rf ldbc01 version.txt
-
-      - name: Upload binary-demo
-        uses: actions/upload-artifact@v4
-        with:
-          name: binary-demo
-          path: dataset/binary-demo
+          rm -rf ldbc01 version_s3.txt
 
   gcc-build-test:
     name: gcc build & test
@@ -127,7 +133,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CLANGD_DIAGNOSTIC_JOBS: 32
       CLANGD_DIAGNOSTIC_INSTANCES: 6
@@ -153,15 +158,6 @@ jobs:
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Test
         run: |
@@ -187,8 +183,14 @@ jobs:
         run: |
           make test
 
+      - name: Ensure Python dependencies
+        run: pip install --user -r tools/python_api/requirements_dev.txt
+
       - name: Python test
         run: make pytest
+
+      - name: Ensure Node.js dependencies
+        run: make nodejs-deps
 
       - name: Node.js test
         run: make nodejstest
@@ -212,7 +214,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CLANGD_DIAGNOSTIC_JOBS: 32
       CLANGD_DIAGNOSTIC_INSTANCES: 6
@@ -238,15 +239,6 @@ jobs:
         with:
           name: binary-demo
           path: ${{ github.workspace }}/dataset/binary-demo
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Test vector 1024
         env:
@@ -370,7 +362,6 @@ jobs:
     env:
       # CARGO_BUILD_JOBS is set using this in the Makefile
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       CC: gcc
       CXX: g++
       KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
@@ -410,15 +401,6 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
       - name: Test with ASAN
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
@@ -445,7 +427,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CC: clang
       CXX: clang++
@@ -468,15 +449,6 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
       - name: Test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
@@ -496,8 +468,14 @@ jobs:
         run: |
           make test DEFAULT_REL_STORAGE_DIRECTION=BOTH
 
+      - name: Ensure Python dependencies
+        run: pip install --user -r tools/python_api/requirements_dev.txt
+
       - name: Python test
         run: make pytest
+
+      - name: Ensure Node.js dependencies
+        run: make nodejs-deps
 
       - name: Node.js test
         run: make nodejstest
@@ -524,7 +502,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CC: clang
       CXX: clang++
@@ -540,15 +517,6 @@ jobs:
       HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v4
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Build
         run: |
@@ -572,7 +540,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       CC: clang
       CXX: clang++
@@ -587,15 +554,6 @@ jobs:
       BUFFER_POOL_SIZE: 1073741824
     steps:
       - uses: actions/checkout@v4
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Build
         run: |
@@ -625,9 +583,7 @@ jobs:
     env:
       # Shorten build path as much as possible
       CARGO_TARGET_DIR: ${{ github.workspace }}/rs
-      CARGO_BUILD_JOBS: 18
       NUM_THREADS: 18
-      CMAKE_BUILD_PARALLEL_LEVEL: 18
       TEST_JOBS: 9
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
       UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
@@ -649,15 +605,6 @@ jobs:
         with:
           name: binary-demo
           path: dataset/binary-demo
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Visual Studio Generator Build
         shell: cmd
@@ -705,11 +652,17 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
 
+      - name: Ensure Python dependencies
+        run: pip install --user -r tools/python_api/requirements_dev.txt
+
       - name: Python test
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make pytest
+
+      - name: Ensure Node.js dependencies
+        run: make nodejs-deps
 
       - name: Node.js test
         shell: cmd
@@ -754,17 +707,12 @@ jobs:
       - name: Check source headers for include guards
         run: ./scripts/check-include-guards.sh src/include
           ./scripts/check-include-guards.sh test/include
-          ./scripts/check-include-guards.sh extension/*/src/include
 
       - name: Check extension headers for include guards
-        run: ./scripts/check-include-guards.sh extension/delta/src/include
-          ./scripts/check-include-guards.sh extension/duckdb/src/include
-          ./scripts/check-include-guards.sh extension/fts/src/include
-          ./scripts/check-include-guards.sh extension/httpfs/src/include
-          ./scripts/check-include-guards.sh extension/iceberg/src/include
-          ./scripts/check-include-guards.sh extension/json/src/include
-          ./scripts/check-include-guards.sh extension/postgres/src/include
-          ./scripts/check-include-guards.sh extension/sqlite/src/include
+        run: |
+          for dir in extension/*/src/include ;do
+            ./scripts/check-include-guards.sh "$dir"
+          done
 
       - name: Checks source files for std::assert
         run: ./scripts/check-no-std-assert.sh src
@@ -805,10 +753,8 @@ jobs:
         run: python3 scripts/run-clang-format.py --in-place --clang-format-executable /usr/bin/clang-format-18 -r extension/
 
       - name: Format Python API
-        run: |
-          cd tools/python_api
-          make requirements
-          make format
+        working-directory: tools/python_api
+        run: make format
 
       - name: Update Rust
         run: rustup update
@@ -841,9 +787,7 @@ jobs:
 
       - name: Run Python lint
         working-directory: tools/python_api
-        run: |
-          make requirements
-          ./.venv/bin/ruff check src_py test --verbose
+        run: make check
 
   benchmark:
     name: benchmark
@@ -882,8 +826,7 @@ jobs:
 
       # For `napi.h` header.
       - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
+        run: make nodejs-deps
 
       - name: Check for clangd diagnostics
         run: make clangd-diagnostics
@@ -922,7 +865,6 @@ jobs:
             export NUM_THREADS=12
           fi
           echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
-          echo "CMAKE_BUILD_PARALLEL_LEVEL=$NUM_THREADS" >> $GITHUB_ENV
           echo "NUM_THREADS=$NUM_THREADS"
 
       - name: Download binary-demo
@@ -930,15 +872,6 @@ jobs:
         with:
           name: binary-demo
           path: dataset/binary-demo
-
-      - name: Ensure Python dependencies
-        run: |
-          pip3 install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
 
       - name: Test
         run: |
@@ -965,6 +898,14 @@ jobs:
         run: |
           make test
 
+      - name: C and C++ Examples
+        run: |
+          ulimit -n 10240
+          make example
+
+      - name: Ensure Python dependencies
+        run: pip3 install --user -r tools/python_api/requirements_dev.txt
+
       - name: Python test
         env:
           PYBIND11_PYTHON_VERSION: 3.12
@@ -972,10 +913,8 @@ jobs:
           ulimit -n 10240
           make pytest
 
-      - name: C and C++ Examples
-        run: |
-          ulimit -n 10240
-          make example
+      - name: Ensure Node.js dependencies
+        run: make nodejs-deps
 
       - name: Node.js test
         run: |
@@ -994,8 +933,8 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cmake -B build/release -DBUILD_EXAMPLES=OFF
-          make extension-release
+          # `extension-release` disables KUZU_BUILD, but it is a dependency of `BUILD_EXAMPLES`, so disable it too.
+          make extension-release EXTRA_CMAKE_FLAGS="-DBUILD_EXAMPLES=OFF"
           make rusttest
 
       - name: Rust test with pre-built library
@@ -1007,7 +946,6 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cmake -B build/release -DBUILD_EXAMPLES=OFF
           make extension-release
           make rusttest
 
@@ -1165,7 +1103,6 @@ jobs:
     env:
       # Shorten build path as much as possible
       CARGO_TARGET_DIR: ${{ github.workspace }}/rs
-      CARGO_BUILD_JOBS: 18
       NUM_THREADS: 18
       TEST_JOBS: 9
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}

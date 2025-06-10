@@ -6,16 +6,9 @@ import shutil
 import subprocess
 import sys
 
+from version import _get_kuzu_version
+
 base_dir = os.path.dirname(os.path.realpath(__file__))
-
-
-def _get_kuzu_version():
-    cmake_file = os.path.join(base_dir, '..', 'CMakeLists.txt')
-    with open(cmake_file) as f:
-        for line in f:
-            if line.startswith('project(Kuzu VERSION'):
-                return line.split(' ')[2].strip()
-
 
 def serialize(kuzu_exec_path, dataset_name, dataset_path, serialized_graph_path, benchmark_copy_log_dir,
               single_thread: bool = False):
@@ -96,7 +89,7 @@ def serialize(kuzu_exec_path, dataset_name, dataset_path, serialized_graph_path,
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description='Serializes dataset to a kuzu database')
-    parser.add_argument("dataset_name", help="Name of the dataset for dispay purposes")
+    parser.add_argument("dataset_name", help="Name of the dataset for display purposes")
     parser.add_argument("dataset_path", help="Input path of the dataset to serialize")
     parser.add_argument("serialized_graph_path",
                         help="Output path of the database. Will be created if it does not exist already")
@@ -113,7 +106,6 @@ if __name__ == '__main__':
     parser.add_argument("--kuzu-shell",
                         help="Path of the kuzu shell executable. Defaults to the path as built in the default release build directory",
                         default=default_kuzu_exec_path)
-    args = parser.parse_args()
     args = parser.parse_args()
 
     try:

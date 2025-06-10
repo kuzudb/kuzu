@@ -8,6 +8,7 @@ if(SINGLE_THREADED)
     add_compile_definitions(__SINGLE_THREADED__)
     message(STATUS "Single-threaded mode is enabled")
 else()
+    message(STATUS "Multi-threaded mode is enabled: CMAKE_BUILD_PARALLEL_LEVEL=$ENV{CMAKE_BUILD_PARALLEL_LEVEL}")
     find_package(Threads REQUIRED)
 endif()
 
@@ -280,13 +281,16 @@ endif()
 
 if (ENABLE_BACKTRACES)
     find_package(cpptrace QUIET)
-    if (NOT cpptrace_FOUND)
+    if(cpptrace_FOUND)
+        message(STATUS "Using system cpptrace")
+    else()
+        message(STATUS "cpptrace not found. Fetching from GitHub...")
         include(FetchContent)
         FetchContent_Declare(
-          cpptrace
-          GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-          GIT_TAG        v0.8.3
-          GIT_SHALLOW    TRUE
+            cpptrace
+            GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
+            GIT_TAG        v0.8.3
+            GIT_SHALLOW    TRUE
         )
         FetchContent_MakeAvailable(cpptrace)
     endif()
