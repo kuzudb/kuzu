@@ -1,4 +1,5 @@
 #include <cstdint>
+
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
@@ -37,37 +38,30 @@ static EmbeddingProvider& getInstance(const std::string& provider) {
     auto providerInstanceIter = providerInstanceMap.find(provider);
     if (providerInstanceIter == providerInstanceMap.end()) {
         throw RuntimeException("Provider not found: " + provider + "\n" +
-                              std::string(EmbeddingProvider::referenceKuzuDocs));
+                               std::string(EmbeddingProvider::referenceKuzuDocs));
     }
     return providerInstanceIter->second();
 }
 
-static void configureModel(const std::vector<std::shared_ptr<common::ValueVector>>& parameters, EmbeddingProvider& provider)
-{
+static void configureModel(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    EmbeddingProvider& provider) {
     static constexpr size_t dimensionsOrRegionSpecified = 4;
     static constexpr size_t dimensionsAndRegionSpecified = 5;
     std::optional<uint64_t> dimensions = std::nullopt;
     std::optional<std::string> region = std::nullopt;
-    
-    if (parameters.size() == dimensionsAndRegionSpecified)
-    {
+
+    if (parameters.size() == dimensionsAndRegionSpecified) {
         dimensions = parameters[3]->getValue<uint64_t>(0);
         region = parameters[4]->getValue<ku_string_t>(0).getAsString();
-    }
-    else if (parameters.size() == dimensionsOrRegionSpecified)
-    {
-        if (parameters[3]->dataType == LogicalType(LogicalTypeID::STRING))
-        {
+    } else if (parameters.size() == dimensionsOrRegionSpecified) {
+        if (parameters[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
             region = parameters[3]->getValue<ku_string_t>(0).getAsString();
-        }
-        else
-        {
+        } else {
             dimensions = parameters[3]->getValue<uint64_t>(0);
         }
-    } 
+    }
     provider.configure(dimensions, region);
 }
-
 
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     const std::vector<common::SelectionVector*>& /*parameterSelVectors*/,
@@ -111,33 +105,44 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
+    return FunctionBindData::getSimpleBindData(input.arguments,
+        LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
 
     // Prompt, Provider, Model -> Vector Embedding
-    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING}, LogicalTypeID::LIST, execFunc);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING},
+        LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
     // Prompt, Provider, Model, Region -> Vector Embedding
-    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING}, LogicalTypeID::LIST, execFunc);
+    function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::STRING},
+        LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
     // Prompt, Provider, Model, Dimensions -> Vector Embedding
-    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64}, LogicalTypeID::LIST, execFunc);
+    function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::UINT64},
+        LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
     // Prompt, Provider, Model, Dimensions, Region -> Vector Embedding
-    function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64, LogicalTypeID::STRING}, LogicalTypeID::LIST, execFunc);
+    function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::UINT64, LogicalTypeID::STRING},
+        LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
-
-
 
     return functionSet;
 }

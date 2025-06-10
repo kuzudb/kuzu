@@ -1,4 +1,5 @@
 #include "providers/amazon-bedrock.h"
+
 #include <string>
 #include <unordered_set>
 
@@ -20,7 +21,7 @@ EmbeddingProvider& BedrockEmbedding::getInstance() {
 }
 
 std::string BedrockEmbedding::getClient() const {
-    return "https://bedrock-runtime."+ region.value_or("us-east-1") +".amazonaws.com";
+    return "https://bedrock-runtime." + region.value_or("us-east-1") + ".amazonaws.com";
 }
 
 std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
@@ -49,7 +50,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     }
     std::string service = "bedrock";
     std::string region = this->region.value_or("us-east-1");
-    std::string host = "bedrock-runtime."+region+".amazonaws.com";
+    std::string host = "bedrock-runtime." + region + ".amazonaws.com";
 
     auto timestamp = Timestamp::getCurrentTimestamp();
     auto dateHeader = Timestamp::getDateHeader(timestamp);
@@ -128,21 +129,20 @@ std::vector<float> BedrockEmbedding::parseResponse(const httplib::Result& res) c
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
 
-void BedrockEmbedding::checkModel(const std::string& model) const 
-{
+void BedrockEmbedding::checkModel(const std::string& model) const {
     static const std::unordered_set<std::string> validModels = {"amazon.titan-embed-text-v1"};
-    if (validModels.contains(model))
-    {
+    if (validModels.contains(model)) {
         return;
     }
     throw(RuntimeException("Invalid Model: " + model));
 }
 
-void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions, const std::optional<std::string>& region) 
-{
-    if (dimensions.has_value())
-    {
-        throw(RuntimeException("Bedrock does not support the dimensions argument: " + std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
+    const std::optional<std::string>& region) {
+    if (dimensions.has_value()) {
+        throw(RuntimeException("Bedrock does not support the dimensions argument: " +
+                               std::to_string(dimensions.value()) + '\n' +
+                               std::string(referenceKuzuDocs)));
     }
     this->region = region;
 }
