@@ -102,7 +102,7 @@ struct KUZU_API RelBatchInsertExecutionState {
  * Generally, the source data to be copied from should be contained in the partitionerSharedState,
  * which can also be overridden.
  */
-class RelBatchInsertImpl {
+class KUZU_API RelBatchInsertImpl {
 public:
     virtual ~RelBatchInsertImpl() = default;
     virtual std::unique_ptr<RelBatchInsertImpl> copy() = 0;
