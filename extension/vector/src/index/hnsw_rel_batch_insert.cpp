@@ -8,12 +8,21 @@ namespace kuzu {
 namespace vector_extension {
 
 struct HNSWRelBatchInsertExecutionState : processor::RelBatchInsertExecutionState {
-    HNSWRelBatchInsertExecutionState(const NodeToHNSWGraphOffsetMap& selectionMap,
-        common::offset_t startNodeOffset);
+    HNSWRelBatchInsertExecutionState(const InMemHNSWGraph& graph,
+        const NodeToHNSWGraphOffsetMap& selectionMap, common::offset_t startNodeOffset)
+        : startNodeOffset(startNodeOffset), graph(graph), selectionMap(selectionMap) {
+        const auto endNodeOffset = std::min(selectionMap.numNodesInTable,
+            startNodeOffset + common::StorageConfig::NODE_GROUP_SIZE);
+        startNodeInGraph = selectionMap.nodeToGraphOffset(startNodeOffset, false);
+        endNodeInGraph = selectionMap.nodeToGraphOffset(endNodeOffset, false);
+        KU_ASSERT(startNodeInGraph <= endNodeInGraph);
+        KU_ASSERT(endNodeInGraph <= selectionMap.numNodesInTable);
+    }
     common::offset_t startNodeOffset;
     common::offset_t startNodeInGraph;
     common::offset_t endNodeInGraph;
 
+    const InMemHNSWGraph& graph;
     const NodeToHNSWGraphOffsetMap& selectionMap;
 
     common::offset_t getBoundNodeOffsetInGroup(common::offset_t offsetInGraph) const {
@@ -21,22 +30,13 @@ struct HNSWRelBatchInsertExecutionState : processor::RelBatchInsertExecutionStat
     }
 };
 
-HNSWRelBatchInsertExecutionState::HNSWRelBatchInsertExecutionState(
-    const NodeToHNSWGraphOffsetMap& selectionMap, common::offset_t startNodeOffset)
-    : startNodeOffset(startNodeOffset), selectionMap(selectionMap) {
-    const auto endNodeOffset = std::min(selectionMap.numNodesInTable,
-        startNodeOffset + common::StorageConfig::NODE_GROUP_SIZE);
-    startNodeInGraph = selectionMap.nodeToGraphOffset(startNodeOffset, false);
-    endNodeInGraph = selectionMap.nodeToGraphOffset(endNodeOffset, false);
-    KU_ASSERT(startNodeInGraph <= endNodeInGraph);
-    KU_ASSERT(endNodeInGraph <= selectionMap.numNodesInTable);
-}
-
 std::unique_ptr<processor::RelBatchInsertExecutionState> HNSWRelBatchInsert::initExecutionState(
+    const processor::PartitionerSharedState& partitionerSharedState,
     const processor::RelBatchInsertInfo&, common::node_group_idx_t nodeGroupIdx) {
-    const auto& graphSharedState = partitionerSharedState->cast<HNSWLayerPartitionerSharedState>();
-    auto& selectionMap = *graphSharedState.graphSelectionMap;
-    return std::make_unique<HNSWRelBatchInsertExecutionState>(selectionMap,
+    const auto& graphSharedState =
+        partitionerSharedState.constCast<HNSWLayerPartitionerSharedState>();
+    return std::make_unique<HNSWRelBatchInsertExecutionState>(*graphSharedState.graph,
+        *graphSharedState.graphSelectionMap,
         storage::StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx));
 }
 
@@ -46,15 +46,14 @@ void HNSWRelBatchInsert::populateCSRLengths(processor::RelBatchInsertExecutionSt
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
     const auto& hnswExecutionState = executionState.constCast<HNSWRelBatchInsertExecutionState>();
-    const auto& graphSharedState = partitionerSharedState->cast<HNSWLayerPartitionerSharedState>();
-    const auto& graph = *graphSharedState.graph;
+    const auto& graph = hnswExecutionState.graph;
     const auto startNodeInGraph = hnswExecutionState.startNodeInGraph;
     const auto endNodeInGraph = hnswExecutionState.endNodeInGraph;
     const auto lengthData =
         reinterpret_cast<common::length_t*>(csrHeader.length->getData().getData());
     std::fill(lengthData, lengthData + numNodes, 0);
     for (common::offset_t graphOffset = startNodeInGraph; graphOffset < endNodeInGraph;
-         ++graphOffset) {
+        ++graphOffset) {
         const auto nodeOffsetInGroup = hnswExecutionState.getBoundNodeOffsetInGroup(graphOffset);
         KU_ASSERT(nodeOffsetInGroup < numNodes);
         lengthData[nodeOffsetInGroup] = graph.getCSRLength(graphOffset);
@@ -75,9 +74,8 @@ void HNSWRelBatchInsert::writeToTable(processor::RelBatchInsertExecutionState& e
     const processor::RelBatchInsertLocalState& localState,
     processor::BatchInsertSharedState& sharedState, const processor::RelBatchInsertInfo&) {
     const auto& hnswExecutionState = executionState.constCast<HNSWRelBatchInsertExecutionState>();
-    const auto& graphSharedState = partitionerSharedState->cast<HNSWLayerPartitionerSharedState>();
-    const auto& graph = *graphSharedState.graph;
-    const auto& selectionMap = *graphSharedState.graphSelectionMap;
+    const auto& graph = hnswExecutionState.graph;
+    const auto& selectionMap = hnswExecutionState.selectionMap;
 
     const auto startNodeInGraph = hnswExecutionState.startNodeInGraph;
     const auto endNodeInGraph = hnswExecutionState.endNodeInGraph;
@@ -93,7 +91,7 @@ void HNSWRelBatchInsert::writeToTable(processor::RelBatchInsertExecutionState& e
     auto& relIDChunk = localState.chunkedGroup->getColumnChunk(rowIdxColumn).getData();
     auto numRelsWritten = 0;
     for (common::offset_t nodeInGraph = startNodeInGraph; nodeInGraph < endNodeInGraph;
-         ++nodeInGraph) {
+        ++nodeInGraph) {
         const auto boundNodeOffsetInGroup =
             hnswExecutionState.getBoundNodeOffsetInGroup(nodeInGraph);
         const auto neighbours = graph.getNeighbors(nodeInGraph);

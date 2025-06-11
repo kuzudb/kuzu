@@ -16,10 +16,11 @@ static void setOffsetToWithinNodeGroup(storage::ColumnChunkData& chunk,
 }
 
 std::unique_ptr<RelBatchInsertExecutionState> CopyRelBatchInsert::initExecutionState(
-    const RelBatchInsertInfo& relInfo, common::node_group_idx_t nodeGroupIdx) {
+    const PartitionerSharedState& partitionerSharedState, const RelBatchInsertInfo& relInfo,
+    common::node_group_idx_t nodeGroupIdx) {
     auto executionState = std::make_unique<CopyRelBatchInsertExecutionState>();
     executionState->partitioningBuffer =
-        partitionerSharedState->cast<CopyPartitionerSharedState>().getPartitionBuffer(
+        partitionerSharedState.constCast<CopyPartitionerSharedState>().getPartitionBuffer(
             relInfo.partitioningIdx, nodeGroupIdx);
     const auto startNodeOffset = storage::StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     for (auto& chunkedGroup : executionState->partitioningBuffer->getChunkedGroups()) {

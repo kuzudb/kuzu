@@ -14,23 +14,15 @@ struct CopyRelBatchInsertExecutionState : RelBatchInsertExecutionState {
     std::unique_ptr<storage::InMemChunkedNodeGroupCollection> partitioningBuffer;
 };
 
-class CopyRelBatchInsert final : public RelBatchInsert {
+class CopyRelBatchInsert final : public RelBatchInsertImpl {
 public:
-    CopyRelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
-        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
-        std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo,
-        std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
-        : RelBatchInsert{std::move(tableName), std::move(info), std::move(partitionerSharedState),
-              std::move(sharedState), id, std::move(printInfo), std::move(progressSharedState)} {}
-
-    std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<CopyRelBatchInsert>(tableName, info->copy(), partitionerSharedState,
-            sharedState, id, printInfo->copy(), progressSharedState);
+    std::unique_ptr<RelBatchInsertImpl> copy() override {
+        return std::make_unique<CopyRelBatchInsert>(*this);
     }
 
     std::unique_ptr<RelBatchInsertExecutionState> initExecutionState(
-        const RelBatchInsertInfo& relInfo, common::node_group_idx_t nodeGroupIdx) override;
+        const PartitionerSharedState& partitionerSharedState, const RelBatchInsertInfo& relInfo,
+        common::node_group_idx_t nodeGroupIdx) override;
 
     void populateCSRLengths(RelBatchInsertExecutionState& executionState,
         storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,

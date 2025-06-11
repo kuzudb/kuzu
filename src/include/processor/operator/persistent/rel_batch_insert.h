@@ -102,17 +102,40 @@ struct KUZU_API RelBatchInsertExecutionState {
  * Generally, the source data to be copied from should be contained in the partitionerSharedState,
  * which can also be overridden.
  */
+class RelBatchInsertImpl {
+public:
+    virtual ~RelBatchInsertImpl() = default;
+    virtual std::unique_ptr<RelBatchInsertImpl> copy() = 0;
+    virtual std::unique_ptr<RelBatchInsertExecutionState> initExecutionState(
+        const PartitionerSharedState& partitionerSharedState, const RelBatchInsertInfo& relInfo,
+        common::node_group_idx_t nodeGroupIdx) = 0;
+    virtual void populateCSRLengths(RelBatchInsertExecutionState& executionState,
+        storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
+        const RelBatchInsertInfo& relInfo) = 0;
+    virtual void finalizeStartCSROffsets(RelBatchInsertExecutionState& executionState,
+        storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo);
+    virtual void writeToTable(RelBatchInsertExecutionState& executionState,
+        const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertLocalState& localState,
+        BatchInsertSharedState& sharedState, const RelBatchInsertInfo& relInfo) = 0;
+};
+
 class KUZU_API RelBatchInsert : public BatchInsert {
 public:
     RelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
-        std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
+        std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState,
+        std::unique_ptr<RelBatchInsertImpl> impl)
         : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState), id,
               std::move(printInfo)},
           partitionerSharedState{std::move(partitionerSharedState)},
-          progressSharedState{std::move(progressSharedState)} {}
+          progressSharedState{std::move(progressSharedState)}, impl(std::move(impl)) {}
+
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<RelBatchInsert>(tableName, info->copy(), partitionerSharedState,
+            sharedState, id, printInfo->copy(), progressSharedState, impl->copy());
+    }
 
     bool isSource() const override { return true; }
 
@@ -123,17 +146,6 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     void updateProgress(const ExecutionContext* context) const;
-
-    virtual std::unique_ptr<RelBatchInsertExecutionState> initExecutionState(
-        const RelBatchInsertInfo& relInfo, common::node_group_idx_t nodeGroupIdx) = 0;
-    virtual void populateCSRLengths(RelBatchInsertExecutionState& executionState,
-        storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
-        const RelBatchInsertInfo& relInfo) = 0;
-    virtual void finalizeStartCSROffsets(RelBatchInsertExecutionState& executionState,
-        storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo);
-    virtual void writeToTable(RelBatchInsertExecutionState& executionState,
-        const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertLocalState& localState,
-        BatchInsertSharedState& sharedState, const RelBatchInsertInfo& relInfo) = 0;
 
 private:
     void appendNodeGroup(const catalog::RelGroupCatalogEntry& relGroupEntry,
@@ -153,6 +165,7 @@ private:
 protected:
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;
     std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState;
+    std::unique_ptr<RelBatchInsertImpl> impl;
 };
 
 } // namespace processor

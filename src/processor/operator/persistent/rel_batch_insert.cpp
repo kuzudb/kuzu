@@ -149,7 +149,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
     const auto startNodeOffset = storage::StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto executionState = initExecutionState(relInfo, nodeGroupIdx);
+    auto executionState = impl->initExecutionState(*partitionerSharedState, relInfo, nodeGroupIdx);
     // Calculate num of source nodes in this node group.
     // This will be used to set the num of values of the node group.
     const auto numNodes = std::min(StorageConfig::NODE_GROUP_SIZE,
@@ -160,7 +160,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     populateCSRHeader(relGroupEntry, *executionState, startNodeOffset, relInfo, localState,
         numNodes, leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
-    writeToTable(*executionState, csrHeader, localState, *sharedState, relInfo);
+    impl->writeToTable(*executionState, csrHeader, localState, *sharedState, relInfo);
     // Reset num of rows in the chunked group to fill gaps at the end of the node group.
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
     auto numGapsAtEnd = maxSize - localState.chunkedGroup->getNumRows();
@@ -192,7 +192,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     localState.chunkedGroup->resetToEmpty();
 }
 
-void RelBatchInsert::finalizeStartCSROffsets(RelBatchInsertExecutionState&,
+void RelBatchInsertImpl::finalizeStartCSROffsets(RelBatchInsertExecutionState&,
     storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo&) {
     csrHeader.populateEndCSROffsetFromStartAndLength();
 }
@@ -205,10 +205,10 @@ void RelBatchInsert::populateCSRHeader(const RelGroupCatalogEntry& relGroupEntry
     auto& csrHeader = csrNodeGroup.getCSRHeader();
     csrHeader.setNumValues(numNodes);
     // Populate lengths for each node and check multiplicity constraint.
-    populateCSRLengths(executionState, csrHeader, numNodes, relInfo);
+    impl->populateCSRLengths(executionState, csrHeader, numNodes, relInfo);
     checkRelMultiplicityConstraint(relGroupEntry, csrHeader, startNodeOffset, relInfo);
     const auto rightCSROffsetOfRegions = csrHeader.populateStartCSROffsetsFromLength(leaveGaps);
-    finalizeStartCSROffsets(executionState, csrHeader, relInfo);
+    impl->finalizeStartCSROffsets(executionState, csrHeader, relInfo);
     csrHeader.finalizeCSRRegionEndOffsets(rightCSROffsetOfRegions);
     // Resize csr data column chunks.
     localState.chunkedGroup->resizeChunks(csrHeader.getEndCSROffset(numNodes - 1));
