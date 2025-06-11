@@ -50,18 +50,18 @@ void GoogleGeminiEmbedding::checkModel(const std::string_view& model) const {
     if (validModels.contains(model)) {
         return;
     }
-    throw(RuntimeException("Invalid Model: " + std::string(model)));
+    throw(BinderException("Invalid Model: " + std::string(model)));
 }
 
 void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
-        throw(RuntimeException("Google-Gemini does not support the dimensions argument: " +
+        throw(BinderException("Google-Gemini does not support the dimensions argument: " +
                                std::to_string(dimensions.value()) + '\n' +
                                std::string(referenceKuzuDocs)));
     }
     if (region.has_value()) {
-        throw(RuntimeException("Google-Gemini does not support the region argument: " +
+        throw(BinderException("Google-Gemini does not support the region argument: " +
                                region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
 }

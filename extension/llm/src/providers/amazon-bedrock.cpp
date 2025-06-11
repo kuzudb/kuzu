@@ -134,13 +134,13 @@ void BedrockEmbedding::checkModel(const std::string_view& model) const {
     if (validModels.contains(model)) {
         return;
     }
-    throw(RuntimeException("Invalid Model: " + std::string(model)));
+    throw(BinderException("Invalid Model: " + std::string(model)));
 }
 
 void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
-        throw(RuntimeException("Bedrock does not support the dimensions argument: " +
+        throw(BinderException("Bedrock does not support the dimensions argument: " +
                                std::to_string(dimensions.value()) + '\n' +
                                std::string(referenceKuzuDocs)));
     }

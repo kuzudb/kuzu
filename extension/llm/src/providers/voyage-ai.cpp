@@ -44,23 +44,23 @@ nlohmann::json VoyageAIEmbedding::getPayload(const std::string_view& model,
     return payload;
 }
 
+std::vector<float> VoyageAIEmbedding::parseResponse(const httplib::Result& res) const {
+    return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
+}
+
 void VoyageAIEmbedding::checkModel(const std::string_view& model) const {
     static const std::unordered_set<std::string_view> validModels = {"voyage-3-large", "voyage-3.5",
         "voyage-3.5-lite", "voyage-code-3", "voyage-finance-2", "voyage-law-2", "voyage-code-2"};
     if (validModels.contains(model)) {
         return;
     }
-    throw(RuntimeException("Invalid Model: " + std::string(model)));
-}
-
-std::vector<float> VoyageAIEmbedding::parseResponse(const httplib::Result& res) const {
-    return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
+    throw(BinderException("Invalid Model: " + std::string(model)));
 }
 
 void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (region.has_value()) {
-        throw(RuntimeException("Voyage-AI does not support the region argument: " + region.value() +
+        throw(BinderException("Voyage-AI does not support the region argument: " + region.value() +
                                '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
