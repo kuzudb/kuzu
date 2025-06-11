@@ -57,12 +57,12 @@ void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
         throw(BinderException("Google-Gemini does not support the dimensions argument: " +
-                               std::to_string(dimensions.value()) + '\n' +
-                               std::string(referenceKuzuDocs)));
+                              std::to_string(dimensions.value()) + '\n' +
+                              std::string(referenceKuzuDocs)));
     }
     if (region.has_value()) {
         throw(BinderException("Google-Gemini does not support the region argument: " +
-                               region.value() + '\n' + std::string(referenceKuzuDocs)));
+                              region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
 }
 
@@ -71,11 +71,11 @@ uint64_t GoogleGeminiEmbedding::getEmbeddingDimension(const std::string_view& mo
         {"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException(
+            "Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }
-
 
 } // namespace llm_extension
 } // namespace kuzu

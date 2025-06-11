@@ -48,12 +48,12 @@ void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
         throw(BinderException("Ollama does not support the dimensions argument: " +
-                               std::to_string(dimensions.value()) + '\n' +
-                               std::string(referenceKuzuDocs)));
+                              std::to_string(dimensions.value()) + '\n' +
+                              std::string(referenceKuzuDocs)));
     }
     if (region.has_value()) {
         throw(BinderException("Ollama does not support the region argument: " + region.value() +
-                               '\n' + std::string(referenceKuzuDocs)));
+                              '\n' + std::string(referenceKuzuDocs)));
     }
 }
 
@@ -62,7 +62,8 @@ uint64_t OllamaEmbedding::getEmbeddingDimension(const std::string_view& model) c
         {"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException(
+            "Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }

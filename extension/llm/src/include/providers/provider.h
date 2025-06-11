@@ -19,13 +19,13 @@ public:
     virtual std::string getClient() const = 0;
     virtual std::string getPath(const std::string_view& model) const = 0;
     virtual httplib::Headers getHeaders(const nlohmann::json& payload) const = 0;
-    virtual nlohmann::json getPayload(const std::string_view& model, const std::string_view& text) const = 0;
+    virtual nlohmann::json getPayload(const std::string_view& model,
+        const std::string_view& text) const = 0;
     virtual std::vector<float> parseResponse(const httplib::Result& res) const = 0;
     virtual void checkModel(const std::string_view& model) const = 0;
     virtual void configure(const std::optional<uint64_t>& dimensions,
         const std::optional<std::string>& region) = 0;
     virtual uint64_t getEmbeddingDimension(const std::string_view& model) const = 0;
-
 };
 
 } // namespace llm_extension

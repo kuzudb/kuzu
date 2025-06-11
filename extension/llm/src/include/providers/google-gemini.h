@@ -20,13 +20,13 @@ public:
     std::string getClient() const override;
     std::string getPath(const std::string_view& model) const override;
     httplib::Headers getHeaders(const nlohmann::json& payload) const override;
-    nlohmann::json getPayload(const std::string_view& model, const std::string_view& text) const override;
+    nlohmann::json getPayload(const std::string_view& model,
+        const std::string_view& text) const override;
     std::vector<float> parseResponse(const httplib::Result& res) const override;
     void checkModel(const std::string_view& model) const override;
     void configure(const std::optional<uint64_t>& dimensions,
         const std::optional<std::string>& region) override;
     uint64_t getEmbeddingDimension(const std::string_view& model) const override;
-
 };
 
 } // namespace llm_extension
