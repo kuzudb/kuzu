@@ -110,7 +110,7 @@ static std::string createStopWordsTable(const ClientContext& context,
         query +=
             stringFormat("CREATE NODE TABLE `{}` (sw STRING, PRIMARY KEY(sw));", info.tableName);
         std::string stopWordList = "[";
-        for (auto& stopWord : StopWords::DEFAULT_STOP_WORDS) {
+        for (auto& stopWord : StopWords::getDefaultStopWords()) {
             stopWordList += stringFormat("\"{}\",", stopWord);
         }
         stopWordList.back() = ']';

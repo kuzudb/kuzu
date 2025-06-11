@@ -39,7 +39,7 @@ StopWordsChecker::StopWordsChecker(MemoryManager* mm, NodeTable* stopwordsTable,
     termsVector.state = common::DataChunkState::getSingleValueDataChunkState();
     if (defaultStopWords) {
         isStopWord = [](const std::string& term) {
-            return StopWords::DEFAULT_STOP_WORDS.contains(term);
+            return StopWords::getDefaultStopWords().contains(term);
         };
     } else {
         isStopWord = [&](const std::string& term) {
