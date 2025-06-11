@@ -1,7 +1,5 @@
 #include "providers/open-ai.h"
 
-#include <string>
-
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
