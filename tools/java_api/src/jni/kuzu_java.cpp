@@ -6,6 +6,8 @@
 #include <dlfcn.h>
 #endif
 
+#include <iostream>
+
 // This header is generated at build time. See CMakeLists.txt.
 #include <vector>
 
