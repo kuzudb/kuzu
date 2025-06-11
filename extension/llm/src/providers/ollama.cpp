@@ -1,5 +1,6 @@
 #include "providers/ollama.h"
 
+#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -55,6 +56,16 @@ void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
         throw(RuntimeException("Ollama does not support the region argument: " + region.value() +
                                '\n' + std::string(referenceKuzuDocs)));
     }
+}
+
+uint64_t OllamaEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
+        {"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}};
+    auto modelDimensionMapIter = modelDimensionMap.find(model);
+    if (modelDimensionMapIter == modelDimensionMap.end()) {
+        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+    }
+    return modelDimensionMapIter->second;
 }
 
 } // namespace llm_extension

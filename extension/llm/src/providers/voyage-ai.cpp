@@ -1,5 +1,6 @@
 #include "providers/voyage-ai.h"
 
+#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -63,6 +64,18 @@ void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
                                '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
+}
+
+uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
+        {"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024},
+        {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024},
+        {"voyage-code-2", 1536}};
+    auto modelDimensionMapIter = modelDimensionMap.find(model);
+    if (modelDimensionMapIter == modelDimensionMap.end()) {
+        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+    }
+    return modelDimensionMapIter->second;
 }
 
 } // namespace llm_extension

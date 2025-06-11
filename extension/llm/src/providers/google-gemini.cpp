@@ -1,5 +1,6 @@
 #include "providers/google-gemini.h"
 
+#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -64,6 +65,17 @@ void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
                                region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
 }
+
+uint64_t GoogleGeminiEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
+        {"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};
+    auto modelDimensionMapIter = modelDimensionMap.find(model);
+    if (modelDimensionMapIter == modelDimensionMap.end()) {
+        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+    }
+    return modelDimensionMapIter->second;
+}
+
 
 } // namespace llm_extension
 } // namespace kuzu

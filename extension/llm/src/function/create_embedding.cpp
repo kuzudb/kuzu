@@ -1,5 +1,6 @@
 #include <cstdint>
 
+#include "binder/binder.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
@@ -43,34 +44,12 @@ static EmbeddingProvider& getInstance(const std::string& provider) {
     return providerInstanceIter->second();
 }
 
-static void configureModel(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-    EmbeddingProvider& provider) {
-    static constexpr size_t dimensionsOrRegionSpecified = 4;
-    static constexpr size_t dimensionsAndRegionSpecified = 5;
-    std::optional<uint64_t> dimensions = std::nullopt;
-    std::optional<std::string> region = std::nullopt;
-
-    if (parameters.size() == dimensionsAndRegionSpecified) {
-        dimensions = parameters[3]->getValue<uint64_t>(0);
-        region = parameters[4]->getValue<ku_string_t>(0).getAsString();
-    } else if (parameters.size() == dimensionsOrRegionSpecified) {
-        if (parameters[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
-            region = parameters[3]->getValue<ku_string_t>(0).getAsString();
-        } else {
-            dimensions = parameters[3]->getValue<uint64_t>(0);
-        }
-    }
-    provider.configure(dimensions, region);
-}
-
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     const std::vector<common::SelectionVector*>& /*parameterSelVectors*/,
     common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     auto& provider =
         getInstance(StringUtils::getLower(parameters[1]->getValue<ku_string_t>(0).getAsString()));
-    configureModel(parameters, provider);
     auto model = StringUtils::getLower(parameters[2]->getValue<ku_string_t>(0).getAsString());
-    provider.checkModel(model);
     httplib::Client client(provider.getClient());
     client.set_connection_timeout(30);
     client.set_read_timeout(30);
@@ -105,8 +84,46 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    return FunctionBindData::getSimpleBindData(input.arguments,
-        LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
+    static constexpr size_t providerIdx = 1;
+    static constexpr size_t modelIdx = 2;
+    static constexpr size_t dimensionsOrRegionSpecified = 4;
+    static constexpr size_t dimensionsAndRegionSpecified = 5;
+    std::optional<uint64_t> dimensions = std::nullopt;
+    std::optional<std::string> region = std::nullopt;
+    auto& provider = getInstance(input.arguments[providerIdx]->toString());
+
+    if (input.arguments.size() == dimensionsAndRegionSpecified) {
+        try {
+            auto exprBinder = Binder(input.context).getExpressionBinder();
+            dimensions = std::stoull(exprBinder->foldExpression(input.arguments[3])->toString());
+        } 
+        catch (...) {
+            throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString()));
+        }
+        region = input.arguments[4]->toString();
+    } else if (input.arguments.size() == dimensionsOrRegionSpecified) {
+        if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
+            region = input.arguments[3]->toString();
+        } else {
+            try {
+                auto exprBinder = Binder(input.context).getExpressionBinder();
+                dimensions = std::stoull(exprBinder->foldExpression(input.arguments[3])->toString());
+            }
+            catch (...) {
+                throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString()));
+            }
+
+        }
+    }
+
+    provider.configure(dimensions, region);
+    if (dimensions.has_value())
+    {
+        provider.checkModel(input.arguments[modelIdx]->toString());
+        return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), dimensions.value()));
+    }
+    auto embeddingDimensions = provider.getEmbeddingDimension(input.arguments[modelIdx]->toString());
+    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
@@ -116,7 +133,7 @@ function_set CreateEmbedding::getFunctionSet() {
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING},
-        LogicalTypeID::LIST, execFunc);
+        LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
@@ -124,7 +141,7 @@ function_set CreateEmbedding::getFunctionSet() {
     function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::LIST, execFunc);
+        LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
@@ -132,7 +149,7 @@ function_set CreateEmbedding::getFunctionSet() {
     function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING, LogicalTypeID::UINT64},
-        LogicalTypeID::LIST, execFunc);
+        LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
@@ -140,7 +157,7 @@ function_set CreateEmbedding::getFunctionSet() {
     function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING, LogicalTypeID::UINT64, LogicalTypeID::STRING},
-        LogicalTypeID::LIST, execFunc);
+        LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 

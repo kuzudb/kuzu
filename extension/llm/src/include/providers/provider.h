@@ -24,6 +24,8 @@ public:
     virtual void checkModel(const std::string& model) const = 0;
     virtual void configure(const std::optional<uint64_t>& dimensions,
         const std::optional<std::string>& region) = 0;
+virtual uint64_t getEmbeddingDimension(const std::string& model) const = 0;
+
 };
 
 } // namespace llm_extension

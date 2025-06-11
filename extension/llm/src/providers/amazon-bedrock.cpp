@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/timestamp_t.h"
 #include "crypto.h"
@@ -145,6 +146,16 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
                                std::string(referenceKuzuDocs)));
     }
     this->region = region;
+}
+
+uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
+        {"amazon.titan-embed-text-v1", 1024}};
+    auto modelDimensionMapIter = modelDimensionMap.find(model);
+    if (modelDimensionMapIter == modelDimensionMap.end()) {
+        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+    }
+    return modelDimensionMapIter->second;
 }
 
 } // namespace llm_extension
