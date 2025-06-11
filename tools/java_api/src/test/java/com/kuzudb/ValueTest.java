@@ -255,6 +255,11 @@ public class ValueTest extends TestBase {
         assertEquals(stamp.getNano(), 123123000);
         checkValueConversion(value);
         value.close();
+
+        Instant t = Instant.now();
+        Value v = new Value(t);
+        assertEquals(t.toString(), v.getValue().toString());
+        v.close();
     }
 
     @Test
