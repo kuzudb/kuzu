@@ -194,6 +194,11 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     localState.chunkedGroup->resetToEmpty();
 }
 
+void RelBatchInsert::finalizeStartCSROffsets(RelBatchInsertExecutionState&,
+    storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo&) {
+    csrHeader.populateEndCSROffsetFromStartAndLength();
+}
+
 void RelBatchInsert::populateCSRHeaderAndRowIdx(const RelGroupCatalogEntry& relGroupEntry,
     RelBatchInsertExecutionState& executionState, offset_t startNodeOffset,
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
@@ -205,7 +210,7 @@ void RelBatchInsert::populateCSRHeaderAndRowIdx(const RelGroupCatalogEntry& relG
     populateCSRLengths(executionState, csrHeader, numNodes, relInfo);
     checkRelMultiplicityConstraint(relGroupEntry, csrHeader, startNodeOffset, relInfo);
     const auto rightCSROffsetOfRegions = csrHeader.populateStartCSROffsetsFromLength(leaveGaps);
-    populateRowIdxFromCSRHeader(executionState, csrHeader, relInfo);
+    finalizeStartCSROffsets(executionState, csrHeader, relInfo);
     csrHeader.finalizeCSRRegionEndOffsets(rightCSROffsetOfRegions);
     // Resize csr data column chunks.
     localState.chunkedGroup->resizeChunks(csrHeader.getEndCSROffset(numNodes - 1));

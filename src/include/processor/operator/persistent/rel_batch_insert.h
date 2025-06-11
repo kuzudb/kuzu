@@ -106,9 +106,8 @@ public:
     virtual void populateCSRLengths(RelBatchInsertExecutionState& executionState,
         storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
         const RelBatchInsertInfo& relInfo) = 0;
-    // TODO(Royi) remove this interface
-    virtual void populateRowIdxFromCSRHeader(RelBatchInsertExecutionState& executionState,
-        storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo) = 0;
+    virtual void finalizeStartCSROffsets(RelBatchInsertExecutionState& executionState,
+        storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo);
     virtual void writeToTable(RelBatchInsertExecutionState& executionState,
         const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertLocalState& localState,
         BatchInsertSharedState& sharedState, const RelBatchInsertInfo& relInfo) = 0;

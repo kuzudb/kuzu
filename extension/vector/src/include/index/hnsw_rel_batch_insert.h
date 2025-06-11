@@ -12,14 +12,6 @@ namespace vector_extension {
 
 struct NodeToHNSWGraphOffsetMap;
 
-struct HNSWRelBatchInsertExecutionState : processor::RelBatchInsertExecutionState {
-    HNSWRelBatchInsertExecutionState(const NodeToHNSWGraphOffsetMap& selectionMap,
-        common::offset_t startNodeOffset);
-    common::offset_t startNodeOffset;
-    common::offset_t startNodeInGraph;
-    common::offset_t endNodeInGraph;
-};
-
 class KUZU_API HNSWRelBatchInsert final : public processor::RelBatchInsert {
 public:
     HNSWRelBatchInsert(std::string tableName, std::unique_ptr<processor::BatchInsertInfo> info,
@@ -42,10 +34,6 @@ public:
 
     void populateCSRLengths(processor::RelBatchInsertExecutionState& executionState,
         storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
-        const processor::RelBatchInsertInfo& relInfo) override;
-
-    void populateRowIdxFromCSRHeader(processor::RelBatchInsertExecutionState& executionState,
-        storage::ChunkedCSRHeader& csrHeader,
         const processor::RelBatchInsertInfo& relInfo) override;
 
     void writeToTable(processor::RelBatchInsertExecutionState& executionState,

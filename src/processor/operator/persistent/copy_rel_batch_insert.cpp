@@ -67,7 +67,7 @@ void CopyRelBatchInsert::setRowIdxFromCSROffsets(storage::ColumnChunkData& rowId
     }
 }
 
-void CopyRelBatchInsert::populateRowIdxFromCSRHeader(RelBatchInsertExecutionState& executionState,
+void CopyRelBatchInsert::finalizeStartCSROffsets(RelBatchInsertExecutionState& executionState,
     storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo) {
     auto& copyRelExecutionState = executionState.cast<CopyRelBatchInsertExecutionState>();
     for (auto& chunkedGroup : copyRelExecutionState.partitioningBuffer->getChunkedGroups()) {
@@ -83,6 +83,8 @@ void CopyRelBatchInsert::writeToTable(RelBatchInsertExecutionState& executionSta
     auto& copyRelExecutionState = executionState.cast<CopyRelBatchInsertExecutionState>();
     for (auto& chunkedGroup : copyRelExecutionState.partitioningBuffer->getChunkedGroups()) {
         sharedState.incrementNumRows(chunkedGroup->getNumRows());
+        // we reused the bound node offset column to store row idx
+        // the row idx column determines which rows to write each entry in the chunked group to
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
     }
 }

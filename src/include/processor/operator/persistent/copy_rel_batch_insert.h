@@ -36,7 +36,7 @@ public:
         storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
         const RelBatchInsertInfo& relInfo) override;
 
-    void populateRowIdxFromCSRHeader(RelBatchInsertExecutionState& executionState,
+    void finalizeStartCSROffsets(RelBatchInsertExecutionState& executionState,
         storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo) override;
 
     void writeToTable(RelBatchInsertExecutionState& executionState,
