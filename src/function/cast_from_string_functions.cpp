@@ -305,7 +305,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
     }
     skipWhitespace(++input, end);
 
-    bool just_finished_entry = false;
+    bool just_finished_entry = true; // true at start
     auto start_ptr = input;
     while (input < end) {
         auto ch = *input;
