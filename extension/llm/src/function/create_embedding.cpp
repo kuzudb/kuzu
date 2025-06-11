@@ -36,7 +36,7 @@ static EmbeddingProvider& getInstance(const std::string_view& provider) {
     auto providerInstanceIter = providerInstanceMap.find(provider);
     if (providerInstanceIter == providerInstanceMap.end()) {
         throw BinderException("Provider not found: " + std::string(provider) + "\n" +
-                               std::string(EmbeddingProvider::referenceKuzuDocs));
+                              std::string(EmbeddingProvider::referenceKuzuDocs));
     }
     return providerInstanceIter->second();
 }
@@ -95,10 +95,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
             std::shared_ptr<Expression> dimensionsExpr = input.arguments[3];
             dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(dimensionsExpr,
                 LogicalType(LogicalTypeID::UINT64));
-            dimensions =
-                std::stoull(evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr,
+            dimensions = std::stoull(
+                evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr,
                     input.context)
-                                .toString());
+                    .toString());
         } catch (...) {
             throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString()));
         }
@@ -110,8 +110,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
             try {
                 Binder binder{input.context};
                 std::shared_ptr<Expression> dimensionsExpr = input.arguments[3];
-                dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(dimensionsExpr,
-                    LogicalType(LogicalTypeID::UINT64));
+                dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(
+                    dimensionsExpr, LogicalType(LogicalTypeID::UINT64));
                 dimensions = std::stoull(
                     evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr,
                         input.context)
@@ -129,8 +129,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         return FunctionBindData::getSimpleBindData(input.arguments,
             LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), dimensions.value()));
     }
-    auto embeddingDimensions =
-        provider.getEmbeddingDimension(StringUtils::getLower(input.arguments[modelIdx]->toString()));
+    auto embeddingDimensions = provider.getEmbeddingDimension(
+        StringUtils::getLower(input.arguments[modelIdx]->toString()));
     return FunctionBindData::getSimpleBindData(input.arguments,
         LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
 }
