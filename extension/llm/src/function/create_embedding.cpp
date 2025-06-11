@@ -94,31 +94,35 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
             Binder binder{input.context};
             std::shared_ptr<Expression> dimensionsExpr = input.arguments[3];
             dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(dimensionsExpr,
-                LogicalType(LogicalTypeID::UINT64));
-            dimensions = std::stoull(
-                evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr,
-                    input.context)
-                    .toString());
+                LogicalType(LogicalTypeID::INT64));
+            auto toCast = std::stoll(evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, input.context).toString());
+            if (toCast < 0)
+            {
+                throw(toCast);
+            }
+            dimensions = toCast;
         } catch (...) {
-            throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString()));
+            throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString() + '\n' + std::string(EmbeddingProvider::referenceKuzuDocs)));
         }
         region = StringUtils::getLower(input.arguments[4]->toString());
     } else if (input.arguments.size() == dimensionsOrRegionSpecified) {
         if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
-            region = StringUtils::getLower(input.arguments[4]->toString());
+            region = StringUtils::getLower(input.arguments[3]->toString());
         } else {
             try {
                 Binder binder{input.context};
                 std::shared_ptr<Expression> dimensionsExpr = input.arguments[3];
                 dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(
-                    dimensionsExpr, LogicalType(LogicalTypeID::UINT64));
-                dimensions = std::stoull(
-                    evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr,
-                        input.context)
-                        .toString());
+                    dimensionsExpr, LogicalType(LogicalTypeID::INT64));
+                auto toCast = std::stoll(evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, input.context).toString());
+                if (toCast < 0)
+                {
+                    throw(toCast);
+                }
+                dimensions = toCast;
             } catch (...) {
                 throw(BinderException(
-                    "Failed to parse dimensions: " + input.arguments[3]->toString()));
+                    "Failed to parse dimensions: " + input.arguments[3]->toString() + '\n' + std::string(EmbeddingProvider::referenceKuzuDocs)));
             }
         }
     }
@@ -157,7 +161,7 @@ function_set CreateEmbedding::getFunctionSet() {
     // Prompt, Provider, Model, Dimensions -> Vector Embedding
     function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
-            LogicalTypeID::STRING, LogicalTypeID::UINT64},
+            LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
@@ -165,7 +169,7 @@ function_set CreateEmbedding::getFunctionSet() {
     // Prompt, Provider, Model, Dimensions, Region -> Vector Embedding
     function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
-            LogicalTypeID::STRING, LogicalTypeID::UINT64, LogicalTypeID::STRING},
+            LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::STRING},
         LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
