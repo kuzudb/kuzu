@@ -102,12 +102,7 @@ public:
     int64_t getCurrentTS() const { return currentTS; }
     main::ClientContext* getClientContext() const { return clientContext; }
 
-    void checkForceCheckpoint(common::StatementType statementType) {
-        // Note: We always force checkpoint for COPY_FROM statement.
-        if (statementType == common::StatementType::COPY_FROM) {
-            forceCheckpoint = true;
-        }
-    }
+    void setForceCheckpoint() { forceCheckpoint = true; }
     bool shouldAppendToUndoBuffer() const {
         return getID() > DUMMY_TRANSACTION_ID && !isReadOnly();
     }
