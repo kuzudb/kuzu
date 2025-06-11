@@ -1,12 +1,8 @@
-#include <cstdint>
-
 #include "binder/binder.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
-#include "common/types/types.h"
-#include "expression_evaluator/expression_evaluator.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
@@ -29,8 +25,8 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace llm_extension {
 
-static EmbeddingProvider& getInstance(const std::string& provider) {
-    static const std::unordered_map<std::string, std::function<EmbeddingProvider&()>>
+static EmbeddingProvider& getInstance(const std::string_view& provider) {
+    static const std::unordered_map<std::string_view, std::function<EmbeddingProvider&()>>
         providerInstanceMap = {{"open-ai", &OpenAIEmbedding::getInstance},
             {"voyage-ai", &VoyageAIEmbedding::getInstance},
             {"google-vertex", &GoogleVertexEmbedding::getInstance},
@@ -40,7 +36,7 @@ static EmbeddingProvider& getInstance(const std::string& provider) {
 
     auto providerInstanceIter = providerInstanceMap.find(provider);
     if (providerInstanceIter == providerInstanceMap.end()) {
-        throw RuntimeException("Provider not found: " + provider + "\n" +
+        throw RuntimeException("Provider not found: " + std::string(provider) + "\n" +
                                std::string(EmbeddingProvider::referenceKuzuDocs));
     }
     return providerInstanceIter->second();
