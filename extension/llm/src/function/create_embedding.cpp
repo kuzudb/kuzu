@@ -100,10 +100,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         catch (...) {
             throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString()));
         }
-        region = input.arguments[4]->toString();
+        region = StringUtils::getLower(input.arguments[4]->toString());
     } else if (input.arguments.size() == dimensionsOrRegionSpecified) {
         if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
-            region = input.arguments[3]->toString();
+            region = StringUtils::getLower(input.arguments[4]->toString());
         } else {
             try {
                 Binder binder{input.context};
