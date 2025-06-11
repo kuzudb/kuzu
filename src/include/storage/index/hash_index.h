@@ -106,6 +106,8 @@ public:
     // For deletions, we don't check if the deleted keys exist or not. Thus, we don't need to check
     // in the persistent storage and directly delete keys in the local storage.
     void deleteInternal(Key key) const { localStorage->deleteKey(key); }
+    // Discards from local storage, but will not insert a deletion (used for rollbacks)
+    bool discardLocal(Key key) const { return localStorage->discard(key); }
 
     // For insertions, we first check in the local storage. There are three cases:
     // - the key is found in the local storage, return false;
@@ -437,6 +439,13 @@ public:
     inline void delete_(T key) {
         KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->deleteInternal(key);
+    }
+
+    bool discardLocal(common::ku_string_t key) { return discardLocal(key.getAsStringView()); }
+    template<common::IndexHashable T>
+    inline bool discardLocal(T key) {
+        KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
+        return getTypedHashIndex(key)->discardLocal(key);
     }
 
     void delete_(common::ValueVector* keyVector);
