@@ -116,8 +116,8 @@ Binder exception: Number of columns mismatch. Expected 4 but got 6.
 [qw\'e,a\',xh"zz]|3
 [ZCRB1:m7G(5")pppAm-c'apped]|1
 [a,b,c]|3
-[ca's,wqrqw''','qa,qwr'']|4
-[aqr"',"",q"w"r,']|4
+[ca's,wqrqw''','qa',qwr'']|4
+[aqr"',"",q"w"r,x]|4
 ['toronto','montr,eal']|2
 ['tor""nto',"montr,'real"]|2
 [abc]|1
