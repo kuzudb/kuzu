@@ -5,19 +5,25 @@
 namespace kuzu {
 namespace function {
 
-struct ClearWarningsFunction final {
+struct ClearWarningsFunction {
     static constexpr const char* name = "CLEAR_WARNINGS";
 
     static function_set getFunctionSet();
 };
 
-struct ProjectGraphFunction final {
+struct ProjectGraphNativeFunction {
     static constexpr const char* name = "PROJECT_GRAPH";
 
     static function_set getFunctionSet();
 };
 
-struct DropProjectedGraphFunction final {
+struct ProjectGraphCypherFunction {
+    static constexpr const char* name = "PROJECT_GRAPH_CYPHER";
+
+    static function_set getFunctionSet();
+};
+
+struct DropProjectedGraphFunction {
     static constexpr const char* name = "DROP_PROJECTED_GRAPH";
 
     static function_set getFunctionSet();

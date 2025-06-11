@@ -7,7 +7,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('PK', [], [])
 ---- error
-Runtime exception: Project graph PK already exists.
+Runtime exception: Projected graph PK already exists.
 -STATEMENT CALL PROJECT_GRAPH('dummy', ['knows'], [])
 ---- error
 Binder exception: knows is not a NODE table.
@@ -22,35 +22,38 @@ Dan|12
 
 -STATEMENT CALL SHOW_PROJECTED_GRAPHS() RETURN *;
 ---- 2
-PKWO|[{'table': 'person'},{'table': 'organisation'}]|[{'table': 'knows'},{'table': 'workAt'}]
-PK|[{'table': 'person'}]|[{'table': 'knows'}]
+PKWO|NATIVE
+PK|NATIVE
 -STATEMENT CALL PROJECT_GRAPH('withFilter', {'person': 'n.age > 35'}, {'knows':'size(r.comments) > 5'})
 ---- ok
 -STATEMENT CALL SHOW_PROJECTED_GRAPHS() RETURN *;
 ---- 3
-PKWO|[{'table': 'person'},{'table': 'organisation'}]|[{'table': 'knows'},{'table': 'workAt'}]
-PK|[{'table': 'person'}]|[{'table': 'knows'}]
-withFilter|[{'table': 'person','predicate': 'n.age > 35'}]|[{'table': 'knows','predicate': 'size(r.comments) > 5'}]
+PKWO|NATIVE
+PK|NATIVE
+withFilter|NATIVE
 -STATEMENT CALL PROJECT_GRAPH('multipleTableWithFilter', {'person': 'n.age > 35', 'organisation': 'n.ID > 2'}, {'knows': 'size(r.comments) > 5'})
 ---- ok
 -STATEMENT CALL SHOW_PROJECTED_GRAPHS() RETURN *;
 ---- 4
-PKWO|[{'table': 'person'},{'table': 'organisation'}]|[{'table': 'knows'},{'table': 'workAt'}]
-PK|[{'table': 'person'}]|[{'table': 'knows'}]
-multipleTableWithFilter|[{'table': 'person','predicate': 'n.age > 35'},{'table': 'organisation','predicate': 'n.ID > 2'}]|[{'table': 'knows','predicate': 'size(r.comments) > 5'}]
-withFilter|[{'table': 'person','predicate': 'n.age > 35'}]|[{'table': 'knows','predicate': 'size(r.comments) > 5'}]
+PKWO|NATIVE
+PK|NATIVE
+multipleTableWithFilter|NATIVE
+withFilter|NATIVE
 -STATEMENT CALL PROJECT_GRAPH('emptygraph', [], [])
 ---- ok
+-STATEMENT CALL PROJECT_GRAPH_CYPHER('G', "MATCH (n) WHERE n.age < 10 RETURN n")
+---- ok
 -STATEMENT CALL SHOW_PROJECTED_GRAPHS() RETURN *;
----- 5
-PKWO|[{'table': 'person'},{'table': 'organisation'}]|[{'table': 'knows'},{'table': 'workAt'}]
-PK|[{'table': 'person'}]|[{'table': 'knows'}]
-multipleTableWithFilter|[{'table': 'person','predicate': 'n.age > 35'},{'table': 'organisation','predicate': 'n.ID > 2'}]|[{'table': 'knows','predicate': 'size(r.comments) > 5'}]
-withFilter|[{'table': 'person','predicate': 'n.age > 35'}]|[{'table': 'knows','predicate': 'size(r.comments) > 5'}]
-emptygraph||
+---- 6
+G|CYPHER
+PKWO|NATIVE
+PK|NATIVE
+multipleTableWithFilter|NATIVE
+withFilter|NATIVE
+emptygraph|NATIVE
 -STATEMENT CALL drop_projected_graph('dummy')
 ---- error
-Runtime exception: Project graph dummy does not exists.
+Runtime exception: Projected graph dummy does not exists.
 -STATEMENT CALL drop_projected_graph('PK')
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('PK', ['person'], ['knows'])

@@ -35,7 +35,7 @@ public:
         for (auto& entry : catalog->getRelGroupEntries(transaction)) {
             relEntries.push_back(entry);
         }
-        auto entry = graph::GraphEntry(nodeEntries, relEntries);
+        auto entry = graph::NativeGraphEntry(nodeEntries, relEntries);
         graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
 
         fwdStorageOnly = (common::DEFAULT_EXTEND_DIRECTION == common::ExtendDirection::FWD);
