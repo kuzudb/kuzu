@@ -69,6 +69,10 @@ FTSInsertState::FTSInsertState(MemoryManager* mm, column_id_t dfColumnID, Transa
     tableInfo.docTable->initInsertState(transaction, docTableInsertState);
     tableInfo.termsTable->initInsertState(transaction, termsTableInsertState);
     tableInfo.appearsInfoTable->initInsertState(transaction, appearsInTableInsertState);
+    docTableInsertState.logToWal = false;
+    appearsInTableInsertState.logToWal = false;
+    termsTableUpdateState.logToWal = false;
+    termsTableInsertState.logToWal = false;
 }
 
 struct TermInfo {
