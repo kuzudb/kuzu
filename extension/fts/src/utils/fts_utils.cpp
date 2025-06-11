@@ -16,7 +16,7 @@ using namespace kuzu::transaction;
 using namespace kuzu::catalog;
 
 void FTSUtils::normalizeQuery(std::string& query) {
-    std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
+    static const RE2 regexPattern("[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+");
     std::string replacePattern = " ";
     RE2::GlobalReplace(&query, regexPattern, replacePattern);
     StringUtils::toLower(query);

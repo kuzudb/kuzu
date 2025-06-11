@@ -85,6 +85,8 @@ struct KUZU_API TableScanState {
 
 struct KUZU_API TableInsertState {
     std::vector<common::ValueVector*> propertyVectors;
+    // TODO(Guodong): Remove this when we have a better way to skip WAL logging for FTS.
+    bool logToWAL;
 
     explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors);
     virtual ~TableInsertState();
@@ -102,6 +104,8 @@ struct KUZU_API TableInsertState {
 struct KUZU_API TableUpdateState {
     common::column_id_t columnID;
     common::ValueVector& propertyVector;
+    // TODO(Guodong): Remove this when we have a better way to skip WAL logging for FTS.
+    bool logToWAL;
 
     TableUpdateState(common::column_id_t columnID, common::ValueVector& propertyVector);
     virtual ~TableUpdateState();

@@ -31,10 +31,10 @@ void TableScanState::setToTable(const transaction::Transaction*, Table* table_,
 }
 
 TableInsertState::TableInsertState(std::vector<ValueVector*> propertyVectors)
-    : propertyVectors{std::move(propertyVectors)} {}
+    : propertyVectors{std::move(propertyVectors)}, logToWAL{true} {}
 TableInsertState::~TableInsertState() = default;
 TableUpdateState::TableUpdateState(column_id_t columnID, ValueVector& propertyVector)
-    : columnID{columnID}, propertyVector{propertyVector} {}
+    : columnID{columnID}, propertyVector{propertyVector}, logToWAL{true} {}
 TableUpdateState::~TableUpdateState() = default;
 TableDeleteState::~TableDeleteState() = default;
 

@@ -405,7 +405,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
         index->insert(transaction, nodeInsertState.nodeIDVector, indexedPropertyVectors,
             *nodeInsertState.indexInsertStates[i]);
     }
-    if (transaction->shouldLogToWAL()) {
+    if (insertState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -450,7 +450,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
             ->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
                 nodeUpdateState.propertyVector);
     }
-    if (transaction->shouldLogToWAL()) {
+    if (updateState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
