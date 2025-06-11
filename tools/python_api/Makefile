@@ -18,14 +18,13 @@ endif
 
 .venv:  ## Set up a Python virtual environment and install dev packages
 	python3 -m venv $(VENV)
-	$(MAKE) requirements
 
-requirements:  ## Install/update Python dev packages
+requirements: .venv ## Install/update Python dev packages
 	@unset CONDA_PREFIX \
 	&& $(VENV_BIN)/python -m pip install -U uv \
 	&& $(VENV_BIN)/uv pip install --upgrade -r requirements_dev.txt
 
-pytest: .venv
+pytest: requirements
 ifeq ($(OS),Windows_NT)
 	set PYTHONPATH=./build
 else
@@ -33,22 +32,22 @@ else
 endif
 	$(VENV_BIN)/python -m pytest -vv ./test
 
-lint: .venv  ## Apply autoformatting and linting rules
+lint: requirements  ## Apply autoformatting and linting rules
 	$(VENV_BIN)/ruff check src_py test
 	$(VENV_BIN)/ruff format src_py test
 	-$(VENV_BIN)/mypy src_py test
 
-check: .venv
+check: requirements
 	$(VENV_BIN)/ruff check src_py test --verbose
 
-format: .venv
+format: requirements
 	$(VENV_BIN)/ruff format src_py test
 
 build:  ## Compile kuzu (and install in 'build') for Python
 	$(MAKE) -C ../../ python
 	cp src_py/*.py build/kuzu/
 
-test: .venv  ## Run the Python unit tests
+test: requirements  ## Run the Python unit tests
 	cp src_py/*.py build/kuzu/ && cd build
 	$(VENV_BIN)/pytest test
 
