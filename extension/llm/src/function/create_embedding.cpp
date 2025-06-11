@@ -6,6 +6,8 @@
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "common/types/types.h"
+#include "expression_evaluator/expression_evaluator.h"
+#include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
 #include "httplib.h"
@@ -94,8 +96,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
 
     if (input.arguments.size() == dimensionsAndRegionSpecified) {
         try {
-            auto exprBinder = Binder(input.context).getExpressionBinder();
-            dimensions = std::stoull(exprBinder->foldExpression(input.arguments[3])->toString());
+            Binder binder{input.context};
+            std::shared_ptr<Expression> kExpr = input.arguments[3];
+            kExpr = binder.getExpressionBinder()->implicitCastIfNecessary(kExpr, LogicalType(LogicalTypeID::UINT64));
+            dimensions = std::stoull(evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(kExpr, input.context).toString());
         } 
         catch (...) {
             throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString()));
@@ -106,8 +110,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
             region = input.arguments[3]->toString();
         } else {
             try {
-                auto exprBinder = Binder(input.context).getExpressionBinder();
-                dimensions = std::stoull(exprBinder->foldExpression(input.arguments[3])->toString());
+                Binder binder{input.context};
+                std::shared_ptr<Expression> kExpr = input.arguments[3];
+                kExpr = binder.getExpressionBinder()->implicitCastIfNecessary(kExpr, LogicalType(LogicalTypeID::UINT64));
+                dimensions = std::stoull(evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(kExpr, input.context).toString());
             }
             catch (...) {
                 throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString()));
