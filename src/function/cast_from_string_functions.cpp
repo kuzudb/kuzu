@@ -312,7 +312,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
             if (!skipToClose(input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, option)) {
                 return false;
             }
-        } else if (ch == '\'' || ch == '"') {
+        } else if (ch == '\'' && (input == start_ptr || *(input - 1) != '\\')) {
             if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
