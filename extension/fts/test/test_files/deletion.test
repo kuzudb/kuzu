@@ -1,0 +1,67 @@
+-DATASET CSV fts-basic
+
+--
+
+-CASE FTSDeletion
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Alice wonderland', author: 'newton', abstract: 'machine'})
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Alice w', author: 'newton', abstract: 'not exist'})
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'alice') RETURN node.title,score;
+---- 3
+Alice wonderland|0.430161
+Alice w|0.464036
+The Quantum World|0.352879
+-STATEMENT MATCH (b:Book) where b.title = 'Alice w' delete b
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title,score;
+---- 3
+Alice wonderland|0.549301
+Learning Machines|0.599514
+The Quantum World|0.931796
+-STATEMENT MATCH (b:Book) where b.title = 'Alice wonderland' delete b
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title,score;
+---- 2
+Learning Machines|0.827832
+The Quantum World|0.857996
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'alice') RETURN node.title,score;
+---- 1
+The Quantum World|0.634506
+
+-CASE consecutiveDeletions
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
+---- ok
+-STATEMENT CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY doc FROM '${KUZU_ROOT_DIRECTORY}/dataset/ms-passage/vDoc.csv'
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'contentIdx', ['content'])
+---- ok
+-STATEMENT CALL threads=1
+---- ok
+-STATEMENT match (d:doc) where d.ID = 437 delete d
+---- ok
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
+---- 8
+109|2.011124
+134|1.976951
+199|1.865470
+202|1.927272
+389|1.822145
+390|3.018760
+429|1.943921
+432|1.822145
+-STATEMENT match (d:doc) where d.ID >= 390 delete d
+---- ok
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
+---- 5
+109|2.103948
+134|2.068176
+199|1.951345
+202|2.016027
+389|1.906131

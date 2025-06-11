@@ -61,13 +61,12 @@ std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
     StopWordsChecker checker{mm, stopwordsTable, tx,
         config.stopWordsSource == StopWords::DEFAULT_VALUE};
     for (auto& term : terms) {
-        auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
-            term.length());
-        std::string stemWord = std::string(reinterpret_cast<const char*>(stemData));
-        if (isConjunctive && checker.isStopWord(stemWord)) {
+        if (isConjunctive && checker.isStopWord(term)) {
             continue;
         }
-        result.push_back(stemWord);
+        auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
+            term.length());
+        result.push_back(std::string(reinterpret_cast<const char*>(stemData)));
     }
     sb_stemmer_delete(sbStemmer);
     return result;

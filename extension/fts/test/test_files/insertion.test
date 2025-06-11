@@ -46,13 +46,13 @@ The Quantum World|0.987801
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'shadow') RETURN node.title,score;
 ---- 2
-Digital Shadows|0.715658
-Shadows of Tomorrow|0.715658
+Digital Shadows|0.720636
+Shadows of Tomorrow|0.720636
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'digital') RETURN node.title,score;
 ---- 1
-Digital Shadows|1.293382
+Digital Shadows|1.299639
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'machine mage') RETURN node.title,score;
 ---- 3
-Learning Machines|1.061944
-Storm Weaver|0.927861
-The Mind Machine|0.748188
+Learning Machines|1.036935
+Storm Weaver|0.934315
+The Mind Machine|0.756869
