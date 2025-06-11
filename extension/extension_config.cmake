@@ -1,7 +1,7 @@
 #add_static_link_extension(azure)
 #add_static_link_extension(delta)
 #add_static_link_extension(duckdb)
-add_static_link_extension(fts)
+#add_static_link_extension(fts)
 #add_static_link_extension(httpfs)
 #add_static_link_extension(iceberg)
 #add_static_link_extension(json)
