@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -65,6 +66,18 @@ void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
                                '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
+}
+
+uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
+        {"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536},
+        {"text-embedding-ada-002", 1536}};
+
+    auto modelDimensionMapIter = modelDimensionMap.find(model);
+    if (modelDimensionMapIter == modelDimensionMap.end()) {
+        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+    }
+    return modelDimensionMapIter->second;
 }
 
 } // namespace llm_extension

@@ -1,5 +1,6 @@
 #include "providers/google-vertex.h"
 
+#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -68,6 +69,18 @@ void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
                                std::string(referenceKuzuDocs)));
     }
     this->region = region;
+}
+
+uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
+        {"gemini-embedding-001", 3072}, {"text-embedding-005", 768},
+        {"text-multilingual-embedding-002", 768}};
+
+    auto modelDimensionMapIter = modelDimensionMap.find(model);
+    if (modelDimensionMapIter == modelDimensionMap.end()) {
+        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+    }
+    return modelDimensionMapIter->second;
 }
 
 } // namespace llm_extension
