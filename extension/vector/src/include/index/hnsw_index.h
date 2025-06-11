@@ -161,11 +161,6 @@ public:
     common::offset_t searchNN(const void* queryVector, common::offset_t entryNode) const;
     void finalize(common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
         const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
-    std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getAsPartition(
-        storage::MemoryManager& mm, common::table_id_t srcNodeTableID,
-        common::table_id_t dstNodeTableID, common::table_id_t relTableID,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
-        const NodeToHNSWGraphOffsetMap& selectedNodesMap);
 
     const InMemHNSWGraph& getGraph() { return *graph; }
 
@@ -230,42 +225,26 @@ private:
 };
 
 struct HNSWLayerPartitionerSharedState : processor::BasePartitionerSharedState {
-    storage::MemoryManager& mm;
-
     std::unique_ptr<InMemHNSWLayer> layer;
     std::unique_ptr<NodeToHNSWGraphOffsetMap> graphSelectionMap;
 
     std::atomic<common::partition_idx_t> nextPartitionIdx;
-    common::offset_t numNodes;
-    common::offset_t numPartitions;
 
-    explicit HNSWLayerPartitionerSharedState(storage::MemoryManager& mm)
-        : mm(mm), numNodes(0), numPartitions(0) {};
-
-    void initialize(const common::logical_type_vec_t& columnTypes, common::idx_t numPartitioners,
-        const main::ClientContext* clientContext) override;
+    HNSWLayerPartitionerSharedState() = default;
 
     void setLayer(std::unique_ptr<InMemHNSWLayer> newLayer,
         std::unique_ptr<NodeToHNSWGraphOffsetMap> selectionMap);
 
-    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx) override;
-    common::partition_idx_t getNumPartitions(common::idx_t partitioningIdx) const override;
-    common::offset_t getNumNodes(common::idx_t partitioningIdx) const override;
-
-    void resetState() override;
     void resetBuffers(common::idx_t partitioningIdx) override;
-
-    std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getPartitionBuffer(
-        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const override;
 };
 
 struct HNSWIndexPartitionerSharedState {
     std::shared_ptr<HNSWLayerPartitionerSharedState> lowerPartitionerSharedState;
     std::shared_ptr<HNSWLayerPartitionerSharedState> upperPartitionerSharedState;
 
-    explicit HNSWIndexPartitionerSharedState(storage::MemoryManager& mm)
-        : lowerPartitionerSharedState{std::make_shared<HNSWLayerPartitionerSharedState>(mm)},
-          upperPartitionerSharedState{std::make_shared<HNSWLayerPartitionerSharedState>(mm)} {}
+    explicit HNSWIndexPartitionerSharedState()
+        : lowerPartitionerSharedState{std::make_shared<HNSWLayerPartitionerSharedState>()},
+          upperPartitionerSharedState{std::make_shared<HNSWLayerPartitionerSharedState>()} {}
 
     void setTables(storage::NodeTable* nodeTable, storage::RelTable* relTable);
 

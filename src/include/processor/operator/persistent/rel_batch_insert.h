@@ -116,8 +116,7 @@ private:
     void appendNodeGroup(const catalog::RelGroupCatalogEntry& relGroupEntry,
         storage::MemoryManager& mm, transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
-        const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const BasePartitionerSharedState& partitionerSharedState);
+        const RelBatchInsertLocalState& localState);
 
     void populateCSRHeaderAndRowIdx(const catalog::RelGroupCatalogEntry& relGroupEntry,
         RelBatchInsertExecutionState& executionState, common::offset_t startNodeOffset,

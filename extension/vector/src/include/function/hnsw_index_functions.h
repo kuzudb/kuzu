@@ -57,8 +57,8 @@ struct FinalizeHNSWSharedState final : function::SimpleTableFuncSharedState {
 
     std::atomic<common::node_group_idx_t> numNodeGroupsFinalized = 0;
 
-    explicit FinalizeHNSWSharedState(storage::MemoryManager& mm) : SimpleTableFuncSharedState{} {
-        partitionerSharedState = std::make_shared<HNSWIndexPartitionerSharedState>(mm);
+    explicit FinalizeHNSWSharedState() : SimpleTableFuncSharedState{} {
+        partitionerSharedState = std::make_shared<HNSWIndexPartitionerSharedState>();
     }
 };
 

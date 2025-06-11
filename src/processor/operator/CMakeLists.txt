@@ -11,6 +11,7 @@ add_subdirectory(macro)
 
 add_library(kuzu_processor_operator
         OBJECT
+        base_partitioner_shared_state.cpp
         cross_product.cpp
         empty_result.cpp
         filter.cpp

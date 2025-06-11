@@ -43,28 +43,13 @@ struct PartitionerSharedState : BasePartitionerSharedState {
     std::mutex mtx;
     storage::MemoryManager& mm;
 
-    explicit PartitionerSharedState(storage::MemoryManager& mm)
-        : mm{mm}, numNodes{0, 0}, numPartitions{0, 0}, nextPartitionIdx{0} {}
+    explicit PartitionerSharedState(storage::MemoryManager& mm) : mm{mm} {}
 
-    static constexpr size_t DIRECTIONS = 2;
-    std::array<common::offset_t, DIRECTIONS> numNodes;
-    std::array<common::partition_idx_t, DIRECTIONS>
-        numPartitions; // num of partitions in each direction.
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
-    std::atomic<common::partition_idx_t> nextPartitionIdx;
 
     void initialize(const common::logical_type_vec_t& columnTypes, common::idx_t numPartitioners,
         const main::ClientContext* clientContext) override;
 
-    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx) override;
-    common::partition_idx_t getNumPartitions(common::idx_t partitioningIdx) const override {
-        return numPartitions[partitioningIdx];
-    }
-    common::offset_t getNumNodes(common::idx_t partitioningIdx) const override {
-        return numNodes[partitioningIdx];
-    }
-
-    void resetState() override;
     void resetBuffers(common::idx_t partitioningIdx) override {
         partitioningBuffers[partitioningIdx].reset();
     }
@@ -74,7 +59,7 @@ struct PartitionerSharedState : BasePartitionerSharedState {
     // The data gets moved out of the shared state since some of it may be spilled to disk and will
     // need to be freed after its processed.
     std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getPartitionBuffer(
-        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const override {
+        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
 

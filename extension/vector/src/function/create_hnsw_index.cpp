@@ -261,9 +261,8 @@ static std::unique_ptr<TableFuncBindData> finalizeHNSWBindFunc(main::ClientConte
 }
 
 static std::unique_ptr<TableFuncSharedState> initFinalizeHNSWSharedState(
-    const TableFuncInitSharedStateInput& input) {
-    return std::make_unique<FinalizeHNSWSharedState>(
-        *input.context->clientContext->getMemoryManager());
+    const TableFuncInitSharedStateInput&) {
+    return std::make_unique<FinalizeHNSWSharedState>();
 }
 
 static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {

@@ -29,35 +29,11 @@ void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* parti
     }
 }
 
-partition_idx_t BasePartitionerSharedState::getNumPartitionsFromRows(offset_t numRows) {
-    return (numRows + StorageConfig::NODE_GROUP_SIZE - 1) / StorageConfig::NODE_GROUP_SIZE;
-}
-
 void PartitionerSharedState::initialize(const logical_type_vec_t& columnTypes,
     idx_t numPartitioners, const main::ClientContext* clientContext) {
-    KU_ASSERT(numPartitioners >= 1 && numPartitioners <= DIRECTIONS);
-    numNodes[0] = srcNodeTable->getNumTotalRows(clientContext->getTransaction());
-    if (numPartitioners > 1) {
-        numNodes[1] = dstNodeTable->getNumTotalRows(clientContext->getTransaction());
-    }
-    numPartitions[0] = getNumPartitionsFromRows(numNodes[0]);
-    if (numPartitioners > 1) {
-        numPartitions[1] = getNumPartitionsFromRows(numNodes[1]);
-    }
+    BasePartitionerSharedState::initialize(columnTypes, numPartitioners, clientContext);
     Partitioner::initializePartitioningStates(columnTypes, partitioningBuffers, numPartitions,
         numPartitioners);
-}
-
-partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx) {
-    auto nextPartitionIdxToReturn = nextPartitionIdx++;
-    if (nextPartitionIdxToReturn >= numPartitions[partitioningIdx]) {
-        return INVALID_PARTITION_IDX;
-    }
-    return nextPartitionIdxToReturn;
-}
-
-void PartitionerSharedState::resetState() {
-    nextPartitionIdx = 0;
 }
 
 void PartitionerSharedState::merge(
@@ -65,7 +41,7 @@ void PartitionerSharedState::merge(
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-         partitioningIdx++) {
+        partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(*localPartitioningStates[partitioningIdx]);
     }
 }

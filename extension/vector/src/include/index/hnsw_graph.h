@@ -195,24 +195,12 @@ public:
         dstNodes.setNodeOffset(csrOffset, dstNode);
     }
 
-    std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getAsPartition(
-        storage::MemoryManager& mm, common::table_id_t srcNodeTableID,
-        common::table_id_t dstNodeTableID, common::table_id_t relTableID,
-        common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
-        common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap);
-
     // In the current implementation, race conditions can result in dstNode entries being skipped
     // during insertion. Skipped entries will be marked with this value
     common::offset_t getInvalidOffset() const { return invalidOffset; }
 
 private:
     void resetCSRLengthAndDstNodes();
-
-    std::unique_ptr<storage::InMemChunkedNodeGroupCollection> getNodeGroupsForPartition(
-        storage::MemoryManager& mm, uint64_t numRels, common::table_id_t srcNodeTableID,
-        common::table_id_t dstNodeTableID, common::table_id_t relTableID,
-        common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
-        common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
         return dstNodes.getNodeOffset(csrOffset);

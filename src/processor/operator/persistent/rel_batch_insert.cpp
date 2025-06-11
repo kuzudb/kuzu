@@ -112,8 +112,7 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
                                   relLocalState->nodeGroupIdx, relInfo->direction)
                               ->cast<CSRNodeGroup>();
         appendNodeGroup(relGroupEntry, *clientContext->getMemoryManager(),
-            clientContext->getTransaction(), nodeGroup, *relInfo, *relLocalState, *sharedState,
-            *partitionerSharedState);
+            clientContext->getTransaction(), nodeGroup, *relInfo, *relLocalState);
         updateProgress(context);
     }
 }
@@ -147,22 +146,21 @@ static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* t
 
 void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, MemoryManager& mm,
     transaction::Transaction* transaction, CSRNodeGroup& nodeGroup,
-    const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
-    BatchInsertSharedState& sharedState, const BasePartitionerSharedState& partitionerSharedState) {
+    const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
     const auto startNodeOffset = storage::StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto executionState = initExecutionState(relInfo, nodeGroupIdx);
     // Calculate num of source nodes in this node group.
     // This will be used to set the num of values of the node group.
     const auto numNodes = std::min(StorageConfig::NODE_GROUP_SIZE,
-        partitionerSharedState.getNumNodes(relInfo.partitioningIdx) - startNodeOffset);
+        partitionerSharedState->getNumNodes(relInfo.partitioningIdx) - startNodeOffset);
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
     const auto leaveGaps = nodeGroup.isEmpty();
     populateCSRHeaderAndRowIdx(relGroupEntry, *executionState, startNodeOffset, relInfo, localState,
         numNodes, leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
-    writeToTable(*executionState, csrHeader, localState, sharedState, relInfo);
+    writeToTable(*executionState, csrHeader, localState, *sharedState, relInfo);
     // Reset num of rows in the chunked group to fill gaps at the end of the node group.
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
     auto numGapsAtEnd = maxSize - localState.chunkedGroup->getNumRows();
@@ -182,7 +180,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     KU_ASSERT(localState.chunkedGroup->getNumRows() == maxSize);
     localState.chunkedGroup->finalize();
 
-    auto* relTable = sharedState.table->ptrCast<RelTable>();
+    auto* relTable = sharedState->table->ptrCast<RelTable>();
 
     ChunkedCSRNodeGroup sliceToWriteToDisk{localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(),
         relInfo.outputDataColumns};

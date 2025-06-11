@@ -205,69 +205,6 @@ InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
     resetCSRLengthAndDstNodes();
 }
 
-// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-std::unique_ptr<storage::InMemChunkedNodeGroupCollection> InMemHNSWGraph::getAsPartition(
-    MemoryManager& mm, common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
-    common::table_id_t relTableID, common::offset_t startNodeInGraph,
-    common::offset_t endNodeInGraph, common::offset_t numNodesInTable,
-    const NodeToHNSWGraphOffsetMap& selectedNodesMap) {
-    auto numRels = 0u;
-    for (auto offsetInGraph = startNodeInGraph; offsetInGraph < endNodeInGraph; offsetInGraph++) {
-        numRels += getCSRLength(offsetInGraph);
-    }
-    return getNodeGroupsForPartition(mm, numRels, srcNodeTableID, dstNodeTableID, relTableID,
-        startNodeInGraph, endNodeInGraph, numNodesInTable, selectedNodesMap);
-}
-
-std::unique_ptr<storage::InMemChunkedNodeGroupCollection> InMemHNSWGraph::getNodeGroupsForPartition(
-    MemoryManager& mm, uint64_t numRels, common::table_id_t srcNodeTableID,
-    common::table_id_t dstNodeTableID, common::table_id_t relTableID,
-    common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
-    [[maybe_unused]] common::offset_t numNodesInTable,
-    const NodeToHNSWGraphOffsetMap& selectedNodesMap) const {
-    // BOUND_ID, NBR_ID, REL_ID.
-    std::vector<common::LogicalType> columnTypes;
-    columnTypes.push_back(common::LogicalType::INTERNAL_ID());
-    columnTypes.push_back(common::LogicalType::INTERNAL_ID());
-    columnTypes.push_back(common::LogicalType::INTERNAL_ID());
-    auto chunkedNodeGroup = std::make_unique<ChunkedNodeGroup>(mm, columnTypes,
-        false /* enableCompression */, numRels, 0 /* startRowIdx */, ResidencyState::IN_MEMORY);
-
-    auto currNumRels = 0u;
-    auto& boundColumnChunk = chunkedNodeGroup->getColumnChunk(0).getData();
-    auto& nbrColumnChunk = chunkedNodeGroup->getColumnChunk(1).getData();
-    auto& relIDColumnChunk = chunkedNodeGroup->getColumnChunk(2).getData();
-    boundColumnChunk.cast<InternalIDChunkData>().setTableID(srcNodeTableID);
-    nbrColumnChunk.cast<InternalIDChunkData>().setTableID(dstNodeTableID);
-    relIDColumnChunk.cast<InternalIDChunkData>().setTableID(relTableID);
-    for (auto offsetInGraph = startNodeInGraph; offsetInGraph < endNodeInGraph; offsetInGraph++) {
-        const auto currNodeOffset = selectedNodesMap.graphToNodeOffset(offsetInGraph);
-        const auto csrLen = getCSRLength(offsetInGraph);
-        const auto csrOffset = offsetInGraph * maxDegree;
-        for (auto j = 0u; j < csrLen; j++) {
-            boundColumnChunk.setValue<common::offset_t>(currNodeOffset, currNumRels);
-            relIDColumnChunk.setValue<common::offset_t>(currNumRels, currNumRels);
-            const auto nbrOffsetInGraph = getDstNode(csrOffset + j);
-            const auto nbrOffset = selectedNodesMap.graphToNodeOffset(nbrOffsetInGraph);
-            KU_ASSERT(nbrOffset < numNodesInTable);
-            nbrColumnChunk.setValue<common::offset_t>(nbrOffset, currNumRels);
-            currNumRels++;
-        }
-    }
-    chunkedNodeGroup->setNumRows(currNumRels);
-
-    for (auto i = 0u; i < nbrColumnChunk.getNumValues(); i++) {
-        const auto offset = nbrColumnChunk.getValue<common::offset_t>(i);
-        KU_ASSERT(offset < numNodesInTable);
-        KU_UNUSED(offset);
-    }
-    chunkedNodeGroup->setUnused(mm);
-
-    auto ret = std::make_unique<storage::InMemChunkedNodeGroupCollection>(copyVector(columnTypes));
-    ret->merge(std::move(chunkedNodeGroup));
-    return ret;
-}
-
 void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
     for (common::offset_t i = 0; i < numNodes; i++) {
         setCSRLength(i, 0);

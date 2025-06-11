@@ -19,7 +19,8 @@ std::unique_ptr<RelBatchInsertExecutionState> CopyRelBatchInsert::initExecutionS
     const RelBatchInsertInfo& relInfo, common::node_group_idx_t nodeGroupIdx) {
     auto executionState = std::make_unique<CopyRelBatchInsertExecutionState>();
     executionState->partitioningBuffer =
-        partitionerSharedState->getPartitionBuffer(relInfo.partitioningIdx, nodeGroupIdx);
+        partitionerSharedState->cast<PartitionerSharedState>().getPartitionBuffer(
+            relInfo.partitioningIdx, nodeGroupIdx);
     const auto startNodeOffset = storage::StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     for (auto& chunkedGroup : executionState->partitioningBuffer->getChunkedGroups()) {
         setOffsetToWithinNodeGroup(
