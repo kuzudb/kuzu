@@ -137,16 +137,16 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodes(numNodesInTable), numNodesInTable(numNodesInTable){};
+        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable) {};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 
-    common::offset_t getNumNodesInGraph() const { return numNodes; }
+    common::offset_t getNumNodesInGraph() const { return numNodesInGraph; }
     common::offset_t nodeToGraphOffset(common::offset_t nodeOffset, bool exactMatch = true) const;
     common::offset_t graphToNodeOffset(common::offset_t graphOffset) const;
     bool isTrivialMapping() const { return graphToNodeMap == nullptr; }
 
-    common::offset_t numNodes;
+    common::offset_t numNodesInGraph;
     common::offset_t numNodesInTable;
     std::unique_ptr<common::offset_t[]> graphToNodeMap;
 };

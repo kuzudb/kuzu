@@ -102,7 +102,7 @@ static double createInMemHNSWProgressFunc(TableFuncSharedState* sharedState) {
 
 static std::unique_ptr<PhysicalOperator> createHNSWRelBatchInsertOp(
     const main::ClientContext* clientContext,
-    std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
+    std::shared_ptr<PartitionerSharedState> partitionerSharedState,
     std::shared_ptr<BatchInsertSharedState> sharedState,
     const binder::BoundCopyFromInfo& copyFromInfo, planner::Schema* outFSchema,
     table_id_t fromTableID, table_id_t toTableID, std::vector<column_id_t> columnIDs,

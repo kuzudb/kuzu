@@ -15,7 +15,7 @@ struct NodeToHNSWGraphOffsetMap;
 class KUZU_API HNSWRelBatchInsert final : public processor::RelBatchInsert {
 public:
     HNSWRelBatchInsert(std::string tableName, std::unique_ptr<processor::BatchInsertInfo> info,
-        std::shared_ptr<processor::BasePartitionerSharedState> partitionerSharedState,
+        std::shared_ptr<processor::PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<processor::BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<processor::RelBatchInsertProgressSharedState> progressSharedState)

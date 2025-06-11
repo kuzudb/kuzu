@@ -216,8 +216,8 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
 
 NodeToHNSWGraphOffsetMap::NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
     const common::NullMask* selectedNodes)
-    : numNodes(selectedNodes->countNulls()), numNodesInTable(numNodesInTable),
-      graphToNodeMap(std::make_unique<common::offset_t[]>(numNodes)) {
+    : numNodesInGraph(selectedNodes->countNulls()), numNodesInTable(numNodesInTable),
+      graphToNodeMap(std::make_unique<common::offset_t[]>(numNodesInGraph)) {
     common::offset_t curOffset = 0;
     for (common::offset_t i = 0; i < numNodesInTable; ++i) {
         if (selectedNodes->isNull(i)) {
@@ -233,9 +233,9 @@ common::offset_t NodeToHNSWGraphOffsetMap::nodeToGraphOffset(common::offset_t no
         return nodeOffset;
     }
     const auto it =
-        std::lower_bound(graphToNodeMap.get(), graphToNodeMap.get() + numNodes, nodeOffset);
+        std::lower_bound(graphToNodeMap.get(), graphToNodeMap.get() + numNodesInGraph, nodeOffset);
     const common::offset_t pos = it - graphToNodeMap.get();
-    KU_ASSERT(!exactMatch || pos >= numNodes || *it == nodeOffset);
+    KU_ASSERT(!exactMatch || pos >= numNodesInGraph || *it == nodeOffset);
     return pos;
 }
 

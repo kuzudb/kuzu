@@ -40,6 +40,7 @@ struct BatchInsertInfo {
           outputDataColumns{other.outputDataColumns}, warningDataColumns{other.warningDataColumns} {
     }
     virtual ~BatchInsertInfo() = default;
+    DELETE_COPY_ASSN(BatchInsertInfo);
 
     virtual std::unique_ptr<BatchInsertInfo> copy() const = 0;
 

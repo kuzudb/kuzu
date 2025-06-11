@@ -39,20 +39,18 @@ struct PartitionerDataInfo;
 struct PartitionerInfo;
 struct RelBatchInsertProgressSharedState;
 
-struct PartitionerSharedState : BasePartitionerSharedState {
+struct CopyPartitionerSharedState : public PartitionerSharedState {
     std::mutex mtx;
     storage::MemoryManager& mm;
 
-    explicit PartitionerSharedState(storage::MemoryManager& mm) : mm{mm} {}
+    explicit CopyPartitionerSharedState(storage::MemoryManager& mm) : mm{mm} {}
 
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
 
     void initialize(const common::logical_type_vec_t& columnTypes, common::idx_t numPartitioners,
         const main::ClientContext* clientContext) override;
 
-    void resetBuffers(common::idx_t partitioningIdx) override {
-        partitioningBuffers[partitioningIdx].reset();
-    }
+    void resetState(common::idx_t partitioningIdx) override;
     void merge(const std::vector<std::unique_ptr<PartitioningBuffer>>& localPartitioningStates);
 
     // Must only be called once for any given parameters.
@@ -157,7 +155,7 @@ class Partitioner final : public Sink {
 
 public:
     Partitioner(PartitionerInfo info, PartitionerDataInfo dataInfo,
-        std::shared_ptr<PartitionerSharedState> sharedState,
+        std::shared_ptr<CopyPartitionerSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo);
 
@@ -165,7 +163,7 @@ public:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
     void executeInternal(ExecutionContext* context) override;
 
-    std::shared_ptr<PartitionerSharedState> getSharedState() { return sharedState; }
+    std::shared_ptr<CopyPartitionerSharedState> getSharedState() { return sharedState; }
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<Partitioner>(info.copy(), dataInfo.copy(), sharedState,
@@ -174,7 +172,7 @@ public:
 
     static void initializePartitioningStates(const common::logical_type_vec_t& columnTypes,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
-        const std::array<common::partition_idx_t, PartitionerSharedState::DIRECTIONS>&
+        const std::array<common::partition_idx_t, CopyPartitionerSharedState::DIRECTIONS>&
             numPartitions,
         common::idx_t numPartitioners);
 
@@ -190,7 +188,7 @@ private:
 private:
     PartitionerDataInfo dataInfo;
     PartitionerInfo info;
-    std::shared_ptr<PartitionerSharedState> sharedState;
+    std::shared_ptr<CopyPartitionerSharedState> sharedState;
     std::unique_ptr<PartitionerLocalState> localState;
 
     // Intermediate temp value vector.

@@ -157,7 +157,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
     const auto leaveGaps = nodeGroup.isEmpty();
-    populateCSRHeaderAndRowIdx(relGroupEntry, *executionState, startNodeOffset, relInfo, localState,
+    populateCSRHeader(relGroupEntry, *executionState, startNodeOffset, relInfo, localState,
         numNodes, leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
     writeToTable(*executionState, csrHeader, localState, *sharedState, relInfo);
@@ -197,7 +197,7 @@ void RelBatchInsert::finalizeStartCSROffsets(RelBatchInsertExecutionState&,
     csrHeader.populateEndCSROffsetFromStartAndLength();
 }
 
-void RelBatchInsert::populateCSRHeaderAndRowIdx(const RelGroupCatalogEntry& relGroupEntry,
+void RelBatchInsert::populateCSRHeader(const RelGroupCatalogEntry& relGroupEntry,
     RelBatchInsertExecutionState& executionState, offset_t startNodeOffset,
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
     offset_t numNodes, bool leaveGaps) {
@@ -256,8 +256,7 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     }
     sharedState->numRows.store(0);
     sharedState->table->cast<RelTable>().setHasChanges();
-    partitionerSharedState->resetState();
-    partitionerSharedState->resetBuffers(relInfo->partitioningIdx);
+    partitionerSharedState->resetState(relInfo->partitioningIdx);
 }
 
 void RelBatchInsert::updateProgress(const ExecutionContext* context) const {

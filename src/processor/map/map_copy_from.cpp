@@ -25,7 +25,7 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
     const main::ClientContext* clientContext,
-    std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
+    std::shared_ptr<PartitionerSharedState> partitionerSharedState,
     std::shared_ptr<BatchInsertSharedState> sharedState, const BoundCopyFromInfo& copyFromInfo,
     Schema* outFSchema, RelDataDirection direction, table_id_t fromTableID, table_id_t toTableID,
     std::vector<column_id_t> columnIDs, std::vector<LogicalType> columnTypes, uint32_t operatorID) {
@@ -142,7 +142,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
     auto dataInfo = PartitionerDataInfo(copyFromInfo.tableName, extraInfo.fromTableName,
         extraInfo.toTableName, LogicalType::copy(columnTypes), std::move(columnEvaluators),
         copyFromInfo.columnEvaluateTypes);
-    auto sharedState = std::make_shared<PartitionerSharedState>(*clientContext->getMemoryManager());
+    auto sharedState =
+        std::make_shared<CopyPartitionerSharedState>(*clientContext->getMemoryManager());
     expression_vector expressions;
     for (auto& info : partitionerInfo.infos) {
         expressions.push_back(copyFromInfo.columnExprs[info.keyIdx]);

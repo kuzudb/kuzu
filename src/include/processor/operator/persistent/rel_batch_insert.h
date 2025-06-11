@@ -78,11 +78,34 @@ struct KUZU_API RelBatchInsertExecutionState {
     }
 };
 
-// TODO(Royi) add comment describing interfaces to implement
+/**
+ * Abstract RelBatchInsert class
+ * When performing rel batch insert, we typically take some source data and use it to construct the
+ * CSR header as well as a chunked node group that actually contains the rel properties
+ * Child classes can customize how data is copied from the source into the CSR chunked node group
+ * (which is the format in which the rels are actually stored)
+ *
+ * The following interfaces can be overriden:
+ * - initExecutionState(): The execution state contains any extra local state needed during the
+ * insertion of a single CSR node group. This reset by calling initExecutionState() before the
+ * insertion of each node group so make sure that the lifetime of any stored state doesn't exceed
+ * this.
+ * - populateCSRLengths(): Populates the length chunk in the CSR header. The offsets are directly
+ * calculated from the lengths and thus calculating the offsets doesn't need to be customized
+ * - finalizeStartCSROffsets(): The CSR offsets are initially calculated as start offsets. The
+ * default behaviour of this function is to convert the start offsets to end offsets. However, if
+ * any extra logic is required during this conversion, this function can be overriden.
+ * - writeToTable(): Writes property data to the local chunked node group. This function is also
+ * responsible for ensuring that the data is written in a way such that the copied data is in
+ * agreement with the CSR header
+ *
+ * Generally, the source data to be copied from should be contained in the partitionerSharedState,
+ * which can also be overridden.
+ */
 class KUZU_API RelBatchInsert : public BatchInsert {
 public:
     RelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
-        std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
+        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
@@ -118,7 +141,7 @@ private:
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState);
 
-    void populateCSRHeaderAndRowIdx(const catalog::RelGroupCatalogEntry& relGroupEntry,
+    void populateCSRHeader(const catalog::RelGroupCatalogEntry& relGroupEntry,
         RelBatchInsertExecutionState& executionState, common::offset_t startNodeOffset,
         const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
         common::offset_t numNodes, bool leaveGaps);
@@ -128,7 +151,7 @@ private:
         const RelBatchInsertInfo& relInfo);
 
 protected:
-    std::shared_ptr<BasePartitionerSharedState> partitionerSharedState;
+    std::shared_ptr<PartitionerSharedState> partitionerSharedState;
     std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState;
 };
 

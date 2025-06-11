@@ -47,7 +47,7 @@ struct NodeTableDeleteInfo;
 struct NodeTableSetInfo;
 struct RelTableSetInfo;
 struct BatchInsertSharedState;
-struct BasePartitionerSharedState;
+struct PartitionerSharedState;
 
 class PlanMapper {
 public:
@@ -72,7 +72,7 @@ public:
 
     static KUZU_API std::unique_ptr<PhysicalOperator> createRelBatchInsertOp(
         const main::ClientContext* clientContext,
-        std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
+        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         const binder::BoundCopyFromInfo& copyFromInfo, planner::Schema* outFSchema,
         common::RelDataDirection direction, common::table_id_t fromTableID,

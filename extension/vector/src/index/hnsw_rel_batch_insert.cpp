@@ -34,8 +34,8 @@ HNSWRelBatchInsertExecutionState::HNSWRelBatchInsertExecutionState(
 
 std::unique_ptr<processor::RelBatchInsertExecutionState> HNSWRelBatchInsert::initExecutionState(
     const processor::RelBatchInsertInfo&, common::node_group_idx_t nodeGroupIdx) {
-    const auto& layerSharedState = partitionerSharedState->cast<HNSWLayerPartitionerSharedState>();
-    auto& selectionMap = *layerSharedState.graphSelectionMap;
+    const auto& graphSharedState = partitionerSharedState->cast<HNSWLayerPartitionerSharedState>();
+    auto& selectionMap = *graphSharedState.graphSelectionMap;
     return std::make_unique<HNSWRelBatchInsertExecutionState>(selectionMap,
         storage::StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx));
 }
@@ -46,8 +46,8 @@ void HNSWRelBatchInsert::populateCSRLengths(processor::RelBatchInsertExecutionSt
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
     const auto& hnswExecutionState = executionState.constCast<HNSWRelBatchInsertExecutionState>();
-    const auto& layerSharedState = partitionerSharedState->cast<HNSWLayerPartitionerSharedState>();
-    const auto& graph = layerSharedState.layer->getGraph();
+    const auto& graphSharedState = partitionerSharedState->cast<HNSWLayerPartitionerSharedState>();
+    const auto& graph = *graphSharedState.graph;
     const auto startNodeInGraph = hnswExecutionState.startNodeInGraph;
     const auto endNodeInGraph = hnswExecutionState.endNodeInGraph;
     const auto lengthData =
@@ -75,9 +75,9 @@ void HNSWRelBatchInsert::writeToTable(processor::RelBatchInsertExecutionState& e
     const processor::RelBatchInsertLocalState& localState,
     processor::BatchInsertSharedState& sharedState, const processor::RelBatchInsertInfo&) {
     const auto& hnswExecutionState = executionState.constCast<HNSWRelBatchInsertExecutionState>();
-    const auto& layerSharedState = partitionerSharedState->cast<HNSWLayerPartitionerSharedState>();
-    const auto& graph = layerSharedState.layer->getGraph();
-    const auto& selectionMap = *layerSharedState.graphSelectionMap;
+    const auto& graphSharedState = partitionerSharedState->cast<HNSWLayerPartitionerSharedState>();
+    const auto& graph = *graphSharedState.graph;
+    const auto& selectionMap = *graphSharedState.graphSelectionMap;
 
     const auto startNodeInGraph = hnswExecutionState.startNodeInGraph;
     const auto endNodeInGraph = hnswExecutionState.endNodeInGraph;
@@ -86,6 +86,7 @@ void HNSWRelBatchInsert::writeToTable(processor::RelBatchInsertExecutionState& e
     sharedState.incrementNumRows(numRels);
     const auto startRelID = sharedState.table->cast<storage::RelTable>().reserveRelOffsets(numRels);
 
+    // Write the rel data of the HNSW index directly to the local chunked group
     static constexpr auto neighbourOffsetColumn = 0;
     static constexpr auto rowIdxColumn = 1;
     auto& neighbourChunk = localState.chunkedGroup->getColumnChunk(neighbourOffsetColumn).getData();

@@ -4,8 +4,8 @@
 #include "storage/table/node_table.h"
 
 namespace kuzu::processor {
-void BasePartitionerSharedState::initialize(const common::logical_type_vec_t&, id_t numPartitioners,
-    const main::ClientContext* clientContext) {
+void PartitionerSharedState::initialize(const common::logical_type_vec_t&,
+    common::idx_t numPartitioners, const main::ClientContext* clientContext) {
     KU_ASSERT(numPartitioners >= 1 && numPartitioners <= DIRECTIONS);
     numNodes[0] = srcNodeTable->getNumTotalRows(clientContext->getTransaction());
     if (numPartitioners > 1) {
@@ -17,8 +17,7 @@ void BasePartitionerSharedState::initialize(const common::logical_type_vec_t&, i
     }
 }
 
-common::partition_idx_t BasePartitionerSharedState::getNextPartition(
-    common::idx_t partitioningIdx) {
+common::partition_idx_t PartitionerSharedState::getNextPartition(common::idx_t partitioningIdx) {
     auto nextPartitionIdxToReturn = nextPartitionIdx++;
     if (nextPartitionIdxToReturn >= numPartitions[partitioningIdx]) {
         return common::INVALID_PARTITION_IDX;
@@ -26,13 +25,12 @@ common::partition_idx_t BasePartitionerSharedState::getNextPartition(
     return nextPartitionIdxToReturn;
 }
 
-common::partition_idx_t BasePartitionerSharedState::getNumPartitionsFromRows(
-    common::offset_t numRows) {
+common::partition_idx_t PartitionerSharedState::getNumPartitionsFromRows(common::offset_t numRows) {
     return (numRows + common::StorageConfig::NODE_GROUP_SIZE - 1) /
            common::StorageConfig::NODE_GROUP_SIZE;
 }
 
-void BasePartitionerSharedState::resetState() {
+void PartitionerSharedState::resetState(common::idx_t) {
     nextPartitionIdx = 0;
 }
 } // namespace kuzu::processor

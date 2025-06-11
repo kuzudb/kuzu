@@ -16,7 +16,8 @@ class ClientContext;
 }
 namespace processor {
 
-struct KUZU_API BasePartitionerSharedState {
+// TODO(Royi) add description
+struct KUZU_API PartitionerSharedState {
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;
     storage::RelTable* relTable;
@@ -27,10 +28,10 @@ struct KUZU_API BasePartitionerSharedState {
         numPartitions; // num of partitions in each direction.
     std::atomic<common::partition_idx_t> nextPartitionIdx;
 
-    BasePartitionerSharedState()
+    PartitionerSharedState()
         : srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr), numNodes{0, 0},
           numPartitions{0, 0}, nextPartitionIdx{0} {}
-    virtual ~BasePartitionerSharedState() = default;
+    virtual ~PartitionerSharedState() = default;
 
     template<class TARGET>
     TARGET& cast() {
@@ -53,8 +54,7 @@ struct KUZU_API BasePartitionerSharedState {
         return numNodes[partitioningIdx];
     }
 
-    void resetState();
-    virtual void resetBuffers(common::idx_t partitioningIdx) = 0;
+    virtual void resetState(common::idx_t partitioningIdx);
 
     static common::partition_idx_t getNumPartitionsFromRows(common::offset_t numRows);
 };

@@ -17,7 +17,7 @@ struct CopyRelBatchInsertExecutionState : RelBatchInsertExecutionState {
 class CopyRelBatchInsert final : public RelBatchInsert {
 public:
     CopyRelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
-        std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
+        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)

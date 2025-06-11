@@ -22,14 +22,15 @@ void HNSWIndexPartitionerSharedState::setTables(NodeTable* nodeTable, RelTable* 
     upperPartitionerSharedState->relTable = relTable;
 }
 
-void HNSWLayerPartitionerSharedState::setLayer(std::unique_ptr<InMemHNSWLayer> newLayer,
+void HNSWLayerPartitionerSharedState::setGraph(std::unique_ptr<InMemHNSWGraph> newGraph,
     std::unique_ptr<NodeToHNSWGraphOffsetMap> selectionMap) {
-    layer = std::move(newLayer);
+    graph = std::move(newGraph);
     graphSelectionMap = std::move(selectionMap);
 }
 
-void HNSWLayerPartitionerSharedState::resetBuffers(common::idx_t) {
-    layer.reset();
+void HNSWLayerPartitionerSharedState::resetState(common::idx_t partitioningIdx) {
+    PartitionerSharedState::resetState(partitioningIdx);
+    graph.reset();
     graphSelectionMap.reset();
 }
 
@@ -211,9 +212,9 @@ void InMemHNSWLayer::finalize(common::node_group_idx_t nodeGroupIdx,
 }
 
 void InMemHNSWIndex::moveToPartitionState(HNSWIndexPartitionerSharedState& partitionState) {
-    partitionState.lowerPartitionerSharedState->setLayer(std::move(lowerLayer),
+    partitionState.lowerPartitionerSharedState->setGraph(lowerLayer->moveGraph(),
         std::move(lowerGraphSelectionMap));
-    partitionState.upperPartitionerSharedState->setLayer(std::move(upperLayer),
+    partitionState.upperPartitionerSharedState->setGraph(upperLayer->moveGraph(),
         std::move(upperGraphSelectionMap));
 }
 

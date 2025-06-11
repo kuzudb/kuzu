@@ -14,7 +14,7 @@ namespace catalog {
 class IndexCatalogEntry;
 }
 namespace processor {
-struct PartitionerSharedState;
+struct CopyPartitionerSharedState;
 } // namespace processor
 namespace storage {
 class NodeTable;
@@ -162,7 +162,7 @@ public:
     void finalize(common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
         const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
 
-    const InMemHNSWGraph& getGraph() { return *graph; }
+    std::unique_ptr<InMemHNSWGraph> moveGraph() { return std::move(graph); }
 
 private:
     std::vector<NodeWithDistance> searchKNN(const void* queryVector, common::offset_t entryNode,
@@ -224,18 +224,18 @@ private:
     std::unique_ptr<common::NullMask> upperLayerSelectionMask;
 };
 
-struct HNSWLayerPartitionerSharedState : processor::BasePartitionerSharedState {
-    std::unique_ptr<InMemHNSWLayer> layer;
+struct HNSWLayerPartitionerSharedState : processor::PartitionerSharedState {
+    std::unique_ptr<InMemHNSWGraph> graph;
     std::unique_ptr<NodeToHNSWGraphOffsetMap> graphSelectionMap;
 
     std::atomic<common::partition_idx_t> nextPartitionIdx;
 
     HNSWLayerPartitionerSharedState() = default;
 
-    void setLayer(std::unique_ptr<InMemHNSWLayer> newLayer,
+    void setGraph(std::unique_ptr<InMemHNSWGraph> newGraph,
         std::unique_ptr<NodeToHNSWGraphOffsetMap> selectionMap);
 
-    void resetBuffers(common::idx_t partitioningIdx) override;
+    void resetState(common::idx_t partitioningIdx) override;
 };
 
 struct HNSWIndexPartitionerSharedState {
