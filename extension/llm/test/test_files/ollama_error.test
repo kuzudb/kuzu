@@ -1,3 +1,4 @@
+-SKIP
 -DATASET CSV empty
 
 --
@@ -50,22 +51,22 @@ For more information, please refer to the official Kuzu documentation: https://d
 ---- error
 Binder exception: Data type of expression emb should not be modified.
 
-#-CASE FailedPost
-#
-#-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
-#---- ok
-#
-#-STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING, title_embedding FLOAT[768], published_year INT64);
-#---- ok
-#
-#-STATEMENT CREATE (b:Book {title: 'The Quantum World', published_year: 2004});
-#---- ok
-#
-#-LOG Run Without Having Ollama at http://localhost:11434
-#-STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'ollama', 'nomic-embed-text') AS emb SET b.title_embedding = emb;
-#---- error
-#Connection exception: Request failed: Could not connect to server <http://localhost:11434> 
-#For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+-CASE FailedPost
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING, title_embedding FLOAT[768], published_year INT64);
+---- ok
+
+-STATEMENT CREATE (b:Book {title: 'The Quantum World', published_year: 2004});
+---- ok
+
+-LOG Run Without Having Ollama at http://localhost:11434
+-STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'ollama', 'nomic-embed-text') AS emb SET b.title_embedding = emb;
+---- error
+Connection exception: Request failed: Could not connect to server <http://localhost:11434> 
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 
 -CASE UnsupportedParams
