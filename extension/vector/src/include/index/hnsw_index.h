@@ -121,11 +121,11 @@ public:
 
     std::unique_ptr<DeleteState> initDeleteState(const transaction::Transaction* /*transaction*/,
         storage::MemoryManager* /*mm*/, storage::visible_func /*isVisible*/) override {
-        KU_UNREACHABLE;
+        return std::make_unique<DeleteState>();
     }
     void delete_(transaction::Transaction* /*transaction*/,
         const common::ValueVector& /*nodeIDVector*/, DeleteState& /*deleteState*/) override {
-        KU_UNREACHABLE;
+        // DO NOTHING.
     }
 
 protected:
