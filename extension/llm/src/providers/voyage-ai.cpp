@@ -20,7 +20,7 @@ std::string VoyageAIEmbedding::getClient() const {
     return "https://api.voyageai.com";
 }
 
-std::string VoyageAIEmbedding::getPath(const std::string& /*model*/) const {
+std::string VoyageAIEmbedding::getPath(const std::string_view& /*model*/) const {
     return "/v1/embeddings";
 }
 
@@ -35,8 +35,8 @@ httplib::Headers VoyageAIEmbedding::getHeaders(const nlohmann::json& /*payload*/
         {"Authorization", "Bearer " + env_key}};
 }
 
-nlohmann::json VoyageAIEmbedding::getPayload(const std::string& model,
-    const std::string& text) const {
+nlohmann::json VoyageAIEmbedding::getPayload(const std::string_view& model,
+    const std::string_view& text) const {
     nlohmann::json payload = {{"model", model}, {"input", text}};
     if (dimensions.has_value()) {
         payload["output_dimension"] = dimensions.value();
@@ -44,13 +44,13 @@ nlohmann::json VoyageAIEmbedding::getPayload(const std::string& model,
     return payload;
 }
 
-void VoyageAIEmbedding::checkModel(const std::string& model) const {
-    static const std::unordered_set<std::string> validModels = {"voyage-3-large", "voyage-3.5",
+void VoyageAIEmbedding::checkModel(const std::string_view& model) const {
+    static const std::unordered_set<std::string_view> validModels = {"voyage-3-large", "voyage-3.5",
         "voyage-3.5-lite", "voyage-code-3", "voyage-finance-2", "voyage-law-2", "voyage-code-2"};
     if (validModels.contains(model)) {
         return;
     }
-    throw(RuntimeException("Invalid Model: " + model));
+    throw(RuntimeException("Invalid Model: " + std::string(model)));
 }
 
 std::vector<float> VoyageAIEmbedding::parseResponse(const httplib::Result& res) const {
@@ -66,14 +66,14 @@ void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     this->dimensions = dimensions;
 }
 
-uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string& model) const {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
+uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string_view& model) const {
+    static const std::unordered_map<std::string_view, uint64_t> modelDimensionMap = {
         {"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024},
         {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024},
         {"voyage-code-2", 1536}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException("Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }
