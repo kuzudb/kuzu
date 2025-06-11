@@ -141,26 +141,19 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
         throw(BinderException("Bedrock does not support the dimensions argument: " +
-                               std::to_string(dimensions.value()) + '\n' +
-                               std::string(referenceKuzuDocs)));
+                              std::to_string(dimensions.value()) + '\n' +
+                              std::string(referenceKuzuDocs)));
     }
     // Reset to default
-    if (!region.has_value())
-    {
+    if (!region.has_value()) {
         this->region = std::nullopt;
         return;
     }
-    static const std::unordered_set<std::string_view> validRegions = 
-    {
-        "us-east-1",
-        "us-west-2",
-        "ap-southeast-1",
-        "ap-northeast-1",
-        "eu-central-1"
-    };
-    if (!validRegions.contains(region.value()))
-    {
-        throw(BinderException("Invalid Region: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
+    static const std::unordered_set<std::string_view> validRegions = {"us-east-1", "us-west-2",
+        "ap-southeast-1", "ap-northeast-1", "eu-central-1"};
+    if (!validRegions.contains(region.value())) {
+        throw(BinderException(
+            "Invalid Region: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
     this->region = region;
 }
@@ -170,7 +163,8 @@ uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string_view& model) 
         {"amazon.titan-embed-text-v1", 1024}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException(
+            "Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }

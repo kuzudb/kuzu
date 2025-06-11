@@ -63,7 +63,7 @@ void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (region.has_value()) {
         throw(BinderException("OPEN-AI does not support the region argument: " + region.value() +
-                               '\n' + std::string(referenceKuzuDocs)));
+                              '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
 }
@@ -75,7 +75,8 @@ uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string_view& model) c
 
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException(
+            "Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }
