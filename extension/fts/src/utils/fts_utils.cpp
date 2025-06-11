@@ -27,19 +27,26 @@ struct StopWordsChecker {
     storage::NodeTable* stopWordsTable;
     transaction::Transaction* tx;
     common::offset_t offset = common::INVALID_OFFSET;
+    std::function<bool(const std::string& term)> isStopWord;
 
-    explicit StopWordsChecker(MemoryManager* mm, NodeTable* stopWordsTable, Transaction* tx);
-    bool isStopWord(const std::string& term);
+    StopWordsChecker(MemoryManager* mm, NodeTable* stopWordsTable, Transaction* tx,
+        bool defaultStopWords);
 };
 
-StopWordsChecker::StopWordsChecker(MemoryManager* mm, NodeTable* stopwordsTable, Transaction* tx)
+StopWordsChecker::StopWordsChecker(MemoryManager* mm, NodeTable* stopwordsTable, Transaction* tx,
+    bool defaultStopWords)
     : termsVector{LogicalType::STRING(), mm}, stopWordsTable{stopwordsTable}, tx{tx} {
     termsVector.state = common::DataChunkState::getSingleValueDataChunkState();
-}
-
-bool StopWordsChecker::isStopWord(const std::string& term) {
-    termsVector.setValue(0, term);
-    return stopWordsTable->lookupPK(tx, &termsVector, 0 /* vectorPos */, offset);
+    if (defaultStopWords) {
+        isStopWord = [](const std::string& term) {
+            return StopWords::getDefaultStopWords().contains(term);
+        };
+    } else {
+        isStopWord = [&](const std::string& term) {
+            termsVector.setValue(0, term);
+            return stopWordsTable->lookupPK(tx, &termsVector, 0 /* vectorPos */, offset);
+        };
+    }
 }
 
 std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
@@ -51,7 +58,8 @@ std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
     StemFunction::validateStemmer(config.stemmer);
     auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(config.stemmer.c_str()), "UTF_8");
     std::vector<std::string> result;
-    StopWordsChecker checker{mm, stopwordsTable, tx};
+    StopWordsChecker checker{mm, stopwordsTable, tx,
+        config.stopWordsSource == StopWords::DEFAULT_VALUE};
     for (auto& term : terms) {
         auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
             term.length());

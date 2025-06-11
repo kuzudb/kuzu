@@ -36,6 +36,8 @@ struct StopWords {
     static constexpr const char* NAME = "stopwords";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
     static constexpr const char* DEFAULT_VALUE = "default";
+    static const std::unordered_set<std::string>& getDefaultStopWords();
+    static constexpr uint64_t NUM_DEFAULT_STOP_WORDS = 570;
 
     static StopWordsTableInfo bind(main::ClientContext& context, common::table_id_t tableID,
         const std::string& indexName, const std::string& stopWords);
