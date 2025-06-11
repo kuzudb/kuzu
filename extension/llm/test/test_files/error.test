@@ -27,12 +27,12 @@ Binder exception: Cannot match a built-in function for given function CREATE_EMB
 
 -STATEMENT return create_embedding('hello', 'olama', 'nomic-text-embed')
 ---- error
-Runtime exception: Provider not found: olama
+Binder exception: Provider not found: olama
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 -STATEMENT return create_embedding('hello', 'ollama', 'MODEL_DNE')
 ---- error
-Binder exception: Invalid Model: MODEL_DNE
+Binder exception: Invalid Model: model_dne
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 
