@@ -279,7 +279,7 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
 
 NodeToHNSWGraphOffsetMap::NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
     const common::NullMask* selectedNodes)
-    : numNodes(selectedNodes->countNulls()),
+    : numNodes(selectedNodes->countNulls()), numNodesInTable(numNodesInTable),
       graphToNodeMap(std::make_unique<common::offset_t[]>(numNodes)) {
     common::offset_t curOffset = 0;
     for (common::offset_t i = 0; i < numNodesInTable; ++i) {

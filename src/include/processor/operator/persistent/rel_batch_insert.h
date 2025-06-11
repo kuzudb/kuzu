@@ -12,7 +12,7 @@ struct ChunkedCSRHeader;
 
 namespace processor {
 
-struct RelBatchInsertPrintInfo final : OPPrintInfo {
+struct KUZU_API RelBatchInsertPrintInfo final : OPPrintInfo {
     std::string tableName;
 
     explicit RelBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
@@ -28,14 +28,14 @@ private:
         : OPPrintInfo(other), tableName(other.tableName) {}
 };
 
-struct RelBatchInsertProgressSharedState {
+struct KUZU_API RelBatchInsertProgressSharedState {
     std::atomic<uint64_t> partitionsDone;
     uint64_t partitionsTotal;
 
     RelBatchInsertProgressSharedState() : partitionsDone{0}, partitionsTotal{0} {};
 };
 
-struct RelBatchInsertInfo final : BatchInsertInfo {
+struct KUZU_API RelBatchInsertInfo final : BatchInsertInfo {
     common::RelDataDirection direction;
     common::table_id_t fromTableID, toTableID;
     uint64_t partitioningIdx;
@@ -60,12 +60,12 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
     }
 };
 
-struct RelBatchInsertLocalState final : BatchInsertLocalState {
+struct KUZU_API RelBatchInsertLocalState final : BatchInsertLocalState {
     common::partition_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
     std::unique_ptr<common::DataChunk> dummyAllNullDataChunk;
 };
 
-struct RelBatchInsertExecutionState {
+struct KUZU_API RelBatchInsertExecutionState {
     virtual ~RelBatchInsertExecutionState() = default;
 
     template<class TARGET>
@@ -78,7 +78,8 @@ struct RelBatchInsertExecutionState {
     }
 };
 
-class RelBatchInsert : public BatchInsert {
+// TODO(Royi) add comment describing interfaces to implement
+class KUZU_API RelBatchInsert : public BatchInsert {
 public:
     RelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
@@ -105,11 +106,12 @@ public:
     virtual void populateCSRLengths(RelBatchInsertExecutionState& executionState,
         storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
         const RelBatchInsertInfo& relInfo) = 0;
+    // TODO(Royi) remove this interface
     virtual void populateRowIdxFromCSRHeader(RelBatchInsertExecutionState& executionState,
         storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo) = 0;
     virtual void writeToTable(RelBatchInsertExecutionState& executionState,
-        const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const RelBatchInsertInfo& relInfo) = 0;
+        const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertLocalState& localState,
+        BatchInsertSharedState& sharedState, const RelBatchInsertInfo& relInfo) = 0;
 
 private:
     void appendNodeGroup(const catalog::RelGroupCatalogEntry& relGroupEntry,

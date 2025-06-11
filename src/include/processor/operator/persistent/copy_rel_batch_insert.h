@@ -14,7 +14,7 @@ struct CopyRelBatchInsertExecutionState : RelBatchInsertExecutionState {
     std::unique_ptr<storage::InMemChunkedNodeGroupCollection> partitioningBuffer;
 };
 
-struct CopyRelBatchInsert final : RelBatchInsert {
+class CopyRelBatchInsert final : public RelBatchInsert {
 public:
     CopyRelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
@@ -40,8 +40,8 @@ public:
         storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo) override;
 
     void writeToTable(RelBatchInsertExecutionState& executionState,
-        const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const RelBatchInsertInfo& relInfo) override;
+        const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertLocalState& localState,
+        BatchInsertSharedState& sharedState, const RelBatchInsertInfo& relInfo) override;
 
 private:
     static void setRowIdxFromCSROffsets(storage::ColumnChunkData& rowIdxChunk,

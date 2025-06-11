@@ -137,7 +137,7 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodes(numNodesInTable) {};
+        : numNodes(numNodesInTable), numNodesInTable(numNodesInTable) {};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 
@@ -147,6 +147,7 @@ struct NodeToHNSWGraphOffsetMap {
     bool isTrivialMapping() const { return graphToNodeMap == nullptr; }
 
     common::offset_t numNodes;
+    common::offset_t numNodesInTable;
     std::unique_ptr<common::offset_t[]> graphToNodeMap;
 };
 

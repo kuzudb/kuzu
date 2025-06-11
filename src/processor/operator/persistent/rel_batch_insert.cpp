@@ -162,7 +162,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     populateCSRHeaderAndRowIdx(relGroupEntry, *executionState, startNodeOffset, relInfo, localState,
         numNodes, leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
-    writeToTable(*executionState, localState, sharedState, relInfo);
+    writeToTable(*executionState, csrHeader, localState, sharedState, relInfo);
     // Reset num of rows in the chunked group to fill gaps at the end of the node group.
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
     auto numGapsAtEnd = maxSize - localState.chunkedGroup->getNumRows();

@@ -6,10 +6,12 @@
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
 #include "index/hnsw_index_utils.h"
+#include "index/hnsw_rel_batch_insert.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/batch_insert.h"
+#include "processor/operator/persistent/rel_batch_insert.h"
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
@@ -27,8 +29,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
         {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
@@ -96,6 +98,35 @@ static double createInMemHNSWProgressFunc(TableFuncSharedState* sharedState) {
         return 0.0;
     }
     return static_cast<double>(numNodesInserted) / hnswSharedState->numNodes;
+}
+
+static std::unique_ptr<PhysicalOperator> createHNSWRelBatchInsertOp(
+    const main::ClientContext* clientContext,
+    std::shared_ptr<BasePartitionerSharedState> partitionerSharedState,
+    std::shared_ptr<BatchInsertSharedState> sharedState,
+    const binder::BoundCopyFromInfo& copyFromInfo, planner::Schema* outFSchema,
+    table_id_t fromTableID, table_id_t toTableID, std::vector<column_id_t> columnIDs,
+    std::vector<LogicalType> columnTypes, uint32_t operatorID) {
+    static constexpr auto partitioningIdx = 0;
+    static constexpr auto offsetVectorIdx = 0;
+    const auto numWarningDataColumns = copyFromInfo.getNumWarningColumns();
+    // TODO(Xiyang): rewrite me
+    KU_ASSERT(numWarningDataColumns <= copyFromInfo.columnExprs.size());
+    for (column_id_t i = numWarningDataColumns; i >= 1; --i) {
+        columnTypes.push_back(
+            copyFromInfo.columnExprs[copyFromInfo.columnExprs.size() - i]->getDataType().copy());
+    }
+    auto tableName = copyFromInfo.tableName;
+    auto compressionEnabled = clientContext->getStorageManager()->compressionEnabled();
+    auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(tableName, compressionEnabled,
+        RelDataDirection::FWD, fromTableID, toTableID, partitioningIdx, offsetVectorIdx,
+        std::move(columnIDs), std::move(columnTypes), numWarningDataColumns);
+    auto printInfo = std::make_unique<RelBatchInsertPrintInfo>(tableName);
+    auto batchInsert = std::make_unique<HNSWRelBatchInsert>(tableName,
+        std::move(relBatchInsertInfo), std::move(partitionerSharedState), std::move(sharedState),
+        operatorID, std::move(printInfo), nullptr);
+    batchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(outFSchema));
+    return batchInsert;
 }
 
 static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
@@ -189,18 +220,18 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         {}, {}, nullptr);
     const auto upperBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(upperRelTable,
         fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
-    auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
+    auto copyRelUpper = createHNSWRelBatchInsertOp(clientContext,
         partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
-        upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, nodeTableID, nodeTableID,
-        columnIDs, LogicalType::copy(columnTypes), planMapper->getOperatorID());
+        upperCopyFromInfo, logicalOp->getSchema(), nodeTableID, nodeTableID, columnIDs,
+        LogicalType::copy(columnTypes), planMapper->getOperatorID());
     binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableName, TableType::REL, nullptr, nullptr,
         {}, {}, nullptr);
     const auto lowerBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(lowerRelTable,
         fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
-    auto copyRelLower = planMapper->createRelBatchInsertOp(clientContext,
+    auto copyRelLower = createHNSWRelBatchInsertOp(clientContext,
         partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
-        lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, nodeTableID, nodeTableID,
-        columnIDs, LogicalType::copy(columnTypes), planMapper->getOperatorID());
+        lowerCopyFromInfo, logicalOp->getSchema(), nodeTableID, nodeTableID, columnIDs,
+        LogicalType::copy(columnTypes), planMapper->getOperatorID());
     physical_op_vector_t children;
     children.push_back(std::move(copyRelUpper));
     children.push_back(std::move(copyRelLower));

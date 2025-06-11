@@ -167,6 +167,8 @@ public:
         common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
         const NodeToHNSWGraphOffsetMap& selectedNodesMap);
 
+    const InMemHNSWGraph& getGraph() { return *graph; }
+
 private:
     std::vector<NodeWithDistance> searchKNN(const void* queryVector, common::offset_t entryNode,
         common::length_t k, uint64_t configuredEf, VisitedState& visited) const;
@@ -238,7 +240,7 @@ struct HNSWLayerPartitionerSharedState : processor::BasePartitionerSharedState {
     common::offset_t numPartitions;
 
     explicit HNSWLayerPartitionerSharedState(storage::MemoryManager& mm)
-        : mm(mm), numNodes(0), numPartitions(0){};
+        : mm(mm), numNodes(0), numPartitions(0) {};
 
     void initialize(const common::logical_type_vec_t& columnTypes, common::idx_t numPartitioners,
         const main::ClientContext* clientContext) override;

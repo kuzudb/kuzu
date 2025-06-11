@@ -103,7 +103,7 @@ struct BatchInsertLocalState {
     }
 };
 
-class BatchInsert : public Sink {
+class KUZU_API BatchInsert : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::BATCH_INSERT;
 
 public:

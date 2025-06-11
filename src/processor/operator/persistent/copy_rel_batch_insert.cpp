@@ -78,8 +78,8 @@ void CopyRelBatchInsert::populateRowIdxFromCSRHeader(RelBatchInsertExecutionStat
 }
 
 void CopyRelBatchInsert::writeToTable(RelBatchInsertExecutionState& executionState,
-    const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-    const RelBatchInsertInfo& relInfo) {
+    const storage::ChunkedCSRHeader&, const RelBatchInsertLocalState& localState,
+    BatchInsertSharedState& sharedState, const RelBatchInsertInfo& relInfo) {
     auto& copyRelExecutionState = executionState.cast<CopyRelBatchInsertExecutionState>();
     for (auto& chunkedGroup : copyRelExecutionState.partitioningBuffer->getChunkedGroups()) {
         sharedState.incrementNumRows(chunkedGroup->getNumRows());
