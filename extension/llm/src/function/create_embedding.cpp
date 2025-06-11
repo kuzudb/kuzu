@@ -95,14 +95,17 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
             std::shared_ptr<Expression> dimensionsExpr = input.arguments[3];
             dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(dimensionsExpr,
                 LogicalType(LogicalTypeID::INT64));
-            auto toCast = std::stoll(evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, input.context).toString());
-            if (toCast < 0)
-            {
+            auto toCast = std::stoll(
+                evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr,
+                    input.context)
+                    .toString());
+            if (toCast < 0) {
                 throw(toCast);
             }
             dimensions = toCast;
         } catch (...) {
-            throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString() + '\n' + std::string(EmbeddingProvider::referenceKuzuDocs)));
+            throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString() +
+                                  '\n' + std::string(EmbeddingProvider::referenceKuzuDocs)));
         }
         region = StringUtils::getLower(input.arguments[4]->toString());
     } else if (input.arguments.size() == dimensionsOrRegionSpecified) {
@@ -114,15 +117,18 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
                 std::shared_ptr<Expression> dimensionsExpr = input.arguments[3];
                 dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(
                     dimensionsExpr, LogicalType(LogicalTypeID::INT64));
-                auto toCast = std::stoll(evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, input.context).toString());
-                if (toCast < 0)
-                {
+                auto toCast = std::stoll(
+                    evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr,
+                        input.context)
+                        .toString());
+                if (toCast < 0) {
                     throw(toCast);
                 }
                 dimensions = toCast;
             } catch (...) {
                 throw(BinderException(
-                    "Failed to parse dimensions: " + input.arguments[3]->toString() + '\n' + std::string(EmbeddingProvider::referenceKuzuDocs)));
+                    "Failed to parse dimensions: " + input.arguments[3]->toString() + '\n' +
+                    std::string(EmbeddingProvider::referenceKuzuDocs)));
             }
         }
     }
