@@ -110,7 +110,7 @@ Binder exception: Number of columns mismatch. Expected 4 but got 6.
 -STATEMENT copy test from "${KUZU_ROOT_DIRECTORY}/dataset/csv-edge-case-tests/list-quote.csv"
 ---- ok
 -STATEMENT match (a:test) return a.f, size(a.f)
----- 14
+---- 15
 [ab\'c]|1
 [xyc"s]|1
 [qw\'e,a\',xh"zz]|3
@@ -125,6 +125,7 @@ Binder exception: Number of columns mismatch. Expected 4 but got 6.
 [ZCRB1:m7G(5')pppAm-capped]|1
 ["ZCRB1:m7G(5')pppAm-capped"]|1
 [ZCRB1:m7G(5\')pppAm-capped]|1
+['test',qwerty,abc'xyz]|3
 -STATEMENT return cast("[ab\"cd]" as string[])
 ---- 1
 [ab"cd]

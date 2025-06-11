@@ -306,6 +306,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
     skipWhitespace(++input, end);
 
     bool quoted_entries = (*input == '\'' || *input == '"');
+    bool just_finished_entry = false;
     auto start_ptr = input;
     while (input < end) {
         auto ch = *input;
@@ -313,7 +314,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
             if (!skipToClose(input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, option)) {
                 return false;
             }
-        } else if ((ch == '\'' || ch == '"') && quoted_entries) {
+        } else if ((ch == '\'' || ch == '"') && quoted_entries && just_finished_entry) {
             if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
@@ -331,8 +332,10 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
             }
             skipWhitespace(++input, end);
             start_ptr = input;
+            just_finished_entry = true;
             continue;
         }
+        just_finished_entry = false;
         input++;
     }
     skipWhitespace(++input, end);
