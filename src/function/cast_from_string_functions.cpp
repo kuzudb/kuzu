@@ -314,8 +314,9 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
                 return false;
             }
         } else if ((ch == '\'' || ch == '"') && just_finished_entry) {
+            const char* prev_input = input;
             if (!skipToCloseQuotes(input, end)) {
-                return false;
+                input = prev_input;
             }
         } else if (ch == '{') {
             uint64_t struct_lvl = 0;
