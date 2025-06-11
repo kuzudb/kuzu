@@ -1400,6 +1400,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
             int64_t nano = ts.value % 1000000L * 1000L;
             jobject ret = env->CallStaticObjectMethod(J_C_Instant, J_C_Instant_M_ofEpochSecond,
                 seconds, nano);
+            std::cout << "TIMESTAMP_TZ: " << seconds << ", " << nano << std::endl;
             return ret;
         }
         case LogicalTypeID::TIMESTAMP: {
@@ -1408,6 +1409,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
             int64_t nano = ts.value % 1000000L * 1000L;
             jobject ret = env->CallStaticObjectMethod(J_C_Instant, J_C_Instant_M_ofEpochSecond,
                 seconds, nano);
+            std::cout << "TIMESTAMP: " << seconds << ", " << nano << std::endl;
             return ret;
         }
         case LogicalTypeID::TIMESTAMP_NS: {
@@ -1416,6 +1418,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
             int64_t nano = ts.value % 1000000000L;
             jobject ret = env->CallStaticObjectMethod(J_C_Instant, J_C_Instant_M_ofEpochSecond,
                 seconds, nano);
+            std::cout << "TIMESTAMP_NS: " << seconds << ", " << nano << std::endl;
             return ret;
         }
         case LogicalTypeID::TIMESTAMP_MS: {
@@ -1424,12 +1427,14 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
             int64_t nano = ts.value % 1000L * 1000000L;
             jobject ret = env->CallStaticObjectMethod(J_C_Instant, J_C_Instant_M_ofEpochSecond,
                 seconds, nano);
+            std::cout << "TIMESTAMP_MS: " << seconds << ", " << nano << std::endl;
             return ret;
         }
         case LogicalTypeID::TIMESTAMP_SEC: {
             timestamp_sec_t ts = v->getValue<timestamp_sec_t>();
             jobject ret =
                 env->CallStaticObjectMethod(J_C_Instant, J_C_Instant_M_ofEpochSecond, ts.value, 0);
+            std::cout << "TIMESTAMP_SEC: " << ts.value << std::endl;
             return ret;
         }
         case LogicalTypeID::INTERVAL: {
