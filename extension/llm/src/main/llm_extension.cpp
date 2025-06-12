@@ -6,6 +6,13 @@
 namespace kuzu {
 namespace llm_extension {
 
+// This extension provides an interface to retrieve text embeddings from supported LLM providers.
+// The function defined in create_embedding.cpp accepts ('prompt', 'provider', 'model', {optional params}).
+// To add a new provider and its models, implement a class derived from the EmbeddingProvider abstract base class.
+// The implemented methods are used in create_embedding.cpp to construct requests and parse returned embeddings.
+// Note: Remember to update the provider lookup table (static EmbeddingProvider& getInstance(const std::string& provider))
+// to include the new provider.
+
 void LLMExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
 
