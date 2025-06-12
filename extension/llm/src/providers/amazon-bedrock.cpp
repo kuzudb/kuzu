@@ -147,7 +147,7 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
         this->region = std::nullopt;
         return;
     }
-    static const std::unordered_set<std::string> validRegions = {defaultRegion, "us-west-2",
+    static const std::unordered_set<std::string> validRegions = {"us-east-1", "us-west-2",
         "ap-southeast-1", "ap-northeast-1", "eu-central-1"};
     if (!validRegions.contains(region.value())) {
         throw(BinderException(
