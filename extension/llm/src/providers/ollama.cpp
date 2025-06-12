@@ -1,8 +1,6 @@
 #include "providers/ollama.h"
 
 #include "common/exception/binder.h"
-#include "httplib.h"
-#include "json.hpp"
 
 using namespace kuzu::common;
 
