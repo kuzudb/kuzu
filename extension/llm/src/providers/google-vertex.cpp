@@ -42,11 +42,10 @@ httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*paylo
         {"Authorization", "Bearer " + env_key}};
 }
 
-nlohmann::json GoogleVertexEmbedding::getPayload(const std::string& /*model*/,
-    const std::string& text) const {
-    nlohmann::json payload{{"instances", {{{"content", text}}}}};
+nlohmann::json GoogleVertexEmbedding::getPayload(const std::string& /*model*/, const std::string& text) const {
+    nlohmann::json payload{{"instances", {{{"content", text}, {"task_type", "RETRIEVAL_DOCUMENT"}}}}};
     if (dimensions.has_value()) {
-        payload["parameters"] = {{"output_dim", dimensions.value()}};
+        payload["parameters"] = {{"outputDimensionality", dimensions.value()}};
     }
     return payload;
 }
