@@ -306,6 +306,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
         std::move(ftsConfig), context.clientContext);
     nodeTable->addIndex(std::move(onDiskIndex));
+    context.clientContext->getTransaction()->setForceCheckpoint();
     return 0;
 }
 

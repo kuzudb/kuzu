@@ -283,6 +283,9 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     auto nodeTable =
         clientContext->getStorageManager()->getTable(nodeTableID)->ptrCast<storage::NodeTable>();
     nodeTable->addIndex(std::move(onDiskIndex));
+    // Force checkpoint is needed to ensure that the index is persisted before we can support the
+    // replay of index creation.
+    transaction->setForceCheckpoint();
 }
 
 static double finalizeHNSWProgressFunc(TableFuncSharedState* sharedState) {

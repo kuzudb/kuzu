@@ -9,6 +9,10 @@
 ---- ok
 -STATEMENT CALL threads=1;
 ---- ok
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
