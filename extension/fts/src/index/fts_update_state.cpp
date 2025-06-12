@@ -23,6 +23,7 @@ TermsTableState::TermsTableState(const transaction::Transaction* transaction,
       termsTableUpdateState{tableInfo.dfColumnID, updateVectors.idVector,
           updateVectors.uint64PropVector} {
     termsTableScanState.setToTable(transaction, tableInfo.termsTable, {tableInfo.dfColumnID}, {});
+    termsTableUpdateState.logToWAL = false;
 }
 
 FTSInsertState::FTSInsertState(MemoryManager* mm, Transaction* transaction,
