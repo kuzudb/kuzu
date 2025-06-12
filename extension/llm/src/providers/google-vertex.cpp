@@ -44,9 +44,8 @@ httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*paylo
 
 nlohmann::json GoogleVertexEmbedding::getPayload(const std::string& /*model*/,
     const std::string& text) const {
-    nlohmann::json payload {{"instances", {{{"content", text}}}}};
-    if (dimensions.has_value())
-    {
+    nlohmann::json payload{{"instances", {{{"content", text}}}}};
+    if (dimensions.has_value()) {
         payload["parameters"] = {{"output_dim", dimensions.value()}};
     }
     return payload;
