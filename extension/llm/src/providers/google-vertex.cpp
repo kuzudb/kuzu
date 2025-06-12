@@ -44,7 +44,12 @@ httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*paylo
 
 nlohmann::json GoogleVertexEmbedding::getPayload(const std::string& /*model*/,
     const std::string& text) const {
-    return nlohmann::json{{"instances", {{{"content", text}}}}};
+    nlohmann::json payload {{"instances", {{{"content", text}}}}};
+    if (dimensions.has_value())
+    {
+        payload["parameters"] = {{"output_dim", dimensions.value()}};
+    }
+    return payload;
 }
 
 std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& res) const {
@@ -63,11 +68,7 @@ void GoogleVertexEmbedding::checkModel(const std::string& model) const {
 
 void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
-    if (dimensions.has_value()) {
-        throw(BinderException("Google-Vertex does not support the dimensions argument: " +
-                              std::to_string(dimensions.value()) + '\n' +
-                              std::string(referenceKuzuDocs)));
-    }
+    this->dimensions = dimensions;
     // Reset to default
     if (!region.has_value()) {
         this->region = std::nullopt;
