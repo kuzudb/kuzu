@@ -22,7 +22,7 @@ std::string BedrockEmbedding::getClient() const {
     return "https://bedrock-runtime." + region.value_or("us-east-1") + ".amazonaws.com";
 }
 
-std::string BedrockEmbedding::getPath(const std::string_view& /*model*/) const {
+std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
     return "/model/amazon.titan-embed-text-v1/invoke";
 }
 
@@ -118,8 +118,8 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     return headers;
 }
 
-nlohmann::json BedrockEmbedding::getPayload(const std::string_view& /*model*/,
-    const std::string_view& text) const {
+nlohmann::json BedrockEmbedding::getPayload(const std::string& /*model*/,
+    const std::string& text) const {
     return nlohmann::json{{"inputText", text}};
 }
 
@@ -127,12 +127,12 @@ std::vector<float> BedrockEmbedding::parseResponse(const httplib::Result& res) c
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
 
-void BedrockEmbedding::checkModel(const std::string_view& model) const {
-    static const std::unordered_set<std::string_view> validModels = {"amazon.titan-embed-text-v1"};
+void BedrockEmbedding::checkModel(const std::string& model) const {
+    static const std::unordered_set<std::string> validModels = {"amazon.titan-embed-text-v1"};
     if (validModels.contains(model)) {
         return;
     }
-    throw(BinderException("Invalid Model: " + std::string(model)));
+    throw(BinderException("Invalid Model: " + model));
 }
 
 void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
@@ -147,7 +147,7 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
         this->region = std::nullopt;
         return;
     }
-    static const std::unordered_set<std::string_view> validRegions = {"us-east-1", "us-west-2",
+    static const std::unordered_set<std::string> validRegions = {"us-east-1", "us-west-2",
         "ap-southeast-1", "ap-northeast-1", "eu-central-1"};
     if (!validRegions.contains(region.value())) {
         throw(BinderException(
@@ -156,13 +156,13 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
     this->region = region;
 }
 
-uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string_view& model) const {
-    static const std::unordered_map<std::string_view, uint64_t> modelDimensionMap = {
+uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"amazon.titan-embed-text-v1", 1024}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
         throw(BinderException(
-            "Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
+            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }
