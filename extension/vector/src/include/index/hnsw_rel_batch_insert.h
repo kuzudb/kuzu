@@ -12,7 +12,6 @@ namespace vector_extension {
 
 class HNSWRelBatchInsert final : public processor::RelBatchInsertImpl {
 public:
-
     std::unique_ptr<processor::RelBatchInsertImpl> copy() override;
 
     std::unique_ptr<processor::RelBatchInsertExecutionState> initExecutionState(
