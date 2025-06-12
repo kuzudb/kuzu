@@ -286,8 +286,8 @@ Value* getValue(JNIEnv* env, jobject thisValue) {
 
 internalID_t getInternalID(JNIEnv* env, jobject id) {
     try {
-        long table_id = static_cast<long>(env->GetLongField(id, J_C_InternalID_F_tableId));
-        long offset = static_cast<long>(env->GetLongField(id, J_C_InternalID_F_offset));
+        int64_t table_id = static_cast<long>(env->GetLongField(id, J_C_InternalID_F_tableId));
+        int64_t offset = static_cast<long>(env->GetLongField(id, J_C_InternalID_F_offset));
         return internalID_t(offset, table_id);
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -1145,20 +1145,20 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
             std::string str = jstringToUtf8String(env, value);
             v = new Value(str.c_str());
         } else if (env->IsInstanceOf(val, J_C_InternalID)) {
-            long table_id = static_cast<long>(env->GetLongField(val, J_C_InternalID_F_tableId));
-            long offset = static_cast<long>(env->GetLongField(val, J_C_InternalID_F_offset));
+            int64_t table_id = static_cast<long>(env->GetLongField(val, J_C_InternalID_F_tableId));
+            int64_t offset = static_cast<long>(env->GetLongField(val, J_C_InternalID_F_offset));
             internalID_t id(offset, table_id);
             v = new Value(id);
         } else if (env->IsInstanceOf(val, J_C_LocalDate)) {
-            long days = static_cast<long>(env->CallLongMethod(val, J_C_LocalDate_M_toEpochDay));
+            int64_t days = static_cast<long>(env->CallLongMethod(val, J_C_LocalDate_M_toEpochDay));
             v = new Value(date_t(days));
         } else if (env->IsInstanceOf(val, J_C_Instant)) {
             // TODO: Need to review this for overflow
-            long seconds =
+            int64_t seconds =
                 static_cast<long>(env->CallLongMethod(val, J_C_LocalDate_M_getEpochSecond));
-            long nano = static_cast<long>(env->CallLongMethod(val, J_C_LocalDate_M_getNano));
+            int64_t nano = static_cast<long>(env->CallLongMethod(val, J_C_LocalDate_M_getNano));
 
-            long micro = (seconds * 1000000L) + (nano / 1000L);
+            int64_t micro = (seconds * 1000000L) + (nano / 1000L);
             v = new Value(timestamp_t(micro));
         } else if (env->IsInstanceOf(val, J_C_Duration)) {
             auto milis = env->CallLongMethod(val, J_C_Duration_M_toMillis);
@@ -1434,7 +1434,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
         }
         case LogicalTypeID::INTERVAL: {
             interval_t in = v->getValue<interval_t>();
-            long millis = Interval::getMicro(in) / 1000;
+            int64_t millis = Interval::getMicro(in) / 1000;
             jobject ret =
                 env->CallStaticObjectMethod(J_C_Duration, J_C_Duration_M_ofMillis, millis);
             return ret;
