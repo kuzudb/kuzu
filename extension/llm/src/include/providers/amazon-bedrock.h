@@ -12,6 +12,7 @@ class BedrockEmbedding final : public EmbeddingProvider {
     BedrockEmbedding() = default;
     DELETE_COPY_AND_MOVE(BedrockEmbedding);
     std::optional<std::string> region;
+    const std::string defaultRegion = "us-east-1";
 
 public:
     ~BedrockEmbedding() override = default;

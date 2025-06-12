@@ -27,7 +27,7 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
         throw(RuntimeException(
             "Could not get project id from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
-    return "/v1/projects/" + env_project_id + "/locations/" + region.value_or("us-central1") +
+    return "/v1/projects/" + env_project_id + "/locations/" + region.value_or(defaultRegion) +
            "/publishers/google/models/" + model + ":predict";
 }
 
@@ -74,7 +74,7 @@ void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
         return;
     }
     static const std::unordered_set<std::string> validRegions = {"us-west1", "us-west2", "us-west3",
-        "us-west4", "us-central1", "us-east1", "us-east4", "us-south1", "northamerica-northeast1",
+        "us-west4", defaultRegion, "us-east1", "us-east4", "us-south1", "northamerica-northeast1",
         "northamerica-northeast2", "southamerica-east1", "southamerica-west1", "europe-west2",
         "europe-west1", "europe-west4", "europe-west6", "europe-west3", "europe-north1",
         "europe-central2", "europe-west8", "europe-west9", "europe-southwest1", "asia-south1",
