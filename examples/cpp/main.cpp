@@ -1,14 +1,16 @@
 #include <iostream>
 
 #include "kuzu.hpp"
+#include <filesystem>
 using namespace kuzu::main;
 
 int main() {
-    auto database = std::make_unique<Database>("" /* fill db path */);
+    std::filesystem::remove_all("testdb");
+    auto database = std::make_unique<Database>("testdb" /* fill db path */);
     auto connection = std::make_unique<Connection>(database.get());
 
     // Create schema.
-    connection->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));");
+    connection->query("CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));");
     // Create nodes.
     connection->query("CREATE (:Person {name: 'Alice', age: 25});");
     connection->query("CREATE (:Person {name: 'Bob', age: 30});");

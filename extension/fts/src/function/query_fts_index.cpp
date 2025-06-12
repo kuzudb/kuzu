@@ -15,6 +15,8 @@
 #include "storage/table/node_table.h"
 #include "utils/fts_utils.h"
 
+#include <chrono>
+#include <iostream>
 namespace kuzu {
 namespace fts_extension {
 
@@ -231,6 +233,8 @@ static void initFrontier(FrontierPair& frontierPair, table_id_t termsTableID,
 }
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+
+    using namespace std::chrono;
     auto clientContext = input.context->clientContext;
     auto transaction = clientContext->getTransaction();
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
@@ -239,11 +243,16 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto qFTSBindData = input.bindData->constPtrCast<QueryFTSBindData>();
     auto& termsEntry = graphEntry->nodeInfos[0].entry->constCast<catalog::NodeTableCatalogEntry>();
     auto terms = qFTSBindData->getTerms(*input.context->clientContext);
+    auto start = high_resolution_clock::now();
     auto dfs = getDFs(*input.context->clientContext, termsEntry, terms);
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end - start);
+    std::cout << "Get dfs takes: " << duration << "ms"<< std::endl;
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
     // vertex compute.
+    start = high_resolution_clock::now();
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(std::move(currentFrontier),
@@ -260,8 +269,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
     GDSUtils::runFTSEdgeCompute(input.context, compState, graph, ExtendDirection::FWD,
         {TERM_FREQUENCY_PROP_NAME});
-
+    end = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(end - start);
+    std::cout << "edge compute takes: " << duration << "ms"<< std::endl;
     // Do vertex compute to calculate the score for doc with the length property.
+    start = high_resolution_clock::now();
     auto mm = clientContext->getMemoryManager();
     auto numUniqueTerms = getNumUniqueTerms(terms);
     auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData->getConfig(),
@@ -282,6 +294,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vc, docsEntry,
             vertexPropertiesToScan);
     }
+    end = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(end - start);
+    std::cout << "vertex compute takes: " << duration << "ms"<< std::endl;
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
