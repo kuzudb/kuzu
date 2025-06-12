@@ -6,6 +6,7 @@
 #include "function/table/simple_table_function.h"
 #include "function/table/table_function.h"
 #include "index/hnsw_index.h"
+#include "index/hnsw_rel_batch_insert.h"
 
 namespace kuzu {
 namespace vector_extension {
@@ -57,8 +58,8 @@ struct FinalizeHNSWSharedState final : function::SimpleTableFuncSharedState {
 
     std::atomic<common::node_group_idx_t> numNodeGroupsFinalized = 0;
 
-    explicit FinalizeHNSWSharedState(storage::MemoryManager& mm) : SimpleTableFuncSharedState{} {
-        partitionerSharedState = std::make_shared<HNSWIndexPartitionerSharedState>(mm);
+    explicit FinalizeHNSWSharedState() : SimpleTableFuncSharedState{} {
+        partitionerSharedState = std::make_shared<HNSWIndexPartitionerSharedState>();
     }
 };
 

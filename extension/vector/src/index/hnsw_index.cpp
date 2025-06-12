@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/hnsw_index_catalog_entry.h"
+#include "index/hnsw_rel_batch_insert.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
@@ -11,16 +12,6 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace vector_extension {
-
-// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void HNSWIndexPartitionerSharedState::setTables(NodeTable* nodeTable, RelTable* relTable) {
-    lowerPartitionerSharedState->srcNodeTable = nodeTable;
-    lowerPartitionerSharedState->dstNodeTable = nodeTable;
-    lowerPartitionerSharedState->relTable = relTable;
-    upperPartitionerSharedState->srcNodeTable = nodeTable;
-    upperPartitionerSharedState->dstNodeTable = nodeTable;
-    upperPartitionerSharedState->relTable = relTable;
-}
 
 InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info)
     : entryPoint{common::INVALID_OFFSET}, info{info} {
@@ -180,8 +171,7 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     graph->setCSRLength(nodeOffset, newSize);
 }
 
-void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-    const processor::PartitionerSharedState& partitionerSharedState,
+void InMemHNSWLayer::finalize(common::node_group_idx_t nodeGroupIdx,
     common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto endNodeOffset =
@@ -198,8 +188,13 @@ void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGr
         }
         shrinkForNode(info, graph.get(), offsetInGraph, numNbrs);
     }
-    graph->finalize(mm, nodeGroupIdx, partitionerSharedState, startNodeInGraph, endNodeInGraph,
-        numNodesInTable, selectedNodesMap);
+}
+
+void InMemHNSWIndex::moveToPartitionState(HNSWIndexPartitionerSharedState& partitionState) {
+    partitionState.lowerPartitionerSharedState->setGraph(lowerLayer->moveGraph(),
+        std::move(lowerGraphSelectionMap));
+    partitionState.upperPartitionerSharedState->setGraph(upperLayer->moveGraph(),
+        std::move(upperGraphSelectionMap));
 }
 
 std::vector<NodeWithDistance> HNSWIndex::popTopK(max_node_priority_queue_t& result,
@@ -280,13 +275,10 @@ bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void InMemHNSWIndex::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-    const HNSWIndexPartitionerSharedState& partitionerSharedState) {
+void InMemHNSWIndex::finalize(common::node_group_idx_t nodeGroupIdx) {
     const auto numNodesInTable = lowerLayer->getNumNodes();
-    upperLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.upperPartitionerSharedState,
-        numNodesInTable, *upperGraphSelectionMap);
-    lowerLayer->finalize(mm, nodeGroupIdx, *partitionerSharedState.lowerPartitionerSharedState,
-        numNodesInTable, *lowerGraphSelectionMap);
+    upperLayer->finalize(nodeGroupIdx, numNodesInTable, *upperGraphSelectionMap);
+    lowerLayer->finalize(nodeGroupIdx, numNodesInTable, *lowerGraphSelectionMap);
 }
 
 std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {

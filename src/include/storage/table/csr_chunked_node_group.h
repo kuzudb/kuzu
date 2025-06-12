@@ -53,7 +53,7 @@ struct CSRRegion {
         const CSRRegion& region);
 };
 
-struct ChunkedCSRHeader {
+struct KUZU_API ChunkedCSRHeader {
     std::unique_ptr<ColumnChunk> offset;
     std::unique_ptr<ColumnChunk> length;
     bool randomLookup = false;

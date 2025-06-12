@@ -2,7 +2,8 @@
 
 #include <cmath>
 
-#include "processor/operator/partitioner.h"
+#include "common/data_chunk/data_chunk.h"
+#include "processor/operator/base_partitioner_shared_state.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_cached_column.h"
 #include "storage/table/column_chunk_data.h"
@@ -136,16 +137,17 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodes(numNodesInTable){};
+        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable){};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 
-    common::offset_t getNumNodesInGraph() const { return numNodes; }
+    common::offset_t getNumNodesInGraph() const { return numNodesInGraph; }
     common::offset_t nodeToGraphOffset(common::offset_t nodeOffset, bool exactMatch = true) const;
     common::offset_t graphToNodeOffset(common::offset_t graphOffset) const;
     bool isTrivialMapping() const { return graphToNodeMap == nullptr; }
 
-    common::offset_t numNodes;
+    common::offset_t numNodesInGraph;
+    common::offset_t numNodesInTable;
     std::unique_ptr<common::offset_t[]> graphToNodeMap;
 };
 
@@ -193,23 +195,12 @@ public:
         dstNodes.setNodeOffset(csrOffset, dstNode);
     }
 
-    void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-        const processor::PartitionerSharedState& partitionerSharedState,
-        common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
-        common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap);
-
     // In the current implementation, race conditions can result in dstNode entries being skipped
     // during insertion. Skipped entries will be marked with this value
     common::offset_t getInvalidOffset() const { return invalidOffset; }
 
 private:
     void resetCSRLengthAndDstNodes();
-
-    void finalizeNodeGroup(storage::MemoryManager& mm, uint64_t numRels,
-        common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
-        common::table_id_t relTableID, storage::InMemChunkedNodeGroupCollection& partition,
-        common::offset_t startNodeInGraph, common::offset_t endNodeInGraph,
-        common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
         return dstNodes.getNodeOffset(csrOffset);

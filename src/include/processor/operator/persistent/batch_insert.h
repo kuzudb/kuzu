@@ -39,6 +39,7 @@ struct BatchInsertInfo {
           columnTypes{copyVector(other.columnTypes)}, insertColumnIDs{other.insertColumnIDs},
           outputDataColumns{other.outputDataColumns}, warningDataColumns{other.warningDataColumns} {
     }
+    DELETE_COPY_ASSN(BatchInsertInfo);
     virtual ~BatchInsertInfo() = default;
 
     virtual std::unique_ptr<BatchInsertInfo> copy() const = 0;
@@ -103,7 +104,7 @@ struct BatchInsertLocalState {
     }
 };
 
-class BatchInsert : public Sink {
+class KUZU_API BatchInsert : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::BATCH_INSERT;
 
 public:

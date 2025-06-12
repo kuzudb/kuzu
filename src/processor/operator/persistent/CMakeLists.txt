@@ -6,6 +6,7 @@ add_library(kuzu_processor_operator_persistent
         batch_insert_error_handler.cpp
         node_batch_insert.cpp
         node_batch_insert_error_handler.cpp
+        copy_rel_batch_insert.cpp
         rel_batch_insert.cpp
         copy_to.cpp
         delete.cpp
