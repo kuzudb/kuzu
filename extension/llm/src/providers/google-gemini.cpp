@@ -20,23 +20,23 @@ std::string GoogleGeminiEmbedding::getClient() const {
     return "https://generativelanguage.googleapis.com";
 }
 
-std::string GoogleGeminiEmbedding::getPath(const std::string_view& model) const {
+std::string GoogleGeminiEmbedding::getPath(const std::string& model) const {
     static const std::string envVar = "GEMINI_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
         throw(RuntimeException(
             "Could not get key from: " + envVar + "\n" + std::string(referenceKuzuDocs)));
     }
-    return "/v1beta/models/" + std::string(model) + ":embedContent?key=" + env_key;
+    return "/v1beta/models/" + model + ":embedContent?key=" + env_key;
 }
 
 httplib::Headers GoogleGeminiEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
     return httplib::Headers{{"Content-Type", "application/json"}};
 }
 
-nlohmann::json GoogleGeminiEmbedding::getPayload(const std::string_view& model,
-    const std::string_view& text) const {
-    return nlohmann::json{{"model", "models/" + std::string(model)},
+nlohmann::json GoogleGeminiEmbedding::getPayload(const std::string& model,
+    const std::string& text) const {
+    return nlohmann::json{{"model", "models/" + model},
         {"content", {{"parts", {{{"text", text}}}}}}};
 }
 
@@ -44,13 +44,13 @@ std::vector<float> GoogleGeminiEmbedding::parseResponse(const httplib::Result& r
     return nlohmann::json::parse(res->body)["embedding"]["values"].get<std::vector<float>>();
 }
 
-void GoogleGeminiEmbedding::checkModel(const std::string_view& model) const {
-    static const std::unordered_set<std::string_view> validModels = {"gemini-embedding-exp-03-07",
+void GoogleGeminiEmbedding::checkModel(const std::string& model) const {
+    static const std::unordered_set<std::string> validModels = {"gemini-embedding-exp-03-07",
         "text-embedding-004", "embedding-001"};
     if (validModels.contains(model)) {
         return;
     }
-    throw(BinderException("Invalid Model: " + std::string(model)));
+    throw(BinderException("Invalid Model: " + model));
 }
 
 void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
@@ -66,13 +66,13 @@ void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
     }
 }
 
-uint64_t GoogleGeminiEmbedding::getEmbeddingDimension(const std::string_view& model) const {
-    static const std::unordered_map<std::string_view, uint64_t> modelDimensionMap = {
+uint64_t GoogleGeminiEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
         throw(BinderException(
-            "Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
+            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }

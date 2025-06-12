@@ -20,7 +20,7 @@ std::string GoogleVertexEmbedding::getClient() const {
     return "https://aiplatform.googleapis.com";
 }
 
-std::string GoogleVertexEmbedding::getPath(const std::string_view& model) const {
+std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
     static const std::string envVar = "GOOGLE_CLOUD_PROJECT_ID";
     auto env_project_id = main::ClientContext::getEnvVariable(envVar);
     if (env_project_id.empty()) {
@@ -28,7 +28,7 @@ std::string GoogleVertexEmbedding::getPath(const std::string_view& model) const 
             "Could not get project id from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
     return "/v1/projects/" + env_project_id + "/locations/" + region.value_or("us-central1") +
-           "/publishers/google/models/" + std::string(model) + ":predict";
+           "/publishers/google/models/" + model + ":predict";
 }
 
 httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
@@ -42,8 +42,8 @@ httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*paylo
         {"Authorization", "Bearer " + env_key}};
 }
 
-nlohmann::json GoogleVertexEmbedding::getPayload(const std::string_view& /*model*/,
-    const std::string_view& text) const {
+nlohmann::json GoogleVertexEmbedding::getPayload(const std::string& /*model*/,
+    const std::string& text) const {
     return nlohmann::json{{"instances", {{{"content", text}}}}};
 }
 
@@ -52,13 +52,13 @@ std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& r
         .get<std::vector<float>>();
 }
 
-void GoogleVertexEmbedding::checkModel(const std::string_view& model) const {
-    static const std::unordered_set<std::string_view> validModels = {"gemini-embedding-001",
+void GoogleVertexEmbedding::checkModel(const std::string& model) const {
+    static const std::unordered_set<std::string> validModels = {"gemini-embedding-001",
         "text-embedding-005", "text-multilingual-embedding-002"};
     if (validModels.contains(model)) {
         return;
     }
-    throw(BinderException("Invalid Model: " + std::string(model)));
+    throw(BinderException("Invalid Model: " + model));
 }
 
 void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
@@ -73,7 +73,7 @@ void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
         this->region = std::nullopt;
         return;
     }
-    static const std::unordered_set<std::string_view> validRegions = {"us-west1", "us-west2",
+    static const std::unordered_set<std::string> validRegions = {"us-west1", "us-west2",
         "us-west3", "us-west4", "us-central1", "us-east1", "us-east4", "us-south1",
         "northamerica-northeast1", "northamerica-northeast2", "southamerica-east1",
         "southamerica-west1", "europe-west2", "europe-west1", "europe-west4", "europe-west6",
@@ -88,15 +88,15 @@ void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
     this->region = region;
 }
 
-uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string_view& model) const {
-    static const std::unordered_map<std::string_view, uint64_t> modelDimensionMap = {
+uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"gemini-embedding-001", 3072}, {"text-embedding-005", 768},
         {"text-multilingual-embedding-002", 768}};
 
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
         throw(BinderException(
-            "Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
+            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }

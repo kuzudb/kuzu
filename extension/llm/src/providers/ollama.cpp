@@ -18,7 +18,7 @@ std::string OllamaEmbedding::getClient() const {
     return "http://localhost:11434";
 }
 
-std::string OllamaEmbedding::getPath(const std::string_view& /*model*/) const {
+std::string OllamaEmbedding::getPath(const std::string& /*model*/) const {
     return "/api/embeddings";
 }
 
@@ -26,8 +26,8 @@ httplib::Headers OllamaEmbedding::getHeaders(const nlohmann::json& /*payload*/) 
     return httplib::Headers{{"Content-Type", "application/json"}};
 }
 
-nlohmann::json OllamaEmbedding::getPayload(const std::string_view& model,
-    const std::string_view& text) const {
+nlohmann::json OllamaEmbedding::getPayload(const std::string& model,
+    const std::string& text) const {
     return nlohmann::json{{"model", model}, {"prompt", text}};
 }
 
@@ -35,13 +35,13 @@ std::vector<float> OllamaEmbedding::parseResponse(const httplib::Result& res) co
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
 
-void OllamaEmbedding::checkModel(const std::string_view& model) const {
-    static const std::unordered_set<std::string_view> validModels = {"nomic-embed-text",
+void OllamaEmbedding::checkModel(const std::string& model) const {
+    static const std::unordered_set<std::string> validModels = {"nomic-embed-text",
         "all-minilm:l6-v2"};
     if (validModels.contains(model)) {
         return;
     }
-    throw(BinderException("Invalid Model: " + std::string(model)));
+    throw(BinderException("Invalid Model: " + model));
 }
 
 void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
@@ -57,13 +57,13 @@ void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
     }
 }
 
-uint64_t OllamaEmbedding::getEmbeddingDimension(const std::string_view& model) const {
-    static const std::unordered_map<std::string_view, uint64_t> modelDimensionMap = {
+uint64_t OllamaEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
         throw(BinderException(
-            "Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
+            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }

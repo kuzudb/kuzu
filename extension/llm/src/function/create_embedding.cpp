@@ -24,8 +24,8 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace llm_extension {
 
-static EmbeddingProvider& getInstance(const std::string_view& provider) {
-    static const std::unordered_map<std::string_view, std::function<EmbeddingProvider&()>>
+static EmbeddingProvider& getInstance(const std::string& provider) {
+    static const std::unordered_map<std::string, std::function<EmbeddingProvider&()>>
         providerInstanceMap = {{"open-ai", &OpenAIEmbedding::getInstance},
             {"voyage-ai", &VoyageAIEmbedding::getInstance},
             {"google-vertex", &GoogleVertexEmbedding::getInstance},
@@ -35,7 +35,7 @@ static EmbeddingProvider& getInstance(const std::string_view& provider) {
 
     auto providerInstanceIter = providerInstanceMap.find(provider);
     if (providerInstanceIter == providerInstanceMap.end()) {
-        throw BinderException("Provider not found: " + std::string(provider) + "\n" +
+        throw BinderException("Provider not found: " + provider + "\n" +
                               std::string(EmbeddingProvider::referenceKuzuDocs));
     }
     return providerInstanceIter->second();

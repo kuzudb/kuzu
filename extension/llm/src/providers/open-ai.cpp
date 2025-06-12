@@ -20,7 +20,7 @@ std::string OpenAIEmbedding::getClient() const {
     return "https://api.openai.com";
 }
 
-std::string OpenAIEmbedding::getPath(const std::string_view& /*model*/) const {
+std::string OpenAIEmbedding::getPath(const std::string& /*model*/) const {
     return "/v1/embeddings";
 }
 
@@ -35,8 +35,8 @@ httplib::Headers OpenAIEmbedding::getHeaders(const nlohmann::json& /*payload*/) 
         {"Authorization", "Bearer " + env_key}};
 }
 
-nlohmann::json OpenAIEmbedding::getPayload(const std::string_view& model,
-    const std::string_view& text) const {
+nlohmann::json OpenAIEmbedding::getPayload(const std::string& model,
+    const std::string& text) const {
     nlohmann::json payload{{"model", model}, {"input", text}};
     if (dimensions.has_value()) {
         payload["dimensions"] = dimensions.value();
@@ -48,13 +48,13 @@ std::vector<float> OpenAIEmbedding::parseResponse(const httplib::Result& res) co
     return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
 }
 
-void OpenAIEmbedding::checkModel(const std::string_view& model) const {
-    static const std::unordered_set<std::string_view> validModels = {"text-embedding-3-large",
+void OpenAIEmbedding::checkModel(const std::string& model) const {
+    static const std::unordered_set<std::string> validModels = {"text-embedding-3-large",
         "text-embedding-3-small", "text-embedding-ada-002"};
     if (validModels.contains(model)) {
         return;
     }
-    throw(BinderException("Invalid Model: " + std::string(model)));
+    throw(BinderException("Invalid Model: " + model));
 }
 
 void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
@@ -66,15 +66,15 @@ void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     this->dimensions = dimensions;
 }
 
-uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string_view& model) const {
-    static const std::unordered_map<std::string_view, uint64_t> modelDimensionMap = {
+uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string& model) const {
+    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536},
         {"text-embedding-ada-002", 1536}};
 
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
         throw(BinderException(
-            "Invalid Model: " + std::string(model) + '\n' + std::string(referenceKuzuDocs)));
+            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }
