@@ -7,6 +7,9 @@
 namespace kuzu {
 namespace vector_extension {
 
+HNSWRelBatchInsert::HNSWRelBatchInsert() = default;
+HNSWRelBatchInsert::HNSWRelBatchInsert(const HNSWRelBatchInsert&) = default;
+HNSWRelBatchInsert& HNSWRelBatchInsert::operator=(const HNSWRelBatchInsert&) = default;
 HNSWRelBatchInsert::~HNSWRelBatchInsert() = default;
 
 std::unique_ptr<processor::RelBatchInsertImpl> HNSWRelBatchInsert::copy() {

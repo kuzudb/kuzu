@@ -14,6 +14,9 @@ struct NodeToHNSWGraphOffsetMap;
 
 class KUZU_API HNSWRelBatchInsert final : public processor::RelBatchInsertImpl {
 public:
+    HNSWRelBatchInsert();
+    HNSWRelBatchInsert(const HNSWRelBatchInsert&);
+    HNSWRelBatchInsert& operator=(const HNSWRelBatchInsert&);
     ~HNSWRelBatchInsert() override;
 
     std::unique_ptr<processor::RelBatchInsertImpl> copy() override;
