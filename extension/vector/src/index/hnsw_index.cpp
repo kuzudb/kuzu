@@ -406,7 +406,7 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::searchFromCheckpointed(
         }
         entryPoint = hnswStorageInfo.lowerEntryPoint;
     }
-    return searchKNNInLowerLayer(transaction, queryVector, entryPoint, searchState);
+    return searchKNNInLayer(transaction, queryVector, entryPoint, searchState, false);
 }
 
 void OnDiskHNSWIndex::searchFromUnCheckpointed(transaction::Transaction* transaction,
@@ -548,28 +548,78 @@ common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(transaction::Transaction*
     return currentNodeOffset;
 }
 
-void OnDiskHNSWIndex::initLowerLayerSearchState(transaction::Transaction* transaction,
-    HNSWSearchState& searchState) const {
+void OnDiskHNSWIndex::initLayerSearchState(transaction::Transaction* transaction,
+    HNSWSearchState& searchState, bool isUpperLayer) const {
     searchState.visited.reset();
     const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
+    const auto& hnswGraph = isUpperLayer ? searchState.upperGraph : searchState.lowerGraph;
+    const auto relEntry =
+        isUpperLayer ? searchState.upperRelTableEntry : searchState.lowerRelTableEntry;
+    const auto relTableID =
+        isUpperLayer ? hnswStorageInfo.upperRelTableID : hnswStorageInfo.lowerRelTableID;
     searchState.nbrScanState =
-        searchState.lowerGraph->prepareRelScan(*searchState.lowerRelTableEntry,
-            hnswStorageInfo.lowerRelTableID, indexInfo.tableID, {} /* relProperties */);
+        hnswGraph->prepareRelScan(*relEntry, relTableID, indexInfo.tableID, {} /* relProperties */);
     searchState.searchType = getFilteredSearchType(transaction, searchState);
     if (searchState.searchType == SearchType::BLIND_TWO_HOP ||
         searchState.searchType == SearchType::DIRECTED_TWO_HOP) {
-        searchState.secondHopNbrScanState =
-            searchState.lowerGraph->prepareRelScan(*searchState.lowerRelTableEntry,
-                hnswStorageInfo.lowerRelTableID, indexInfo.tableID, {} /* relProperties */);
+        searchState.secondHopNbrScanState = hnswGraph->prepareRelScan(*relEntry, relTableID,
+            indexInfo.tableID, {} /* relProperties */);
     }
 }
 
 std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLowerLayer(
     transaction::Transaction* transaction, const void* queryVector, common::offset_t entryNode,
     HNSWSearchState& searchState) const {
+    // min_node_priority_queue_t candidates;
+    // max_node_priority_queue_t results;
+    // initLayerSearchState(transaction, searchState, false);
+    //
+    // const auto entryVector =
+    //     embeddings->getEmbedding(transaction, *searchState.embeddingScanState.scanState, entryNode);
+    // auto dist = metricFunc(queryVector, entryVector, embeddings->getDimension());
+    // candidates.push({entryNode, dist});
+    // searchState.visited.add(entryNode);
+    // if (searchState.isMasked(entryNode)) {
+    //     results.push({entryNode, dist});
+    // }
+    // initSearchCandidates(transaction, queryVector, searchState, candidates, results);
+    //
+    // while (!candidates.empty()) {
+    //     auto [candidate, candidateDist] = candidates.top();
+    //     // Break here if adding closestNode to result will exceed efs or not improve the results.
+    //     if (results.size() >= searchState.ef && candidateDist > results.top().distance) {
+    //         break;
+    //     }
+    //     candidates.pop();
+    //     auto neighborItr = searchState.lowerGraph->scanFwd(
+    //         common::nodeID_t{candidate, indexInfo.tableID}, *searchState.nbrScanState);
+    //     switch (searchState.searchType) {
+    //     case SearchType::UNFILTERED:
+    //     case SearchType::ONE_HOP_FILTERED: {
+    //         oneHopSearch(transaction, queryVector, neighborItr, searchState, candidates, results);
+    //     } break;
+    //     case SearchType::DIRECTED_TWO_HOP: {
+    //         directedTwoHopFilteredSearch(transaction, queryVector, neighborItr, searchState,
+    //             candidates, results);
+    //     } break;
+    //     case SearchType::BLIND_TWO_HOP: {
+    //         blindTwoHopFilteredSearch(transaction, queryVector, neighborItr, searchState,
+    //             candidates, results);
+    //     } break;
+    //     default: {
+    //         KU_UNREACHABLE;
+    //     }
+    //     }
+    // }
+    // return popTopK(results, searchState.k);
+}
+
+std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLayer(
+    transaction::Transaction* transaction, const void* queryVector, common::offset_t entryNode,
+    HNSWSearchState& searchState, bool isUpperLayer) const {
     min_node_priority_queue_t candidates;
     max_node_priority_queue_t results;
-    initLowerLayerSearchState(transaction, searchState);
+    initLayerSearchState(transaction, searchState, isUpperLayer);
 
     const auto entryVector =
         embeddings->getEmbedding(transaction, *searchState.embeddingScanState.scanState, entryNode);
@@ -593,8 +643,9 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLowerLayer(
             break;
         }
         candidates.pop();
-        auto neighborItr = searchState.lowerGraph->scanFwd(
-            common::nodeID_t{candidate, indexInfo.tableID}, *searchState.nbrScanState);
+        const auto& hnswGraph = isUpperLayer ? searchState.upperGraph : searchState.lowerGraph;
+        auto neighborItr = hnswGraph->scanFwd(common::nodeID_t{candidate, indexInfo.tableID},
+            *searchState.nbrScanState);
         switch (searchState.searchType) {
         case SearchType::UNFILTERED:
         case SearchType::ONE_HOP_FILTERED: {
@@ -772,13 +823,8 @@ void OnDiskHNSWIndex::insertToLayer(transaction::Transaction* transaction, commo
         }
         entryPoint = hnswStorageInfo.lowerEntryPoint;
     }
-    if (isUpperLayer) {
-        // TODO: searchKNN should be layer insensitive.
-        // TODO: Support inserting into the upper layer.
-        return;
-    }
-    const auto closest =
-        searchKNNInLowerLayer(transaction, queryVector, entryPoint, insertState.searchState);
+    const auto closest = searchKNNInLayer(transaction, queryVector, entryPoint,
+        insertState.searchState, isUpperLayer);
     createRels(transaction, offset, closest, isUpperLayer, insertState);
     for (const auto& n : closest) {
         createRels(transaction, n.nodeOffset, {{offset, std::numeric_limits<double>::max()}},
