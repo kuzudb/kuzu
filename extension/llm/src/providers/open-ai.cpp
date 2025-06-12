@@ -73,8 +73,7 @@ uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string& model) const 
 
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException(
-            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }
