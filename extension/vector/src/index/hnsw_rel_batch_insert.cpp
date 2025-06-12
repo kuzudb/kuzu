@@ -7,6 +7,12 @@
 namespace kuzu {
 namespace vector_extension {
 
+HNSWRelBatchInsert::~HNSWRelBatchInsert() = default;
+
+std::unique_ptr<processor::RelBatchInsertImpl> HNSWRelBatchInsert::copy() {
+    return std::make_unique<HNSWRelBatchInsert>(*this);
+}
+
 struct HNSWRelBatchInsertExecutionState : processor::RelBatchInsertExecutionState {
     HNSWRelBatchInsertExecutionState(const InMemHNSWGraph& graph,
         const NodeToHNSWGraphOffsetMap& selectionMap, common::offset_t startNodeOffset)

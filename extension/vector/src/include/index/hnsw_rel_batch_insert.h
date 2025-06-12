@@ -14,9 +14,9 @@ struct NodeToHNSWGraphOffsetMap;
 
 class KUZU_API HNSWRelBatchInsert final : public processor::RelBatchInsertImpl {
 public:
-    std::unique_ptr<RelBatchInsertImpl> copy() override {
-        return std::make_unique<HNSWRelBatchInsert>(*this);
-    }
+    ~HNSWRelBatchInsert() override;
+
+    std::unique_ptr<processor::RelBatchInsertImpl> copy() override;
 
     std::unique_ptr<processor::RelBatchInsertExecutionState> initExecutionState(
         const processor::PartitionerSharedState& partitionerSharedState,
