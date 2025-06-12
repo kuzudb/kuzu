@@ -132,7 +132,7 @@ struct KUZU_API RelTableDeleteState final : TableDeleteState {
 
     RelTableDeleteState(common::ValueVector& srcNodeIDVector, common::ValueVector& dstNodeIDVector,
         common::ValueVector& relIDVector)
-        : srcNodeIDVector{srcNodeIDVector}, dstNodeIDVector{dstNodeIDVector},
+        : TableDeleteState{}, srcNodeIDVector{srcNodeIDVector}, dstNodeIDVector{dstNodeIDVector},
           relIDVector{relIDVector} {}
 };
 
@@ -181,8 +181,7 @@ public:
     }
     common::column_id_t getNumColumns() const {
         KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
+        RUNTIME_CHECK(for (const auto& relData : directedRelData) {
             KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
         });
         return directedRelData[0]->getNumColumns();

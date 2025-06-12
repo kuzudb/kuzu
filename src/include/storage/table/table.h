@@ -121,6 +121,10 @@ struct KUZU_API TableUpdateState {
 };
 
 struct KUZU_API TableDeleteState {
+    bool logToWAL;
+
+    TableDeleteState();
+
     virtual ~TableDeleteState();
 
     template<typename T>

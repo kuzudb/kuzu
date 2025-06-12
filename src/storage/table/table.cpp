@@ -36,6 +36,7 @@ TableInsertState::~TableInsertState() = default;
 TableUpdateState::TableUpdateState(column_id_t columnID, ValueVector& propertyVector)
     : columnID{columnID}, propertyVector{propertyVector}, logToWAL{true} {}
 TableUpdateState::~TableUpdateState() = default;
+TableDeleteState::TableDeleteState() : logToWAL{true} {}
 TableDeleteState::~TableDeleteState() = default;
 
 Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
