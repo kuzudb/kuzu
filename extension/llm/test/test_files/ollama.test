@@ -52,22 +52,22 @@
 ---- ok
 
 -LOG Similar Text 1
--STATEMENT WITH create_embedding('Who is the author of 1984?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Who wrote the novel 1984?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_distance(t1, t2) AS distance;
+-STATEMENT WITH create_embedding('Who is the author of 1984?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Who wrote the novel 1984?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2);
 ---- 1
-7.589955
+0.945333
 
 -LOG Similar Text 2
--STATEMENT WITH create_embedding('What is the capital of France?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Which city is the capital of France?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_distance(t1, t2) AS distance;
+-STATEMENT WITH create_embedding('What is the capital of France?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Which city is the capital of France?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2);
 ---- 1
-4.689638
+0.978635
 
 -LOG Dissimilar Text 1
--STATEMENT WITH create_embedding('How to train a dog', 'ollama', 'nomic-embed-text') AS t1, create_embedding('What is the capital of France', 'ollama', 'nomic-embed-text') AS t2 RETURN array_distance(t1, t2) AS distance;
+-STATEMENT WITH create_embedding('How to train a dog', 'ollama', 'nomic-embed-text') AS t1, create_embedding('What is the capital of France', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2);
 ---- 1
-26.315777
+0.323306
 
 -LOG Dissimilar Text 2
--STATEMENT WITH create_embedding('How do Unix file permissions work?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('History of the Roman Empire', 'ollama', 'nomic-embed-text') AS t2 RETURN array_distance(t1, t2) AS distance;
+-STATEMENT WITH create_embedding('How do Unix file permissions work?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('History of the Roman Empire', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2);
 ---- 1
-26.385593
+0.305181
 
