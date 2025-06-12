@@ -73,8 +73,7 @@ uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string& model) cons
         {"voyage-code-2", 1536}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException(
-            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
     }
     return modelDimensionMapIter->second;
 }
