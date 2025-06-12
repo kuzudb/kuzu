@@ -2,7 +2,6 @@
 
 #include <mutex>
 
-#include "common/enums/statement_type.h"
 #include "common/types/types.h"
 
 namespace kuzu {
