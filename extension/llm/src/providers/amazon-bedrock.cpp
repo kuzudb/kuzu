@@ -19,7 +19,7 @@ EmbeddingProvider& BedrockEmbedding::getInstance() {
 }
 
 std::string BedrockEmbedding::getClient() const {
-    return "https://bedrock-runtime." + region.value_or("us-east-1") + ".amazonaws.com";
+    return "https://bedrock-runtime." + region.value_or(defaultRegion) + ".amazonaws.com";
 }
 
 std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
@@ -47,7 +47,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
         throw(RuntimeException(errMsg + std::string(referenceKuzuDocs)));
     }
     std::string service = "bedrock";
-    std::string region = this->region.value_or("us-east-1");
+    std::string region = this->region.value_or(defaultRegion);
     std::string host = "bedrock-runtime." + region + ".amazonaws.com";
 
     auto timestamp = Timestamp::getCurrentTimestamp();
@@ -147,7 +147,7 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
         this->region = std::nullopt;
         return;
     }
-    static const std::unordered_set<std::string> validRegions = {"us-east-1", "us-west-2",
+    static const std::unordered_set<std::string> validRegions = {defaultRegion, "us-west-2",
         "ap-southeast-1", "ap-northeast-1", "eu-central-1"};
     if (!validRegions.contains(region.value())) {
         throw(BinderException(
