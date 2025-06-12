@@ -6,6 +6,7 @@
 #include "function/table/simple_table_function.h"
 #include "function/table/table_function.h"
 #include "index/hnsw_index.h"
+#include "index/hnsw_rel_batch_insert.h"
 
 namespace kuzu {
 namespace vector_extension {

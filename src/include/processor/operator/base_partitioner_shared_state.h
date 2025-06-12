@@ -16,7 +16,6 @@ class ClientContext;
 }
 namespace processor {
 
-// TODO(Royi) add description
 struct KUZU_API PartitionerSharedState {
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;

@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/hnsw_index_catalog_entry.h"
+#include "index/hnsw_rel_batch_insert.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
@@ -11,28 +12,6 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace vector_extension {
-
-// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void HNSWIndexPartitionerSharedState::setTables(NodeTable* nodeTable, RelTable* relTable) {
-    lowerPartitionerSharedState->srcNodeTable = nodeTable;
-    lowerPartitionerSharedState->dstNodeTable = nodeTable;
-    lowerPartitionerSharedState->relTable = relTable;
-    upperPartitionerSharedState->srcNodeTable = nodeTable;
-    upperPartitionerSharedState->dstNodeTable = nodeTable;
-    upperPartitionerSharedState->relTable = relTable;
-}
-
-void HNSWLayerPartitionerSharedState::setGraph(std::unique_ptr<InMemHNSWGraph> newGraph,
-    std::unique_ptr<NodeToHNSWGraphOffsetMap> selectionMap) {
-    graph = std::move(newGraph);
-    graphSelectionMap = std::move(selectionMap);
-}
-
-void HNSWLayerPartitionerSharedState::resetState(common::idx_t partitioningIdx) {
-    PartitionerSharedState::resetState(partitioningIdx);
-    graph.reset();
-    graphSelectionMap.reset();
-}
 
 InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info)
     : entryPoint{common::INVALID_OFFSET}, info{info} {

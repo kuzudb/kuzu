@@ -22,6 +22,8 @@ class NodeTable;
 
 namespace vector_extension {
 
+struct HNSWIndexPartitionerSharedState;
+
 struct MinNodePriorityQueueComparator {
     bool operator()(const NodeWithDistance& l, const NodeWithDistance& r) const {
         return l.distance > r.distance;
@@ -178,7 +180,6 @@ private:
     InMemHNSWLayerInfo info;
 };
 
-struct HNSWIndexPartitionerSharedState;
 class InMemHNSWIndex final : public HNSWIndex {
 public:
     InMemHNSWIndex(const main::ClientContext* context, storage::IndexInfo indexInfo,
@@ -222,38 +223,6 @@ private:
     std::unique_ptr<NodeToHNSWGraphOffsetMap> lowerGraphSelectionMap; // this mapping is trivial
     std::unique_ptr<NodeToHNSWGraphOffsetMap> upperGraphSelectionMap;
     std::unique_ptr<common::NullMask> upperLayerSelectionMask;
-};
-
-struct HNSWLayerPartitionerSharedState : processor::PartitionerSharedState {
-    std::unique_ptr<InMemHNSWGraph> graph;
-    std::unique_ptr<NodeToHNSWGraphOffsetMap> graphSelectionMap;
-
-    std::atomic<common::partition_idx_t> nextPartitionIdx;
-
-    HNSWLayerPartitionerSharedState() = default;
-
-    void setGraph(std::unique_ptr<InMemHNSWGraph> newGraph,
-        std::unique_ptr<NodeToHNSWGraphOffsetMap> selectionMap);
-
-    void resetState(common::idx_t partitioningIdx) override;
-};
-
-struct HNSWIndexPartitionerSharedState {
-    std::shared_ptr<HNSWLayerPartitionerSharedState> lowerPartitionerSharedState;
-    std::shared_ptr<HNSWLayerPartitionerSharedState> upperPartitionerSharedState;
-
-    explicit HNSWIndexPartitionerSharedState()
-        : lowerPartitionerSharedState{std::make_shared<HNSWLayerPartitionerSharedState>()},
-          upperPartitionerSharedState{std::make_shared<HNSWLayerPartitionerSharedState>()} {}
-
-    void setTables(storage::NodeTable* nodeTable, storage::RelTable* relTable);
-
-    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    void initialize(const common::logical_type_vec_t& columnTypes,
-        const main::ClientContext* clientContext) {
-        lowerPartitionerSharedState->initialize(columnTypes, 1 /*numPartitioners*/, clientContext);
-        upperPartitionerSharedState->initialize(columnTypes, 1 /*numPartitioners*/, clientContext);
-    }
 };
 
 enum class SearchType : uint8_t {
