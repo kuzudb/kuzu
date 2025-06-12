@@ -37,13 +37,15 @@ struct KUZU_API TableScanState {
     std::unique_ptr<NodeGroupScanState> nodeGroupScanState;
 
     std::vector<ColumnPredicateSet> columnPredicateSets;
+    std::unique_ptr<common::SelectionVector> selVector;
 
     TableScanState(common::ValueVector* nodeIDVector,
         std::vector<common::ValueVector*> outputVectors,
         std::shared_ptr<common::DataChunkState> outChunkState)
         : table{nullptr}, nodeIDVector(nodeIDVector), outputVectors{std::move(outputVectors)},
           outState{std::move(outChunkState)}, semiMask{nullptr}, source{TableScanSource::NONE},
-          nodeGroupIdx{common::INVALID_NODE_GROUP_IDX} {
+          nodeGroupIdx{common::INVALID_NODE_GROUP_IDX},
+          selVector{std::make_unique<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY)} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
         rowIdxVector->state = outState;
     }
@@ -51,7 +53,8 @@ struct KUZU_API TableScanState {
     TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<const Column*> columns)
         : table{nullptr}, nodeIDVector(nullptr), outState{nullptr}, columnIDs{std::move(columnIDs)},
           semiMask{nullptr}, columns{std::move(columns)}, source{TableScanSource::NONE},
-          nodeGroupIdx{common::INVALID_NODE_GROUP_IDX} {}
+          nodeGroupIdx{common::INVALID_NODE_GROUP_IDX},
+          selVector{std::make_unique<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY)} {}
 
     virtual ~TableScanState();
     DELETE_COPY_DEFAULT_MOVE(TableScanState);
