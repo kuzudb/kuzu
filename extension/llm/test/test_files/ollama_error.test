@@ -68,7 +68,6 @@ Binder exception: Data type of expression emb should not be modified.
 Connection exception: Request failed: Could not connect to server <http://localhost:11434> 
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
-
 -CASE UnsupportedParams
 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"

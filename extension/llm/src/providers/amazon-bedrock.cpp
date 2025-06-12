@@ -4,8 +4,6 @@
 #include "common/exception/runtime.h"
 #include "common/types/timestamp_t.h"
 #include "crypto.h"
-#include "httplib.h"
-#include "json.hpp"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -28,7 +26,7 @@ std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
 
 // AWS requests require an authorization signature in the header. This is part
 // of a scheme to validate the request. The body is used to create this
-// signature. This is one of the reasons the same header cannot be used accross
+// signature. This is one of the reasons the same header cannot be used across
 // different requests. Refer to
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
 httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) const {

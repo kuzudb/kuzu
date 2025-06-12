@@ -2,8 +2,6 @@
 
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
-#include "httplib.h"
-#include "json.hpp"
 #include "main/client_context.h"
 
 using namespace kuzu::common;

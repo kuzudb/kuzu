@@ -19,7 +19,6 @@
 ---- error(regex)
 ^Connection exception: Request failed with status \d{3} Body: .+$
 
-
 -CASE BadGoogleVertexKey
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok

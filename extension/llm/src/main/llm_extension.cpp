@@ -2,7 +2,6 @@
 
 #include "function/llm_functions.h"
 #include "main/client_context.h"
-#include "main/database.h"
 
 namespace kuzu {
 namespace llm_extension {
