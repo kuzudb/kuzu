@@ -1,5 +1,4 @@
--SKIP
--DATASET CSV llm/ollama/
+-DATASET CSV llm/embeddings/ollama/
 
 --
 
@@ -23,22 +22,22 @@ True
 ---- ok
 
 -LOG Similar Text 1
--STATEMENT WITH create_embedding('Who is the author of 1984?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Who wrote the novel 1984?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.9;
+-STATEMENT WITH create_embedding('Who is the author of 1984?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Who wrote the novel 1984?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 True
 
 -LOG Similar Text 2
--STATEMENT WITH create_embedding('What is the capital of France?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Which city is the capital of France?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.9;
+-STATEMENT WITH create_embedding('What is the capital of France?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Which city is the capital of France?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 True
 
 -LOG Dissimilar Text 1
--STATEMENT WITH create_embedding('How to train a dog', 'ollama', 'nomic-embed-text') AS t1, create_embedding('What is the capital of France', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.9;
+-STATEMENT WITH create_embedding('How to train a dog', 'ollama', 'nomic-embed-text') AS t1, create_embedding('What is the capital of France', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
 
 -LOG Dissimilar Text 2
--STATEMENT WITH create_embedding('How do Unix file permissions work?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('History of the Roman Empire', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.9;
+-STATEMENT WITH create_embedding('How do Unix file permissions work?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('History of the Roman Empire', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
 

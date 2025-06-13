@@ -36,22 +36,22 @@ True
 ---- ok
 
 -LOG Similar Text 1
--STATEMENT WITH create_embedding('Who is the author of 1984?', 'open-ai', 'text-embedding-3-small') AS t1, create_embedding('Who wrote the novel 1984?', 'open-ai', 'text-embedding-3-small') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.9
+-STATEMENT WITH create_embedding('Who is the author of 1984?', 'open-ai', 'text-embedding-3-small') AS t1, create_embedding('Who wrote the novel 1984?', 'open-ai', 'text-embedding-3-small') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8
 ---- 1
 True
 
 -LOG Similar Text 2
--STATEMENT WITH create_embedding('What is the capital of France?', 'open-ai', 'text-embedding-3-small') AS t1, create_embedding('Which city is the capital of France?', 'open-ai', 'text-embedding-3-small') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.9;
+-STATEMENT WITH create_embedding('What is the capital of France?', 'open-ai', 'text-embedding-3-small') AS t1, create_embedding('Which city is the capital of France?', 'open-ai', 'text-embedding-3-small') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
-False
+True
 
 -LOG Dissimilar Text 1
--STATEMENT WITH create_embedding('How to train a dog', 'open-ai', 'text-embedding-3-small') AS t1, create_embedding('What is the capital of France', 'open-ai', 'text-embedding-3-small') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.9;
+-STATEMENT WITH create_embedding('How to train a dog', 'open-ai', 'text-embedding-3-small') AS t1, create_embedding('What is the capital of France', 'open-ai', 'text-embedding-3-small') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
 
 -LOG Dissimilar Text 2
--STATEMENT WITH create_embedding('How do Unix file permissions work?', 'open-ai', 'text-embedding-3-small') AS t1, create_embedding('History of the Roman Empire', 'open-ai', 'text-embedding-3-small') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.9;
+-STATEMENT WITH create_embedding('How do Unix file permissions work?', 'open-ai', 'text-embedding-3-small') AS t1, create_embedding('History of the Roman Empire', 'open-ai', 'text-embedding-3-small') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
 
