@@ -102,6 +102,9 @@ HNSWIndexConfig::HNSWIndexConfig(const function::optional_params_t& optionalPara
             value.validateType(Efc::TYPE);
             efc = value.getValue<int64_t>();
             Efc::validate(efc);
+        } else if (CacheEmbeddings::NAME == lowerCaseName) {
+            value.validateType(CacheEmbeddings::TYPE);
+            cacheEmbeddingsColumn = value.getValue<bool>();
         } else {
             throw common::BinderException{
                 common::stringFormat("Unrecognized optional parameter {} in {}.", name,

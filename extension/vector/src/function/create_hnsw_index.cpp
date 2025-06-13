@@ -28,8 +28,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
         {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
@@ -343,9 +343,14 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     params += stringFormat("efc := {}, ", config.efc);
     params += stringFormat("metric := '{}', ", HNSWIndexConfig::metricToString(config.metric));
     params += stringFormat("alpha := {}, ", config.alpha);
-    params += stringFormat("pu := {}", config.pu);
+    params += stringFormat("pu := {}, ", config.pu);
+    params +=
+        stringFormat("cache_embeddings := {}", config.cacheEmbeddingsColumn ? "true" : "false");
     auto columnName = hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName();
-    query += stringFormat("CALL _CACHE_ARRAY_COLUMN_LOCALLY('{}', '{}');", tableName, columnName);
+    if (config.cacheEmbeddingsColumn) {
+        query +=
+            stringFormat("CALL _CACHE_ARRAY_COLUMN_LOCALLY('{}', '{}');", tableName, columnName);
+    }
     query += stringFormat("CALL _CREATE_HNSW_INDEX('{}', '{}', '{}', {});", tableName, indexName,
         columnName, params);
     query += stringFormat("RETURN 'Index {} has been created.' as result;", indexName);

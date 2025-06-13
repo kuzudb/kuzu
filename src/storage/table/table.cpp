@@ -53,8 +53,18 @@ bool Table::scan(transaction::Transaction* transaction, TableScanState& scanStat
     return scanInternal(transaction, scanState);
 }
 
-DataChunk Table::constructDataChunk(MemoryManager* mm, std::vector<LogicalType> types) {
-    DataChunk dataChunk(types.size());
+static DataChunk constructBaseDataChunk(const std::vector<LogicalType>& types,
+    std::shared_ptr<common::DataChunkState> state) {
+    if (state) {
+        return DataChunk(types.size(), state);
+    } else {
+        return DataChunk(types.size());
+    }
+}
+
+DataChunk Table::constructDataChunk(MemoryManager* mm, std::vector<LogicalType> types,
+    std::shared_ptr<common::DataChunkState> state) {
+    DataChunk dataChunk = constructBaseDataChunk(types, std::move(state));
     for (auto i = 0u; i < types.size(); i++) {
         auto valueVector = std::make_unique<ValueVector>(std::move(types[i]), mm);
         dataChunk.insert(i, std::move(valueVector));

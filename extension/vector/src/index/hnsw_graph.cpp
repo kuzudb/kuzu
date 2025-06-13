@@ -14,7 +14,7 @@ namespace vector_extension {
 
 InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction,
     common::ArrayTypeInfo typeInfo, common::table_id_t tableID, common::column_id_t columnID)
-    : EmbeddingColumn{std::move(typeInfo)} {
+    : CreateHNSWIndexEmbeddings{std::move(typeInfo)} {
     auto& cacheManager = transaction->getLocalCacheManager();
     const auto key = CachedColumn::getKey(tableID, columnID);
     if (cacheManager.contains(key)) {
@@ -24,9 +24,9 @@ InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction,
     }
 }
 
-void* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
+VectorEmbedding InMemEmbeddings::getEmbedding(common::offset_t offset) const {
     void* val = nullptr;
-    common::TypeUtils::visit(typeInfo.getChildType(), [&]<typename T>(T) {
+    common::TypeUtils::visit(info.typeInfo.getChildType(), [&]<typename T>(T) {
         auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
         KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
         const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
@@ -34,7 +34,7 @@ void* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
                    ->getData<T>()[listChunk.getListStartOffset(offsetInGroup)];
     });
     KU_ASSERT(val != nullptr);
-    return val;
+    return VectorEmbedding{val};
 }
 
 bool InMemEmbeddings::isNull(common::offset_t offset) const {
@@ -46,6 +46,12 @@ bool InMemEmbeddings::isNull(common::offset_t offset) const {
 
 OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
     MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID) {
+    initScanState(transaction, mm, nodeTable, columnID, scanChunk, scanState);
+}
+
+void OnDiskEmbeddingScanState::initScanState(const transaction::Transaction* transaction,
+    MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID,
+    common::DataChunk& scanChunk, std::unique_ptr<storage::NodeTableScanState>& scanState) {
     std::vector columnIDs{columnID};
     // The first ValueVector in scanChunk is reserved for nodeIDs.
     std::vector<common::LogicalType> types;
@@ -86,12 +92,12 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
         return nullptr;
     }
     const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(0);
-    KU_ASSERT(value.size == typeInfo.getNumElements());
+    KU_ASSERT(value.size == info.typeInfo.getNumElements());
     KU_UNUSED(value);
     const auto dataVector = common::ListVector::getDataVector(scanState.outputVectors[0]);
     void* val = nullptr;
     common::TypeUtils::visit(
-        typeInfo.getChildType(),
+        info.typeInfo.getChildType(),
         [&]<VectorElementType T>(
             T) { val = reinterpret_cast<T*>(dataVector->getData()) + value.offset; },
         [&](auto) { KU_UNREACHABLE; });
@@ -109,7 +115,7 @@ std::vector<void*> OnDiskEmbeddings::getEmbeddings(transaction::Transaction* tra
     KU_ASSERT(
         scanState.outputVectors[0]->dataType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
     common::ListVector::resizeDataVector(scanState.outputVectors[0],
-        offsets.size() * typeInfo.getNumElements());
+        offsets.size() * info.typeInfo.getNumElements());
     scanState.outputVectors[0]->resetAuxiliaryBuffer();
     nodeTable.lookupMultiple(transaction, scanState);
     std::vector<void*> embeddings;
@@ -119,11 +125,11 @@ std::vector<void*> OnDiskEmbeddings::getEmbeddings(transaction::Transaction* tra
             embeddings.push_back(nullptr);
         } else {
             const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(i);
-            KU_ASSERT(value.size == typeInfo.getNumElements());
+            KU_ASSERT(value.size == info.typeInfo.getNumElements());
             const auto dataVector = common::ListVector::getDataVector(scanState.outputVectors[0]);
             void* val = nullptr;
             common::TypeUtils::visit(
-                typeInfo.getChildType(),
+                info.typeInfo.getChildType(),
                 [&]<VectorElementType T>(
                     T) { val = reinterpret_cast<T*>(dataVector->getData()) + value.offset; },
                 [&](auto) { KU_UNREACHABLE; });
@@ -132,6 +138,39 @@ std::vector<void*> OnDiskEmbeddings::getEmbeddings(transaction::Transaction* tra
         }
     }
     return embeddings;
+}
+
+OnDiskCreateHNSWIndexEmbeddings::OnDiskCreateHNSWIndexEmbeddings(
+    transaction::Transaction* transaction, storage::MemoryManager* mm,
+    common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable, common::column_id_t columnID)
+    : CreateHNSWIndexEmbeddings(std::move(typeInfo)), embeddings(std::move(typeInfo), nodeTable),
+      transaction(transaction), mm(mm) {
+    types.emplace_back(common::LogicalType::INTERNAL_ID());
+    types.emplace_back(nodeTable.getColumn(columnID).getDataType().copy());
+    scanState =
+        std::make_unique<NodeTableScanState>(nullptr, std::vector<common::ValueVector*>{}, nullptr);
+    scanChunkState = std::make_shared<common::DataChunkState>();
+}
+
+static void setScanStateToChunk(NodeTableScanState& scanState, common::DataChunk& scanChunk) {
+    scanState.nodeIDVector = &scanChunk.getValueVectorMutable(0);
+    scanState.outputVectors = std::vector{&scanChunk.getValueVectorMutable(1)};
+}
+
+VectorEmbedding OnDiskCreateHNSWIndexEmbeddings::getEmbedding(common::offset_t offset) const {
+    auto scanChunk = std::make_unique<common::DataChunk>(
+        Table::constructDataChunk(mm, copyVector(types), scanChunkState));
+    setScanStateToChunk(*scanState, *scanChunk);
+    auto* embeddingPtr = embeddings.getEmbedding(transaction, *scanState, offset);
+    KU_ASSERT(embeddingPtr != nullptr);
+    return VectorEmbedding{embeddingPtr, std::move(scanChunk)};
+}
+
+bool OnDiskCreateHNSWIndexEmbeddings::isNull(common::offset_t offset) const {
+    auto scanChunk = std::make_unique<common::DataChunk>(
+        Table::constructDataChunk(mm, copyVector(types), scanChunkState));
+    setScanStateToChunk(*scanState, *scanChunk);
+    return embeddings.getEmbedding(transaction, *scanState, offset) == nullptr;
 }
 
 namespace {

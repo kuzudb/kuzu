@@ -123,7 +123,7 @@ protected:
 
 struct InMemHNSWLayerInfo {
     common::offset_t numNodes;
-    InMemEmbeddings* embeddings;
+    CreateHNSWIndexEmbeddings* embeddings;
     metric_func_t metricFunc;
     // The degree threshold of a node that will start to trigger shrinking during insertions. Thus,
     // it is also the max degree of a node in the graph before shrinking.
@@ -134,7 +134,7 @@ struct InMemHNSWLayerInfo {
     int64_t efc;
     const NodeToHNSWGraphOffsetMap& offsetMap;
 
-    InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings,
+    InMemHNSWLayerInfo(common::offset_t numNodes, CreateHNSWIndexEmbeddings* embeddings,
         metric_func_t metricFunc, int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha,
         int64_t efc, const NodeToHNSWGraphOffsetMap& offsetMap)
         : numNodes{numNodes}, embeddings{embeddings}, metricFunc{std::move(metricFunc)},
@@ -142,7 +142,7 @@ struct InMemHNSWLayerInfo {
           efc{efc}, offsetMap(offsetMap) {}
 
     uint64_t getDimension() const { return embeddings->getDimension(); }
-    void* getEmbedding(common::offset_t offsetInGraph) const {
+    VectorEmbedding getEmbedding(common::offset_t offsetInGraph) const {
         KU_ASSERT(offsetInGraph < numNodes);
         return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph));
     }
@@ -218,7 +218,7 @@ public:
 private:
     std::unique_ptr<InMemHNSWLayer> upperLayer;
     std::unique_ptr<InMemHNSWLayer> lowerLayer;
-    std::unique_ptr<InMemEmbeddings> embeddings;
+    std::unique_ptr<CreateHNSWIndexEmbeddings> embeddings;
 
     std::unique_ptr<NodeToHNSWGraphOffsetMap> lowerGraphSelectionMap; // this mapping is trivial
     std::unique_ptr<NodeToHNSWGraphOffsetMap> upperGraphSelectionMap;

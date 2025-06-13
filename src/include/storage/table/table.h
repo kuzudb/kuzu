@@ -202,7 +202,8 @@ public:
     MemoryManager& getMemoryManager() const { return *memoryManager; }
 
     static common::DataChunk constructDataChunk(MemoryManager* mm,
-        std::vector<common::LogicalType> types);
+        std::vector<common::LogicalType> types,
+        std::shared_ptr<common::DataChunkState> state = nullptr);
 
     virtual void serialize(common::Serializer& serializer) const = 0;
     virtual void deserialize(main::ClientContext* context, StorageManager* storageManager,
