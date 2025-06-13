@@ -18,3 +18,8 @@ else()
     endif()
     FetchContent_MakeAvailable(googletest)
 endif()
+
+# Make gtest available to other directories.
+add_library(KUZU_GTEST INTERFACE IMPORTED GLOBAL)
+target_link_libraries(KUZU_GTEST INTERFACE GTest::gtest GTest::gtest_main)
+target_link_libraries(KUZU_GTEST INTERFACE GTest::gmock GTest::gmock_main)
