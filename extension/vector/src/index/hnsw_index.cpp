@@ -567,53 +567,6 @@ void OnDiskHNSWIndex::initLayerSearchState(transaction::Transaction* transaction
     }
 }
 
-std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLowerLayer(
-    transaction::Transaction* transaction, const void* queryVector, common::offset_t entryNode,
-    HNSWSearchState& searchState) const {
-    // min_node_priority_queue_t candidates;
-    // max_node_priority_queue_t results;
-    // initLayerSearchState(transaction, searchState, false);
-    //
-    // const auto entryVector =
-    //     embeddings->getEmbedding(transaction, *searchState.embeddingScanState.scanState, entryNode);
-    // auto dist = metricFunc(queryVector, entryVector, embeddings->getDimension());
-    // candidates.push({entryNode, dist});
-    // searchState.visited.add(entryNode);
-    // if (searchState.isMasked(entryNode)) {
-    //     results.push({entryNode, dist});
-    // }
-    // initSearchCandidates(transaction, queryVector, searchState, candidates, results);
-    //
-    // while (!candidates.empty()) {
-    //     auto [candidate, candidateDist] = candidates.top();
-    //     // Break here if adding closestNode to result will exceed efs or not improve the results.
-    //     if (results.size() >= searchState.ef && candidateDist > results.top().distance) {
-    //         break;
-    //     }
-    //     candidates.pop();
-    //     auto neighborItr = searchState.lowerGraph->scanFwd(
-    //         common::nodeID_t{candidate, indexInfo.tableID}, *searchState.nbrScanState);
-    //     switch (searchState.searchType) {
-    //     case SearchType::UNFILTERED:
-    //     case SearchType::ONE_HOP_FILTERED: {
-    //         oneHopSearch(transaction, queryVector, neighborItr, searchState, candidates, results);
-    //     } break;
-    //     case SearchType::DIRECTED_TWO_HOP: {
-    //         directedTwoHopFilteredSearch(transaction, queryVector, neighborItr, searchState,
-    //             candidates, results);
-    //     } break;
-    //     case SearchType::BLIND_TWO_HOP: {
-    //         blindTwoHopFilteredSearch(transaction, queryVector, neighborItr, searchState,
-    //             candidates, results);
-    //     } break;
-    //     default: {
-    //         KU_UNREACHABLE;
-    //     }
-    //     }
-    // }
-    // return popTopK(results, searchState.k);
-}
-
 std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLayer(
     transaction::Transaction* transaction, const void* queryVector, common::offset_t entryNode,
     HNSWSearchState& searchState, bool isUpperLayer) const {

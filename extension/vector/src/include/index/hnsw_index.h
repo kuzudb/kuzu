@@ -309,8 +309,6 @@ public:
 private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
         const void* queryVector, const HNSWSearchState& searchState) const;
-    std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
-        const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
     std::vector<NodeWithDistance> searchKNNInLayer(transaction::Transaction* transaction,
         const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState,
         bool isUpperLayer) const;
