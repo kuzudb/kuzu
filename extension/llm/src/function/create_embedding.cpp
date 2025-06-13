@@ -83,10 +83,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr,
     main::ClientContext* context) {
     Binder binder{context};
-    auto value =
-        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context)
-            .toString();
-    int64_t dimensions = static_cast<int64_t>(std::stoll(value));
+    auto dimensions = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context).getValue<int64_t>();
     if (dimensions <= 0) {
         throw(BinderException("Failed to parse dimensions: " + dimensionsExpr->toString() + '\n' +
                               std::string(EmbeddingProvider::referenceKuzuDocs)));
