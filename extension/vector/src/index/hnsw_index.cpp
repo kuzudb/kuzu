@@ -454,7 +454,7 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
     }
     auto transaction = std::make_unique<transaction::Transaction>(*context,
         transaction::TransactionType::CHECKPOINT, transaction::Transaction::DUMMY_TRANSACTION_ID,
-        transaction::Transaction::DUMMY_TRANSACTION_ID - 1);
+        transaction::Transaction::START_TRANSACTION_ID - 1);
     context->getTransactionContext()->setActiveTransaction(std::move(transaction));
     try {
         const auto catalog = context->getCatalog();
@@ -487,8 +487,8 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
         for (const auto offset : insertState->lowerNodesToShrink) {
             shrinkForNode(context->getTransaction(), offset, false, config.ml, *insertState);
         }
-        hnswStorageInfo.numCheckpointedNodes = numTotalRows;
         context->getTransaction()->commit(nullptr /* wal */);
+        hnswStorageInfo.numCheckpointedNodes = numTotalRows;
     } catch ([[maybe_unused]] std::exception& e) {
         context->getTransaction()->rollback(nullptr /* wal */);
     }
@@ -818,6 +818,8 @@ void OnDiskHNSWIndex::createRels(transaction::Transaction* transaction, common::
             // If the number of existing rels exceeds the threshold, we need to shrink the rels
             // right away.
             shrinkForNode(transaction, offset, isUpperLayer, maxDegree, insertState);
+            isUpperLayer ? insertState.upperNodesToShrink.erase(offset) :
+                           insertState.lowerNodesToShrink.erase(offset);
         } else {
             isUpperLayer ? insertState.upperNodesToShrink.insert(offset) :
                            insertState.lowerNodesToShrink.insert(offset);

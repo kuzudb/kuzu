@@ -460,8 +460,8 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
             const auto localRelOffset = internalIDData[rowIdx];
             const auto committedRelOffset = getCommittedOffset(localRelOffset, maxCommittedOffset);
             internalIDData[rowIdx] = committedRelOffset;
-            internalIDData.setTableID(tableID);
         }
+        internalIDData.setTableID(tableID);
     }
     KU_ASSERT(totalNumRows == localNodeGroup.getNumRows());
 }
