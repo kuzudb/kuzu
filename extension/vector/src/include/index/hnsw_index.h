@@ -318,8 +318,8 @@ private:
         storage::NodeTableScanState& embeddingScanState,
         std::vector<NodeWithDistance>& result) const;
 
-    void initLayerSearchState(transaction::Transaction* transaction,
-        HNSWSearchState& searchState, bool isUpperLayer) const;
+    void initLayerSearchState(transaction::Transaction* transaction, HNSWSearchState& searchState,
+        bool isUpperLayer) const;
     void oneHopSearch(transaction::Transaction* transaction, const void* queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
