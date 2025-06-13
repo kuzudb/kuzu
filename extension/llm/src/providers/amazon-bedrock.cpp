@@ -156,7 +156,7 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
 
 uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string& model) const {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"amazon.titan-embed-text-v1", 1024}};
+        {"amazon.titan-embed-text-v1", 1536}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);
     if (modelDimensionMapIter == modelDimensionMap.end()) {
         throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
