@@ -309,16 +309,17 @@ public:
 private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
         const void* queryVector, const HNSWSearchState& searchState) const;
-    std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
-        const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
+    std::vector<NodeWithDistance> searchKNNInLayer(transaction::Transaction* transaction,
+        const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState,
+        bool isUpperLayer) const;
     std::vector<NodeWithDistance> searchFromCheckpointed(transaction::Transaction* transaction,
         const void* queryVector, HNSWSearchState& searchState) const;
     void searchFromUnCheckpointed(transaction::Transaction* transaction, const void* queryVector,
         storage::NodeTableScanState& embeddingScanState,
         std::vector<NodeWithDistance>& result) const;
 
-    void initLowerLayerSearchState(transaction::Transaction* transaction,
-        HNSWSearchState& searchState) const;
+    void initLayerSearchState(transaction::Transaction* transaction, HNSWSearchState& searchState,
+        bool isUpperLayer) const;
     void oneHopSearch(transaction::Transaction* transaction, const void* queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;

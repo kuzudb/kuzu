@@ -94,7 +94,7 @@ void ShadowFile::flushAll() const {
     shadowingFH->writePageToFile(headerBuffer.get(), 0);
     // Flush shadow pages to file.
     shadowingFH->flushAllDirtyPagesInFrames();
-    // Append shadow page records to end of file.
+    // Append shadow page records to the end of the file.
     const auto writer = std::make_shared<BufferedFileWriter>(*shadowingFH->getFileInfo());
     writer->setFileOffset(shadowingFH->getNumPages() * KUZU_PAGE_SIZE);
     Serializer ser(writer);
