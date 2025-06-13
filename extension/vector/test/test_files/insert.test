@@ -168,3 +168,25 @@
 333
 444
 133
+
+-CASE MultipleInsertions
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+---- ok
+-STATEMENT load from '${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv' with column0 as c0, column1 as c1 limit 500 CREATE (:embeddings {id: c0, vec: c1});
+---- ok
+-STATEMENT checkpoint;
+---- ok
+-STATEMENT load from '${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv' with column0 as c0, column1 as c1 skip 500 limit 500 CREATE (:embeddings {id: c0, vec: c1});
+ ---- ok
+-STATEMENT checkpoint;
+---- ok
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, efs := 500) RETURN node.id ORDER BY distance;
+-CHECK_ORDER
+---- 3
+333
+444
+133

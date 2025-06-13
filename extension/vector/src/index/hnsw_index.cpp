@@ -817,7 +817,9 @@ void OnDiskHNSWIndex::createRels(transaction::Transaction* transaction, common::
         if (numRels >= static_cast<uint64_t>(getDegreeThresholdToShrink(maxDegree))) {
             // If the number of existing rels exceeds the threshold, we need to shrink the rels
             // right away.
-            shrinkForNode(transaction, offset, isUpperLayer, maxDegree, insertState); // TODO: Remove offset from nodesToShrink.
+            shrinkForNode(transaction, offset, isUpperLayer, maxDegree, insertState);
+            isUpperLayer ? insertState.upperNodesToShrink.erase(offset) :
+                           insertState.lowerNodesToShrink.erase(offset);
         } else {
             isUpperLayer ? insertState.upperNodesToShrink.insert(offset) :
                            insertState.lowerNodesToShrink.insert(offset);

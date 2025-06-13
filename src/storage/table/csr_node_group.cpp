@@ -854,7 +854,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
             auto numRowsToAppend = 0u;
             for (auto i = 0u; i < maxNumRowsToAppend; i++) {
                 const auto row = rows[numRowsTryAppended + i];
-                // TODO(Guodong): Should skip deleted rows here. Revisit if this TODO still makes sense.
+                // TODO(Guodong): Should skip deleted rows here.
                 if (row == INVALID_ROW_IDX) {
                     continue;
                 }
