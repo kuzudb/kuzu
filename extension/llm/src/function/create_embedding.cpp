@@ -84,7 +84,8 @@ static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr,
     main::ClientContext* context) {
     Binder binder{context};
     auto value =
-        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context).toString();
+        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context)
+            .toString();
     int64_t dimensions = static_cast<int64_t>(std::stoll(value));
     if (dimensions <= 0) {
         throw(BinderException("Failed to parse dimensions: " + dimensionsExpr->toString() + '\n' +
