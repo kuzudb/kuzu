@@ -14,41 +14,69 @@ struct NodeTableScanState;
 }
 namespace vector_extension {
 
-class EmbeddingColumn {
-public:
-    explicit EmbeddingColumn(common::ArrayTypeInfo typeInfo) : typeInfo{std::move(typeInfo)} {}
-    virtual ~EmbeddingColumn() = default;
+struct EmbeddingColumnInfo {
+    explicit EmbeddingColumnInfo(common::ArrayTypeInfo typeInfo) : typeInfo{std::move(typeInfo)} {}
 
     common::length_t getDimension() const { return typeInfo.getNumElements(); }
 
-protected:
     common::ArrayTypeInfo typeInfo;
 };
 
-class InMemEmbeddings final : public EmbeddingColumn {
+struct VectorEmbedding {
+    explicit VectorEmbedding(void* embedding,
+        std::unique_ptr<common::DataChunk> embeddingChunk = nullptr)
+        : embedding(embedding), embeddingChunk(std::move(embeddingChunk)) {}
+
+    void* embedding;
+    // This field should not be used directly
+    // It is just used to maintain ownership of the memory pointed to by the embedding field if
+    // necessary
+    std::unique_ptr<common::DataChunk> embeddingChunk;
+};
+
+class CreateHNSWIndexEmbeddings {
+public:
+    virtual ~CreateHNSWIndexEmbeddings() = default;
+    explicit CreateHNSWIndexEmbeddings(common::ArrayTypeInfo typeInfo)
+        : info{std::move(typeInfo)} {}
+    virtual VectorEmbedding getEmbedding(common::offset_t offset) const = 0;
+    virtual bool isNull(common::offset_t offset) const = 0;
+    common::length_t getDimension() const { return info.getDimension(); }
+
+protected:
+    EmbeddingColumnInfo info;
+};
+
+class InMemEmbeddings final : public CreateHNSWIndexEmbeddings {
 public:
     InMemEmbeddings(transaction::Transaction* transaction, common::ArrayTypeInfo typeInfo,
         common::table_id_t tableID, common::column_id_t columnID);
 
-    void* getEmbedding(common::offset_t offset) const;
-    bool isNull(common::offset_t offset) const;
+    VectorEmbedding getEmbedding(common::offset_t offset) const override;
+    bool isNull(common::offset_t offset) const override;
 
 private:
     storage::CachedColumn* data;
 };
 
 struct OnDiskEmbeddingScanState {
-    common::DataChunk scanChunk;
-    std::unique_ptr<storage::NodeTableScanState> scanState;
-
     OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
         storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID);
+
+    static void initScanState(const transaction::Transaction* transaction,
+        storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID,
+        common::DataChunk& scanChunk, std::unique_ptr<storage::NodeTableScanState>& scanState);
+
+    common::DataChunk getAndResetDataChunk();
+
+    std::unique_ptr<storage::NodeTableScanState> scanState;
+    common::DataChunk scanChunk;
 };
 
-class OnDiskEmbeddings final : public EmbeddingColumn {
+class OnDiskEmbeddings final {
 public:
     OnDiskEmbeddings(common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable)
-        : EmbeddingColumn{std::move(typeInfo)}, nodeTable{nodeTable} {}
+        : info{std::move(typeInfo)}, nodeTable{nodeTable} {}
 
     void* getEmbedding(transaction::Transaction* transaction,
         storage::NodeTableScanState& scanState, common::offset_t offset) const;
@@ -56,8 +84,30 @@ public:
     std::vector<void*> getEmbeddings(transaction::Transaction* transaction,
         storage::NodeTableScanState& scanState, const std::vector<common::offset_t>& offsets) const;
 
+    common::length_t getDimension() const { return info.getDimension(); }
+
 private:
+    EmbeddingColumnInfo info;
     storage::NodeTable& nodeTable;
+};
+
+class OnDiskCreateHNSWIndexEmbeddings : public CreateHNSWIndexEmbeddings {
+public:
+    OnDiskCreateHNSWIndexEmbeddings(transaction::Transaction* transaction,
+        storage::MemoryManager* mm, common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable,
+        common::column_id_t columnID);
+
+    VectorEmbedding getEmbedding(common::offset_t offset) const override;
+    bool isNull(common::offset_t offset) const override;
+
+private:
+    OnDiskEmbeddings embeddings;
+    transaction::Transaction* transaction;
+
+    std::unique_ptr<storage::NodeTableScanState> scanState;
+    std::vector<common::LogicalType> types;
+    storage::MemoryManager* mm;
+    std::shared_ptr<common::DataChunkState> scanChunkState;
 };
 
 struct NodeWithDistance {
@@ -137,7 +187,7 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable){};
+        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable) {};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 

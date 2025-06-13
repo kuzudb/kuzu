@@ -228,15 +228,28 @@ static common::ArrayTypeInfo getArrayTypeInfo(NodeTable& table, common::column_i
     return common::ArrayTypeInfo{typeInfo->getChildType().copy(), typeInfo->getNumElements()};
 }
 
+static std::unique_ptr<CreateHNSWIndexEmbeddings> constructEmbeddingsColumn(
+    const main::ClientContext* context, const common::ArrayTypeInfo& typeInfo, NodeTable& table,
+    common::column_id_t columnID, const HNSWIndexConfig& config) {
+    if (config.cacheEmbeddingsColumn) {
+        return std::make_unique<InMemEmbeddings>(context->getTransaction(),
+            common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()},
+            table.getTableID(), columnID);
+    } else {
+        return std::make_unique<OnDiskCreateHNSWIndexEmbeddings>(context->getTransaction(),
+            context->getMemoryManager(),
+            common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()}, table,
+            columnID);
+    }
+}
+
 InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo indexInfo,
     std::unique_ptr<IndexStorageInfo> storageInfo, NodeTable& table, common::column_id_t columnID,
     HNSWIndexConfig config)
     : HNSWIndex{std::move(indexInfo), std::move(storageInfo), std::move(config),
           getArrayTypeInfo(table, columnID)} {
     const auto numNodes = table.getNumTotalRows(context->getTransaction());
-    embeddings = std::make_unique<InMemEmbeddings>(context->getTransaction(),
-        common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()},
-        table.getTableID(), columnID);
+    embeddings = constructEmbeddingsColumn(context, typeInfo, table, columnID, config);
     upperLayerSelectionMask = std::make_unique<common::NullMask>(numNodes);
     for (common::offset_t i = 0; i < numNodes; ++i) {
         if (!embeddings->isNull(i)) {
@@ -251,14 +264,13 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo ind
     upperGraphSelectionMap =
         std::make_unique<NodeToHNSWGraphOffsetMap>(numNodes, upperLayerSelectionMask.get());
     lowerLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
-        InMemHNSWLayerInfo{numNodes, common::ku_dynamic_cast<InMemEmbeddings*>(embeddings.get()),
-            this->metricFunc, getDegreeThresholdToShrink(this->config.ml), this->config.ml,
-            this->config.alpha, this->config.efc, *lowerGraphSelectionMap});
+        InMemHNSWLayerInfo{numNodes, embeddings.get(), this->metricFunc,
+            getDegreeThresholdToShrink(this->config.ml), this->config.ml, this->config.alpha,
+            this->config.efc, *lowerGraphSelectionMap});
     upperLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
-        InMemHNSWLayerInfo{upperLayerSelectionMask->countNulls(),
-            common::ku_dynamic_cast<InMemEmbeddings*>(embeddings.get()), this->metricFunc,
-            getDegreeThresholdToShrink(this->config.mu), this->config.mu, this->config.alpha,
-            this->config.efc, *upperGraphSelectionMap});
+        InMemHNSWLayerInfo{upperLayerSelectionMask->countNulls(), embeddings.get(),
+            this->metricFunc, getDegreeThresholdToShrink(this->config.mu), this->config.mu,
+            this->config.alpha, this->config.efc, *upperGraphSelectionMap});
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
