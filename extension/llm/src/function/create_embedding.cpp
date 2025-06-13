@@ -80,15 +80,18 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     }
 }
 
-static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr, main::ClientContext* context) 
-{
+static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr,
+    main::ClientContext* context) {
     Binder binder{context};
-    dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(dimensionsExpr, LogicalType(LogicalTypeID::INT64));
-    auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context).toString();
+    dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(dimensionsExpr,
+        LogicalType(LogicalTypeID::INT64));
+    auto value =
+        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context)
+            .toString();
     int64_t dimensions = static_cast<int64_t>(std::stoll(value));
-    if (dimensions <= 0)
-    {
-        throw(BinderException("Failed to parse dimensions: " + dimensionsExpr->toString() + '\n' + std::string(EmbeddingProvider::referenceKuzuDocs)));
+    if (dimensions <= 0) {
+        throw(BinderException("Failed to parse dimensions: " + dimensionsExpr->toString() + '\n' +
+                              std::string(EmbeddingProvider::referenceKuzuDocs)));
     }
     return dimensions;
 }
@@ -112,10 +115,12 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     const std::string model = StringUtils::getLower(input.arguments[2]->toString());
     if (dimensions.has_value()) {
         provider.checkModel(model);
-        return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), dimensions.value()));
+        return FunctionBindData::getSimpleBindData(input.arguments,
+            LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), dimensions.value()));
     }
     auto embeddingDimensions = provider.getEmbeddingDimensions(model);
-    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
+    return FunctionBindData::getSimpleBindData(input.arguments,
+        LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
