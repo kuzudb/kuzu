@@ -19,7 +19,7 @@ std::string GoogleGeminiEmbedding::getClient() const {
 }
 
 std::string GoogleGeminiEmbedding::getPath(const std::string& model) const {
-    static const std::string envVar = "GEMINI_API_KEY";
+    static const std::string envVar = "GOOGLE_GEMINI_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
         throw(RuntimeException(
