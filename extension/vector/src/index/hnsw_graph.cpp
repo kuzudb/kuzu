@@ -78,6 +78,7 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     } else {
         nodeTable.initScanState(transaction, scanState);
     }
+    scanState.outputVectors[0]->resetAuxiliaryBuffer();
     const auto result = nodeTable.lookup(transaction, scanState);
     KU_ASSERT(scanState.outputVectors.size() == 1 &&
               scanState.outputVectors[0]->state->getSelVector()[0] == 0);
