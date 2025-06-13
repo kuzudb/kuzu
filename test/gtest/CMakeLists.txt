@@ -2,10 +2,10 @@
 set(CMAKE_COMPILE_WARNING_AS_ERROR FALSE)
 
 find_package(GTest QUIET)
-if(GTest_FOUND)
+if(${PREFER_SYSTEM_DEPS} AND GTest_FOUND)
     message(STATUS "Using system GTest")
 else()
-    message(STATUS "GTest not found. Fetching from GitHub...")
+    message(STATUS "Fetching GTest from GitHub...")
     include(FetchContent)
     FetchContent_Declare(
         googletest

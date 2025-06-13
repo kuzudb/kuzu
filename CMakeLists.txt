@@ -273,6 +273,7 @@ option(BUILD_EXTENSION_TESTS "Build C++ extension tests." FALSE)
 option(BUILD_KUZU "Build Kuzu." TRUE)
 option(ENABLE_BACKTRACES "Enable backtrace printing for exceptions and segfaults" FALSE)
 option(USE_STD_FORMAT "Use std::format instead of a custom formatter." FALSE)
+option(PREFER_SYSTEM_DEPS "Try to find some dependencies on the system and only downloads then if not found" TRUE)
 
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
@@ -281,10 +282,10 @@ endif()
 
 if (ENABLE_BACKTRACES)
     find_package(cpptrace QUIET)
-    if(cpptrace_FOUND)
+    if(${PREFER_SYSTEM_DEPS} AND cpptrace_FOUND)
         message(STATUS "Using system cpptrace")
     else()
-        message(STATUS "cpptrace not found. Fetching from GitHub...")
+        message(STATUS "Fetching cpptrace from GitHub...")
         include(FetchContent)
         FetchContent_Declare(
             cpptrace
