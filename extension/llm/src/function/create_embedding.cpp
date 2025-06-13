@@ -1,6 +1,8 @@
+#include "binder/binder.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
+#include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
 #include "httplib.h"
@@ -78,20 +80,49 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     }
 }
 
+static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr,
+    main::ClientContext* context) {
+    Binder binder{context};
+    auto dimensions =
+        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context)
+            .getValue<int64_t>();
+    if (dimensions <= 0) {
+        throw(BinderException("Failed to parse dimensions: " + dimensionsExpr->toString() + '\n' +
+                              std::string(EmbeddingProvider::referenceKuzuDocs)));
+    }
+    return dimensions;
+}
+
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    std::vector<LogicalType> types;
-    types.push_back(input.arguments[0]->getDataType().copy());
-    types.push_back(input.arguments[1]->getDataType().copy());
-    types.push_back(input.arguments[2]->getDataType().copy());
-    uint64_t embeddingDimensions =
-        getInstance(StringUtils::getLower(input.arguments[1]->toString()))
-            .getEmbeddingDimension(StringUtils::getLower(input.arguments[2]->toString()));
-    return std::make_unique<FunctionBindData>(std::move(types),
+    std::optional<uint64_t> dimensions = std::nullopt;
+    std::optional<std::string> region = std::nullopt;
+    auto& provider = getInstance(StringUtils::getLower(input.arguments[1]->toString()));
+    if (input.arguments.size() == 5) {
+        dimensions = parseDimensions(input.arguments[3], input.context);
+        region = StringUtils::getLower(input.arguments[4]->toString());
+    } else if (input.arguments.size() == 4) {
+        if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
+            region = StringUtils::getLower(input.arguments[3]->toString());
+        } else {
+            dimensions = parseDimensions(input.arguments[3], input.context);
+        }
+    }
+
+    provider.configure(dimensions, region);
+    const std::string model = StringUtils::getLower(input.arguments[2]->toString());
+    if (dimensions.has_value()) {
+        provider.checkModel(model);
+        return FunctionBindData::getSimpleBindData(input.arguments,
+            LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), dimensions.value()));
+    }
+    auto embeddingDimensions = provider.getEmbeddingDimensions(model);
+    return FunctionBindData::getSimpleBindData(input.arguments,
         LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
+
     // Prompt, Provider, Model -> Vector Embedding
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
@@ -99,6 +130,31 @@ function_set CreateEmbedding::getFunctionSet() {
         LogicalTypeID::ARRAY, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
+
+    // Prompt, Provider, Model, Region -> Vector Embedding
+    function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::STRING},
+        LogicalTypeID::ARRAY, execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
+
+    // Prompt, Provider, Model, Dimensions -> Vector Embedding
+    function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::INT64},
+        LogicalTypeID::ARRAY, execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
+
+    // Prompt, Provider, Model, Dimensions, Region -> Vector Embedding
+    function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::STRING},
+        LogicalTypeID::ARRAY, execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
+
     return functionSet;
 }
 
