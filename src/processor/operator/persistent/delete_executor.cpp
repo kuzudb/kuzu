@@ -99,12 +99,12 @@ void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* 
 void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     auto& nodeIDSelVector = info.nodeIDVector->state->getSelVector();
     KU_ASSERT(nodeIDSelVector.getSelSize() == 1);
-    auto pos = nodeIDSelVector[0];
+    const auto pos = nodeIDSelVector[0];
     if (info.nodeIDVector->isNull(pos)) {
         return;
     }
-    auto nodeID = info.nodeIDVector->getValue<internalID_t>(pos);
-    auto& tableInfo = tableInfos.at(nodeID.tableID);
+    const auto nodeID = info.nodeIDVector->getValue<internalID_t>(pos);
+    const auto& tableInfo = tableInfos.at(nodeID.tableID);
     auto deleteState =
         std::make_unique<NodeTableDeleteState>(*info.nodeIDVector, *tableInfo.pkVector);
     if (!tableInfo.table->delete_(context->clientContext->getTransaction(), *deleteState)) {
@@ -142,8 +142,8 @@ void SingleLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
 void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
     auto& idSelVector = info.relIDVector->state->getSelVector();
     KU_ASSERT(idSelVector.getSelSize() == 1);
-    auto pos = idSelVector[0];
-    auto relID = info.relIDVector->getValue<internalID_t>(pos);
+    const auto pos = idSelVector[0];
+    const auto relID = info.relIDVector->getValue<internalID_t>(pos);
     KU_ASSERT(tableIDToTableMap.contains(relID.tableID));
     auto table = tableIDToTableMap.at(relID.tableID);
     auto deleteState = std::make_unique<RelTableDeleteState>(*info.srcNodeIDVector,
