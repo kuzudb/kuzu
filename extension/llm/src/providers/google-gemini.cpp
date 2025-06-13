@@ -64,7 +64,7 @@ void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
     }
 }
 
-uint64_t GoogleGeminiEmbedding::getEmbeddingDimension(const std::string& model) const {
+uint64_t GoogleGeminiEmbedding::getEmbeddingDimensions(const std::string& model) const {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);

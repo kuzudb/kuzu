@@ -64,7 +64,7 @@ void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     this->dimensions = dimensions;
 }
 
-uint64_t OpenAIEmbedding::getEmbeddingDimension(const std::string& model) const {
+uint64_t OpenAIEmbedding::getEmbeddingDimensions(const std::string& model) const {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536},
         {"text-embedding-ada-002", 1536}};

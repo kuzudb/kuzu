@@ -154,7 +154,7 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
     this->region = region;
 }
 
-uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string& model) const {
+uint64_t BedrockEmbedding::getEmbeddingDimensions(const std::string& model) const {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"amazon.titan-embed-text-v1", 1536}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);

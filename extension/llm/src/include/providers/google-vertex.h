@@ -26,7 +26,7 @@ public:
     void checkModel(const std::string& model) const override;
     void configure(const std::optional<uint64_t>& dimensions,
         const std::optional<std::string>& region) override;
-    uint64_t getEmbeddingDimension(const std::string& model) const override;
+    uint64_t getEmbeddingDimensions(const std::string& model) const override;
 };
 
 } // namespace llm_extension
