@@ -1,4 +1,5 @@
--DATASET CSV llm/embeddings/openai
+-SKIP
+-DATASET CSV llm/embeddings/openai/
 
 --
 
