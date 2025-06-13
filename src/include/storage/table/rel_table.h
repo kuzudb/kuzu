@@ -132,7 +132,7 @@ struct KUZU_API RelTableDeleteState final : TableDeleteState {
 
     RelTableDeleteState(common::ValueVector& srcNodeIDVector, common::ValueVector& dstNodeIDVector,
         common::ValueVector& relIDVector)
-        : srcNodeIDVector{srcNodeIDVector}, dstNodeIDVector{dstNodeIDVector},
+        : TableDeleteState{}, srcNodeIDVector{srcNodeIDVector}, dstNodeIDVector{dstNodeIDVector},
           relIDVector{relIDVector} {}
 };
 

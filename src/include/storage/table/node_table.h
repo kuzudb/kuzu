@@ -73,7 +73,7 @@ struct KUZU_API NodeTableDeleteState : public TableDeleteState {
     common::ValueVector& pkVector;
 
     explicit NodeTableDeleteState(common::ValueVector& nodeIDVector, common::ValueVector& pkVector)
-        : nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
+        : TableDeleteState{}, nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
 struct IndexScanHelper {

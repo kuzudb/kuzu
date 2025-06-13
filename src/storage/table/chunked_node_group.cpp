@@ -330,13 +330,11 @@ std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ChunkedNod
 bool ChunkedNodeGroup::lookup(const Transaction* transaction, const TableScanState& state,
     const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
     KU_ASSERT(rowIdxInChunk + 1 <= numRows);
-    std::unique_ptr<SelectionVector> selVector = nullptr;
     bool hasValuesToScan = true;
     if (versionInfo) {
-        selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(), *selVector,
-            rowIdxInChunk, 1);
-        hasValuesToScan = selVector->getSelSize() > 0;
+        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(),
+            *state.selVector, rowIdxInChunk, 1);
+        hasValuesToScan = state.selVector->getSelSize() > 0;
     }
     if (hasValuesToScan) {
         for (auto i = 0u; i < state.columnIDs.size(); i++) {
