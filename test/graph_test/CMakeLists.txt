@@ -10,7 +10,7 @@ target_include_directories(
         ../include/
 )
 
-target_link_libraries(graph_test PUBLIC KUZU_GTEST kuzu)
+target_link_libraries(graph_test PUBLIC GTEST_LIB kuzu)
 
 add_library(
         api_graph_test
@@ -23,4 +23,4 @@ target_include_directories(
         ../include/
 )
 
-target_link_libraries(api_graph_test PUBLIC KUZU_GTEST kuzu_shared)
+target_link_libraries(api_graph_test PUBLIC GTEST_LIB kuzu_shared)
