@@ -64,7 +64,7 @@ void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     this->dimensions = dimensions;
 }
 
-uint64_t VoyageAIEmbedding::getEmbeddingDimension(const std::string& model) const {
+uint64_t VoyageAIEmbedding::getEmbeddingDimensions(const std::string& model) const {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024},
         {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024},

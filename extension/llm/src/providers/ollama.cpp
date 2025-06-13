@@ -55,7 +55,7 @@ void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
     }
 }
 
-uint64_t OllamaEmbedding::getEmbeddingDimension(const std::string& model) const {
+uint64_t OllamaEmbedding::getEmbeddingDimensions(const std::string& model) const {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}};
     auto modelDimensionMapIter = modelDimensionMap.find(model);

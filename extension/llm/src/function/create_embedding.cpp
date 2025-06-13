@@ -80,69 +80,42 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     }
 }
 
+static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr, main::ClientContext* context) 
+{
+    Binder binder{context};
+    dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(dimensionsExpr, LogicalType(LogicalTypeID::INT64));
+    auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context).toString();
+    int64_t dimensions = static_cast<int64_t>(std::stoll(value));
+    if (dimensions <= 0)
+    {
+        throw(BinderException("Failed to parse dimensions: " + dimensionsExpr->toString() + '\n' + std::string(EmbeddingProvider::referenceKuzuDocs)));
+    }
+    return dimensions;
+}
+
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    static constexpr size_t providerIdx = 1;
-    static constexpr size_t modelIdx = 2;
-    static constexpr size_t dimensionsOrRegionSpecified = 4;
-    static constexpr size_t dimensionsAndRegionSpecified = 5;
     std::optional<uint64_t> dimensions = std::nullopt;
     std::optional<std::string> region = std::nullopt;
-    auto& provider = getInstance(StringUtils::getLower(input.arguments[providerIdx]->toString()));
-
-    if (input.arguments.size() == dimensionsAndRegionSpecified) {
-        try {
-            Binder binder{input.context};
-            std::shared_ptr<Expression> dimensionsExpr = input.arguments[3];
-            dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(dimensionsExpr,
-                LogicalType(LogicalTypeID::INT64));
-            auto toCast = std::stoll(
-                evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr,
-                    input.context)
-                    .toString());
-            if (toCast < 0) {
-                throw(toCast);
-            }
-            dimensions = toCast;
-        } catch (...) {
-            throw(BinderException("Failed to parse dimensions: " + input.arguments[3]->toString() +
-                                  '\n' + std::string(EmbeddingProvider::referenceKuzuDocs)));
-        }
+    auto& provider = getInstance(StringUtils::getLower(input.arguments[1]->toString()));
+    if (input.arguments.size() == 5) {
+        dimensions = parseDimensions(input.arguments[3], input.context);
         region = StringUtils::getLower(input.arguments[4]->toString());
-    } else if (input.arguments.size() == dimensionsOrRegionSpecified) {
+    } else if (input.arguments.size() == 4) {
         if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
             region = StringUtils::getLower(input.arguments[3]->toString());
         } else {
-            try {
-                Binder binder{input.context};
-                std::shared_ptr<Expression> dimensionsExpr = input.arguments[3];
-                dimensionsExpr = binder.getExpressionBinder()->implicitCastIfNecessary(
-                    dimensionsExpr, LogicalType(LogicalTypeID::INT64));
-                auto toCast = std::stoll(
-                    evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr,
-                        input.context)
-                        .toString());
-                if (toCast < 0) {
-                    throw(toCast);
-                }
-                dimensions = toCast;
-            } catch (...) {
-                throw(BinderException(
-                    "Failed to parse dimensions: " + input.arguments[3]->toString() + '\n' +
-                    std::string(EmbeddingProvider::referenceKuzuDocs)));
-            }
+            dimensions = parseDimensions(input.arguments[3], input.context);
         }
     }
 
     provider.configure(dimensions, region);
+    const std::string model = StringUtils::getLower(input.arguments[2]->toString());
     if (dimensions.has_value()) {
-        provider.checkModel(StringUtils::getLower(input.arguments[modelIdx]->toString()));
-        return FunctionBindData::getSimpleBindData(input.arguments,
-            LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), dimensions.value()));
+        provider.checkModel(model);
+        return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), dimensions.value()));
     }
-    auto embeddingDimensions = provider.getEmbeddingDimension(
-        StringUtils::getLower(input.arguments[modelIdx]->toString()));
-    return FunctionBindData::getSimpleBindData(input.arguments,
-        LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
+    auto embeddingDimensions = provider.getEmbeddingDimensions(model);
+    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
 }
 
 function_set CreateEmbedding::getFunctionSet() {

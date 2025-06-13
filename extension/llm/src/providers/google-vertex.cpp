@@ -87,7 +87,7 @@ void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
     this->region = region;
 }
 
-uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string& model) const {
+uint64_t GoogleVertexEmbedding::getEmbeddingDimensions(const std::string& model) const {
     static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
         {"gemini-embedding-001", 3072}, {"text-embedding-005", 768},
         {"text-multilingual-embedding-002", 768}};
