@@ -1,4 +1,5 @@
--DATASET CSV llm/embeddings/voyageai
+-SKIP
+-DATASET CSV llm/embeddings/voyageai/
 
 --
 
