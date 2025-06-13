@@ -1,4 +1,3 @@
--SKIP
 -DATASET CSV empty
 
 --
@@ -26,7 +25,7 @@
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
 
--STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING, title_embedding FLOAT[1024], published_year INT64);
+-STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING, title_embedding FLOAT[1536], published_year INT64);
 ---- ok
 
 -STATEMENT CREATE (b:Book {title: 'The Quantum World', published_year: 2004});
