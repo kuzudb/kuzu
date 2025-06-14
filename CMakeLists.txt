@@ -307,6 +307,10 @@ if (USE_STD_FORMAT)
     add_compile_definitions(USE_STD_FORMAT)
 endif()
 
+list(APPEND CMAKE_PREFIX_PATH "third_party/libtorch")
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+
 function(add_kuzu_test TEST_NAME)
     set(SRCS ${ARGN})
     add_executable(${TEST_NAME} ${SRCS})
@@ -348,6 +352,7 @@ if (MSVC AND (NOT BUILD_EXTENSIONS EQUAL ""))
     set(BUILD_KUZU TRUE)
 endif ()
 
+include_directories(${TORCH_INCLUDE_DIRS})
 include_directories(third_party/antlr4_cypher/include)
 include_directories(third_party/antlr4_runtime/src)
 include_directories(third_party/brotli/c/include)

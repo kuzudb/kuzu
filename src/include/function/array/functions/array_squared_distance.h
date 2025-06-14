@@ -2,7 +2,7 @@
 
 #include "common/vector/value_vector.h"
 #include <simsimd.h>
-
+#include "torch/torch.h"
 namespace kuzu {
 namespace function {
 
@@ -14,14 +14,19 @@ struct ArraySquaredDistance {
         auto leftElements = (T*)common::ListVector::getListValues(&leftVector, left);
         auto rightElements = (T*)common::ListVector::getListValues(&rightVector, right);
         KU_ASSERT(left.size == right.size);
-        simsimd_distance_t tmpResult = 0.0;
         static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>);
-        if constexpr (std::is_same_v<T, float>) {
-            simsimd_l2sq_f32(leftElements, rightElements, left.size, &tmpResult);
-        } else {
-            simsimd_l2sq_f64(leftElements, rightElements, left.size, &tmpResult);
-        }
-        result = tmpResult;
+        // Create Torch tensors from raw pointers
+        auto options = torch::TensorOptions().dtype(torch::CppTypeToScalarType<T>());
+        auto leftTensor =
+            torch::from_blob(leftElements, {static_cast<int64_t>(left.size)}, options);
+        auto rightTensor =
+            torch::from_blob(rightElements, {static_cast<int64_t>(right.size)}, options);
+
+        // Compute squared L2 distance
+        auto diff = leftTensor - rightTensor;
+        auto squaredDiff = torch::sum(diff * diff);
+        auto resultValue = squaredDiff.template item<T>();
+        result = resultValue;
     }
 };
 
