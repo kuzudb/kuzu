@@ -593,9 +593,6 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list
 -STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/bracket_error.csv" (DELIM="|", ESCAPE="~") RETURN * ;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/bracket_error.csv on line 1: Conversion exception: Cast failed. [[] is not in STRING[][] range. Line/record containing the error: '"[[]"'
--STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote.csv" (auto_detect = false) RETURN *;
----- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote.csv on line 1: Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range. Line/record containing the error: '"['fdsfdsfe werw]"'
 -STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote2.csv" (auto_detect = false) RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote2.csv on line 1: Conversion exception: Cast failed. [[' this is a signle quote]] is not in STRING[] range. Line/record containing the error: '"[[' this is a signle quote]]"'
