@@ -138,14 +138,17 @@ void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector
     for (auto i = 0u; i < nodeIDVector.state->getSelSize(); i++) {
         auto pos = nodeIDVector.state->getSelVector()[i];
         auto deletedNodeID = nodeIDVector.getValue<nodeID_t>(pos);
-        auto deletedDocID =
-            deleteFromDocTable(transaction, ftsDeleteState, deletedNodeID, totalDocLen);
         ftsDeleteState.updateVectors.idVector.setValue(0, deletedNodeID);
         internalTableInfo.table->initScanState(transaction,
             *ftsDeleteState.indexTableState.scanState, deletedNodeID.tableID, deletedNodeID.offset);
         internalTableInfo.table->lookup(transaction, *ftsDeleteState.indexTableState.scanState);
         DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable,
             ftsDeleteState.indexTableState.indexVectors, 0, ftsDeleteState.updateVectors.mm};
+        if (docInfo.termInfos.size() == 0) {
+            continue;
+        }
+        auto deletedDocID =
+            deleteFromDocTable(transaction, ftsDeleteState, deletedNodeID, totalDocLen);
         deleteFromTermsTable(transaction, docInfo.termInfos, ftsDeleteState);
         deleteFromAppearsInTable(transaction, ftsDeleteState, deletedDocID);
     }

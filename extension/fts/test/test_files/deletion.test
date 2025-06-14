@@ -65,3 +65,17 @@ The Quantum World|0.634506
 199|1.951345
 202|2.016027
 389|1.906131
+
+-CASE FTSDeletionEmptyDoc
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
+---- ok
+-STATEMENT CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create (d:doc {ID: 100, content: 'alice is brother of bob'})
+---- ok
+-STATEMENT create (d:doc {ID: 10, content: 'allow almost'})
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'contentIdx', ['content'])
+---- ok
+-STATEMENT MATCH (d:doc) DELETE d
+---- ok
