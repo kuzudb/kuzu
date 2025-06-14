@@ -167,7 +167,9 @@ bool RollbackPKDeleter::processScanOutput(Transaction* transaction, MemoryManage
             static constexpr auto isVisible = [](offset_t) { return true; };
             if (offset_t lookupOffset = 0;
                 pkIndex.lookup(transaction, key, lookupOffset, isVisible)) {
-                pkIndex.delete_(key);
+                // If we delete the key then it will not be visible to future transactions within
+                // this process
+                pkIndex.discardLocal(key);
             }
         }
     };
@@ -551,7 +553,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -692,7 +694,7 @@ void NodeTable::scanIndexColumns(Transaction* transaction, IndexScanHelper& scan
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to
