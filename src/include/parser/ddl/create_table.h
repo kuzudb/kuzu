@@ -8,15 +8,15 @@ namespace kuzu {
 namespace parser {
 
 class CreateTable final : public Statement {
+    static constexpr common::StatementType type_ = common::StatementType::CREATE_TABLE;
+
 public:
-    explicit CreateTable(CreateTableInfo info)
-        : Statement{common::StatementType::CREATE_TABLE}, info{std::move(info)} {}
+    explicit CreateTable(CreateTableInfo info) : Statement{type_}, info{std::move(info)} {}
 
     CreateTable(CreateTableInfo info, std::unique_ptr<QueryScanSource>&& source)
-        : Statement{common::StatementType::CREATE_TABLE}, info{std::move(info)},
-          source{std::move(source)} {}
+        : Statement{type_}, info{std::move(info)}, source{std::move(source)} {}
 
-    inline const CreateTableInfo* getInfo() const { return &info; }
+    const CreateTableInfo* getInfo() const { return &info; }
     const QueryScanSource* getSource() const { return source.get(); }
 
 private:

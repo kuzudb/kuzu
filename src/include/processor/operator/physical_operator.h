@@ -74,12 +74,9 @@ enum class PhysicalOperatorType : uint8_t {
 };
 
 class PhysicalOperator;
-class PhysicalOperatorUtils {
-public:
+struct PhysicalOperatorUtils {
     static std::string operatorToString(const PhysicalOperator* physicalOp);
-
-private:
-    static std::string operatorTypeToString(PhysicalOperatorType operatorType);
+    KUZU_API static std::string operatorTypeToString(PhysicalOperatorType operatorType);
 };
 
 struct OperatorMetrics {

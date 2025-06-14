@@ -27,9 +27,13 @@ void ProcessorTask::run() {
     taskRoot->ptrCast<Sink>()->execute(resultSet.get(), executionContext);
 }
 
-void ProcessorTask::finalizeIfNecessary() {
+void ProcessorTask::finalize() {
     executionContext->clientContext->getProgressBar()->finishPipeline(executionContext->queryID);
     sink->finalize(executionContext);
+}
+
+bool ProcessorTask::terminate() {
+    return sink->terminate();
 }
 
 } // namespace processor

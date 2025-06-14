@@ -10,6 +10,7 @@
 #include "processor/operator/ddl/create_type.h"
 #include "processor/operator/ddl/drop.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/factorized_table_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -28,7 +29,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(
     const LogicalOperator* logicalOperator) {
     auto& createTable = logicalOperator->constCast<LogicalCreateTable>();
     auto printInfo = std::make_unique<LogicalCreateTablePrintInfo>(createTable.getInfo()->copy());
-    return std::make_unique<CreateTable>(createTable.getInfo()->copy(), getOutputPos(createTable),
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto sharedState = std::make_shared<CreateTableSharedState>();
+    return std::make_unique<CreateTable>(createTable.getInfo()->copy(), messageTable, sharedState,
         getOperatorID(), std::move(printInfo));
 }
 

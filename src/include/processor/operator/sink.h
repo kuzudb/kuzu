@@ -3,6 +3,7 @@
 #include "common/exception/internal.h"
 #include "common/metric.h"
 #include "processor/operator/physical_operator.h"
+#include "processor/result/factorized_table.h"
 #include "processor/result/result_set_descriptor.h"
 
 namespace kuzu {
@@ -31,6 +32,14 @@ public:
         executeInternal(context);
         metrics->executionTime.stop();
     }
+
+    virtual std::shared_ptr<FactorizedTable> getResultFTable() const {
+        throw common::InternalException(common::stringFormat(
+            "Trying to get result table from {} operator which doesn't have one.",
+            PhysicalOperatorUtils::operatorTypeToString(operatorType)));
+    }
+
+    virtual bool terminate() const { return false; }
 
     std::unique_ptr<PhysicalOperator> copy() override = 0;
 
@@ -63,6 +72,24 @@ protected:
             // DO NOTHING.
         }
     }
+};
+
+class SimpleSink : public Sink {
+public:
+    SimpleSink(PhysicalOperatorType operatorType, std::shared_ptr<FactorizedTable> messageTable,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{operatorType, id, std::move(printInfo)}, messageTable{std::move(messageTable)} {}
+
+    bool isSource() const final { return true; }
+    bool isParallel() const final { return false; }
+
+    std::shared_ptr<FactorizedTable> getResultFTable() const override { return messageTable; }
+
+protected:
+    void appendMessage(const std::string& msg, storage::MemoryManager* memoryManager);
+
+protected:
+    std::shared_ptr<FactorizedTable> messageTable;
 };
 
 } // namespace processor

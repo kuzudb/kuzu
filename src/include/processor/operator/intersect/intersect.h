@@ -62,7 +62,7 @@ private:
         const std::vector<uint32_t>& listIdxes);
     bool hasNextTuplesToIntersect();
 
-    inline uint32_t getNumBuilds() { return sharedHTs.size(); }
+    uint32_t getNumBuilds() { return sharedHTs.size(); }
 
 private:
     DataPos outputDataPos;

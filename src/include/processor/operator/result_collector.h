@@ -77,7 +77,9 @@ public:
 
     void finalizeInternal(ExecutionContext* context) override;
 
-    std::shared_ptr<FactorizedTable> getResultFactorizedTable() { return sharedState->getTable(); }
+    std::shared_ptr<FactorizedTable> getResultFTable() const override {
+        return sharedState->getTable();
+    }
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<ResultCollector>(info.copy(), sharedState, children[0]->copy(), id,

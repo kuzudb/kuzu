@@ -13,7 +13,10 @@ public:
     ProcessorTask(Sink* sink, ExecutionContext* executionContext);
 
     void run() override;
-    void finalizeIfNecessary() override;
+
+    void finalize() override;
+
+    bool terminate() override;
 
 private:
     bool sharedStateInitialized;

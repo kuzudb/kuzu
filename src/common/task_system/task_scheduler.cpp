@@ -26,6 +26,9 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
     processor::ExecutionContext* context, bool launchNewWorkerThread) {
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
+        if (dependency->terminate()) {
+            return;
+        }
     }
     std::thread newWorkerThread;
     if (launchNewWorkerThread) {
@@ -128,6 +131,9 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
     processor::ExecutionContext* context, bool) {
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
+        if (dependency->terminate()) {
+            return;
+        }
     }
     task->registerThread();
     // runTask deregisters, so we don't need to deregister explicitly here

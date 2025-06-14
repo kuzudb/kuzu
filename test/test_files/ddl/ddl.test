@@ -567,7 +567,9 @@ Binder exception: Expression ABC has data type STRING but expected INT64[3]. Imp
 ---- 2
 0|1|Alice
 2|2|Bob
--STATEMENT CREATE NODE TABLE Test2 AS MATCH (a:TEST) RETURN a.id, a.fname;
+-STATEMENT CREATE NODE TABLE IF NOT EXISTS Test AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" WHERE ISStudent = True RETURN id, Gender, fname;
+---- ok
+-STATEMENT CREATE NODE TABLE IF NOT EXISTS Test2 AS MATCH (a:TEST) RETURN a.id, a.fname;
 ---- ok
 -STATEMENT MATCH (a:Test2) RETURN a.*;
 ---- 2
@@ -594,6 +596,8 @@ Binder exception: RETURN or WITH * is not allowed when there are no variables in
 ---- ok
 -STATEMENT CREATE REL TABLE Knows2 (FROM Person2 TO Person2) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
 ---- ok
+-STATEMENT CREATE REL TABLE IF NOT EXISTS Knows2 (FROM Person2 TO Person2) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
+---- ok
 -STATEMENT MATCH (a:Person2)-[k:Knows2]->(b:Person2) RETURN a.fname, b.fname;
 ---- 6
 Alice|Dan
@@ -608,7 +612,7 @@ Binder exception: Knows2 already exists in catalog.
 -STATEMENT CREATE REL TABLE Failure (FROM Person2 TO Person2, FROM Person TO Test2) AS MATCH (:Person2)-[e:Knows2]->(:Person2) RETURN *;
 ---- error
 Binder exception: Multiple FROM/TO pairs are not supported for CREATE REL TABLE AS.
--STATEMENT CREATE REL TABLE Knows3 (FROM Person2 TO Person2) AS MATCH (a:Person2)-[e:Knows2]->(b:Person2) WHERE a.Gender = b.Gender RETURN a.id, b.id;
+-STATEMENT CREATE REL TABLE IF NOT EXISTS Knows3 (FROM Person2 TO Person2) AS MATCH (a:Person2)-[e:Knows2]->(b:Person2) WHERE a.Gender = b.Gender RETURN a.id, b.id;
 ---- ok
 -STATEMENT MATCH (a:Person2)-[e:Knows3]->(b:Person2) RETURN a.fname, b.fname;
 ---- 2

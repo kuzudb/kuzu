@@ -18,24 +18,29 @@ using lock_t = std::unique_lock<std::mutex>;
  * has grabbed task T from the TaskScheduler's queue and registered itself to T. They can also
  * assume that after run() is called W will deregister itself from T. When deregistering, if W is
  * the last worker to finish on T, i.e., once W finishes, T will be completed, the
- * finalizeIfNecessary() will be called. So the run() and finalizeIfNecessary() calls are separate
+ * finalize() will be called. So the run() and finalize() calls are separate
  * calls and if there is some state from the run() function execution that will be needed by
- * finalizeIfNecessary, users should save it somewhere that can be accessed in
- * finalizeIfNecessary(). See ProcessorTask for an example of this.
+ * finalize, users should save it somewhere that can be accessed in
+ * finalize(). See ProcessorTask for an example of this.
  */
 class KUZU_API Task {
     friend class TaskScheduler;
 
 public:
-    explicit Task(uint64_t maxNumThreads);
+    explicit Task(uint64_t maxNumThreads)
+        : parent{nullptr}, maxNumThreads{maxNumThreads}, numThreadsFinished{0},
+          numThreadsRegistered{0}, exceptionsPtr{nullptr}, ID{UINT64_MAX} {}
+
     virtual ~Task() = default;
     virtual void run() = 0;
-    //     This function is called from inside deRegisterThreadAndFinalizeTaskIfNecessary() only
-    //     once by the last registered worker that is completing this task. So the task lock is
-    //     already acquired. So do not attempt to acquire the task lock inside. If needed we can
-    //     make the deregister function release the lock before calling finalizeIfNecessary and
-    //     drop this assumption.
-    virtual void finalizeIfNecessary() {};
+    // This function is called from inside deRegisterThreadAndFinalizeTaskIfNecessary() only
+    // once by the last registered worker that is completing this task. So the task lock is
+    // already acquired. So do not attempt to acquire the task lock inside. If needed we can
+    // make the deregister function release the lock before calling finalize and
+    // drop this assumption.
+    virtual void finalize() {}
+    // If task should terminate all subsequent tasks.
+    virtual bool terminate() { return false; }
 
     void addChildTask(std::unique_ptr<Task> child) {
         child->parent = this;
@@ -48,7 +53,7 @@ public:
     }
 
     bool isCompletedNoLock() const {
-        return (numThreadsRegistered > 0 && numThreadsFinished == numThreadsRegistered);
+        return numThreadsRegistered > 0 && numThreadsFinished == numThreadsRegistered;
     }
 
     void setSingleThreadedTask() { maxNumThreads = 1; }

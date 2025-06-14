@@ -39,7 +39,7 @@ FactorizedTableSchema FactorizedTableUtils::createFlatTableSchema(
 }
 
 void FactorizedTableUtils::appendStringToTable(FactorizedTable* factorizedTable,
-    std::string& outputMsg, MemoryManager* memoryManager) {
+    const std::string& outputMsg, MemoryManager* memoryManager) {
     auto outputMsgVector = std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager);
     outputMsgVector->state = DataChunkState::getSingleValueDataChunkState();
     auto outputKUStr = ku_string_t();
@@ -52,7 +52,7 @@ void FactorizedTableUtils::appendStringToTable(FactorizedTable* factorizedTable,
 }
 
 std::shared_ptr<FactorizedTable> FactorizedTableUtils::getFactorizedTableForOutputMsg(
-    std::string& outputMsg, MemoryManager* memoryManager) {
+    const std::string& outputMsg, MemoryManager* memoryManager) {
     auto table = getSingleStringColumnFTable(memoryManager);
     appendStringToTable(table.get(), outputMsg, memoryManager);
     return table;
