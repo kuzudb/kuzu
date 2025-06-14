@@ -21,54 +21,46 @@ struct VectorVersionInfo {
     // of `array` if all are inserted/deleted in the same transaction.
     // Also, avoid allocate `array` when status are NO_INSERTED and NO_DELETED.
     // We can even consider separating the insertion and deletion into two separate Vectors.
-    std::unique_ptr<std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY>>
-        insertedVersions;
-    std::unique_ptr<std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY>>
-        deletedVersions;
+    std::unique_ptr<std::array<transaction_t, DEFAULT_VECTOR_CAPACITY>> insertedVersions;
+    std::unique_ptr<std::array<transaction_t, DEFAULT_VECTOR_CAPACITY>> deletedVersions;
     // If all values in the Vector are inserted/deleted in the same transaction, we can use this to
     // aovid the allocation of `array`.
-    common::transaction_t sameInsertionVersion;
-    common::transaction_t sameDeletionVersion;
+    transaction_t sameInsertionVersion;
+    transaction_t sameDeletionVersion;
     InsertionStatus insertionStatus;
     DeletionStatus deletionStatus;
 
     VectorVersionInfo()
-        : sameInsertionVersion{common::INVALID_TRANSACTION},
-          sameDeletionVersion{common::INVALID_TRANSACTION},
+        : sameInsertionVersion{INVALID_TRANSACTION}, sameDeletionVersion{INVALID_TRANSACTION},
           insertionStatus{InsertionStatus::NO_INSERTED},
           deletionStatus{DeletionStatus::NO_DELETED} {}
     DELETE_COPY_DEFAULT_MOVE(VectorVersionInfo);
 
-    void append(common::transaction_t transactionID, common::row_idx_t startRow,
-        common::row_idx_t numRows);
-    bool delete_(common::transaction_t transactionID, common::row_idx_t rowIdx);
-    void setInsertCommitTS(common::transaction_t commitTS, common::row_idx_t startRow,
-        common::row_idx_t numRows);
-    void setDeleteCommitTS(common::transaction_t commitTS, common::row_idx_t startRow,
-        common::row_idx_t numRows);
+    void append(transaction_t transactionID, row_idx_t startRow, row_idx_t numRows);
+    bool delete_(transaction_t transactionID, row_idx_t rowIdx);
+    void setInsertCommitTS(transaction_t commitTS, row_idx_t startRow, row_idx_t numRows);
+    void setDeleteCommitTS(transaction_t commitTS, row_idx_t startRow, row_idx_t numRows);
 
-    void getSelVectorForScan(common::transaction_t startTS, common::transaction_t transactionID,
-        common::SelectionVector& selVector, common::row_idx_t startRow, common::row_idx_t numRows,
-        common::sel_t startOutputPos) const;
+    bool isSelected(transaction_t startTS, transaction_t transactionID, row_idx_t rowIdx) const;
+    void getSelVectorForScan(transaction_t startTS, transaction_t transactionID,
+        SelectionVector& selVector, row_idx_t startRow, row_idx_t numRows,
+        sel_t startOutputPos) const;
 
-    void rollbackInsertions(common::row_idx_t startRowInVector, common::row_idx_t numRows);
-    void rollbackDeletions(common::row_idx_t startRowInVector, common::row_idx_t numRows);
+    void rollbackInsertions(row_idx_t startRowInVector, row_idx_t numRows);
+    void rollbackDeletions(row_idx_t startRowInVector, row_idx_t numRows);
 
     bool hasDeletions(const transaction::Transaction* transaction) const;
 
     // Given startTS and transactionID, if the row is deleted to the transaction, return true.
-    bool isDeleted(common::transaction_t startTS, common::transaction_t transactionID,
-        common::row_idx_t rowIdx) const;
+    bool isDeleted(transaction_t startTS, transaction_t transactionID, row_idx_t rowIdx) const;
     // Given startTS and transactionID, if the row is readable to the transaction, return true.
-    bool isInserted(common::transaction_t startTS, common::transaction_t transactionID,
-        common::row_idx_t rowIdx) const;
+    bool isInserted(transaction_t startTS, transaction_t transactionID, row_idx_t rowIdx) const;
 
-    common::row_idx_t getNumDeletions(common::transaction_t startTS,
-        common::transaction_t transactionID, common::row_idx_t startRow,
-        common::length_t numRows) const;
+    row_idx_t getNumDeletions(transaction_t startTS, transaction_t transactionID,
+        row_idx_t startRow, length_t numRows) const;
 
-    void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<VectorVersionInfo> deSerialize(common::Deserializer& deSer);
+    void serialize(Serializer& serializer) const;
+    static std::unique_ptr<VectorVersionInfo> deSerialize(Deserializer& deSer);
 
 private:
     void initInsertionVersionArray();
@@ -150,6 +142,21 @@ void VectorVersionInfo::setDeleteCommitTS(transaction_t commitTS, row_idx_t star
     for (auto rowIdx = startRow; rowIdx < startRow + numRows; rowIdx++) {
         deletedVersions->operator[](rowIdx) = commitTS;
     }
+}
+
+bool VectorVersionInfo::isSelected(const transaction_t startTS, const transaction_t transactionID,
+    const row_idx_t rowIdx) const {
+    if (deletionStatus == DeletionStatus::NO_DELETED &&
+        insertionStatus == InsertionStatus::ALWAYS_INSERTED) {
+        return true;
+    }
+    if (insertionStatus == InsertionStatus::NO_INSERTED) {
+        return false;
+    }
+    if (isInserted(startTS, transactionID, rowIdx)) {
+        return !isDeleted(startTS, transactionID, rowIdx);
+    }
+    return false;
 }
 
 void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
@@ -452,6 +459,16 @@ bool VersionInfo::delete_(transaction_t transactionID, const row_idx_t rowIdx) {
         vectorVersionInfo.insertionStatus = VectorVersionInfo::InsertionStatus::ALWAYS_INSERTED;
     }
     return vectorVersionInfo.delete_(transactionID, rowIdxInVector);
+}
+
+bool VersionInfo::isSelected(transaction_t startTS, transaction_t transactionID,
+    row_idx_t rowIdx) const {
+    auto [vectorIdx, rowIdxInVector] =
+        StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
+    if (const auto vectorVersion = getVectorVersionInfo(vectorIdx)) {
+        return vectorVersion->isSelected(startTS, transactionID, rowIdxInVector);
+    }
+    return true;
 }
 
 void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transaction_t transactionID,
