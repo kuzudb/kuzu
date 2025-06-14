@@ -56,7 +56,6 @@ tools/wasm/examples/nodejs/node_modules/
 tools/wasm/package/
 
 # Archive files
-*.zip
 *.tar.gz
 scripts/pre-compiled-bins/headers
 scripts/pre-compiled-bins/lib*
