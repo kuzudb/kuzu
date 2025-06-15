@@ -176,6 +176,8 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
 ---- ok
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT load from '${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv' with column0 as c0, column1 as c1 limit 500 CREATE (:embeddings {id: c0, vec: c1});
 ---- ok
 -STATEMENT checkpoint;
