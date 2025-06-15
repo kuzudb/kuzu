@@ -38,7 +38,7 @@ public:
 protected:
     static constexpr uint64_t HASH_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
 
-    uint64_t getSlotIdxForHash(common::hash_t hash) const { return hash & bitmask; }
+    uint64_t getSlotIdxForHash(common::hash_t hash) const { return hash % maxNumHashSlots; }
     void setMaxNumHashSlots(uint64_t newSize);
 
     void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors) {
@@ -60,7 +60,6 @@ private:
 
 protected:
     uint64_t maxNumHashSlots;
-    uint64_t bitmask;
     uint64_t numSlotsPerBlockLog2;
     uint64_t slotIdxInBlockMask;
     std::vector<std::unique_ptr<DataBlock>> hashSlotsBlocks;
