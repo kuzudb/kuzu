@@ -14,29 +14,20 @@ namespace processor {
 
 struct BatchInsertInfo {
     std::string tableName;
-    bool compressionEnabled;
+    bool compressionEnabled = true;
 
+    std::vector<common::LogicalType> warningColumnTypes;
+    // column types include property and warning
     std::vector<common::LogicalType> columnTypes;
-    // TODO(Guodong): Try to merge the following 3 fields into 2
     std::vector<common::column_id_t> insertColumnIDs;
     std::vector<common::column_id_t> outputDataColumns;
     std::vector<common::column_id_t> warningDataColumns;
 
-    BatchInsertInfo(std::string tableName, bool compressionEnabled,
-        std::vector<common::column_id_t> insertColumnIDs,
-        std::vector<common::LogicalType> columnTypes, common::idx_t numWarningDataColumns)
-        : tableName{std::move(tableName)}, compressionEnabled{compressionEnabled},
-          columnTypes{std::move(columnTypes)}, insertColumnIDs{std::move(insertColumnIDs)} {
-        auto i = 0u;
-        for (; i < this->columnTypes.size() - numWarningDataColumns; ++i) {
-            outputDataColumns.push_back(i);
-        }
-        for (; i < this->columnTypes.size(); ++i) {
-            warningDataColumns.push_back(i);
-        }
-    }
+    BatchInsertInfo(std::string tableName, std::vector<common::LogicalType> warningColumnTypes)
+         : tableName{std::move(tableName)}, warningColumnTypes{std::move(warningColumnTypes)} {}
     BatchInsertInfo(const BatchInsertInfo& other)
         : tableName{other.tableName}, compressionEnabled{other.compressionEnabled},
+          warningColumnTypes{copyVector(other.warningColumnTypes)},
           columnTypes{copyVector(other.columnTypes)}, insertColumnIDs{other.insertColumnIDs},
           outputDataColumns{other.outputDataColumns}, warningDataColumns{other.warningDataColumns} {
     }
@@ -62,13 +53,10 @@ struct KUZU_API BatchInsertSharedState {
 
     storage::Table* table;
     std::shared_ptr<FactorizedTable> fTable;
-    storage::WAL* wal;
-    storage::MemoryManager* mm;
 
-    BatchInsertSharedState(storage::Table* table, std::shared_ptr<FactorizedTable> fTable,
-        storage::WAL* wal, storage::MemoryManager* mm)
-        : numRows{0}, numErroredRows(std::make_shared<common::row_idx_t>(0)), table{table},
-          fTable{std::move(fTable)}, wal{wal}, mm{mm} {};
+    explicit BatchInsertSharedState(std::shared_ptr<FactorizedTable> fTable)
+        : numRows{0}, numErroredRows(std::make_shared<common::row_idx_t>(0)), table{nullptr},
+          fTable{std::move(fTable)} {};
     BatchInsertSharedState(const BatchInsertSharedState& other) = delete;
 
     virtual ~BatchInsertSharedState() = default;
@@ -104,10 +92,10 @@ class KUZU_API BatchInsert : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::BATCH_INSERT;
 
 public:
-    BatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
-        std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
+    BatchInsert(std::unique_ptr<BatchInsertInfo> info,
+        std::shared_ptr<BatchInsertSharedState> sharedState, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{type_, id, std::move(printInfo)}, tableName{std::move(tableName)},
+        : Sink{type_, id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     ~BatchInsert() override = default;
@@ -119,7 +107,6 @@ public:
     std::unique_ptr<PhysicalOperator> copy() override = 0;
 
 protected:
-    std::string tableName;
     std::unique_ptr<BatchInsertInfo> info;
     std::shared_ptr<BatchInsertSharedState> sharedState;
     std::unique_ptr<BatchInsertLocalState> localState;
