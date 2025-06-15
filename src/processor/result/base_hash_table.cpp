@@ -18,7 +18,7 @@ namespace kuzu {
 namespace processor {
 
 BaseHashTable::BaseHashTable(storage::MemoryManager& memoryManager, logical_type_vec_t keyTypes)
-    : maxNumHashSlots{0}, bitmask{0}, numSlotsPerBlockLog2{0}, slotIdxInBlockMask{0},
+    : maxNumHashSlots{0}, numSlotsPerBlockLog2{0}, slotIdxInBlockMask{0},
       memoryManager{&memoryManager}, keyTypes{std::move(keyTypes)} {
     initCompareFuncs();
     initTmpHashVector();
@@ -26,7 +26,6 @@ BaseHashTable::BaseHashTable(storage::MemoryManager& memoryManager, logical_type
 
 void BaseHashTable::setMaxNumHashSlots(uint64_t newSize) {
     maxNumHashSlots = newSize;
-    bitmask = maxNumHashSlots - 1;
 }
 
 void BaseHashTable::computeVectorHashes(std::span<const ValueVector*> keyVectors) {
