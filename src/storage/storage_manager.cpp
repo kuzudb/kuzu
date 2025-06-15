@@ -169,7 +169,7 @@ void StorageManager::reclaimDroppedTables(const Catalog& catalog) {
 bool StorageManager::checkpoint(main::ClientContext* context) {
     bool hasChanges = false;
     const auto catalog = context->getCatalog();
-    const auto nodeTableEntries = catalog->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    const auto nodeTableEntries = catalog->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION, false);
     const auto relGroupEntries = catalog->getRelGroupEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     for (const auto entry : nodeTableEntries) {
         if (!tables.contains(entry->getTableID())) {
