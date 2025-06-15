@@ -219,7 +219,7 @@ void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
     }
 }
 
-void OverflowFile::checkpoint(bool forceUpdateHeader) {
+void OverflowFile::checkpoint() {
     KU_ASSERT(fileHandle);
     // TODO(bmwinger): Ideally this could be done separately and in parallel by each HashIndex
     // However fileHandle->addNewPages needs to be called beforehand,
@@ -227,7 +227,7 @@ void OverflowFile::checkpoint(bool forceUpdateHeader) {
     for (auto& handle : handles) {
         handle->checkpoint();
     }
-    if (headerChanged || forceUpdateHeader) {
+    if (headerChanged) {
         uint8_t page[KUZU_PAGE_SIZE];
         memcpy(page, &header, sizeof(header));
         // Zero free space at the end of the header page

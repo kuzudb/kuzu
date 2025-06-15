@@ -88,17 +88,17 @@ void NodeInsertExecutor::setNodeIDVectorToNonNull() const {
     info.nodeIDVector->setNull(info.nodeIDVector->state->getSelVector()[0], false);
 }
 
-nodeID_t NodeInsertExecutor::insert(Transaction* transaction) {
+nodeID_t NodeInsertExecutor::insert(main::ClientContext* context) {
     for (auto& evaluator : tableInfo.columnDataEvaluators) {
         evaluator->evaluate();
     }
-    if (checkConflict(transaction)) {
+    if (checkConflict(context->getTransaction())) {
         return info.getNodeID();
     }
     auto insertState = std::make_unique<storage::NodeTableInsertState>(*info.nodeIDVector,
         *tableInfo.pkVector, tableInfo.columnDataVectors);
-    tableInfo.table->initInsertState(transaction, *insertState);
-    tableInfo.table->insert(transaction, *insertState);
+    tableInfo.table->initInsertState(context, *insertState);
+    tableInfo.table->insert(context->getTransaction(), *insertState);
     writeColumnVectors(info.columnVectors, tableInfo.columnDataVectors);
     return info.getNodeID();
 }
@@ -158,7 +158,7 @@ void RelInsertExecutor::init(ResultSet* resultSet, const ExecutionContext* conte
     tableInfo.init(*resultSet, context->clientContext);
 }
 
-internalID_t RelInsertExecutor::insert(Transaction* transaction) {
+internalID_t RelInsertExecutor::insert(main::ClientContext* context) {
     KU_ASSERT(info.srcNodeIDVector->state->getSelVector().getSelSize() == 1);
     KU_ASSERT(info.dstNodeIDVector->state->getSelVector().getSelSize() == 1);
     auto srcNodeIDPos = info.srcNodeIDVector->state->getSelVector()[0];
@@ -173,8 +173,8 @@ internalID_t RelInsertExecutor::insert(Transaction* transaction) {
     }
     auto insertState = std::make_unique<storage::RelTableInsertState>(*info.srcNodeIDVector,
         *info.dstNodeIDVector, tableInfo.columnDataVectors);
-    tableInfo.table->initInsertState(transaction, *insertState);
-    tableInfo.table->insert(transaction, *insertState);
+    tableInfo.table->initInsertState(context, *insertState);
+    tableInfo.table->insert(context->getTransaction(), *insertState);
     writeColumnVectors(info.columnVectors, tableInfo.columnDataVectors);
     return tableInfo.getRelID();
 }

@@ -29,15 +29,15 @@ void NodeTableVersionRecordHandler::applyFuncToChunkedGroups(version_record_hand
         ->applyFuncToChunkedGroups(func, startRow, numRows, commitTS);
 }
 
-void NodeTableVersionRecordHandler::rollbackInsert(Transaction* transaction,
+void NodeTableVersionRecordHandler::rollbackInsert(main::ClientContext* context,
     node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows) const {
-    table->rollbackPKIndexInsert(transaction, startRow, numRows, nodeGroupIdx);
+    table->rollbackPKIndexInsert(context, startRow, numRows, nodeGroupIdx);
 
     // the only case where a node group would be empty (and potentially removed before) is if an
     // exception occurred while adding its first chunk
     KU_ASSERT(nodeGroupIdx < table->getNumNodeGroups() || startRow == 0);
     if (nodeGroupIdx < table->getNumNodeGroups()) {
-        VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
+        VersionRecordHandler::rollbackInsert(context, nodeGroupIdx, startRow, numRows);
         auto* nodeGroup = table->getNodeGroupNoLock(nodeGroupIdx);
         const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
         nodeGroup->rollbackInsert(startRow);
@@ -90,8 +90,8 @@ struct UncommittedIndexInserter final : IndexScanHelper {
     std::unique_ptr<NodeTableScanState> initScanState(const Transaction* transaction,
         DataChunk& dataChunk) override;
 
-    bool processScanOutput(Transaction* transaction, MemoryManager* mm,
-        NodeGroupScanResult scanResult, const std::vector<ValueVector*>& scannedVectors) override;
+    bool processScanOutput(main::ClientContext* context, NodeGroupScanResult scanResult,
+        const std::vector<ValueVector*>& scannedVectors) override;
 
     row_idx_t startNodeOffset;
     ValueVector nodeIDVector;
@@ -111,8 +111,8 @@ struct RollbackPKDeleter final : IndexScanHelper {
     std::unique_ptr<NodeTableScanState> initScanState(const Transaction* transaction,
         DataChunk& dataChunk) override;
 
-    bool processScanOutput(Transaction* transaction, MemoryManager* mm,
-        NodeGroupScanResult scanResult, const std::vector<ValueVector*>& scannedVectors) override;
+    bool processScanOutput(main::ClientContext* context, NodeGroupScanResult scanResult,
+        const std::vector<ValueVector*>& scannedVectors) override;
 
     std::unique_ptr<SemiMask> semiMask;
 };
@@ -125,7 +125,7 @@ std::unique_ptr<NodeTableScanState> UncommittedIndexInserter::initScanState(
     return scanState;
 }
 
-bool UncommittedIndexInserter::processScanOutput(Transaction* transaction, MemoryManager* mm,
+bool UncommittedIndexInserter::processScanOutput(main::ClientContext* context,
     NodeGroupScanResult scanResult, const std::vector<ValueVector*>& scannedVectors) {
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
         return false;
@@ -134,9 +134,9 @@ bool UncommittedIndexInserter::processScanOutput(Transaction* transaction, Memor
         nodeIDVector.setValue(i, nodeID_t{startNodeOffset + i, table->getTableID()});
     }
     if (!insertState) {
-        insertState = index->initInsertState(transaction, mm, isVisible);
+        insertState = index->initInsertState(context, isVisible);
     }
-    index->commitInsert(transaction, nodeIDVector, {scannedVectors}, *insertState);
+    index->commitInsert(context->getTransaction(), nodeIDVector, {scannedVectors}, *insertState);
     startNodeOffset += scanResult.numRows;
     return true;
 }
@@ -152,7 +152,7 @@ std::unique_ptr<NodeTableScanState> RollbackPKDeleter::initScanState(const Trans
 template<typename T>
 concept notIndexHashable = !IndexHashable<T>;
 
-bool RollbackPKDeleter::processScanOutput(Transaction* transaction, MemoryManager*,
+bool RollbackPKDeleter::processScanOutput(main::ClientContext* context,
     NodeGroupScanResult scanResult, const std::vector<ValueVector*>& scannedVectors) {
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
         return false;
@@ -166,7 +166,7 @@ bool RollbackPKDeleter::processScanOutput(Transaction* transaction, MemoryManage
             T key = scannedVector.getValue<T>(pos);
             static constexpr auto isVisible = [](offset_t) { return true; };
             if (offset_t lookupOffset = 0;
-                pkIndex.lookup(transaction, key, lookupOffset, isVisible)) {
+                pkIndex.lookup(context->getTransaction(), key, lookupOffset, isVisible)) {
                 // If we delete the key then it will not be visible to future transactions within
                 // this process
                 pkIndex.discardLocal(key);
@@ -398,14 +398,14 @@ void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector*
     }
 }
 
-void NodeTable::initInsertState(Transaction* transaction, TableInsertState& insertState) {
+void NodeTable::initInsertState(main::ClientContext* context, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.cast<NodeTableInsertState>();
     nodeInsertState.indexInsertStates.resize(indexes.size());
     for (auto i = 0u; i < indexes.size(); i++) {
         auto& indexHolder = indexes[i];
         const auto index = indexHolder.getIndex();
-        nodeInsertState.indexInsertStates[i] = index->initInsertState(transaction, memoryManager,
-            [&](offset_t offset) { return isVisible(transaction, offset); });
+        nodeInsertState.indexInsertStates[i] = index->initInsertState(context,
+            [&](offset_t offset) { return isVisible(context->getTransaction(), offset); });
     }
 }
 
@@ -452,7 +452,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     }
     const auto pkIndex = getPKIndex();
     if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
-        validatePkNotExists(transaction, &nodeUpdateState.propertyVector);
+        throw RuntimeException("Cannot update pk.");
     }
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
     if (transaction->isUnCommitted(tableID, nodeOffset)) {
@@ -461,12 +461,6 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
         localTable->update(&dummyTrx, updateState);
     } else {
-        if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
-            const auto insertState =
-                pkIndex->initInsertState(transaction, memoryManager, getVisibleFunc(transaction));
-            pkIndex->commitInsert(transaction, nodeUpdateState.nodeIDVector,
-                {&nodeUpdateState.propertyVector}, *insertState);
-        }
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
@@ -499,8 +493,8 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         index.getIndex()->delete_(transaction, nodeDeleteState.nodeIDVector, *indexDeleteState);
     }
 
-    if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
-        localTable && transaction->isUnCommitted(tableID, nodeOffset)) {
+    if (transaction->isUnCommitted(tableID, nodeOffset)) {
+        const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
         auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
         isDeleted = localTable->delete_(&dummyTrx, deleteState);
     } else {
@@ -556,7 +550,7 @@ DataChunk NodeTable::constructDataChunkForColumns(const std::vector<column_id_t>
     return constructDataChunk(memoryManager, std::move(types));
 }
 
-void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
+void NodeTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntry,
     LocalTable* localTable) {
     const auto startNodeOffset = nodeGroups->getNumTotalRows();
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
@@ -567,6 +561,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
         columnIDsToCommit.push_back(columnID);
     }
 
+    auto transaction = context->getTransaction();
     // 1. Append all tuples from local storage to nodeGroups regardless of deleted or not.
     // Note: We cannot simply remove all deleted tuples in local node table, as they may have
     // connected local rels. Directly removing them will cause shift of committed node offset,
@@ -575,7 +570,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -599,14 +594,22 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
         numLocalRows += localNodeGroup->getNumRows();
     }
 
-    // 3. Scan primary key index columns for newly inserted tuples.
-    // Note: for now, we only support HNSW and FTS as secondary indexes, which have their own
-    // internal storage, so we do not need to scan and re-insert newly inserted tuples here.
-    UncommittedIndexInserter pkInserter{startNodeOffset, this, getPKIndex(),
-        getVisibleFunc(transaction)};
-    // We need to scan from local storage here because some tuples in local node groups might
-    // have been deleted.
-    scanIndexColumns(transaction, pkInserter, localNodeTable.getNodeGroups());
+    // 3. Scan index columns for newly inserted tuples.
+    for (auto& index : indexes) {
+        if (!index.needCommitInsert()) {
+            continue;
+        }
+        if (!index.isLoaded()) {
+            throw RuntimeException(
+                "Cannot commit index insertions for index " + index.getName() +
+                ", because it is not loaded. Please load the extension for the index first.");
+        }
+        UncommittedIndexInserter indexInserter{startNodeOffset, this, index.getIndex(),
+            getVisibleFunc(transaction)};
+        // We need to scan from local storage here because some tuples in local node groups might
+        // have been deleted.
+        scanIndexColumns(context, indexInserter, localNodeTable.getNodeGroups());
+    }
 
     // 4. Clear local table.
     localTable->clear();
@@ -647,13 +650,13 @@ bool NodeTable::checkpoint(main::ClientContext* context, TableCatalogEntry* tabl
     return ret;
 }
 
-void NodeTable::rollbackPKIndexInsert(Transaction* transaction, row_idx_t startRow,
+void NodeTable::rollbackPKIndexInsert(main::ClientContext* context, row_idx_t startRow,
     row_idx_t numRows_, node_group_idx_t nodeGroupIdx_) {
     const row_idx_t startNodeOffset =
         startRow + StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx_);
 
     RollbackPKDeleter pkDeleter{startNodeOffset, numRows_, this, getPKIndex()};
-    scanIndexColumns(transaction, pkDeleter, *nodeGroups);
+    scanIndexColumns(context, pkDeleter, *nodeGroups);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
@@ -709,14 +712,14 @@ bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector,
         [&](offset_t offset) { return isVisibleNoLock(transaction, offset); });
 }
 
-void NodeTable::scanIndexColumns(Transaction* transaction, IndexScanHelper& scanHelper,
+void NodeTable::scanIndexColumns(main::ClientContext* context, IndexScanHelper& scanHelper,
     const NodeGroupCollection& nodeGroups_) const {
     auto dataChunk = constructDataChunkForColumns(scanHelper.index->getIndexInfo().columnIDs);
-    const auto scanState = scanHelper.initScanState(transaction, dataChunk);
+    const auto scanState = scanHelper.initScanState(context->getTransaction(), dataChunk);
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to
@@ -724,11 +727,11 @@ void NodeTable::scanIndexColumns(Transaction* transaction, IndexScanHelper& scan
         if (scanState->nodeGroup->getNumChunkedGroups() > 0) {
             scanState->nodeGroupIdx = nodeGroupToScan;
             KU_ASSERT(scanState->nodeGroup);
-            scanState->nodeGroup->initializeScanState(transaction, *scanState);
+            scanState->nodeGroup->initializeScanState(context->getTransaction(), *scanState);
             while (true) {
-                if (const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
-                    !scanHelper.processScanOutput(transaction, memoryManager, scanResult,
-                        scanState->outputVectors)) {
+                if (const auto scanResult =
+                        scanState->nodeGroup->scan(context->getTransaction(), *scanState);
+                    !scanHelper.processScanOutput(context, scanResult, scanState->outputVectors)) {
                     break;
                 }
             }

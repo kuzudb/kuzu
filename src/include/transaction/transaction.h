@@ -117,9 +117,7 @@ public:
     uint64_t getEstimatedMemUsage() const;
     storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
     LocalCacheManager& getLocalCacheManager() { return localCacheManager; }
-    bool isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const {
-        return nodeOffset >= getMinUncommittedNodeOffset(tableID);
-    }
+    bool isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const;
     common::row_idx_t getLocalRowIdx(common::table_id_t tableID,
         common::offset_t nodeOffset) const {
         KU_ASSERT(isUnCommitted(tableID, nodeOffset));

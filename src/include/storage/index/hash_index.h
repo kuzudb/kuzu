@@ -376,7 +376,7 @@ public:
     bool lookup(const transaction::Transaction* trx, common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t& result, visible_func isVisible);
 
-    std::unique_ptr<Index::InsertState> initInsertState(transaction::Transaction*, MemoryManager*,
+    std::unique_ptr<Index::InsertState> initInsertState(main::ClientContext*,
         visible_func isVisible) override {
         return std::make_unique<InsertState>(isVisible);
     }
@@ -398,6 +398,7 @@ public:
     }
     bool insert(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t value, visible_func isVisible);
+    bool needCommitInsert() const override { return true; }
     void commitInsert(transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors,
@@ -450,7 +451,7 @@ public:
     void delete_(common::ValueVector* keyVector);
 
     void checkpointInMemory() override;
-    void checkpoint(main::ClientContext*, bool forceCheckpointAll = false) override;
+    void checkpoint(main::ClientContext*) override;
     FileHandle* getFileHandle() const { return fileHandle; }
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 

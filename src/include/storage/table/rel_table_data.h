@@ -31,7 +31,7 @@ public:
     void applyFuncToChunkedGroups(version_record_handler_op_t func,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const override;
-    void rollbackInsert(transaction::Transaction* transaction,
+    void rollbackInsert(main::ClientContext* context,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows) const override;
 
@@ -46,7 +46,7 @@ public:
     void applyFuncToChunkedGroups(version_record_handler_op_t func,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const override;
-    void rollbackInsert(transaction::Transaction* transaction,
+    void rollbackInsert(main::ClientContext* context,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows) const override;
 

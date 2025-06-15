@@ -36,8 +36,7 @@ struct FTSInsertState final : storage::Index::InsertState {
     storage::NodeTableInsertState termsTableInsertState;
     storage::RelTableInsertState appearsInTableInsertState;
 
-    FTSInsertState(storage::MemoryManager* mm, transaction::Transaction* transaction,
-        FTSInternalTableInfo& tableInfo);
+    FTSInsertState(main::ClientContext* context, FTSInternalTableInfo& tableInfo);
 };
 
 struct IndexTableState {

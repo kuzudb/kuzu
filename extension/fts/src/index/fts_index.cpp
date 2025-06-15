@@ -57,9 +57,9 @@ std::unique_ptr<IndexStorageInfo> FTSStorageInfo::deserialize(
     return std::make_unique<FTSStorageInfo>(numDocs, avgDocLen, numCheckpointedNodes);
 }
 
-std::unique_ptr<Index::InsertState> FTSIndex::initInsertState(Transaction* transaction,
-    MemoryManager* mm, visible_func /*isVisible*/) {
-    return std::make_unique<FTSInsertState>(mm, transaction, internalTableInfo);
+std::unique_ptr<Index::InsertState> FTSIndex::initInsertState(main::ClientContext* context,
+    visible_func /*isVisible*/) {
+    return std::make_unique<FTSInsertState>(context, internalTableInfo);
 }
 
 static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& config,
@@ -107,7 +107,7 @@ DocInfo::DocInfo(Transaction* transaction, FTSConfig& config, NodeTable* stopWor
 }
 
 void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
-    const std::vector<ValueVector*>& indexVectors, Index::InsertState& insertState) {
+    const std::vector<ValueVector*>& indexVectors, InsertState& insertState) {
     auto totalInsertedDocLen = 0u;
     auto& ftsInsertState = insertState.cast<FTSInsertState>();
     for (auto i = 0u; i < nodeIDVector.state->getSelSize(); i++) {
@@ -164,22 +164,6 @@ void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector
     ftsStorageInfo.numDocs -= numDeletedDocs;
 }
 
-void FTSIndex::checkpoint(main::ClientContext* context, bool) {
-    KU_ASSERT(!context->isInMemory());
-    auto catalog = context->getCatalog();
-    internalTableInfo.docTable->checkpoint(context,
-        catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
-            internalTableInfo.docTable->getTableID()));
-    internalTableInfo.termsTable->checkpoint(context,
-        catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
-            internalTableInfo.termsTable->getTableID()));
-    auto appearsInTableName =
-        FTSUtils::getAppearsInTableName(internalTableInfo.table->getTableID(), indexInfo.name);
-    auto appearsInTableEntry =
-        catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION, appearsInTableName);
-    internalTableInfo.appearsInfoTable->checkpoint(context, appearsInTableEntry);
-}
-
 void FTSIndex::finalize(main::ClientContext* context) {
     auto& ftsStorageInfo = storageInfo->cast<FTSStorageInfo>();
     const auto numTotalRows =
@@ -193,17 +177,33 @@ void FTSIndex::finalize(main::ClientContext* context) {
     IndexTableState indexTableState{context->getMemoryManager(), transaction, internalTableInfo,
         indexInfo.columnIDs, idVector, dataChunk};
     internalID_t insertedNodeID = {INVALID_OFFSET, internalTableInfo.table->getTableID()};
-    while (ftsStorageInfo.numCheckpointedNodes < numTotalRows) {
-        insertedNodeID.offset = ftsStorageInfo.numCheckpointedNodes++;
+    for (auto offset = ftsStorageInfo.numCheckpointedNodes; offset < numTotalRows; offset++) {
+        insertedNodeID.offset = offset;
         idVector.setValue(0, insertedNodeID);
         internalTableInfo.table->initScanState(transaction, *indexTableState.scanState,
             insertedNodeID.tableID, insertedNodeID.offset);
         bool result = internalTableInfo.table->lookup(transaction, *indexTableState.scanState);
         KU_ASSERT(result);
-        auto insertState = initInsertState(transaction, context->getMemoryManager(),
-            [](offset_t) { return true; });
+        auto insertState = initInsertState(context, [](offset_t) { return true; });
         insert(transaction, idVector, indexTableState.indexVectors, *insertState);
     }
+    ftsStorageInfo.numCheckpointedNodes = numTotalRows;
+}
+
+void FTSIndex::checkpoint(main::ClientContext* context) {
+    KU_ASSERT(!context->isInMemory());
+    auto catalog = context->getCatalog();
+    internalTableInfo.docTable->checkpoint(context,
+        catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
+            internalTableInfo.docTable->getTableID()));
+    internalTableInfo.termsTable->checkpoint(context,
+        catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
+            internalTableInfo.termsTable->getTableID()));
+    auto appearsInTableName =
+        FTSUtils::getAppearsInTableName(internalTableInfo.table->getTableID(), indexInfo.name);
+    auto appearsInTableEntry =
+        catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION, appearsInTableName);
+    internalTableInfo.appearsInfoTable->checkpoint(context, appearsInTableEntry);
 }
 
 nodeID_t FTSIndex::insertToDocTable(Transaction* transaction, FTSInsertState& insertState,

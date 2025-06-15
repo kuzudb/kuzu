@@ -290,8 +290,9 @@ void UndoBuffer::rollbackVersionInfo(transaction::Transaction* transaction,
     auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        undoRecord.versionRecordHandler->rollbackInsert(transaction, undoRecord.nodeGroupIdx,
-            undoRecord.startRow, undoRecord.numRows);
+        undoRecord.versionRecordHandler->applyFuncToChunkedGroups(&ChunkedNodeGroup::rollbackInsert,
+            undoRecord.nodeGroupIdx, undoRecord.startRow, undoRecord.numRows,
+            transaction->getCommitTS());
     } break;
     case UndoRecordType::DELETE_INFO: {
         undoRecord.versionRecordHandler->applyFuncToChunkedGroups(&ChunkedNodeGroup::rollbackDelete,

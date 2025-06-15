@@ -395,7 +395,7 @@ void RelTable::pushInsertInfo(const Transaction* transaction, RelDataDirection d
     getDirectedTableData(direction)->pushInsertInfo(transaction, nodeGroup, numRows_, source);
 }
 
-void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
+void RelTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntry,
     LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
     if (localRelTable.isEmpty()) {
@@ -419,6 +419,7 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
         columnIDsToCommit.push_back(columnID);
     }
     // commit rel table data
+    auto transaction = context->getTransaction();
     for (auto& relData : directedRelData) {
         const auto direction = relData->getDirection();
         const auto columnToSkip = (direction == RelDataDirection::FWD) ?

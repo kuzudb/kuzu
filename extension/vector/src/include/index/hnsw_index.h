@@ -210,7 +210,7 @@ public:
         return upperGraphSelectionMap->getNumNodesInGraph();
     }
 
-    std::unique_ptr<InsertState> initInsertState(transaction::Transaction*, storage::MemoryManager*,
+    std::unique_ptr<InsertState> initInsertState(main::ClientContext*,
         storage::visible_func) override {
         KU_UNREACHABLE;
     }
@@ -276,7 +276,7 @@ struct HNSWSearchState {
 
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
-    struct CheckpointInsertionState {
+    struct HNSWInsertState final : InsertState {
         // State for searching neighbors and reading vectors in the HNSW graph.
         HNSWSearchState searchState;
         // State for inserting rels.
@@ -289,8 +289,7 @@ public:
         std::unordered_set<common::offset_t> upperNodesToShrink;
         std::unordered_set<common::offset_t> lowerNodesToShrink;
 
-        CheckpointInsertionState(main::ClientContext* context,
-            catalog::TableCatalogEntry* nodeTableEntry,
+        HNSWInsertState(main::ClientContext* context, catalog::TableCatalogEntry* nodeTableEntry,
             catalog::TableCatalogEntry* upperRelTableEntry,
             catalog::TableCatalogEntry* lowerRelTableEntry, storage::NodeTable& nodeTable,
             common::column_id_t columnID, uint64_t degree);
@@ -305,11 +304,11 @@ public:
     static std::unique_ptr<Index> load(main::ClientContext* context,
         storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
         std::span<uint8_t> storageInfoBuffer);
-    std::unique_ptr<Index::InsertState> initInsertState(transaction::Transaction*,
-        storage::MemoryManager* mm, storage::visible_func) override;
-    void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
-        const std::vector<common::ValueVector*>& indexVectors,
-        Index::InsertState& insertState) override;
+    std::unique_ptr<InsertState> initInsertState(main::ClientContext* context,
+        storage::visible_func) override;
+    bool needCommitInsert() const override { return true; }
+    void commitInsert(transaction::Transaction*, const common::ValueVector&,
+        const std::vector<common::ValueVector*>&, InsertState&) override;
 
     static storage::IndexType getIndexType() {
         static const storage::IndexType HNSW_INDEX_TYPE{"HNSW",
@@ -318,7 +317,8 @@ public:
         return HNSW_INDEX_TYPE;
     }
 
-    void checkpoint(main::ClientContext* context, bool forceCheckpointAll) override;
+    void finalize(main::ClientContext*) override;
+    void checkpoint(main::ClientContext* context) override;
 
 private:
     common::offset_t searchNNInUpperLayer(const EmbeddingHandle& queryVector,
@@ -344,15 +344,14 @@ private:
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
     void insertInternal(transaction::Transaction* transaction, common::offset_t offset,
-        const EmbeddingHandle& vector, CheckpointInsertionState& insertState);
+        const EmbeddingHandle& vector, HNSWInsertState& insertState);
     void insertToLayer(transaction::Transaction* transaction, common::offset_t offset,
         common::offset_t entryPoint, const EmbeddingHandle& queryVector,
-        CheckpointInsertionState& insertState, bool isUpperLayer);
+        HNSWInsertState& insertState, bool isUpperLayer);
     void createRels(transaction::Transaction* transaction, common::offset_t offset,
-        const std::vector<NodeWithDistance>& nbrs, bool isUpperLayer,
-        CheckpointInsertionState& insertState);
+        const std::vector<NodeWithDistance>& nbrs, bool isUpperLayer, HNSWInsertState& insertState);
     void shrinkForNode(transaction::Transaction* transaction, common::offset_t offset,
-        bool isUpperLayer, common::length_t maxDegree, CheckpointInsertionState& insertState);
+        bool isUpperLayer, common::length_t maxDegree, HNSWInsertState& insertState);
 
     void processSecondHopCandidates(const EmbeddingHandle& queryVector,
         HNSWSearchState& searchState, int64_t& numVisitedNbrs,

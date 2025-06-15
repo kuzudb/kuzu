@@ -71,8 +71,7 @@
 20|3|0.209476
 3|0|0.271133
 3|3|0.209476
-
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') with node.ID as ID, score as score MATCH (n) RETURN ID, score, label(n)
+ -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') with node.ID as ID, score as score MATCH (n) RETURN ID, score, label(n)
 ---- 18
 0|0.192034|city_stopwords
 0|0.192034|city_stopwords
@@ -194,7 +193,6 @@ Binder exception: BM25 model requires the Term Frequency Saturation(k) value to 
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice waterloo', conjunctive := true) RETURN node.ID, score
 ---- 1
 0|0.465323
-
 -CASE fts_serialization
 -SKIP_IN_MEM
 -SKIP_STATIC_LINK
@@ -214,7 +212,6 @@ Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists
 ---- 2
 0|0.271133
 3|0.209476
-
 -CASE FTSWithPortDB
 -SKIP_IN_MEM
 -LOAD_DYNAMIC_EXTENSION fts
@@ -283,8 +280,7 @@ Binder exception: Sequence 0_docIdx_appears_info_ID_serial does not exist.
 -STATEMENT create node table `0_docIdx_docs` (id int64, primary key(id))
 ---- error
 Binder exception: 0_docIdx_docs already exists in catalog.
-
--STATEMENT create node table `0_docIdx1_docs` (id int64, primary key(id))
+ -STATEMENT create node table `0_docIdx1_docs` (id int64, primary key(id))
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content'])
 ---- error
@@ -304,8 +300,7 @@ Binder exception: Table: 0_docIdx3_appears_info already exists. Please drop or r
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content'])
 ---- error
 Binder exception: Table: 0_docIdx4_appears_in already exists. Please drop or rename the table before creating a full text search index.
-
--CASE show_indexes
+ -CASE show_indexes
 -SKIP_IN_MEM
 -SKIP_STATIC_LINK
 -LOAD_DYNAMIC_EXTENSION fts

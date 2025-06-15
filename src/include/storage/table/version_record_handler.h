@@ -21,9 +21,8 @@ public:
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const = 0;
 
-    virtual void rollbackInsert(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-        common::row_idx_t numRows) const;
+    virtual void rollbackInsert(main::ClientContext* context, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows) const;
 };
 
 } // namespace storage
