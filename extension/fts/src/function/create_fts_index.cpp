@@ -302,11 +302,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         std::move(columnIDs), std::move(columnTypes),
         ftsIndexType.constraintType == storage::IndexConstraintType::PRIMARY,
         ftsIndexType.definitionType == storage::IndexDefinitionType::BUILTIN};
-    auto storageInfo = std::make_unique<FTSStorageInfo>(numDocs, avgDocLen);
+    auto storageInfo = std::make_unique<FTSStorageInfo>(numDocs, avgDocLen,
+        nodeTable->getNumTotalRows(context.clientContext->getTransaction()));
     auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
         std::move(ftsConfig), context.clientContext);
     nodeTable->addIndex(std::move(onDiskIndex));
     context.clientContext->getTransaction()->setForceCheckpoint();
+    nodeTable->setHasChanges();
     return 0;
 }
 

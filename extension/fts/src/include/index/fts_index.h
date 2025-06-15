@@ -14,9 +14,10 @@ struct TermInfo;
 struct FTSStorageInfo final : storage::IndexStorageInfo {
     common::idx_t numDocs = 0;
     double avgDocLen = 0;
+    common::offset_t numCheckpointedNodes;
 
-    FTSStorageInfo(common::idx_t numDocs, double avgDocLen)
-        : numDocs{numDocs}, avgDocLen{avgDocLen} {}
+    FTSStorageInfo(common::idx_t numDocs, double avgDocLen, common::offset_t numCheckpointedNodes)
+        : numDocs{numDocs}, avgDocLen{avgDocLen}, numCheckpointedNodes{numCheckpointedNodes} {}
 
     std::shared_ptr<common::BufferedSerializer> serialize() const override;
 
@@ -50,6 +51,8 @@ public:
         // For FTS index, insertions are handled when the new tuples are inserted into the base
         // table being indexed.
     }
+
+    void checkpoint(main::ClientContext*, bool forceCheckpointAll = false) override;
 
     static storage::IndexType getIndexType() {
         static const storage::IndexType FTS_INDEX_TYPE{"FTS",
