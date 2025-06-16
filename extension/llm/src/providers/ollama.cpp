@@ -36,13 +36,13 @@ std::vector<float> OllamaEmbedding::parseResponse(const httplib::Result& res) co
 void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
-        throw(BinderException("Ollama does not support the dimensions argument, but received dimension: " +
-                              std::to_string(dimensions.value()) + '\n' +
-                              std::string(referenceKuzuDocs)));
+        throw(BinderException(
+            "Ollama does not support the dimensions argument, but received dimension: " +
+            std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
     if (region.has_value()) {
-        throw(BinderException("Ollama does not support the region argument, but received region: " + region.value() +
-                              '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException("Ollama does not support the region argument, but received region: " +
+                              region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
 }
 

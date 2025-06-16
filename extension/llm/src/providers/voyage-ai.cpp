@@ -26,8 +26,8 @@ httplib::Headers VoyageAIEmbedding::getHeaders(const nlohmann::json& /*payload*/
     static const std::string envVar = "VOYAGE_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(RuntimeException(
-            "Could not read environmental variable: " + envVar + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Could not read environmental variable: " + envVar + '\n' +
+                               std::string(referenceKuzuDocs)));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + env_key}};
@@ -49,8 +49,9 @@ std::vector<float> VoyageAIEmbedding::parseResponse(const httplib::Result& res) 
 void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (region.has_value()) {
-        throw(BinderException("Voyage-AI does not support the region argument, but received region: " + region.value() +
-                              '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException(
+            "Voyage-AI does not support the region argument, but received region: " +
+            region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
 }

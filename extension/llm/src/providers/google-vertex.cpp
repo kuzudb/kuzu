@@ -32,8 +32,8 @@ httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*paylo
     static const std::string envVar = "GOOGLE_VERTEX_ACCESS_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(RuntimeException(
-            "Could not read environmental variable: " + envVar + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Could not read environmental variable: " + envVar + '\n' +
+                               std::string(referenceKuzuDocs)));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + env_key}};
