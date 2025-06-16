@@ -211,8 +211,6 @@ public:
     bool insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited);
     void finalize(common::node_group_idx_t nodeGroupIdx);
 
-    void resetEmbeddings() { embeddings.reset(); }
-
     void moveToPartitionState(HNSWIndexPartitionerSharedState& partitionState);
 
 private:

@@ -147,27 +147,26 @@ OnDiskCreateHNSWIndexEmbeddings::OnDiskCreateHNSWIndexEmbeddings(
     transaction::Transaction* transaction, storage::MemoryManager* mm,
     common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable, common::column_id_t columnID)
     : CreateHNSWIndexEmbeddings(std::move(typeInfo)), embeddings(std::move(typeInfo), nodeTable),
-      transaction(transaction), mm(mm) {
+      transaction(transaction), mm(mm), nodeTable(nodeTable), columnID(columnID) {
     types.emplace_back(common::LogicalType::INTERNAL_ID());
     types.emplace_back(nodeTable.getColumn(columnID).getDataType().copy());
-    scanState =
-        std::make_unique<NodeTableScanState>(nullptr, std::vector<common::ValueVector*>{}, nullptr);
-    scanState->setToTable(transaction, &nodeTable, std::vector{columnID});
     scanChunkState = std::make_shared<common::DataChunkState>();
 }
 
-static void setScanStateToChunk(NodeTableScanState& scanState, common::DataChunk& scanChunk) {
-    scanState.nodeIDVector = &scanChunk.getValueVectorMutable(0);
-    scanState.outputVectors = std::vector{&scanChunk.getValueVectorMutable(1)};
-    scanState.outState = scanChunk.state;
-    scanState.rowIdxVector->setState(scanChunk.state);
-}
+// static void setScanStateToChunk(NodeTableScanState& scanState, common::DataChunk& scanChunk) {
+//     scanState.nodeIDVector = &scanChunk.getValueVectorMutable(0);
+//     scanState.outputVectors = std::vector{&scanChunk.getValueVectorMutable(1)};
+//     scanState.outState = scanChunk.state;
+//     scanState.rowIdxVector->setState(scanChunk.state);
+// }
 
 VectorEmbedding OnDiskCreateHNSWIndexEmbeddings::getEmbedding(common::offset_t offset) const {
     auto scanChunk = std::make_unique<common::DataChunk>(
         Table::constructDataChunk(mm, copyVector(types), scanChunkState));
-    setScanStateToChunk(*scanState, *scanChunk);
-    auto* embeddingPtr = embeddings.getEmbedding(transaction, *scanState, offset);
+    auto scanState = NodeTableScanState{&scanChunk->getValueVectorMutable(0),
+        std::vector{&scanChunk->getValueVectorMutable(1)}, scanChunk->state};
+    scanState.setToTable(transaction, &nodeTable, std::vector{columnID});
+    auto* embeddingPtr = embeddings.getEmbedding(transaction, scanState, offset);
     KU_ASSERT(embeddingPtr != nullptr);
     return VectorEmbedding{embeddingPtr, std::move(scanChunk)};
 }
@@ -175,8 +174,10 @@ VectorEmbedding OnDiskCreateHNSWIndexEmbeddings::getEmbedding(common::offset_t o
 bool OnDiskCreateHNSWIndexEmbeddings::isNull(common::offset_t offset) const {
     auto scanChunk = std::make_unique<common::DataChunk>(
         Table::constructDataChunk(mm, copyVector(types), scanChunkState));
-    setScanStateToChunk(*scanState, *scanChunk);
-    return embeddings.getEmbedding(transaction, *scanState, offset) == nullptr;
+    auto scanState = NodeTableScanState{&scanChunk->getValueVectorMutable(0),
+        std::vector{&scanChunk->getValueVectorMutable(1)}, scanChunk->state};
+    scanState.setToTable(transaction, &nodeTable, std::vector{columnID});
+    return embeddings.getEmbedding(transaction, scanState, offset) == nullptr;
 }
 
 namespace {

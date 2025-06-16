@@ -106,9 +106,10 @@ private:
     OnDiskEmbeddings embeddings;
     transaction::Transaction* transaction;
 
-    std::unique_ptr<storage::NodeTableScanState> scanState;
     std::vector<common::LogicalType> types;
     storage::MemoryManager* mm;
+    storage::NodeTable& nodeTable;
+    common::column_id_t columnID;
     std::shared_ptr<common::DataChunkState> scanChunkState;
 };
 
