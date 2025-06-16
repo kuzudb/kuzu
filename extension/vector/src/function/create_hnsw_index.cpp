@@ -78,10 +78,11 @@ static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncO
     }
     const auto& hnswIndex = sharedState->hnswIndex;
     offset_t numNodesInserted = 0;
+    auto localState = hnswIndex->constructEmbeddingsLocalState();
     for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
         numNodesInserted += hnswIndex->insert(i,
             input.localState->ptrCast<CreateInMemHNSWLocalState>()->upperVisited,
-            input.localState->ptrCast<CreateInMemHNSWLocalState>()->lowerVisited);
+            input.localState->ptrCast<CreateInMemHNSWLocalState>()->lowerVisited, *localState);
     }
     sharedState->numNodesInserted.fetch_add(numNodesInserted);
     return morsel.endOffset - morsel.startOffset;

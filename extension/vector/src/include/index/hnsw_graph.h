@@ -36,14 +36,27 @@ struct VectorEmbedding {
     std::unique_ptr<common::DataChunk> embeddingChunk;
 };
 
+struct GetEmbeddingsLocalState {
+    virtual ~GetEmbeddingsLocalState() = default;
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<TARGET&>(*this);
+    }
+};
+
 class CreateHNSWIndexEmbeddings {
 public:
     virtual ~CreateHNSWIndexEmbeddings() = default;
     explicit CreateHNSWIndexEmbeddings(common::ArrayTypeInfo typeInfo)
         : info{std::move(typeInfo)} {}
-    virtual VectorEmbedding getEmbedding(common::offset_t offset) const = 0;
-    virtual bool isNull(common::offset_t offset) const = 0;
+    virtual VectorEmbedding getEmbedding(common::offset_t offset,
+        GetEmbeddingsLocalState& localState) const = 0;
+    virtual bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const = 0;
     common::length_t getDimension() const { return info.getDimension(); }
+    virtual std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() {
+        return std::make_unique<GetEmbeddingsLocalState>();
+    };
 
 protected:
     EmbeddingColumnInfo info;
@@ -54,8 +67,9 @@ public:
     InMemEmbeddings(transaction::Transaction* transaction, common::ArrayTypeInfo typeInfo,
         common::table_id_t tableID, common::column_id_t columnID);
 
-    VectorEmbedding getEmbedding(common::offset_t offset) const override;
-    bool isNull(common::offset_t offset) const override;
+    VectorEmbedding getEmbedding(common::offset_t offset,
+        GetEmbeddingsLocalState& localState) const override;
+    bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
 
 private:
     storage::CachedColumn* data;
@@ -99,8 +113,10 @@ public:
         storage::MemoryManager* mm, common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable,
         common::column_id_t columnID);
 
-    VectorEmbedding getEmbedding(common::offset_t offset) const override;
-    bool isNull(common::offset_t offset) const override;
+    VectorEmbedding getEmbedding(common::offset_t offset,
+        GetEmbeddingsLocalState& localState) const override;
+    bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
+    std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() override;
 
 private:
     OnDiskEmbeddings embeddings;

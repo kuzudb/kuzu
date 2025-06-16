@@ -142,9 +142,10 @@ struct InMemHNSWLayerInfo {
           efc{efc}, offsetMap(offsetMap) {}
 
     uint64_t getDimension() const { return embeddings->getDimension(); }
-    VectorEmbedding getEmbedding(common::offset_t offsetInGraph) const {
+    VectorEmbedding getEmbedding(common::offset_t offsetInGraph,
+        GetEmbeddingsLocalState& localState) const {
         KU_ASSERT(offsetInGraph < numNodes);
-        return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph));
+        return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph), localState);
     }
 };
 
@@ -159,20 +160,25 @@ public:
     common::offset_t getEntryPoint() const { return entryPoint.load(); }
     common::offset_t getNumNodes() const { return info.numNodes; }
 
-    void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);
-    common::offset_t searchNN(const void* queryVector, common::offset_t entryNode) const;
+    void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited,
+        GetEmbeddingsLocalState& localState);
+    common::offset_t searchNN(const void* queryVector, common::offset_t entryNode,
+        GetEmbeddingsLocalState& localState) const;
     void finalize(common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
-        const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
+        const NodeToHNSWGraphOffsetMap& selectedNodesMap,
+        GetEmbeddingsLocalState& localState) const;
 
     std::unique_ptr<InMemHNSWGraph> moveGraph() { return std::move(graph); }
 
 private:
     std::vector<NodeWithDistance> searchKNN(const void* queryVector, common::offset_t entryNode,
-        common::length_t k, uint64_t configuredEf, VisitedState& visited) const;
+        common::length_t k, uint64_t configuredEf, VisitedState& visited,
+        GetEmbeddingsLocalState& localState) const;
     static void shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGraph* graph,
-        common::offset_t nodeOffset, common::length_t numNbrs);
+        common::offset_t nodeOffset, common::length_t numNbrs, GetEmbeddingsLocalState& localState);
 
-    void insertRel(common::offset_t srcNode, common::offset_t dstNode);
+    void insertRel(common::offset_t srcNode, common::offset_t dstNode,
+        GetEmbeddingsLocalState& localState);
 
 private:
     std::atomic<common::offset_t> entryPoint;
@@ -208,10 +214,15 @@ public:
         KU_UNREACHABLE;
     }
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
-    bool insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited);
+    bool insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited,
+        GetEmbeddingsLocalState& localState);
     void finalize(common::node_group_idx_t nodeGroupIdx);
 
     void moveToPartitionState(HNSWIndexPartitionerSharedState& partitionState);
+
+    std::unique_ptr<GetEmbeddingsLocalState> constructEmbeddingsLocalState() const {
+        return embeddings->constructLocalState();
+    }
 
 private:
     std::unique_ptr<InMemHNSWLayer> upperLayer;
