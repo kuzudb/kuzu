@@ -85,7 +85,7 @@ static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr,
         evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context)
             .getValue<int64_t>();
     if (dimensions <= 0) {
-        throw(BinderException("Failed to parse dimensions: " + dimensionsExpr->toString() + '\n' +
+        throw(BinderException("Dimensions should be greater than 0, but found: " + dimensionsExpr->toString() + '\n' +
                               std::string(EmbeddingProvider::referenceKuzuDocs)));
     }
     return dimensions;
