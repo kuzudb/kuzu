@@ -201,9 +201,12 @@ public:
 
     MemoryManager& getMemoryManager() const { return *memoryManager; }
 
-    static common::DataChunk constructDataChunk(MemoryManager* mm,
-        std::vector<common::LogicalType> types,
-        std::shared_ptr<common::DataChunkState> state = nullptr);
+    static KUZU_API common::DataChunk constructDataChunk(MemoryManager* mm,
+        std::vector<common::LogicalType> types, std::shared_ptr<common::DataChunkState> state);
+    static KUZU_API common::DataChunk constructDataChunk(MemoryManager* mm,
+        std::vector<common::LogicalType> types) {
+        return constructDataChunk(mm, std::move(types), nullptr);
+    }
 
     virtual void serialize(common::Serializer& serializer) const = 0;
     virtual void deserialize(main::ClientContext* context, StorageManager* storageManager,

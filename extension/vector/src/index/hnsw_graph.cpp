@@ -26,14 +26,17 @@ InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction,
 
 VectorEmbedding InMemEmbeddings::getEmbedding(common::offset_t offset) const {
     void* val = nullptr;
-    common::TypeUtils::visit(info.typeInfo.getChildType(), [&]<typename T>(T) {
-        auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
-        KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
-        const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
-        val = &listChunk.getDataColumnChunk()
-                   ->getData<T>()[listChunk.getListStartOffset(offsetInGroup)];
-    });
-    KU_ASSERT(val != nullptr);
+    if (!isNull(offset)) {
+        common::TypeUtils::visit(info.typeInfo.getChildType(), [&]<typename T>(T) {
+            auto [nodeGroupIdx, offsetInGroup] =
+                StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+            KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
+            const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
+            val = &listChunk.getDataColumnChunk()
+                       ->getData<T>()[listChunk.getListStartOffset(offsetInGroup)];
+        });
+        KU_ASSERT(val != nullptr);
+    }
     return VectorEmbedding{val};
 }
 
@@ -149,12 +152,15 @@ OnDiskCreateHNSWIndexEmbeddings::OnDiskCreateHNSWIndexEmbeddings(
     types.emplace_back(nodeTable.getColumn(columnID).getDataType().copy());
     scanState =
         std::make_unique<NodeTableScanState>(nullptr, std::vector<common::ValueVector*>{}, nullptr);
+    scanState->setToTable(transaction, &nodeTable, std::vector{columnID});
     scanChunkState = std::make_shared<common::DataChunkState>();
 }
 
 static void setScanStateToChunk(NodeTableScanState& scanState, common::DataChunk& scanChunk) {
     scanState.nodeIDVector = &scanChunk.getValueVectorMutable(0);
     scanState.outputVectors = std::vector{&scanChunk.getValueVectorMutable(1)};
+    scanState.outState = scanChunk.state;
+    scanState.rowIdxVector->setState(scanChunk.state);
 }
 
 VectorEmbedding OnDiskCreateHNSWIndexEmbeddings::getEmbedding(common::offset_t offset) const {

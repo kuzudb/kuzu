@@ -27,6 +27,8 @@ struct VectorEmbedding {
         std::unique_ptr<common::DataChunk> embeddingChunk = nullptr)
         : embedding(embedding), embeddingChunk(std::move(embeddingChunk)) {}
 
+    bool isNull() const { return embedding == nullptr; }
+
     void* embedding;
     // This field should not be used directly
     // It is just used to maintain ownership of the memory pointed to by the embedding field if
