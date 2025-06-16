@@ -50,7 +50,6 @@ False
 ---- 1
 False
 
-#TODO(TANVIR)
 -CASE UseWithVectorExtension
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
@@ -112,13 +111,13 @@ False
 -STATEMENT MATCH (b:Book {title: 'The Dragon Call'}) MATCH (p:Publisher {name: "O'Reilly"}) CREATE (b)-[:PublishedBy]->(p);
 ---- ok
 
--STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'amazon-bedrock', 'amazon.titan-embed-text-v1', 'us-east-1') AS emb SET b.title_embedding = emb;
+-STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'google-vertex', 'gemini-embedding-001', 'us-central1') AS emb SET b.title_embedding = emb;
 ---- ok
 
 -STATEMENT CALL CREATE_VECTOR_INDEX('Book', 'title_vec_index', 'title_embedding');
 ---- ok
 
--STATEMENT CALL QUERY_VECTOR_INDEX('Book', 'title_vec_index', create_embedding('Quantum Machines', 'amazon-bedrock', 'amazon.titan-embed-text-v1', 'us-east-1'), 2) RETURN node.title ORDER BY distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('Book', 'title_vec_index', create_embedding('Quantum Machines', 'google-vertex', 'gemini-embedding-001', 'us-central1'), 2) RETURN node.title ORDER BY distance;
 ---- 2
 Learning Machines
 The Quantum World
