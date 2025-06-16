@@ -17,7 +17,7 @@ EmbeddingProvider& BedrockEmbedding::getInstance() {
 }
 
 std::string BedrockEmbedding::getClient() const {
-    return "https://bedrock-runtime." + region.value_or(defaultRegion) + ".amazonaws.com";
+    return "https://bedrock-runtime." + region.value() + ".amazonaws.com";
 }
 
 std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
@@ -45,7 +45,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
         throw(RuntimeException(errMsg + std::string(referenceKuzuDocs)));
     }
     std::string service = "bedrock";
-    std::string region = this->region.value_or(defaultRegion);
+    std::string region = this->region.value();
     std::string host = "bedrock-runtime." + region + ".amazonaws.com";
 
     auto timestamp = Timestamp::getCurrentTimestamp();
@@ -131,6 +131,12 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
         throw(BinderException(
             "Bedrock does not support the dimensions argument, but received dimension: " +
             std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+    }
+    if (!region.has_value())
+    {
+        throw(BinderException("Bedrock requires a region argument, but recieved none\n" +
+                              std::string(referenceKuzuDocs)));
+
     }
     this->region = region;
 }

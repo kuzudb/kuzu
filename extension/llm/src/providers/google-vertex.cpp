@@ -1,5 +1,6 @@
 #include "providers/google-vertex.h"
 
+#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
 
@@ -24,7 +25,7 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
         throw(RuntimeException(
             "Could not get project id from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
-    return "/v1/projects/" + env_project_id + "/locations/" + region.value_or(defaultRegion) +
+    return "/v1/projects/" + env_project_id + "/locations/" + region.value() +
            "/publishers/google/models/" + model + ":predict";
 }
 
@@ -56,6 +57,12 @@ std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& r
 
 void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
+    if (!region.has_value())
+    {
+        throw(BinderException("Google Vertex requires a region argument, but recieved none\n" +
+                      std::string(referenceKuzuDocs)));
+
+    }
     this->dimensions = dimensions;
     this->region = region;
 }

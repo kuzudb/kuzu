@@ -13,7 +13,6 @@ class GoogleVertexEmbedding final : public EmbeddingProvider {
     DELETE_COPY_AND_MOVE(GoogleVertexEmbedding);
     std::optional<std::string> region;
     std::optional<uint64_t> dimensions;
-    const std::string defaultRegion = "us-central1";
 
 public:
     ~GoogleVertexEmbedding() override = default;
