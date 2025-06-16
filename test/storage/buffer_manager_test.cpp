@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "graph_test/graph_test.h"
@@ -7,6 +9,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/buffer_manager/spiller.h"
 #include "storage/enums/residency_state.h"
+#include "storage/storage_manager.h"
 #include "storage/table/chunked_node_group.h"
 #include "storage/table/column_chunk.h"
 
@@ -20,6 +23,11 @@ class BufferManagerTest : public DBTest {
 public:
     std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
+    void reserveAll() {
+        auto* bm = getBufferManager(*database);
+        // Can't use UINT64_MAX since it will overflow the usedMemory
+        ASSERT_FALSE(bm->reserve(UINT64_MAX / 2));
     }
 };
 
@@ -81,6 +89,53 @@ TEST_F(EmptyBufferManagerTest, TestSpillToDiskMemoryUsage) {
         // the amount of used memory itself, so we end up with the spilled memory recorded twice
         ASSERT_EQ(memoryWithChunks, bm->getUsedMemory() - memorySpilled);
     }
+}
+
+// Simulates the case where we try to evict a page during an optimistic read
+TEST_F(BufferManagerTest, TestBMEvictionSlowRead) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    auto* fh = getClientContext(*conn)->getStorageManager()->getDataFH();
+
+    auto* page = fh->pinPage(0, PageReadPolicy::READ_PAGE);
+    *page = 112;
+    fh->getPageState(0)->setDirty();
+    fh->unpinPage(0);
+    bool firstTry = true;
+    // The mmap version will fail the first time, but will be run again since the page state was
+    // changed during the read
+#if BM_MALLOC
+    fh->optimisticReadPage(0, [&](auto* frame) {
+        ASSERT_TRUE(firstTry);
+        firstTry = false;
+        ASSERT_EQ(*frame, 112);
+        // Should evict all evictable candidates in the eviction queue before failing
+        // Should *not* evict the page we're currently reading
+        reserveAll();
+        // Probably will still succeed, but with ASAN (and BM_MALLOC) it should catch a read after
+        // free if this frame was evicted
+        ASSERT_EQ(*frame, 112);
+    });
+#else
+    fh->optimisticReadPage(0, [&](auto* frame) {
+        if (firstTry) {
+            firstTry = false;
+            ASSERT_EQ(*frame, 112);
+            // Should evict all evictable candidates in the eviction queue before failing
+            // Should evict the page we're currently reading
+            reserveAll();
+            // Frame was evicted and should now be zeroed
+            // (not on macos, which does this lazily)
+#ifndef __APPLE__
+            ASSERT_EQ(*frame, 0);
+#endif
+        } else {
+            // Second try it should be correct again
+            ASSERT_EQ(*frame, 112);
+        }
+    });
+#endif
 }
 
 } // namespace testing
