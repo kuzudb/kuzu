@@ -39,8 +39,8 @@ public:
     TRANSACTION = 140, TRUE = 141, TYPE = 142, UNION = 143, UNWIND = 144, 
     UNINSTALL = 145, UPDATE = 146, USE = 147, WHEN = 148, WHERE = 149, WITH = 150, 
     WRITE = 151, WSHORTEST = 152, XOR = 153, SINGLE = 154, YIELD = 155, 
-    DECIMAL = 156, STAR = 157, L_SKIP = 158, INVALID_NOT_EQUAL = 159, MINUS = 160, 
-    FACTORIAL = 161, COLON = 162, StringLiteral = 163, EscapedChar = 164, 
+    DECIMAL = 156, STAR = 157, L_SKIP = 158, INVALID_NOT_EQUAL = 159, COLON = 160, 
+    MINUS = 161, FACTORIAL = 162, StringLiteral = 163, EscapedChar = 164, 
     DecimalInteger = 165, HexLetter = 166, HexDigit = 167, Digit = 168, 
     NonZeroDigit = 169, NonZeroOctDigit = 170, ZeroDigit = 171, ExponentDecimalReal = 172, 
     RegularDecimalReal = 173, UnescapedSymbolicName = 174, IdentifierStart = 175, 
@@ -92,10 +92,10 @@ public:
     RuleKU_BitShiftOperatorExpression = 124, RuleKU_BitShiftOperator = 125, 
     RuleOC_AddOrSubtractExpression = 126, RuleKU_AddOrSubtractOperator = 127, 
     RuleOC_MultiplyDivideModuloExpression = 128, RuleKU_MultiplyDivideModuloOperator = 129, 
-    RuleOC_PowerOfExpression = 130, RuleOC_UnaryAddSubtractOrFactorialExpression = 131, 
-    RuleOC_StringListNullOperatorExpression = 132, RuleOC_ListOperatorExpression = 133, 
-    RuleOC_StringOperatorExpression = 134, RuleOC_RegularExpression = 135, 
-    RuleOC_NullOperatorExpression = 136, RuleOC_PropertyOrLabelsExpression = 137, 
+    RuleOC_PowerOfExpression = 130, RuleOC_StringListNullOperatorExpression = 131, 
+    RuleOC_ListOperatorExpression = 132, RuleOC_StringOperatorExpression = 133, 
+    RuleOC_RegularExpression = 134, RuleOC_NullOperatorExpression = 135, 
+    RuleOC_UnaryAddSubtractOrFactorialExpression = 136, RuleOC_PropertyOrLabelsExpression = 137, 
     RuleOC_Atom = 138, RuleOC_Quantifier = 139, RuleOC_FilterExpression = 140, 
     RuleOC_IdInColl = 141, RuleOC_Literal = 142, RuleOC_BooleanLiteral = 143, 
     RuleOC_ListLiteral = 144, RuleKU_ListEntry = 145, RuleKU_StructLiteral = 146, 
@@ -258,12 +258,12 @@ public:
   class OC_MultiplyDivideModuloExpressionContext;
   class KU_MultiplyDivideModuloOperatorContext;
   class OC_PowerOfExpressionContext;
-  class OC_UnaryAddSubtractOrFactorialExpressionContext;
   class OC_StringListNullOperatorExpressionContext;
   class OC_ListOperatorExpressionContext;
   class OC_StringOperatorExpressionContext;
   class OC_RegularExpressionContext;
   class OC_NullOperatorExpressionContext;
+  class OC_UnaryAddSubtractOrFactorialExpressionContext;
   class OC_PropertyOrLabelsExpressionContext;
   class OC_AtomContext;
   class OC_QuantifierContext;
@@ -2268,8 +2268,8 @@ public:
   public:
     OC_PowerOfExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<OC_UnaryAddSubtractOrFactorialExpressionContext *> oC_UnaryAddSubtractOrFactorialExpression();
-    OC_UnaryAddSubtractOrFactorialExpressionContext* oC_UnaryAddSubtractOrFactorialExpression(size_t i);
+    std::vector<OC_StringListNullOperatorExpressionContext *> oC_StringListNullOperatorExpression();
+    OC_StringListNullOperatorExpressionContext* oC_StringListNullOperatorExpression(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
 
@@ -2278,27 +2278,11 @@ public:
 
   OC_PowerOfExpressionContext* oC_PowerOfExpression();
 
-  class  OC_UnaryAddSubtractOrFactorialExpressionContext : public antlr4::ParserRuleContext {
-  public:
-    OC_UnaryAddSubtractOrFactorialExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    OC_StringListNullOperatorExpressionContext *oC_StringListNullOperatorExpression();
-    std::vector<antlr4::tree::TerminalNode *> MINUS();
-    antlr4::tree::TerminalNode* MINUS(size_t i);
-    antlr4::tree::TerminalNode *FACTORIAL();
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-
-   
-  };
-
-  OC_UnaryAddSubtractOrFactorialExpressionContext* oC_UnaryAddSubtractOrFactorialExpression();
-
   class  OC_StringListNullOperatorExpressionContext : public antlr4::ParserRuleContext {
   public:
     OC_StringListNullOperatorExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    OC_PropertyOrLabelsExpressionContext *oC_PropertyOrLabelsExpression();
+    OC_UnaryAddSubtractOrFactorialExpressionContext *oC_UnaryAddSubtractOrFactorialExpression();
     OC_StringOperatorExpressionContext *oC_StringOperatorExpression();
     OC_NullOperatorExpressionContext *oC_NullOperatorExpression();
     std::vector<OC_ListOperatorExpressionContext *> oC_ListOperatorExpression();
@@ -2369,6 +2353,22 @@ public:
   };
 
   OC_NullOperatorExpressionContext* oC_NullOperatorExpression();
+
+  class  OC_UnaryAddSubtractOrFactorialExpressionContext : public antlr4::ParserRuleContext {
+  public:
+    OC_UnaryAddSubtractOrFactorialExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_PropertyOrLabelsExpressionContext *oC_PropertyOrLabelsExpression();
+    std::vector<antlr4::tree::TerminalNode *> MINUS();
+    antlr4::tree::TerminalNode* MINUS(size_t i);
+    antlr4::tree::TerminalNode *FACTORIAL();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+
+   
+  };
+
+  OC_UnaryAddSubtractOrFactorialExpressionContext* oC_UnaryAddSubtractOrFactorialExpression();
 
   class  OC_PropertyOrLabelsExpressionContext : public antlr4::ParserRuleContext {
   public:

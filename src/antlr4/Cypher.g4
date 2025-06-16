@@ -479,17 +479,10 @@ oC_MultiplyDivideModuloExpression
 kU_MultiplyDivideModuloOperator : '*' | '/' | '%' ;
 
 oC_PowerOfExpression
-    : oC_UnaryAddSubtractOrFactorialExpression ( SP? '^' SP? oC_UnaryAddSubtractOrFactorialExpression )* ;
-
-oC_UnaryAddSubtractOrFactorialExpression
-    : ( MINUS SP? )* oC_StringListNullOperatorExpression (SP? FACTORIAL)? ;
-
-MINUS : '-' ;
-
-FACTORIAL : '!' ;
+    : oC_StringListNullOperatorExpression ( SP? '^' SP? oC_StringListNullOperatorExpression )* ;
 
 oC_StringListNullOperatorExpression
-    : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression+ | oC_NullOperatorExpression )? ;
+    : oC_UnaryAddSubtractOrFactorialExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression+ | oC_NullOperatorExpression )? ;
 
 oC_ListOperatorExpression
     : ( SP IN SP? oC_PropertyOrLabelsExpression )
@@ -508,6 +501,13 @@ oC_RegularExpression
 oC_NullOperatorExpression
     : ( SP IS SP NULL )
         | ( SP IS SP NOT SP NULL ) ;
+
+MINUS : '-' ;
+
+FACTORIAL : '!' ;
+
+oC_UnaryAddSubtractOrFactorialExpression
+    : ( MINUS SP? )* oC_PropertyOrLabelsExpression (SP? FACTORIAL)? ;
 
 oC_PropertyOrLabelsExpression
     : oC_Atom ( SP? oC_PropertyLookup )* ;

@@ -215,8 +215,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformMultiplyDivideModuloExpr
 std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
     CypherParser::OC_PowerOfExpressionContext& ctx) {
     std::unique_ptr<ParsedExpression> expression;
-    for (auto& unaryAddOrSubtractExpression : ctx.oC_UnaryAddSubtractOrFactorialExpression()) {
-        auto next = transformUnaryAddSubtractOrFactorialExpression(*unaryAddOrSubtractExpression);
+    for (auto& stringListNullOperatorExpression : ctx.oC_StringListNullOperatorExpression()) {
+        auto next = transformStringListNullOperatorExpression(*stringListNullOperatorExpression);
         if (!expression) {
             expression = std::move(next);
         } else {
@@ -231,8 +231,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
     CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
     auto result =
-        transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression());
-    if (ctx.FACTORIAL()) { // Factorial has a higher
+        transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
+    if (ctx.FACTORIAL()) { // Factorial has a higher precedence
         auto raw = result->toString() + "!";
         result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
             std::move(result), std::move(raw));
@@ -249,15 +249,15 @@ std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactor
 
 std::unique_ptr<ParsedExpression> Transformer::transformStringListNullOperatorExpression(
     CypherParser::OC_StringListNullOperatorExpressionContext& ctx) {
-    auto propertyExpression =
-        transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
+    auto unaryAddSubtractOrFactorialExpression =
+        transformUnaryAddSubtractOrFactorialExpression(*ctx.oC_UnaryAddSubtractOrFactorialExpression());
     if (ctx.oC_NullOperatorExpression()) {
         return transformNullOperatorExpression(*ctx.oC_NullOperatorExpression(),
-            std::move(propertyExpression));
+            std::move(unaryAddSubtractOrFactorialExpression));
     }
     if (!ctx.oC_ListOperatorExpression().empty()) {
         auto result = transformListOperatorExpression(*ctx.oC_ListOperatorExpression(0),
-            std::move(propertyExpression));
+            std::move(unaryAddSubtractOrFactorialExpression));
         for (auto i = 1u; i < ctx.oC_ListOperatorExpression().size(); ++i) {
             result = transformListOperatorExpression(*ctx.oC_ListOperatorExpression(i),
                 std::move(result));
@@ -266,9 +266,9 @@ std::unique_ptr<ParsedExpression> Transformer::transformStringListNullOperatorEx
     }
     if (ctx.oC_StringOperatorExpression()) {
         return transformStringOperatorExpression(*ctx.oC_StringOperatorExpression(),
-            std::move(propertyExpression));
+            std::move(unaryAddSubtractOrFactorialExpression));
     }
-    return propertyExpression;
+    return unaryAddSubtractOrFactorialExpression;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression(
