@@ -22,8 +22,8 @@ std::string GoogleGeminiEmbedding::getPath(const std::string& model) const {
     static const std::string envVar = "GOOGLE_GEMINI_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(RuntimeException(
-            "Could not read environment variable: " + envVar + "\n" + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Could not read environment variable: " + envVar + "\n" +
+                               std::string(referenceKuzuDocs)));
     }
     return "/v1beta/models/" + model + ":embedContent?key=" + env_key;
 }
@@ -45,9 +45,9 @@ std::vector<float> GoogleGeminiEmbedding::parseResponse(const httplib::Result& r
 void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
-        throw(BinderException("Google-Gemini does not support the dimensions argument, but received dimension: " +
-                              std::to_string(dimensions.value()) + '\n' +
-                              std::string(referenceKuzuDocs)));
+        throw(BinderException(
+            "Google-Gemini does not support the dimensions argument, but received dimension: " +
+            std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
     if (region.has_value()) {
         throw(BinderException("Google-Gemini does not support the region argument: " +
