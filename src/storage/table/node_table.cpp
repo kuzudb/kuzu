@@ -311,6 +311,23 @@ bool NodeTable::lookup(const Transaction* transaction, const TableScanState& sca
     return scanState.nodeGroup->lookup(transaction, scanState);
 }
 
+bool NodeTable::lookupNoLock(const Transaction* transaction,
+    const TableScanState& scanState) const {
+    KU_ASSERT(scanState.nodeIDVector->state->getSelVector().getSelSize() == 1);
+    const auto nodeIDPos = scanState.nodeIDVector->state->getSelVector()[0];
+    if (scanState.nodeIDVector->isNull(nodeIDPos)) {
+        return false;
+    }
+    const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
+    const offset_t rowIdxInGroup =
+        transaction->isUnCommitted(tableID, nodeOffset) ?
+            transaction->getLocalRowIdx(tableID, nodeOffset) -
+                StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) :
+            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
+    scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
+    return scanState.nodeGroup->lookupNoLock(transaction, scanState);
+}
+
 void NodeTable::lookupMultiple(Transaction* transaction, TableScanState& scanState) const {
     const auto numRowsToRead = scanState.nodeIDVector->state->getSelSize();
     for (auto i = 0u; i < numRowsToRead; i++) {

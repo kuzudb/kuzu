@@ -306,6 +306,13 @@ bool NodeGroup::lookup(const Transaction* transaction, const TableScanState& sta
     return lookup(lock, transaction, state, posInSel);
 }
 
+bool NodeGroup::lookupNoLock(const Transaction* transaction, const TableScanState& state,
+    sel_t posInSel) const {
+    std::mutex mtx;
+    const auto lock = common::UniqLock{mtx};
+    return lookup(lock, transaction, state, posInSel);
+}
+
 bool NodeGroup::lookupMultiple(const Transaction* transaction, const TableScanState& state) const {
     const auto lock = chunkedGroups.lock();
     return lookupMultiple(lock, transaction, state);

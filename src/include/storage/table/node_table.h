@@ -121,6 +121,8 @@ public:
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
     bool lookup(const transaction::Transaction* transaction, const TableScanState& scanState) const;
+    bool lookupNoLock(const transaction::Transaction* transaction,
+        const TableScanState& scanState) const;
     // TODO(Guodong): This should be merged together with `lookup`.
     void lookupMultiple(transaction::Transaction* transaction, TableScanState& scanState) const;
 
