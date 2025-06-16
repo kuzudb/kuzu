@@ -230,8 +230,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
     CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
-    auto result =
-        transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
+    auto result = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
     if (ctx.FACTORIAL()) { // Factorial has a higher precedence
         auto raw = result->toString() + "!";
         result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
@@ -249,8 +248,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactor
 
 std::unique_ptr<ParsedExpression> Transformer::transformStringListNullOperatorExpression(
     CypherParser::OC_StringListNullOperatorExpressionContext& ctx) {
-    auto unaryAddSubtractOrFactorialExpression =
-        transformUnaryAddSubtractOrFactorialExpression(*ctx.oC_UnaryAddSubtractOrFactorialExpression());
+    auto unaryAddSubtractOrFactorialExpression = transformUnaryAddSubtractOrFactorialExpression(
+        *ctx.oC_UnaryAddSubtractOrFactorialExpression());
     if (ctx.oC_NullOperatorExpression()) {
         return transformNullOperatorExpression(*ctx.oC_NullOperatorExpression(),
             std::move(unaryAddSubtractOrFactorialExpression));
