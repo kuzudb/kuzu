@@ -12,18 +12,18 @@
 -STATEMENT return create_embedding('hello')
 ---- error
 Binder exception: Cannot match a built-in function for given function CREATE_EMBEDDING(STRING). Supported inputs are
-(STRING,STRING,STRING) -> ARRAY
-(STRING,STRING,STRING,STRING) -> ARRAY
-(STRING,STRING,STRING,INT64) -> ARRAY
-(STRING,STRING,STRING,INT64,STRING) -> ARRAY
+(STRING,STRING,STRING) -> LIST
+(STRING,STRING,STRING,STRING) -> LIST
+(STRING,STRING,STRING,INT64) -> LIST
+(STRING,STRING,STRING,INT64,STRING) -> LIST
 
 -STATEMENT return create_embedding('hello', 'olama')
 ---- error
 Binder exception: Cannot match a built-in function for given function CREATE_EMBEDDING(STRING,STRING). Supported inputs are
-(STRING,STRING,STRING) -> ARRAY
-(STRING,STRING,STRING,STRING) -> ARRAY
-(STRING,STRING,STRING,INT64) -> ARRAY
-(STRING,STRING,STRING,INT64,STRING) -> ARRAY
+(STRING,STRING,STRING) -> LIST
+(STRING,STRING,STRING,STRING) -> LIST
+(STRING,STRING,STRING,INT64) -> LIST
+(STRING,STRING,STRING,INT64,STRING) -> LIST
 
 -STATEMENT return create_embedding('hello', 'olama', 'nomic-text-embed')
 ---- error
@@ -32,7 +32,8 @@ For more information, please refer to the official Kuzu documentation: https://d
 
 -STATEMENT return create_embedding('hello', 'ollama', 'MODEL_DNE')
 ---- error
-Binder exception: Invalid Model: model_dne
+Connection exception: Request failed with status 404
+ Body: {"error":"model \"model_dne\" not found, try pulling it first"}
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 
@@ -49,7 +50,7 @@ For more information, please refer to the official Kuzu documentation: https://d
 
 -STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'ollama', 'nomic-embed-text') AS emb SET b.title_embedding = emb;
 ---- error
-Binder exception: Data type of expression emb should not be modified.
+Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 766, Actual: 768.
 
 -CASE FailedPost
 
