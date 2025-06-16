@@ -142,8 +142,7 @@ struct InMemHNSWLayerInfo {
           efc{efc}, offsetMap(offsetMap) {}
 
     uint64_t getDimension() const { return embeddings->getDimension(); }
-    VectorEmbedding getEmbedding(common::offset_t offsetInGraph,
-        GetEmbeddingsLocalState& localState) const {
+    void* getEmbedding(common::offset_t offsetInGraph, GetEmbeddingsLocalState& localState) const {
         KU_ASSERT(offsetInGraph < numNodes);
         return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph), localState);
     }

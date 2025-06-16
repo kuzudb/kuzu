@@ -22,20 +22,6 @@ struct EmbeddingColumnInfo {
     common::ArrayTypeInfo typeInfo;
 };
 
-struct VectorEmbedding {
-    explicit VectorEmbedding(void* embedding,
-        std::unique_ptr<common::DataChunk> embeddingChunk = nullptr)
-        : embedding(embedding), embeddingChunk(std::move(embeddingChunk)) {}
-
-    bool isNull() const { return embedding == nullptr; }
-
-    void* embedding;
-    // This field should not be used directly
-    // It is just used to maintain ownership of the memory pointed to by the embedding field if
-    // necessary
-    std::unique_ptr<common::DataChunk> embeddingChunk;
-};
-
 struct GetEmbeddingsLocalState {
     virtual ~GetEmbeddingsLocalState() = default;
 
@@ -43,6 +29,9 @@ struct GetEmbeddingsLocalState {
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
+
+    // TODO(Royi) clean this up
+    virtual void reset() {}
 };
 
 class CreateHNSWIndexEmbeddings {
@@ -50,7 +39,7 @@ public:
     virtual ~CreateHNSWIndexEmbeddings() = default;
     explicit CreateHNSWIndexEmbeddings(common::ArrayTypeInfo typeInfo)
         : info{std::move(typeInfo)} {}
-    virtual VectorEmbedding getEmbedding(common::offset_t offset,
+    virtual void* getEmbedding(common::offset_t offset,
         GetEmbeddingsLocalState& localState) const = 0;
     virtual bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const = 0;
     common::length_t getDimension() const { return info.getDimension(); }
@@ -67,8 +56,7 @@ public:
     InMemEmbeddings(transaction::Transaction* transaction, common::ArrayTypeInfo typeInfo,
         common::table_id_t tableID, common::column_id_t columnID);
 
-    VectorEmbedding getEmbedding(common::offset_t offset,
-        GetEmbeddingsLocalState& localState) const override;
+    void* getEmbedding(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
     bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
 
 private:
@@ -113,8 +101,7 @@ public:
         storage::MemoryManager* mm, common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable,
         common::column_id_t columnID);
 
-    VectorEmbedding getEmbedding(common::offset_t offset,
-        GetEmbeddingsLocalState& localState) const override;
+    void* getEmbedding(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
     bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
     std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() override;
 
@@ -122,11 +109,9 @@ private:
     OnDiskEmbeddings embeddings;
     transaction::Transaction* transaction;
 
-    std::vector<common::LogicalType> types;
     storage::MemoryManager* mm;
     storage::NodeTable& nodeTable;
     common::column_id_t columnID;
-    std::shared_ptr<common::DataChunkState> scanChunkState;
 };
 
 struct NodeWithDistance {

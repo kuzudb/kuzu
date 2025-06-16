@@ -29,9 +29,10 @@ void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint
         entryPoint_ = entryPointInCurrentLayer;
     }
 
+    localState.reset();
     auto embedding = info.getEmbedding(offset, localState);
     const auto closest =
-        searchKNN(embedding.embedding, entryPoint_, info.maxDegree, info.efc, visited, localState);
+        searchKNN(embedding, entryPoint_, info.maxDegree, info.efc, visited, localState);
 
     for (const auto& n : closest) {
         insertRel(offset, n.nodeOffset, localState);
@@ -47,12 +48,14 @@ common::offset_t InMemHNSWLayer::searchNN(const void* queryVector, common::offse
     }
     double lastMinDist = std::numeric_limits<float>::max();
 
+    localState.reset();
     const auto currNodeVector = info.getEmbedding(currentNodeOffset, localState);
-    auto minDist = info.metricFunc(queryVector, currNodeVector.embedding, info.getDimension());
+    auto minDist = info.metricFunc(queryVector, currNodeVector, info.getDimension());
 
     KU_ASSERT(lastMinDist >= 0);
     KU_ASSERT(minDist >= 0);
     while (minDist < lastMinDist) {
+        localState.reset();
         lastMinDist = minDist;
         auto neighbors = graph->getNeighbors(currentNodeOffset);
         for (const auto nbrOffset : neighbors) {
@@ -61,8 +64,7 @@ common::offset_t InMemHNSWLayer::searchNN(const void* queryVector, common::offse
             }
 
             const auto nbrVector = info.getEmbedding(nbrOffset, localState);
-            const auto dist =
-                info.metricFunc(queryVector, nbrVector.embedding, info.getDimension());
+            const auto dist = info.metricFunc(queryVector, nbrVector, info.getDimension());
             if (dist < minDist) {
                 minDist = dist;
                 currentNodeOffset = nbrOffset;
@@ -114,11 +116,12 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const void* queryVector,
     GetEmbeddingsLocalState& localState) const {
     min_node_priority_queue_t candidates;
     max_node_priority_queue_t result;
+    localState.reset();
     visited.reset();
     {
         const auto entryVector = info.getEmbedding(entryNode, localState);
-        processEntryNodeInKNNSearch(queryVector, entryVector.embedding, entryNode, visited,
-            info.metricFunc, info.getDimension(), candidates, result);
+        processEntryNodeInKNNSearch(queryVector, entryVector, entryNode, visited, info.metricFunc,
+            info.getDimension(), candidates, result);
     }
     const auto ef = std::max(k, configuredEf);
     while (!candidates.empty()) {
@@ -127,6 +130,7 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const void* queryVector,
         if (result.size() >= ef && candidateDist > result.top().distance) {
             break;
         }
+        localState.reset();
         candidates.pop();
         auto neighbors = graph->getNeighbors(candidate);
         for (const auto nbrOffset : neighbors) {
@@ -135,7 +139,7 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const void* queryVector,
             }
             if (!visited.contains(nbrOffset)) {
                 const auto nbrVector = info.getEmbedding(nbrOffset, localState);
-                processNbrNodeInKNNSearch(queryVector, nbrVector.embedding, nbrOffset, ef, visited,
+                processNbrNodeInKNNSearch(queryVector, nbrVector, nbrOffset, ef, visited,
                     info.metricFunc, info.getDimension(), candidates, result);
             }
         }
@@ -147,6 +151,7 @@ static std::vector<NodeWithDistance> populateNeighbours(const InMemHNSWLayerInfo
     InMemHNSWGraph* graph, common::offset_t nodeOffset, common::length_t numNbrs,
     GetEmbeddingsLocalState& localState) {
     std::vector<NodeWithDistance> nbrs;
+    localState.reset();
     const auto vector = info.getEmbedding(nodeOffset, localState);
     const auto neighbors = graph->getNeighbors(nodeOffset);
     nbrs.reserve(numNbrs);
@@ -155,8 +160,7 @@ static std::vector<NodeWithDistance> populateNeighbours(const InMemHNSWLayerInfo
             break;
         }
         const auto nbrVector = info.getEmbedding(nbrOffset, localState);
-        const auto dist =
-            info.metricFunc(vector.embedding, nbrVector.embedding, info.getDimension());
+        const auto dist = info.metricFunc(vector, nbrVector, info.getDimension());
         nbrs.emplace_back(nbrOffset, dist);
     }
     return nbrs;
@@ -170,12 +174,13 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     });
     uint16_t newSize = 0;
     for (auto i = 1u; i < nbrs.size(); i++) {
+        localState.reset();
+
         bool keepNbr = true;
+        const auto nbrIVector = info.getEmbedding(nbrs[i].nodeOffset, localState);
         for (auto j = i + 1; j < nbrs.size(); j++) {
-            const auto nbrIVector = info.getEmbedding(nbrs[i].nodeOffset, localState);
             const auto nbrJVector = info.getEmbedding(nbrs[j].nodeOffset, localState);
-            const auto dist =
-                info.metricFunc(nbrIVector.embedding, nbrJVector.embedding, info.getDimension());
+            const auto dist = info.metricFunc(nbrIVector, nbrJVector, info.getDimension());
             if (info.alpha * dist < nbrs[i].distance) {
                 keepNbr = false;
                 break;
@@ -296,11 +301,11 @@ bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
     VisitedState& lowerVisited, GetEmbeddingsLocalState& localState) {
     {
         auto queryVector = embeddings->getEmbedding(offset, localState);
-        if (queryVector.isNull()) {
+        if (queryVector == nullptr) {
             return false;
         }
         const auto lowerEntryPoint = upperGraphOffsetToNodeOffset(
-            upperLayer->searchNN(queryVector.embedding, upperLayer->getEntryPoint(), localState));
+            upperLayer->searchNN(queryVector, upperLayer->getEntryPoint(), localState));
         lowerLayer->insert(offset, lowerEntryPoint, lowerVisited, localState);
     }
     if (upperLayerSelectionMask->isNull(offset)) {
