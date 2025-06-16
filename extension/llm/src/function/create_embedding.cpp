@@ -1,4 +1,3 @@
-#include "binder/binder.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"

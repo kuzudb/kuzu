@@ -1,6 +1,5 @@
 #include "providers/google-vertex.h"
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
 
