@@ -46,15 +46,6 @@ std::vector<float> VoyageAIEmbedding::parseResponse(const httplib::Result& res) 
     return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
 }
 
-void VoyageAIEmbedding::checkModel(const std::string& model) const {
-    static const std::unordered_set<std::string> validModels = {"voyage-3-large", "voyage-3.5",
-        "voyage-3.5-lite", "voyage-code-3", "voyage-finance-2", "voyage-law-2", "voyage-code-2"};
-    if (validModels.contains(model)) {
-        return;
-    }
-    throw(BinderException("Invalid Model: " + model));
-}
-
 void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (region.has_value()) {
@@ -62,18 +53,6 @@ void VoyageAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
                               '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
-}
-
-uint64_t VoyageAIEmbedding::getEmbeddingDimensions(const std::string& model) const {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"voyage-3-large", 1024}, {"voyage-3.5", 1024}, {"voyage-3.5-lite", 1024},
-        {"voyage-code-3", 1024}, {"voyage-finance-2", 1024}, {"voyage-law-2", 1024},
-        {"voyage-code-2", 1536}};
-    auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
-    }
-    return modelDimensionMapIter->second;
 }
 
 } // namespace llm_extension

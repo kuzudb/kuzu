@@ -42,15 +42,6 @@ std::vector<float> GoogleGeminiEmbedding::parseResponse(const httplib::Result& r
     return nlohmann::json::parse(res->body)["embedding"]["values"].get<std::vector<float>>();
 }
 
-void GoogleGeminiEmbedding::checkModel(const std::string& model) const {
-    static const std::unordered_set<std::string> validModels = {"gemini-embedding-exp-03-07",
-        "text-embedding-004", "embedding-001"};
-    if (validModels.contains(model)) {
-        return;
-    }
-    throw(BinderException("Invalid Model: " + model));
-}
-
 void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
@@ -62,16 +53,6 @@ void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
         throw(BinderException("Google-Gemini does not support the region argument: " +
                               region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
-}
-
-uint64_t GoogleGeminiEmbedding::getEmbeddingDimensions(const std::string& model) const {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"gemini-embedding-exp-03-07", 3072}, {"text-embedding-004", 768}, {"embedding-001", 768}};
-    auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
-    }
-    return modelDimensionMapIter->second;
 }
 
 } // namespace llm_extension

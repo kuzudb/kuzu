@@ -125,14 +125,6 @@ std::vector<float> BedrockEmbedding::parseResponse(const httplib::Result& res) c
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
 
-void BedrockEmbedding::checkModel(const std::string& model) const {
-    static const std::unordered_set<std::string> validModels = {"amazon.titan-embed-text-v1"};
-    if (validModels.contains(model)) {
-        return;
-    }
-    throw(BinderException("Invalid Model: " + model));
-}
-
 void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
@@ -140,28 +132,7 @@ void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
                               std::to_string(dimensions.value()) + '\n' +
                               std::string(referenceKuzuDocs)));
     }
-    // Reset to default
-    if (!region.has_value()) {
-        this->region = std::nullopt;
-        return;
-    }
-    static const std::unordered_set<std::string> validRegions = {"us-east-1", "us-west-2",
-        "ap-southeast-1", "ap-northeast-1", "eu-central-1"};
-    if (!validRegions.contains(region.value())) {
-        throw(BinderException(
-            "Invalid Region: " + region.value() + '\n' + std::string(referenceKuzuDocs)));
-    }
     this->region = region;
-}
-
-uint64_t BedrockEmbedding::getEmbeddingDimensions(const std::string& model) const {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"amazon.titan-embed-text-v1", 1536}};
-    auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
-    }
-    return modelDimensionMapIter->second;
 }
 
 } // namespace llm_extension

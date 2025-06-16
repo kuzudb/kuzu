@@ -46,15 +46,6 @@ std::vector<float> OpenAIEmbedding::parseResponse(const httplib::Result& res) co
     return nlohmann::json::parse(res->body)["data"][0]["embedding"].get<std::vector<float>>();
 }
 
-void OpenAIEmbedding::checkModel(const std::string& model) const {
-    static const std::unordered_set<std::string> validModels = {"text-embedding-3-large",
-        "text-embedding-3-small", "text-embedding-ada-002"};
-    if (validModels.contains(model)) {
-        return;
-    }
-    throw(BinderException("Invalid Model: " + model));
-}
-
 void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (region.has_value()) {
@@ -62,18 +53,6 @@ void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
                               '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
-}
-
-uint64_t OpenAIEmbedding::getEmbeddingDimensions(const std::string& model) const {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"text-embedding-3-large", 3072}, {"text-embedding-3-small", 1536},
-        {"text-embedding-ada-002", 1536}};
-
-    auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
-    }
-    return modelDimensionMapIter->second;
 }
 
 } // namespace llm_extension
