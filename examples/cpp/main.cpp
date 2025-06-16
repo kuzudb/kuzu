@@ -1,20 +1,25 @@
+#include <filesystem>
 #include <iostream>
 
 #include "kuzu.hpp"
 using namespace kuzu::main;
 
 int main() {
-    auto database = std::make_unique<Database>("" /* fill db path */);
+    std::filesystem::remove_all("adsadsad");
+    auto database = std::make_unique<Database>("adsadsad" /* fill db path */);
     auto connection = std::make_unique<Connection>(database.get());
-
-    // Create schema.
-    connection->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));");
-    // Create nodes.
-    connection->query("CREATE (:Person {name: 'Alice', age: 25});");
-    connection->query("CREATE (:Person {name: 'Bob', age: 30});");
-
-    // Execute a simple query.
-    auto result = connection->query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;");
-    // Print query result.
-    std::cout << result->toString();
+    auto result =
+        connection->query("CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));");
+    if (!result) {
+        throw "Create table failed";
+    }
+    result = connection->query(
+        "COPY doc from \"/home/z473chen/kuzu/50.tsv\" (file_format='csv', delim = '\\\\t');");
+    if (!result) {
+        throw "Copy failed";
+    }
+    result = connection->query("CALL CREATE_FTS_INDEX('doc', 'contentIdx', ['content']);");
+    if (!result) {
+        throw "create fts failed";
+    }
 }
