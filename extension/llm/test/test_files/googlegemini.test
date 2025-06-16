@@ -49,7 +49,7 @@ False
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension"
 ---- ok
 
--STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING, title_embedding FLOAT[1536], published_year INT64);
+-STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING, title_embedding FLOAT[3072], published_year INT64);
 ---- ok
 
 -STATEMENT CREATE NODE TABLE Publisher(name STRING PRIMARY KEY);
