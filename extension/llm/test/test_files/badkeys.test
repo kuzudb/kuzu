@@ -2,6 +2,7 @@
 -DATASET CSV empty
 
 --
+#For this test, we should disable access to all required keys
 
 -CASE BadAmazonKeys
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"

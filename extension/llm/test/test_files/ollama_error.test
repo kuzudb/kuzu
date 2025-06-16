@@ -63,6 +63,9 @@ Conversion exception: Unsupported casting LIST with incorrect list entry to ARRA
 -STATEMENT CREATE (b:Book {title: 'The Quantum World', published_year: 2004});
 ---- ok
 
+# This test requires not having Ollama running. This test may need to be moved
+# out of this file so that CI can process the requirements before running.
+-CASE OllamaNotRunning
 -LOG Run Without Having Ollama at http://localhost:11434
 -STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'ollama', 'nomic-embed-text') AS emb SET b.title_embedding = emb;
 ---- error
