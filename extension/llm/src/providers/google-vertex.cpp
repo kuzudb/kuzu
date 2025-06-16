@@ -57,11 +57,9 @@ std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& r
 
 void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
-    if (!region.has_value())
-    {
+    if (!region.has_value()) {
         throw(BinderException("Google Vertex requires a region argument, but recieved none\n" +
-                      std::string(referenceKuzuDocs)));
-
+                              std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
     this->region = region;
