@@ -128,7 +128,7 @@ std::vector<float> BedrockEmbedding::parseResponse(const httplib::Result& res) c
 void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
-        throw(BinderException("Bedrock does not support the dimensions argument: " +
+        throw(BinderException("Bedrock does not support the dimensions argument, but received dimension: " +
                               std::to_string(dimensions.value()) + '\n' +
                               std::string(referenceKuzuDocs)));
     }

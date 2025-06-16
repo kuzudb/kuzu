@@ -45,12 +45,12 @@ std::vector<float> GoogleGeminiEmbedding::parseResponse(const httplib::Result& r
 void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (dimensions.has_value()) {
-        throw(BinderException(
-            "Google-Gemini does not support the dimensions argument, but received dimension: " +
-            std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
+        throw(BinderException("Google Gemini does not support the dimensions argument, but received dimension, but received dimension: " +
+                              std::to_string(dimensions.value()) + '\n' +
+                              std::string(referenceKuzuDocs)));
     }
     if (region.has_value()) {
-        throw(BinderException("Google-Gemini does not support the region argument: " +
+        throw(BinderException("Google Gemini does not support the region argument, but received region: " +
                               region.value() + '\n' + std::string(referenceKuzuDocs)));
     }
 }

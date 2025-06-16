@@ -27,7 +27,7 @@ httplib::Headers OpenAIEmbedding::getHeaders(const nlohmann::json& /*payload*/) 
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
         throw(RuntimeException(
-            "Could not get key from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
+            "Could not read environmental variable: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + env_key}};
@@ -49,7 +49,7 @@ std::vector<float> OpenAIEmbedding::parseResponse(const httplib::Result& res) co
 void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (region.has_value()) {
-        throw(BinderException("OPEN-AI does not support the region argument: " + region.value() +
+        throw(BinderException("OPEN-AI does not support the region argument, but received region: " + region.value() +
                               '\n' + std::string(referenceKuzuDocs)));
     }
     this->dimensions = dimensions;
