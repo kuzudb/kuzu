@@ -24,5 +24,3 @@ For more information, please refer to the official Kuzu documentation: https://d
 ---- error
 Binder exception: Failed to parse dimensions: NEGATE(50)
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
-
-

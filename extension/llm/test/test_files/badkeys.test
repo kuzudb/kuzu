@@ -43,4 +43,3 @@
 -STATEMENT return create_embedding('Hello World', 'voyage-ai', 'voyage-3-large');
 ---- error(regex)
 ^Connection exception: Request failed with status \d{3} Body: .+$
-

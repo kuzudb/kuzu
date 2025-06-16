@@ -55,5 +55,3 @@ False
 -STATEMENT WITH create_embedding('How do Unix file permissions work?', 'google-vertex', 'gemini-embedding-001') AS t1, create_embedding('History of the Roman Empire', 'google-vertex', 'gemini-embedding-001') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
-
-

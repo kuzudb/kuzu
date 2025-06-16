@@ -41,4 +41,3 @@ False
 -STATEMENT WITH create_embedding('How do Unix file permissions work?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('History of the Roman Empire', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
-

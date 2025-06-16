@@ -55,5 +55,3 @@ False
 -STATEMENT WITH create_embedding('How do Unix file permissions work?', 'open-ai', 'text-embedding-3-small') AS t1, create_embedding('History of the Roman Empire', 'open-ai', 'text-embedding-3-small') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
-
-
