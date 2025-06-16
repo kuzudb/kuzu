@@ -54,6 +54,7 @@ function_set ProjectGraphCypherFunction::getFunctionSet() {
     func->initSharedStateFunc = TableFunction::initEmptySharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = []() { return false; };
+    func->isReadOnly = false;
     functionSet.push_back(std::move(func));
     return functionSet;
 }

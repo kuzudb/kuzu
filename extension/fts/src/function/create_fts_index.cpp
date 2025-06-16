@@ -343,6 +343,7 @@ function_set CreateFTSFunction::getFunctionSet() {
     func->rewriteFunc = createFTSIndexQuery;
     func->canParallelFunc = [] { return false; };
     func->inferInputTypes = inferInputTypes;
+    func->isReadOnly = false;
     functionSet.push_back(std::move(func));
     return functionSet;
 }
