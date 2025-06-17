@@ -46,7 +46,7 @@ def findValidDatasetDirs(datasetRoot):
         # skip it in our search
         if "tmp" in root.split(os.sep):
             continue
-        fileSet = set(f.lower() for f in files)
+        fileSet = set(files)
 
         if "schema.cypher" in fileSet and "copy.cypher" in fileSet:
             validDirs.append(root)
