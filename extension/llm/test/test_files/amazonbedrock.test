@@ -110,7 +110,8 @@ False
 -STATEMENT CALL CREATE_VECTOR_INDEX('Book', 'title_vec_index', 'title_embedding');
 ---- ok
 
--STATEMENT CALL QUERY_VECTOR_INDEX('Book', 'title_vec_index', create_embedding('Quantum Machines', 'amazon-bedrock', 'amazon.titan-embed-text-v1', 'us-east-1'), 2) RETURN node.title ORDER BY distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('Book', 'title_vec_index', create_embedding('quantum machine learning', 'amazon-bedrock', 'amazon.titan-embed-text-v1', 'us-east-1'), 2) RETURN node.title ORDER BY distance;
+-CHECK_ORDER
 ---- 2
 Learning Machines
 The Quantum World

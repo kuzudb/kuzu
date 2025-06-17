@@ -54,6 +54,9 @@ False
 ---- 1
 False
 
+# TODO(TANVIR) I have not been able to validate this result. I am on the free tier of
+# VoyageAI and rate limits do not let this test run to completion. This should
+# be validated when CI is setup.
 -CASE UseWithVectorExtension
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
@@ -121,7 +124,8 @@ False
 -STATEMENT CALL CREATE_VECTOR_INDEX('Book', 'title_vec_index', 'title_embedding');
 ---- ok
 
--STATEMENT CALL QUERY_VECTOR_INDEX('Book', 'title_vec_index', create_embedding('Quantum Machines', 'voyage-ai', 'voyage-3-large'), 2) RETURN node.title ORDER BY distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('Book', 'title_vec_index', create_embedding('quantum machine learning', 'voyage-ai', 'voyage-3-large'), 2) RETURN node.title ORDER BY distance;
+-CHECK_ORDER
 ---- 2
 Learning Machines
 The Quantum World
