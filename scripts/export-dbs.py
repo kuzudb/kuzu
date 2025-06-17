@@ -56,7 +56,7 @@ def findValidDatasetDirs(datasetRoot):
 
 # This script should only be run from KUZU root, considering that the dataset
 # copy.cypher commands use relative paths from KUZU root
-# Example scripts/export-db.py build/debug/tools/shell/kuzu dataset
+# Example scripts/export-dbs.py build/debug/tools/shell/kuzu dataset
 def main():
     parser = argparse.ArgumentParser(description="""Export DB with
     KUZU shell and dataset paths""")
@@ -65,8 +65,8 @@ def main():
     parser.add_argument("datasetPath", help="Path to the dataset directory")
     args = parser.parse_args()
 
-    argExecutablePath = args.executablePath
-    argDatasetPath = args.datasetPath
+    argExecutablePath = os.path.abspath(args.executablePath)
+    argDatasetPath = os.path.abspath(args.datasetPath)
 
     if not os.path.isfile(argExecutablePath):
         print(f"Error: Executable not found at {argExecutablePath}")
@@ -81,6 +81,10 @@ def main():
         return 1
 
     validDatasets = findValidDatasetDirs(argDatasetPath)
+    # This needs to be done since copy.cypher is relative to Kuzu Root
+    scriptDir = os.path.dirname(os.path.realpath(__file__))
+    rootDir = os.path.abspath(os.path.join(scriptDir, ".."))
+    os.chdir(rootDir)
     for datasetPath in validDatasets:
         schemaCommands = normalizeCypherCommands(os.path.join(datasetPath,
                                                               "schema.cypher"))
