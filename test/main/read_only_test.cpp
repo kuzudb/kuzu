@@ -6,6 +6,9 @@ using namespace kuzu::testing;
 class ReadOnlyTest : public ApiTest {};
 
 TEST_F(ReadOnlyTest, Test) {
+    if (databasePath == "" || databasePath == ":memory:") {
+        return;
+    }
     ASSERT_TRUE(conn->query("CALL PROJECT_GRAPH('proj', ['person'], ['knows'])")->isSuccess());
     ASSERT_TRUE(
         conn->query("CREATE NODE TABLE Test (id INT64 PRIMARY KEY, arr INT64[4])")->isSuccess());
