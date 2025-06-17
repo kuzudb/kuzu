@@ -54,12 +54,15 @@ def findValidDatasetDirs(datasetRoot):
     return validDirs
 
 
+# This script should only be run from KUZU root, considering that the dataset
+# copy.cypher commands use relative paths from KUZU root
+# Example scripts/export-db.py build/debug/tools/shell/kuzu dataset
 def main():
     parser = argparse.ArgumentParser(description="""Export DB with
-    executable and dataset paths""")
+    KUZU shell and dataset paths""")
 
-    parser.add_argument("executablePath", help="Path to the executable file")
-    parser.add_argument("datasetPath", help="Path to the dataset")
+    parser.add_argument("executablePath", help="Path to the KUZU shell")
+    parser.add_argument("datasetPath", help="Path to the dataset directory")
     args = parser.parse_args()
 
     argExecutablePath = args.executablePath
