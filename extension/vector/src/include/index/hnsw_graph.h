@@ -1,6 +1,8 @@
 #pragma once
 
+#include <bitset>
 #include <cmath>
+#include <stack>
 
 #include "common/data_chunk/data_chunk.h"
 #include "processor/operator/base_partitioner_shared_state.h"
@@ -22,8 +24,19 @@ struct EmbeddingColumnInfo {
     common::ArrayTypeInfo typeInfo;
 };
 
+struct EmbeddingHandle;
+
 struct GetEmbeddingsLocalState {
     virtual ~GetEmbeddingsLocalState() = default;
+
+    virtual void* getEmbeddingPtr(const EmbeddingHandle& handle) = 0;
+
+    // This class is responsible for managing the lifetimes of retrieved embeddings
+    // addEmbedding() is called when an embedding handle is allocated
+    // reclaimEmbedding() is called when an embedding handle does out of scope
+    // and should reclaim any resources allocated for the embedding
+    virtual void addEmbedding(const EmbeddingHandle& handle) = 0;
+    virtual void reclaimEmbedding(const EmbeddingHandle& handle) = 0;
 
     template<class TARGET>
     TARGET& cast() {
@@ -31,20 +44,36 @@ struct GetEmbeddingsLocalState {
     }
 };
 
+struct EmbeddingHandle {
+    explicit EmbeddingHandle(common::offset_t offset,
+        GetEmbeddingsLocalState* lifetimeManager = nullptr);
+    ~EmbeddingHandle();
+    DELETE_BOTH_COPY(EmbeddingHandle);
+    EmbeddingHandle(EmbeddingHandle&&);
+    EmbeddingHandle& operator=(EmbeddingHandle&&);
+
+    void* getPtr() const { return lifetimeManager->getEmbeddingPtr(*this); }
+    bool isNull() const { return offsetInData == common::INVALID_OFFSET; }
+    static EmbeddingHandle createNullHandle() { return EmbeddingHandle{common::INVALID_OFFSET}; }
+
+    common::offset_t offsetInData;
+    GetEmbeddingsLocalState* lifetimeManager;
+};
+
 class CreateHNSWIndexEmbeddings {
 public:
     virtual ~CreateHNSWIndexEmbeddings() = default;
     explicit CreateHNSWIndexEmbeddings(common::ArrayTypeInfo typeInfo)
         : info{std::move(typeInfo)} {}
-    virtual void* getEmbedding(common::offset_t offset,
+
+    virtual EmbeddingHandle getEmbedding(common::offset_t offset,
         GetEmbeddingsLocalState& localState) const = 0;
-    virtual std::vector<void*> getEmbeddings(std::span<const common::offset_t> offset,
+    virtual std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
         GetEmbeddingsLocalState& localState) const = 0;
     virtual bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const = 0;
+
     common::length_t getDimension() const { return info.getDimension(); }
-    virtual std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() {
-        return std::make_unique<GetEmbeddingsLocalState>();
-    };
+    virtual std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() = 0;
 
 protected:
     EmbeddingColumnInfo info;
@@ -55,27 +84,40 @@ public:
     InMemEmbeddings(transaction::Transaction* transaction, common::ArrayTypeInfo typeInfo,
         common::table_id_t tableID, common::column_id_t columnID);
 
-    void* getEmbedding(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
-    std::vector<void*> getEmbeddings(std::span<const common::offset_t> offset,
+    EmbeddingHandle getEmbedding(common::offset_t offset,
+        GetEmbeddingsLocalState& localState) const override;
+    std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
         GetEmbeddingsLocalState& localState) const override;
     bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
+
+    std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() override;
 
 private:
     storage::CachedColumn* data;
 };
 
-struct OnDiskEmbeddingScanState {
+class OnDiskEmbeddingScanState : public GetEmbeddingsLocalState {
+public:
     OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
-        storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID);
-
-    static void initScanState(const transaction::Transaction* transaction,
         storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID,
-        common::DataChunk& scanChunk, std::unique_ptr<storage::NodeTableScanState>& scanState);
+        common::offset_t arrayDim);
 
-    common::DataChunk getAndResetDataChunk();
+    void* getEmbeddingPtr(const EmbeddingHandle& handle) override;
+    void addEmbedding(const EmbeddingHandle& handle) override;
+    void reclaimEmbedding(const EmbeddingHandle& handle) override;
 
+    storage::NodeTableScanState& getScanState() { return *scanState; }
+    common::DataChunk& getScanChunk() { return scanChunk; }
+
+private:
     std::unique_ptr<storage::NodeTableScanState> scanState;
     common::DataChunk scanChunk;
+
+    // Used for managing used space in the output list data vector
+    std::stack<common::offset_t> usedEmbeddingOffsets;
+    std::bitset<common::DEFAULT_VECTOR_CAPACITY> allocatedOffsets;
+
+    common::offset_t arrayDim;
 };
 
 class OnDiskEmbeddings final {
@@ -83,11 +125,11 @@ public:
     OnDiskEmbeddings(common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable)
         : info{std::move(typeInfo)}, nodeTable{nodeTable} {}
 
-    void* getEmbedding(transaction::Transaction* transaction,
-        storage::NodeTableScanState& scanState, common::offset_t offset) const;
+    EmbeddingHandle getEmbedding(transaction::Transaction* transaction, common::offset_t offset,
+        GetEmbeddingsLocalState& localState) const;
 
-    std::vector<void*> getEmbeddings(transaction::Transaction* transaction,
-        storage::NodeTableScanState& scanState, std::span<const common::offset_t> offsets) const;
+    std::vector<EmbeddingHandle> getEmbeddings(transaction::Transaction* transaction,
+        std::span<const common::offset_t> offsets, GetEmbeddingsLocalState& localState) const;
 
     common::length_t getDimension() const { return info.getDimension(); }
 
@@ -102,8 +144,9 @@ public:
         storage::MemoryManager* mm, common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable,
         common::column_id_t columnID);
 
-    void* getEmbedding(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
-    std::vector<void*> getEmbeddings(std::span<const common::offset_t> offset,
+    EmbeddingHandle getEmbedding(common::offset_t offset,
+        GetEmbeddingsLocalState& localState) const override;
+    std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
         GetEmbeddingsLocalState& localState) const override;
     bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
     std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() override;

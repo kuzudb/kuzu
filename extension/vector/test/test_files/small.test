@@ -75,6 +75,32 @@
 996
 995
 
+-CASE NullAndDeletedVecsFromDisk
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL threads=1;
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT MATCH (e:embeddings) WHERE e.id < 995 DELETE e
+---- ok
+-STATEMENT CREATE (e:embeddings{id: 0})
+---- ok
+-STATEMENT CREATE (e:embeddings{id: 1000})
+---- ok
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2', cache_embeddings := false);
+---- ok
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 6) RETURN node.id ORDER BY distance;
+-CHECK_ORDER
+---- 5
+998
+999
+997
+996
+995
+
 -CASE 8DimL2
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok

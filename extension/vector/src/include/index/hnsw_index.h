@@ -142,11 +142,12 @@ struct InMemHNSWLayerInfo {
           efc{efc}, offsetMap(offsetMap) {}
 
     uint64_t getDimension() const { return embeddings->getDimension(); }
-    void* getEmbedding(common::offset_t offsetInGraph, GetEmbeddingsLocalState& localState) const {
+    EmbeddingHandle getEmbedding(common::offset_t offsetInGraph,
+        GetEmbeddingsLocalState& localState) const {
         KU_ASSERT(offsetInGraph < numNodes);
         return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph), localState);
     }
-    std::vector<void*> getEmbeddings(std::span<const common::offset_t> offsetsInGraph,
+    std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offsetsInGraph,
         GetEmbeddingsLocalState& localState) const {
         std::vector<common::offset_t> nodeOffsets;
         for (const auto offsetInGraph : offsetsInGraph) {
@@ -325,15 +326,14 @@ public:
 
 private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
-        const void* queryVector, const HNSWSearchState& searchState) const;
+        const void* queryVector, HNSWSearchState& searchState) const;
     std::vector<NodeWithDistance> searchKNNInLayer(transaction::Transaction* transaction,
         const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState,
         bool isUpperLayer) const;
     std::vector<NodeWithDistance> searchFromCheckpointed(transaction::Transaction* transaction,
         const void* queryVector, HNSWSearchState& searchState) const;
     void searchFromUnCheckpointed(transaction::Transaction* transaction, const void* queryVector,
-        storage::NodeTableScanState& embeddingScanState,
-        std::vector<NodeWithDistance>& result) const;
+        GetEmbeddingsLocalState& embeddingScanState, std::vector<NodeWithDistance>& result) const;
 
     void initLayerSearchState(transaction::Transaction* transaction, HNSWSearchState& searchState,
         bool isUpperLayer) const;
