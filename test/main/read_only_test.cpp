@@ -7,7 +7,8 @@ class ReadOnlyTest : public ApiTest {};
 
 TEST_F(ReadOnlyTest, Test) {
     ASSERT_TRUE(conn->query("CALL PROJECT_GRAPH('proj', ['person'], ['knows'])")->isSuccess());
-    ASSERT_TRUE(conn->query("CREATE NODE TABLE Test (id INT64 PRIMARY KEY, arr INT64[4])")->isSuccess());
+    ASSERT_TRUE(
+        conn->query("CREATE NODE TABLE Test (id INT64 PRIMARY KEY, arr INT64[4])")->isSuccess());
     systemConfig->readOnly = true;
     createDBAndConn();
     ASSERT_STREQ("Connection exception: Cannot execute write operations in a read-only database!",
