@@ -125,6 +125,8 @@ public:
         const TableScanState& scanState) const;
     // TODO(Guodong): This should be merged together with `lookup`.
     void lookupMultiple(transaction::Transaction* transaction, TableScanState& scanState) const;
+    void lookupMultipleNoLock(transaction::Transaction* transaction,
+        TableScanState& scanState) const;
 
     // Return the max node offset during insertions.
     common::offset_t validateUniquenessConstraint(const transaction::Transaction* transaction,

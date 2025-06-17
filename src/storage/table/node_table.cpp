@@ -356,7 +356,39 @@ void NodeTable::lookupMultiple(Transaction* transaction, TableScanState& scanSta
             initScanState(transaction, scanState);
         }
         scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
-        [[maybe_unused]] auto res = scanState.nodeGroup->lookup(transaction, scanState, i);
+        (void)scanState.nodeGroup->lookup(transaction, scanState, i);
+    }
+}
+
+void NodeTable::lookupMultipleNoLock(Transaction* transaction, TableScanState& scanState) const {
+    const auto numRowsToRead = scanState.nodeIDVector->state->getSelSize();
+    for (auto i = 0u; i < numRowsToRead; i++) {
+        const auto nodeIDPos = scanState.nodeIDVector->state->getSelVector()[i];
+        if (scanState.nodeIDVector->isNull(nodeIDPos)) {
+            continue;
+        }
+        const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
+        const auto isUnCommitted = transaction->isUnCommitted(tableID, nodeOffset);
+        const auto source =
+            isUnCommitted ? TableScanSource::UNCOMMITTED : TableScanSource::COMMITTED;
+        const auto nodeGroupIdx =
+            isUnCommitted ?
+                StorageUtils::getNodeGroupIdx(transaction->getLocalRowIdx(tableID, nodeOffset)) :
+                StorageUtils::getNodeGroupIdx(nodeOffset);
+        const offset_t rowIdxInGroup =
+            isUnCommitted ? transaction->getLocalRowIdx(tableID, nodeOffset) -
+                                StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) :
+                            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        if (scanState.source == source && scanState.nodeGroupIdx == nodeGroupIdx) {
+            // If the scan state is already initialized for the same source and node group, we can
+            // skip re-initialization.
+        } else {
+            scanState.source = source;
+            scanState.nodeGroupIdx = nodeGroupIdx;
+            initScanState(transaction, scanState);
+        }
+        scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
+        (void)scanState.nodeGroup->lookupNoLock(transaction, scanState, i);
     }
 }
 

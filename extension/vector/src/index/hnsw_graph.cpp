@@ -130,7 +130,7 @@ std::vector<void*> OnDiskEmbeddings::getEmbeddings(transaction::Transaction* tra
     common::ListVector::resizeDataVector(scanState.outputVectors[0],
         offsets.size() * info.typeInfo.getNumElements());
     scanState.outputVectors[0]->resetAuxiliaryBuffer();
-    nodeTable.lookupMultiple(transaction, scanState);
+    nodeTable.lookupMultipleNoLock(transaction, scanState);
     std::vector<void*> embeddings;
     embeddings.reserve(offsets.size());
     for (auto i = 0u; i < offsets.size(); i++) {
