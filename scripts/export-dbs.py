@@ -56,7 +56,7 @@ def findValidDatasetDirs(datasetRoot):
 
 # Example scripts/export-dbs.py build/debug/tools/shell/kuzu dataset
 def main():
-    parser = argparse.ArgumentParser(description="""Export DB with
+    parser = argparse.ArgumentParser(description="""Export DBS with
     KUZU shell and dataset paths""")
 
     parser.add_argument("executablePath", help="Path to the KUZU shell")
