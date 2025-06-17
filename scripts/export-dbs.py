@@ -43,7 +43,7 @@ def findValidDatasetDirs(datasetRoot):
 
     for root, dirs, files in os.walk(datasetRoot):
         # This script creates a tmp directory with the exported dbs, we should
-        # skip them in our search
+        # skip it in our search
         if "tmp" in root.split(os.sep):
             continue
         fileSet = set(f.lower() for f in files)
