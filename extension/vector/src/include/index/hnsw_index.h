@@ -146,6 +146,15 @@ struct InMemHNSWLayerInfo {
         KU_ASSERT(offsetInGraph < numNodes);
         return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph), localState);
     }
+    std::vector<void*> getEmbeddings(std::span<const common::offset_t> offsetsInGraph,
+        GetEmbeddingsLocalState& localState) const {
+        std::vector<common::offset_t> nodeOffsets;
+        for (const auto offsetInGraph : offsetsInGraph) {
+            KU_ASSERT(offsetInGraph < numNodes);
+            nodeOffsets.push_back(offsetMap.graphToNodeOffset(offsetInGraph));
+        }
+        return embeddings->getEmbeddings(nodeOffsets, localState);
+    }
 };
 
 class InMemHNSWLayer {

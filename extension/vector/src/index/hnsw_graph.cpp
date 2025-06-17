@@ -41,6 +41,15 @@ void* InMemEmbeddings::getEmbedding(common::offset_t offset,
     return val;
 }
 
+std::vector<void*> InMemEmbeddings::getEmbeddings(std::span<const common::offset_t> offsets,
+    GetEmbeddingsLocalState& localState) const {
+    std::vector<void*> ret;
+    for (common::offset_t offset : offsets) {
+        ret.push_back(getEmbedding(offset, localState));
+    }
+    return ret;
+}
+
 bool InMemEmbeddings::isNull(common::offset_t offset, GetEmbeddingsLocalState&) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
     KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
@@ -110,7 +119,7 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
 }
 
 std::vector<void*> OnDiskEmbeddings::getEmbeddings(transaction::Transaction* transaction,
-    NodeTableScanState& scanState, const std::vector<common::offset_t>& offsets) const {
+    NodeTableScanState& scanState, std::span<const common::offset_t> offsets) const {
     for (auto i = 0u; i < offsets.size(); i++) {
         scanState.nodeIDVector->setValue(i,
             common::internalID_t{offsets[i], nodeTable.getTableID()});
@@ -151,8 +160,6 @@ struct GetOnDiskEmbeddingsLocalState : GetEmbeddingsLocalState {
               std::vector{&scanChunk.getValueVectorMutable(1)}, scanChunk.state) {}
     common::DataChunk scanChunk;
     storage::NodeTableScanState scanState;
-
-    void reset() override { scanState.resetOutVectors(); }
 };
 
 OnDiskCreateHNSWIndexEmbeddings::OnDiskCreateHNSWIndexEmbeddings(
@@ -174,17 +181,19 @@ std::unique_ptr<GetEmbeddingsLocalState> OnDiskCreateHNSWIndexEmbeddings::constr
 
 void* OnDiskCreateHNSWIndexEmbeddings::getEmbedding(common::offset_t offset,
     GetEmbeddingsLocalState& localState) const {
-    auto& localGetEmbeddingState = localState.cast<GetOnDiskEmbeddingsLocalState>();
-    auto& scanState = localGetEmbeddingState.scanState;
-    auto* embeddingPtr = embeddings.getEmbedding(transaction, scanState, offset);
-    KU_ASSERT(embeddingPtr != nullptr);
-    return embeddingPtr;
+    auto& scanState = localState.cast<GetOnDiskEmbeddingsLocalState>().scanState;
+    return embeddings.getEmbedding(transaction, scanState, offset);
+}
+
+std::vector<void*> OnDiskCreateHNSWIndexEmbeddings::getEmbeddings(
+    std::span<const common::offset_t> offsets, GetEmbeddingsLocalState& localState) const {
+    auto& scanState = localState.cast<GetOnDiskEmbeddingsLocalState>().scanState;
+    return embeddings.getEmbeddings(transaction, scanState, offsets);
 }
 
 bool OnDiskCreateHNSWIndexEmbeddings::isNull(common::offset_t offset,
     GetEmbeddingsLocalState& localState) const {
-    auto& scanState = localState.cast<GetOnDiskEmbeddingsLocalState>().scanState;
-    return embeddings.getEmbedding(transaction, scanState, offset) == nullptr;
+    return getEmbedding(offset, localState) == nullptr;
 }
 
 namespace {

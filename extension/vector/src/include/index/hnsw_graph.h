@@ -29,9 +29,6 @@ struct GetEmbeddingsLocalState {
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
-
-    // TODO(Royi) clean this up
-    virtual void reset() {}
 };
 
 class CreateHNSWIndexEmbeddings {
@@ -40,6 +37,8 @@ public:
     explicit CreateHNSWIndexEmbeddings(common::ArrayTypeInfo typeInfo)
         : info{std::move(typeInfo)} {}
     virtual void* getEmbedding(common::offset_t offset,
+        GetEmbeddingsLocalState& localState) const = 0;
+    virtual std::vector<void*> getEmbeddings(std::span<const common::offset_t> offset,
         GetEmbeddingsLocalState& localState) const = 0;
     virtual bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const = 0;
     common::length_t getDimension() const { return info.getDimension(); }
@@ -57,6 +56,8 @@ public:
         common::table_id_t tableID, common::column_id_t columnID);
 
     void* getEmbedding(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
+    std::vector<void*> getEmbeddings(std::span<const common::offset_t> offset,
+        GetEmbeddingsLocalState& localState) const override;
     bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
 
 private:
@@ -86,7 +87,7 @@ public:
         storage::NodeTableScanState& scanState, common::offset_t offset) const;
 
     std::vector<void*> getEmbeddings(transaction::Transaction* transaction,
-        storage::NodeTableScanState& scanState, const std::vector<common::offset_t>& offsets) const;
+        storage::NodeTableScanState& scanState, std::span<const common::offset_t> offsets) const;
 
     common::length_t getDimension() const { return info.getDimension(); }
 
@@ -102,6 +103,8 @@ public:
         common::column_id_t columnID);
 
     void* getEmbedding(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
+    std::vector<void*> getEmbeddings(std::span<const common::offset_t> offset,
+        GetEmbeddingsLocalState& localState) const override;
     bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
     std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() override;
 
