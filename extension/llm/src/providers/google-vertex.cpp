@@ -25,7 +25,7 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
         throw(RuntimeException(
             "Could not get project id from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
-    return "/v1/projects/" + env_project_id + "/locations/" + region.value() +
+    return "/v1/projects/" + env_project_id + "/locations/" + region.value_or("") +
            "/publishers/google/models/" + model + ":predict";
 }
 

@@ -17,7 +17,7 @@ EmbeddingProvider& BedrockEmbedding::getInstance() {
 }
 
 std::string BedrockEmbedding::getClient() const {
-    return "https://bedrock-runtime." + region.value() + ".amazonaws.com";
+    return "https://bedrock-runtime." + region.value_or("") + ".amazonaws.com";
 }
 
 std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
@@ -45,7 +45,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
         throw(RuntimeException(errMsg + std::string(referenceKuzuDocs)));
     }
     std::string service = "bedrock";
-    std::string region = this->region.value();
+    std::string region = this->region.value_or("");
     std::string host = "bedrock-runtime." + region + ".amazonaws.com";
 
     auto timestamp = Timestamp::getCurrentTimestamp();
