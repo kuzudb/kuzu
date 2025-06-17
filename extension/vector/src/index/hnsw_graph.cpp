@@ -151,6 +151,8 @@ struct GetOnDiskEmbeddingsLocalState : GetEmbeddingsLocalState {
               std::vector{&scanChunk.getValueVectorMutable(1)}, scanChunk.state) {}
     common::DataChunk scanChunk;
     storage::NodeTableScanState scanState;
+
+    void reset() override { scanState.resetOutVectors(); }
 };
 
 OnDiskCreateHNSWIndexEmbeddings::OnDiskCreateHNSWIndexEmbeddings(
