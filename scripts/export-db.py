@@ -5,6 +5,7 @@ import subprocess
 import re
 
 
+# Get version number like 0.10.0.5
 def getVersion(executablePath):
     try:
         result = subprocess.run(
@@ -22,6 +23,7 @@ def getVersion(executablePath):
         return None
 
 
+# Parse schema.cypher and copy.cypher file
 def normalizeCypherCommands(filePath):
     commands = []
     with open(filePath, "r") as f:
@@ -35,10 +37,15 @@ def normalizeCypherCommands(filePath):
     return commands
 
 
+# Find all datasets that have a schema.cypher and copy.cypher file
 def findValidDatasetDirs(datasetRoot):
     validDirs = []
 
     for root, dirs, files in os.walk(datasetRoot):
+        # This script creates a tmp directory with the exported dbs, we should
+        # skip them in our search
+        if "tmp" in root.split(os.sep):
+            continue
         fileSet = set(f.lower() for f in files)
 
         if "schema.cypher" in fileSet and "copy.cypher" in fileSet:
@@ -47,49 +54,55 @@ def findValidDatasetDirs(datasetRoot):
     return validDirs
 
 
-parser = argparse.ArgumentParser(description="""Export DB with executable and
-dataset paths""")
+def main():
+    parser = argparse.ArgumentParser(description="""Export DB with
+    executable and dataset paths""")
 
-parser.add_argument("executablePath", help="Path to the executable file")
-parser.add_argument("datasetPath", help="Path to the dataset")
-args = parser.parse_args()
+    parser.add_argument("executablePath", help="Path to the executable file")
+    parser.add_argument("datasetPath", help="Path to the dataset")
+    args = parser.parse_args()
 
-executablePath = args.executablePath
-datasetPath = args.datasetPath
+    argExecutablePath = args.executablePath
+    argDatasetPath = args.datasetPath
 
-if not os.path.isfile(executablePath):
-    print(f"Error: Executable not found at {executablePath}")
-    sys.exit(1)
-if not os.path.exists(datasetPath):
-    print(f"Error: Dataset path not found at {datasetPath}")
-    sys.exit(1)
+    if not os.path.isfile(argExecutablePath):
+        print(f"Error: Executable not found at {argExecutablePath}")
+        return 1
+    if not os.path.exists(argDatasetPath):
+        print(f"Error: Dataset path not found at {argDatasetPath}")
+        return 1
 
-version = getVersion(executablePath)
-if not version:
-    print(f"Could not pull version number from {executablePath}")
-    sys.exit(1)
+    version = getVersion(argExecutablePath)
+    if not version:
+        print(f"Could not pull version number from {argExecutablePath}")
+        return 1
 
-validDatasets = findValidDatasetDirs(datasetPath)
-for datasetPath in validDatasets:
-    schemaCommands = normalizeCypherCommands(os.path.join(datasetPath,
-                                                          "schema.cypher"))
-    copyCommands = normalizeCypherCommands(os.path.join(datasetPath,
-                                                        "copy.cypher"))
-    combinedCommands = schemaCommands + copyCommands
+    validDatasets = findValidDatasetDirs(argDatasetPath)
+    for datasetPath in validDatasets:
+        schemaCommands = normalizeCypherCommands(os.path.join(datasetPath,
+                                                              "schema.cypher"))
+        copyCommands = normalizeCypherCommands(os.path.join(datasetPath,
+                                                            "copy.cypher"))
+        combinedCommands = schemaCommands + copyCommands
 
-    datasetName = os.path.basename(datasetPath.rstrip("/"))
-    exportPath = os.path.join(args.datasetPath, "tmp", version, datasetName)
-    exportCommand = f"EXPORT DATABASE '{exportPath}' (format=\"csv\", header=true);"
-    combinedCommands.append(exportCommand)
-    print(f"Exporting {datasetPath} to {exportPath}")
+        datasetName = os.path.relpath(datasetPath, argDatasetPath)
+        exportPath = os.path.join(argDatasetPath, "tmp", version, datasetName)
+        exportCommand = f"EXPORT DATABASE '{exportPath}' (format=\"csv\", header=true);"
+        combinedCommands.append(exportCommand)
+        print(f"Exporting {datasetPath} to {exportPath}")
 
-    process = subprocess.Popen(
-        [executablePath],
-        stdin=subprocess.PIPE,
-        text=True
-    )
+        process = subprocess.Popen(
+            [argExecutablePath],
+            stdin=subprocess.PIPE,
+            text=True
+        )
 
-    for cmd in combinedCommands:
-        process.stdin.write(cmd.strip() + "\n")
-    process.stdin.close()
-    process.wait()
+        for cmd in combinedCommands:
+            process.stdin.write(cmd.strip() + "\n")
+        process.stdin.close()
+        process.wait()
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
