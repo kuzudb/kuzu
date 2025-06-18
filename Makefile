@@ -146,10 +146,11 @@ alldebug:
 
 # Main tests
 test-build:
-	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
+	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DBUILD_SHELL=TRUE -DENABLE_BACKTRACES=TRUE)
 
 test: test-build
 	python3 dataset/ldbc-1/download_data.py
+	python3 scripts/export-dbs.py tools/shell/build/release/tools/shell/kuzu dataset
 	ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
