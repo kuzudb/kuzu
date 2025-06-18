@@ -54,7 +54,7 @@ bool Table::scan(transaction::Transaction* transaction, TableScanState& scanStat
 }
 
 DataChunk Table::constructDataChunk(MemoryManager* mm, std::vector<LogicalType> types) {
-    DataChunk dataChunk{static_cast<uint32_t>(types.size())};
+    DataChunk dataChunk(types.size());
     for (auto i = 0u; i < types.size(); i++) {
         auto valueVector = std::make_unique<ValueVector>(std::move(types[i]), mm);
         dataChunk.insert(i, std::move(valueVector));

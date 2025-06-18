@@ -18,6 +18,18 @@ InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info)
     graph = std::make_unique<InMemHNSWGraph>(mm, info.numNodes, info.degreeThresholdToShrink);
 }
 
+std::vector<EmbeddingHandle> InMemHNSWLayerInfo::getEmbeddings(
+    std::span<const common::offset_t> offsetsInGraph, GetEmbeddingsScanState& scanState) const {
+    auto offsets = std::make_unique<common::offset_t[]>(offsetsInGraph.size());
+    for (size_t i = 0; i < offsetsInGraph.size(); ++i) {
+        auto& offsetInGraph = offsetsInGraph[i];
+        KU_ASSERT(offsetInGraph < numNodes);
+        offsets[i] = offsetMap.graphToNodeOffset(offsetInGraph);
+    }
+    return embeddings->getEmbeddings(
+        std::span<common::offset_t>(offsets.get(), offsetsInGraph.size()), scanState);
+}
+
 void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint_,
     VisitedState& visited, GetEmbeddingsScanState& scanState) {
     if (entryPoint_ == common::INVALID_OFFSET) {

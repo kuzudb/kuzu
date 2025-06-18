@@ -295,6 +295,7 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     return scanState.scanNext(transaction);
 }
 
+template<bool lock>
 bool NodeTable::lookup(const Transaction* transaction, const TableScanState& scanState) const {
     KU_ASSERT(scanState.nodeIDVector->state->getSelVector().getSelSize() == 1);
     const auto nodeIDPos = scanState.nodeIDVector->state->getSelVector()[0];
@@ -308,26 +309,19 @@ bool NodeTable::lookup(const Transaction* transaction, const TableScanState& sca
                 StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) :
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
     scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
-    return scanState.nodeGroup->lookup(transaction, scanState);
-}
-
-bool NodeTable::lookupNoLock(const Transaction* transaction,
-    const TableScanState& scanState) const {
-    KU_ASSERT(scanState.nodeIDVector->state->getSelVector().getSelSize() == 1);
-    const auto nodeIDPos = scanState.nodeIDVector->state->getSelVector()[0];
-    if (scanState.nodeIDVector->isNull(nodeIDPos)) {
-        return false;
+    if constexpr (lock) {
+        return scanState.nodeGroup->lookup(transaction, scanState);
+    } else {
+        return scanState.nodeGroup->lookupNoLock(transaction, scanState);
     }
-    const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
-    const offset_t rowIdxInGroup =
-        transaction->isUnCommitted(tableID, nodeOffset) ?
-            transaction->getLocalRowIdx(tableID, nodeOffset) -
-                StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) :
-            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
-    scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
-    return scanState.nodeGroup->lookupNoLock(transaction, scanState);
 }
 
+template bool NodeTable::lookup<true>(const Transaction* transaction,
+    const TableScanState& scanState) const;
+template bool NodeTable::lookup<false>(const Transaction* transaction,
+    const TableScanState& scanState) const;
+
+template<bool lock>
 void NodeTable::lookupMultiple(Transaction* transaction, TableScanState& scanState) const {
     const auto numRowsToRead = scanState.nodeIDVector->state->getSelSize();
     for (auto i = 0u; i < numRowsToRead; i++) {
@@ -356,41 +350,18 @@ void NodeTable::lookupMultiple(Transaction* transaction, TableScanState& scanSta
             initScanState(transaction, scanState);
         }
         scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
-        (void)scanState.nodeGroup->lookup(transaction, scanState, i);
+        if constexpr (lock) {
+            (void)scanState.nodeGroup->lookup(transaction, scanState, i);
+        } else {
+            (void)scanState.nodeGroup->lookupNoLock(transaction, scanState, i);
+        }
     }
 }
 
-void NodeTable::lookupMultipleNoLock(Transaction* transaction, TableScanState& scanState) const {
-    const auto numRowsToRead = scanState.nodeIDVector->state->getSelSize();
-    for (auto i = 0u; i < numRowsToRead; i++) {
-        const auto nodeIDPos = scanState.nodeIDVector->state->getSelVector()[i];
-        if (scanState.nodeIDVector->isNull(nodeIDPos)) {
-            continue;
-        }
-        const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
-        const auto isUnCommitted = transaction->isUnCommitted(tableID, nodeOffset);
-        const auto source =
-            isUnCommitted ? TableScanSource::UNCOMMITTED : TableScanSource::COMMITTED;
-        const auto nodeGroupIdx =
-            isUnCommitted ?
-                StorageUtils::getNodeGroupIdx(transaction->getLocalRowIdx(tableID, nodeOffset)) :
-                StorageUtils::getNodeGroupIdx(nodeOffset);
-        const offset_t rowIdxInGroup =
-            isUnCommitted ? transaction->getLocalRowIdx(tableID, nodeOffset) -
-                                StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) :
-                            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        if (scanState.source == source && scanState.nodeGroupIdx == nodeGroupIdx) {
-            // If the scan state is already initialized for the same source and node group, we can
-            // skip re-initialization.
-        } else {
-            scanState.source = source;
-            scanState.nodeGroupIdx = nodeGroupIdx;
-            initScanState(transaction, scanState);
-        }
-        scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
-        (void)scanState.nodeGroup->lookupNoLock(transaction, scanState, i);
-    }
-}
+template void NodeTable::lookupMultiple<true>(Transaction* transaction,
+    TableScanState& scanState) const;
+template void NodeTable::lookupMultiple<false>(Transaction* transaction,
+    TableScanState& scanState) const;
 
 offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
     const std::vector<ValueVector*>& propertyVectors) const {
@@ -600,7 +571,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -741,7 +712,7 @@ void NodeTable::scanIndexColumns(Transaction* transaction, IndexScanHelper& scan
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to

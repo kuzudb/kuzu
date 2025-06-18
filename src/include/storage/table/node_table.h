@@ -120,13 +120,11 @@ public:
         common::table_id_t tableID, common::offset_t startOffset) const;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
+    template<bool lock = true>
     bool lookup(const transaction::Transaction* transaction, const TableScanState& scanState) const;
-    bool lookupNoLock(const transaction::Transaction* transaction,
-        const TableScanState& scanState) const;
     // TODO(Guodong): This should be merged together with `lookup`.
+    template<bool lock = true>
     void lookupMultiple(transaction::Transaction* transaction, TableScanState& scanState) const;
-    void lookupMultipleNoLock(transaction::Transaction* transaction,
-        TableScanState& scanState) const;
 
     // Return the max node offset during insertions.
     common::offset_t validateUniquenessConstraint(const transaction::Transaction* transaction,

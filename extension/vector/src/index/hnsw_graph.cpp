@@ -103,10 +103,22 @@ EmbeddingHandle InMemEmbeddings::getEmbedding(common::offset_t offset,
 std::vector<EmbeddingHandle> InMemEmbeddings::getEmbeddings(
     std::span<const common::offset_t> offsets, GetEmbeddingsScanState& scanState) const {
     std::vector<EmbeddingHandle> ret;
+    ret.reserve(offsets.size());
     for (common::offset_t offset : offsets) {
         ret.push_back(getEmbedding(offset, scanState));
     }
     return ret;
+}
+
+OnDiskEmbeddings::OnDiskEmbeddings(transaction::Transaction* transaction,
+    storage::MemoryManager* mm, common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable,
+    common::column_id_t columnID)
+    : HNSWIndexEmbeddings(std::move(typeInfo)), transaction(transaction), mm(mm),
+      nodeTable(nodeTable), columnID(columnID) {}
+
+std::unique_ptr<GetEmbeddingsScanState> OnDiskEmbeddings::constructScanState() const {
+    return std::make_unique<OnDiskEmbeddingScanState>(transaction, mm, nodeTable, columnID,
+        info.getDimension());
 }
 
 EmbeddingHandle OnDiskEmbeddings::getEmbedding(common::offset_t offset,
@@ -130,7 +142,7 @@ EmbeddingHandle OnDiskEmbeddings::getEmbedding(common::offset_t offset,
     } else {
         nodeTable.initScanState(transaction, scanState);
     }
-    const auto result = nodeTable.lookupNoLock(transaction, scanState);
+    const auto result = nodeTable.lookup<false>(transaction, scanState);
     KU_ASSERT(scanState.outputVectors.size() == 1 &&
               scanState.outputVectors[0]->state->getSelVector()[0] == 0);
     if (!result || scanState.outputVectors[0]->isNull(0)) {
@@ -151,7 +163,7 @@ std::vector<EmbeddingHandle> OnDiskEmbeddings::getEmbeddings(
     scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(offsets.size());
     KU_ASSERT(
         scanState.outputVectors[0]->dataType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
-    nodeTable.lookupMultipleNoLock(transaction, scanState);
+    nodeTable.lookupMultiple<false>(transaction, scanState);
     std::vector<EmbeddingHandle> embeddings;
     embeddings.reserve(offsets.size());
     for (auto i = 0u; i < offsets.size(); i++) {
@@ -229,17 +241,6 @@ void OnDiskEmbeddingScanState::reclaimEmbedding(const EmbeddingHandle& handle) {
     for (auto* outputVector : scanState->outputVectors) {
         common::ListVector::resizeDataVector(outputVector, numDataElemsToResizeTo);
     }
-}
-
-OnDiskEmbeddings::OnDiskEmbeddings(transaction::Transaction* transaction,
-    storage::MemoryManager* mm, common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable,
-    common::column_id_t columnID)
-    : HNSWIndexEmbeddings(std::move(typeInfo)), transaction(transaction), mm(mm),
-      nodeTable(nodeTable), columnID(columnID) {}
-
-std::unique_ptr<GetEmbeddingsScanState> OnDiskEmbeddings::constructScanState() const {
-    return std::make_unique<OnDiskEmbeddingScanState>(transaction, mm, nodeTable, columnID,
-        info.getDimension());
 }
 
 namespace {
