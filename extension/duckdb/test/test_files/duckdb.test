@@ -49,7 +49,7 @@ Attached database successfully.
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 -STATEMENT LOAD FROM tinysnb.person RETURN *;
 ---- 8
-0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11|[96,54,86,92]
+0|Alice|1|True|Flse|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11|[96,54,86,92]
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|1.323000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18|[77,64,100,54]
 2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|0.990000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12|[98,42,93,88]
 3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|1.000000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13|[91,75,21,95]
