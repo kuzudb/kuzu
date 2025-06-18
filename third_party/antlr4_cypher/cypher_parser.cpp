@@ -84,12 +84,12 @@ void cypherParserInitialize() {
       "kU_BitwiseOrOperatorExpression", "kU_BitwiseAndOperatorExpression", 
       "kU_BitShiftOperatorExpression", "kU_BitShiftOperator", "oC_AddOrSubtractExpression", 
       "kU_AddOrSubtractOperator", "oC_MultiplyDivideModuloExpression", "kU_MultiplyDivideModuloOperator", 
-      "oC_PowerOfExpression", "oC_UnaryAddSubtractOrFactorialExpression", 
-      "oC_StringListNullOperatorExpression", "oC_ListOperatorExpression", 
+      "oC_PowerOfExpression", "oC_StringListNullOperatorExpression", "oC_ListOperatorExpression", 
       "oC_StringOperatorExpression", "oC_RegularExpression", "oC_NullOperatorExpression", 
-      "oC_PropertyOrLabelsExpression", "oC_Atom", "oC_Quantifier", "oC_FilterExpression", 
-      "oC_IdInColl", "oC_Literal", "oC_BooleanLiteral", "oC_ListLiteral", 
-      "kU_ListEntry", "kU_StructLiteral", "kU_StructField", "oC_ParenthesizedExpression", 
+      "oC_UnaryAddSubtractOrFactorialExpression", "oC_PropertyOrLabelsExpression", 
+      "oC_Atom", "oC_Quantifier", "oC_FilterExpression", "oC_IdInColl", 
+      "oC_Literal", "oC_BooleanLiteral", "oC_ListLiteral", "kU_ListEntry", 
+      "kU_StructLiteral", "kU_StructField", "oC_ParenthesizedExpression", 
       "oC_FunctionInvocation", "oC_FunctionName", "kU_FunctionParameter", 
       "kU_LambdaParameter", "kU_LambdaVars", "oC_PathPatterns", "oC_ExistCountSubquery", 
       "oC_PropertyLookup", "oC_CaseExpression", "oC_CaseAlternative", "oC_Variable", 
@@ -111,8 +111,8 @@ void cypherParserInitialize() {
       "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
       "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
       "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
-      "", "", "", "", "", "", "", "", "", "'*'", "", "'!='", "'-'", "'!'", 
-      "':'", "", "", "", "", "", "", "", "", "'0'"
+      "", "", "", "", "", "", "", "", "", "'*'", "", "'!='", "':'", "'-'", 
+      "'!'", "", "", "", "", "", "", "", "", "'0'"
     },
     std::vector<std::string>{
       "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
@@ -133,7 +133,7 @@ void cypherParserInitialize() {
       "STARTS", "TABLE", "THEN", "TO", "TRAIL", "TRANSACTION", "TRUE", "TYPE", 
       "UNION", "UNWIND", "UNINSTALL", "UPDATE", "USE", "WHEN", "WHERE", 
       "WITH", "WRITE", "WSHORTEST", "XOR", "SINGLE", "YIELD", "DECIMAL", 
-      "STAR", "L_SKIP", "INVALID_NOT_EQUAL", "MINUS", "FACTORIAL", "COLON", 
+      "STAR", "L_SKIP", "INVALID_NOT_EQUAL", "COLON", "MINUS", "FACTORIAL", 
       "StringLiteral", "EscapedChar", "DecimalInteger", "HexLetter", "HexDigit", 
       "Digit", "NonZeroDigit", "NonZeroOctDigit", "ZeroDigit", "ExponentDecimalReal", 
       "RegularDecimalReal", "UnescapedSymbolicName", "IdentifierStart", 
@@ -340,14 +340,14 @@ void cypherParserInitialize() {
   	2260,8,128,1,128,1,128,3,128,2264,8,128,1,128,1,128,5,128,2268,8,128,
   	10,128,12,128,2271,9,128,1,129,1,129,1,130,1,130,3,130,2277,8,130,1,130,
   	1,130,3,130,2281,8,130,1,130,5,130,2284,8,130,10,130,12,130,2287,9,130,
-  	1,131,1,131,3,131,2291,8,131,5,131,2293,8,131,10,131,12,131,2296,9,131,
-  	1,131,1,131,3,131,2300,8,131,1,131,3,131,2303,8,131,1,132,1,132,1,132,
-  	4,132,2308,8,132,11,132,12,132,2309,1,132,3,132,2313,8,132,1,133,1,133,
-  	1,133,3,133,2318,8,133,1,133,1,133,1,133,1,133,1,133,1,133,1,133,3,133,
-  	2327,8,133,1,133,1,133,3,133,2331,8,133,1,133,3,133,2334,8,133,1,134,
-  	1,134,1,134,1,134,1,134,1,134,1,134,1,134,1,134,1,134,1,134,3,134,2347,
-  	8,134,1,134,3,134,2350,8,134,1,134,1,134,1,135,3,135,2355,8,135,1,135,
-  	1,135,1,136,1,136,1,136,1,136,1,136,1,136,1,136,1,136,1,136,1,136,3,136,
+  	1,131,1,131,1,131,4,131,2292,8,131,11,131,12,131,2293,1,131,3,131,2297,
+  	8,131,1,132,1,132,1,132,3,132,2302,8,132,1,132,1,132,1,132,1,132,1,132,
+  	1,132,1,132,3,132,2311,8,132,1,132,1,132,3,132,2315,8,132,1,132,3,132,
+  	2318,8,132,1,133,1,133,1,133,1,133,1,133,1,133,1,133,1,133,1,133,1,133,
+  	1,133,3,133,2331,8,133,1,133,3,133,2334,8,133,1,133,1,133,1,134,3,134,
+  	2339,8,134,1,134,1,134,1,135,1,135,1,135,1,135,1,135,1,135,1,135,1,135,
+  	1,135,1,135,3,135,2353,8,135,1,136,1,136,3,136,2357,8,136,5,136,2359,
+  	8,136,10,136,12,136,2362,9,136,1,136,1,136,3,136,2366,8,136,1,136,3,136,
   	2369,8,136,1,137,1,137,3,137,2373,8,137,1,137,5,137,2376,8,137,10,137,
   	12,137,2379,9,137,1,138,1,138,1,138,1,138,1,138,1,138,1,138,1,138,1,138,
   	3,138,2390,8,138,1,139,1,139,3,139,2394,8,139,1,139,1,139,3,139,2398,
@@ -404,12 +404,12 @@ void cypherParserInitialize() {
   	260,262,264,266,268,270,272,274,276,278,280,282,284,286,288,290,292,294,
   	296,298,300,302,304,306,308,310,312,314,316,318,320,322,324,326,328,330,
   	332,334,336,338,340,342,0,13,2,0,131,131,136,136,2,0,53,54,75,76,2,0,
-  	6,6,13,17,1,0,19,20,2,0,21,21,160,160,2,0,22,23,157,157,2,0,87,87,141,
+  	6,6,13,17,1,0,19,20,2,0,21,21,161,161,2,0,22,23,157,157,2,0,87,87,141,
   	141,2,0,68,68,83,83,1,0,172,173,30,0,48,48,50,50,52,52,55,58,61,61,63,
   	64,66,68,70,71,74,74,77,77,79,79,84,86,88,89,91,91,95,96,98,98,100,100,
   	102,105,107,110,112,113,124,129,131,132,134,134,138,138,140,140,142,142,
   	145,147,151,151,155,156,158,158,2,0,14,14,27,30,2,0,16,16,31,34,2,0,35,
-  	45,160,160,3196,0,344,1,0,0,0,2,364,1,0,0,0,4,396,1,0,0,0,6,398,1,0,0,
+  	45,161,161,3196,0,344,1,0,0,0,2,364,1,0,0,0,4,396,1,0,0,0,6,398,1,0,0,
   	0,8,424,1,0,0,0,10,472,1,0,0,0,12,474,1,0,0,0,14,504,1,0,0,0,16,534,1,
   	0,0,0,18,554,1,0,0,0,20,560,1,0,0,0,22,611,1,0,0,0,24,613,1,0,0,0,26,
   	627,1,0,0,0,28,631,1,0,0,0,30,650,1,0,0,0,32,652,1,0,0,0,34,664,1,0,0,
@@ -439,8 +439,8 @@ void cypherParserInitialize() {
   	232,2102,1,0,0,0,234,2112,1,0,0,0,236,2122,1,0,0,0,238,2138,1,0,0,0,240,
   	2191,1,0,0,0,242,2193,1,0,0,0,244,2195,1,0,0,0,246,2209,1,0,0,0,248,2223,
   	1,0,0,0,250,2238,1,0,0,0,252,2240,1,0,0,0,254,2255,1,0,0,0,256,2257,1,
-  	0,0,0,258,2272,1,0,0,0,260,2274,1,0,0,0,262,2294,1,0,0,0,264,2304,1,0,
-  	0,0,266,2333,1,0,0,0,268,2346,1,0,0,0,270,2354,1,0,0,0,272,2368,1,0,0,
+  	0,0,0,258,2272,1,0,0,0,260,2274,1,0,0,0,262,2288,1,0,0,0,264,2317,1,0,
+  	0,0,266,2330,1,0,0,0,268,2338,1,0,0,0,270,2352,1,0,0,0,272,2360,1,0,0,
   	0,274,2370,1,0,0,0,276,2389,1,0,0,0,278,2447,1,0,0,0,280,2449,1,0,0,0,
   	282,2453,1,0,0,0,284,2465,1,0,0,0,286,2467,1,0,0,0,288,2469,1,0,0,0,290,
   	2490,1,0,0,0,292,2497,1,0,0,0,294,2522,1,0,0,0,296,2533,1,0,0,0,298,2620,
@@ -561,7 +561,7 @@ void cypherParserInitialize() {
   	714,5,178,0,0,713,712,1,0,0,0,713,714,1,0,0,0,714,715,1,0,0,0,715,717,
   	3,334,167,0,716,709,1,0,0,0,717,720,1,0,0,0,718,716,1,0,0,0,718,719,1,
   	0,0,0,719,37,1,0,0,0,720,718,1,0,0,0,721,723,3,334,167,0,722,724,5,178,
-  	0,0,723,722,1,0,0,0,723,724,1,0,0,0,724,725,1,0,0,0,725,726,5,162,0,0,
+  	0,0,723,722,1,0,0,0,723,724,1,0,0,0,724,725,1,0,0,0,725,726,5,160,0,0,
   	726,728,5,6,0,0,727,729,5,178,0,0,728,727,1,0,0,0,728,729,1,0,0,0,729,
   	730,1,0,0,0,730,731,3,284,142,0,731,39,1,0,0,0,732,734,5,7,0,0,733,735,
   	5,178,0,0,734,733,1,0,0,0,734,735,1,0,0,0,735,736,1,0,0,0,736,747,5,163,
@@ -626,16 +626,16 @@ void cypherParserInitialize() {
   	936,1,0,0,0,941,937,1,0,0,0,941,938,1,0,0,0,941,939,1,0,0,0,941,940,1,
   	0,0,0,942,57,1,0,0,0,943,944,5,98,0,0,944,947,5,178,0,0,945,946,5,57,
   	0,0,946,948,5,178,0,0,947,945,1,0,0,0,947,948,1,0,0,0,948,950,1,0,0,0,
-  	949,951,5,160,0,0,950,949,1,0,0,0,950,951,1,0,0,0,951,952,1,0,0,0,952,
+  	949,951,5,161,0,0,950,949,1,0,0,0,950,951,1,0,0,0,951,952,1,0,0,0,952,
   	953,3,328,164,0,953,59,1,0,0,0,954,955,5,112,0,0,955,956,5,178,0,0,956,
-  	964,5,110,0,0,957,958,5,110,0,0,958,960,5,178,0,0,959,961,5,160,0,0,960,
+  	964,5,110,0,0,957,958,5,110,0,0,958,960,5,178,0,0,959,961,5,161,0,0,960,
   	959,1,0,0,0,960,961,1,0,0,0,961,962,1,0,0,0,962,964,3,328,164,0,963,954,
   	1,0,0,0,963,957,1,0,0,0,964,61,1,0,0,0,965,966,5,112,0,0,966,967,5,178,
-  	0,0,967,975,5,108,0,0,968,969,5,108,0,0,969,971,5,178,0,0,970,972,5,160,
+  	0,0,967,975,5,108,0,0,968,969,5,108,0,0,969,971,5,178,0,0,970,972,5,161,
   	0,0,971,970,1,0,0,0,971,972,1,0,0,0,972,973,1,0,0,0,973,975,3,328,164,
   	0,974,965,1,0,0,0,974,968,1,0,0,0,975,63,1,0,0,0,976,977,5,134,0,0,977,
   	980,5,178,0,0,978,979,5,150,0,0,979,981,5,178,0,0,980,978,1,0,0,0,980,
-  	981,1,0,0,0,981,983,1,0,0,0,982,984,5,160,0,0,983,982,1,0,0,0,983,984,
+  	981,1,0,0,0,981,983,1,0,0,0,982,984,5,161,0,0,983,982,1,0,0,0,983,984,
   	1,0,0,0,984,985,1,0,0,0,985,986,3,328,164,0,986,65,1,0,0,0,987,988,5,
   	112,0,0,988,990,5,178,0,0,989,987,1,0,0,0,989,990,1,0,0,0,990,991,1,0,
   	0,0,991,992,5,70,0,0,992,67,1,0,0,0,993,994,5,96,0,0,994,995,5,178,0,
@@ -931,21 +931,21 @@ void cypherParserInitialize() {
   	1889,1,0,0,0,1889,1890,1,0,0,0,1890,1891,5,8,0,0,1891,203,1,0,0,0,1892,
   	1894,5,9,0,0,1893,1895,5,178,0,0,1894,1893,1,0,0,0,1894,1895,1,0,0,0,
   	1895,1929,1,0,0,0,1896,1898,3,326,163,0,1897,1899,5,178,0,0,1898,1897,
-  	1,0,0,0,1898,1899,1,0,0,0,1899,1900,1,0,0,0,1900,1902,5,162,0,0,1901,
+  	1,0,0,0,1898,1899,1,0,0,0,1899,1900,1,0,0,0,1900,1902,5,160,0,0,1901,
   	1903,5,178,0,0,1902,1901,1,0,0,0,1902,1903,1,0,0,0,1903,1904,1,0,0,0,
   	1904,1906,3,230,115,0,1905,1907,5,178,0,0,1906,1905,1,0,0,0,1906,1907,
   	1,0,0,0,1907,1926,1,0,0,0,1908,1910,5,4,0,0,1909,1911,5,178,0,0,1910,
   	1909,1,0,0,0,1910,1911,1,0,0,0,1911,1912,1,0,0,0,1912,1914,3,326,163,
   	0,1913,1915,5,178,0,0,1914,1913,1,0,0,0,1914,1915,1,0,0,0,1915,1916,1,
-  	0,0,0,1916,1918,5,162,0,0,1917,1919,5,178,0,0,1918,1917,1,0,0,0,1918,
+  	0,0,0,1916,1918,5,160,0,0,1917,1919,5,178,0,0,1918,1917,1,0,0,0,1918,
   	1919,1,0,0,0,1919,1920,1,0,0,0,1920,1922,3,230,115,0,1921,1923,5,178,
   	0,0,1922,1921,1,0,0,0,1922,1923,1,0,0,0,1923,1925,1,0,0,0,1924,1908,1,
   	0,0,0,1925,1928,1,0,0,0,1926,1924,1,0,0,0,1926,1927,1,0,0,0,1927,1930,
   	1,0,0,0,1928,1926,1,0,0,0,1929,1896,1,0,0,0,1929,1930,1,0,0,0,1930,1931,
-  	1,0,0,0,1931,1932,5,10,0,0,1932,205,1,0,0,0,1933,1935,5,162,0,0,1934,
+  	1,0,0,0,1931,1932,5,10,0,0,1932,205,1,0,0,0,1933,1935,5,160,0,0,1934,
   	1936,5,178,0,0,1935,1934,1,0,0,0,1935,1936,1,0,0,0,1936,1937,1,0,0,0,
   	1937,1951,3,228,114,0,1938,1940,5,178,0,0,1939,1938,1,0,0,0,1939,1940,
-  	1,0,0,0,1940,1941,1,0,0,0,1941,1943,5,11,0,0,1942,1944,5,162,0,0,1943,
+  	1,0,0,0,1940,1941,1,0,0,0,1941,1943,5,11,0,0,1942,1944,5,160,0,0,1943,
   	1942,1,0,0,0,1943,1944,1,0,0,0,1944,1946,1,0,0,0,1945,1947,5,178,0,0,
   	1946,1945,1,0,0,0,1946,1947,1,0,0,0,1947,1948,1,0,0,0,1948,1950,3,228,
   	114,0,1949,1939,1,0,0,0,1950,1953,1,0,0,0,1951,1949,1,0,0,0,1951,1952,
@@ -953,7 +953,7 @@ void cypherParserInitialize() {
   	1957,5,178,0,0,1956,1955,1,0,0,0,1956,1957,1,0,0,0,1957,1958,1,0,0,0,
   	1958,1960,3,210,105,0,1959,1956,1,0,0,0,1960,1963,1,0,0,0,1961,1959,1,
   	0,0,0,1961,1962,1,0,0,0,1962,209,1,0,0,0,1963,1961,1,0,0,0,1964,1966,
-  	5,162,0,0,1965,1967,5,178,0,0,1966,1965,1,0,0,0,1966,1967,1,0,0,0,1967,
+  	5,160,0,0,1965,1967,5,178,0,0,1966,1965,1,0,0,0,1966,1967,1,0,0,0,1967,
   	1968,1,0,0,0,1968,1969,3,226,113,0,1969,211,1,0,0,0,1970,1975,5,157,0,
   	0,1971,1973,5,178,0,0,1972,1971,1,0,0,0,1972,1973,1,0,0,0,1973,1974,1,
   	0,0,0,1974,1976,3,214,107,0,1975,1972,1,0,0,0,1975,1976,1,0,0,0,1976,
@@ -1058,40 +1058,40 @@ void cypherParserInitialize() {
   	2277,1,0,0,0,2277,2278,1,0,0,0,2278,2280,5,24,0,0,2279,2281,5,178,0,0,
   	2280,2279,1,0,0,0,2280,2281,1,0,0,0,2281,2282,1,0,0,0,2282,2284,3,262,
   	131,0,2283,2276,1,0,0,0,2284,2287,1,0,0,0,2285,2283,1,0,0,0,2285,2286,
-  	1,0,0,0,2286,261,1,0,0,0,2287,2285,1,0,0,0,2288,2290,5,160,0,0,2289,2291,
-  	5,178,0,0,2290,2289,1,0,0,0,2290,2291,1,0,0,0,2291,2293,1,0,0,0,2292,
-  	2288,1,0,0,0,2293,2296,1,0,0,0,2294,2292,1,0,0,0,2294,2295,1,0,0,0,2295,
-  	2297,1,0,0,0,2296,2294,1,0,0,0,2297,2302,3,264,132,0,2298,2300,5,178,
-  	0,0,2299,2298,1,0,0,0,2299,2300,1,0,0,0,2300,2301,1,0,0,0,2301,2303,5,
-  	161,0,0,2302,2299,1,0,0,0,2302,2303,1,0,0,0,2303,263,1,0,0,0,2304,2312,
-  	3,274,137,0,2305,2313,3,268,134,0,2306,2308,3,266,133,0,2307,2306,1,0,
-  	0,0,2308,2309,1,0,0,0,2309,2307,1,0,0,0,2309,2310,1,0,0,0,2310,2313,1,
-  	0,0,0,2311,2313,3,272,136,0,2312,2305,1,0,0,0,2312,2307,1,0,0,0,2312,
-  	2311,1,0,0,0,2312,2313,1,0,0,0,2313,265,1,0,0,0,2314,2315,5,178,0,0,2315,
-  	2317,5,97,0,0,2316,2318,5,178,0,0,2317,2316,1,0,0,0,2317,2318,1,0,0,0,
-  	2318,2319,1,0,0,0,2319,2334,3,274,137,0,2320,2321,5,7,0,0,2321,2322,3,
-  	230,115,0,2322,2323,5,8,0,0,2323,2334,1,0,0,0,2324,2326,5,7,0,0,2325,
-  	2327,3,230,115,0,2326,2325,1,0,0,0,2326,2327,1,0,0,0,2327,2328,1,0,0,
-  	0,2328,2330,5,162,0,0,2329,2331,3,230,115,0,2330,2329,1,0,0,0,2330,2331,
-  	1,0,0,0,2331,2332,1,0,0,0,2332,2334,5,8,0,0,2333,2314,1,0,0,0,2333,2320,
-  	1,0,0,0,2333,2324,1,0,0,0,2334,267,1,0,0,0,2335,2347,3,270,135,0,2336,
-  	2337,5,178,0,0,2337,2338,5,135,0,0,2338,2339,5,178,0,0,2339,2347,5,150,
-  	0,0,2340,2341,5,178,0,0,2341,2342,5,82,0,0,2342,2343,5,178,0,0,2343,2347,
-  	5,150,0,0,2344,2345,5,178,0,0,2345,2347,5,66,0,0,2346,2335,1,0,0,0,2346,
-  	2336,1,0,0,0,2346,2340,1,0,0,0,2346,2344,1,0,0,0,2347,2349,1,0,0,0,2348,
-  	2350,5,178,0,0,2349,2348,1,0,0,0,2349,2350,1,0,0,0,2350,2351,1,0,0,0,
-  	2351,2352,3,274,137,0,2352,269,1,0,0,0,2353,2355,5,178,0,0,2354,2353,
-  	1,0,0,0,2354,2355,1,0,0,0,2355,2356,1,0,0,0,2356,2357,5,25,0,0,2357,271,
-  	1,0,0,0,2358,2359,5,178,0,0,2359,2360,5,100,0,0,2360,2361,5,178,0,0,2361,
-  	2369,5,116,0,0,2362,2363,5,178,0,0,2363,2364,5,100,0,0,2364,2365,5,178,
-  	0,0,2365,2366,5,114,0,0,2366,2367,5,178,0,0,2367,2369,5,116,0,0,2368,
-  	2358,1,0,0,0,2368,2362,1,0,0,0,2369,273,1,0,0,0,2370,2377,3,276,138,0,
-  	2371,2373,5,178,0,0,2372,2371,1,0,0,0,2372,2373,1,0,0,0,2373,2374,1,0,
-  	0,0,2374,2376,3,312,156,0,2375,2372,1,0,0,0,2376,2379,1,0,0,0,2377,2375,
-  	1,0,0,0,2377,2378,1,0,0,0,2378,275,1,0,0,0,2379,2377,1,0,0,0,2380,2390,
-  	3,284,142,0,2381,2390,3,322,161,0,2382,2390,3,314,157,0,2383,2390,3,296,
-  	148,0,2384,2390,3,298,149,0,2385,2390,3,308,154,0,2386,2390,3,310,155,
-  	0,2387,2390,3,318,159,0,2388,2390,3,278,139,0,2389,2380,1,0,0,0,2389,
+  	1,0,0,0,2286,261,1,0,0,0,2287,2285,1,0,0,0,2288,2296,3,272,136,0,2289,
+  	2297,3,266,133,0,2290,2292,3,264,132,0,2291,2290,1,0,0,0,2292,2293,1,
+  	0,0,0,2293,2291,1,0,0,0,2293,2294,1,0,0,0,2294,2297,1,0,0,0,2295,2297,
+  	3,270,135,0,2296,2289,1,0,0,0,2296,2291,1,0,0,0,2296,2295,1,0,0,0,2296,
+  	2297,1,0,0,0,2297,263,1,0,0,0,2298,2299,5,178,0,0,2299,2301,5,97,0,0,
+  	2300,2302,5,178,0,0,2301,2300,1,0,0,0,2301,2302,1,0,0,0,2302,2303,1,0,
+  	0,0,2303,2318,3,274,137,0,2304,2305,5,7,0,0,2305,2306,3,230,115,0,2306,
+  	2307,5,8,0,0,2307,2318,1,0,0,0,2308,2310,5,7,0,0,2309,2311,3,230,115,
+  	0,2310,2309,1,0,0,0,2310,2311,1,0,0,0,2311,2312,1,0,0,0,2312,2314,5,160,
+  	0,0,2313,2315,3,230,115,0,2314,2313,1,0,0,0,2314,2315,1,0,0,0,2315,2316,
+  	1,0,0,0,2316,2318,5,8,0,0,2317,2298,1,0,0,0,2317,2304,1,0,0,0,2317,2308,
+  	1,0,0,0,2318,265,1,0,0,0,2319,2331,3,268,134,0,2320,2321,5,178,0,0,2321,
+  	2322,5,135,0,0,2322,2323,5,178,0,0,2323,2331,5,150,0,0,2324,2325,5,178,
+  	0,0,2325,2326,5,82,0,0,2326,2327,5,178,0,0,2327,2331,5,150,0,0,2328,2329,
+  	5,178,0,0,2329,2331,5,66,0,0,2330,2319,1,0,0,0,2330,2320,1,0,0,0,2330,
+  	2324,1,0,0,0,2330,2328,1,0,0,0,2331,2333,1,0,0,0,2332,2334,5,178,0,0,
+  	2333,2332,1,0,0,0,2333,2334,1,0,0,0,2334,2335,1,0,0,0,2335,2336,3,274,
+  	137,0,2336,267,1,0,0,0,2337,2339,5,178,0,0,2338,2337,1,0,0,0,2338,2339,
+  	1,0,0,0,2339,2340,1,0,0,0,2340,2341,5,25,0,0,2341,269,1,0,0,0,2342,2343,
+  	5,178,0,0,2343,2344,5,100,0,0,2344,2345,5,178,0,0,2345,2353,5,116,0,0,
+  	2346,2347,5,178,0,0,2347,2348,5,100,0,0,2348,2349,5,178,0,0,2349,2350,
+  	5,114,0,0,2350,2351,5,178,0,0,2351,2353,5,116,0,0,2352,2342,1,0,0,0,2352,
+  	2346,1,0,0,0,2353,271,1,0,0,0,2354,2356,5,161,0,0,2355,2357,5,178,0,0,
+  	2356,2355,1,0,0,0,2356,2357,1,0,0,0,2357,2359,1,0,0,0,2358,2354,1,0,0,
+  	0,2359,2362,1,0,0,0,2360,2358,1,0,0,0,2360,2361,1,0,0,0,2361,2363,1,0,
+  	0,0,2362,2360,1,0,0,0,2363,2368,3,274,137,0,2364,2366,5,178,0,0,2365,
+  	2364,1,0,0,0,2365,2366,1,0,0,0,2366,2367,1,0,0,0,2367,2369,5,162,0,0,
+  	2368,2365,1,0,0,0,2368,2369,1,0,0,0,2369,273,1,0,0,0,2370,2377,3,276,
+  	138,0,2371,2373,5,178,0,0,2372,2371,1,0,0,0,2372,2373,1,0,0,0,2373,2374,
+  	1,0,0,0,2374,2376,3,312,156,0,2375,2372,1,0,0,0,2376,2379,1,0,0,0,2377,
+  	2375,1,0,0,0,2377,2378,1,0,0,0,2378,275,1,0,0,0,2379,2377,1,0,0,0,2380,
+  	2390,3,284,142,0,2381,2390,3,322,161,0,2382,2390,3,314,157,0,2383,2390,
+  	3,296,148,0,2384,2390,3,298,149,0,2385,2390,3,308,154,0,2386,2390,3,310,
+  	155,0,2387,2390,3,318,159,0,2388,2390,3,278,139,0,2389,2380,1,0,0,0,2389,
   	2381,1,0,0,0,2389,2382,1,0,0,0,2389,2383,1,0,0,0,2389,2384,1,0,0,0,2389,
   	2385,1,0,0,0,2389,2386,1,0,0,0,2389,2387,1,0,0,0,2389,2388,1,0,0,0,2390,
   	277,1,0,0,0,2391,2393,5,49,0,0,2392,2394,5,178,0,0,2393,2392,1,0,0,0,
@@ -1139,7 +1139,7 @@ void cypherParserInitialize() {
   	1,0,0,0,2517,2515,1,0,0,0,2518,2519,5,10,0,0,2519,293,1,0,0,0,2520,2523,
   	3,334,167,0,2521,2523,5,163,0,0,2522,2520,1,0,0,0,2522,2521,1,0,0,0,2523,
   	2525,1,0,0,0,2524,2526,5,178,0,0,2525,2524,1,0,0,0,2525,2526,1,0,0,0,
-  	2526,2527,1,0,0,0,2527,2529,5,162,0,0,2528,2530,5,178,0,0,2529,2528,1,
+  	2526,2527,1,0,0,0,2527,2529,5,160,0,0,2528,2530,5,178,0,0,2529,2528,1,
   	0,0,0,2529,2530,1,0,0,0,2530,2531,1,0,0,0,2531,2532,3,230,115,0,2532,
   	295,1,0,0,0,2533,2535,5,2,0,0,2534,2536,5,178,0,0,2535,2534,1,0,0,0,2535,
   	2536,1,0,0,0,2536,2537,1,0,0,0,2537,2539,3,230,115,0,2538,2540,5,178,
@@ -1172,13 +1172,13 @@ void cypherParserInitialize() {
   	0,0,2617,2618,1,0,0,0,2618,2619,5,3,0,0,2619,2621,1,0,0,0,2620,2543,1,
   	0,0,0,2620,2556,1,0,0,0,2620,2585,1,0,0,0,2621,299,1,0,0,0,2622,2623,
   	3,334,167,0,2623,301,1,0,0,0,2624,2626,3,334,167,0,2625,2627,5,178,0,
-  	0,2626,2625,1,0,0,0,2626,2627,1,0,0,0,2627,2628,1,0,0,0,2628,2629,5,162,
+  	0,2626,2625,1,0,0,0,2626,2627,1,0,0,0,2627,2628,1,0,0,0,2628,2629,5,160,
   	0,0,2629,2631,5,6,0,0,2630,2632,5,178,0,0,2631,2630,1,0,0,0,2631,2632,
   	1,0,0,0,2632,2634,1,0,0,0,2633,2624,1,0,0,0,2633,2634,1,0,0,0,2634,2635,
   	1,0,0,0,2635,2638,3,230,115,0,2636,2638,3,304,152,0,2637,2633,1,0,0,0,
   	2637,2636,1,0,0,0,2638,303,1,0,0,0,2639,2641,3,306,153,0,2640,2642,5,
   	178,0,0,2641,2640,1,0,0,0,2641,2642,1,0,0,0,2642,2643,1,0,0,0,2643,2644,
-  	5,160,0,0,2644,2646,5,16,0,0,2645,2647,5,178,0,0,2646,2645,1,0,0,0,2646,
+  	5,161,0,0,2644,2646,5,16,0,0,2645,2647,5,178,0,0,2646,2645,1,0,0,0,2646,
   	2647,1,0,0,0,2647,2648,1,0,0,0,2648,2650,3,230,115,0,2649,2651,5,178,
   	0,0,2650,2649,1,0,0,0,2650,2651,1,0,0,0,2651,305,1,0,0,0,2652,2677,3,
   	334,167,0,2653,2655,5,2,0,0,2654,2656,5,178,0,0,2655,2654,1,0,0,0,2655,
@@ -1259,8 +1259,8 @@ void cypherParserInitialize() {
   	2041,2045,2049,2053,2055,2058,2062,2066,2070,2074,2076,2082,2085,2088,
   	2109,2119,2129,2134,2138,2145,2149,2153,2157,2161,2169,2173,2177,2181,
   	2187,2191,2197,2201,2206,2211,2215,2220,2225,2229,2235,2242,2246,2252,
-  	2259,2263,2269,2276,2280,2285,2290,2294,2299,2302,2309,2312,2317,2326,
-  	2330,2333,2346,2349,2354,2368,2372,2377,2389,2393,2397,2401,2407,2411,
+  	2259,2263,2269,2276,2280,2285,2293,2296,2301,2310,2314,2317,2330,2333,
+  	2338,2352,2356,2360,2365,2368,2372,2377,2389,2393,2397,2401,2407,2411,
   	2415,2421,2425,2429,2435,2439,2443,2447,2465,2471,2475,2479,2483,2486,
   	2492,2495,2499,2503,2507,2511,2515,2522,2525,2529,2535,2539,2545,2549,
   	2553,2558,2562,2566,2570,2575,2578,2581,2587,2591,2595,2597,2601,2605,
@@ -12846,7 +12846,7 @@ CypherParser::KU_RecursiveProjectionItemsContext* CypherParser::kU_RecursiveProj
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -1144059623222237987) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 128)) & 686548317008987) != 0)) {
+      ((1ULL << (_la - 128)) & 686552611976283) != 0)) {
       setState(2084);
       oC_ProjectionItems();
     }
@@ -14260,12 +14260,12 @@ CypherParser::OC_PowerOfExpressionContext::OC_PowerOfExpressionContext(ParserRul
   : ParserRuleContext(parent, invokingState) {
 }
 
-std::vector<CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext *> CypherParser::OC_PowerOfExpressionContext::oC_UnaryAddSubtractOrFactorialExpression() {
-  return getRuleContexts<CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext>();
+std::vector<CypherParser::OC_StringListNullOperatorExpressionContext *> CypherParser::OC_PowerOfExpressionContext::oC_StringListNullOperatorExpression() {
+  return getRuleContexts<CypherParser::OC_StringListNullOperatorExpressionContext>();
 }
 
-CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext* CypherParser::OC_PowerOfExpressionContext::oC_UnaryAddSubtractOrFactorialExpression(size_t i) {
-  return getRuleContext<CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext>(i);
+CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::OC_PowerOfExpressionContext::oC_StringListNullOperatorExpression(size_t i) {
+  return getRuleContext<CypherParser::OC_StringListNullOperatorExpressionContext>(i);
 }
 
 std::vector<tree::TerminalNode *> CypherParser::OC_PowerOfExpressionContext::SP() {
@@ -14298,7 +14298,7 @@ CypherParser::OC_PowerOfExpressionContext* CypherParser::oC_PowerOfExpression() 
     size_t alt;
     enterOuterAlt(_localctx, 1);
     setState(2274);
-    oC_UnaryAddSubtractOrFactorialExpression();
+    oC_StringListNullOperatorExpression();
     setState(2285);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 372, _ctx);
@@ -14323,113 +14323,11 @@ CypherParser::OC_PowerOfExpressionContext* CypherParser::oC_PowerOfExpression() 
           match(CypherParser::SP);
         }
         setState(2282);
-        oC_UnaryAddSubtractOrFactorialExpression(); 
+        oC_StringListNullOperatorExpression(); 
       }
       setState(2287);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 372, _ctx);
-    }
-   
-  }
-  catch (RecognitionException &e) {
-    _errHandler->reportError(this, e);
-    _localctx->exception = std::current_exception();
-    _errHandler->recover(this, _localctx->exception);
-  }
-
-  return _localctx;
-}
-
-//----------------- OC_UnaryAddSubtractOrFactorialExpressionContext ------------------------------------------------------------------
-
-CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::OC_UnaryAddSubtractOrFactorialExpressionContext(ParserRuleContext *parent, size_t invokingState)
-  : ParserRuleContext(parent, invokingState) {
-}
-
-CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::oC_StringListNullOperatorExpression() {
-  return getRuleContext<CypherParser::OC_StringListNullOperatorExpressionContext>(0);
-}
-
-std::vector<tree::TerminalNode *> CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::MINUS() {
-  return getTokens(CypherParser::MINUS);
-}
-
-tree::TerminalNode* CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::MINUS(size_t i) {
-  return getToken(CypherParser::MINUS, i);
-}
-
-tree::TerminalNode* CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::FACTORIAL() {
-  return getToken(CypherParser::FACTORIAL, 0);
-}
-
-std::vector<tree::TerminalNode *> CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::SP() {
-  return getTokens(CypherParser::SP);
-}
-
-tree::TerminalNode* CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::SP(size_t i) {
-  return getToken(CypherParser::SP, i);
-}
-
-
-size_t CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::getRuleIndex() const {
-  return CypherParser::RuleOC_UnaryAddSubtractOrFactorialExpression;
-}
-
-
-CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext* CypherParser::oC_UnaryAddSubtractOrFactorialExpression() {
-  OC_UnaryAddSubtractOrFactorialExpressionContext *_localctx = _tracker.createInstance<OC_UnaryAddSubtractOrFactorialExpressionContext>(_ctx, getState());
-  enterRule(_localctx, 262, CypherParser::RuleOC_UnaryAddSubtractOrFactorialExpression);
-  size_t _la = 0;
-
-#if __cplusplus > 201703L
-  auto onExit = finally([=, this] {
-#else
-  auto onExit = finally([=] {
-#endif
-    exitRule();
-  });
-  try {
-    enterOuterAlt(_localctx, 1);
-    setState(2294);
-    _errHandler->sync(this);
-    _la = _input->LA(1);
-    while (_la == CypherParser::MINUS) {
-      setState(2288);
-      match(CypherParser::MINUS);
-      setState(2290);
-      _errHandler->sync(this);
-
-      _la = _input->LA(1);
-      if (_la == CypherParser::SP) {
-        setState(2289);
-        match(CypherParser::SP);
-      }
-      setState(2296);
-      _errHandler->sync(this);
-      _la = _input->LA(1);
-    }
-    setState(2297);
-    oC_StringListNullOperatorExpression();
-    setState(2302);
-    _errHandler->sync(this);
-
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 376, _ctx)) {
-    case 1: {
-      setState(2299);
-      _errHandler->sync(this);
-
-      _la = _input->LA(1);
-      if (_la == CypherParser::SP) {
-        setState(2298);
-        match(CypherParser::SP);
-      }
-      setState(2301);
-      match(CypherParser::FACTORIAL);
-      break;
-    }
-
-    default:
-      break;
     }
    
   }
@@ -14448,8 +14346,8 @@ CypherParser::OC_StringListNullOperatorExpressionContext::OC_StringListNullOpera
   : ParserRuleContext(parent, invokingState) {
 }
 
-CypherParser::OC_PropertyOrLabelsExpressionContext* CypherParser::OC_StringListNullOperatorExpressionContext::oC_PropertyOrLabelsExpression() {
-  return getRuleContext<CypherParser::OC_PropertyOrLabelsExpressionContext>(0);
+CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext* CypherParser::OC_StringListNullOperatorExpressionContext::oC_UnaryAddSubtractOrFactorialExpression() {
+  return getRuleContext<CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext>(0);
 }
 
 CypherParser::OC_StringOperatorExpressionContext* CypherParser::OC_StringListNullOperatorExpressionContext::oC_StringOperatorExpression() {
@@ -14476,7 +14374,7 @@ size_t CypherParser::OC_StringListNullOperatorExpressionContext::getRuleIndex() 
 
 CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::oC_StringListNullOperatorExpression() {
   OC_StringListNullOperatorExpressionContext *_localctx = _tracker.createInstance<OC_StringListNullOperatorExpressionContext>(_ctx, getState());
-  enterRule(_localctx, 264, CypherParser::RuleOC_StringListNullOperatorExpression);
+  enterRule(_localctx, 262, CypherParser::RuleOC_StringListNullOperatorExpression);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -14488,26 +14386,26 @@ CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::oC_Strin
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(2304);
-    oC_PropertyOrLabelsExpression();
-    setState(2312);
+    setState(2288);
+    oC_UnaryAddSubtractOrFactorialExpression();
+    setState(2296);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 378, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 374, _ctx)) {
     case 1: {
-      setState(2305);
+      setState(2289);
       oC_StringOperatorExpression();
       break;
     }
 
     case 2: {
-      setState(2307); 
+      setState(2291); 
       _errHandler->sync(this);
       alt = 1;
       do {
         switch (alt) {
           case 1: {
-                setState(2306);
+                setState(2290);
                 oC_ListOperatorExpression();
                 break;
               }
@@ -14515,15 +14413,15 @@ CypherParser::OC_StringListNullOperatorExpressionContext* CypherParser::oC_Strin
         default:
           throw NoViableAltException(this);
         }
-        setState(2309); 
+        setState(2293); 
         _errHandler->sync(this);
-        alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 377, _ctx);
+        alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 373, _ctx);
       } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
       break;
     }
 
     case 3: {
-      setState(2311);
+      setState(2295);
       oC_NullOperatorExpression();
       break;
     }
@@ -14584,7 +14482,7 @@ size_t CypherParser::OC_ListOperatorExpressionContext::getRuleIndex() const {
 
 CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExpression() {
   OC_ListOperatorExpressionContext *_localctx = _tracker.createInstance<OC_ListOperatorExpressionContext>(_ctx, getState());
-  enterRule(_localctx, 266, CypherParser::RuleOC_ListOperatorExpression);
+  enterRule(_localctx, 264, CypherParser::RuleOC_ListOperatorExpression);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -14595,68 +14493,68 @@ CypherParser::OC_ListOperatorExpressionContext* CypherParser::oC_ListOperatorExp
     exitRule();
   });
   try {
-    setState(2333);
+    setState(2317);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 382, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 378, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(2314);
+      setState(2298);
       match(CypherParser::SP);
-      setState(2315);
+      setState(2299);
       match(CypherParser::IN);
-      setState(2317);
+      setState(2301);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == CypherParser::SP) {
-        setState(2316);
+        setState(2300);
         match(CypherParser::SP);
       }
-      setState(2319);
+      setState(2303);
       oC_PropertyOrLabelsExpression();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(2320);
+      setState(2304);
       match(CypherParser::T__6);
-      setState(2321);
+      setState(2305);
       oC_Expression();
-      setState(2322);
+      setState(2306);
       match(CypherParser::T__7);
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(2324);
+      setState(2308);
       match(CypherParser::T__6);
-      setState(2326);
+      setState(2310);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if ((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -1144059623222237987) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 128)) & 686547780138075) != 0)) {
-        setState(2325);
+        ((1ULL << (_la - 128)) & 686552075105371) != 0)) {
+        setState(2309);
         oC_Expression();
       }
-      setState(2328);
+      setState(2312);
       match(CypherParser::COLON);
-      setState(2330);
+      setState(2314);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if ((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -1144059623222237987) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 128)) & 686547780138075) != 0)) {
-        setState(2329);
+        ((1ULL << (_la - 128)) & 686552075105371) != 0)) {
+        setState(2313);
         oC_Expression();
       }
-      setState(2332);
+      setState(2316);
       match(CypherParser::T__7);
       break;
     }
@@ -14721,7 +14619,7 @@ size_t CypherParser::OC_StringOperatorExpressionContext::getRuleIndex() const {
 
 CypherParser::OC_StringOperatorExpressionContext* CypherParser::oC_StringOperatorExpression() {
   OC_StringOperatorExpressionContext *_localctx = _tracker.createInstance<OC_StringOperatorExpressionContext>(_ctx, getState());
-  enterRule(_localctx, 268, CypherParser::RuleOC_StringOperatorExpression);
+  enterRule(_localctx, 266, CypherParser::RuleOC_StringOperatorExpression);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -14733,43 +14631,43 @@ CypherParser::OC_StringOperatorExpressionContext* CypherParser::oC_StringOperato
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2346);
+    setState(2330);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 383, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 379, _ctx)) {
     case 1: {
-      setState(2335);
+      setState(2319);
       oC_RegularExpression();
       break;
     }
 
     case 2: {
-      setState(2336);
+      setState(2320);
       match(CypherParser::SP);
-      setState(2337);
+      setState(2321);
       match(CypherParser::STARTS);
-      setState(2338);
+      setState(2322);
       match(CypherParser::SP);
-      setState(2339);
+      setState(2323);
       match(CypherParser::WITH);
       break;
     }
 
     case 3: {
-      setState(2340);
+      setState(2324);
       match(CypherParser::SP);
-      setState(2341);
+      setState(2325);
       match(CypherParser::ENDS);
-      setState(2342);
+      setState(2326);
       match(CypherParser::SP);
-      setState(2343);
+      setState(2327);
       match(CypherParser::WITH);
       break;
     }
 
     case 4: {
-      setState(2344);
+      setState(2328);
       match(CypherParser::SP);
-      setState(2345);
+      setState(2329);
       match(CypherParser::CONTAINS);
       break;
     }
@@ -14777,15 +14675,15 @@ CypherParser::OC_StringOperatorExpressionContext* CypherParser::oC_StringOperato
     default:
       break;
     }
-    setState(2349);
+    setState(2333);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2348);
+      setState(2332);
       match(CypherParser::SP);
     }
-    setState(2351);
+    setState(2335);
     oC_PropertyOrLabelsExpression();
    
   }
@@ -14816,7 +14714,7 @@ size_t CypherParser::OC_RegularExpressionContext::getRuleIndex() const {
 
 CypherParser::OC_RegularExpressionContext* CypherParser::oC_RegularExpression() {
   OC_RegularExpressionContext *_localctx = _tracker.createInstance<OC_RegularExpressionContext>(_ctx, getState());
-  enterRule(_localctx, 270, CypherParser::RuleOC_RegularExpression);
+  enterRule(_localctx, 268, CypherParser::RuleOC_RegularExpression);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -14828,15 +14726,15 @@ CypherParser::OC_RegularExpressionContext* CypherParser::oC_RegularExpression() 
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(2354);
+    setState(2338);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == CypherParser::SP) {
-      setState(2353);
+      setState(2337);
       match(CypherParser::SP);
     }
-    setState(2356);
+    setState(2340);
     match(CypherParser::T__24);
    
   }
@@ -14883,7 +14781,7 @@ size_t CypherParser::OC_NullOperatorExpressionContext::getRuleIndex() const {
 
 CypherParser::OC_NullOperatorExpressionContext* CypherParser::oC_NullOperatorExpression() {
   OC_NullOperatorExpressionContext *_localctx = _tracker.createInstance<OC_NullOperatorExpressionContext>(_ctx, getState());
-  enterRule(_localctx, 272, CypherParser::RuleOC_NullOperatorExpression);
+  enterRule(_localctx, 270, CypherParser::RuleOC_NullOperatorExpression);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -14893,36 +14791,138 @@ CypherParser::OC_NullOperatorExpressionContext* CypherParser::oC_NullOperatorExp
     exitRule();
   });
   try {
-    setState(2368);
+    setState(2352);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 386, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 382, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(2358);
+      setState(2342);
       match(CypherParser::SP);
-      setState(2359);
+      setState(2343);
       match(CypherParser::IS);
-      setState(2360);
+      setState(2344);
       match(CypherParser::SP);
-      setState(2361);
+      setState(2345);
       match(CypherParser::NULL_);
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(2362);
+      setState(2346);
       match(CypherParser::SP);
-      setState(2363);
+      setState(2347);
       match(CypherParser::IS);
-      setState(2364);
+      setState(2348);
       match(CypherParser::SP);
-      setState(2365);
+      setState(2349);
       match(CypherParser::NOT);
-      setState(2366);
+      setState(2350);
       match(CypherParser::SP);
-      setState(2367);
+      setState(2351);
       match(CypherParser::NULL_);
+      break;
+    }
+
+    default:
+      break;
+    }
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- OC_UnaryAddSubtractOrFactorialExpressionContext ------------------------------------------------------------------
+
+CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::OC_UnaryAddSubtractOrFactorialExpressionContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+CypherParser::OC_PropertyOrLabelsExpressionContext* CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::oC_PropertyOrLabelsExpression() {
+  return getRuleContext<CypherParser::OC_PropertyOrLabelsExpressionContext>(0);
+}
+
+std::vector<tree::TerminalNode *> CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::MINUS() {
+  return getTokens(CypherParser::MINUS);
+}
+
+tree::TerminalNode* CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::MINUS(size_t i) {
+  return getToken(CypherParser::MINUS, i);
+}
+
+tree::TerminalNode* CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::FACTORIAL() {
+  return getToken(CypherParser::FACTORIAL, 0);
+}
+
+std::vector<tree::TerminalNode *> CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::SP() {
+  return getTokens(CypherParser::SP);
+}
+
+tree::TerminalNode* CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::SP(size_t i) {
+  return getToken(CypherParser::SP, i);
+}
+
+
+size_t CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext::getRuleIndex() const {
+  return CypherParser::RuleOC_UnaryAddSubtractOrFactorialExpression;
+}
+
+
+CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext* CypherParser::oC_UnaryAddSubtractOrFactorialExpression() {
+  OC_UnaryAddSubtractOrFactorialExpressionContext *_localctx = _tracker.createInstance<OC_UnaryAddSubtractOrFactorialExpressionContext>(_ctx, getState());
+  enterRule(_localctx, 272, CypherParser::RuleOC_UnaryAddSubtractOrFactorialExpression);
+  size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(2360);
+    _errHandler->sync(this);
+    _la = _input->LA(1);
+    while (_la == CypherParser::MINUS) {
+      setState(2354);
+      match(CypherParser::MINUS);
+      setState(2356);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2355);
+        match(CypherParser::SP);
+      }
+      setState(2362);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+    }
+    setState(2363);
+    oC_PropertyOrLabelsExpression();
+    setState(2368);
+    _errHandler->sync(this);
+
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 386, _ctx)) {
+    case 1: {
+      setState(2365);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
+        setState(2364);
+        match(CypherParser::SP);
+      }
+      setState(2367);
+      match(CypherParser::FACTORIAL);
       break;
     }
 
@@ -15727,7 +15727,7 @@ CypherParser::OC_ListLiteralContext* CypherParser::oC_ListLiteral() {
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -1144059623222237987) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 128)) & 686547780138075) != 0)) {
+      ((1ULL << (_la - 128)) & 686552075105371) != 0)) {
       setState(2473);
       oC_Expression();
       setState(2475);
@@ -15826,7 +15826,7 @@ CypherParser::KU_ListEntryContext* CypherParser::kU_ListEntry() {
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 64)) & -1144059623222237987) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 128)) & 686547780138075) != 0)) {
+      ((1ULL << (_la - 128)) & 686552075105371) != 0)) {
       setState(2494);
       oC_Expression();
     }
@@ -16410,7 +16410,7 @@ CypherParser::OC_FunctionInvocationContext* CypherParser::oC_FunctionInvocation(
       if ((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & -4641100153426541948) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 64)) & -1144059623222237987) != 0) || ((((_la - 128) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 128)) & 686547780138075) != 0)) {
+        ((1ULL << (_la - 128)) & 686552075105371) != 0)) {
         setState(2599);
         kU_FunctionParameter();
         setState(2601);
