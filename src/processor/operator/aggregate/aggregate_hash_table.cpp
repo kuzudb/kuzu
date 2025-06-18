@@ -460,7 +460,7 @@ uint8_t* AggregateHashTable::createEntryInDistinctHT(
 }
 
 void AggregateHashTable::increaseSlotIdx(uint64_t& slotIdx) const {
-    slotIdx = (slotIdx + 1) & bitmask;
+    slotIdx = (slotIdx + 1) % maxNumHashSlots;
 }
 
 void AggregateHashTable::initTmpHashSlotsAndIdxes(const FactorizedTable& sourceTable,
@@ -658,8 +658,8 @@ void AggregateHashTable::resizeHashTableIfNecessary(uint32_t maxNumDistinctHashK
     if (factorizedTable->getNumTuples() + maxNumDistinctHashKeys > maxNumHashSlots ||
         static_cast<double>(factorizedTable->getNumTuples()) + maxNumDistinctHashKeys >
             static_cast<double>(maxNumHashSlots) / DEFAULT_HT_LOAD_FACTOR) {
-        resize(std::bit_ceil(static_cast<uint64_t>(
-            (factorizedTable->getNumTuples() + maxNumDistinctHashKeys) * DEFAULT_HT_LOAD_FACTOR)));
+        resize(std::max(factorizedTable->getNumTuples() + maxNumDistinctHashKeys, maxNumHashSlots) *
+               DEFAULT_HT_LOAD_FACTOR);
     }
 }
 

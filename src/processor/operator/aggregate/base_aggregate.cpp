@@ -79,20 +79,9 @@ void BaseAggregateSharedState::HashTableQueue::appendTuple(std::span<uint8_t> tu
 }
 
 void BaseAggregateSharedState::HashTableQueue::mergeInto(AggregateHashTable& hashTable) {
-    std::vector<TupleBlock*> partitionsToMerge;
-    partitionsToMerge.reserve(queuedTuples.approxSize());
     TupleBlock* partitionToMerge = nullptr;
-    // Over-estimate the total number of distinct groups using the total number of tuples
-    // after the per-thread pre-aggregation
-    // This will probably use more memory than necessary, but will greatly reduce the need
-    // to resize the hash table. It will only use memory proportional to what is already
-    // used by the queuedTuples already, and the hash slots are usually small in comparison
-    // to the full tuple data.
     auto headBlock = this->headBlock.load();
     KU_ASSERT(headBlock != nullptr);
-    hashTable.resizeHashTableIfNecessary(
-        queuedTuples.approxSize() * headBlock->table.getNumTuplesPerBlock() +
-        headBlock->numTuplesWritten);
     while (queuedTuples.pop(partitionToMerge)) {
         KU_ASSERT(
             partitionToMerge->numTuplesWritten == partitionToMerge->table.getNumTuplesPerBlock());
