@@ -223,6 +223,7 @@ function_set InternalCreateHNSWIndexFunction::getFunctionSet() {
     func->canParallelFunc = [] { return true; };
     func->progressFunc = createInMemHNSWProgressFunc;
     func->getPhysicalPlanFunc = getPhysicalPlan;
+    func->isReadOnly = false;
     functionSet.push_back(std::move(func));
     return functionSet;
 }

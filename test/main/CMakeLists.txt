@@ -6,7 +6,8 @@ if(MSVC)
             prepare_test.cpp
             result_value_test.cpp
             storage_driver_test.cpp
-            udf_test.cpp)
+            udf_test.cpp
+            read_only_test.cpp)
 else()
     add_kuzu_api_test(main_test
             api_test.cpp
@@ -16,7 +17,8 @@ else()
             prepare_test.cpp
             result_value_test.cpp
             storage_driver_test.cpp
-            udf_test.cpp)
+            udf_test.cpp
+            read_only_test.cpp)
 endif()
 
 # Also tested for coverage in connection_test.cpp

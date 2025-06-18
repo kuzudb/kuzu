@@ -200,6 +200,7 @@ function_set LocalCacheArrayColumnFunction::getFunctionSet() {
     func->finalizeFunc = finalizeFunc;
     func->canParallelFunc = [] { return true; };
     func->progressFunc = progressFunc;
+    func->isReadOnly = false;
     functionSet.push_back(std::move(func));
     return functionSet;
 }
