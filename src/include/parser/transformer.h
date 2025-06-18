@@ -204,6 +204,8 @@ private:
     std::unique_ptr<Statement> transformRenameTable(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformAddFromToConnection(
         CypherParser::KU_AlterTableContext& ctx);
+    std::unique_ptr<Statement> transformDropFromToConnection(
+        CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformAddProperty(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformDropProperty(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformRenameProperty(CypherParser::KU_AlterTableContext& ctx);

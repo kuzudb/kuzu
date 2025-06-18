@@ -5,6 +5,15 @@
 -STATEMENT ALTER TABLE KNOWS ADD FROM person to organisation
 ---- 1
 Table KNOWS altered.
+-STATEMENT ALTER TABLE KNOWS ADD FROM person to person1
+---- error
+Binder exception: Table person1 does not exist.
+-STATEMENT ALTER TABLE KNOWS ADD FROM person to organisation
+---- error
+Binder exception: Node table pair person->organisation already exists in knows table.
+-STATEMENT ALTER TABLE KNOWS ADD IF NOT EXISTS FROM person to organisation
+---- 1
+Table KNOWS altered.
 -STATEMENT MATCH (p:person {ID: 0}), (o:organisation {ID: 4}) CREATE (p)-[:knows]->(o)
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(o:organisation) RETURN p.ID, o.ID
@@ -61,11 +70,38 @@ Table KNOWS altered.
 -STATEMENT DROP TABLE organisation
 ---- error
 Binder exception: Cannot delete node table organisation because it is referenced by relationship table knows.
+-STATEMENT ALTER TABLE KNOWS DROP FROM person TO X;
+---- error
+Binder exception: Table X does not exist.
+-STATEMENT ALTER TABLE KNOWS DROP FROM person TO organisation;
+---- 1
+Table KNOWS altered.
+-STATEMENT MATCH (p:person)-[e:knows]->(o:organisation) RETURN p.ID, o.ID
+---- 0
 
--CASE AlterWithIncorrectTableName
--STATEMENT ALTER TABLE KNOWS ADD FROM person to person1
+-STATEMENT MATCH (p:person)-[e:knows]->(o) RETURN COUNT(*)
+---- 1
+14
+-STATEMENT ALTER TABLE KNOWS DROP FROM organisation TO organisation;
+---- 1
+Table KNOWS altered.
+-RELOADDB
+-STATEMENT MATCH (o1:organisation)-[e:knows]->(o2:organisation) RETURN o1.ID, o2.ID
+---- 0
+
+-STATEMENT MATCH (p)-[e:knows]->(o) RETURN COUNT(*)
+---- 1
+14
+-STATEMENT ALTER TABLE KNOWS DROP FROM person TO person;
+---- 1
+Table KNOWS altered.
+-STATEMENT ALTER TABLE KNOWS DROP FROM person TO person;
 ---- error
-Binder exception: Table person1 does not exist.
--STATEMENT ALTER TABLE KNOWS ADD FROM person to person
----- error
-Binder exception: Node table pair: person->person already exists in the KNOWS table.
+Binder exception: Node table pair person->person does not exist in knows table.
+-STATEMENT ALTER TABLE KNOWS DROP IF EXISTS FROM person TO person;
+---- 1
+Table KNOWS altered.
+-STATEMENT MATCH (p)-[e:knows]->(o) RETURN COUNT(*)
+---- 1
+0
+

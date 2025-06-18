@@ -31,7 +31,7 @@ void Alter::executeInternal(ExecutionContext* context) {
     auto transaction = clientContext->getTransaction();
     if (catalog->containsTable(transaction, info.tableName)) {
         auto entry = catalog->getTableCatalogEntry(transaction, info.tableName);
-        alterTable(clientContext, entry, info);
+        alterTable(clientContext, *entry, info);
     } else {
         throw BinderException("Table " + info.tableName + " does not exist.");
     }
@@ -39,7 +39,7 @@ void Alter::executeInternal(ExecutionContext* context) {
 
 using on_conflict_throw_action = std::function<void()>;
 
-static void validateProperty(ConflictAction action, const on_conflict_throw_action& throwAction) {
+static void validate(ConflictAction action, const on_conflict_throw_action& throwAction) {
     switch (action) {
     case ConflictAction::ON_CONFLICT_THROW: {
         throwAction();
@@ -51,22 +51,22 @@ static void validateProperty(ConflictAction action, const on_conflict_throw_acti
     }
 }
 
-static void validatePropertyExist(ConflictAction action, TableCatalogEntry* tableEntry,
+static void validatePropertyExist(ConflictAction action, const TableCatalogEntry& tableEntry,
     const std::string& propertyName) {
-    validateProperty(action, [&tableEntry, &propertyName]() {
-        if (!tableEntry->containsProperty(propertyName)) {
+    validate(action, [&tableEntry, &propertyName]() {
+        if (!tableEntry.containsProperty(propertyName)) {
             throw RuntimeException(
-                tableEntry->getName() + " table does not have property " + propertyName + ".");
+                tableEntry.getName() + " table does not have property " + propertyName + ".");
         }
     });
 }
 
-static void validatePropertyNotExist(ConflictAction action, TableCatalogEntry* tableEntry,
+static void validatePropertyNotExist(ConflictAction action, const TableCatalogEntry& tableEntry,
     const std::string& propertyName) {
-    validateProperty(action, [&tableEntry, &propertyName] {
-        if (tableEntry->containsProperty(propertyName)) {
+    validate(action, [&tableEntry, &propertyName] {
+        if (tableEntry.containsProperty(propertyName)) {
             throw RuntimeException(
-                tableEntry->getName() + " table already has property " + propertyName + ".");
+                tableEntry.getName() + " table already has property " + propertyName + ".");
         }
     });
 }
@@ -84,41 +84,40 @@ static bool skipAlter(ConflictAction action, const skip_alter_on_conflict& skipA
     }
 }
 
-static bool checkAddPropertyConflicts(TableCatalogEntry* tableEntry, const BoundAlterInfo& info) {
-    const auto* extraInfo = info.extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
-    validatePropertyNotExist(info.onConflict, tableEntry, extraInfo->propertyDefinition.getName());
+static bool checkAddPropertyConflicts(const TableCatalogEntry& tableEntry,
+    const BoundAlterInfo& info) {
+    const auto& extraInfo = info.extraInfo->constCast<BoundExtraAddPropertyInfo>();
+    auto propertyName = extraInfo.propertyDefinition.getName();
+    validatePropertyNotExist(info.onConflict, tableEntry, propertyName);
 
     // Eventually, we want to support non-constant default on rel tables, but it is non-trivial
     // due to FWD/BWD storage
-    if (tableEntry->getType() == CatalogEntryType::REL_GROUP_ENTRY &&
-        extraInfo->boundDefault->expressionType != ExpressionType::LITERAL) {
+    if (tableEntry.getType() == CatalogEntryType::REL_GROUP_ENTRY &&
+        extraInfo.boundDefault->expressionType != ExpressionType::LITERAL) {
         throw RuntimeException(
             "Cannot set a non-constant default value when adding columns on REL tables.");
     }
 
-    return skipAlter(info.onConflict, [&]() {
-        return tableEntry->containsProperty(
-            info.extraInfo->constCast<BoundExtraAddPropertyInfo>().propertyDefinition.getName());
-    });
+    return skipAlter(info.onConflict,
+        [&tableEntry, &propertyName]() { return tableEntry.containsProperty(propertyName); });
 }
 
-static bool checkDropPropertyConflicts(TableCatalogEntry* tableEntry, const BoundAlterInfo& info) {
-    const auto* extraInfo = info.extraInfo->constPtrCast<BoundExtraDropPropertyInfo>();
-    validatePropertyExist(info.onConflict, tableEntry, extraInfo->propertyName);
+static bool checkDropPropertyConflicts(const TableCatalogEntry& tableEntry,
+    const BoundAlterInfo& info) {
+    const auto& extraInfo = info.extraInfo->constCast<BoundExtraDropPropertyInfo>();
+    auto propertyName = extraInfo.propertyName;
+    validatePropertyExist(info.onConflict, tableEntry, propertyName);
 
-    if (tableEntry->getTableType() == TableType::NODE &&
-        tableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName() ==
-            extraInfo->propertyName) {
+    if (tableEntry.getTableType() == TableType::NODE &&
+        tableEntry.constCast<NodeTableCatalogEntry>().getPrimaryKeyName() == propertyName) {
         throw RuntimeException("Cannot drop primary key of a node table.");
     }
 
-    return skipAlter(info.onConflict, [&]() {
-        return !tableEntry->containsProperty(
-            info.extraInfo->constCast<BoundExtraDropPropertyInfo>().propertyName);
-    });
+    return skipAlter(info.onConflict,
+        [&tableEntry, &propertyName]() { return !tableEntry.containsProperty(propertyName); });
 }
 
-static bool checkRenamePropertyConflicts(TableCatalogEntry* tableEntry,
+static bool checkRenamePropertyConflicts(const TableCatalogEntry& tableEntry,
     const BoundAlterInfo& info) {
     const auto* extraInfo = info.extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
     validatePropertyExist(ConflictAction::ON_CONFLICT_THROW, tableEntry, extraInfo->oldName);
@@ -126,23 +125,61 @@ static bool checkRenamePropertyConflicts(TableCatalogEntry* tableEntry,
     return false;
 }
 
-static void checkNewTableNameNotExist(const std::string& newName, main::ClientContext* context) {
-    auto catalog = context->getCatalog();
-    auto transaction = context->getTransaction();
+static bool checkRenameTableConflicts(const BoundAlterInfo& info, main::ClientContext& context) {
+    auto newName = info.extraInfo->constCast<BoundExtraRenameTableInfo>().newName;
+    auto catalog = context.getCatalog();
+    auto transaction = context.getTransaction();
     if (catalog->containsTable(transaction, newName)) {
         throw BinderException("Table " + newName + " already exists.");
     }
-}
-
-static bool checkRenameTableConflicts(const BoundAlterInfo& info, main::ClientContext* context) {
-    auto newName = info.extraInfo->constCast<BoundExtraRenameTableInfo>().newName;
-    checkNewTableNameNotExist(newName, context);
     return false;
 }
 
+static bool checkAddFromToConflicts(const TableCatalogEntry& tableEntry, const BoundAlterInfo& info,
+    main::ClientContext& context) {
+    auto& extraInfo = info.extraInfo->constCast<BoundExtraAlterFromToConnection>();
+    auto& relGroupEntry = tableEntry.constCast<RelGroupCatalogEntry>();
+    validate(info.onConflict, [&relGroupEntry, &extraInfo, &context]() {
+        if (relGroupEntry.hasRelEntryInfo(extraInfo.fromTableID, extraInfo.toTableID)) {
+            auto catalog = context.getCatalog();
+            auto transaction = context.getTransaction();
+            auto fromTableName =
+                catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
+            auto toTableName =
+                catalog->getTableCatalogEntry(transaction, extraInfo.toTableID)->getName();
+            throw BinderException{stringFormat("Node table pair {}->{} already exists in {} table.",
+                fromTableName, toTableName, relGroupEntry.getName())};
+        }
+    });
+    return skipAlter(info.onConflict, [&relGroupEntry, &extraInfo]() {
+        return relGroupEntry.hasRelEntryInfo(extraInfo.fromTableID, extraInfo.toTableID);
+    });
+}
+
+static bool checkDropFromToConflicts(const TableCatalogEntry& tableEntry,
+    const BoundAlterInfo& info, main::ClientContext& context) {
+    auto& extraInfo = info.extraInfo->constCast<BoundExtraAlterFromToConnection>();
+    auto& relGroupEntry = tableEntry.constCast<RelGroupCatalogEntry>();
+    validate(info.onConflict, [&relGroupEntry, &extraInfo, &context]() {
+        if (!relGroupEntry.hasRelEntryInfo(extraInfo.fromTableID, extraInfo.toTableID)) {
+            auto catalog = context.getCatalog();
+            auto transaction = context.getTransaction();
+            auto fromTableName =
+                catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
+            auto toTableName =
+                catalog->getTableCatalogEntry(transaction, extraInfo.toTableID)->getName();
+            throw BinderException{stringFormat("Node table pair {}->{} does not exist in {} table.",
+                fromTableName, toTableName, relGroupEntry.getName())};
+        }
+    });
+    return skipAlter(info.onConflict, [&relGroupEntry, &extraInfo]() {
+        return !relGroupEntry.hasRelEntryInfo(extraInfo.fromTableID, extraInfo.toTableID);
+    });
+}
+
 // Return we should skip alter.
-static bool checkAlterTableConflicts(TableCatalogEntry* tableEntry, const BoundAlterInfo& info,
-    main::ClientContext* context) {
+static bool checkAlterTableConflicts(const TableCatalogEntry& tableEntry,
+    const BoundAlterInfo& info, main::ClientContext* context) {
     switch (info.alterType) {
     case AlterType::ADD_PROPERTY:
         return checkAddPropertyConflicts(tableEntry, info);
@@ -151,13 +188,17 @@ static bool checkAlterTableConflicts(TableCatalogEntry* tableEntry, const BoundA
     case AlterType::RENAME_PROPERTY:
         return checkRenamePropertyConflicts(tableEntry, info);
     case AlterType::RENAME:
-        return checkRenameTableConflicts(info, context);
+        return checkRenameTableConflicts(info, *context);
+    case AlterType::ADD_FROM_TO_CONNECTION:
+        return checkAddFromToConflicts(tableEntry, info, *context);
+    case AlterType::DROP_FROM_TO_CONNECTION:
+        return checkDropFromToConflicts(tableEntry, info, *context);
     default:
         return false;
     }
 }
 
-void Alter::alterTable(main::ClientContext* clientContext, TableCatalogEntry* entry,
+void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEntry& entry,
     const BoundAlterInfo& alterInfo) const {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
@@ -210,9 +251,9 @@ void Alter::alterTable(main::ClientContext* clientContext, TableCatalogEntry* en
     case AlterType::ADD_FROM_TO_CONNECTION: {
         auto relGroupEntry = catalog->getTableCatalogEntry(transaction, alterInfo.tableName)
                                  ->ptrCast<RelGroupCatalogEntry>();
-        auto connectionInfo = alterInfo.extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
+        auto connectionInfo = alterInfo.extraInfo->constPtrCast<BoundExtraAlterFromToConnection>();
         auto relEntryInfo =
-            relGroupEntry->getRelEntryInfo(connectionInfo->srcTableID, connectionInfo->dstTableID);
+            relGroupEntry->getRelEntryInfo(connectionInfo->fromTableID, connectionInfo->toTableID);
         storageManager->addRelTable(relGroupEntry, *relEntryInfo);
     } break;
     default:

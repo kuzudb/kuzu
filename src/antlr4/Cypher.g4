@@ -148,7 +148,8 @@ kU_AlterOptions
         | kU_DropProperty
         | kU_RenameTable
         | kU_RenameProperty
-        | kU_AddFromToConnection;
+        | kU_AddFromToConnection
+        | kU_DropFromToConnection;
 
 kU_AddProperty
     : ADD SP (kU_IfNotExists SP)? oC_PropertyKeyName SP kU_DataType ( SP kU_Default )? ;
@@ -166,7 +167,10 @@ kU_RenameProperty
     : RENAME SP oC_PropertyKeyName SP TO SP oC_PropertyKeyName ;
 
 kU_AddFromToConnection
-    : ADD SP kU_FromToConnection ;
+    : ADD SP (kU_IfNotExists SP)? kU_FromToConnection ;
+
+kU_DropFromToConnection
+    : DROP SP (kU_IfExists SP)? kU_FromToConnection ;
 
 kU_ColumnDefinitions: kU_ColumnDefinition ( SP? ',' SP? kU_ColumnDefinition )* ;
 
