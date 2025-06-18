@@ -150,7 +150,7 @@ test-build:
 
 test: test-build
 	python3 dataset/ldbc-1/download_data.py
-	python3 scripts/export-dbs.py tools/shell/build/release/tools/shell/kuzu dataset
+	python3 scripts/export-dbs.py tools/shell/build/relwithdebinfo/tools/shell/kuzu dataset
 	ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
