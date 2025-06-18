@@ -167,7 +167,9 @@ bool RollbackPKDeleter::processScanOutput(Transaction* transaction, MemoryManage
             static constexpr auto isVisible = [](offset_t) { return true; };
             if (offset_t lookupOffset = 0;
                 pkIndex.lookup(transaction, key, lookupOffset, isVisible)) {
-                pkIndex.delete_(key);
+                // If we delete the key then it will not be visible to future transactions within
+                // this process
+                pkIndex.discardLocal(key);
             }
         }
     };

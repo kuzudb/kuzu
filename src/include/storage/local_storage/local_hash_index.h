@@ -45,6 +45,8 @@ public:
         }
     }
 
+    bool discard(Key key) { return localInsertions.deleteKey(key); }
+
     bool insert(Key key, common::offset_t value, visible_func isVisible) {
         auto iter = localDeletions.find(key);
         if (iter != localDeletions.end()) {
