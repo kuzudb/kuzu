@@ -31,19 +31,21 @@ struct VectorAllocatorImpl {
     using value_type = T;
 
     [[nodiscard]] T* allocate(const std::size_t size) {
-        oldData = std::move(curData);
-        curData = std::make_unique<uint8_t[]>(size * sizeof(T));
-        return reinterpret_cast<T*>(curData.get());
+        const auto sizeBytes = size * sizeof(T);
+        if (sizeBytes > curData.capacity()) {
+            oldData = std::move(curData);
+            curData.reserve(sizeBytes);
+        }
+        return reinterpret_cast<T*>(curData.data());
     }
 
     void deallocate([[maybe_unused]] T* ptr, const std::size_t) noexcept {
-        KU_ASSERT(reinterpret_cast<uint8_t*>(ptr) == oldData.get() ||
-                  reinterpret_cast<uint8_t*>(ptr) == curData.get());
-        oldData.reset();
+        KU_ASSERT(reinterpret_cast<uint8_t*>(ptr) == oldData.data() ||
+                  reinterpret_cast<uint8_t*>(ptr) == curData.data());
     }
 
-    std::unique_ptr<uint8_t[]> curData;
-    std::unique_ptr<uint8_t[]> oldData;
+    std::vector<uint8_t> curData;
+    std::vector<uint8_t> oldData;
 };
 
 template<typename T>
@@ -262,7 +264,7 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable){};
+        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable) {};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 
