@@ -26,16 +26,18 @@ struct EmbeddingColumnInfo {
 
 struct EmbeddingHandle;
 
-struct GetEmbeddingsLocalState {
-    virtual ~GetEmbeddingsLocalState() = default;
+// This class is responsible for managing the lifetimes of retrieved embeddings
+
+struct GetEmbeddingsScanState {
+    virtual ~GetEmbeddingsScanState() = default;
 
     virtual void* getEmbeddingPtr(const EmbeddingHandle& handle) = 0;
 
-    // This class is responsible for managing the lifetimes of retrieved embeddings
     // addEmbedding() is called when an embedding handle is allocated
+    virtual void addEmbedding(const EmbeddingHandle& handle) = 0;
+
     // reclaimEmbedding() is called when an embedding handle does out of scope
     // and should reclaim any resources allocated for the embedding
-    virtual void addEmbedding(const EmbeddingHandle& handle) = 0;
     virtual void reclaimEmbedding(const EmbeddingHandle& handle) = 0;
 
     template<class TARGET>
@@ -46,7 +48,7 @@ struct GetEmbeddingsLocalState {
 
 struct EmbeddingHandle {
     explicit EmbeddingHandle(common::offset_t offset,
-        GetEmbeddingsLocalState* lifetimeManager = nullptr);
+        GetEmbeddingsScanState* lifetimeManager = nullptr);
     ~EmbeddingHandle();
     DELETE_BOTH_COPY(EmbeddingHandle);
     EmbeddingHandle(EmbeddingHandle&&);
@@ -57,50 +59,47 @@ struct EmbeddingHandle {
     static EmbeddingHandle createNullHandle() { return EmbeddingHandle{common::INVALID_OFFSET}; }
 
     common::offset_t offsetInData;
-    GetEmbeddingsLocalState* lifetimeManager;
+    GetEmbeddingsScanState* lifetimeManager;
 };
 
-class CreateHNSWIndexEmbeddings {
+class HNSWIndexEmbeddings {
 public:
-    virtual ~CreateHNSWIndexEmbeddings() = default;
-    explicit CreateHNSWIndexEmbeddings(common::ArrayTypeInfo typeInfo)
-        : info{std::move(typeInfo)} {}
+    virtual ~HNSWIndexEmbeddings() = default;
+    explicit HNSWIndexEmbeddings(common::ArrayTypeInfo typeInfo) : info{std::move(typeInfo)} {}
 
     virtual EmbeddingHandle getEmbedding(common::offset_t offset,
-        GetEmbeddingsLocalState& localState) const = 0;
+        GetEmbeddingsScanState& scanState) const = 0;
     virtual std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
-        GetEmbeddingsLocalState& localState) const = 0;
-    virtual bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const = 0;
+        GetEmbeddingsScanState& scanState) const = 0;
 
     common::length_t getDimension() const { return info.getDimension(); }
-    virtual std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() = 0;
+    virtual std::unique_ptr<GetEmbeddingsScanState> constructScanState() const = 0;
 
 protected:
     EmbeddingColumnInfo info;
 };
 
-class InMemEmbeddings final : public CreateHNSWIndexEmbeddings {
+class InMemEmbeddings final : public HNSWIndexEmbeddings {
 public:
     InMemEmbeddings(transaction::Transaction* transaction, common::ArrayTypeInfo typeInfo,
         common::table_id_t tableID, common::column_id_t columnID);
 
     EmbeddingHandle getEmbedding(common::offset_t offset,
-        GetEmbeddingsLocalState& localState) const override;
+        GetEmbeddingsScanState& scanState) const override;
     std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
-        GetEmbeddingsLocalState& localState) const override;
-    bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
+        GetEmbeddingsScanState& scanState) const override;
 
-    std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() override;
+    std::unique_ptr<GetEmbeddingsScanState> constructScanState() const override;
 
 private:
     storage::CachedColumn* data;
 };
 
-class OnDiskEmbeddingScanState : public GetEmbeddingsLocalState {
+class OnDiskEmbeddingScanState : public GetEmbeddingsScanState {
 public:
     OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
         storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID,
-        common::offset_t arrayDim);
+        common::offset_t embeddingDim);
 
     void* getEmbeddingPtr(const EmbeddingHandle& handle) override;
     void addEmbedding(const EmbeddingHandle& handle) override;
@@ -117,42 +116,22 @@ private:
     std::stack<common::offset_t> usedEmbeddingOffsets;
     std::bitset<common::DEFAULT_VECTOR_CAPACITY> allocatedOffsets;
 
-    common::offset_t arrayDim;
+    common::offset_t embeddingDim;
 };
 
-class OnDiskEmbeddings final {
+class OnDiskEmbeddings final : public HNSWIndexEmbeddings {
 public:
-    OnDiskEmbeddings(common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable)
-        : info{std::move(typeInfo)}, nodeTable{nodeTable} {}
-
-    EmbeddingHandle getEmbedding(transaction::Transaction* transaction, common::offset_t offset,
-        GetEmbeddingsLocalState& localState) const;
-
-    std::vector<EmbeddingHandle> getEmbeddings(transaction::Transaction* transaction,
-        std::span<const common::offset_t> offsets, GetEmbeddingsLocalState& localState) const;
-
-    common::length_t getDimension() const { return info.getDimension(); }
-
-private:
-    EmbeddingColumnInfo info;
-    storage::NodeTable& nodeTable;
-};
-
-class OnDiskCreateHNSWIndexEmbeddings : public CreateHNSWIndexEmbeddings {
-public:
-    OnDiskCreateHNSWIndexEmbeddings(transaction::Transaction* transaction,
-        storage::MemoryManager* mm, common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable,
+    OnDiskEmbeddings(transaction::Transaction* transaction, storage::MemoryManager* mm,
+        common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable,
         common::column_id_t columnID);
 
     EmbeddingHandle getEmbedding(common::offset_t offset,
-        GetEmbeddingsLocalState& localState) const override;
+        GetEmbeddingsScanState& scanState) const override;
     std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
-        GetEmbeddingsLocalState& localState) const override;
-    bool isNull(common::offset_t offset, GetEmbeddingsLocalState& localState) const override;
-    std::unique_ptr<GetEmbeddingsLocalState> constructLocalState() override;
+        GetEmbeddingsScanState& scanState) const override;
+    std::unique_ptr<GetEmbeddingsScanState> constructScanState() const override;
 
 private:
-    OnDiskEmbeddings embeddings;
     transaction::Transaction* transaction;
 
     storage::MemoryManager* mm;

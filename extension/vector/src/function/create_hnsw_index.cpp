@@ -2,6 +2,7 @@
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/hnsw_index_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
@@ -51,6 +52,12 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
     auto propertyID = tableEntry->getPropertyID(columnName);
     auto config = HNSWIndexConfig{input->optionalParams};
+    if (HNSWIndex::getDegreeThresholdToShrink(config.ml) >
+        static_cast<int64_t>(DEFAULT_VECTOR_CAPACITY)) {
+        throw BinderException(
+            stringFormat("Unsupported configured ml value {}, the maximum supported value is {}.",
+                config.ml, HNSWIndex::getMaximumSupportedMl()));
+    }
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
         numNodes, std::move(config));
