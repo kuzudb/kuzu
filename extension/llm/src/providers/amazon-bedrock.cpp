@@ -4,8 +4,6 @@
 #include "common/exception/runtime.h"
 #include "common/types/timestamp_t.h"
 #include "crypto.h"
-#include "httplib.h"
-#include "json.hpp"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -19,7 +17,7 @@ EmbeddingProvider& BedrockEmbedding::getInstance() {
 }
 
 std::string BedrockEmbedding::getClient() const {
-    return "https://bedrock-runtime.us-east-1.amazonaws.com";
+    return "https://bedrock-runtime." + region.value_or("") + ".amazonaws.com";
 }
 
 std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
@@ -28,7 +26,7 @@ std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
 
 // AWS requests require an authorization signature in the header. This is part
 // of a scheme to validate the request. The body is used to create this
-// signature. This is one of the reasons the same header cannot be used accross
+// signature. This is one of the reasons the same header cannot be used across
 // different requests. Refer to
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
 httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) const {
@@ -47,10 +45,8 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
         throw(RuntimeException(errMsg + std::string(referenceKuzuDocs)));
     }
     std::string service = "bedrock";
-    // TODO(Tanvir): Hardcoded for now, needs to change when a configuration scheme is
-    // supported
-    std::string region = "us-east-1";
-    std::string host = "bedrock-runtime.us-east-1.amazonaws.com";
+    std::string region = this->region.value_or("");
+    std::string host = "bedrock-runtime." + region + ".amazonaws.com";
 
     auto timestamp = Timestamp::getCurrentTimestamp();
     auto dateHeader = Timestamp::getDateHeader(timestamp);
@@ -129,14 +125,18 @@ std::vector<float> BedrockEmbedding::parseResponse(const httplib::Result& res) c
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
 
-uint64_t BedrockEmbedding::getEmbeddingDimension(const std::string& model) {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"amazon.titan-embed-text-v1", 1024}};
-    auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(BinderException("Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
+    const std::optional<std::string>& region) {
+    if (dimensions.has_value()) {
+        throw(BinderException(
+            "Bedrock does not support the dimensions argument, but received dimension: " +
+            std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
-    return modelDimensionMapIter->second;
+    if (!region.has_value()) {
+        throw(BinderException("Bedrock requires a region argument, but recieved none\n" +
+                              std::string(referenceKuzuDocs)));
+    }
+    this->region = region;
 }
 
 } // namespace llm_extension

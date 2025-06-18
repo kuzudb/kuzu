@@ -1,6 +1,7 @@
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
+#include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
 #include "httplib.h"
@@ -78,27 +79,74 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     }
 }
 
+static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr,
+    main::ClientContext* context) {
+    auto dimensions =
+        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(dimensionsExpr, context)
+            .getValue<int64_t>();
+    if (dimensions <= 0) {
+        throw(BinderException(
+            "Dimensions should be greater than 0, but found: " + dimensionsExpr->toString() + '\n' +
+            std::string(EmbeddingProvider::referenceKuzuDocs)));
+    }
+    return dimensions;
+}
+
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    std::vector<LogicalType> types;
-    types.push_back(input.arguments[0]->getDataType().copy());
-    types.push_back(input.arguments[1]->getDataType().copy());
-    types.push_back(input.arguments[2]->getDataType().copy());
-    uint64_t embeddingDimensions =
-        getInstance(StringUtils::getLower(input.arguments[1]->toString()))
-            .getEmbeddingDimension(StringUtils::getLower(input.arguments[2]->toString()));
-    return std::make_unique<FunctionBindData>(std::move(types),
-        LogicalType::ARRAY(LogicalType(LogicalTypeID::FLOAT), embeddingDimensions));
+    std::optional<uint64_t> dimensions = std::nullopt;
+    std::optional<std::string> region = std::nullopt;
+    auto& provider = getInstance(StringUtils::getLower(input.arguments[1]->toString()));
+    if (input.arguments.size() == 5) {
+        dimensions = parseDimensions(input.arguments[3], input.context);
+        region = StringUtils::getLower(input.arguments[4]->toString());
+    } else if (input.arguments.size() == 4) {
+        if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
+            region = StringUtils::getLower(input.arguments[3]->toString());
+        } else {
+            dimensions = parseDimensions(input.arguments[3], input.context);
+        }
+    }
+
+    provider.configure(dimensions, region);
+    return FunctionBindData::getSimpleBindData(input.arguments,
+        LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
 }
 
 function_set CreateEmbedding::getFunctionSet() {
     function_set functionSet;
+
     // Prompt, Provider, Model -> Vector Embedding
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING},
-        LogicalTypeID::ARRAY, execFunc);
+        LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
+
+    // Prompt, Provider, Model, Region -> Vector Embedding
+    function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::STRING},
+        LogicalTypeID::LIST, execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
+
+    // Prompt, Provider, Model, Dimensions -> Vector Embedding
+    function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::INT64},
+        LogicalTypeID::LIST, execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
+
+    // Prompt, Provider, Model, Dimensions, Region -> Vector Embedding
+    function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::STRING},
+        LogicalTypeID::LIST, execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
+
     return functionSet;
 }
 

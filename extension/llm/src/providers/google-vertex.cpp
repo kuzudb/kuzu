@@ -2,9 +2,9 @@
 
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
-#include "httplib.h"
-#include "json.hpp"
 #include "main/client_context.h"
+
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace llm_extension {
@@ -22,21 +22,19 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
     static const std::string envVar = "GOOGLE_CLOUD_PROJECT_ID";
     auto env_project_id = main::ClientContext::getEnvVariable(envVar);
     if (env_project_id.empty()) {
-        throw(common::RuntimeException(
+        throw(RuntimeException(
             "Could not get project id from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
     }
-    // TODO(Tanvir): Location is hardcoded, this should be changed when configuration is
-    // supported
-    return "/v1/projects/" + env_project_id + "/locations/us-central1/publishers/google/models/" +
-           model + ":predict";
+    return "/v1/projects/" + env_project_id + "/locations/" + region.value_or("") +
+           "/publishers/google/models/" + model + ":predict";
 }
 
 httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
     static const std::string envVar = "GOOGLE_VERTEX_ACCESS_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
-        throw(common::RuntimeException(
-            "Could not get key from: " + envVar + '\n' + std::string(referenceKuzuDocs)));
+        throw(RuntimeException("Could not read environmental variable: " + envVar + '\n' +
+                               std::string(referenceKuzuDocs)));
     }
     return httplib::Headers{{"Content-Type", "application/json"},
         {"Authorization", "Bearer " + env_key}};
@@ -44,7 +42,12 @@ httplib::Headers GoogleVertexEmbedding::getHeaders(const nlohmann::json& /*paylo
 
 nlohmann::json GoogleVertexEmbedding::getPayload(const std::string& /*model*/,
     const std::string& text) const {
-    return nlohmann::json{{"instances", {{{"content", text}}}}};
+    nlohmann::json payload{
+        {"instances", {{{"content", text}, {"task_type", "RETRIEVAL_DOCUMENT"}}}}};
+    if (dimensions.has_value()) {
+        payload["parameters"] = {{"outputDimensionality", dimensions.value()}};
+    }
+    return payload;
 }
 
 std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& res) const {
@@ -52,17 +55,14 @@ std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& r
         .get<std::vector<float>>();
 }
 
-uint64_t GoogleVertexEmbedding::getEmbeddingDimension(const std::string& model) {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"gemini-embedding-001", 3072}, {"text-embedding-005", 768},
-        {"text-multilingual-embedding-002", 768}};
-
-    auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException(
-            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
+    const std::optional<std::string>& region) {
+    if (!region.has_value()) {
+        throw(BinderException("Google Vertex requires a region argument, but recieved none\n" +
+                              std::string(referenceKuzuDocs)));
     }
-    return modelDimensionMapIter->second;
+    this->dimensions = dimensions;
+    this->region = region;
 }
 
 } // namespace llm_extension

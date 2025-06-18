@@ -1,0 +1,36 @@
+-SKIP
+-DATASET CSV empty
+
+--
+
+-CASE BadParams
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT return create_embedding('Hello World', 'voyage-ai', 'voyage-3-large', 10);
+---- error
+Connection exception: Request failed with status 400
+ Body: {"detail":"Value '10' supplied for argument 'output_dimension' is not valid -- accepted values for 'voyage-3-large' are [256, 512, 1024, 2048]."}
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT return create_embedding('Hello World', 'voyage-ai', 'voyage-3-large', 35);
+---- error
+Connection exception: Request failed with status 400
+ Body: {"detail":"Value '35' supplied for argument 'output_dimension' is not valid -- accepted values for 'voyage-3-large' are [256, 512, 1024, 2048]."}
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT return create_embedding('this better fail', 'voyage-ai', 'voyage-3-large', 'badRegion')
+---- error
+Binder exception: Voyage-AI does not support the region argument, but received region: badregion
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT return create_embedding('this better fail', 'voyage-ai', 'voyage-3-large', 50, 'badRegion')
+---- error
+Binder exception: Voyage-AI does not support the region argument, but received region: badregion
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT return create_embedding('this better fail', 'voyage-ai', 'voyage-3-large', -50, 'badRegion')
+---- error
+Binder exception: Failed to parse dimensions: NEGATE(50)
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/

@@ -12,12 +12,18 @@
 -STATEMENT return create_embedding('hello')
 ---- error
 Binder exception: Cannot match a built-in function for given function CREATE_EMBEDDING(STRING). Supported inputs are
-(STRING,STRING,STRING) -> ARRAY
+(STRING,STRING,STRING) -> LIST
+(STRING,STRING,STRING,STRING) -> LIST
+(STRING,STRING,STRING,INT64) -> LIST
+(STRING,STRING,STRING,INT64,STRING) -> LIST
 
 -STATEMENT return create_embedding('hello', 'olama')
 ---- error
 Binder exception: Cannot match a built-in function for given function CREATE_EMBEDDING(STRING,STRING). Supported inputs are
-(STRING,STRING,STRING) -> ARRAY
+(STRING,STRING,STRING) -> LIST
+(STRING,STRING,STRING,STRING) -> LIST
+(STRING,STRING,STRING,INT64) -> LIST
+(STRING,STRING,STRING,INT64,STRING) -> LIST
 
 -STATEMENT return create_embedding('hello', 'olama', 'nomic-text-embed')
 ---- error
@@ -25,10 +31,8 @@ Binder exception: Provider not found: olama
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 -STATEMENT return create_embedding('hello', 'ollama', 'MODEL_DNE')
----- error
-Binder exception: Invalid Model: model_dne
-For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
-
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: ([\s\S]+)
 
 -CASE BadCast
 
@@ -43,7 +47,7 @@ For more information, please refer to the official Kuzu documentation: https://d
 
 -STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'ollama', 'nomic-embed-text') AS emb SET b.title_embedding = emb;
 ---- error
-Binder exception: Data type of expression emb should not be modified.
+Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 766, Actual: 768.
 
 -CASE FailedPost
 
@@ -56,9 +60,36 @@ Binder exception: Data type of expression emb should not be modified.
 -STATEMENT CREATE (b:Book {title: 'The Quantum World', published_year: 2004});
 ---- ok
 
+# This test requires not having Ollama running. This test may need to be moved
+# out of this file so that CI can process the requirements before running.
+-CASE OllamaNotRunning
 -LOG Run Without Having Ollama at http://localhost:11434
 -STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'ollama', 'nomic-embed-text') AS emb SET b.title_embedding = emb;
 ---- error
 Connection exception: Request failed: Could not connect to server <http://localhost:11434> 
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
+-CASE UnsupportedParams
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT return create_embedding('this better fail', 'ollama', 'nomic-embed-text', 50)
+---- error
+Binder exception: Ollama does not support the dimensions argument, but received dimension: 50
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT return create_embedding('this better fail', 'ollama', 'nomic-embed-text', 'badRegion')
+---- error
+Binder exception: Ollama does not support the region argument, but received region: badregion
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT return create_embedding('this better fail', 'ollama', 'nomic-embed-text', 50, 'badRegion')
+---- error
+Binder exception: Ollama does not support the dimensions argument, but received dimension: 50
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT return create_embedding('this better fail', 'ollama', 'nomic-embed-text', -50, 'badRegion')
+---- error
+Binder exception: Failed to parse dimensions: NEGATE(50)
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/

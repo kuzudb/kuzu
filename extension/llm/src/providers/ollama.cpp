@@ -1,8 +1,8 @@
 #include "providers/ollama.h"
 
 #include "common/exception/binder.h"
-#include "httplib.h"
-#include "json.hpp"
+
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace llm_extension {
@@ -33,15 +33,17 @@ std::vector<float> OllamaEmbedding::parseResponse(const httplib::Result& res) co
     return nlohmann::json::parse(res->body)["embedding"].get<std::vector<float>>();
 }
 
-uint64_t OllamaEmbedding::getEmbeddingDimension(const std::string& model) {
-    static const std::unordered_map<std::string, uint64_t> modelDimensionMap = {
-        {"nomic-embed-text", 768}, {"all-minilm:l6-v2", 384}};
-    auto modelDimensionMapIter = modelDimensionMap.find(model);
-    if (modelDimensionMapIter == modelDimensionMap.end()) {
-        throw(common::BinderException(
-            "Invalid Model: " + model + '\n' + std::string(referenceKuzuDocs)));
+void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
+    const std::optional<std::string>& region) {
+    if (dimensions.has_value()) {
+        throw(BinderException(
+            "Ollama does not support the dimensions argument, but received dimension: " +
+            std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
-    return modelDimensionMapIter->second;
+    if (region.has_value()) {
+        throw(BinderException("Ollama does not support the region argument, but received region: " +
+                              region.value() + '\n' + std::string(referenceKuzuDocs)));
+    }
 }
 
 } // namespace llm_extension
