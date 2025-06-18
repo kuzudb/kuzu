@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/hnsw_index_catalog_entry.h"
+#include "function/hnsw_index_functions.h"
 #include "index/hnsw_rel_batch_insert.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
@@ -346,19 +347,19 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo ind
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
-    VisitedState& lowerVisited, GetEmbeddingsScanState& scanState) {
+bool InMemHNSWIndex::insert(common::offset_t offset, CreateInMemHNSWLocalState* localState) {
+    auto& scanState = *localState->embeddingsScanState;
     auto queryVector = embeddings->getEmbedding(offset, scanState);
     if (queryVector.isNull()) {
         return false;
     }
     const auto lowerEntryPoint = upperGraphOffsetToNodeOffset(
         upperLayer->searchNN(queryVector.getPtr(), upperLayer->getEntryPoint(), scanState));
-    lowerLayer->insert(offset, lowerEntryPoint, lowerVisited, scanState);
+    lowerLayer->insert(offset, lowerEntryPoint, localState->lowerVisited, scanState);
     if (upperLayerSelectionMask->isNull(offset)) {
         const auto offsetInUpperGraph = upperGraphSelectionMap->nodeToGraphOffset(offset);
-        upperLayer->insert(offsetInUpperGraph, upperLayer->getEntryPoint(), upperVisited,
-            scanState);
+        upperLayer->insert(offsetInUpperGraph, upperLayer->getEntryPoint(),
+            localState->upperVisited, scanState);
     }
     return true;
 }

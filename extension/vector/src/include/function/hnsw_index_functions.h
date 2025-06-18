@@ -45,10 +45,13 @@ struct CreateInMemHNSWSharedState final : function::SimpleTableFuncSharedState {
 struct CreateInMemHNSWLocalState final : function::TableFuncLocalState {
     VisitedState upperVisited;
     VisitedState lowerVisited;
+    std::unique_ptr<GetEmbeddingsScanState> embeddingsScanState;
 
     explicit CreateInMemHNSWLocalState(common::offset_t numNodes,
-        common::offset_t numUpperLayerNodes)
-        : upperVisited{numUpperLayerNodes}, lowerVisited{numNodes} {}
+        common::offset_t numUpperLayerNodes,
+        std::unique_ptr<GetEmbeddingsScanState> embeddingsScanState)
+        : upperVisited{numUpperLayerNodes}, lowerVisited{numNodes},
+          embeddingsScanState(std::move(embeddingsScanState)) {}
 };
 
 struct FinalizeHNSWSharedState final : function::SimpleTableFuncSharedState {

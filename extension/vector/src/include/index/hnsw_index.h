@@ -23,6 +23,7 @@ class NodeTable;
 namespace vector_extension {
 
 struct HNSWIndexPartitionerSharedState;
+struct CreateInMemHNSWLocalState;
 
 struct MinNodePriorityQueueComparator {
     bool operator()(const NodeWithDistance& l, const NodeWithDistance& r) const {
@@ -218,13 +219,12 @@ public:
         KU_UNREACHABLE;
     }
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
-    bool insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited,
-        GetEmbeddingsScanState& scanState);
+    bool insert(common::offset_t offset, CreateInMemHNSWLocalState* localState);
     void finalize(common::node_group_idx_t nodeGroupIdx);
 
     void moveToPartitionState(HNSWIndexPartitionerSharedState& partitionState);
 
-    std::unique_ptr<GetEmbeddingsScanState> constructEmbeddingsLocalState() const {
+    std::unique_ptr<GetEmbeddingsScanState> constructEmbeddingsScanState() const {
         return embeddings->constructScanState();
     }
 

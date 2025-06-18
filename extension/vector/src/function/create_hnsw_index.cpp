@@ -74,7 +74,7 @@ static std::unique_ptr<TableFuncLocalState> initCreateInMemHNSWLocalState(
     const auto* bindData = input.bindData.constPtrCast<CreateHNSWIndexBindData>();
     const auto& index = input.sharedState.ptrCast<CreateInMemHNSWSharedState>()->hnswIndex;
     return std::make_unique<CreateInMemHNSWLocalState>(bindData->numRows + 1,
-        index->getNumUpperLayerNodes());
+        index->getNumUpperLayerNodes(), index->constructEmbeddingsScanState());
 }
 
 static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {
@@ -85,11 +85,9 @@ static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncO
     }
     const auto& hnswIndex = sharedState->hnswIndex;
     offset_t numNodesInserted = 0;
-    auto localState = hnswIndex->constructEmbeddingsLocalState();
     for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
-        numNodesInserted += hnswIndex->insert(i,
-            input.localState->ptrCast<CreateInMemHNSWLocalState>()->upperVisited,
-            input.localState->ptrCast<CreateInMemHNSWLocalState>()->lowerVisited, *localState);
+        numNodesInserted +=
+            hnswIndex->insert(i, input.localState->ptrCast<CreateInMemHNSWLocalState>());
     }
     sharedState->numNodesInserted.fetch_add(numNodesInserted);
     return morsel.endOffset - morsel.startOffset;
