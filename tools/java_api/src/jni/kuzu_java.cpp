@@ -7,9 +7,8 @@
 #endif
 
 // This header is generated at build time. See CMakeLists.txt.
-#include <vector>
-
 #include <iostream>
+#include <vector>
 
 #include "com_kuzudb_Native.h"
 #include "common/constants.h"
