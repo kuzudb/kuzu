@@ -26,14 +26,17 @@ def getVersion(executablePath):
 # Parse schema.cypher and copy.cypher file
 def normalizeCypherCommands(filePath):
     commands = []
-    with open(filePath, "r") as f:
-        for line in f:
-            stripped = line.strip()
-            if not stripped:
-                continue
-            if not stripped.endswith(";"):
-                stripped += ";"
-            commands.append(stripped)
+    try:
+        with open(filePath, "r") as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if not stripped.endswith(";"):
+                    stripped += ";"
+                commands.append(stripped)
+    except Exception:
+        pass
     return commands
 
 
@@ -48,7 +51,7 @@ def findValidDatasetDirs(datasetRoot):
             continue
         fileSet = set(files)
 
-        if "schema.cypher" in fileSet and "copy.cypher" in fileSet:
+        if "schema.cypher" in fileSet:
             validDirs.append(root)
 
     return validDirs
