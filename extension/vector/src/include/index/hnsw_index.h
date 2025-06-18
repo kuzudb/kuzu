@@ -320,9 +320,6 @@ public:
 
     void checkpoint(main::ClientContext* context, bool forceCheckpointAll) override;
 
-    std::unique_ptr<HNSWIndexEmbeddings> constructEmbeddings(
-        transaction::Transaction* transaction) const;
-
 private:
     common::offset_t searchNNInUpperLayer(const void* queryVector,
         HNSWSearchState& searchState) const;

@@ -330,7 +330,7 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo ind
     : HNSWIndex{std::move(indexInfo), std::move(storageInfo), std::move(config),
           getArrayTypeInfo(table, columnID)} {
     const auto numNodes = table.getNumTotalRows(context->getTransaction());
-    embeddings = constructEmbeddingsColumn(context, typeInfo, table, columnID, config);
+    embeddings = constructEmbeddingsColumn(context, typeInfo, table, columnID, this->config);
     upperLayerSelectionMask =
         getUpperLayerSelectionMask(*embeddings, numNodes, this->config, randomEngine);
     lowerGraphSelectionMap = std::make_unique<NodeToHNSWGraphOffsetMap>(numNodes);
@@ -463,13 +463,6 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(const main::ClientContext* context, IndexInfo i
     upperRelTable = storageManager->getTable(hnswStorageInfo.upperRelTableID)->ptrCast<RelTable>();
 }
 
-std::unique_ptr<HNSWIndexEmbeddings> OnDiskHNSWIndex::constructEmbeddings(
-    transaction::Transaction* transaction) const {
-    return std::make_unique<OnDiskEmbeddings>(transaction, mm,
-        common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()}, nodeTable,
-        indexInfo.columnIDs[0]);
-}
-
 std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, StorageManager*,
     IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer) {
     auto reader =
@@ -556,7 +549,6 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
         transaction::Transaction::START_TRANSACTION_ID - 1);
     context->getTransactionContext()->setActiveTransaction(std::move(transaction));
     try {
-        const auto embeddings = constructEmbeddings(transaction.get());
         const auto catalog = context->getCatalog();
         auto nodeTableEntry =
             catalog->getTableCatalogEntry(context->getTransaction(), indexInfo.tableID);
@@ -575,7 +567,8 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
             upperRelTableEntry, lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
         // TODO(Guodong): Perhaps should switch to scan instead of lookup here.
         for (auto offset = hnswStorageInfo.numCheckpointedNodes; offset < numTotalRows; offset++) {
-            const auto vector = embeddings->getEmbedding(offset, *scanState);
+            const auto vector =
+                insertState->searchState.embeddings->getEmbedding(offset, *scanState);
             if (vector.isNull()) {
                 continue;
             }
