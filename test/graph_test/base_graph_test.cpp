@@ -7,6 +7,7 @@
 #include "common/string_format.h"
 #include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
+#include <common/string_utils.h>
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -107,7 +108,13 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
     }
 
     // Run tests on datasets exported from a previous Kuzu version. Used to verify that exports and
-    // imports across versions work correctly.
+    // imports across versions work correctly.Note: we skip importing the empty db
+    auto dirs = StringUtils::split(datasetDir, "/");
+    if (std::find(dirs.begin(), dirs.end(), "empty") != dirs.end())
+    {
+        std::cout << "Skipping empty DB" << std::endl;
+        return;
+    }
     std::string query = "IMPORT DATABASE '" + datasetDir + "';";
     std::cout << "Loading database as: " << query << std::endl;
     auto result = connection->query(query);
