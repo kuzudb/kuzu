@@ -146,14 +146,11 @@ alldebug:
 
 # Main tests
 test-build:
-	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DBUILD_SHELL=TRUE -DENABLE_BACKTRACES=TRUE)
+	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
 
 test: test-build
 	python3 dataset/ldbc-1/download_data.py
-	python3 scripts/export-dbs.py tools/shell/kuzu dataset
-	export E2E_IMPORT_DB_DIR=dataset/tmp/0.10.0.5/
 	ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/test --output-on-failure -j ${TEST_JOBS}
-	unset E2E_IMPORT_DB_DIR
 
 lcov:
 	python3 dataset/ldbc-1/download_data.py
