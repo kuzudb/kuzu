@@ -9,6 +9,8 @@
 // This header is generated at build time. See CMakeLists.txt.
 #include <vector>
 
+#include <iostream>
+
 #include "com_kuzudb_Native.h"
 #include "common/constants.h"
 #include "common/exception/exception.h"
@@ -1446,8 +1448,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
             return ret;
         }
         case LogicalTypeID::UUID: {
-            std::string str = v->getValue<std::string>();
-            jstring javaStr = env->NewStringUTF(str.c_str());
+            int128_t uuid = v->getValue<int128_t>();
+            jstring javaStr = env->NewStringUTF(UUID::toString(uuid).c_str());
             jobject ret = env->CallStaticObjectMethod(J_C_UUID, J_C_UUID_M_fromString, javaStr);
             return ret;
         }

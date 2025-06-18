@@ -899,6 +899,8 @@ public class ValueTest extends TestBase {
 
         UUID uid = value.getValue();
         assertTrue(uid.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")));
+        Value cloned = value.clone();
+        assertTrue(cloned.getValue().equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")));
         value.close();
         flatTuple.close();
         result.close();
