@@ -152,6 +152,7 @@ struct NodeWithDistance {
 template<typename T, typename ReferenceType>
 concept OffsetRangeLookup = requires(T t, common::offset_t offset) {
     { t.at(offset) } -> std::convertible_to<ReferenceType>;
+    { t.getInvalidOffset() } -> std::convertible_to<common::offset_t>;
 };
 
 /**
@@ -166,7 +167,10 @@ struct CompressedOffsetSpan {
     struct Iterator {
         bool operator==(const Iterator& o) const { return !(*this != o); }
         bool operator!=(const Iterator& o) const { return offset != o.offset; }
-        ReferenceType operator*() const { return lookup.at(offset); }
+        ReferenceType operator*() const {
+            auto val = lookup.at(offset);
+            return val == lookup.getInvalidOffset() ? common::INVALID_OFFSET : val;
+        }
         void operator++() { ++offset; }
 
         const Lookup& lookup;
@@ -187,6 +191,9 @@ struct CompressedOffsetsView {
     virtual common::offset_t getNodeOffsetAtomic(common::offset_t csrOffset) const = 0;
     virtual void setNodeOffsetAtomic(common::offset_t csrOffset, common::offset_t nodeID) = 0;
     common::offset_t at(common::offset_t offset) const { return getNodeOffsetAtomic(offset); };
+
+    // In the current implementation, race conditions can result in dstNode entries being skipped
+    // during insertion. Skipped entries will be marked with this value
     virtual common::offset_t getInvalidOffset() const = 0;
 };
 
@@ -203,11 +210,13 @@ public:
     void setNodeOffset(common::offset_t csrOffset, common::offset_t nodeOffset) {
         view->setNodeOffsetAtomic(csrOffset, nodeOffset);
     }
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
+    void setNodeOffsetToInvalid(common::offset_t csrOffset) {
+        setNodeOffset(csrOffset, view->getInvalidOffset());
+    }
     common::offset_t getNodeOffset(common::offset_t csrOffset) const {
         return view->getNodeOffsetAtomic(csrOffset);
     }
-
-    common::offset_t getInvalidOffset() const { return view->getInvalidOffset(); }
 
 private:
     std::unique_ptr<storage::MemoryBuffer> buffer;
@@ -258,7 +267,6 @@ public:
     }
     // Note: when the incremented csr length hits maxDegree, this function will block until there is
     // a shrink happening.
-    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     uint16_t incrementCSRLength(common::offset_t nodeOffset) {
         KU_ASSERT(nodeOffset < numNodes);
         while (true) {
@@ -268,15 +276,14 @@ public:
             }
         }
     }
-    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void setDstNode(common::offset_t csrOffset, common::offset_t dstNode) {
         KU_ASSERT(csrOffset < numNodes * maxDegree);
         dstNodes.setNodeOffset(csrOffset, dstNode);
     }
 
-    // In the current implementation, race conditions can result in dstNode entries being skipped
-    // during insertion. Skipped entries will be marked with this value
-    common::offset_t getInvalidOffset() const { return invalidOffset; }
+    void setDstNodeInvalid(common::offset_t csrOffset) {
+        dstNodes.setNodeOffsetToInvalid(csrOffset);
+    }
 
 private:
     void resetCSRLengthAndDstNodes();
@@ -292,7 +299,6 @@ private:
     CompressedNodeOffsetBuffer dstNodes;
     // Max allowed degree of a node in the graph before shrinking.
     common::length_t maxDegree;
-    common::offset_t invalidOffset;
 };
 
 } // namespace vector_extension

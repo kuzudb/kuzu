@@ -307,9 +307,7 @@ compressed_offsets_t CompressedNodeOffsetBuffer::getNeighbors(common::offset_t n
 
 InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
     common::length_t maxDegree)
-    : numNodes{numNodes}, dstNodes(mm, numNodes, maxDegree), maxDegree{maxDegree},
-      invalidOffset(dstNodes.getInvalidOffset()) {
-    KU_ASSERT(invalidOffset > 0);
+    : numNodes{numNodes}, dstNodes(mm, numNodes, maxDegree), maxDegree{maxDegree} {
     csrLengthBuffer = mm->allocateBuffer(true, numNodes * sizeof(std::atomic<uint16_t>));
     csrLengths = reinterpret_cast<std::atomic<uint16_t>*>(csrLengthBuffer->getData());
     resetCSRLengthAndDstNodes();
@@ -320,7 +318,7 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
         setCSRLength(i, 0);
     }
     for (common::offset_t i = 0; i < numNodes * maxDegree; i++) {
-        setDstNode(i, getInvalidOffset());
+        setDstNodeInvalid(i);
     }
 }
 

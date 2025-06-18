@@ -52,11 +52,10 @@ void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint
     }
 }
 
-static std::vector<common::offset_t> getNodeOffsets(const compressed_offsets_t& nodes,
-    const InMemHNSWGraph& graph) {
+static std::vector<common::offset_t> getNodeOffsets(const compressed_offsets_t& nodes) {
     std::vector<common::offset_t> nbrOffsets;
     for (const auto nodeOffset : nodes) {
-        if (nodeOffset == graph.getInvalidOffset()) {
+        if (nodeOffset == common::INVALID_OFFSET) {
             break;
         }
         nbrOffsets.push_back(nodeOffset);
@@ -79,7 +78,7 @@ common::offset_t InMemHNSWLayer::searchNN(const void* queryVector, common::offse
     KU_ASSERT(minDist >= 0);
     while (minDist < lastMinDist) {
         lastMinDist = minDist;
-        auto nbrOffsets = getNodeOffsets(graph->getNeighbors(currentNodeOffset), *graph);
+        auto nbrOffsets = getNodeOffsets(graph->getNeighbors(currentNodeOffset));
         auto nbrVectors = info.getEmbeddings(nbrOffsets, scanState);
         KU_ASSERT(nbrOffsets.size() == nbrVectors.size());
         for (common::offset_t i = 0; i < nbrOffsets.size(); ++i) {
@@ -151,7 +150,7 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const void* queryVector,
             break;
         }
         candidates.pop();
-        auto nbrOffsets = getNodeOffsets(graph->getNeighbors(candidate), *graph);
+        auto nbrOffsets = getNodeOffsets(graph->getNeighbors(candidate));
         auto nbrVectors = info.getEmbeddings(nbrOffsets, scanState);
         for (common::offset_t i = 0; i < nbrOffsets.size(); ++i) {
             const auto nbrOffset = nbrOffsets[i];
@@ -181,7 +180,7 @@ static std::vector<NodeWithDistanceAndEmbedding> populateNeighbours(const InMemH
     std::vector<NodeWithDistanceAndEmbedding> nbrs;
     const auto vector = info.getEmbedding(nodeOffset, scanState);
     const auto neighbors = graph->getNeighbors(nodeOffset);
-    auto nbrOffsets = getNodeOffsets(neighbors, *graph);
+    auto nbrOffsets = getNodeOffsets(neighbors);
     auto nbrVectors = info.getEmbeddings(nbrOffsets, scanState);
     nbrs.reserve(numNbrs);
     for (common::offset_t i = 0; i < nbrOffsets.size(); ++i) {
