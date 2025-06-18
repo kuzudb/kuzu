@@ -26,10 +26,43 @@ struct EmbeddingColumnInfo {
 
 struct EmbeddingHandle;
 
-// This class is responsible for managing the lifetimes of retrieved embeddings
+template<typename T>
+struct VectorAllocatorImpl {
+    using value_type = T;
 
+    [[nodiscard]] T* allocate(const std::size_t size) {
+        oldData = std::move(curData);
+        curData = std::make_unique<uint8_t[]>(size * sizeof(T));
+        return reinterpret_cast<T*>(curData.get());
+    }
+
+    void deallocate([[maybe_unused]] T* ptr, const std::size_t) noexcept {
+        KU_ASSERT(reinterpret_cast<uint8_t*>(ptr) == oldData.get() ||
+                  reinterpret_cast<uint8_t*>(ptr) == curData.get());
+        oldData.reset();
+    }
+
+    std::unique_ptr<uint8_t[]> curData;
+    std::unique_ptr<uint8_t[]> oldData;
+};
+
+template<typename T>
+struct VectorAllocator {
+    using value_type = T;
+
+    [[nodiscard]] T* allocate(const std::size_t size) { return impl->allocate(size); }
+
+    void deallocate(T* ptr, const std::size_t size) noexcept { impl->deallocate(ptr, size); }
+
+    std::shared_ptr<VectorAllocatorImpl<T>> impl = std::make_shared<VectorAllocatorImpl<T>>();
+};
+
+// This class is responsible for managing the lifetimes of retrieved embeddings
 struct GetEmbeddingsScanState {
+    GetEmbeddingsScanState() = default;
     virtual ~GetEmbeddingsScanState() = default;
+    DELETE_BOTH_COPY(GetEmbeddingsScanState);
+    DEFAULT_BOTH_MOVE(GetEmbeddingsScanState);
 
     virtual void* getEmbeddingPtr(const EmbeddingHandle& handle) = 0;
 
@@ -44,6 +77,10 @@ struct GetEmbeddingsScanState {
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
+
+    VectorAllocator<common::offset_t> graphOffsetAllocator;
+    VectorAllocator<common::offset_t> nodeOffsetAllocator;
+    VectorAllocator<EmbeddingHandle> vectorAllocator;
 };
 
 struct EmbeddingHandle {
@@ -51,8 +88,8 @@ struct EmbeddingHandle {
         GetEmbeddingsScanState* lifetimeManager = nullptr);
     ~EmbeddingHandle();
     DELETE_BOTH_COPY(EmbeddingHandle);
-    EmbeddingHandle(EmbeddingHandle&&);
-    EmbeddingHandle& operator=(EmbeddingHandle&&);
+    EmbeddingHandle(EmbeddingHandle&&) noexcept;
+    EmbeddingHandle& operator=(EmbeddingHandle&&) noexcept;
 
     void* getPtr() const { return isNull() ? nullptr : lifetimeManager->getEmbeddingPtr(*this); }
     bool isNull() const { return offsetInData == common::INVALID_OFFSET; }
@@ -69,8 +106,8 @@ public:
 
     virtual EmbeddingHandle getEmbedding(common::offset_t offset,
         GetEmbeddingsScanState& scanState) const = 0;
-    virtual std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
-        GetEmbeddingsScanState& scanState) const = 0;
+    virtual std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> getEmbeddings(
+        std::span<const common::offset_t> offset, GetEmbeddingsScanState& scanState) const = 0;
 
     common::length_t getDimension() const { return info.getDimension(); }
     virtual std::unique_ptr<GetEmbeddingsScanState> constructScanState() const = 0;
@@ -86,8 +123,8 @@ public:
 
     EmbeddingHandle getEmbedding(common::offset_t offset,
         GetEmbeddingsScanState& scanState) const override;
-    std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
-        GetEmbeddingsScanState& scanState) const override;
+    std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> getEmbeddings(
+        std::span<const common::offset_t> offset, GetEmbeddingsScanState& scanState) const override;
 
     std::unique_ptr<GetEmbeddingsScanState> constructScanState() const override;
 
@@ -127,8 +164,8 @@ public:
 
     EmbeddingHandle getEmbedding(common::offset_t offset,
         GetEmbeddingsScanState& scanState) const override;
-    std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
-        GetEmbeddingsScanState& scanState) const override;
+    std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> getEmbeddings(
+        std::span<const common::offset_t> offset, GetEmbeddingsScanState& scanState) const override;
     std::unique_ptr<GetEmbeddingsScanState> constructScanState() const override;
 
 private:
@@ -225,7 +262,7 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable){};
+        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable) {};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 

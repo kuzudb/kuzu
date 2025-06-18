@@ -151,8 +151,8 @@ struct InMemHNSWLayerInfo {
         KU_ASSERT(offsetInGraph < numNodes);
         return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph), scanState);
     }
-    std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offsetsInGraph,
-        GetEmbeddingsScanState& scanState) const;
+    std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> getEmbeddings(
+        std::span<const common::offset_t> offsetsInGraph, GetEmbeddingsScanState& scanState) const;
 };
 
 class InMemHNSWLayer {

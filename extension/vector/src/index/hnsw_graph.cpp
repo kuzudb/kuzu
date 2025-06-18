@@ -27,11 +27,11 @@ EmbeddingHandle::~EmbeddingHandle() {
 }
 
 // NOLINTNEXTLINE Uses move assignment operator to assign to fields
-EmbeddingHandle::EmbeddingHandle(EmbeddingHandle&& o) {
+EmbeddingHandle::EmbeddingHandle(EmbeddingHandle&& o) noexcept {
     *this = std::move(o);
 }
 
-EmbeddingHandle& EmbeddingHandle::operator=(EmbeddingHandle&& o) {
+EmbeddingHandle& EmbeddingHandle::operator=(EmbeddingHandle&& o) noexcept {
     if (this != &o) {
         offsetInData = o.offsetInData;
         lifetimeManager = o.lifetimeManager;
@@ -100,9 +100,9 @@ EmbeddingHandle InMemEmbeddings::getEmbedding(common::offset_t offset,
     return EmbeddingHandle{offset, &scanState};
 }
 
-std::vector<EmbeddingHandle> InMemEmbeddings::getEmbeddings(
+std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> InMemEmbeddings::getEmbeddings(
     std::span<const common::offset_t> offsets, GetEmbeddingsScanState& scanState) const {
-    std::vector<EmbeddingHandle> ret;
+    std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> ret{scanState.vectorAllocator};
     ret.reserve(offsets.size());
     for (common::offset_t offset : offsets) {
         ret.push_back(getEmbedding(offset, scanState));
@@ -153,7 +153,7 @@ EmbeddingHandle OnDiskEmbeddings::getEmbedding(common::offset_t offset,
     return EmbeddingHandle{value.offset, &embeddingScanState};
 }
 
-std::vector<EmbeddingHandle> OnDiskEmbeddings::getEmbeddings(
+std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> OnDiskEmbeddings::getEmbeddings(
     std::span<const common::offset_t> offsets, GetEmbeddingsScanState& embeddingScanState) const {
     auto& scanState = embeddingScanState.cast<OnDiskEmbeddingScanState>().getScanState();
     for (auto i = 0u; i < offsets.size(); i++) {
@@ -164,7 +164,8 @@ std::vector<EmbeddingHandle> OnDiskEmbeddings::getEmbeddings(
     KU_ASSERT(
         scanState.outputVectors[0]->dataType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
     nodeTable.lookupMultiple<false>(transaction, scanState);
-    std::vector<EmbeddingHandle> embeddings;
+    std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> embeddings{
+        embeddingScanState.vectorAllocator};
     embeddings.reserve(offsets.size());
     for (auto i = 0u; i < offsets.size(); i++) {
         if (scanState.outputVectors[0]->isNull(i)) {

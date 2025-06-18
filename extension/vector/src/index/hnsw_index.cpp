@@ -19,16 +19,16 @@ InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info)
     graph = std::make_unique<InMemHNSWGraph>(mm, info.numNodes, info.degreeThresholdToShrink);
 }
 
-std::vector<EmbeddingHandle> InMemHNSWLayerInfo::getEmbeddings(
+std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> InMemHNSWLayerInfo::getEmbeddings(
     std::span<const common::offset_t> offsetsInGraph, GetEmbeddingsScanState& scanState) const {
-    auto offsets = std::make_unique<common::offset_t[]>(offsetsInGraph.size());
+    auto offsets = std::vector<common::offset_t, VectorAllocator<common::offset_t>>{
+        scanState.nodeOffsetAllocator};
     for (size_t i = 0; i < offsetsInGraph.size(); ++i) {
         auto& offsetInGraph = offsetsInGraph[i];
         KU_ASSERT(offsetInGraph < numNodes);
-        offsets[i] = offsetMap.graphToNodeOffset(offsetInGraph);
+        offsets.push_back(offsetMap.graphToNodeOffset(offsetInGraph));
     }
-    return embeddings->getEmbeddings(
-        std::span<common::offset_t>(offsets.get(), offsetsInGraph.size()), scanState);
+    return embeddings->getEmbeddings(offsets, scanState);
 }
 
 void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint_,
@@ -52,8 +52,8 @@ void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint
     }
 }
 
-static std::vector<common::offset_t> getNodeOffsets(const compressed_offsets_t& nodes) {
-    std::vector<common::offset_t> nbrOffsets;
+static decltype(auto) getNodeOffsets(const compressed_offsets_t& nodes) {
+    std::vector<common::offset_t, VectorAllocator<common::offset_t>> nbrOffsets;
     for (const auto nodeOffset : nodes) {
         if (nodeOffset == common::INVALID_OFFSET) {
             break;
