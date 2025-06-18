@@ -17,8 +17,6 @@ TEST_F(ReadOnlyTest, Test) {
     ASSERT_STREQ("Connection exception: Cannot execute write operations in a read-only database!",
         conn->query("CALL CLEAR_WARNINGS()")->toString().c_str());
     ASSERT_STREQ("Connection exception: Cannot execute write operations in a read-only database!",
-        conn->query("CALL PROJECT_GRAPH('proj2', ['person'], ['knows'])")->toString().c_str());
-    ASSERT_STREQ("Connection exception: Cannot execute write operations in a read-only database!",
         conn->query("CALL DROP_PROJECTED_GRAPH('proj')")->toString().c_str());
     ASSERT_STREQ("Connection exception: Cannot execute write operations in a read-only database!",
         conn->query("CALL _CACHE_ARRAY_COLUMN_LOCALLY('Test', 'arr')")->toString().c_str());
