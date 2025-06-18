@@ -54,7 +54,7 @@ struct EmbeddingHandle {
     EmbeddingHandle(EmbeddingHandle&&);
     EmbeddingHandle& operator=(EmbeddingHandle&&);
 
-    void* getPtr() const { return lifetimeManager->getEmbeddingPtr(*this); }
+    void* getPtr() const { return isNull() ? nullptr : lifetimeManager->getEmbeddingPtr(*this); }
     bool isNull() const { return offsetInData == common::INVALID_OFFSET; }
     static EmbeddingHandle createNullHandle() { return EmbeddingHandle{common::INVALID_OFFSET}; }
 
