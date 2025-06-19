@@ -29,8 +29,8 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
       enableCompression{systemConfig.enableCompression}, readOnly{systemConfig.readOnly},
       maxDBSize{systemConfig.maxDBSize}, enableMultiWrites{false},
       autoCheckpoint{systemConfig.autoCheckpoint},
-      checkpointThreshold{systemConfig.checkpointThreshold}, forceCheckpointOnClose{true},
-      enableSpillingToDisk{true} {}
+      checkpointThreshold{systemConfig.checkpointThreshold},
+      forceCheckpointOnClose{systemConfig.forceCheckpointOnClose}, enableSpillingToDisk{true} {}
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
     auto lOptionName = optionName;

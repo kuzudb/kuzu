@@ -18,6 +18,7 @@ struct DatabaseHeader {
 
     void updateCatalogPageRange(PageManager& pageManager, PageRange newPageRange);
     void updateMetadataPageRange(PageManager& pageManager, PageRange newPageRange);
+    void serialize(common::Serializer& ser) const;
 };
 
 class Checkpointer {
@@ -40,8 +41,10 @@ private:
 private:
     void writeDatabaseHeader(const DatabaseHeader& header);
     DatabaseHeader getCurrentDatabaseHeader() const;
-    PageRange serializeCatalog(catalog::Catalog& catalog, StorageManager& storageManager);
-    PageRange serializeMetadata(catalog::Catalog& catalog, StorageManager& storageManager);
+    PageRange serializeCatalog(const catalog::Catalog& catalog,
+        StorageManager& storageManager) const;
+    PageRange serializeMetadata(const catalog::Catalog& catalog,
+        StorageManager& storageManager) const;
 
 private:
     main::ClientContext& clientContext;

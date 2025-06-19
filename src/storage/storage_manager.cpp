@@ -3,9 +3,11 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
+#include "common/serializer/metadata_writer.h"
 #include "main/client_context.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/checkpointer.h"
 #include "storage/page_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
@@ -43,10 +45,19 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
                                      FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS;
         const auto dataFilePath = StorageUtils::getDataFName(vfs, databasePath);
         dataFH = memoryManager.getBufferManager()->getFileHandle(dataFilePath, flag, vfs, context);
-    }
-    if (dataFH->getNumPages() == 0) {
-        // Reserve the first page for the database header.
-        dataFH->getPageManager()->allocatePage();
+        if (dataFH->getNumPages() == 0) {
+            if (!readOnly) {
+                // Reserve the first page for the database header.
+                dataFH->getPageManager()->allocatePage();
+                // Write a dummy database header page.
+                static const auto defaultHeader = DatabaseHeader{{}, {}};
+                auto headerWriter = std::make_shared<MetaWriter>(context->getMemoryManager());
+                Serializer headerSerializer(headerWriter);
+                defaultHeader.serialize(headerSerializer);
+                dataFH->getFileInfo()->writeFile(headerWriter->getPage(0).data(), KUZU_PAGE_SIZE,
+                    StorageConstants::DB_HEADER_PAGE_IDX);
+            }
+        }
     }
 }
 

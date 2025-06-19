@@ -38,6 +38,12 @@ on:
         required: false
         default: 16777216
         type: number
+
+      force_checkpoint_on_close:
+        description: "Database config - force checkpoint on close"
+        required: false
+        default: true
+        type: boolean
 env:
   RUNTIME_CHECKS: 1
   USE_EXISTING_BINARY_DATASET: 1
@@ -46,6 +52,7 @@ env:
   MAX_NUM_THREADS: ${{ github.event.inputs.max_num_threads }}
   ENABLE_COMPRESSION: ${{ github.event.inputs.enable_compression }}
   CHECKPOINT_THRESHOLD: ${{ github.event.inputs.checkpoint_threshold }}
+  FORCE_CHECKPOINT_ON_CLOSE: ${{ github.event.inputs.force_checkpoint_on_close }}
   WERROR: 1
   RUSTFLAGS: --deny warnings
   PIP_BREAK_SYSTEM_PACKAGES: 1
@@ -174,6 +181,13 @@ jobs:
         env:
           AUTO_CHECKPOINT: true
           CHECKPOINT_THRESHOLD: 0
+        run: |
+          make test
+
+      - name: Test recovery
+        env:
+          AUTO_CHECKPOINT: false
+          CHECKPOINT_ON_CLOSE: false
         run: |
           make test
 
@@ -468,6 +482,13 @@ jobs:
         run: |
           make test DEFAULT_REL_STORAGE_DIRECTION=BOTH
 
+      - name: Test recovery
+        env:
+          AUTO_CHECKPOINT: false
+          CHECKPOINT_ON_CLOSE: false
+        run: |
+          make test
+
       - name: Ensure Python dependencies
         run: pip install --user -r tools/python_api/requirements_dev.txt
 
@@ -643,6 +664,15 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test DEFAULT_REL_STORAGE_DIRECTION=BOTH
+
+      - name: Test recovery
+        shell: cmd
+        env:
+          AUTO_CHECKPOINT: false
+          CHECKPOINT_ON_CLOSE: false
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make test
 
       - name: Test sparse frontier threshold at 2
         shell: cmd

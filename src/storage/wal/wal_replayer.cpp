@@ -46,7 +46,7 @@ void WALReplayer::replay() const {
         Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
         RUNTIME_CHECK(bool nextRecordShouldBeRollback = false);
         while (!deserializer.finished()) {
-            // If an exception occurs while deserializing we will stop replaying
+            // If an exception occurs while deserializing, we will stop replaying
             auto walRecord = WALRecord::deserialize(deserializer, clientContext);
             KU_ASSERT(
                 !nextRecordShouldBeRollback || walRecord->type == WALRecordType::ROLLBACK_RECORD);
@@ -92,6 +92,9 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     case WALRecordType::DROP_CATALOG_ENTRY_RECORD: {
         replayDropCatalogEntryRecord(walRecord);
     } break;
+    case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
+        replayAlterTableEntryRecord(walRecord);
+    } break;
     case WALRecordType::TABLE_INSERTION_RECORD: {
         replayTableInsertionRecord(walRecord);
     } break;
@@ -112,9 +115,6 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         replayCopyTableRecord(walRecord);
-    } break;
-    case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
-        replayAlterTableEntryRecord(walRecord);
     } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         replayUpdateSequenceRecord(walRecord);
@@ -204,7 +204,19 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         const auto& addedProp = entry->getProperty(addInfo->propertyDefinition.getName());
         TableAddColumnState state{addedProp, *defaultValueEvaluator};
         KU_ASSERT(clientContext.getStorageManager());
-        storageManager->getTable(entry->getTableID())->addColumn(transaction, state);
+        switch (entry->getTableType()) {
+        case TableType::REL: {
+            for (auto& relEntryInfo : entry->cast<RelGroupCatalogEntry>().getRelEntryInfos()) {
+                storageManager->getTable(relEntryInfo.oid)->addColumn(transaction, state);
+            }
+        } break;
+        case TableType::NODE: {
+            storageManager->getTable(entry->getTableID())->addColumn(transaction, state);
+        } break;
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
     } break;
     case AlterType::ADD_FROM_TO_CONNECTION: {
         auto extraInfo = ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
