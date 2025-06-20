@@ -99,6 +99,9 @@ public:
         page = std::make_unique<uint8_t[]>(pageSize);
         return page.get();
     }
+    uint16_t getReaderCount() const { return readerCount; }
+    void addReader() { readerCount++; }
+    void removeReader() { readerCount--; }
 #endif
 
 private:
@@ -107,6 +110,7 @@ private:
     std::atomic<uint64_t> stateAndVersion;
 #if BM_MALLOC
     std::unique_ptr<uint8_t[]> page;
+    std::atomic<uint16_t> readerCount;
 #endif
 };
 
