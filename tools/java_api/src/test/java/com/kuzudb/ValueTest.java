@@ -942,8 +942,6 @@ public class ValueTest extends TestBase {
         UUID rand = UUID.randomUUID();
         Value test = new Value(rand);
         assertFalse(test.isNull());
-        System.out.println(rand);
-        System.out.println((UUID)test.getValue());
         assertTrue(test.getValue().equals(rand));
         test.close();
         UUID uid = value.getValue();
