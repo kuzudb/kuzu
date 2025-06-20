@@ -9,6 +9,8 @@
 // This header is generated at build time. See CMakeLists.txt.
 #include <vector>
 
+#include <iostream>
+
 #include "com_kuzudb_Native.h"
 #include "common/constants.h"
 #include "common/exception/exception.h"
@@ -126,7 +128,7 @@ static jmethodID J_C_Duration_M_ofMillis;
 static jmethodID J_C_Duration_M_toMillis;
 // UUID
 static jclass J_C_UUID;
-static jmethodID J_C_UUID_M_fromString;
+static jmethodID J_C_UUID_M_init;
 static jmethodID J_C_UUID_M_getMostSignificantBits;
 static jmethodID J_C_UUID_M_getLeastSignificantBits;
 // Connection
@@ -1129,8 +1131,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
             jobject shifted = env->CallObjectMethod(val, J_C_BigInteger_M_shiftRight, 64);
             int64_t upper =
                 static_cast<int64_t>(env->CallLongMethod(shifted, J_C_BigInteger_M_longValue));
-            int128_t val = (static_cast<int128_t>(upper) << 64) | lower;
-            v = new Value(val);
+            v = new Value(int128_t(lower, upper));
         } else if (env->IsInstanceOf(val, J_C_Float)) {
             jfloat value = env->CallFloatMethod(val, J_C_Float_M_floatValue);
             v = new Value(static_cast<float>(value));
@@ -1169,9 +1170,9 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
         } else if (env->IsInstanceOf(val, J_C_UUID)) {
             int64_t upper =
                 static_cast<int64_t>(env->CallLongMethod(val, J_C_UUID_M_getMostSignificantBits));
-            int64_t lower =
-                static_cast<int64_t>(env->CallLongMethod(val, J_C_UUID_M_getLeastSignificantBits));
-            int128_t uuid = (static_cast<int128_t>(upper) << 64) | lower;
+            uint64_t lower =
+                static_cast<uint64_t>(env->CallLongMethod(val, J_C_UUID_M_getLeastSignificantBits));
+            int128_t uuid(lower, upper ^ (int64_t(1) << 63));
             v = new Value(ku_uuid_t(uuid));
         } else if (env->IsInstanceOf(val, J_C_LocalDate)) {
             int64_t days =
@@ -1472,8 +1473,9 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
         }
         case LogicalTypeID::UUID: {
             int128_t uuid = v->getValue<int128_t>();
-            jstring javaStr = env->NewStringUTF(UUID::toString(uuid).c_str());
-            jobject ret = env->CallStaticObjectMethod(J_C_UUID, J_C_UUID_M_fromString, javaStr);
+            jlong high = static_cast<jlong>(static_cast<uint64_t>(uuid.high ^ (int64_t(1) << 63)));
+            jlong low = static_cast<jlong>(static_cast<uint64_t>(uuid.low));
+            jobject ret = env->NewObject(J_C_UUID, J_C_UUID_M_init, high, low);
             return ret;
         }
         case LogicalTypeID::STRING: {
@@ -2019,8 +2021,7 @@ void initGlobalMethodRef(JNIEnv* env) {
         J_C_BigInteger_M_shiftRight =
             env->GetMethodID(J_C_BigInteger, "shiftRight", "(I)Ljava/math/BigInteger;");
 
-        J_C_UUID_M_fromString =
-            env->GetStaticMethodID(J_C_UUID, "fromString", "(Ljava/lang/String;)Ljava/util/UUID;");
+        J_C_UUID_M_init = env->GetMethodID(J_C_UUID, "<init>", "(JJ)V");
 
         J_C_UUID_M_getMostSignificantBits =
             env->GetMethodID(J_C_UUID, "getMostSignificantBits", "()J");

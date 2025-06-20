@@ -190,10 +190,10 @@ public class ValueTest extends TestBase {
     @Test
     void ValueCreateINT128() {
         // INT128
-        Value value = new Value(new BigInteger("12345"));
+        Value value = new Value(new BigInteger("1180591620717411303424"));
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT128);
-        assertTrue(value.getValue().equals(new BigInteger("12345")));
+        assertTrue(value.getValue().equals(new BigInteger("1180591620717411303424")));
         checkValueConversion(value);
         value.close();
     }
@@ -939,8 +939,12 @@ public class ValueTest extends TestBase {
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
-        Value test = new Value(UUID.randomUUID());
+        UUID rand = UUID.randomUUID();
+        Value test = new Value(rand);
         assertFalse(test.isNull());
+        System.out.println(rand);
+        System.out.println((UUID)test.getValue());
+        assertTrue(test.getValue().equals(rand));
         test.close();
         UUID uid = value.getValue();
         assertTrue(uid.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")));
