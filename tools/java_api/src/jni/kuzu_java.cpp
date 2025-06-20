@@ -110,6 +110,7 @@ static jmethodID J_C_Short_M_shortValue;
 // Byte
 static jclass J_C_Byte;
 static jmethodID J_C_Byte_M_init;
+static jmethodID J_C_Byte_M_byteValue;
 // BigInteger
 static jclass J_C_BigInteger;
 static jmethodID J_C_BigInteger_M_init;
@@ -1108,6 +1109,9 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
         if (env->IsInstanceOf(val, J_C_Boolean)) {
             jboolean value = env->CallBooleanMethod(val, J_C_Boolean_M_booleanValue);
             v = new Value(static_cast<bool>(value));
+        } else if (env->IsInstanceOf(val, J_C_Byte)) {
+            jbyte value = env->CallByteMethod(val, J_C_Byte_M_byteValue);
+            v = new Value(static_cast<int8_t>(value));
         } else if (env->IsInstanceOf(val, J_C_Short)) {
             jshort value = env->CallShortMethod(val, J_C_Short_M_shortValue);
             v = new Value(static_cast<int16_t>(value));
@@ -2010,6 +2014,8 @@ void initGlobalMethodRef(JNIEnv* env) {
             env->GetMethodID(J_C_UUID, "getLeastSignificantBits", "()J");
 
         J_C_Boolean_M_booleanValue = env->GetMethodID(J_C_Boolean, "booleanValue", "()Z");
+
+        J_C_Byte_M_byteValue = env->GetMethodID(J_C_Byte, "byteValue", "()B");
 
         J_C_Short_M_shortValue = env->GetMethodID(J_C_Short, "shortValue", "()S");
 

@@ -144,6 +144,17 @@ public class ValueTest extends TestBase {
     }
 
     @Test
+    void ValueCreateINT8() {
+        // INT8
+        Value value = new Value((byte) 127);
+        assertFalse(value.isOwnedByCPP());
+        assertEquals(value.getDataType().getID(), DataTypeID.INT8);
+        assertTrue(value.getValue().equals((byte) 127));
+        checkValueConversion(value);
+        value.close();
+    }
+
+    @Test
     void ValueCreateINT16() {
         // INT16
         Value value = new Value((short) 123);
