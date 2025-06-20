@@ -503,6 +503,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(true));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -521,6 +522,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((byte) 5));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -539,6 +541,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((short) 5));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -556,6 +559,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(298));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -573,6 +577,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(0L));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -591,6 +596,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((short) 250));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -609,6 +615,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(33768));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -627,6 +634,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(32800L));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -644,6 +652,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertEquals(value.getValue(), new BigInteger("1000043524"));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -663,6 +672,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertEquals(value.getValue(), new BigInteger("1844674407370955161811111111"));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -680,6 +690,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(2L));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -697,6 +708,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((float) 1.731));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -714,6 +726,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((double) 5.0));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -732,6 +745,7 @@ public class ValueTest extends TestBase {
 
         LocalDate date = value.getValue();
         assertEquals((long) date.toEpochDay(), -25567L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -750,6 +764,7 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.toEpochMilli(), 1313839530000L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -768,6 +783,7 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.toEpochMilli(), 1313839530123L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -786,6 +802,7 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.getNano(), 123456000L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -804,6 +821,7 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.toEpochMilli(), 1313839530123L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -823,6 +841,7 @@ public class ValueTest extends TestBase {
         Instant stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 1313839530L);
         assertEquals(stamp.getNano(), 0L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -846,6 +865,7 @@ public class ValueTest extends TestBase {
         assertEquals(month, 36);
         assertEquals(day, 2);
         assertEquals(micros, 46920000000L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -864,6 +884,7 @@ public class ValueTest extends TestBase {
 
         String str = value.getValue();
         assertTrue(str.equals("Alice"));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -899,6 +920,7 @@ public class ValueTest extends TestBase {
 
         UUID uid = value.getValue();
         assertTrue(uid.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
@@ -942,6 +964,12 @@ public class ValueTest extends TestBase {
         InternalID id = ValueNodeUtil.getID(value);
         assertEquals(id.tableId, 0);
         assertEquals(id.offset, 0);
+
+        Value cloned = value.clone();
+        InternalID id2 = ValueNodeUtil.getID(cloned);
+        assertEquals(id2.tableId, 0);
+        assertEquals(id2.offset, 0);
+
         value.close();
         flatTuple.close();
         result.close();
@@ -959,6 +987,11 @@ public class ValueTest extends TestBase {
 
         String label = ValueNodeUtil.getLabelName(value);
         assertEquals(label, "person");
+
+        Value cloned = value.clone();
+        String label2 = ValueNodeUtil.getLabelName(cloned);
+        assertEquals(label2, "person");
+
         value.close();
         flatTuple.close();
         result.close();
