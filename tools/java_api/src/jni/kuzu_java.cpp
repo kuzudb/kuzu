@@ -1147,17 +1147,21 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
             std::string str = jstringToUtf8String(env, value);
             v = new Value(str.c_str());
         } else if (env->IsInstanceOf(val, J_C_InternalID)) {
-            int64_t table_id = static_cast<int64_t>(env->GetLongField(val, J_C_InternalID_F_tableId));
+            int64_t table_id =
+                static_cast<int64_t>(env->GetLongField(val, J_C_InternalID_F_tableId));
             int64_t offset = static_cast<int64_t>(env->GetLongField(val, J_C_InternalID_F_offset));
             internalID_t id(offset, table_id);
             v = new Value(id);
         } else if (env->IsInstanceOf(val, J_C_UUID)) {
-            int64_t upper = static_cast<int64_t>(env->CallLongMethod(val, J_C_UUID_M_getMostSignificantBits));
-            int64_t lower = static_cast<int64_t>(env->CallLongMethod(val, J_C_UUID_M_getLeastSignificantBits));
+            int64_t upper =
+                static_cast<int64_t>(env->CallLongMethod(val, J_C_UUID_M_getMostSignificantBits));
+            int64_t lower =
+                static_cast<int64_t>(env->CallLongMethod(val, J_C_UUID_M_getLeastSignificantBits));
             int128_t uuid = (static_cast<int128_t>(upper) << 64) | lower;
             v = new Value(ku_uuid_t(uuid));
         } else if (env->IsInstanceOf(val, J_C_LocalDate)) {
-            int64_t days = static_cast<int64_t>(env->CallLongMethod(val, J_C_LocalDate_M_toEpochDay));
+            int64_t days =
+                static_cast<int64_t>(env->CallLongMethod(val, J_C_LocalDate_M_toEpochDay));
             v = new Value(date_t(days));
         } else if (env->IsInstanceOf(val, J_C_Instant)) {
             // TODO: Need to review this for overflow
@@ -1999,9 +2003,11 @@ void initGlobalMethodRef(JNIEnv* env) {
         J_C_UUID_M_fromString =
             env->GetStaticMethodID(J_C_UUID, "fromString", "(Ljava/lang/String;)Ljava/util/UUID;");
 
-        J_C_UUID_M_getMostSignificantBits = env->GetMethodID(J_C_UUID, "getMostSignificantBits", "()J");
+        J_C_UUID_M_getMostSignificantBits =
+            env->GetMethodID(J_C_UUID, "getMostSignificantBits", "()J");
 
-        J_C_UUID_M_getLeastSignificantBits = env->GetMethodID(J_C_UUID, "getLeastSignificantBits", "()J");
+        J_C_UUID_M_getLeastSignificantBits =
+            env->GetMethodID(J_C_UUID, "getLeastSignificantBits", "()J");
 
         J_C_Boolean_M_booleanValue = env->GetMethodID(J_C_Boolean, "booleanValue", "()Z");
 
