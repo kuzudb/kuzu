@@ -108,10 +108,10 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
     }
 
     // Run tests on datasets exported from a previous Kuzu version. Used to verify that exports and
-    // imports across versions work correctly.Note: we skip importing the empty db
+    // imports across versions work correctly. We skip importing the empty db.
     auto dirs = StringUtils::split(StringUtils::getLower(datasetDir), "/");
     if (std::find(dirs.begin(), dirs.end(), "empty") != dirs.end()) {
-        std::cout << "Skipping empty DB" << std::endl;
+        std::cout << "Skipping Empty Dataset: " << datasetDir << std::endl;
         return;
     }
     std::string query = "IMPORT DATABASE '" + datasetDir + "';";
