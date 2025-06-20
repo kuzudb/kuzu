@@ -917,7 +917,9 @@ public class ValueTest extends TestBase {
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
-
+        Value test = new Value(UUID.randomUUID());
+        assertFalse(test.isNull());
+        test.close();
         UUID uid = value.getValue();
         assertTrue(uid.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")));
         assertTrue(value.clone().getValue().equals(value.getValue()));
