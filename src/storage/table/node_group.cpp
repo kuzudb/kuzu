@@ -272,13 +272,13 @@ NodeGroupScanResult NodeGroup::scanInternal(const UniqLock& lock, Transaction* t
     return NodeGroupScanResult{startOffsetInGroup, numRowsScanned};
 }
 
-bool NodeGroup::lookup(const UniqLock& lock, const Transaction* transaction,
-    const TableScanState& state, sel_t posInSel) const {
+bool NodeGroup::lookupNoLock(const Transaction* transaction, const TableScanState& state,
+    sel_t posInSel) const {
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     const auto pos = state.rowIdxVector->state->getSelVector().getSelectedPositions()[posInSel];
     KU_ASSERT(!state.rowIdxVector->isNull(pos));
     const auto rowIdx = state.rowIdxVector->getValue<row_idx_t>(pos);
-    const ChunkedNodeGroup* chunkedGroupToScan = findChunkedGroupFromRowIdx(lock, rowIdx);
+    const ChunkedNodeGroup* chunkedGroupToScan = findChunkedGroupFromRowIdxNoLock(rowIdx);
     const auto rowIdxInChunkedGroup = rowIdx - chunkedGroupToScan->getStartRowIdx();
     return chunkedGroupToScan->lookup(transaction, state, nodeGroupScanState, rowIdxInChunkedGroup,
         posInSel);
@@ -303,7 +303,7 @@ bool NodeGroup::lookupMultiple(const UniqLock& lock, const Transaction* transact
 bool NodeGroup::lookup(const Transaction* transaction, const TableScanState& state,
     sel_t posInSel) const {
     const auto lock = chunkedGroups.lock();
-    return lookup(lock, transaction, state, posInSel);
+    return lookupNoLock(transaction, state, posInSel);
 }
 
 bool NodeGroup::lookupMultiple(const Transaction* transaction, const TableScanState& state) const {
