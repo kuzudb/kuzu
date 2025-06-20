@@ -1171,7 +1171,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
             uint64_t lower =
                 static_cast<uint64_t>(env->CallLongMethod(val, J_C_UUID_M_getLeastSignificantBits));
             int128_t uuid(lower, upper ^ (int64_t(1) << 63));
-            v = new Value(ku_uuid_t(uuid));
+            v = new Value(ku_uuid_t{uuid});
         } else if (env->IsInstanceOf(val, J_C_LocalDate)) {
             int64_t days =
                 static_cast<int64_t>(env->CallLongMethod(val, J_C_LocalDate_M_toEpochDay));
