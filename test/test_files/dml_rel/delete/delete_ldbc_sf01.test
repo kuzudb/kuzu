@@ -6,6 +6,11 @@
 -STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 RETURN COUNT(*);
 ---- 1
 66
+# Sanity check to see if the rel batch insert succeeded
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment)
+            WHERE n.id=6597069767457 AND NOT EXISTS {MATCH (n1:Person)-[e1:likes_Comment]->(m1:Comment) WHERE n.id=6597069767457 and m1.id = m.id}
+            RETURN n.id, m.id
+---- 0
 -STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 AND m.id=412317167195 DELETE e;
 ---- ok
 -STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 RETURN COUNT(*);

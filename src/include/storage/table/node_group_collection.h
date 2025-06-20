@@ -110,7 +110,7 @@ private:
 
     bool enableCompression;
     // Num rows in the collection regardless of deletions.
-    common::row_idx_t numTotalRows;
+    std::atomic<common::row_idx_t> numTotalRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;
     FileHandle* dataFH;
