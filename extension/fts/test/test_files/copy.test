@@ -1,0 +1,26 @@
+-DATASET CSV empty
+
+--
+
+-CASE Basic
+
+#-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
+#---- ok
+-STATEMENT CREATE NODE TABLE Book (ID SERIAL, title STRING, author STRING, abstract STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-STATEMENT COPY Book from '${KUZU_ROOT_DIRECTORY}/dataset/fts-basic/Book.csv'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title,score;
+---- 2
+Learning Machines|0.827832
+The Quantum World|0.857996
+-STATEMENT COPY Book from '${KUZU_ROOT_DIRECTORY}/dataset/fts-basic/Book.csv'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.ID,score;
+---- 4
+0|1.233142
+2|1.189789
+5|1.233142
+7|1.189789
