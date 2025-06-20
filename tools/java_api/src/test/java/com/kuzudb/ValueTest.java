@@ -188,6 +188,17 @@ public class ValueTest extends TestBase {
     }
 
     @Test
+    void ValueCreateINT128() {
+        // INT128
+        Value value = new Value(new BigInteger("12345"));
+        assertFalse(value.isOwnedByCPP());
+        assertEquals(value.getDataType().getID(), DataTypeID.INT128);
+        assertTrue(value.getValue().equals(new BigInteger("12345")));
+        checkValueConversion(value);
+        value.close();
+    }
+
+    @Test
     void ValueCreateFloat() {
         // float
         Value value = new Value((float) 123.456);
@@ -670,7 +681,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetInt128() {
+    void ValueGetINT128() {
         // INT128
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID");

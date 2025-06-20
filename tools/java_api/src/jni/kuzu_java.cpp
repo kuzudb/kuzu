@@ -114,6 +114,8 @@ static jmethodID J_C_Byte_M_byteValue;
 // BigInteger
 static jclass J_C_BigInteger;
 static jmethodID J_C_BigInteger_M_init;
+static jmethodID J_C_BigInteger_M_longValue;
+static jmethodID J_C_BigInteger_M_shiftRight;
 // Float
 static jclass J_C_Float;
 static jmethodID J_C_Float_M_init;
@@ -1121,6 +1123,12 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
         } else if (env->IsInstanceOf(val, J_C_Long)) {
             jlong value = env->CallLongMethod(val, J_C_Long_M_longValue);
             v = new Value(static_cast<int64_t>(value));
+        } else if (env->IsInstanceOf(val, J_C_BigInteger)) {
+            int64_t lower = static_cast<int64_t>(env->CallLongMethod(val, J_C_BigInteger_M_longValue));
+            jobject shifted = env->CallObjectMethod(val, J_C_BigInteger_M_shiftRight, 64);
+            int64_t upper = static_cast<int64_t>(env->CallLongMethod(shifted, J_C_BigInteger_M_longValue));
+            int128_t val = (static_cast<int128_t>(upper) << 64) | lower;
+            v = new Value(val);
         } else if (env->IsInstanceOf(val, J_C_Float)) {
             jfloat value = env->CallFloatMethod(val, J_C_Float_M_floatValue);
             v = new Value(static_cast<float>(value));
@@ -2003,6 +2011,10 @@ void initGlobalMethodRef(JNIEnv* env) {
         J_C_Byte_M_init = env->GetMethodID(J_C_Byte, "<init>", "(B)V");
 
         J_C_BigInteger_M_init = env->GetMethodID(J_C_BigInteger, "<init>", "(Ljava/lang/String;)V");
+
+        J_C_BigInteger_M_longValue = env->GetMethodID(J_C_BigInteger, "longValue", "()J");
+
+        J_C_BigInteger_M_shiftRight = env->GetMethodID(J_C_BigInteger, "shiftRight", "(I)Ljava/math/BigInteger;");
 
         J_C_UUID_M_fromString =
             env->GetStaticMethodID(J_C_UUID, "fromString", "(Ljava/lang/String;)Ljava/util/UUID;");
