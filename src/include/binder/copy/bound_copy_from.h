@@ -45,9 +45,10 @@ struct KUZU_API BoundCopyFromInfo {
     expression_vector getSourceColumns() const {
         return source ? source->getColumns() : expression_vector{};
     }
-    common::column_id_t getNumWarningColumns() const {
-        return source ? source->getNumWarningDataColumns() : 0;
+    expression_vector getWarningColumns() const {
+        return offset ? source->getWarningColumns() : expression_vector{};
     }
+
     bool getIgnoreErrorsOption() const { return source ? source->getIgnoreErrorsOption() : false; }
 
 private:
