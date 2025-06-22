@@ -233,6 +233,13 @@ static decltype(auto) deserializeAlterRecord(Deserializer& deserializer) {
         deserializer.deserializeValue(newName);
         extraInfo = std::make_unique<BoundExtraRenameTableInfo>(std::move(newName));
     } break;
+    case AlterType::ADD_FROM_TO_CONNECTION:{
+        table_id_t fromTableID = INVALID_TABLE_ID;
+        table_id_t toTableID = INVALID_TABLE_ID;
+        deserializer.deserializeValue(fromTableID);
+        deserializer.deserializeValue(toTableID);
+        extraInfo = std::make_unique<BoundExtraAddFromToConnection>(fromTableID, toTableID);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
