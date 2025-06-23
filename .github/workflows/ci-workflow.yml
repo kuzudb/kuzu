@@ -418,11 +418,13 @@ jobs:
       - name: Test with TSAN
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          make test TSAN=1
+          make test
         env:
           TSAN_OPTIONS: "halt_on_error=1"
           # 32GB
           MAX_DB_SIZE: 34359738368
+          TSAN: 1
+          RUNTIME_CHECKS: 0
 
       - name: Test compression disabled with TSAN
         env:
@@ -430,6 +432,8 @@ jobs:
           TSAN_OPTIONS: "halt_on_error=1"
           # 32GB
           MAX_DB_SIZE: 34359738368
+          TSAN: 1
+          RUNTIME_CHECKS: 0
         run: |
           make test
 
