@@ -338,6 +338,13 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
 }
 
 TEST_F(CopyTest, GracefulBMExceptionHandlingManyThreads) {
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+    // This test runs too slowly with TSAN enabled since it uses 32 threads and is already slow
+    GTEST_SKIP();
+#endif
+#endif
+
     // TODO(Royi) Figure why this test sometimes fails for in mem mode
     if (inMemMode) {
         GTEST_SKIP();
