@@ -5,7 +5,7 @@ import subprocess
 import re
 
 
-# Get version number like 0.10.0.5
+# Get version number like 0.10.0.5.
 def getVersion(executablePath):
     try:
         result = subprocess.run(
@@ -40,13 +40,13 @@ def createCypherQueries(filePath):
     return commands
 
 
-# Find all datasets that have a schema.cypher and copy.cypher file
+# Find all datasets that have a schema.cypher and copy.cypher file.
 def findValidDatasetDirs(datasetRoot):
     validDirs = []
 
     for root, dirs, files in os.walk(datasetRoot):
         # This script creates a tmp directory with the exported dbs, we should
-        # skip it in our search
+        # skip it in our search.
         if "tmp" in root.split(os.sep):
             continue
         fileSet = set(files)
@@ -57,7 +57,21 @@ def findValidDatasetDirs(datasetRoot):
     return validDirs
 
 
-# Example scripts/export-dbs.py build/debug/tools/shell/kuzu dataset
+# We must update all relative paths in copy.cypher to use full paths.
+# This expands all matches of a relative path beginning with dataset to a
+# full path.
+def replaceDatasetPaths(command, datasetRoot):
+    def replace_match(match):
+        quote = match.group(1)
+        folder = match.group(2)  # 'dataset' or 'extension'
+        relative_path = match.group(3)
+        full_path = os.path.join(datasetRoot, folder, relative_path)
+        return f'{quote}{full_path}{quote}'
+
+    return re.sub(r'(["\'])(dataset|extension)/([^"\']+)\1', replace_match, command)
+
+
+# Example scripts/export-dbs.py build/debug/tools/shell/kuzu dataset.
 def main():
     parser = argparse.ArgumentParser(description="""Export DBS with
     KUZU shell and dataset paths""")
@@ -82,17 +96,16 @@ def main():
         return 1
 
     validDatasets = findValidDatasetDirs(argDatasetPath)
-    # This needs to be done since copy.cypher is relative to Kuzu Root
+    # This is done to construct a full path to replace the relative paths found
+    # in copy.cypher files.
     scriptDir = os.path.dirname(os.path.realpath(__file__))
     rootDir = os.path.abspath(os.path.join(scriptDir, ".."))
-    os.chdir(rootDir)
     for datasetPath in validDatasets:
-        schemaCommands = normalizeCypherCommands(os.path.join(datasetPath,
-                                                              "schema.cypher"))
-        copyCommands = normalizeCypherCommands(os.path.join(datasetPath,
-                                                            "copy.cypher"))
+        schemaCommands = createCypherQueries(os.path.join(datasetPath, "schema.cypher"))
+        copyCommands = createCypherQueries(os.path.join(datasetPath, "copy.cypher"))
+        rawCopyCommands = createCypherQueries(os.path.join(datasetPath, "copy.cypher"))
+        copyCommands = [replaceDatasetPaths(cmd, rootDir) for cmd in rawCopyCommands]
         combinedCommands = schemaCommands + copyCommands
-
         datasetName = os.path.relpath(datasetPath, argDatasetPath)
         exportPath = os.path.join(argDatasetPath, "tmp", version, datasetName)
         exportCommand = f"EXPORT DATABASE '{exportPath}' (format=\"csv\", header=true);"
