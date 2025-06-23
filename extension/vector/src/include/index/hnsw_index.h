@@ -168,7 +168,7 @@ public:
 
     void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited,
         GetEmbeddingsScanState& scanState);
-    common::offset_t searchNN(const void* queryVector, common::offset_t entryNode,
+    common::offset_t searchNN(const EmbeddingHandle& queryVector, common::offset_t entryNode,
         GetEmbeddingsScanState& scanState) const;
     void finalize(common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
         const NodeToHNSWGraphOffsetMap& selectedNodesMap, GetEmbeddingsScanState& scanState) const;
@@ -176,9 +176,9 @@ public:
     std::unique_ptr<InMemHNSWGraph> moveGraph() { return std::move(graph); }
 
 private:
-    std::vector<NodeWithDistance> searchKNN(const void* queryVector, common::offset_t entryNode,
-        common::length_t k, uint64_t configuredEf, VisitedState& visited,
-        GetEmbeddingsScanState& scanState) const;
+    std::vector<NodeWithDistance> searchKNN(const EmbeddingHandle& queryVector,
+        common::offset_t entryNode, common::length_t k, uint64_t configuredEf,
+        VisitedState& visited, GetEmbeddingsScanState& scanState) const;
     static void shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGraph* graph,
         common::offset_t nodeOffset, common::length_t numNbrs, GetEmbeddingsScanState& scanState);
 
@@ -300,7 +300,7 @@ public:
         std::unique_ptr<storage::IndexStorageInfo> storageInfo, HNSWIndexConfig config);
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
-        const void* queryVector, HNSWSearchState& searchState) const;
+        const EmbeddingHandle& queryVector, HNSWSearchState& searchState) const;
 
     static std::unique_ptr<Index> load(main::ClientContext* context,
         storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
@@ -321,31 +321,31 @@ public:
     void checkpoint(main::ClientContext* context, bool forceCheckpointAll) override;
 
 private:
-    common::offset_t searchNNInUpperLayer(const void* queryVector,
+    common::offset_t searchNNInUpperLayer(const EmbeddingHandle& queryVector,
         HNSWSearchState& searchState) const;
     std::vector<NodeWithDistance> searchKNNInLayer(transaction::Transaction* transaction,
-        const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState,
+        const EmbeddingHandle& queryVector, common::offset_t entryNode, HNSWSearchState& searchState,
         bool isUpperLayer) const;
     std::vector<NodeWithDistance> searchFromCheckpointed(transaction::Transaction* transaction,
-        const void* queryVector, HNSWSearchState& searchState) const;
-    void searchFromUnCheckpointed(transaction::Transaction* transaction, const void* queryVector,
+        const EmbeddingHandle& queryVector, HNSWSearchState& searchState) const;
+    void searchFromUnCheckpointed(transaction::Transaction* transaction, const EmbeddingHandle& queryVector,
         HNSWSearchState& searchState, std::vector<NodeWithDistance>& result) const;
 
     void initLayerSearchState(transaction::Transaction* transaction, HNSWSearchState& searchState,
         bool isUpperLayer) const;
-    void oneHopSearch(const void* queryVector, graph::Graph::EdgeIterator& nbrItr,
+    void oneHopSearch(const EmbeddingHandle& queryVector, graph::Graph::EdgeIterator& nbrItr,
         HNSWSearchState& searchState, min_node_priority_queue_t& candidates,
         max_node_priority_queue_t& results) const;
-    void directedTwoHopFilteredSearch(const void* queryVector, graph::Graph::EdgeIterator& nbrItr,
+    void directedTwoHopFilteredSearch(const EmbeddingHandle& queryVector, graph::Graph::EdgeIterator& nbrItr,
         HNSWSearchState& searchState, min_node_priority_queue_t& candidates,
         max_node_priority_queue_t& results) const;
-    void blindTwoHopFilteredSearch(const void* queryVector, graph::Graph::EdgeIterator& nbrItr,
+    void blindTwoHopFilteredSearch(const EmbeddingHandle& queryVector, graph::Graph::EdgeIterator& nbrItr,
         HNSWSearchState& searchState, min_node_priority_queue_t& candidates,
         max_node_priority_queue_t& results) const;
     void insertInternal(transaction::Transaction* transaction, common::offset_t offset,
-        const void* vector, CheckpointInsertionState& insertState);
+        const EmbeddingHandle& vector, CheckpointInsertionState& insertState);
     void insertToLayer(transaction::Transaction* transaction, common::offset_t offset,
-        common::offset_t entryPoint, const void* queryVector, CheckpointInsertionState& insertState,
+        common::offset_t entryPoint, const EmbeddingHandle& queryVector, CheckpointInsertionState& insertState,
         bool isUpperLayer);
     void createRels(transaction::Transaction* transaction, common::offset_t offset,
         const std::vector<NodeWithDistance>& nbrs, bool isUpperLayer,
@@ -353,28 +353,28 @@ private:
     void shrinkForNode(transaction::Transaction* transaction, common::offset_t offset,
         bool isUpperLayer, common::length_t maxDegree, CheckpointInsertionState& insertState);
 
-    void processSecondHopCandidates(const void* queryVector, HNSWSearchState& searchState,
+    void processSecondHopCandidates(const EmbeddingHandle& queryVector, HNSWSearchState& searchState,
         int64_t& numVisitedNbrs, min_node_priority_queue_t& candidates,
         max_node_priority_queue_t& results,
         const std::vector<common::offset_t>& candidateOffsets) const;
-    void processSecondHopCandidates(const void* queryVector, HNSWSearchState& searchState,
+    void processSecondHopCandidates(const EmbeddingHandle& queryVector, HNSWSearchState& searchState,
         int64_t& numVisitedNbrs, min_node_priority_queue_t& candidates,
         max_node_priority_queue_t& results, min_node_priority_queue_t& candidatesQueue) const;
 
-    min_node_priority_queue_t collectFirstHopNbrsDirected(const void* queryVector,
+    min_node_priority_queue_t collectFirstHopNbrsDirected(const EmbeddingHandle& queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         int64_t& numVisitedNbrs) const;
-    common::offset_vec_t collectFirstHopNbrsBlind(const void* queryVector,
+    common::offset_vec_t collectFirstHopNbrsBlind(const EmbeddingHandle& queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         int64_t& numVisitedNbrs) const;
     // Return false if we've hit Ml limit.
-    bool searchOverSecondHopNbrs(const void* queryVector, uint64_t ef, HNSWSearchState& searchState,
+    bool searchOverSecondHopNbrs(const EmbeddingHandle& queryVector, uint64_t ef, HNSWSearchState& searchState,
         common::offset_t cand, int64_t& numVisitedNbrs, min_node_priority_queue_t& candidates,
         max_node_priority_queue_t& results) const;
 
-    void initSearchCandidates(const void* queryVector, HNSWSearchState& searchState,
+    void initSearchCandidates(const EmbeddingHandle& queryVector, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
 
     static SearchType getFilteredSearchType(transaction::Transaction* transaction,
