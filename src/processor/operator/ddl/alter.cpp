@@ -211,7 +211,8 @@ void Alter::alterTable(main::ClientContext* clientContext, TableCatalogEntry* en
         auto relGroupEntry = catalog->getTableCatalogEntry(transaction, alterInfo.tableName)
                                  ->ptrCast<RelGroupCatalogEntry>();
         auto connectionInfo = alterInfo.extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
-        auto relEntryInfo = relGroupEntry->getRelEntryInfo(connectionInfo->srcTableID, connectionInfo->dstTableID);
+        auto relEntryInfo =
+            relGroupEntry->getRelEntryInfo(connectionInfo->srcTableID, connectionInfo->dstTableID);
         storageManager->addRelTable(relGroupEntry, *relEntryInfo);
     } break;
     default:
