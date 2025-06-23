@@ -185,26 +185,37 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
 void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const {
     auto binder = Binder(&clientContext);
     auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
-    clientContext.getCatalog()->alterTableEntry(clientContext.getTransaction(),
-        *alterEntryRecord.ownedAlterInfo);
-    if (alterEntryRecord.ownedAlterInfo->alterType == AlterType::ADD_PROPERTY) {
+    auto catalog = clientContext.getCatalog();
+    auto transaction = clientContext.getTransaction();
+    auto storageManager = clientContext.getStorageManager();
+    auto ownedAlterInfo = alterEntryRecord.ownedAlterInfo.get();
+    catalog->alterTableEntry(transaction, *ownedAlterInfo);
+    switch (ownedAlterInfo->alterType) {
+    case AlterType::ADD_PROPERTY: {
         const auto exprBinder = binder.getExpressionBinder();
-        const auto addInfo =
-            alterEntryRecord.ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
+        const auto addInfo = ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
         // We don't implicit cast here since it must already be done the first time
         const auto boundDefault =
             exprBinder->bindExpression(*addInfo->propertyDefinition.defaultExpr);
         auto exprMapper = ExpressionMapper();
         const auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
         defaultValueEvaluator->init(ResultSet(0) /* dummy ResultSet */, &clientContext);
-        const auto schema = clientContext.getCatalog()->getTableCatalogEntry(
-            clientContext.getTransaction(), alterEntryRecord.ownedAlterInfo->tableName);
-        const auto& addedProp = schema->getProperty(addInfo->propertyDefinition.getName());
+        const auto entry = catalog->getTableCatalogEntry(transaction, ownedAlterInfo->tableName);
+        const auto& addedProp = entry->getProperty(addInfo->propertyDefinition.getName());
         TableAddColumnState state{addedProp, *defaultValueEvaluator};
         KU_ASSERT(clientContext.getStorageManager());
-        const auto storageManager = clientContext.getStorageManager();
-        storageManager->getTable(schema->getTableID())
-            ->addColumn(clientContext.getTransaction(), state);
+        storageManager->getTable(entry->getTableID())->addColumn(transaction, state);
+    } break;
+    case AlterType::ADD_FROM_TO_CONNECTION: {
+        auto extraInfo = ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
+        auto relGroupEntry = catalog->getTableCatalogEntry(transaction, ownedAlterInfo->tableName)
+                                 ->ptrCast<RelGroupCatalogEntry>();
+        auto relEntryInfo =
+            relGroupEntry->getRelEntryInfo(extraInfo->srcTableID, extraInfo->dstTableID);
+        storageManager->addRelTable(relGroupEntry, *relEntryInfo);
+    } break;
+    default:
+        break;
     }
 }
 

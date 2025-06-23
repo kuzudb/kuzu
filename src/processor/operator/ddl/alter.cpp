@@ -210,11 +210,10 @@ void Alter::alterTable(main::ClientContext* clientContext, TableCatalogEntry* en
     case AlterType::ADD_FROM_TO_CONNECTION: {
         auto relGroupEntry = catalog->getTableCatalogEntry(transaction, alterInfo.tableName)
                                  ->ptrCast<RelGroupCatalogEntry>();
-        auto addFromToConnectionInfo =
-            alterInfo.extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
-        storageManager->addRelTable(relGroupEntry,
-            *relGroupEntry->getRelEntryInfo(addFromToConnectionInfo->srcTableID,
-                addFromToConnectionInfo->dstTableID));
+        auto connectionInfo = alterInfo.extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
+        auto relEntryInfo =
+            relGroupEntry->getRelEntryInfo(connectionInfo->srcTableID, connectionInfo->dstTableID);
+        storageManager->addRelTable(relGroupEntry, *relEntryInfo);
     } break;
     default:
         break;

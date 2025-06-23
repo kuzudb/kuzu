@@ -2,6 +2,8 @@
 --
 
 -CASE AlterRelGroup
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
 -STATEMENT ALTER TABLE KNOWS ADD FROM person to organisation
 ---- 1
 Table KNOWS altered.
