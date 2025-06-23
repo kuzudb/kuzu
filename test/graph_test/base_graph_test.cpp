@@ -111,7 +111,7 @@ void BaseGraphTest::initGraph(const std::string& datasetDir) const {
     // imports across versions work correctly. This skips importing the `empty` dataset.
     auto dirs = StringUtils::split(StringUtils::getLower(datasetDir), "/");
     if (std::find(dirs.begin(), dirs.end(), "empty") != dirs.end()) {
-        std::cout << "Skipping Empty Dataset: " << datasetDir << std::endl;
+        std::cout << stringFormat("Skipping Empty Dataset {}", datasetDir) << std::endl;
         return;
     }
     std::string query = "IMPORT DATABASE '" + datasetDir + "';";

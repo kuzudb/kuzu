@@ -56,8 +56,11 @@ public:
         createConns(connNames);
         if (datasetType != TestGroup::DatasetType::KUZU && dataset != "empty") {
             initGraph();
-        } else if (generateBinaryDemo) {
+        } else if (generateBinaryDemo && TestHelper::E2E_OVERRIDE_IMPORT_DIR.empty()) {
             initGraph(TestHelper::appendKuzuRootPath("dataset/demo-db/parquet/"));
+        }
+        else if (generateBinaryDemo) {
+            initGraph(TestHelper::appendKuzuRootPath(TestHelper::E2E_OVERRIDE_IMPORT_DIR + "/demo-db/parquet/"));
         }
     }
 
