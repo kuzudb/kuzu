@@ -96,14 +96,7 @@ public:
         KU_ASSERT(pageIdx < numPages);
         writePagesToFile(buffer, getPageSize(), pageIdx);
     }
-    void writePagesToFile(const uint8_t* buffer, uint64_t size, common::page_idx_t startPageIdx) {
-        if (isInMemoryMode()) {
-            const auto frame = getFrame(startPageIdx);
-            memcpy(frame, buffer, size);
-        } else {
-            fileInfo->writeFile(buffer, size, startPageIdx * getPageSize());
-        }
-    }
+    void writePagesToFile(const uint8_t* buffer, uint64_t size, common::page_idx_t startPageIdx);
 
     bool isInMemoryMode() const { return !isLargePaged() && isNewTmpFile(); }
 
