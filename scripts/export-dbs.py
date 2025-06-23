@@ -23,7 +23,7 @@ def getVersion(executablePath):
         return None
 
 
-# Parse schema.cypher and copy.cypher file
+# Parse schema.cypher and copy.cypher files.
 def normalizeCypherCommands(filePath):
     commands = []
     try:
