@@ -113,7 +113,7 @@ private:
 
     // Used for managing used space in the output list data vector
     uint64_t numAllocatedEmbeddings;
-    RUNTIME_CHECK(std::unordered_set<common::offset_t> allocatedOffsets);
+    RUNTIME_CHECK_DECL(std::unordered_set<common::offset_t> allocatedOffsets);
 };
 
 class OnDiskEmbeddings final : public HNSWIndexEmbeddings {

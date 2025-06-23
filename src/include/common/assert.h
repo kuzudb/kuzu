@@ -21,10 +21,12 @@ namespace common {
 
 #if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
 #define RUNTIME_CHECK(code) code
+#define RUNTIME_CHECK_DECL(code) code
 #define KU_ASSERT(condition) KU_ASSERT_UNCONDITIONAL(condition)
 #else
 #define KU_ASSERT(condition) void(0)
 #define RUNTIME_CHECK(code) void(0)
+#define RUNTIME_CHECK_DECL(code)
 #endif
 
 #define KU_UNREACHABLE                                                                             \
