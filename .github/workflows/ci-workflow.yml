@@ -395,6 +395,39 @@ jobs:
         working-directory: tools/rust_api
         run: cargo clippy --release --all-targets --all-features
 
+  clang-build-test-with-tsan:
+    name: clang build & test with tsan
+    needs: [ clang-build-test, generate-binary-datasets ]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      GEN: Ninja
+      CC: clang
+      CXX: clang++
+      WERROR: 0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
+
+      - name: Test with TSAN
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test TSAN=1
+        env:
+          ASAN_OPTIONS: "detect_leaks=1"
+
+      - name: Test compression disabled with ASAN
+        env:
+          ENABLE_COMPRESSION: false
+        run: |
+          make test
+
   gcc-build-test-with-asan:
     name: gcc build & test with asan
     needs: [ gcc-build-test, generate-binary-datasets ]
