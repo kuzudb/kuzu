@@ -24,7 +24,7 @@ def getVersion(executablePath):
 
 
 # Parse schema.cypher and copy.cypher files.
-def normalizeCypherCommands(filePath):
+def createCypherQueries(filePath):
     commands = []
     try:
         with open(filePath, "r") as f:
