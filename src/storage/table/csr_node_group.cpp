@@ -529,7 +529,7 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
 
     uint64_t numTuplesAfterCheckpoint = 0;
     for (const auto& region : regionsToCheckpoint) {
-        for (auto i = region.leftNodeOffset; i < region.rightNodeOffset; ++i) {
+        for (auto i = region.leftNodeOffset; i <= region.rightNodeOffset; ++i) {
             numTuplesAfterCheckpoint += csrState.newHeader->getCSRLength(i);
         }
     }
