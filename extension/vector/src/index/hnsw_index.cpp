@@ -19,10 +19,10 @@ InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info)
     graph = std::make_unique<InMemHNSWGraph>(mm, info.numNodes, info.degreeThresholdToShrink);
 }
 
-std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> InMemHNSWLayerInfo::getEmbeddings(
+std::vector<EmbeddingHandle> InMemHNSWLayerInfo::getEmbeddings(
     std::span<const common::offset_t> offsetsInGraph, GetEmbeddingsScanState& scanState) const {
-    auto offsets = std::vector<common::offset_t, VectorAllocator<common::offset_t>>{
-        scanState.nodeOffsetAllocator};
+    std::vector<common::offset_t> offsets;
+    offsets.reserve(offsetsInGraph.size());
     for (size_t i = 0; i < offsetsInGraph.size(); ++i) {
         auto& offsetInGraph = offsetsInGraph[i];
         KU_ASSERT(offsetInGraph < numNodes);
@@ -52,10 +52,8 @@ void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint
     }
 }
 
-static decltype(auto) getNodeOffsets(const compressed_offsets_t& nodes,
-    GetEmbeddingsScanState& scanState) {
-    std::vector<common::offset_t, VectorAllocator<common::offset_t>> nbrOffsets{
-        scanState.graphOffsetAllocator};
+static decltype(auto) getNodeOffsets(const compressed_offsets_t& nodes) {
+    std::vector<common::offset_t> nbrOffsets;
     for (const auto nodeOffset : nodes) {
         if (nodeOffset == common::INVALID_OFFSET) {
             break;
@@ -80,7 +78,7 @@ common::offset_t InMemHNSWLayer::searchNN(const void* queryVector, common::offse
     KU_ASSERT(minDist >= 0);
     while (minDist < lastMinDist) {
         lastMinDist = minDist;
-        auto nbrOffsets = getNodeOffsets(graph->getNeighbors(currentNodeOffset), scanState);
+        auto nbrOffsets = getNodeOffsets(graph->getNeighbors(currentNodeOffset));
         auto nbrVectors = info.getEmbeddings(nbrOffsets, scanState);
         KU_ASSERT(nbrOffsets.size() == nbrVectors.size());
         for (common::offset_t i = 0; i < nbrOffsets.size(); ++i) {
@@ -152,7 +150,7 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const void* queryVector,
             break;
         }
         candidates.pop();
-        auto nbrOffsets = getNodeOffsets(graph->getNeighbors(candidate), scanState);
+        auto nbrOffsets = getNodeOffsets(graph->getNeighbors(candidate));
         auto nbrVectors = info.getEmbeddings(nbrOffsets, scanState);
         for (common::offset_t i = 0; i < nbrOffsets.size(); ++i) {
             const auto nbrOffset = nbrOffsets[i];
@@ -182,7 +180,7 @@ static std::vector<NodeWithDistanceAndEmbedding> populateNeighbours(const InMemH
     std::vector<NodeWithDistanceAndEmbedding> nbrs;
     const auto vector = info.getEmbedding(nodeOffset, scanState);
     const auto neighbors = graph->getNeighbors(nodeOffset);
-    auto nbrOffsets = getNodeOffsets(neighbors, scanState);
+    auto nbrOffsets = getNodeOffsets(neighbors);
     auto nbrVectors = info.getEmbeddings(nbrOffsets, scanState);
     nbrs.reserve(numNbrs);
     for (common::offset_t i = 0; i < nbrOffsets.size(); ++i) {
@@ -409,7 +407,7 @@ HNSWSearchState::HNSWSearchState(main::ClientContext* context,
       embeddings{std::make_unique<OnDiskEmbeddings>(context->getTransaction(),
           context->getMemoryManager(), getArrayTypeInfo(nodeTable, columnID), nodeTable, columnID)},
       embeddingScanState{context->getTransaction(), context->getMemoryManager(), nodeTable,
-          columnID, embeddings->getDimension()},
+          columnID},
       k{k}, config{config}, semiMask{nullptr}, upperRelTableEntry{upperRelTableEntry},
       lowerRelTableEntry{lowerRelTableEntry}, searchType{SearchType::UNFILTERED},
       nbrScanState{nullptr}, secondHopNbrScanState{nullptr} {
@@ -558,9 +556,8 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
             catalog->getTableCatalogEntry(context->getTransaction(), upperRelTableName, true);
         auto lowerRelTableEntry =
             catalog->getTableCatalogEntry(context->getTransaction(), lowerRelTableName, true);
-        const auto embeddingDim = typeInfo.constPtrCast<common::ArrayTypeInfo>()->getNumElements();
         const auto scanState = std::make_unique<OnDiskEmbeddingScanState>(context->getTransaction(),
-            mm, nodeTable, indexInfo.columnIDs[0], embeddingDim);
+            mm, nodeTable, indexInfo.columnIDs[0]);
         const auto insertState = std::make_unique<CheckpointInsertionState>(context, nodeTableEntry,
             upperRelTableEntry, lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
         // TODO(Guodong): Perhaps should switch to scan instead of lookup here.

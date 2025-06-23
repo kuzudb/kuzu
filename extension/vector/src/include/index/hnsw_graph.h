@@ -26,39 +26,6 @@ struct EmbeddingColumnInfo {
 
 struct EmbeddingHandle;
 
-template<typename T>
-struct VectorAllocatorImpl {
-    using value_type = T;
-
-    [[nodiscard]] T* allocate(const std::size_t size) {
-        const auto sizeBytes = size * sizeof(T);
-        if (sizeBytes > curData.capacity()) {
-            oldData = std::move(curData);
-            curData.reserve(sizeBytes);
-        }
-        return reinterpret_cast<T*>(curData.data());
-    }
-
-    void deallocate([[maybe_unused]] T* ptr, const std::size_t) noexcept {
-        KU_ASSERT(reinterpret_cast<uint8_t*>(ptr) == oldData.data() ||
-                  reinterpret_cast<uint8_t*>(ptr) == curData.data());
-    }
-
-    std::vector<uint8_t> curData;
-    std::vector<uint8_t> oldData;
-};
-
-template<typename T>
-struct VectorAllocator {
-    using value_type = T;
-
-    [[nodiscard]] T* allocate(const std::size_t size) { return impl->allocate(size); }
-
-    void deallocate(T* ptr, const std::size_t size) noexcept { impl->deallocate(ptr, size); }
-
-    std::shared_ptr<VectorAllocatorImpl<T>> impl = std::make_shared<VectorAllocatorImpl<T>>();
-};
-
 // This class is responsible for managing the lifetimes of retrieved embeddings
 struct GetEmbeddingsScanState {
     GetEmbeddingsScanState() = default;
@@ -79,10 +46,6 @@ struct GetEmbeddingsScanState {
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
-
-    VectorAllocator<common::offset_t> graphOffsetAllocator;
-    VectorAllocator<common::offset_t> nodeOffsetAllocator;
-    VectorAllocator<EmbeddingHandle> vectorAllocator;
 };
 
 struct EmbeddingHandle {
@@ -108,8 +71,8 @@ public:
 
     virtual EmbeddingHandle getEmbedding(common::offset_t offset,
         GetEmbeddingsScanState& scanState) const = 0;
-    virtual std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> getEmbeddings(
-        std::span<const common::offset_t> offset, GetEmbeddingsScanState& scanState) const = 0;
+    virtual std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
+        GetEmbeddingsScanState& scanState) const = 0;
 
     common::length_t getDimension() const { return info.getDimension(); }
     virtual std::unique_ptr<GetEmbeddingsScanState> constructScanState() const = 0;
@@ -125,8 +88,8 @@ public:
 
     EmbeddingHandle getEmbedding(common::offset_t offset,
         GetEmbeddingsScanState& scanState) const override;
-    std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> getEmbeddings(
-        std::span<const common::offset_t> offset, GetEmbeddingsScanState& scanState) const override;
+    std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
+        GetEmbeddingsScanState& scanState) const override;
 
     std::unique_ptr<GetEmbeddingsScanState> constructScanState() const override;
 
@@ -137,8 +100,7 @@ private:
 class OnDiskEmbeddingScanState : public GetEmbeddingsScanState {
 public:
     OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
-        storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID,
-        common::offset_t embeddingDim);
+        storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID);
 
     void* getEmbeddingPtr(const EmbeddingHandle& handle) override;
     void addEmbedding(const EmbeddingHandle& handle) override;
@@ -152,10 +114,7 @@ private:
     common::DataChunk scanChunk;
 
     // Used for managing used space in the output list data vector
-    std::stack<common::offset_t> usedEmbeddingOffsets;
-    std::bitset<common::DEFAULT_VECTOR_CAPACITY> allocatedOffsets;
-
-    common::offset_t embeddingDim;
+    uint64_t numAllocatedEmbeddings;
 };
 
 class OnDiskEmbeddings final : public HNSWIndexEmbeddings {
@@ -166,8 +125,8 @@ public:
 
     EmbeddingHandle getEmbedding(common::offset_t offset,
         GetEmbeddingsScanState& scanState) const override;
-    std::vector<EmbeddingHandle, VectorAllocator<EmbeddingHandle>> getEmbeddings(
-        std::span<const common::offset_t> offset, GetEmbeddingsScanState& scanState) const override;
+    std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offset,
+        GetEmbeddingsScanState& scanState) const override;
     std::unique_ptr<GetEmbeddingsScanState> constructScanState() const override;
 
 private:
@@ -264,7 +223,7 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable){};
+        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable) {};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 

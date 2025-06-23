@@ -29,8 +29,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
         {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
@@ -52,12 +52,6 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
     auto propertyID = tableEntry->getPropertyID(columnName);
     auto config = HNSWIndexConfig{input->optionalParams};
-    if (HNSWIndex::getDegreeThresholdToShrink(config.ml) >
-        static_cast<int64_t>(DEFAULT_VECTOR_CAPACITY)) {
-        throw BinderException(
-            stringFormat("Unsupported configured ml value {}, the maximum supported value is {}.",
-                config.ml, HNSWIndex::getMaximumSupportedMl()));
-    }
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
         numNodes, std::move(config));

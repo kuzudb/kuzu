@@ -26,6 +26,12 @@ void Ml::validate(int64_t value) {
         throw common::BinderException{
             common::stringFormat("Ml must be a positive integer between 1 and {}.", MAX_DEGREE)};
     }
+    if (HNSWIndex::getDegreeThresholdToShrink(value) >
+        static_cast<int64_t>(common::DEFAULT_VECTOR_CAPACITY)) {
+        throw common::BinderException(common::stringFormat(
+            "Unsupported configured ml value {}, the maximum supported value is {}.", value,
+            HNSWIndex::getMaximumSupportedMl()));
+    }
 }
 
 void Pu::validate(double value) {
