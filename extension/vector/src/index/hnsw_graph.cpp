@@ -117,7 +117,8 @@ OnDiskEmbeddings::OnDiskEmbeddings(transaction::Transaction* transaction,
       nodeTable(nodeTable), columnID(columnID) {}
 
 std::unique_ptr<GetEmbeddingsScanState> OnDiskEmbeddings::constructScanState() const {
-    return std::make_unique<OnDiskEmbeddingScanState>(transaction, mm, nodeTable, columnID);
+    return std::make_unique<OnDiskEmbeddingScanState>(transaction, mm, nodeTable, columnID,
+        info.getDimension());
 }
 
 EmbeddingHandle OnDiskEmbeddings::getEmbedding(common::offset_t offset,
@@ -178,8 +179,9 @@ std::vector<EmbeddingHandle> OnDiskEmbeddings::getEmbeddings(
 }
 
 OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
-    MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID)
-    : numAllocatedEmbeddings(0) {
+    MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID,
+    common::offset_t embeddingDim)
+    : embeddingDim(embeddingDim) {
     std::vector columnIDs{columnID};
     // The first ValueVector in scanChunk is reserved for nodeIDs.
     std::vector<common::LogicalType> types;
@@ -205,30 +207,39 @@ void* OnDiskEmbeddingScanState::getEmbeddingPtr(const EmbeddingHandle& handle) {
     return val;
 }
 
-void OnDiskEmbeddingScanState::addEmbedding([[maybe_unused]] const EmbeddingHandle& handle) {
+void OnDiskEmbeddingScanState::addEmbedding(const EmbeddingHandle& handle) {
     KU_ASSERT(!handle.isNull());
-    KU_ASSERT(!allocatedOffsets.contains(handle.offsetInData));
-    RUNTIME_CHECK(allocatedOffsets.insert(handle.offsetInData));
-    ++numAllocatedEmbeddings;
+    KU_ASSERT(handle.offsetInData % embeddingDim == 0);
+    const auto offsetToAdd = handle.offsetInData / embeddingDim;
+    allocatedOffsets.set(offsetToAdd);
+    KU_ASSERT(usedEmbeddingOffsets.empty() || offsetToAdd > usedEmbeddingOffsets.top());
+    usedEmbeddingOffsets.push(offsetToAdd);
 }
 
-void OnDiskEmbeddingScanState::reclaimEmbedding([[maybe_unused]] const EmbeddingHandle& handle) {
+void OnDiskEmbeddingScanState::reclaimEmbedding(const EmbeddingHandle& handle) {
     KU_ASSERT(!handle.isNull());
-    KU_ASSERT(allocatedOffsets.contains(handle.offsetInData));
-    RUNTIME_CHECK(allocatedOffsets.erase(handle.offsetInData));
-    KU_ASSERT(numAllocatedEmbeddings > 0);
-    --numAllocatedEmbeddings;
+    KU_ASSERT(handle.offsetInData % embeddingDim == 0);
+    const auto offsetToRemove = handle.offsetInData / embeddingDim;
+    allocatedOffsets.reset(offsetToRemove);
 
     /**
      * Reclaim space in output data vector
      * The general idea for managing the used space is:
-     * Keep a counter of how many embedding have been allocated
-     * If the counter is 0 reset the aux buffer
+     * - Each embedding is represented by its offset in the output list data vector
+     * - When an embedding is allocated, it is marked as used in 'allocatedOffsets', it is unmarked
+     * when it is freed.
+     * - When an embedding is allocated, it is also pushed to a stack. The offsets of the stack
+     * should be sorted in increasing order
+     * - After each free, we pop unmarked offsets off the stack. We then shrink the output list data
+     * vector based on the largest offset still on the stack.
      */
-    if (numAllocatedEmbeddings == 0) {
-        for (auto* outputVector : scanState->outputVectors) {
-            outputVector->resetAuxiliaryBuffer();
-        }
+    while (!usedEmbeddingOffsets.empty() && !allocatedOffsets.test(usedEmbeddingOffsets.top())) {
+        usedEmbeddingOffsets.pop();
+    }
+    const auto numDataElemsToResizeTo =
+        usedEmbeddingOffsets.empty() ? 0 : (usedEmbeddingOffsets.top() + 1) * embeddingDim;
+    for (auto* outputVector : scanState->outputVectors) {
+        common::ListVector::resizeDataVector(outputVector, numDataElemsToResizeTo);
     }
 }
 

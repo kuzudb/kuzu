@@ -410,7 +410,7 @@ HNSWSearchState::HNSWSearchState(main::ClientContext* context,
       embeddings{std::make_unique<OnDiskEmbeddings>(context->getTransaction(),
           context->getMemoryManager(), getArrayTypeInfo(nodeTable, columnID), nodeTable, columnID)},
       embeddingScanState{context->getTransaction(), context->getMemoryManager(), nodeTable,
-          columnID},
+          columnID, embeddings->getDimension()},
       k{k}, config{config}, semiMask{nullptr}, upperRelTableEntry{upperRelTableEntry},
       lowerRelTableEntry{lowerRelTableEntry}, searchType{SearchType::UNFILTERED},
       nbrScanState{nullptr}, secondHopNbrScanState{nullptr} {
@@ -559,8 +559,9 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
             catalog->getTableCatalogEntry(context->getTransaction(), upperRelTableName, true);
         auto lowerRelTableEntry =
             catalog->getTableCatalogEntry(context->getTransaction(), lowerRelTableName, true);
+        const auto embeddingDim = typeInfo.constPtrCast<common::ArrayTypeInfo>()->getNumElements();
         const auto scanState = std::make_unique<OnDiskEmbeddingScanState>(context->getTransaction(),
-            mm, nodeTable, indexInfo.columnIDs[0]);
+            mm, nodeTable, indexInfo.columnIDs[0], embeddingDim);
         const auto insertState = std::make_unique<CheckpointInsertionState>(context, nodeTableEntry,
             upperRelTableEntry, lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
         // TODO(Guodong): Perhaps should switch to scan instead of lookup here.

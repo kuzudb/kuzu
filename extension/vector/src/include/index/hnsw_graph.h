@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <cmath>
 
 #include "common/data_chunk/data_chunk.h"
@@ -98,7 +99,8 @@ private:
 class OnDiskEmbeddingScanState : public GetEmbeddingsScanState {
 public:
     OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
-        storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID);
+        storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID,
+        common::offset_t embeddingDim);
 
     void* getEmbeddingPtr(const EmbeddingHandle& handle) override;
     void addEmbedding(const EmbeddingHandle& handle) override;
@@ -112,8 +114,10 @@ private:
     common::DataChunk scanChunk;
 
     // Used for managing used space in the output list data vector
-    uint64_t numAllocatedEmbeddings;
-    RUNTIME_CHECK_DECL(std::unordered_set<common::offset_t> allocatedOffsets);
+    std::stack<common::offset_t> usedEmbeddingOffsets;
+    std::bitset<common::DEFAULT_VECTOR_CAPACITY> allocatedOffsets;
+
+    common::offset_t embeddingDim;
 };
 
 class OnDiskEmbeddings final : public HNSWIndexEmbeddings {
@@ -222,7 +226,7 @@ private:
 
 struct NodeToHNSWGraphOffsetMap {
     explicit NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable)
-        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable){};
+        : numNodesInGraph(numNodesInTable), numNodesInTable(numNodesInTable) {};
     NodeToHNSWGraphOffsetMap(common::offset_t numNodesInTable,
         const common::NullMask* selectedNodes);
 
