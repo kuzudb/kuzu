@@ -1,8 +1,6 @@
 #pragma once
 
-#include <bitset>
 #include <cmath>
-#include <stack>
 
 #include "common/data_chunk/data_chunk.h"
 #include "processor/operator/base_partitioner_shared_state.h"
@@ -115,6 +113,7 @@ private:
 
     // Used for managing used space in the output list data vector
     uint64_t numAllocatedEmbeddings;
+    RUNTIME_CHECK(std::unordered_set<common::offset_t> allocatedOffsets);
 };
 
 class OnDiskEmbeddings final : public HNSWIndexEmbeddings {

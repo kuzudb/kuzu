@@ -207,11 +207,15 @@ void* OnDiskEmbeddingScanState::getEmbeddingPtr(const EmbeddingHandle& handle) {
 
 void OnDiskEmbeddingScanState::addEmbedding([[maybe_unused]] const EmbeddingHandle& handle) {
     KU_ASSERT(!handle.isNull());
+    KU_ASSERT(!allocatedOffsets.contains(handle.offsetInData));
+    RUNTIME_CHECK(allocatedOffsets.insert(handle.offsetInData));
     ++numAllocatedEmbeddings;
 }
 
 void OnDiskEmbeddingScanState::reclaimEmbedding([[maybe_unused]] const EmbeddingHandle& handle) {
     KU_ASSERT(!handle.isNull());
+    KU_ASSERT(allocatedOffsets.contains(handle.offsetInData));
+    RUNTIME_CHECK(allocatedOffsets.erase(handle.offsetInData));
     --numAllocatedEmbeddings;
 
     /**
