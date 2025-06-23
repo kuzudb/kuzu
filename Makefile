@@ -107,6 +107,9 @@ endif
 ifdef EXTRA_CMAKE_FLAGS
 	CMAKE_FLAGS += $(EXTRA_CMAKE_FLAGS)
 endif
+ifdef BM_MALLOC
+	CMAKE_FLAGS += -DENABLE_MALLOC_BUFFER_MANAGER=$(BM_MALLOC)
+endif
 
 release:
 	$(call run-cmake-release,)

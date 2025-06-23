@@ -6,12 +6,6 @@
 
 // Alternative variant of the buffer manager which doesn't rely on MADV_DONTNEED (on Unix) for
 // evicting pages (which is unavailable in Webassembly runtimes)
-#ifdef __WASM__
-#define BM_MALLOC true
-#endif
-#ifdef __SWIFT__
-#define BM_MALLOC true
-#endif
 #if BM_MALLOC
 #include <memory>
 #endif
