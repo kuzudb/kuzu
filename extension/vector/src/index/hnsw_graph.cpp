@@ -216,6 +216,7 @@ void OnDiskEmbeddingScanState::reclaimEmbedding([[maybe_unused]] const Embedding
     KU_ASSERT(!handle.isNull());
     KU_ASSERT(allocatedOffsets.contains(handle.offsetInData));
     RUNTIME_CHECK(allocatedOffsets.erase(handle.offsetInData));
+    KU_ASSERT(numAllocatedEmbeddings > 0);
     --numAllocatedEmbeddings;
 
     /**

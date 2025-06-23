@@ -165,10 +165,11 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const void* queryVector,
 }
 
 struct NodeWithDistanceAndEmbedding {
-    NodeWithDistanceAndEmbedding(common::offset_t nodeOffset, double_t dist, const void* embedding)
-        : node(nodeOffset, dist), embedding(embedding) {}
+    NodeWithDistanceAndEmbedding(common::offset_t nodeOffset, double_t dist,
+        EmbeddingHandle embedding)
+        : node(nodeOffset, dist), embedding(std::move(embedding)) {}
     NodeWithDistance node;
-    const void* embedding;
+    EmbeddingHandle embedding;
 
     common::offset_t getNodeOffset() const { return node.nodeOffset; }
     double_t getDist() const { return node.distance; }
@@ -185,18 +186,18 @@ static std::vector<NodeWithDistanceAndEmbedding> populateNeighbours(const InMemH
     nbrs.reserve(numNbrs);
     for (common::offset_t i = 0; i < nbrOffsets.size(); ++i) {
         const auto nbrOffset = nbrOffsets[i];
-        const auto* nbrVector = nbrVectors[i].getPtr();
-        const auto dist = info.metricFunc(vector.getPtr(), nbrVector, info.getDimension());
-        nbrs.emplace_back(nbrOffset, dist, nbrVector);
+        auto& nbrVector = nbrVectors[i];
+        const auto dist = info.metricFunc(vector.getPtr(), nbrVector.getPtr(), info.getDimension());
+        nbrs.emplace_back(nbrOffset, dist, std::move(nbrVector));
     }
     return nbrs;
 }
 
 template<typename Embedding>
-static bool checkEmbeddingValidity(std::vector<NodeWithDistanceAndEmbedding>& nbrs,
+static bool checkEmbeddingValidity(const std::vector<NodeWithDistanceAndEmbedding>& nbrs,
     common::idx_t nbrIdx, Embedding& embeddings, GetEmbeddingsScanState& scanState) {
-    return std::memcmp(nbrs[nbrIdx].embedding,
-               embeddings.getEmbedding(nbrs[nbrIdx].getNodeOffset(), scanState).getPtr(),
+    const auto tmpEmbedding = embeddings.getEmbedding(nbrs[nbrIdx].getNodeOffset(), scanState);
+    return std::memcmp(nbrs[nbrIdx].embedding.getPtr(), tmpEmbedding.getPtr(),
                embeddings.getDimension()) == 0;
 }
 
@@ -213,8 +214,8 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
         for (auto j = i + 1; j < nbrs.size(); j++) {
             KU_ASSERT(checkEmbeddingValidity(nbrs, i, info, scanState));
             KU_ASSERT(checkEmbeddingValidity(nbrs, j, info, scanState));
-            const auto dist =
-                info.metricFunc(nbrs[i].embedding, nbrs[j].embedding, info.getDimension());
+            const auto dist = info.metricFunc(nbrs[i].embedding.getPtr(),
+                nbrs[j].embedding.getPtr(), info.getDimension());
             if (info.alpha * dist < nbrs[i].getDist()) {
                 keepNbr = false;
                 break;
@@ -938,16 +939,21 @@ void OnDiskHNSWIndex::shrinkForNode(transaction::Transaction* transaction, commo
             return true;
         });
     }
-    const auto nbrVectors = embeddings.getEmbeddings(nbrOffsets, embeddingScanState);
+
     std::vector<NodeWithDistanceAndEmbedding> nbrs;
     nbrs.reserve(nbrOffsets.size());
-    for (size_t i = 0; i < nbrOffsets.size(); i++) {
-        if (nbrVectors[i].isNull()) {
-            continue;
+    {
+        auto nbrVectors = embeddings.getEmbeddings(nbrOffsets, embeddingScanState);
+        for (size_t i = 0; i < nbrOffsets.size(); i++) {
+            if (nbrVectors[i].isNull()) {
+                continue;
+            }
+            auto dist =
+                metricFunc(vector.getPtr(), nbrVectors[i].getPtr(), embeddings.getDimension());
+            nbrs.emplace_back(nbrOffsets[i], dist, std::move(nbrVectors[i]));
         }
-        auto dist = metricFunc(vector.getPtr(), nbrVectors[i].getPtr(), embeddings.getDimension());
-        nbrs.emplace_back(nbrOffsets[i], dist, nbrVectors[i].getPtr());
     }
+
     std::ranges::sort(nbrs,
         [](const auto& n1, const auto& n2) { return n1.getDist() < n2.getDist(); });
     // First, delete all existing rels for the node.
@@ -963,8 +969,8 @@ void OnDiskHNSWIndex::shrinkForNode(transaction::Transaction* transaction, commo
         for (auto j = i + 1; j < nbrs.size(); j++) {
             KU_ASSERT(checkEmbeddingValidity(nbrs, i, embeddings, embeddingScanState));
             KU_ASSERT(checkEmbeddingValidity(nbrs, j, embeddings, embeddingScanState));
-            const auto dist =
-                metricFunc(nbrs[i].embedding, nbrs[j].embedding, embeddings.getDimension());
+            const auto dist = metricFunc(nbrs[i].embedding.getPtr(), nbrs[j].embedding.getPtr(),
+                embeddings.getDimension());
             if (config.alpha * dist < nbrs[i].getDist()) {
                 keepNbr = false;
                 break;
