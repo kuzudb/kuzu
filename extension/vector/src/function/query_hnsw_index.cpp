@@ -203,11 +203,11 @@ static const LogicalType& getIndexColumnType(const NodeTableCatalogEntry& nodeEn
 // It exists so that we can match the interface for on-disk HNSW search
 template<typename T>
 struct HNSWQueryVector : GetEmbeddingsScanState {
-    HNSWQueryVector<T>(main::ClientContext* context, std::shared_ptr<Expression> queryExpression,
+    HNSWQueryVector(main::ClientContext* context, std::shared_ptr<Expression> queryExpression,
         const LogicalType& indexType, uint64_t dimension)
         : data(getQueryVector<T>(context, std::move(queryExpression), indexType, dimension)) {}
 
-    void* getEmbeddingPtr(const EmbeddingHandle& handle) override {
+    void* getEmbeddingPtr([[maybe_unused]] const EmbeddingHandle& handle) override {
         KU_ASSERT(!handle.isNull());
         KU_ASSERT(handle.offsetInData == 0);
         return reinterpret_cast<void*>(data.data());
