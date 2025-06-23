@@ -421,11 +421,15 @@ jobs:
           make test TSAN=1
         env:
           TSAN_OPTIONS: "halt_on_error=1"
+          # 32GB
+          MAX_DB_SIZE: 34359738368
 
       - name: Test compression disabled with TSAN
         env:
           ENABLE_COMPRESSION: false
           TSAN_OPTIONS: "halt_on_error=1"
+          # 32GB
+          MAX_DB_SIZE: 34359738368
         run: |
           make test
 

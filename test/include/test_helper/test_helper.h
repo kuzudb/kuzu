@@ -75,6 +75,7 @@ public:
         auto enableCompressionEnv = getSystemEnv("ENABLE_COMPRESSION");
         auto checkpointThresholdEnv = getSystemEnv("CHECKPOINT_THRESHOLD");
         auto forceCheckpointOnCloseEnv = getSystemEnv("FORCE_CHECKPOINT_ON_CLOSE");
+        auto maxDBSizeEnv = getSystemEnv("MAX_DB_SIZE");
         systemConfig->bufferPoolSize = bufferPoolSizeEnv.empty() ?
                                            DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
                                            std::stoull(bufferPoolSizeEnv);
@@ -90,6 +91,8 @@ public:
             forceCheckpointOnCloseEnv.empty() ?
                 systemConfig->forceCheckpointOnClose :
                 common::StringUtils::caseInsensitiveEquals(forceCheckpointOnCloseEnv, "true");
+        systemConfig->maxDBSize =
+            maxDBSizeEnv.empty() ? systemConfig->maxDBSize : std::stoull(maxDBSizeEnv);
         return systemConfig;
     }
 
