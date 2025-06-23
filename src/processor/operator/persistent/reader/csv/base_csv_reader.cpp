@@ -282,7 +282,7 @@ BaseCSVReader::parse_result_t BaseCSVReader::parseCSV(Driver& driver) {
 
     while (true) {
         column_id_t column = 0;
-        auto start = position;
+        auto start = position.load();
         bool hasQuotes = false;
         std::vector<uint64_t> escapePositions;
         lineContext.setNewLine(getFileOffset());

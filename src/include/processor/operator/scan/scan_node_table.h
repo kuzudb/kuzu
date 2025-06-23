@@ -8,7 +8,7 @@ namespace kuzu {
 namespace processor {
 
 struct ScanNodeTableProgressSharedState {
-    common::node_group_idx_t numGroupsScanned;
+    std::atomic<common::node_group_idx_t> numGroupsScanned;
     common::node_group_idx_t numGroups;
 
     ScanNodeTableProgressSharedState() : numGroupsScanned{0}, numGroups{0} {};

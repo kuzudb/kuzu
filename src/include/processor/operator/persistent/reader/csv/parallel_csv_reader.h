@@ -43,7 +43,7 @@ struct ParallelCSVLocalState final : public function::TableFuncLocalState {
 struct ParallelCSVScanSharedState final : public function::ScanFileWithProgressSharedState {
     common::CSVOption csvOption;
     CSVColumnInfo columnInfo;
-    uint64_t numBlocksReadByFiles = 0;
+    std::atomic<uint64_t> numBlocksReadByFiles = 0;
     std::vector<SharedFileErrorHandler> errorHandlers;
     populate_func_t populateErrorFunc;
 

@@ -104,7 +104,7 @@ protected:
 
 protected:
     std::mutex mtx;
-    uint64_t currentOffset;
+    std::atomic<uint64_t> currentOffset;
     std::vector<function::AggregateFunction> aggregateFunctions;
     std::atomic<size_t> numThreadsFinishedProducing;
     std::atomic<size_t> numThreads;

@@ -98,7 +98,7 @@ struct ParquetScanSharedState final : function::ScanFileWithProgressSharedState 
     std::vector<std::unique_ptr<ParquetReader>> readers;
     std::vector<bool> columnSkips;
     uint64_t totalRowsGroups;
-    uint64_t numBlocksReadByFiles;
+    std::atomic<uint64_t> numBlocksReadByFiles;
 };
 
 struct ParquetScanLocalState final : function::TableFuncLocalState {

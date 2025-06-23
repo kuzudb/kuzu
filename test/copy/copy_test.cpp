@@ -1,7 +1,6 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "graph_test/base_graph_test.h"
-#include "graph_test/graph_test.h"
 #include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "test_runner/test_parser.h"
@@ -22,8 +21,8 @@ class FlakyBufferManager : public storage::BufferManager {
 public:
     FlakyBufferManager(const std::string& databasePath, const std::string& spillToDiskPath,
         uint64_t bufferPoolSize, uint64_t maxDBSize, common::VirtualFileSystem* vfs, bool readOnly,
-        uint64_t& failureFrequency, bool canFailDuringExecute, bool canFailDuringCheckpoint,
-        bool canFailDuringCommit)
+        std::atomic<uint64_t>& failureFrequency, bool canFailDuringExecute,
+        bool canFailDuringCheckpoint, bool canFailDuringCommit)
         : storage::BufferManager(databasePath, spillToDiskPath, bufferPoolSize, maxDBSize, vfs,
               readOnly),
           failureFrequency(failureFrequency), canFailDuringCheckpoint(canFailDuringCheckpoint),
@@ -44,7 +43,7 @@ public:
         if (!inRollback && !inDBInit && (canFailDuringCommit || !inCommit) &&
             (canFailDuringCheckpoint || !inCheckpoint) && (canFailDuringExecute || !inExecute) &&
             reserveCount == 0) {
-            failureFrequency *= 2;
+            failureFrequency = failureFrequency * 2;
             return false;
         }
         return storage::BufferManager::reserve(sizeToReserve);
@@ -52,12 +51,12 @@ public:
 
     void setClientContext(main::ClientContext* newCtx) { ctx = newCtx; }
 
-    uint64_t& failureFrequency;
+    std::atomic<uint64_t>& failureFrequency;
     main::ClientContext* ctx{nullptr};
     bool canFailDuringCheckpoint;
     bool canFailDuringExecute;
     bool canFailDuringCommit;
-    uint64_t reserveCount = 0;
+    std::atomic<uint64_t> reserveCount = 0;
 };
 
 struct BMExceptionRecoveryTestConfig {
@@ -104,7 +103,7 @@ public:
     }
     std::string getInputDir() override { KU_UNREACHABLE; }
     void BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg);
-    uint64_t failureFrequency;
+    std::atomic<uint64_t> failureFrequency;
     FlakyBufferManager* currentBM;
 };
 

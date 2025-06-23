@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <mutex>
 
 #include "common/constants.h"
@@ -16,8 +17,8 @@ namespace function {
 
 struct ScanFileSharedState : public TableFuncSharedState {
     const common::FileScanInfo fileScanInfo;
-    uint64_t fileIdx;
-    uint64_t blockIdx;
+    std::atomic<uint64_t> fileIdx;
+    std::atomic<uint64_t> blockIdx;
 
     ScanFileSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows)
         : TableFuncSharedState{numRows}, fileScanInfo{std::move(fileScanInfo)}, fileIdx{0},
@@ -26,7 +27,7 @@ struct ScanFileSharedState : public TableFuncSharedState {
     std::pair<uint64_t, uint64_t> getNext() {
         std::lock_guard guard{mtx};
         return fileIdx >= fileScanInfo.getNumFiles() ? std::make_pair(UINT64_MAX, UINT64_MAX) :
-                                                       std::make_pair(fileIdx, blockIdx++);
+                                                       std::make_pair(fileIdx.load(), blockIdx++);
     }
 };
 

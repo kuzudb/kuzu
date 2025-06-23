@@ -129,6 +129,9 @@ void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
             std::make_unique<SharedFileErrorHandler>(fileIdx, nullptr, populateErrorFunc);
         localErrorHandler = std::make_unique<LocalFileErrorHandler>(sharedErrorHandler.get(),
             csvOption.ignoreErrors, context);
+        // We only need to protect the access to the reader here are that can cause a data race with
+        // the progressFunc
+        std::lock_guard lck{mtx};
         reader = std::make_unique<SerialCSVReader>(fileScanInfo.filePaths[fileIdx], fileIdx,
             csvOption.copy(), columnInfo.copy(), context, localErrorHandler.get());
     }
@@ -267,6 +270,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     } else if (state->fileIdx >= state->fileScanInfo.getNumFiles()) {
         return 1.0;
     }
+    std::lock_guard lck{state->mtx};
     uint64_t totalReadSize = state->totalReadSizeByFile + state->reader->getFileOffset();
     return static_cast<double>(totalReadSize) / state->totalSize;
 }

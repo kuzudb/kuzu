@@ -219,7 +219,7 @@ protected:
     FileHandle* dataFH;
     MemoryManager* memoryManager;
     ShadowFile* shadowFile;
-    bool hasChanges;
+    std::atomic<bool> hasChanges;
     bool inMemory;
     bool readOnly;
 };
