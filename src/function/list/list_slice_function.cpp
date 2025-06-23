@@ -9,7 +9,6 @@ namespace kuzu {
 namespace function {
 
 static void normalizeIndices(int64_t& startIdx, int64_t& endIdx, uint64_t size) {
-    int64_t sSize = size;
     if (startIdx < 0) {
         startIdx = size + startIdx + 1;
     }
@@ -19,10 +18,10 @@ static void normalizeIndices(int64_t& startIdx, int64_t& endIdx, uint64_t size) 
     if (endIdx < 0) {
         endIdx = size + endIdx + 1;
     }
-    if (endIdx > sSize) {
+    if (endIdx > (int64_t)size) {
         endIdx = size;
     }
-    if (endIdx < startIdx || startIdx > sSize) {
+    if (endIdx < startIdx) {
         startIdx = 1;
         endIdx = 0;
     }
