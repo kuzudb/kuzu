@@ -41,7 +41,7 @@
 -LOG ListSliceOutOfRange
 -STATEMENT RETURN [1,2,3][:100], [1,2,3][-1:2], [1,2,3][2:1], [1,2,3][1:-1], [1,2,3][3:4], 'abc'[-1:4]
 ---- 1
-[1,2,3]|[]|[]|[1,2]|[3]|c
+[1,2,3]|[]|[]|[1,2,3]|[3]|c
 
 -LOG ListAddOperation
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN p.courseScoresPerTerm + p1.courseScoresPerTerm
@@ -769,36 +769,36 @@ True
 -LOG ListSliceLiteralListOfInts
 -STATEMENT MATCH (o:organisation) RETURN array_slice([1,4,7,9,10,20,15,192,-5,21,3], 3, o.ID + 3)
 ---- 3
-[7]
-[7,9,10,20]
-[7,9,10,20,15,192]
+[7,9]
+[7,9,10,20,15]
+[7,9,10,20,15,192,-5]
 
 -LOG ListSliceListOfInts
 -STATEMENT MATCH (a:person) RETURN list_slice(a.workedHours, 1, 2)
 ---- 8
-[10]
-[12]
-[4]
-[1]
+[10,5]
+[12,8]
+[4,5]
+[1,9]
 [2]
-[3]
+[3,4]
 [1]
-[10]
+[10,11]
 
 -LOG ListSliceListOfListOfInts
 -STATEMENT MATCH (a:person) RETURN array_slice(a.usedNames, 1, 2)
 ---- 8
 [Aida]
 [Bobby]
-[Carmen]
-[Wolfeschlegelstein]
+[Carmen,Fred]
+[Wolfeschlegelstein,Daniel]
 [Ein]
 [Fesdwe]
 [Grad]
-[Ad]
+[Ad,De]
 
 -LOG ListSliceListOfStrings
--STATEMENT MATCH (a:person) RETURN list_slice(a.courseScoresPerTerm, 1, 2)
+-STATEMENT MATCH (a:person) RETURN list_slice(a.courseScoresPerTerm, 1, 1)
 ---- 8
 [[10,8]]
 [[8,9]]
@@ -875,12 +875,12 @@ ert
 ---- 8
 []
 []
+[Carmen]
+[Wolfeschlegelstein]
 []
 []
 []
-[]
-[]
-[Ad,De,Hi]
+[Ad,De,Hi,Kye]
 
 -STATEMENT MATCH (a:person) RETURN a.fName[7:]
 ---- 8

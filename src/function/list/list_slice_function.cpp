@@ -9,23 +9,22 @@ namespace kuzu {
 namespace function {
 
 static void normalizeIndices(int64_t& startIdx, int64_t& endIdx, uint64_t size) {
+    int64_t sSize = size;
     if (startIdx < 0) {
         startIdx = size + startIdx + 1;
     }
-    if (endIdx <= 0) {
-        endIdx = size + endIdx + 1;
-    }
-
     if (startIdx <= 0) {
         startIdx = 1;
     }
-
-    if ((uint64_t)endIdx > size) {
-        endIdx = size + 1;
+    if (endIdx < 0) {
+        endIdx = size + endIdx + 1;
     }
-
-    if (startIdx > endIdx) {
-        endIdx = startIdx;
+    if (endIdx > sSize) {
+        endIdx = size;
+    }
+    if (endIdx < startIdx || startIdx > sSize) {
+        startIdx = 1;
+        endIdx = 0;
     }
 }
 
@@ -38,12 +37,12 @@ struct ListSlice {
         auto startIdx = begin;
         auto endIdx = end;
         normalizeIndices(startIdx, endIdx, listEntry.size);
-        result = common::ListVector::addList(&resultVector, endIdx - startIdx);
+        result = common::ListVector::addList(&resultVector, endIdx - startIdx + 1);
         auto srcDataVector = common::ListVector::getDataVector(&listVector);
         auto srcPos = listEntry.offset + startIdx - 1;
         auto dstDataVector = common::ListVector::getDataVector(&resultVector);
         auto dstPos = result.offset;
-        for (; startIdx < endIdx; startIdx++) {
+        for (; startIdx <= endIdx; startIdx++) {
             dstDataVector->copyFromVectorData(dstPos++, srcDataVector, srcPos++);
         }
     }

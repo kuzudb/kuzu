@@ -312,15 +312,15 @@ std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
             left = transformExpression(*ctx.oC_Expression(0));
             right = transformExpression(*ctx.oC_Expression(1));
         } else if (ctx.oC_Expression().size() == 0) { // [:]
-            left = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
-            right = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
+            left = std::make_unique<ParsedLiteralExpression>(Value(1), "1");
+            right = std::make_unique<ParsedLiteralExpression>(Value(-1), "-1");
         } else {
             if (ctx.children[1]->getText() == ":") { // [:right]
-                left = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
+                left = std::make_unique<ParsedLiteralExpression>(Value(1), "1");
                 right = transformExpression(*ctx.oC_Expression(0));
             } else { // [left:]
                 left = transformExpression(*ctx.oC_Expression(0));
-                right = std::make_unique<ParsedLiteralExpression>(Value(0), "0");
+                right = std::make_unique<ParsedLiteralExpression>(Value(-1), "-1");
             }
         }
         listSlice->addChild(std::move(left));
