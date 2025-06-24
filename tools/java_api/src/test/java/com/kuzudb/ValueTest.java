@@ -1631,4 +1631,17 @@ public class ValueTest extends TestBase {
             }
         }
     }
+
+    @Test
+    void UnsupportedTypeCreate() {
+        try {
+            Value test = new Value(new Exception()); // random type
+            test.getValue();
+            test.close();
+        } catch (Exception e) {
+            assertEquals("Type of value not supported in value_create_value", e.getMessage());
+            return;
+        }
+        fail("UnsupportedTypeCreate failed:");
+    }
 }
