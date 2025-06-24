@@ -9,26 +9,26 @@ namespace function {
 struct UnaryHashFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE>
     static void execute(const common::ValueVector& operand,
-        const common::SelectionVector& operandSelectVec, common::ValueVector& result,
-        const common::SelectionVector& resultSelectVec);
+        const common::SelectionView& operandSelectVec, common::ValueVector& result,
+        const common::SelectionView& resultSelectVec);
 };
 
 struct BinaryHashFunctionExecutor {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void execute(const common::ValueVector& left, const common::SelectionVector& leftSelVec,
-        const common::ValueVector& right, const common::SelectionVector& rightSelVec,
-        common::ValueVector& result, const common::SelectionVector& resultSelVec);
+    static void execute(const common::ValueVector& left, const common::SelectionView& leftSelVec,
+        const common::ValueVector& right, const common::SelectionView& rightSelVec,
+        common::ValueVector& result, const common::SelectionView& resultSelVec);
 };
 
 struct VectorHashFunction {
     static void computeHash(const common::ValueVector& operand,
-        const common::SelectionVector& operandSelectVec, common::ValueVector& result,
-        const common::SelectionVector& resultSelectVec);
+        const common::SelectionView& operandSelectVec, common::ValueVector& result,
+        const common::SelectionView& resultSelectVec);
 
     static void combineHash(const common::ValueVector& left,
-        const common::SelectionVector& leftSelVec, const common::ValueVector& right,
-        const common::SelectionVector& rightSelVec, common::ValueVector& result,
-        const common::SelectionVector& resultSelVec);
+        const common::SelectionView& leftSelVec, const common::ValueVector& right,
+        const common::SelectionView& rightSelVec, common::ValueVector& result,
+        const common::SelectionView& resultSelVec);
 };
 
 struct MD5Function {
