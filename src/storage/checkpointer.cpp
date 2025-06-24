@@ -65,6 +65,25 @@ PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
     auto metadataWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
     common::Serializer metadataSerializer(metadataWriter);
     storageManager.serialize(catalog, metadataSerializer);
+
+    // We need to preallocate the pages for the page manager before we actually serialize it
+    // This is because the page manager needs to track the pages used for itself
+    // The number of pages needed for the page manager should only decrease after making an
+    // additional allocation so we just calculate the number of pages needed to serialize the
+    // current state of the page manager
+    // auto& pageManager = *storageManager.getDataFH()->getPageManager();
+    // const auto pagesForPageManager = pageManager.estimatePagesNeededForSerialize();
+    // const auto allocatedPages =
+    //     pageManager.allocatePageRange(metadataWriter->getNumPagesToFlush() +
+    //     pagesForPageManager);
+    // pageManager.serialize(metadataSerializer);
+
+    // metadataWriter->flush(allocatedPages, storageManager.getDataFH(),
+    //     storageManager.getShadowFile());
+    // return allocatedPages;
+
+    auto& pageManager = *storageManager.getDataFH()->getPageManager();
+    pageManager.serialize(metadataSerializer);
     return metadataWriter->flush(storageManager.getDataFH(), storageManager.getShadowFile());
 }
 

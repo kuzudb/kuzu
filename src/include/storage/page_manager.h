@@ -31,6 +31,10 @@ public:
     void freePageRange(PageRange block);
     void freePage(common::page_idx_t pageIdx) { freePageRange(PageRange(pageIdx, 1)); }
 
+    // The page manager must first allocate space for itself so that its serialized version also
+    // tracks the pages allocated itself
+    // Thus this function also allocates and returns the space for the serialized storage maanger
+    common::page_idx_t estimatePagesNeededForSerialize();
     void serialize(common::Serializer& serializer);
     void deserialize(common::Deserializer& deSer);
     void finalizeCheckpoint();

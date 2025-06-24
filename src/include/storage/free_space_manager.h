@@ -31,6 +31,7 @@ public:
     void addUncheckpointedFreePages(PageRange entry);
     void rollbackCheckpoint();
 
+    common::page_idx_t estimateNumPagesNeededForSerialize() const;
     void serialize(common::Serializer& serializer) const;
     void deserialize(common::Deserializer& deSer);
     void finalizeCheckpoint(FileHandle* fileHandle);
@@ -45,6 +46,10 @@ private:
     void handleLastPageRange(PageRange pageRange, FileHandle* fileHandle);
     void resetFreeLists();
     static common::idx_t getLevel(common::page_idx_t numPages);
+
+    template<typename ValueProcessor>
+    void serializeInternal(ValueProcessor& serializer) const;
+    common::page_idx_t estimateNumPagesForSerialization();
 
     std::vector<sorted_free_list_t> freeLists;
     free_list_t uncheckpointedFreePageRanges;

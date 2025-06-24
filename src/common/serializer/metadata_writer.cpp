@@ -31,23 +31,33 @@ void MetaWriter::write(const uint8_t* data, uint64_t size) {
 
 storage::PageRange MetaWriter::flush(storage::FileHandle* fileHandle,
     storage::ShadowFile& shadowFile) const {
-    auto numPagesToFlush = pages.size();
+    auto numPagesToFlush = getNumPagesToFlush();
     auto pageManager = fileHandle->getPageManager();
-    auto numPages = fileHandle->getNumPages();
     auto pageRange = pageManager->allocatePageRange(numPagesToFlush);
-    for (auto i = 0u; i < pageRange.numPages; i++) {
-        auto pageIdx = pageRange.startPageIdx + i;
-        auto insertingNewPage = pageIdx >= numPages;
+    flush(pageRange, fileHandle, shadowFile);
+    return pageRange;
+}
+
+void MetaWriter::flush(storage::PageRange allocatedPageRange, storage::FileHandle* fileHandle,
+    storage::ShadowFile& shadowFile) const {
+    KU_ASSERT(allocatedPageRange.numPages >= getNumPagesToFlush());
+    auto numPagesBeforeAllocate = allocatedPageRange.startPageIdx;
+    for (auto i = 0u; i < allocatedPageRange.numPages; i++) {
+        auto pageIdx = allocatedPageRange.startPageIdx + i;
+        auto insertingNewPage = pageIdx >= numPagesBeforeAllocate;
         auto shadowPageAndFrame = storage::ShadowUtils::createShadowVersionIfNecessaryAndPinPage(
             pageIdx, insertingNewPage, *fileHandle, shadowFile);
         memcpy(shadowPageAndFrame.frame, pages[i]->getData(), KUZU_PAGE_SIZE);
         shadowFile.getShadowingFH().unpinPage(shadowPageAndFrame.shadowPage);
     }
-    return pageRange;
 }
 
 bool MetaWriter::needNewBuffer(uint64_t size) const {
     return pages.empty() || pageOffset + size > KUZU_PAGE_SIZE;
+}
+
+uint64_t MetaWriter::getPageSize() {
+    return KUZU_PAGE_SIZE;
 }
 
 } // namespace common

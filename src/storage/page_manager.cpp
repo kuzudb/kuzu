@@ -30,6 +30,10 @@ void PageManager::freePageRange(PageRange entry) {
     }
 }
 
+common::page_idx_t PageManager::estimatePagesNeededForSerialize() {
+    return freeSpaceManager->estimateNumPagesNeededForSerialize();
+}
+
 void PageManager::serialize(common::Serializer& serializer) {
     freeSpaceManager->serialize(serializer);
 }

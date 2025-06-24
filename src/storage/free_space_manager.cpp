@@ -1,6 +1,7 @@
 #include "storage/free_space_manager.h"
 
 #include "common/serializer/deserializer.h"
+#include "common/serializer/metadata_writer.h"
 #include "common/serializer/serializer.h"
 #include "common/utils.h"
 #include "storage/file_handle.h"
@@ -16,7 +17,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -74,46 +75,95 @@ PageRange FreeSpaceManager::splitPageRange(PageRange chunk, common::page_idx_t n
     return ret;
 }
 
-static common::row_idx_t serializeCheckpointedEntries(common::Serializer& ser,
-    const std::vector<FreeSpaceManager::sorted_free_list_t>& freeLists) {
+struct SerializePagesUsedTracker {
+    common::page_idx_t numPagesUsed;
+    uint64_t numBytesUsedInPage;
+
+    void updatePagesUsed(uint64_t numBytesToAdd) {
+        if (numBytesUsedInPage + numBytesToAdd > common::MetaWriter::getPageSize()) {
+            ++numPagesUsed;
+            numBytesUsedInPage = 0;
+        }
+        numBytesUsedInPage += numBytesToAdd;
+    }
+
+    template<typename T>
+    void processValue(T) {
+        updatePagesUsed(sizeof(T));
+    }
+
+    void processDebuggingInfo(const std::string& value) {
+        updatePagesUsed(sizeof(uint64_t) + value.size());
+    }
+};
+
+struct ValueSerializer {
+    common::Serializer& ser;
+
+    template<typename T>
+    void processValue(T value) {
+        ser.write(value);
+    }
+
+    void processDebuggingInfo(const std::string& value) { ser.writeDebuggingInfo(value); }
+};
+
+template<typename ValueProcessor>
+static common::row_idx_t serializeCheckpointedEntries(
+    const std::vector<FreeSpaceManager::sorted_free_list_t>& freeLists, ValueProcessor& ser) {
     auto entryIt = FreeEntryIterator{freeLists};
     common::row_idx_t numWrittenEntries = 0;
     while (!entryIt.done()) {
         const auto entry = *entryIt;
-        ser.write(entry.startPageIdx);
-        ser.write(entry.numPages);
+        ser.processValue(entry.startPageIdx);
+        ser.processValue(entry.numPages);
         ++entryIt;
         ++numWrittenEntries;
     }
     return numWrittenEntries;
 }
 
-static common::row_idx_t serializeUncheckpointedEntries(common::Serializer& ser,
-    const FreeSpaceManager::free_list_t& uncheckpointedEntries) {
+template<typename ValueProcessor>
+static common::row_idx_t serializeUncheckpointedEntries(
+    const FreeSpaceManager::free_list_t& uncheckpointedEntries, ValueProcessor& ser) {
     for (const auto& entry : uncheckpointedEntries) {
-        ser.write(entry.startPageIdx);
-        ser.write(entry.numPages);
+        ser.processValue(entry.startPageIdx);
+        ser.processValue(entry.numPages);
     }
     return uncheckpointedEntries.size();
 }
 
-void FreeSpaceManager::serialize(common::Serializer& ser) const {
+template<typename ValueProcessor>
+void FreeSpaceManager::serializeInternal(ValueProcessor& ser) const {
     // we also serialize uncheckpointed entries as serialize() may be called before
     // finalizeCheckpoint()
+    ser.processDebuggingInfo("page_manager");
     const auto numEntries = getNumEntries() + uncheckpointedFreePageRanges.size();
-    ser.writeDebuggingInfo("numEntries");
-    ser.write(numEntries);
-    ser.writeDebuggingInfo("entries");
+    ser.processDebuggingInfo("numEntries");
+    ser.processValue(numEntries);
+    ser.processDebuggingInfo("entries");
     [[maybe_unused]] const auto numCheckpointedEntries =
-        serializeCheckpointedEntries(ser, freeLists);
+        serializeCheckpointedEntries(freeLists, ser);
     [[maybe_unused]] const auto numUncheckpointedEntries =
-        serializeUncheckpointedEntries(ser, uncheckpointedFreePageRanges);
+        serializeUncheckpointedEntries(uncheckpointedFreePageRanges, ser);
     KU_ASSERT(numCheckpointedEntries + numUncheckpointedEntries == numEntries);
+}
+
+common::page_idx_t FreeSpaceManager::estimateNumPagesNeededForSerialize() const {
+    SerializePagesUsedTracker ser{};
+    serializeInternal(ser);
+    return ser.numPagesUsed + (ser.numBytesUsedInPage > 0);
+}
+
+void FreeSpaceManager::serialize(common::Serializer& ser) const {
+    ValueSerializer serWrapper{.ser = ser};
+    serializeInternal(serWrapper);
 }
 
 void FreeSpaceManager::deserialize(common::Deserializer& deSer) {
     std::string key;
 
+    deSer.validateDebuggingInfo(key, "page_manager");
     deSer.validateDebuggingInfo(key, "numEntries");
     common::row_idx_t numEntries{};
     deSer.deserializeValue<common::row_idx_t>(numEntries);
