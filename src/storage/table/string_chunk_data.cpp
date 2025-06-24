@@ -6,7 +6,6 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/file_handle.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/dictionary_chunk.h"
 #include "storage/table/string_column.h"
@@ -250,17 +249,17 @@ void StringChunkData::finalize() {
     dictionaryChunk = std::move(newDictionaryChunk);
 }
 
-void StringChunkData::flush(FileHandle& dataFH) {
-    ColumnChunkData::flush(dataFH);
-    indexColumnChunk->flush(dataFH);
-    dictionaryChunk->flush(dataFH);
+void StringChunkData::flush(PageAllocator& pageAllocator) {
+    ColumnChunkData::flush(pageAllocator);
+    indexColumnChunk->flush(pageAllocator);
+    dictionaryChunk->flush(pageAllocator);
 }
 
-void StringChunkData::reclaimStorage(PageManager& pageManager) {
-    ColumnChunkData::reclaimStorage(pageManager);
-    indexColumnChunk->reclaimStorage(pageManager);
-    dictionaryChunk->getOffsetChunk()->reclaimStorage(pageManager);
-    dictionaryChunk->getStringDataChunk()->reclaimStorage(pageManager);
+void StringChunkData::reclaimStorage(PageAllocator& pageAllocator) {
+    ColumnChunkData::reclaimStorage(pageAllocator);
+    indexColumnChunk->reclaimStorage(pageAllocator);
+    dictionaryChunk->getOffsetChunk()->reclaimStorage(pageAllocator);
+    dictionaryChunk->getStringDataChunk()->reclaimStorage(pageAllocator);
 }
 
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {

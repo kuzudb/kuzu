@@ -47,7 +47,7 @@ public:
         DeleteState& deleteState) override;
 
     void finalize(main::ClientContext* context) override;
-    void checkpoint(main::ClientContext*) override;
+    void checkpoint(main::ClientContext*, storage::PageAllocator& pageAllocator) override;
 
     static storage::IndexType getIndexType() {
         static const storage::IndexType FTS_INDEX_TYPE{"FTS",

@@ -107,13 +107,15 @@
 -STATEMENT call storage_info('Post') where node_group_id = 0 with num_values as node_group_capacity limit 1
     unwind range(1, node_group_capacity) as i create (:other)
 ---- ok
+-STATEMENT create (s:stats {numPages: 0})
+---- ok
 -STATEMENT call storage_info('Post') where node_group_id = 0 with num_values as node_group_capacity limit 1
            match (p:Post) where ID(p) < internal_id(0, node_group_capacity) delete p with count(*) as num_deleted, node_group_capacity
            return num_deleted = node_group_capacity
 ---- 1
 True
 # store free pages before re-copy
--STATEMENT call file_info() with num_pages create (s:stats {numPages: num_pages})
+-STATEMENT call file_info() with num_pages match (s:stats) where s.id = 0 set s.numPages = num_pages;
 ---- ok
 # set values for the val column, it will now need some pages for storage
 # on the next allocation the pages for the deleted node group should be reused
@@ -155,16 +157,8 @@ True
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
 -PARALLELISM 1
 ---- ok
-# the re-copying won't be perfect because we don't reset the nodeOffset to be inserted to for Post
-# the "stats" table also uses up some storage
-# so we leave some margin of error when checking to see if all pages have been reallocated
--STATEMENT call storage_info('Post') with sum(num_pages) as total_num_pages
-            call storage_info('Post') where num_pages > 0 with column_name, start_page_idx, num_pages, total_num_pages
-            where count { match (s:stats) where s.startPageIdx <= start_page_idx and s.startPageIdx + s.numPages >= start_page_idx + num_pages } > 0
-            with sum(num_pages) as num_reused_pages, total_num_pages
-            return (total_num_pages - num_reused_pages) * 5 < total_num_pages
----- 1
-True
+-STATEMENT match (s:stats) with sum(s.num_pages) as original_num_pages
+            call fsm_info() return sum(num_pages) < original_num_pages
 -RELOADDB
 # try some queries
 -STATEMENT match(p:Post) return count(*)

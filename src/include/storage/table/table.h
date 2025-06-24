@@ -158,7 +158,6 @@ public:
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
     std::string getTableName() const { return tableName; }
-    FileHandle* getDataFH() const { return dataFH; }
 
     // Note that `resetCachedBoundNodeIDs` is only applicable to RelTable for now.
     virtual void initScanState(transaction::Transaction* transaction, TableScanState& readState,
@@ -171,15 +170,15 @@ public:
     virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
 
     virtual void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState) = 0;
+        TableAddColumnState& addColumnState, PageAllocator& pageAllocator) = 0;
     void dropColumn() { setHasChanges(); }
 
     virtual void commit(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) = 0;
-    virtual bool checkpoint(main::ClientContext* context,
-        catalog::TableCatalogEntry* tableEntry) = 0;
+    virtual bool checkpoint(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+        storage::PageAllocator& pageAllocator) = 0;
     virtual void rollbackCheckpoint() = 0;
-    virtual void reclaimStorage(PageManager& pageManager) const = 0;
+    virtual void reclaimStorage(PageAllocator& pageAllocator) const = 0;
 
     virtual common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) = 0;
 
@@ -215,7 +214,6 @@ protected:
     common::table_id_t tableID;
     std::string tableName;
     bool enableCompression;
-    FileHandle* dataFH;
     MemoryManager* memoryManager;
     ShadowFile* shadowFile;
     std::atomic<bool> hasChanges;

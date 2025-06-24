@@ -279,6 +279,9 @@ void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEnt
     // Handle storage changes
     const auto storageManager = clientContext->getStorageManager();
     catalog->alterTableEntry(transaction, alterInfo);
+    // We don't use an optimistic allocator in this case since rollback of new columns is already
+    // handled by checkpoint
+    auto& pageAllocator = *storageManager->getDataFH()->getPageManager();
     switch (info.alterType) {
     case AlterType::ADD_PROPERTY: {
         auto& boundAddPropInfo = info.extraInfo->constCast<BoundExtraAddPropertyInfo>();
@@ -288,13 +291,14 @@ void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEnt
         storage::TableAddColumnState state{addedProp, *defaultValueEvaluator};
         switch (alteredEntry->getTableType()) {
         case TableType::NODE: {
-            storageManager->getTable(alteredEntry->getTableID())->addColumn(transaction, state);
+            storageManager->getTable(alteredEntry->getTableID())
+                ->addColumn(transaction, state, pageAllocator);
         } break;
         case TableType::REL: {
             for (auto& innerRelEntry :
                 alteredEntry->cast<RelGroupCatalogEntry>().getRelEntryInfos()) {
                 auto* relTable = storageManager->getTable(innerRelEntry.oid);
-                relTable->addColumn(transaction, state);
+                relTable->addColumn(transaction, state, pageAllocator);
             }
         } break;
         default: {

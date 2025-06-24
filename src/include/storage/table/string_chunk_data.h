@@ -60,8 +60,8 @@ public:
 
     void finalize() override;
 
-    void flush(FileHandle& dataFH) override;
-    void reclaimStorage(PageManager& pageManager) override;
+    void flush(PageAllocator& pageAllocator) override;
+    void reclaimStorage(PageAllocator& pageAllocator) override;
 
     void resetNumValuesFromMetadata() override;
     void syncNumValues() override {

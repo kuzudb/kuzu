@@ -2,6 +2,7 @@
 
 #include "processor/operator/sink.h"
 #include "processor/result/factorized_table.h"
+#include "storage/page_allocator.h"
 #include "storage/table/table.h"
 
 namespace kuzu {
@@ -89,6 +90,7 @@ struct KUZU_API BatchInsertSharedState {
 
 struct BatchInsertLocalState {
     std::unique_ptr<storage::ChunkedNodeGroup> chunkedGroup;
+    storage::PageAllocator* optimisticAllocator = nullptr;
 
     virtual ~BatchInsertLocalState() = default;
 

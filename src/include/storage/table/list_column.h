@@ -55,7 +55,7 @@ public:
     static bool disableCompressionOnData(const common::LogicalType& dataType);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
-        FileHandle& dataFH);
+        PageAllocator& pageAllocator);
 
     void scan(const ChunkState& state, common::offset_t startOffsetInGroup,
         common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
@@ -68,7 +68,8 @@ public:
     Column* getSizeColumn() const { return sizeColumn.get(); }
     Column* getDataColumn() const { return dataColumn.get(); }
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+        PageAllocator& pageAllocator) override;
 
 protected:
     void scanInternal(const ChunkState& state, common::offset_t startOffsetInChunk,

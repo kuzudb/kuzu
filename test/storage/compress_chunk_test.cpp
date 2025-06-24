@@ -120,7 +120,7 @@ void CompressChunkTest::commitUpdate(ChunkState& state, FileHandle* dataFH,
     auto* clientContext = getClientContext(*conn);
     clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
     clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
-    if (state.metadata.compMeta.compression == CompressionType::ALP) {
+    if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
         state.alpExceptionChunk =
             std::make_unique<InMemoryExceptionChunk<T>>(state, dataFH, memoryManager, shadowFile);
     }

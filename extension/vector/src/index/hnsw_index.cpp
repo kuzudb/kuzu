@@ -630,11 +630,12 @@ void OnDiskHNSWIndex::finalize(main::ClientContext* context) {
     hnswStorageInfo.numCheckpointedNodes = numTotalRows;
 }
 
-void OnDiskHNSWIndex::checkpoint(main::ClientContext* context) {
+void OnDiskHNSWIndex::checkpoint(main::ClientContext* context,
+    storage::PageAllocator& pageAllocator) {
     auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] = getIndexTableCatalogEntries(
         context->getCatalog(), &DUMMY_CHECKPOINT_TRANSACTION, indexInfo);
-    upperRelTable->checkpoint(context, upperRelTableEntry);
-    lowerRelTable->checkpoint(context, lowerRelTableEntry);
+    upperRelTable->checkpoint(context, upperRelTableEntry, pageAllocator);
+    lowerRelTable->checkpoint(context, lowerRelTableEntry, pageAllocator);
 }
 
 void OnDiskHNSWIndex::insertInternal(Transaction* transaction, common::offset_t offset,

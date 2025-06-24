@@ -28,6 +28,7 @@ struct TableAddColumnState;
 struct NodeGroupScanState;
 class ColumnStats;
 class FileHandle;
+class PageAllocator;
 
 enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
 
@@ -120,8 +121,8 @@ public:
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk);
 
     void addColumn(const transaction::Transaction* transaction,
-        const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH,
-        ColumnStats* newColumnStats);
+        const TableAddColumnState& addColumnState, bool enableCompression,
+        PageAllocator* pageAllocator, ColumnStats* newColumnStats);
 
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
     bool isInserted(const transaction::Transaction* transaction,
@@ -142,8 +143,8 @@ public:
     }
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, FileHandle& dataFH) const;
-    virtual void flush(FileHandle& dataFH);
+        transaction::Transaction* transaction, PageAllocator& pageAllocator) const;
+    virtual void flush(PageAllocator& pageAllocator);
 
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRowsToCommit,
         common::transaction_t commitTS);
@@ -153,7 +154,7 @@ public:
         common::transaction_t commitTS);
     void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
         common::transaction_t commitTS);
-    virtual void reclaimStorage(PageManager& pageManager) const;
+    virtual void reclaimStorage(PageAllocator& pageAllocator) const;
 
     uint64_t getEstimatedMemoryUsage() const;
 

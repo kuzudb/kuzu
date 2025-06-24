@@ -141,7 +141,7 @@ void OverflowFileHandle::checkpoint() {
     }
 }
 
-void OverflowFileHandle::reclaimStorage(PageManager& pageManager) {
+void OverflowFileHandle::reclaimStorage(PageAllocator& pageAllocator) {
     if (startPageIdx == INVALID_PAGE_IDX) {
         return;
     }
@@ -152,7 +152,7 @@ void OverflowFileHandle::reclaimStorage(PageManager& pageManager) {
             throw RuntimeException(
                 "The overflow file has been corrupted, this should never happen.");
         }
-        pageManager.freePage(pageIdx);
+        pageAllocator.freePage(pageIdx);
 
         if (pageIdx == nextPosToWriteTo.pageIdx) {
             break;
@@ -176,10 +176,10 @@ void OverflowFileHandle::read(TransactionType trxType, page_idx_t pageIdx,
     overflowFile.readFromDisk(trxType, pageIdx, func);
 }
 
-OverflowFile::OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager, ShadowFile* shadowFile,
-    page_idx_t headerPageIdx)
-    : numPagesOnDisk{0}, fileHandle{dataFH}, shadowFile{shadowFile}, memoryManager{memoryManager},
-      headerChanged{false}, headerPageIdx{headerPageIdx} {
+OverflowFile::OverflowFile(PageAllocator* pageAllocator, MemoryManager& memoryManager,
+    ShadowFile* shadowFile, page_idx_t headerPageIdx)
+    : numPagesOnDisk{0}, pageAllocator{pageAllocator}, shadowFile{shadowFile},
+      memoryManager{memoryManager}, headerChanged{false}, headerPageIdx{headerPageIdx} {
     KU_ASSERT(shadowFile);
     if (headerPageIdx != INVALID_PAGE_IDX) {
         readFromDisk(TransactionType::READ_ONLY, headerPageIdx,
@@ -192,7 +192,7 @@ OverflowFile::OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager, Sha
 }
 
 OverflowFile::OverflowFile(MemoryManager& memoryManager)
-    : numPagesOnDisk{0}, fileHandle{nullptr}, shadowFile{nullptr}, memoryManager{memoryManager},
+    : numPagesOnDisk{0}, pageAllocator{nullptr}, shadowFile{nullptr}, memoryManager{memoryManager},
       headerChanged{false}, headerPageIdx{INVALID_PAGE_IDX} {
     // Reserve a page for the header
     this->headerPageIdx = getNewPageIdx();
@@ -213,14 +213,14 @@ void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
         ShadowUtils::updatePage(*getFileHandle(), pageIdx, true /* overwriting entire page*/,
             *shadowFile, [&](auto* frame) { memcpy(frame, data, KUZU_PAGE_SIZE); });
     } else {
-        KU_ASSERT(fileHandle);
-        KU_ASSERT(!fileHandle->isInMemoryMode());
-        fileHandle->writePageToFile(data, pageIdx);
+        KU_ASSERT(pageAllocator);
+        KU_ASSERT(!getFileHandle()->isInMemoryMode());
+        getFileHandle()->writePageToFile(data, pageIdx);
     }
 }
 
 void OverflowFile::checkpoint() {
-    KU_ASSERT(fileHandle);
+    KU_ASSERT(pageAllocator);
     // TODO(bmwinger): Ideally this could be done separately and in parallel by each HashIndex
     // However fileHandle->addNewPages needs to be called beforehand,
     // but after each HashIndex::prepareCommit has written to the in-memory pages
@@ -241,7 +241,7 @@ void OverflowFile::checkpointInMemory() {
 }
 
 void OverflowFile::rollbackInMemory() {
-    if (fileHandle->getNumPages() > headerPageIdx) {
+    if (getFileHandle()->getNumPages() > headerPageIdx) {
         readFromDisk(TransactionType::READ_ONLY, headerPageIdx,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
     }
@@ -251,12 +251,12 @@ void OverflowFile::rollbackInMemory() {
     }
 }
 
-void OverflowFile::reclaimStorage(PageManager& pageManager) const {
+void OverflowFile::reclaimStorage(PageAllocator& pageAllocator) const {
     for (auto& handle : handles) {
-        handle->reclaimStorage(pageManager);
+        handle->reclaimStorage(pageAllocator);
     }
     if (headerPageIdx != INVALID_PAGE_IDX) {
-        fileHandle->getPageManager()->freePage(headerPageIdx);
+        pageAllocator.freePage(headerPageIdx);
     }
 }
 

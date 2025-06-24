@@ -34,6 +34,14 @@ common::page_idx_t PageManager::estimatePagesNeededForSerialize() {
     return freeSpaceManager->getMaxNumPagesForSerialization();
 }
 
+void PageManager::freeImmediatelyRewritablePageRange(FileHandle* fileHandle, PageRange entry) {
+    if constexpr (ENABLE_FSM) {
+        common::UniqLock lck{mtx};
+        freeSpaceManager->evictAndAddFreePages(fileHandle, entry);
+        ++version;
+    }
+}
+
 void PageManager::serialize(common::Serializer& serializer) {
     freeSpaceManager->serialize(serializer);
 }
@@ -44,5 +52,9 @@ void PageManager::deserialize(common::Deserializer& deSer) {
 
 void PageManager::finalizeCheckpoint() {
     freeSpaceManager->finalizeCheckpoint(fileHandle);
+}
+
+void PageManager::clearEvictedBMEntriesIfNeeded(BufferManager* bufferManager) {
+    freeSpaceManager->clearEvictedBufferManagerEntriesIfNeeded(bufferManager);
 }
 } // namespace kuzu::storage

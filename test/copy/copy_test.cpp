@@ -3,6 +3,8 @@
 #include "graph_test/base_graph_test.h"
 #include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "storage/checkpointer.h"
+#include "storage/storage_manager.h"
 #include "test_runner/test_parser.h"
 #include "transaction/transaction_manager.h"
 
@@ -72,6 +74,11 @@ struct BMExceptionRecoveryTestConfig {
 
 class CopyTest : public BaseGraphTest {
 public:
+    void TearDown() override {
+        database.reset();
+        conn.reset();
+    }
+
     void SetUp() override {
         BaseGraphTest::SetUp();
         failureFrequency = 32;
@@ -105,6 +112,57 @@ public:
     void BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg);
     std::atomic<uint64_t> failureFrequency;
     FlakyBufferManager* currentBM;
+};
+
+static decltype(auto) getDbSizeInPages(main::Connection* conn) {
+    return conn->getClientContext()->getStorageManager()->getDataFH()->getNumPages();
+}
+
+static decltype(auto) getNumFreePages(main::Connection* conn) {
+    auto& pageManager =
+        *conn->getClientContext()->getStorageManager()->getDataFH()->getPageManager();
+    auto numFreeEntries = pageManager.getNumFreeEntries();
+    auto entries = pageManager.getFreeEntries(0, numFreeEntries);
+    return std::accumulate(entries.begin(), entries.end(), 0ull,
+        [](auto a, auto b) { return a + b.numPages; });
+}
+
+struct FSMLeakChecker {
+    static void checkForLeakedPages(main::Connection* conn) {
+        conn->query("checkpoint");
+
+        std::vector<std::pair<std::string, std::string>> tableNames;
+        auto tableNamesResult = conn->query("call show_tables() return name, type");
+        while (tableNamesResult->hasNext()) {
+            auto nextResult = tableNamesResult->getNext();
+            tableNames.emplace_back(nextResult->getValue(0)->toString(),
+                nextResult->getValue(1)->toString());
+        }
+
+        // Drop rel tables first
+        for (const auto& [tableName, tableType] : tableNames) {
+            if (tableType == common::TableTypeUtils::toString(common::TableType::REL)) {
+                ASSERT_TRUE(
+                    conn->query(common::stringFormat("drop table {}", tableName))->isSuccess());
+            }
+        }
+        for (const auto& [tableName, tableType] : tableNames) {
+            if (tableType != common::TableTypeUtils::toString(common::TableType::REL)) {
+                ASSERT_TRUE(
+                    conn->query(common::stringFormat("drop table {}", tableName))->isSuccess());
+            }
+        }
+        conn->query("checkpoint");
+
+        const auto numTotalPages = getDbSizeInPages(conn);
+        const auto numUsedPages = numTotalPages - getNumFreePages(conn);
+
+        storage::Checkpointer checkpointer{*conn->getClientContext()};
+        auto databaseHeader = checkpointer.getCurrentDatabaseHeader();
+        ASSERT_EQ(1 + databaseHeader.catalogPageRange.numPages +
+                      databaseHeader.metadataPageRange.numPages,
+            numUsedPages);
+    }
 };
 
 void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
@@ -150,6 +208,11 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
         ASSERT_TRUE(result->isSuccess()) << result->getErrorMessage();
         ASSERT_TRUE(result->hasNext());
         ASSERT_EQ(cfg.checkResult, result->getNext()->getValue(0)->getValue<int64_t>());
+    }
+
+    // TODO(Royi) prevent leaking of allocated pages during checkpoint rollback
+    if (!inMemMode && !cfg.canFailDuringCheckpoint) {
+        FSMLeakChecker::checkForLeakedPages(conn.get());
     }
 }
 
@@ -291,11 +354,9 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
             },
         .executeFunc =
             [](main::Connection* conn, int) {
-                const auto queryString = common::stringFormat(
+                return conn->query(common::stringFormat(
                     "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
-                    KUZU_ROOT_DIRECTORY);
-
-                return conn->query(queryString);
+                    KUZU_ROOT_DIRECTORY));
             },
         .earlyExitOnFailureFunc =
             [this](main::QueryResult*) {
@@ -306,6 +367,42 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
         .checkFunc =
             [](main::Connection* conn) { return conn->query("MATCH (a:account) RETURN COUNT(*)"); },
         .checkResult = 81306};
+    BMExceptionRecoveryTest(cfg);
+}
+
+TEST_F(CopyTest, RelCopyCheckpointBMExceptionRecovery) {
+    if (inMemMode || systemConfig->forceCheckpointOnClose == false) {
+        GTEST_SKIP();
+    }
+    BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = false,
+        .canFailDuringCheckpoint = true,
+        .canFailDuringCommit = false,
+        .initFunc =
+            [this](main::Connection* conn) {
+                conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
+                conn->query("CREATE REL TABLE follows(FROM account TO account);");
+                ASSERT_TRUE(conn->query(common::stringFormat(
+                    "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
+                    KUZU_ROOT_DIRECTORY)));
+                failureFrequency = 1024;
+            },
+        .executeFunc =
+            [](main::Connection* conn, int) {
+                return conn->query(common::stringFormat(
+                    "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
+                    KUZU_ROOT_DIRECTORY));
+            },
+        .earlyExitOnFailureFunc =
+            [this](main::QueryResult*) {
+                // make sure the checkpoint when closing the DB doesn't fail
+                failureFrequency = UINT64_MAX;
+                return true;
+            },
+        .checkFunc =
+            [](main::Connection* conn) {
+                return conn->query("MATCH (a:account)-[:follows]->(b:account) RETURN COUNT(*)");
+            },
+        .checkResult = 2420766};
     BMExceptionRecoveryTest(cfg);
 }
 
@@ -359,6 +456,10 @@ TEST_F(CopyTest, GracefulBMExceptionHandlingManyThreads) {
         ASSERT_FALSE(result->isSuccess());
         conn->query("drop table Comment");
     }
+
+    if (!inMemMode) {
+        FSMLeakChecker::checkForLeakedPages(conn.get());
+    }
 }
 
 TEST_F(CopyTest, OutOfMemoryRecovery) {
@@ -375,13 +476,14 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
             "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
             KUZU_ROOT_DIRECTORY));
         ASSERT_TRUE(result->isSuccess()) << result->toString();
+
         result = conn->query(common::stringFormat(
             "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
             KUZU_ROOT_DIRECTORY));
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(), "Buffer manager exception: Unable to allocate "
-                                             "memory! The buffer pool is full and no "
-                                             "memory could be freed!");
+        ASSERT_EQ(result->getErrorMessage(),
+            "Buffer manager exception: Unable to allocate memory! The buffer pool is full and no "
+            "memory could be freed!");
     }
     // Try opening then closing the database
     resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);

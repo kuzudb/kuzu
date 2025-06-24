@@ -190,6 +190,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
     auto storageManager = clientContext.getStorageManager();
     auto ownedAlterInfo = alterEntryRecord.ownedAlterInfo.get();
     catalog->alterTableEntry(transaction, *ownedAlterInfo);
+    auto& pageAllocator = *clientContext.getStorageManager()->getDataFH()->getPageManager();
     switch (ownedAlterInfo->alterType) {
     case AlterType::ADD_PROPERTY: {
         const auto exprBinder = binder.getExpressionBinder();
@@ -207,11 +208,13 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         switch (entry->getTableType()) {
         case TableType::REL: {
             for (auto& relEntryInfo : entry->cast<RelGroupCatalogEntry>().getRelEntryInfos()) {
-                storageManager->getTable(relEntryInfo.oid)->addColumn(transaction, state);
+                storageManager->getTable(relEntryInfo.oid)
+                    ->addColumn(transaction, state, pageAllocator);
             }
         } break;
         case TableType::NODE: {
-            storageManager->getTable(entry->getTableID())->addColumn(transaction, state);
+            storageManager->getTable(entry->getTableID())
+                ->addColumn(transaction, state, pageAllocator);
         } break;
         default: {
             KU_UNREACHABLE;

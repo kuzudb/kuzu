@@ -44,6 +44,17 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID) const {
     return nullptr;
 }
 
+PageAllocator* LocalStorage::addOptimisticAllocator() {
+    auto* dataFH = clientContext.getStorageManager()->getDataFH();
+    if (dataFH->isInMemoryMode()) {
+        return dataFH->getPageManager();
+    }
+    common::UniqLock lck{mtx};
+    optimisticAllocators.emplace_back(
+        std::make_unique<OptimisticAllocator>(*dataFH->getPageManager()));
+    return optimisticAllocators.back().get();
+}
+
 void LocalStorage::commit() {
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
@@ -63,12 +74,21 @@ void LocalStorage::commit() {
             table->commit(&clientContext, tableEntry, localTable.get());
         }
     }
+    for (auto& optimisticAllocator : optimisticAllocators) {
+        optimisticAllocator->commit();
+    }
 }
 
 void LocalStorage::rollback() {
     for (auto& [_, localTable] : tables) {
         localTable->clear();
     }
+    for (auto& optimisticAllocator : optimisticAllocators) {
+        optimisticAllocator->rollback();
+    }
+    auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    clientContext.getStorageManager()->getDataFH()->getPageManager()->clearEvictedBMEntriesIfNeeded(
+        bufferManager);
 }
 
 uint64_t LocalStorage::getEstimatedMemUsage() const {

@@ -14,7 +14,8 @@ class MemoryManager;
 class NodeGroupCollection {
 public:
     NodeGroupCollection(const std::vector<common::LogicalType>& types, bool enableCompression,
-        FileHandle* dataFH = nullptr, const VersionRecordHandler* versionRecordHandler = nullptr);
+        ResidencyState residency = ResidencyState::IN_MEMORY,
+        const VersionRecordHandler* versionRecordHandler = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
@@ -30,7 +31,8 @@ public:
     // NOTE: This is specially coded to only be used by NodeBatchInsert for now.
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroupAndFlushWhenFull(
         MemoryManager& mm, transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup);
+        const std::vector<common::column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup,
+        PageAllocator& pageAllocator);
 
     common::row_idx_t getNumTotalRows() const;
     common::node_group_idx_t getNumNodeGroups() const {
@@ -71,12 +73,13 @@ public:
 
     common::column_id_t getNumColumns() const { return types.size(); }
 
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
+        PageAllocator* pageAllocator = nullptr);
 
     uint64_t getEstimatedMemoryUsage() const;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
-    void reclaimStorage(PageManager& pageManager) const;
+    void reclaimStorage(PageAllocator& pageAllocator) const;
 
     TableStats getStats() const {
         auto lock = nodeGroups.lock();
@@ -113,7 +116,7 @@ private:
     std::atomic<common::row_idx_t> numTotalRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;
-    FileHandle* dataFH;
+    ResidencyState residency;
     TableStats stats;
     const VersionRecordHandler* versionRecordHandler;
 };

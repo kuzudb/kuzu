@@ -101,7 +101,7 @@ public:
     MergedColumnChunkStats getMergedColumnChunkStats(
         const transaction::Transaction* transaction) const;
 
-    void reclaimStorage(PageManager& pageManager) const;
+    void reclaimStorage(PageAllocator& pageAllocator) const;
 
 private:
     void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,

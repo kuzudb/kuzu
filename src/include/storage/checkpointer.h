@@ -1,9 +1,13 @@
 #pragma once
 
 #include "main/client_context.h"
+#include "storage/optimistic_allocator.h"
 #include "storage/page_range.h"
 
 namespace kuzu {
+namespace testing {
+struct FSMLeakChecker;
+}
 namespace main {
 class AttachedKuzuDatabase;
 } // namespace main
@@ -17,12 +21,13 @@ struct DatabaseHeader {
     PageRange metadataPageRange;
 
     void updateCatalogPageRange(PageManager& pageManager, PageRange newPageRange);
-    void updateMetadataPageRange(PageManager& pageManager, PageRange newPageRange);
+    void freeMetadataPageRange(PageManager& pageManager) const;
     void serialize(common::Serializer& ser) const;
 };
 
 class Checkpointer {
     friend class main::AttachedKuzuDatabase;
+    friend struct testing::FSMLeakChecker;
 
 public:
     explicit Checkpointer(main::ClientContext& clientContext);
@@ -41,14 +46,13 @@ private:
 private:
     void writeDatabaseHeader(const DatabaseHeader& header);
     DatabaseHeader getCurrentDatabaseHeader() const;
-    PageRange serializeCatalog(const catalog::Catalog& catalog,
-        StorageManager& storageManager) const;
-    PageRange serializeMetadata(const catalog::Catalog& catalog,
-        StorageManager& storageManager) const;
+    PageRange serializeCatalog(const catalog::Catalog& catalog, StorageManager& storageManager);
+    PageRange serializeMetadata(const catalog::Catalog& catalog, StorageManager& storageManager);
 
 private:
     main::ClientContext& clientContext;
     bool isInMemory;
+    OptimisticAllocator pageAllocator;
 };
 
 } // namespace storage

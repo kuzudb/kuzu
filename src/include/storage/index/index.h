@@ -137,7 +137,7 @@ public:
     virtual void checkpointInMemory() {
         // DO NOTHING.
     };
-    virtual void checkpoint(main::ClientContext*) {
+    virtual void checkpoint(main::ClientContext*, storage::PageAllocator&) {
         // DO NOTHING.
     }
     virtual void rollbackCheckpoint() {
@@ -180,10 +180,10 @@ public:
     KUZU_API void load(main::ClientContext* context, StorageManager* storageManager);
     bool needCommitInsert() const { return index->needCommitInsert(); }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    void checkpoint(main::ClientContext* context) {
+    void checkpoint(main::ClientContext* context, PageAllocator& pageAllocator) {
         if (loaded) {
             KU_ASSERT(index);
-            index->checkpoint(context);
+            index->checkpoint(context, pageAllocator);
         }
     }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.

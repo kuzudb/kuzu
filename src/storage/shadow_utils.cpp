@@ -48,21 +48,6 @@ std::pair<FileHandle*, page_idx_t> ShadowUtils::getFileHandleAndPhysicalPageIdxT
     return std::make_pair(&fileHandle, pageIdx);
 }
 
-page_idx_t ShadowUtils::insertNewPage(FileHandle& fileHandle, ShadowFile& shadowFile,
-    const std::function<void(uint8_t*)>& insertOp) {
-    KU_ASSERT(!fileHandle.isInMemoryMode());
-    const auto newOriginalPage = fileHandle.getPageManager()->allocatePage();
-    KU_ASSERT(!shadowFile.hasShadowPage(fileHandle.getFileIndex(), newOriginalPage));
-    const auto shadowPage =
-        shadowFile.getOrCreateShadowPage(fileHandle.getFileIndex(), newOriginalPage);
-    const auto shadowFrame =
-        shadowFile.getShadowingFH().pinPage(shadowPage, PageReadPolicy::DONT_READ_PAGE);
-    insertOp(shadowFrame);
-    shadowFile.getShadowingFH().setLockedPageDirty(shadowPage);
-    shadowFile.getShadowingFH().unpinPage(shadowPage);
-    return newOriginalPage;
-}
-
 void unpinShadowPage(page_idx_t originalPageIdx, page_idx_t shadowPageIdx,
     const ShadowFile& shadowFile) {
     KU_ASSERT(originalPageIdx != INVALID_PAGE_IDX && shadowPageIdx != INVALID_PAGE_IDX);

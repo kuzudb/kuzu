@@ -47,12 +47,13 @@ class MemoryManager;
 struct NodeGroupCheckpointState {
     std::vector<common::column_id_t> columnIDs;
     std::vector<Column*> columns;
-    FileHandle& dataFH;
+    PageAllocator& pageAllocator;
     MemoryManager* mm;
 
     NodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
-        std::vector<Column*> columns, FileHandle& dataFH, MemoryManager* mm)
-        : columnIDs{std::move(columnIDs)}, columns{std::move(columns)}, dataFH{dataFH}, mm{mm} {}
+        std::vector<Column*> columns, PageAllocator& pageAllocator, MemoryManager* mm)
+        : columnIDs{std::move(columnIDs)}, columns{std::move(columns)},
+          pageAllocator{pageAllocator}, mm{mm} {}
     virtual ~NodeGroupCheckpointState() = default;
 
     template<typename T>
@@ -158,15 +159,14 @@ public:
 
     bool hasDeletions(const transaction::Transaction* transaction) const;
     virtual void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState, FileHandle* dataFH, ColumnStats* newColumnStats);
-
-    void flush(const transaction::Transaction* transaction, FileHandle& dataFH);
+        TableAddColumnState& addColumnState, PageAllocator* pageAllocator,
+        ColumnStats* newColumnStats);
 
     void applyFuncToChunkedGroups(version_record_handler_op_t func, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const;
     void rollbackInsert(common::row_idx_t startRow);
-    void reclaimStorage(PageManager& pageManager) const;
-    virtual void reclaimStorage(PageManager& pageManager, const common::UniqLock& lock) const;
+    void reclaimStorage(PageAllocator& pageAllocator) const;
+    virtual void reclaimStorage(PageAllocator& pageAllocator, const common::UniqLock& lock) const;
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
