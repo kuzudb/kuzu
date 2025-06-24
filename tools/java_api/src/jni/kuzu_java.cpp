@@ -1189,7 +1189,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
             auto milis = env->CallLongMethod(val, J_C_Duration_M_toMillis);
             v = new Value(interval_t(0, 0, milis * 1000L));
         } else {
-            throwJNIException(env, "Type of value not supported in value_create_value");
+            throwJNIException(env, "Type of value is not supported in value_create_value");
             return -1;
         }
         uint64_t address = reinterpret_cast<uint64_t>(v);

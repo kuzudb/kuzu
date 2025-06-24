@@ -1639,7 +1639,7 @@ public class ValueTest extends TestBase {
             test.getValue();
             test.close();
         } catch (Exception e) {
-            assertEquals("Type of value not supported in value_create_value", e.getMessage());
+            assertEquals("Type of value is not supported in value_create_value", e.getMessage());
             return;
         }
         fail("UnsupportedTypeCreate failed:");
