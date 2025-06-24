@@ -71,5 +71,12 @@ struct LouvainFunction {
     static function::function_set getFunctionSet();
 };
 
+struct MinimumSpanningForest {
+    static constexpr const char* name = "MINIMUM_SPANNING_FOREST";
+
+    static function::function_set getFunctionSet();
+};
+
+
 } // namespace algo_extension
 } // namespace kuzu

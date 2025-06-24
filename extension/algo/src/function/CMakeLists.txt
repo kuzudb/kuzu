@@ -9,6 +9,7 @@ add_library(kuzu_algo_function
         page_rank.cpp
         k_core_decomposition.cpp
         louvain.cpp
+        minimum_spanning_forest.cpp
         )
 
 set(ALGO_EXTENSION_OBJECT_FILES
