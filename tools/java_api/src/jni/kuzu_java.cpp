@@ -291,8 +291,8 @@ Value* getValue(JNIEnv* env, jobject thisValue) {
 
 internalID_t getInternalID(JNIEnv* env, jobject id) {
     try {
-        int64_t table_id = static_cast<int64_t>(env->GetLongField(id, J_C_InternalID_F_tableId));
-        int64_t offset = static_cast<int64_t>(env->GetLongField(id, J_C_InternalID_F_offset));
+        table_id_t table_id = static_cast<table_id_t>(env->GetLongField(id, J_C_InternalID_F_tableId));
+        offset_t offset = static_cast<offset_t>(env->GetLongField(id, J_C_InternalID_F_offset));
         return internalID_t(offset, table_id);
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -1188,7 +1188,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
             auto milis = env->CallLongMethod(val, J_C_Duration_M_toMillis);
             v = new Value(interval_t(0, 0, milis * 1000L));
         } else {
-            throwJNIException(env, "Unreachable case");
+            throwJNIException(env, "Unreachable case in value_create_value");
             return -1;
         }
         uint64_t address = reinterpret_cast<uint64_t>(v);
@@ -1488,8 +1488,9 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
             env->SetByteArrayRegion(ret, 0, str.size(), (jbyte*)byteBuffer);
             return ret;
         }
-        default: {
-        }
+        default:
+            throwJNIException(env, "Unreachable case in value_get_value");
+            return nullptr;
         }
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
