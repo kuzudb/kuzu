@@ -46,8 +46,8 @@ IndexInfo IndexInfo::deserialize(common::Deserializer& deSer) {
         std::move(keyDataTypes), isPrimary, isBuiltin};
 }
 
-std::shared_ptr<common::BufferedSerializer> IndexStorageInfo::serialize() const {
-    return std::make_shared<common::BufferedSerializer>(0 /*maximumSize*/);
+std::shared_ptr<common::BufferWriter> IndexStorageInfo::serialize() const {
+    return std::make_shared<common::BufferWriter>(0 /*maximumSize*/);
 }
 
 void Index::serialize(common::Serializer& ser) const {

@@ -69,13 +69,12 @@ public:
 
     bool insert(uint32_t fileIndex, common::page_idx_t pageIndex);
 
-    // Produces the next non-empty candidate to be tried for eviction
-    // Note that it is still possible (though unlikely) for another thread
-    // to evict this candidate, so it is not guaranteed to be empty
-    // The PageState should be locked, and then the atomic checked against the version used
-    // when locking the pagestate to make sure there wasn't a data race
+    // Produces the next non-empty candidate to be tried for eviction.
+    // Note that it is still possible (though unlikely) for another thread to evict this candidate,
+    // so it is not guaranteed to be empty.
+    // The PageState should be locked, and then the atomic checked against the version used when
+    // locking the page state to make sure there wasn't a data race
     std::span<std::atomic<EvictionCandidate>, BATCH_SIZE> next();
-    void removeCandidatesForFile(uint32_t fileIndex);
     void clear(std::atomic<EvictionCandidate>& candidate);
 
     uint64_t getSize() const { return size; }
@@ -206,8 +205,8 @@ public:
     FileHandle* getFileHandle(const std::string& filePath, uint8_t flags,
         common::VirtualFileSystem* vfs, main::ClientContext* context,
         common::PageSizeClass pageSizeClass = common::REGULAR_PAGE) {
-        fileHandles.emplace_back(std::unique_ptr<FileHandle>(new FileHandle(filePath, flags, this,
-            fileHandles.size(), pageSizeClass, vfs, context)));
+        fileHandles.emplace_back(std::make_unique<FileHandle>(filePath, flags, this,
+            fileHandles.size(), pageSizeClass, vfs, context));
         return fileHandles.back().get();
     }
 

@@ -2,14 +2,16 @@
 
 #include "catalog/catalog.h"
 #include "common/exception/runtime.h"
+#include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
-#include "common/serializer/metadata_writer.h"
+#include "common/serializer/in_mem_file_writer.h"
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
+#include "storage/wal/local_wal.h"
 
 namespace kuzu {
 namespace storage {
@@ -54,7 +56,8 @@ Checkpointer::Checkpointer(main::ClientContext& clientContext)
 
 PageRange Checkpointer::serializeCatalog(const catalog::Catalog& catalog,
     StorageManager& storageManager) const {
-    auto catalogWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
+    auto catalogWriter =
+        std::make_shared<common::InMemFileWriter>(*clientContext.getMemoryManager());
     common::Serializer catalogSerializer(catalogWriter);
     catalog.serialize(catalogSerializer);
     return catalogWriter->flush(storageManager.getDataFH(), storageManager.getShadowFile());
@@ -62,7 +65,8 @@ PageRange Checkpointer::serializeCatalog(const catalog::Catalog& catalog,
 
 PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
     StorageManager& storageManager) const {
-    auto metadataWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
+    auto metadataWriter =
+        std::make_shared<common::InMemFileWriter>(*clientContext.getMemoryManager());
     common::Serializer metadataSerializer(metadataWriter);
     storageManager.serialize(catalog, metadataSerializer);
 
@@ -127,11 +131,12 @@ void Checkpointer::writeCheckpoint() {
     // done is to replace them with the original pages or catalog and metadata files. If the
     // system crashes before this point, the WAL can still be used to recover the system to a
     // state where the checkpoint can be redone.
-    wal->logAndFlushCheckpoint();
+    wal->logAndFlushCheckpoint(&clientContext);
     shadowFile.replayShadowPageRecords(clientContext);
     // Clear the wal and also shadowing files.
-    wal->clearWAL();
-    shadowFile.clearAll(clientContext);
+    wal->clear();
+    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    shadowFile.clear(*bufferManager);
 
     // This function will evict all pages that were freed during this checkpoint
     // It must be called before we remove all evicted candidates from the BM
@@ -141,7 +146,6 @@ void Checkpointer::writeCheckpoint() {
     // then reused over and over, it can be appended to the eviction queue multiple times. To
     // prevent multiple entries of the same page from existing in the eviction queue, at the end of
     // each checkpoint we remove any already-evicted pages.
-    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
     bufferManager->removeEvictedCandidates();
 
     catalog->resetVersion();
@@ -149,7 +153,8 @@ void Checkpointer::writeCheckpoint() {
 }
 
 void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {
-    auto headerWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
+    auto headerWriter =
+        std::make_shared<common::InMemFileWriter>(*clientContext.getMemoryManager());
     common::Serializer headerSerializer(headerWriter);
     header.serialize(headerSerializer);
     auto headerPage = headerWriter->getPage(0);
@@ -186,7 +191,7 @@ bool Checkpointer::canAutoCheckpoint(const main::ClientContext& clientContext) {
     }
     auto wal = clientContext.getWAL();
     const auto expectedSize =
-        clientContext.getTransaction()->getEstimatedMemUsage() + wal->getFileSize();
+        clientContext.getTransaction()->getLocalWAL().getSize() + wal->getFileSize();
     return expectedSize > clientContext.getDBConfig()->checkpointThreshold;
 }
 
@@ -244,8 +249,9 @@ DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
         return defaultHeader;
     }
     auto vfs = clientContext.getVFSUnsafe();
-    auto fileInfo = vfs->openFile(StorageUtils::getDataFName(vfs, clientContext.getDatabasePath()),
-        common::FileOpenFlags{common::FileFlags::READ_ONLY}, &clientContext);
+    auto fileInfo =
+        vfs->openFile(StorageUtils::getDataFilePath(vfs, clientContext.getDatabasePath()),
+            common::FileOpenFlags{common::FileFlags::READ_ONLY}, &clientContext);
     auto reader = std::make_unique<common::BufferedFileReader>(std::move(fileInfo));
     common::Deserializer deSer(std::move(reader));
     try {
@@ -272,7 +278,7 @@ void Checkpointer::readCheckpoint() {
 
 void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext* context,
     common::VirtualFileSystem* vfs, catalog::Catalog* catalog, StorageManager* storageManager) {
-    auto fileInfo = vfs->openFile(StorageUtils::getDataFName(vfs, dbPath),
+    auto fileInfo = vfs->openFile(StorageUtils::getDataFilePath(vfs, dbPath),
         common::FileOpenFlags{common::FileFlags::READ_ONLY}, context);
     auto reader = std::make_unique<common::BufferedFileReader>(std::move(fileInfo));
     common::Deserializer deSer(std::move(reader));

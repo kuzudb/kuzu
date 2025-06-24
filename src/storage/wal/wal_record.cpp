@@ -31,9 +31,6 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
     } break;
-    case WALRecordType::ROLLBACK_RECORD: {
-        walRecord = RollbackRecord::deserialize(deserializer);
-    } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         walRecord = CreateCatalogEntryRecord::deserialize(deserializer);
     } break;
@@ -49,7 +46,7 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     case WALRecordType::NODE_DELETION_RECORD: {
         walRecord = NodeDeletionRecord::deserialize(deserializer, clientContext);
     } break;
-    case WALRecordType::NODE_UDPATE_RECORD: {
+    case WALRecordType::NODE_UPDATE_RECORD: {
         walRecord = NodeUpdateRecord::deserialize(deserializer, clientContext);
     } break;
     case WALRecordType::REL_DELETION_RECORD: {
@@ -95,14 +92,6 @@ void CommitRecord::serialize(Serializer& serializer) const {
 
 std::unique_ptr<CommitRecord> CommitRecord::deserialize(Deserializer&) {
     return std::make_unique<CommitRecord>();
-}
-
-void RollbackRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-}
-
-std::unique_ptr<RollbackRecord> RollbackRecord::deserialize(Deserializer&) {
-    return std::make_unique<RollbackRecord>();
 }
 
 void CheckpointRecord::serialize(Serializer& serializer) const {

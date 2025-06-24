@@ -183,7 +183,7 @@ void StringColumnWriter::flushDictionary(BasicColumnWriterState& writerState,
         values[entry.second] = entry.first;
     }
     // First write the contents of the dictionary page to a temporary buffer.
-    auto bufferedSerializer = std::make_unique<common::BufferedSerializer>();
+    auto bufferedSerializer = std::make_unique<common::BufferWriter>();
     for (auto r = 0u; r < values.size(); r++) {
         auto& value = values[r];
         // Update the statistics.
