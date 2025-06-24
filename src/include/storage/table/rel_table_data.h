@@ -56,7 +56,7 @@ private:
 
 class RelTableData {
 public:
-    RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
+    RelTableData(PageAllocator& pageAllocator, MemoryManager* mm, ShadowFile* shadowFile,
         const catalog::RelGroupCatalogEntry& relGroupEntry, common::table_id_t tableID,
         common::RelDataDirection direction, common::table_id_t nbrTableID, bool enableCompression);
 
@@ -65,7 +65,8 @@ public:
         const common::ValueVector& dataVector) const;
     bool delete_(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
         const common::ValueVector& relIDVector);
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
+        PageAllocator& pageAllocator);
 
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::ValueVector* srcNodeIDVector) const;
@@ -97,8 +98,9 @@ public:
 
     TableStats getStats() const { return nodeGroups->getStats(); }
 
-    void reclaimStorage(PageManager& pageManager) const;
-    void checkpoint(const std::vector<common::column_id_t>& columnIDs);
+    void reclaimStorage(PageAllocator& pageAllocator) const;
+    void checkpoint(const std::vector<common::column_id_t>& columnIDs,
+        PageAllocator& pageAllocator);
 
     void pushInsertInfo(const transaction::Transaction* transaction, const CSRNodeGroup& nodeGroup,
         common::row_idx_t numRows_, CSRNodeGroupScanSource source);
@@ -115,9 +117,9 @@ public:
     common::RelDataDirection getDirection() const { return direction; }
 
 private:
-    void initCSRHeaderColumns();
+    void initCSRHeaderColumns(PageAllocator& pageAllocator);
     void initPropertyColumns(const catalog::RelGroupCatalogEntry& relGroupEntry,
-        common::table_id_t nbrTableID);
+        common::table_id_t nbrTableID, PageAllocator& pageAllocator);
 
     std::pair<CSRNodeGroupScanSource, common::row_idx_t> findMatchingRow(
         transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
@@ -146,7 +148,6 @@ private:
     const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source) const;
 
 private:
-    FileHandle* dataFH;
     common::table_id_t tableID;
     std::string tableName;
     MemoryManager* memoryManager;

@@ -171,8 +171,8 @@ public:
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector,
         const rel_multiplicity_constraint_throw_func_t& throwFunc) const;
 
-    void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState) override;
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
+        PageAllocator& pageAllocator) override;
     Column* getCSROffsetColumn(common::RelDataDirection direction) const {
         return getDirectedTableData(direction)->getCSROffsetColumn();
     }
@@ -181,8 +181,7 @@ public:
     }
     common::column_id_t getNumColumns() const {
         KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
+        RUNTIME_CHECK(for (const auto& relData : directedRelData) {
             KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
         });
         return directedRelData[0]->getNumColumns();
@@ -196,9 +195,10 @@ public:
 
     void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
-    bool checkpoint(main::ClientContext*, catalog::TableCatalogEntry* tableEntry) override;
+    bool checkpoint(main::ClientContext*, catalog::TableCatalogEntry* tableEntry,
+        PageAllocator& pageAllocator) override;
     void rollbackCheckpoint() override {};
-    void reclaimStorage(PageManager& pageManager) const override;
+    void reclaimStorage(PageAllocator& pageAllocator) const override;
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 

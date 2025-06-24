@@ -55,24 +55,25 @@ bool ListOffsetSizeInfo::isOffsetSortedAscending(uint64_t startPos, uint64_t end
     return true;
 }
 
-ListColumn::ListColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
+ListColumn::ListColumn(std::string name, LogicalType dataType, PageAllocator& pageAllocator,
     MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
-    : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
+    : Column{std::move(name), std::move(dataType), pageAllocator, mm, shadowFile, enableCompression,
           true /* requireNullColumn */} {
     auto offsetColName =
         StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::OFFSET, "offset_");
     auto sizeColName =
         StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::OFFSET, "");
     auto dataColName = StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::DATA, "");
-    sizeColumn = std::make_unique<Column>(sizeColName, LogicalType::UINT32(), dataFH, mm,
+    sizeColumn = std::make_unique<Column>(sizeColName, LogicalType::UINT32(), pageAllocator, mm,
         shadowFile, enableCompression, false /*requireNullColumn*/);
-    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), dataFH, mm,
+    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), pageAllocator, mm,
         shadowFile, enableCompression, false /*requireNullColumn*/);
     if (disableCompressionOnData(this->dataType)) {
         enableCompression = false;
     }
-    dataColumn = ColumnFactory::createColumn(dataColName,
-        ListType::getChildType(this->dataType).copy(), dataFH, mm, shadowFile, enableCompression);
+    dataColumn =
+        ColumnFactory::createColumn(dataColName, ListType::getChildType(this->dataType).copy(),
+            pageAllocator, mm, shadowFile, enableCompression);
 }
 
 bool ListColumn::disableCompressionOnData(const LogicalType& dataType) {
@@ -86,16 +87,16 @@ bool ListColumn::disableCompressionOnData(const LogicalType& dataType) {
 }
 
 std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkData& chunk,
-    FileHandle& dataFH) {
-    auto flushedChunk = flushNonNestedChunkData(chunk, dataFH);
+    PageAllocator& pageAllocator) {
+    auto flushedChunk = flushNonNestedChunkData(chunk, pageAllocator);
     auto& listChunk = chunk.cast<ListChunkData>();
     auto& flushedListChunk = flushedChunk->cast<ListChunkData>();
     flushedListChunk.setOffsetColumnChunk(
-        Column::flushChunkData(*listChunk.getOffsetColumnChunk(), dataFH));
+        Column::flushChunkData(*listChunk.getOffsetColumnChunk(), pageAllocator));
     flushedListChunk.setSizeColumnChunk(
-        Column::flushChunkData(*listChunk.getSizeColumnChunk(), dataFH));
+        Column::flushChunkData(*listChunk.getSizeColumnChunk(), pageAllocator));
     flushedListChunk.setDataColumnChunk(
-        Column::flushChunkData(*listChunk.getDataColumnChunk(), dataFH));
+        Column::flushChunkData(*listChunk.getDataColumnChunk(), pageAllocator));
     return flushedChunk;
 }
 

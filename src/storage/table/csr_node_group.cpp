@@ -2,7 +2,6 @@
 
 #include "common/constants.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/file_handle.h"
 #include "storage/storage_utils.h"
 #include "storage/table/rel_table.h"
 #include "transaction/transaction.h"
@@ -437,12 +436,12 @@ bool CSRNodeGroup::delete_(const Transaction* transaction, CSRNodeGroupScanSourc
 }
 
 void CSRNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    FileHandle* dataFH, ColumnStats* newColumnStats) {
+    PageAllocator* pageAllocator, ColumnStats* newColumnStats) {
     if (persistentChunkGroup) {
-        persistentChunkGroup->addColumn(transaction, addColumnState, enableCompression, dataFH,
-            newColumnStats);
+        persistentChunkGroup->addColumn(transaction, addColumnState, enableCompression,
+            pageAllocator, newColumnStats);
     }
-    NodeGroup::addColumn(transaction, addColumnState, dataFH, newColumnStats);
+    NodeGroup::addColumn(transaction, addColumnState, pageAllocator, newColumnStats);
 }
 
 void CSRNodeGroup::serialize(Serializer& serializer) {
@@ -470,10 +469,10 @@ void CSRNodeGroup::checkpoint(MemoryManager&, NodeGroupCheckpointState& state) {
     checkpointDataTypesNoLock(state);
 }
 
-void CSRNodeGroup::reclaimStorage(PageManager& pageManager, const UniqLock& lock) const {
-    NodeGroup::reclaimStorage(pageManager, lock);
+void CSRNodeGroup::reclaimStorage(PageAllocator& pageAllocator, const UniqLock& lock) const {
+    NodeGroup::reclaimStorage(pageAllocator, lock);
     if (persistentChunkGroup) {
-        persistentChunkGroup->reclaimStorage(pageManager);
+        persistentChunkGroup->reclaimStorage(pageAllocator);
     }
 }
 
@@ -482,7 +481,7 @@ static std::unique_ptr<ChunkedCSRNodeGroup> createNewPersistentChunkGroup(
     auto newGroup =
         std::make_unique<ChunkedCSRNodeGroup>(oldPersistentChunkGroup, csrState.columnIDs);
     // checkpointed columns have been moved to the new group, reclaim storage for dropped column
-    oldPersistentChunkGroup.reclaimStorage(*csrState.dataFH.getPageManager());
+    oldPersistentChunkGroup.reclaimStorage(csrState.pageAllocator);
     return newGroup;
 }
 
@@ -534,7 +533,7 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
         }
     }
     if (numTuplesAfterCheckpoint == 0) {
-        reclaimStorage(*csrState.dataFH.getPageManager(), lock);
+        reclaimStorage(csrState.pageAllocator, lock);
         persistentChunkGroup = nullptr;
     } else {
         KU_ASSERT(csrState.newHeader->sanityCheck());
@@ -621,7 +620,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     dummyChunkForNulls->getData().resetToAllNull();
     // Copy per csr list from old chunk and merge with new insertions into the newChunkData.
     for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-         nodeOffset++) {
+        nodeOffset++) {
         const auto oldCSRLength = csrState.oldHeader->getCSRLength(nodeOffset);
         KU_ASSERT(csrState.oldHeader->getStartCSROffset(nodeOffset) >= leftCSROffset);
         const auto oldStartRow = csrState.oldHeader->getStartCSROffset(nodeOffset) - leftCSROffset;
@@ -706,7 +705,7 @@ void CSRNodeGroup::collectInMemRegionChangesAndUpdateHeaderLength(const UniqLock
     row_idx_t numInsertionsInRegion = 0u;
     if (csrIndex) {
         for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-             nodeOffset++) {
+            nodeOffset++) {
             auto rows = csrIndex->indices[nodeOffset].getRows();
             row_idx_t numInsertedRows = rows.size();
             row_idx_t numInMemDeletionsInCSR = 0;
@@ -739,7 +738,7 @@ void CSRNodeGroup::collectOnDiskRegionChangesAndUpdateHeaderLength(const UniqLoc
     int64_t numDeletionsInRegion = 0u;
     if (persistentChunkGroup) {
         for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-             nodeOffset++) {
+            nodeOffset++) {
             const auto numDeletedRows =
                 getNumDeletionsForNodeInPersistentData(nodeOffset, csrState);
             if (numDeletedRows == 0) {
@@ -890,10 +889,10 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
 
     // Flush data chunks to disk.
     for (const auto& chunk : dataChunksToFlush) {
-        chunk->getData().flush(csrState.dataFH);
+        chunk->getData().flush(csrState.pageAllocator);
     }
-    csrState.newHeader->offset->getData().flush(csrState.dataFH);
-    csrState.newHeader->length->getData().flush(csrState.dataFH);
+    csrState.newHeader->offset->getData().flush(csrState.pageAllocator);
+    csrState.newHeader->length->getData().flush(csrState.pageAllocator);
     persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(*csrState.newHeader),
         std::move(dataChunksToFlush), 0);
     // TODO(Guodong): Use `finalizeCheckpoint`.

@@ -39,12 +39,12 @@ class PageManager;
 class OnDiskHashIndex {
 public:
     virtual ~OnDiskHashIndex() = default;
-    virtual bool checkpoint() = 0;
+    virtual bool checkpoint(PageAllocator& pageAllocator) = 0;
     virtual bool checkpointInMemory() = 0;
     virtual bool rollbackInMemory() = 0;
     virtual void rollbackCheckpoint() = 0;
     virtual void bulkReserve(uint64_t numValuesToAppend) = 0;
-    virtual void reclaimStorage(PageManager& pageManager) = 0;
+    virtual void reclaimStorage(PageAllocator& pageAllocator) = 0;
 };
 
 // HashIndex is the entrance to handle all updates and lookups into the index after building from
@@ -71,7 +71,7 @@ public:
 template<typename T>
 class HashIndex final : public OnDiskHashIndex {
 public:
-    HashIndex(MemoryManager& memoryManager, FileHandle* fileHandle,
+    HashIndex(MemoryManager& memoryManager, PageAllocator& pageAllocator,
         OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
         ShadowFile* shadowFile, const HashIndexHeader& indexHeaderForReadTrx,
         HashIndexHeader& indexHeaderForWriteTrx);
@@ -154,12 +154,11 @@ public:
         }
     }
 
-    bool checkpoint() override;
+    bool checkpoint(PageAllocator& pageAllocator) override;
     bool checkpointInMemory() override;
     bool rollbackInMemory() override;
     void rollbackCheckpoint() override;
-    void reclaimStorage(PageManager& pageManager) override;
-    inline FileHandle* getFileHandle() const { return fileHandle; }
+    void reclaimStorage(PageAllocator& pageAllocator) override;
 
 private:
     bool lookupInPersistentIndex(const transaction::Transaction* transaction, Key key,
@@ -214,22 +213,14 @@ private:
                                                         oSlots->get(slotInfo.slotId, transaction);
     }
 
-    inline uint32_t appendPSlot(const transaction::Transaction* transaction) {
-        return pSlots->pushBack(transaction, Slot<T>{});
-    }
-
-    inline uint64_t appendOverflowSlot(const transaction::Transaction* transaction,
-        Slot<T>&& newSlot) {
-        return oSlots->pushBack(transaction, newSlot);
-    }
-
-    void splitSlots(const transaction::Transaction* transaction, HashIndexHeader& header,
-        slot_id_t numSlotsToSplit);
+    void splitSlots(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
+        HashIndexHeader& header, slot_id_t numSlotsToSplit);
 
     // Resizes the local storage to support the given number of new entries
     void bulkReserve(uint64_t newEntries) override;
     // Resizes the on-disk index to support the given number of new entries
-    void reserve(const transaction::Transaction* transaction, uint64_t newEntries);
+    void reserve(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
+        uint64_t newEntries);
 
     struct HashIndexEntryView {
         slot_id_t diskSlotId;
@@ -241,10 +232,10 @@ private:
         const InMemHashIndex<T>& insertLocalStorage,
         typename InMemHashIndex<T>::SlotIterator& slotToMerge,
         std::vector<HashIndexEntryView>& entries);
-    void mergeBulkInserts(const transaction::Transaction* transaction,
+    void mergeBulkInserts(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
         const InMemHashIndex<T>& insertLocalStorage);
     // Returns the number of elements merged which matched the given slot id
-    size_t mergeSlot(const transaction::Transaction* transaction,
+    size_t mergeSlot(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
         const std::vector<HashIndexEntryView>& slotToMerge,
         typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
         typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t diskSlotId);
@@ -287,7 +278,6 @@ private:
 private:
     ShadowFile* shadowFile;
     uint64_t headerPageIdx;
-    FileHandle* fileHandle;
     std::unique_ptr<DiskArray<Slot<T>>> pSlots;
     std::unique_ptr<DiskArray<Slot<T>>> oSlots;
     OverflowFileHandle* overflowFileHandle;
@@ -347,11 +337,12 @@ public:
 
     // Construct an existing index
     PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storageInfo,
-        bool inMemMode, MemoryManager& memoryManager, FileHandle* dataFH, ShadowFile* shadowFile);
+        bool inMemMode, MemoryManager& memoryManager, PageAllocator& pageAllocator,
+        ShadowFile* shadowFile);
     ~PrimaryKeyIndex() override;
 
     static std::unique_ptr<PrimaryKeyIndex> createNewIndex(IndexInfo indexInfo, bool inMemMode,
-        MemoryManager& memoryManager, FileHandle* dataFH, ShadowFile* shadowFile);
+        MemoryManager& memoryManager, PageAllocator& pageAllocator, ShadowFile* shadowFile);
 
     template<typename T>
     inline HashIndex<HashIndexType<T>>* getTypedHashIndex(T key) {
@@ -451,8 +442,8 @@ public:
     void delete_(common::ValueVector* keyVector);
 
     void checkpointInMemory() override;
-    void checkpoint(main::ClientContext*, bool forceCheckpointAll = false) override;
-    FileHandle* getFileHandle() const { return fileHandle; }
+    void checkpoint(main::ClientContext*, PageAllocator& pageAllocator,
+        bool forceCheckpointAll = false) override;
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
     void rollbackCheckpoint() override;
@@ -461,9 +452,7 @@ public:
         KU_ASSERT(indexInfo.keyDataTypes.size() == 1);
         return indexInfo.keyDataTypes[0];
     }
-    void reclaimStorage(PageManager& pageManager) const;
-
-    void writeHeaders() const;
+    void reclaimStorage(PageAllocator& pageAllocator) const;
 
     static KUZU_API std::unique_ptr<Index> load(main::ClientContext* context,
         StorageManager* storageManager, IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer);
@@ -475,7 +464,9 @@ public:
     }
 
 private:
-    void initOverflowAndSubIndices(bool inMemMode, MemoryManager& mm,
+    void writeHeaders(PageAllocator& pageAllocator) const;
+
+    void initOverflowAndSubIndices(bool inMemMode, MemoryManager& mm, PageAllocator& pageAllocator,
         PrimaryKeyIndexStorageInfo& storageInfo);
 
     common::page_idx_t getFirstHeaderPage() const;
@@ -483,7 +474,6 @@ private:
     common::page_idx_t getDiskArrayFirstHeaderPage() const;
 
 private:
-    FileHandle* fileHandle;
     std::unique_ptr<OverflowFile> overflowFile;
     std::vector<std::unique_ptr<OnDiskHashIndex>> hashIndices;
     std::vector<HashIndexHeader> hashIndexHeadersForReadTrx;

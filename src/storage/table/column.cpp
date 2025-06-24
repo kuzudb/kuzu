@@ -86,10 +86,10 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     }
 }
 
-InternalIDColumn::InternalIDColumn(std::string name, FileHandle* dataFH, MemoryManager* mm,
-    ShadowFile* shadowFile, bool enableCompression)
-    : Column{std::move(name), LogicalType::INTERNAL_ID(), dataFH, mm, shadowFile, enableCompression,
-          false /*requireNullColumn*/},
+InternalIDColumn::InternalIDColumn(std::string name, PageAllocator& pageAllocator,
+    MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
+    : Column{std::move(name), LogicalType::INTERNAL_ID(), pageAllocator, mm, shadowFile,
+          enableCompression, false /*requireNullColumn*/},
       commonTableID{INVALID_TABLE_ID} {}
 
 void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) const {
@@ -101,26 +101,26 @@ void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) co
     }
 }
 
-Column::Column(std::string name, LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
-    ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
-    : name{std::move(name)}, dataType{std::move(dataType)}, dataFH{dataFH}, mm{mm},
+Column::Column(std::string name, LogicalType dataType, PageAllocator& pageAllocator,
+    MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
+    : name{std::move(name)}, dataType{std::move(dataType)}, pageAllocator{pageAllocator}, mm{mm},
       shadowFile(shadowFile), enableCompression{enableCompression},
       columnReadWriter(ColumnReadWriterFactory::createColumnReadWriter(
-          this->dataType.getPhysicalType(), dataFH, shadowFile)) {
+          this->dataType.getPhysicalType(), pageAllocator.getDataFH(), shadowFile)) {
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
     writeFunc = getWriteValuesFunc(this->dataType);
     if (requireNullColumn) {
         auto columnName =
             StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::NULL_MASK, "");
-        nullColumn =
-            std::make_unique<NullColumn>(columnName, dataFH, mm, shadowFile, enableCompression);
+        nullColumn = std::make_unique<NullColumn>(columnName, pageAllocator, mm, shadowFile,
+            enableCompression);
     }
 }
 
-Column::Column(std::string name, PhysicalTypeID physicalType, FileHandle* dataFH, MemoryManager* mm,
-    ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
-    : Column(std::move(name), LogicalType::ANY(physicalType), dataFH, mm, shadowFile,
+Column::Column(std::string name, PhysicalTypeID physicalType, PageAllocator& pageAllocator,
+    MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
+    : Column(std::move(name), LogicalType::ANY(physicalType), pageAllocator, mm, shadowFile,
           enableCompression, requireNullColumn) {}
 
 Column::~Column() = default;
@@ -132,42 +132,42 @@ Column* Column::getNullColumn() const {
 void Column::populateExtraChunkState(ChunkState& state) const {
     if (state.metadata.compMeta.compression == CompressionType::ALP) {
         if (dataType.getPhysicalType() == PhysicalTypeID::DOUBLE) {
-            state.alpExceptionChunk =
-                std::make_unique<InMemoryExceptionChunk<double>>(state, dataFH, mm, shadowFile);
+            state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<double>>(state,
+                pageAllocator, mm, shadowFile);
         } else if (dataType.getPhysicalType() == PhysicalTypeID::FLOAT) {
-            state.alpExceptionChunk =
-                std::make_unique<InMemoryExceptionChunk<float>>(state, dataFH, mm, shadowFile);
+            state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<float>>(state,
+                pageAllocator, mm, shadowFile);
         }
     }
 }
 
 std::unique_ptr<ColumnChunkData> Column::flushChunkData(const ColumnChunkData& chunkData,
-    FileHandle& dataFH) {
+    PageAllocator& pageAllocator) {
     switch (chunkData.getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        return StructColumn::flushChunkData(chunkData, dataFH);
+        return StructColumn::flushChunkData(chunkData, pageAllocator);
     }
     case PhysicalTypeID::STRING: {
-        return StringColumn::flushChunkData(chunkData, dataFH);
+        return StringColumn::flushChunkData(chunkData, pageAllocator);
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        return ListColumn::flushChunkData(chunkData, dataFH);
+        return ListColumn::flushChunkData(chunkData, pageAllocator);
     }
     default: {
-        return flushNonNestedChunkData(chunkData, dataFH);
+        return flushNonNestedChunkData(chunkData, pageAllocator);
     }
     }
 }
 
 std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChunkData& chunkData,
-    FileHandle& dataFH) {
-    auto chunkMeta = flushData(chunkData, dataFH);
+    PageAllocator& pageAllocator) {
+    auto chunkMeta = flushData(chunkData, pageAllocator);
     auto flushedChunk = ColumnChunkFactory::createColumnChunkData(chunkData.getMemoryManager(),
         chunkData.getDataType().copy(), chunkData.isCompressionEnabled(), chunkMeta,
         chunkData.hasNullData(), true);
     if (chunkData.hasNullData()) {
-        auto nullChunkMeta = flushData(chunkData.getNullData(), dataFH);
+        auto nullChunkMeta = flushData(chunkData.getNullData(), pageAllocator);
         auto nullData = std::make_unique<NullChunkData>(chunkData.getMemoryManager(),
             chunkData.isCompressionEnabled(), nullChunkMeta);
         flushedChunk->setNullData(std::move(nullData));
@@ -175,11 +175,12 @@ std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChu
     return flushedChunk;
 }
 
-ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData, FileHandle& dataFH) {
+ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData,
+    PageAllocator& pageAllocator) {
     KU_ASSERT(chunkData.sanityCheck());
     const auto preScanMetadata = chunkData.getMetadataToFlush();
-    auto allocatedBlock = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
-    return chunkData.flushBuffer(&dataFH, allocatedBlock, preScanMetadata);
+    auto allocatedBlock = pageAllocator.allocatePageRange(preScanMetadata.getNumPages());
+    return chunkData.flushBuffer(pageAllocator, allocatedBlock, preScanMetadata);
 }
 
 void Column::scan(const ChunkState& state, offset_t startOffsetInChunk, row_idx_t numValuesToScan,
@@ -397,13 +398,13 @@ void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     scan(state, &checkpointState.persistentData);
-    state.reclaimAllocatedPages(*dataFH);
+    state.reclaimAllocatedPages(pageAllocator);
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         checkpointState.persistentData.write(chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/,
             chunkCheckpointState.startRow, chunkCheckpointState.numRows);
     }
     checkpointState.persistentData.finalize();
-    checkpointState.persistentData.flush(*dataFH);
+    checkpointState.persistentData.flush(pageAllocator);
 }
 
 bool Column::canCheckpointInPlace(const ChunkState& state,
@@ -453,13 +454,15 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, PhysicalTypeID physicalType,
-    FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression) {
-    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), dataFH, mm, shadowFile,
-        enableCompression);
+    PageAllocator& pageAllocator, MemoryManager* mm, ShadowFile* shadowFile,
+    bool enableCompression) {
+    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), pageAllocator, mm,
+        shadowFile, enableCompression);
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalType dataType,
-    FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression) {
+    PageAllocator& pageAllocator, MemoryManager* mm, ShadowFile* shadowFile,
+    bool enableCompression) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL:
     case PhysicalTypeID::INT64:
@@ -474,24 +477,25 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
-        return std::make_unique<Column>(name, std::move(dataType), dataFH, mm, shadowFile,
+        return std::make_unique<Column>(name, std::move(dataType), pageAllocator, mm, shadowFile,
             enableCompression);
     }
     case PhysicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumn>(name, dataFH, mm, shadowFile, enableCompression);
+        return std::make_unique<InternalIDColumn>(name, pageAllocator, mm, shadowFile,
+            enableCompression);
     }
     case PhysicalTypeID::STRING: {
-        return std::make_unique<StringColumn>(name, std::move(dataType), dataFH, mm, shadowFile,
-            enableCompression);
+        return std::make_unique<StringColumn>(name, std::move(dataType), pageAllocator, mm,
+            shadowFile, enableCompression);
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        return std::make_unique<ListColumn>(name, std::move(dataType), dataFH, mm, shadowFile,
-            enableCompression);
+        return std::make_unique<ListColumn>(name, std::move(dataType), pageAllocator, mm,
+            shadowFile, enableCompression);
     }
     case PhysicalTypeID::STRUCT: {
-        return std::make_unique<StructColumn>(name, std::move(dataType), dataFH, mm, shadowFile,
-            enableCompression);
+        return std::make_unique<StructColumn>(name, std::move(dataType), pageAllocator, mm,
+            shadowFile, enableCompression);
     }
     default: {
         KU_UNREACHABLE;

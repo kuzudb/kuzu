@@ -29,12 +29,11 @@ void MetaWriter::write(const uint8_t* data, uint64_t size) {
     }
 }
 
-storage::PageRange MetaWriter::flush(storage::FileHandle* fileHandle,
+storage::PageRange MetaWriter::flush(storage::PageAllocator& pageAllocator,
     storage::ShadowFile& shadowFile) const {
     auto numPagesToFlush = getNumPagesToFlush();
-    auto pageManager = fileHandle->getPageManager();
-    auto pageRange = pageManager->allocatePageRange(numPagesToFlush);
-    flush(pageRange, fileHandle, shadowFile);
+    auto pageRange = pageAllocator.allocatePageRange(numPagesToFlush);
+    flush(pageRange, pageAllocator.getDataFH(), shadowFile);
     return pageRange;
 }
 

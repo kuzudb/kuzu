@@ -535,7 +535,7 @@ void OnDiskHNSWIndex::insert(transaction::Transaction*, const common::ValueVecto
     // DO NOTHING.
 }
 
-void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
+void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, PageAllocator&, bool) {
     // TODO(Guodong): Manually create a transaction here is a bit hacky. Should find a better
     // solution.
     auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();

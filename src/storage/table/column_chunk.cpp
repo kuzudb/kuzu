@@ -262,8 +262,8 @@ std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChun
     return {std::move(updatedRows), std::move(updatedData)};
 }
 
-void ColumnChunk::reclaimStorage(PageManager& pageManager) const {
-    data->reclaimStorage(pageManager);
+void ColumnChunk::reclaimStorage(PageAllocator& pageAllocator) const {
+    data->reclaimStorage(pageAllocator);
 }
 
 } // namespace storage

@@ -7,6 +7,7 @@
 #include "common/task_system/progress_bar.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table_util.h"
+#include "storage/local_storage/local_storage.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/rel_table.h"
@@ -30,6 +31,8 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     localState->chunkedGroup =
         std::make_unique<ChunkedCSRNodeGroup>(*context->clientContext->getMemoryManager(),
             relInfo->columnTypes, relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
+    localState->optimisticAllocator =
+        context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
     const auto clientContext = context->clientContext;
     const auto catalogEntry = clientContext->getCatalog()->getTableCatalogEntry(
         clientContext->getTransaction(), tableName);
@@ -119,7 +122,8 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
 
 static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* transaction,
     const std::vector<column_id_t>& columnIDs, ChunkedCSRNodeGroup& chunkedGroup,
-    RelTable& relTable, CSRNodeGroup& nodeGroup, RelDataDirection direction) {
+    RelTable& relTable, CSRNodeGroup& nodeGroup, RelDataDirection direction,
+    PageAllocator& pageAllocator) {
     const bool isNewNodeGroup = nodeGroup.isEmpty();
     const CSRNodeGroupScanSource source = isNewNodeGroup ?
                                               CSRNodeGroupScanSource::COMMITTED_PERSISTENT :
@@ -130,7 +134,7 @@ static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* t
     relTable.pushInsertInfo(transaction, direction, nodeGroup, chunkedGroup.getNumRows(), source);
     if (isNewNodeGroup) {
         auto flushedChunkedGroup =
-            chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *relTable.getDataFH());
+            chunkedGroup.flushAsNewChunkedNodeGroup(transaction, pageAllocator);
 
         // If there are deleted columns that haven't been vacuumed yet
         // we need to add extra columns to the chunked group
@@ -185,7 +189,7 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     ChunkedCSRNodeGroup sliceToWriteToDisk{localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(),
         relInfo.outputDataColumns};
     appendNewChunkedGroup(mm, transaction, relInfo.insertColumnIDs, sliceToWriteToDisk, *relTable,
-        nodeGroup, relInfo.direction);
+        nodeGroup, relInfo.direction, *localState.optimisticAllocator);
     localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().mergeChunkedCSRGroup(sliceToWriteToDisk,
         relInfo.outputDataColumns);
 

@@ -48,8 +48,8 @@ public:
         childChunks[childIdx] = std::move(childChunk);
     }
 
-    void flush(FileHandle& dataFH) override;
-    void reclaimStorage(PageManager& pageManager) override;
+    void flush(PageAllocator& pageAllocator) override;
+    void reclaimStorage(PageAllocator& pageAllocator) override;
 
 protected:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,

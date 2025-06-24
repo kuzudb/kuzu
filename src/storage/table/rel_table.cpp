@@ -135,10 +135,13 @@ RelTable::RelTable(RelGroupCatalogEntry* relGroupEntry, table_id_t fromTableID,
     auto relEntryInfo = relGroupEntry->getRelEntryInfo(fromNodeTableID, toNodeTableID);
     tableID = relEntryInfo->oid;
     relGroupID = relGroupEntry->getTableID();
+    // TODO(Royi) the page allocator should be set somewhere common and passed in as we could want
+    // to used thread-local OptimisticAllocators
+    auto& pageAllocator = *storageManager->getDataFH()->getPageManager();
     for (auto direction : relGroupEntry->getRelDataDirections()) {
         auto nbrTableID = RelDirectionUtils::getNbrTableID(direction, fromTableID, toTableID);
         directedRelData.emplace_back(
-            std::make_unique<RelTableData>(dataFH, memoryManager, shadowFile, *relGroupEntry,
+            std::make_unique<RelTableData>(pageAllocator, memoryManager, shadowFile, *relGroupEntry,
                 relEntryInfo->oid, direction, nbrTableID, enableCompression));
     }
 }
@@ -360,7 +363,8 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
     }
 }
 
-void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
+    PageAllocator& pageAllocator) {
     LocalTable* localTable = nullptr;
     if (transaction->getLocalStorage()) {
         localTable = transaction->getLocalStorage()->getLocalTable(tableID);
@@ -369,7 +373,7 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
         localTable->addColumn(transaction, addColumnState);
     }
     for (auto& directedRelData : directedRelData) {
-        directedRelData->addColumn(transaction, addColumnState);
+        directedRelData->addColumn(transaction, addColumnState, pageAllocator);
     }
     hasChanges = true;
 }
@@ -439,9 +443,9 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     localRelTable.clear();
 }
 
-void RelTable::reclaimStorage(PageManager& pageManager) const {
+void RelTable::reclaimStorage(PageAllocator& pageAllocator) const {
     for (auto& relData : directedRelData) {
-        relData->reclaimStorage(pageManager);
+        relData->reclaimStorage(pageAllocator);
     }
 }
 
@@ -490,7 +494,8 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     }
 }
 
-bool RelTable::checkpoint(main::ClientContext*, TableCatalogEntry* tableEntry) {
+bool RelTable::checkpoint(main::ClientContext*, TableCatalogEntry* tableEntry,
+    PageAllocator& pageAllocator) {
     bool ret = hasChanges;
     if (hasChanges) {
         // Deleted columns are vacuumed and not checkpointed or serialized.
@@ -500,7 +505,7 @@ bool RelTable::checkpoint(main::ClientContext*, TableCatalogEntry* tableEntry) {
             columnIDs.push_back(tableEntry->getColumnID(property.getName()));
         }
         for (auto& directedRelData : directedRelData) {
-            directedRelData->checkpoint(columnIDs);
+            directedRelData->checkpoint(columnIDs, pageAllocator);
         }
         hasChanges = false;
     }

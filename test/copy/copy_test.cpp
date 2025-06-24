@@ -3,6 +3,7 @@
 #include "graph_test/base_graph_test.h"
 #include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "storage/storage_manager.h"
 #include "test_runner/test_parser.h"
 #include "transaction/transaction_manager.h"
 
@@ -72,6 +73,11 @@ struct BMExceptionRecoveryTestConfig {
 
 class CopyTest : public BaseGraphTest {
 public:
+    void TearDown() override {
+        database.reset();
+        conn.reset();
+    }
+
     void SetUp() override {
         BaseGraphTest::SetUp();
         failureFrequency = 32;
@@ -107,6 +113,19 @@ public:
     FlakyBufferManager* currentBM;
 };
 
+static decltype(auto) getDbSizeInPages(main::Connection* conn) {
+    return conn->getClientContext()->getStorageManager()->getDataFH()->getNumPages();
+}
+
+static decltype(auto) getNumFreePages(main::Connection* conn) {
+    auto& pageManager =
+        *conn->getClientContext()->getStorageManager()->getDataFH()->getPageManager();
+    auto numFreeEntries = pageManager.getNumFreeEntries();
+    auto entries = pageManager.getFreeEntries(0, numFreeEntries);
+    return std::accumulate(entries.begin(), entries.end(), 0ull,
+        [](auto a, auto b) { return a + b.numPages; });
+}
+
 void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
     if (inMemMode) {
         failureFrequency = UINT64_MAX;
@@ -123,10 +142,15 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
             cfg.canFailDuringCommit);
     }
 
+    auto dbSizeInPagesBeforeExceptions = getDbSizeInPages(conn.get());
     for (int i = 0;; i++) {
         ASSERT_LT(i, 20);
         auto result = cfg.executeFunc(conn.get(), i);
         if (!result->isSuccess()) {
+            auto dbSizeInPagesAfterException = getDbSizeInPages(conn.get());
+            auto numFreePages = getNumFreePages(conn.get());
+            EXPECT_EQ(dbSizeInPagesBeforeExceptions + numFreePages, dbSizeInPagesAfterException);
+
             if (cfg.earlyExitOnFailureFunc(result.get())) {
                 break;
             }
@@ -145,11 +169,17 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
         resetDB(TestHelper::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     }
     {
+        auto numFreePagesBeforeCopy = getNumFreePages(conn.get());
+
         // Test that the table copied as expected after the query
         auto result = cfg.checkFunc(conn.get());
         ASSERT_TRUE(result->isSuccess()) << result->getErrorMessage();
         ASSERT_TRUE(result->hasNext());
         ASSERT_EQ(cfg.checkResult, result->getNext()->getValue(0)->getValue<int64_t>());
+
+        auto numFreePagesAfterCopy = getNumFreePages(conn.get());
+        EXPECT_TRUE(
+            (numFreePagesBeforeCopy == 0) || (numFreePagesBeforeCopy > numFreePagesAfterCopy));
     }
 }
 
@@ -309,6 +339,42 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
     BMExceptionRecoveryTest(cfg);
 }
 
+TEST_F(CopyTest, RelCopyCheckpointBMExceptionRecovery) {
+    if (inMemMode || systemConfig->forceCheckpointOnClose == false) {
+        GTEST_SKIP();
+    }
+    BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = false,
+        .canFailDuringCheckpoint = true,
+        .canFailDuringCommit = false,
+        .initFunc =
+            [this](main::Connection* conn) {
+                conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
+                conn->query("CREATE REL TABLE follows(FROM account TO account);");
+                ASSERT_TRUE(conn->query(common::stringFormat(
+                    "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
+                    KUZU_ROOT_DIRECTORY)));
+                failureFrequency = 1024;
+            },
+        .executeFunc =
+            [](main::Connection* conn, int) {
+                return conn->query(common::stringFormat(
+                    "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
+                    KUZU_ROOT_DIRECTORY));
+            },
+        .earlyExitOnFailureFunc =
+            [this](main::QueryResult*) {
+                // make sure the checkpoint when closing the DB doesn't fail
+                failureFrequency = UINT64_MAX;
+                return true;
+            },
+        .checkFunc =
+            [](main::Connection* conn) {
+                return conn->query("MATCH (a:account)-[:follows]->(b:account) RETURN COUNT(*)");
+            },
+        .checkResult = 2420766};
+    BMExceptionRecoveryTest(cfg);
+}
+
 TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
     if (inMemMode ||
         common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
@@ -375,13 +441,20 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
             "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
             KUZU_ROOT_DIRECTORY));
         ASSERT_TRUE(result->isSuccess()) << result->toString();
+
+        auto dbSizeInPagesBeforeException = getDbSizeInPages(conn.get());
+
         result = conn->query(common::stringFormat(
             "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
             KUZU_ROOT_DIRECTORY));
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(), "Buffer manager exception: Unable to allocate "
-                                             "memory! The buffer pool is full and no "
-                                             "memory could be freed!");
+        ASSERT_EQ(result->getErrorMessage(),
+            "Buffer manager exception: Unable to allocate memory! The buffer pool is full and no "
+            "memory could be freed!");
+
+        auto dbSizeInPagesAfterException = getDbSizeInPages(conn.get());
+        auto numFreePages = getNumFreePages(conn.get());
+        EXPECT_EQ(dbSizeInPagesBeforeException + numFreePages, dbSizeInPagesAfterException);
     }
     // Try opening then closing the database
     resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);
