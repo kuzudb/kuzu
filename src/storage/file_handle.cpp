@@ -58,12 +58,12 @@ page_idx_t FileHandle::addNewPage() {
 }
 
 page_idx_t FileHandle::addNewPages(page_idx_t numNewPages) {
-    while (!fhSharedMutex.try_lock()) {}
+    std::unique_lock lck{fhSharedMutex, std::defer_lock_t{}};
+    while (!lck.try_lock()) {}
     const auto numPagesBeforeChange = numPages;
     for (auto i = 0u; i < numNewPages; i++) {
         addNewPageWithoutLock();
     }
-    fhSharedMutex.unlock();
     return numPagesBeforeChange;
 }
 
