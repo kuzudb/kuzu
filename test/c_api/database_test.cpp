@@ -17,6 +17,10 @@ public:
 
         // limit memory usage by keeping max number of threads small
         defaultSystemConfig.max_num_threads = 2;
+        auto maxDBSizeEnv = TestHelper::getSystemEnv("MAX_DB_SIZE");
+        if (!maxDBSizeEnv.empty()) {
+            defaultSystemConfig.max_db_size = std::stoull(maxDBSizeEnv);
+        }
     }
 
     kuzu_system_config defaultSystemConfig;
