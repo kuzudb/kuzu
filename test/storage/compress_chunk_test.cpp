@@ -120,9 +120,9 @@ void CompressChunkTest::commitUpdate(ChunkState& state, FileHandle* dataFH,
     auto* clientContext = getClientContext(*conn);
     clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
     clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
-    if (state.metadata.compMeta.compression == CompressionType::ALP) {
-        state.alpExceptionChunk =
-            std::make_unique<InMemoryExceptionChunk<T>>(state, dataFH, memoryManager, shadowFile);
+    if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
+        state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(state,
+            *dataFH->getPageManager(), memoryManager, shadowFile);
     }
 }
 
@@ -150,8 +150,8 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
     state.metadata = chunkMetadata;
     state.numValuesPerPage = state.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     if (chunkMetadata.compMeta.compression == CompressionType::ALP) {
-        state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(state, dataFH, mm,
-            &storageManager->getShadowFile());
+        state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(state,
+            *dataFH->getPageManager(), mm, &storageManager->getShadowFile());
     }
 
     checkFunc(columnReader.get(), state, dataType);

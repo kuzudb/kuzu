@@ -8,11 +8,11 @@ class MemoryManager;
 
 class StructColumn final : public Column {
 public:
-    StructColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
+    StructColumn(std::string name, common::LogicalType dataType, PageAllocator& pageAllocator,
         MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
-        FileHandle& dataFH);
+        PageAllocator& pageAllocator);
 
     void scan(const ChunkState& state, ColumnChunkData* columnChunk,
         common::offset_t startOffset = 0,

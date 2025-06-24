@@ -10,6 +10,8 @@ class NullColumn;
 class StructColumn;
 class RelTableData;
 struct ColumnCheckpointState;
+class PageAllocator;
+
 class Column {
     friend class StringColumn;
     friend class StructColumn;
@@ -17,9 +19,10 @@ class Column {
     friend class RelTableData;
 
 public:
-    Column(std::string name, common::LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
-        ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn = true);
-    Column(std::string name, common::PhysicalTypeID physicalType, FileHandle* dataFH,
+    Column(std::string name, common::LogicalType dataType, PageAllocator& pageAllocator,
+        MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression,
+        bool requireNullColumn = true);
+    Column(std::string name, common::PhysicalTypeID physicalType, PageAllocator& pageAllocator,
         MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
 
@@ -28,10 +31,11 @@ public:
     void populateExtraChunkState(ChunkState& state) const;
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
-        FileHandle& dataFH);
+        PageAllocator& pageAllocator);
     static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(
-        const ColumnChunkData& chunkData, FileHandle& dataFH);
-    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData, FileHandle& dataFH);
+        const ColumnChunkData& chunkData, PageAllocator& pageAllocator);
+    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData,
+        PageAllocator& pageAllocator);
 
     virtual void scan(const ChunkState& state, common::offset_t startOffsetInChunk,
         common::row_idx_t numValuesToScan, common::ValueVector* resultVector) const;
@@ -113,7 +117,7 @@ protected:
 protected:
     std::string name;
     common::LogicalType dataType;
-    FileHandle* dataFH;
+    PageAllocator& pageAllocator;
     MemoryManager* mm;
     ShadowFile* shadowFile;
     std::unique_ptr<NullColumn> nullColumn;
@@ -127,7 +131,7 @@ protected:
 
 class InternalIDColumn final : public Column {
 public:
-    InternalIDColumn(std::string name, FileHandle* dataFH, MemoryManager* mm,
+    InternalIDColumn(std::string name, PageAllocator& pageAllocator, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 
     void scan(const ChunkState& state, common::offset_t startOffsetInChunk,
@@ -162,9 +166,10 @@ private:
 
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
-        FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
+        PageAllocator& pageAllocator, MemoryManager* mm, ShadowFile* shadowFile,
+        bool enableCompression);
     static std::unique_ptr<Column> createColumn(std::string name,
-        common::PhysicalTypeID physicalType, FileHandle* dataFH, MemoryManager* mm,
+        common::PhysicalTypeID physicalType, PageAllocator& pageAllocator, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 };
 

@@ -34,9 +34,9 @@ struct NullColumnFunc {
     }
 };
 
-NullColumn::NullColumn(const std::string& name, FileHandle* dataFH, MemoryManager* mm,
+NullColumn::NullColumn(const std::string& name, PageAllocator& pageAllocator, MemoryManager* mm,
     ShadowFile* shadowFile, bool enableCompression)
-    : Column{name, LogicalType::BOOL(), dataFH, mm, shadowFile, enableCompression,
+    : Column{name, LogicalType::BOOL(), pageAllocator, mm, shadowFile, enableCompression,
           false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
 }

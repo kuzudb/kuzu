@@ -50,18 +50,19 @@ void DatabaseHeader::serialize(common::Serializer& ser) const {
 
 Checkpointer::Checkpointer(main::ClientContext& clientContext)
     : clientContext{clientContext},
-      isInMemory{main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())} {}
+      isInMemory{main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())},
+      optimisticAllocator(*clientContext.getStorageManager()->getDataFH()->getPageManager()) {}
 
 PageRange Checkpointer::serializeCatalog(const catalog::Catalog& catalog,
-    StorageManager& storageManager) const {
+    StorageManager& storageManager) {
     auto catalogWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
     common::Serializer catalogSerializer(catalogWriter);
     catalog.serialize(catalogSerializer);
-    return catalogWriter->flush(storageManager.getDataFH(), storageManager.getShadowFile());
+    return catalogWriter->flush(optimisticAllocator, storageManager.getShadowFile());
 }
 
 PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
-    StorageManager& storageManager) const {
+    StorageManager& storageManager) {
     auto metadataWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
     common::Serializer metadataSerializer(metadataWriter);
     storageManager.serialize(catalog, metadataSerializer);
@@ -77,11 +78,11 @@ PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
     // behaviour in the database
     auto& pageManager = *storageManager.getDataFH()->getPageManager();
     const auto pagesForPageManager = pageManager.estimatePagesNeededForSerialize();
-    const auto allocatedPages =
-        pageManager.allocatePageRange(metadataWriter->getNumPagesToFlush() + pagesForPageManager);
+    const auto allocatedPages = optimisticAllocator.allocatePageRange(
+        metadataWriter->getNumPagesToFlush() + pagesForPageManager);
     pageManager.serialize(metadataSerializer);
 
-    metadataWriter->flush(allocatedPages, storageManager.getDataFH(),
+    metadataWriter->flush(allocatedPages, optimisticAllocator.getDataFH(),
         storageManager.getShadowFile());
     return allocatedPages;
 }
@@ -98,7 +99,7 @@ void Checkpointer::writeCheckpoint() {
 
     // Checkpoint storage. Note that we first checkpoint storage before serializing the catalog, as
     // checkpointing storage may overwrite columnIDs in the catalog.
-    bool hasStorageChanges = storageManager->checkpoint(&clientContext);
+    bool hasStorageChanges = storageManager->checkpoint(&clientContext, optimisticAllocator);
 
     auto& shadowFile = storageManager->getShadowFile();
     auto* dataFH = storageManager->getDataFH();
@@ -137,12 +138,9 @@ void Checkpointer::writeCheckpoint() {
     // It must be called before we remove all evicted candidates from the BM
     // Or else the evicted pages may end up appearing multiple times in the eviction queue
     storageManager->finalizeCheckpoint();
-    // When a page is freed by the FSM, it evicts it from the BM. However, if the page is freed,
-    // then reused over and over, it can be appended to the eviction queue multiple times. To
-    // prevent multiple entries of the same page from existing in the eviction queue, at the end of
-    // each checkpoint we remove any already-evicted pages.
-    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
-    bufferManager->removeEvictedCandidates();
+
+    auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    storageManager->getDataFH()->getPageManager()->clearEvictedBMEntriesIfNeeded(bufferManager);
 
     catalog->resetVersion();
     dataFH->getPageManager()->resetVersion();
@@ -171,6 +169,10 @@ void Checkpointer::rollback() {
     const auto storageManager = clientContext.getStorageManager();
     auto catalog = clientContext.getCatalog();
     storageManager->rollbackCheckpoint(*catalog);
+    optimisticAllocator.rollback();
+
+    auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    storageManager->getDataFH()->getPageManager()->clearEvictedBMEntriesIfNeeded(bufferManager);
 }
 
 bool Checkpointer::canAutoCheckpoint(const main::ClientContext& clientContext) {

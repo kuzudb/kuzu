@@ -12,10 +12,9 @@ namespace kuzu {
 namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
-    const bool enableCompression, FileHandle* dataFH,
-    const VersionRecordHandler* versionRecordHandler)
+    const bool enableCompression, bool onDisk, const VersionRecordHandler* versionRecordHandler)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      dataFH{dataFH}, stats{std::span{types}}, versionRecordHandler(versionRecordHandler) {
+      onDisk{onDisk}, stats{std::span{types}}, versionRecordHandler(versionRecordHandler) {
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         numTotalRows += nodeGroup->getNumRows();
@@ -103,7 +102,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
     MemoryManager& mm, Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    ChunkedNodeGroup& chunkedGroup) {
+    ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
     NodeGroup* lastNodeGroup = nullptr;
     offset_t startOffset = 0;
     offset_t numToAppend = 0;
@@ -138,7 +137,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
     }
     if (directFlushWhenAppend) {
         chunkedGroup.finalize();
-        auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *dataFH);
+        auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, pageAllocator);
 
         // If there are deleted columns that haven't been vaccumed yet
         // we need to add extra columns to the chunked group
@@ -175,11 +174,12 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(const Transaction* transact
     return nodeGroups.getGroup(lock, groupIdx);
 }
 
-void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
+    PageAllocator* pageAllocator) {
     const auto lock = nodeGroups.lock();
     auto& newColumnStats = stats.addNewColumn(addColumnState.propertyDefinition.getType());
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->addColumn(transaction, addColumnState, dataFH, &newColumnStats);
+        nodeGroup->addColumn(transaction, addColumnState, pageAllocator, &newColumnStats);
     }
     types.push_back(addColumnState.propertyDefinition.getType().copy());
 }
@@ -196,7 +196,7 @@ uint64_t NodeGroupCollection::getEstimatedMemoryUsage() const {
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     NodeGroupCheckpointState& state) {
-    KU_ASSERT(dataFH);
+    KU_ASSERT(onDisk);
     const auto lock = nodeGroups.lock();
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         nodeGroup->checkpoint(memoryManager, state);
@@ -208,10 +208,10 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     types = std::move(typesAfterCheckpoint);
 }
 
-void NodeGroupCollection::reclaimStorage(PageManager& pageManager) const {
+void NodeGroupCollection::reclaimStorage(PageAllocator& pageAllocator) const {
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->reclaimStorage(pageManager);
+        nodeGroup->reclaimStorage(pageAllocator);
     }
 }
 
@@ -238,7 +238,7 @@ void NodeGroupCollection::pushInsertInfo(const Transaction* transaction,
     node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows,
     const VersionRecordHandler* versionRecordHandler, bool incrementNumRows) {
     // we only append to the undo buffer if the node group collection is persistent
-    if (dataFH && transaction->shouldAppendToUndoBuffer()) {
+    if (onDisk && transaction->shouldAppendToUndoBuffer()) {
         transaction->pushInsertInfo(nodeGroupIdx, startRow, numRows, versionRecordHandler);
     }
     if (incrementNumRows) {
@@ -256,7 +256,7 @@ void NodeGroupCollection::serialize(Serializer& ser) {
 void NodeGroupCollection::deserialize(Deserializer& deSer, MemoryManager& memoryManager) {
     std::string key;
     deSer.validateDebuggingInfo(key, "node_groups");
-    KU_ASSERT(dataFH);
+    KU_ASSERT(onDisk);
     nodeGroups.deserializeGroups(memoryManager, deSer, types);
     deSer.validateDebuggingInfo(key, "stats");
     stats.deserialize(deSer);

@@ -19,13 +19,14 @@ template<std::floating_point T>
 using ExceptionInBuffer = std::array<std::byte, EncodeException<T>::sizeInBytes()>;
 
 template<std::floating_point T>
-InMemoryExceptionChunk<T>::InMemoryExceptionChunk(const ChunkState& state, FileHandle* dataFH,
-    MemoryManager* memoryManager, ShadowFile* shadowFile)
+InMemoryExceptionChunk<T>::InMemoryExceptionChunk(const ChunkState& state,
+    PageAllocator& pageAllocator, MemoryManager* memoryManager, ShadowFile* shadowFile)
     : exceptionCount(state.metadata.compMeta.floatMetadata()->exceptionCount),
       finalizedExceptionCount(exceptionCount),
       exceptionCapacity(state.metadata.compMeta.floatMetadata()->exceptionCapacity),
-      emptyMask(exceptionCapacity), column(ColumnFactory::createColumn("ALPExceptionChunk",
-                                        physicalType, dataFH, memoryManager, shadowFile, false)) {
+      emptyMask(exceptionCapacity),
+      column(ColumnFactory::createColumn("ALPExceptionChunk", physicalType, pageAllocator,
+          memoryManager, shadowFile, false)) {
     const auto exceptionBaseCursor =
         getExceptionPageCursor(state.metadata, PageCursor{state.metadata.getStartPageIdx(), 0},
             state.metadata.compMeta.floatMetadata()->exceptionCapacity);

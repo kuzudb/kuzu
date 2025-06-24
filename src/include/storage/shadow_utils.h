@@ -46,12 +46,6 @@ public:
         common::page_idx_t originalPageIdx, const ShadowFile& shadowFile,
         const std::function<void(uint8_t*)>& readOp);
 
-    static common::page_idx_t insertNewPage(
-        FileHandle& fileHandle, ShadowFile& shadowFile,
-        const std::function<void(uint8_t*)>& insertOp = [](uint8_t*) -> void {
-            // DO NOTHING.
-        });
-
     // Note: This function updates a page "transactionally", i.e., creates the WAL version of the
     // page if it doesn't exist. For the original page to be updated, the current WRITE trx needs to
     // commit and checkpoint.

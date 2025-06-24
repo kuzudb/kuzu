@@ -22,15 +22,15 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-StringColumn::StringColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
-    MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
-    : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
+StringColumn::StringColumn(std::string name, common::LogicalType dataType,
+    PageAllocator& pageAllocator, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
+    : Column{std::move(name), std::move(dataType), pageAllocator, mm, shadowFile, enableCompression,
           true /* requireNullColumn */},
-      dictionary{this->name, dataFH, mm, shadowFile, enableCompression} {
+      dictionary{this->name, pageAllocator, mm, shadowFile, enableCompression} {
     auto indexColumnName =
         StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::INDEX, "index");
-    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(), dataFH, mm,
-        shadowFile, enableCompression, false /*requireNullColumn*/);
+    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(), pageAllocator,
+        mm, shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
 ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {
@@ -44,18 +44,18 @@ const ChunkState& StringColumn::getChildState(const ChunkState& state, ChildStat
 }
 
 std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkData& chunkData,
-    FileHandle& dataFH) {
-    auto flushedChunkData = flushNonNestedChunkData(chunkData, dataFH);
+    PageAllocator& pageAllocator) {
+    auto flushedChunkData = flushNonNestedChunkData(chunkData, pageAllocator);
     auto& flushedStringData = flushedChunkData->cast<StringChunkData>();
 
     auto& stringChunk = chunkData.cast<StringChunkData>();
     flushedStringData.setIndexChunk(
-        Column::flushChunkData(*stringChunk.getIndexColumnChunk(), dataFH));
+        Column::flushChunkData(*stringChunk.getIndexColumnChunk(), pageAllocator));
     auto& dictChunk = stringChunk.getDictionaryChunk();
     flushedStringData.getDictionaryChunk().setOffsetChunk(
-        Column::flushChunkData(*dictChunk.getOffsetChunk(), dataFH));
+        Column::flushChunkData(*dictChunk.getOffsetChunk(), pageAllocator));
     flushedStringData.getDictionaryChunk().setStringDataChunk(
-        Column::flushChunkData(*dictChunk.getStringDataChunk(), dataFH));
+        Column::flushChunkData(*dictChunk.getStringDataChunk(), pageAllocator));
     return flushedChunkData;
 }
 

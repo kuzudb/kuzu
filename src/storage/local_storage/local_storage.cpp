@@ -1,6 +1,7 @@
 #include "storage/local_storage/local_storage.h"
 
 #include "main/client_context.h"
+#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
@@ -44,6 +45,13 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID) const {
     return nullptr;
 }
 
+OptimisticAllocator* LocalStorage::addOptimisticAllocator() {
+    common::UniqLock lck{mtx};
+    optimisticAllocators.emplace_back(std::make_unique<OptimisticAllocator>(
+        *clientContext.getStorageManager()->getDataFH()->getPageManager()));
+    return optimisticAllocators.back().get();
+}
+
 void LocalStorage::commit() {
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
@@ -63,11 +71,24 @@ void LocalStorage::commit() {
             table->commit(transaction, tableEntry, localTable.get());
         }
     }
+    for (auto& optimisticAllocator : optimisticAllocators) {
+        optimisticAllocator->commit();
+    }
 }
 
 void LocalStorage::rollback() {
     for (auto& [_, localTable] : tables) {
         localTable->clear();
+    }
+    for (auto& optimisticAllocator : optimisticAllocators) {
+        optimisticAllocator->rollback();
+    }
+    if (!optimisticAllocators.empty()) {
+        auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();
+        clientContext.getStorageManager()
+            ->getDataFH()
+            ->getPageManager()
+            ->clearEvictedBMEntriesIfNeeded(bufferManager);
     }
 }
 

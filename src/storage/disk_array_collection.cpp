@@ -10,23 +10,20 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-DiskArrayCollection::DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
-    bool bypassShadowing)
-    : fileHandle{fileHandle}, shadowFile{shadowFile}, bypassShadowing{bypassShadowing},
-      numHeaders{0} {
+DiskArrayCollection::DiskArrayCollection(ShadowFile& shadowFile, bool bypassShadowing)
+    : shadowFile{shadowFile}, bypassShadowing{bypassShadowing}, numHeaders{0} {
     headersForReadTrx.push_back(std::make_unique<HeaderPage>());
     headersForWriteTrx.push_back(std::make_unique<HeaderPage>());
     headerPagesOnDisk = 0;
 }
 
-DiskArrayCollection::DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
+DiskArrayCollection::DiskArrayCollection(PageAllocator& pageAllocator, ShadowFile& shadowFile,
     page_idx_t firstHeaderPage, bool bypassShadowing)
-    : fileHandle{fileHandle}, shadowFile{shadowFile}, bypassShadowing{bypassShadowing},
-      numHeaders{0} {
+    : shadowFile{shadowFile}, bypassShadowing{bypassShadowing}, numHeaders{0} {
     // Read headers from disk
     page_idx_t headerPageIdx = firstHeaderPage;
     do {
-        fileHandle.optimisticReadPage(headerPageIdx, [&](auto* frame) {
+        pageAllocator.getDataFH()->optimisticReadPage(headerPageIdx, [&](auto* frame) {
             const auto page = reinterpret_cast<HeaderPage*>(frame);
             headersForReadTrx.push_back(std::make_unique<HeaderPage>(*page));
             headersForWriteTrx.push_back(std::make_unique<HeaderPage>(*page));
@@ -37,7 +34,7 @@ DiskArrayCollection::DiskArrayCollection(FileHandle& fileHandle, ShadowFile& sha
     headerPagesOnDisk = headersForReadTrx.size();
 }
 
-void DiskArrayCollection::checkpoint(page_idx_t firstHeaderPage) {
+void DiskArrayCollection::checkpoint(page_idx_t firstHeaderPage, PageAllocator& pageAllocator) {
     // Write headers to disk
     page_idx_t headerPage = firstHeaderPage;
     for (page_idx_t indexInMemory = 0; indexInMemory < headersForWriteTrx.size(); indexInMemory++) {
@@ -45,8 +42,8 @@ void DiskArrayCollection::checkpoint(page_idx_t firstHeaderPage) {
         // Or if the page has not yet been written
         if (indexInMemory >= headerPagesOnDisk ||
             *headersForWriteTrx[indexInMemory] != *headersForReadTrx[indexInMemory]) {
-            ShadowUtils::updatePage(fileHandle, headerPage, true /*writing full page*/, shadowFile,
-                [&](auto* frame) {
+            ShadowUtils::updatePage(*pageAllocator.getDataFH(), headerPage,
+                true /*writing full page*/, shadowFile, [&](auto* frame) {
                     memcpy(frame, headersForWriteTrx[indexInMemory].get(), sizeof(HeaderPage));
                     if constexpr (sizeof(HeaderPage) < KUZU_PAGE_SIZE) {
                         // Zero remaining data in the page
@@ -59,13 +56,13 @@ void DiskArrayCollection::checkpoint(page_idx_t firstHeaderPage) {
     headerPagesOnDisk = headersForWriteTrx.size();
 }
 
-size_t DiskArrayCollection::addDiskArray() {
+size_t DiskArrayCollection::addDiskArray(PageAllocator& pageAllocator) {
     auto oldSize = numHeaders++;
     // This may not be the last header page. If we rollback there may be header pages which are
     // empty
     auto pageIdx = numHeaders % HeaderPage::NUM_HEADERS_PER_PAGE;
     if (pageIdx >= headersForWriteTrx.size()) {
-        auto nextHeaderPage = fileHandle.getPageManager()->allocatePage();
+        auto nextHeaderPage = pageAllocator.allocatePage();
         headersForWriteTrx.back()->nextHeaderPage = nextHeaderPage;
         // We can't really roll back the structural changes in the PKIndex (the disk arrays are
         // created in the destructor and there are a fixed number which does not change after that
@@ -88,12 +85,12 @@ size_t DiskArrayCollection::addDiskArray() {
     return oldSize;
 }
 
-void DiskArrayCollection::reclaimStorage(PageManager& pageManager,
+void DiskArrayCollection::reclaimStorage(PageAllocator& pageAllocator,
     common::page_idx_t firstHeaderPage) const {
     page_idx_t headerPage = firstHeaderPage;
     for (page_idx_t indexInMemory = 0; indexInMemory < headersForReadTrx.size(); indexInMemory++) {
         if (headerPage != INVALID_PAGE_IDX) {
-            pageManager.freePage(headerPage);
+            pageAllocator.freePage(headerPage);
 
             headerPage = headersForReadTrx[indexInMemory]->nextHeaderPage;
         }

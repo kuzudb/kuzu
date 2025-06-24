@@ -17,7 +17,7 @@
 
 namespace kuzu {
 namespace storage {
-class PageManager;
+class PageAllocator;
 class FileHandle;
 class BufferManager;
 
@@ -105,7 +105,7 @@ struct PIPUpdates {
 class DiskArrayInternal {
 public:
     // Used when loading from file
-    DiskArrayInternal(FileHandle& fileHandle, const DiskArrayHeader& headerForReadTrx,
+    DiskArrayInternal(PageAllocator& pageAllocator, const DiskArrayHeader& headerForReadTrx,
         DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, uint64_t elementSize,
         bool bypassShadowing = false);
 
@@ -120,11 +120,12 @@ public:
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
-    uint64_t pushBack(const transaction::Transaction* transaction, std::span<std::byte> val);
+    uint64_t pushBack(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
+        std::span<std::byte> val);
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
-    uint64_t resize(const transaction::Transaction* transaction, uint64_t newNumElements,
-        std::span<std::byte> defaultVal);
+    uint64_t resize(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
+        uint64_t newNumElements, std::span<std::byte> defaultVal);
 
     void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
@@ -137,7 +138,7 @@ public:
 
     void checkpoint();
 
-    void reclaimStorage(PageManager& pageManager) const;
+    void reclaimStorage(PageAllocator& pageAllocator) const;
 
     // Write WriteIterator for making fast bulk changes to the disk array
     // The pages are cached while the elements are stored on the same page
@@ -171,7 +172,8 @@ public:
 
         WriteIterator& seek(size_t newIdx);
         // Adds a new element to the disk array and seeks to the new element
-        void pushBack(const transaction::Transaction* transaction, std::span<std::byte> val);
+        void pushBack(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
+            std::span<std::byte> val);
 
         inline WriteIterator& operator+=(size_t increment) { return seek(idx + increment); }
 
@@ -238,7 +240,8 @@ private:
     // Returns the apPageIdx of the AP with idx apIdx and a bool indicating whether the apPageIdx is
     // a newly inserted page.
     std::pair<common::page_idx_t, bool> getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
-        const transaction::Transaction* transaction, common::page_idx_t apIdx);
+        PageAllocator& pageAllocator, const transaction::Transaction* transaction,
+        common::page_idx_t apIdx);
 
 protected:
     PageStorageInfo storageInfo;
@@ -268,15 +271,16 @@ public:
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
-    DiskArray(FileHandle& fileHandle, const DiskArrayHeader& headerForReadTrx,
+    DiskArray(PageAllocator& pageAllocator, const DiskArrayHeader& headerForReadTrx,
         DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, bool bypassWAL = false)
-        : diskArray(fileHandle, headerForReadTrx, headerForWriteTrx, shadowFile, sizeof(U),
+        : diskArray(pageAllocator, headerForReadTrx, headerForWriteTrx, shadowFile, sizeof(U),
               bypassWAL) {}
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.
-    inline uint64_t pushBack(const transaction::Transaction* transaction, U val) {
-        return diskArray.pushBack(transaction, getSpan(val));
+    inline uint64_t pushBack(PageAllocator& pageAllocator,
+        const transaction::Transaction* transaction, U val) {
+        return diskArray.pushBack(pageAllocator, transaction, getSpan(val));
     }
 
     // Note: This function is to be used only by the WRITE trx.
@@ -291,9 +295,10 @@ public:
     }
 
     // Note: Currently, this function doesn't support shrinking the size of the array.
-    inline uint64_t resize(const transaction::Transaction* transaction, uint64_t newNumElements) {
+    inline uint64_t resize(PageAllocator& pageAllocator,
+        const transaction::Transaction* transaction, uint64_t newNumElements) {
         U defaultVal;
-        return diskArray.resize(transaction, newNumElements, getSpan(defaultVal));
+        return diskArray.resize(pageAllocator, transaction, newNumElements, getSpan(defaultVal));
     }
 
     inline uint64_t getNumElements(
@@ -304,8 +309,8 @@ public:
     inline void checkpointInMemoryIfNecessary() { diskArray.checkpointInMemoryIfNecessary(); }
     inline void rollbackInMemoryIfNecessary() { diskArray.rollbackInMemoryIfNecessary(); }
     inline void checkpoint() { diskArray.checkpoint(); }
-    inline void reclaimStorage(PageManager& pageManager) const {
-        diskArray.reclaimStorage(pageManager);
+    inline void reclaimStorage(PageAllocator& pageAllocator) const {
+        diskArray.reclaimStorage(pageAllocator);
     }
 
     class WriteIterator {
@@ -327,8 +332,9 @@ public:
         inline uint64_t idx() const { return iter.idx; }
         inline uint64_t getAPIdx() const { return iter.apCursor.pageIdx; }
 
-        inline WriteIterator& pushBack(const transaction::Transaction* transaction, U val) {
-            iter.pushBack(transaction, getSpan(val));
+        inline WriteIterator& pushBack(PageAllocator& pageAllocator,
+            const transaction::Transaction* transaction, U val) {
+            iter.pushBack(pageAllocator, transaction, getSpan(val));
             return *this;
         }
 

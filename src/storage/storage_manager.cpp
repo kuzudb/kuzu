@@ -166,17 +166,19 @@ void StorageManager::reclaimDroppedTables(const Catalog& catalog) {
     }
 }
 
-bool StorageManager::checkpoint(main::ClientContext* context) {
+bool StorageManager::checkpoint(main::ClientContext* context, PageAllocator& pageAllocator) {
     bool hasChanges = false;
     const auto catalog = context->getCatalog();
     const auto nodeTableEntries = catalog->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     const auto relGroupEntries = catalog->getRelGroupEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+
     for (const auto entry : nodeTableEntries) {
         if (!tables.contains(entry->getTableID())) {
             throw RuntimeException(stringFormat(
                 "Checkpoint failed: table {} not found in storage manager.", entry->getName()));
         }
-        hasChanges = tables.at(entry->getTableID())->checkpoint(context, entry) || hasChanges;
+        hasChanges =
+            tables.at(entry->getTableID())->checkpoint(context, entry, pageAllocator) || hasChanges;
     }
     for (const auto entry : relGroupEntries) {
         for (auto& info : entry->getRelEntryInfos()) {
@@ -184,7 +186,8 @@ bool StorageManager::checkpoint(main::ClientContext* context) {
                 throw RuntimeException(stringFormat(
                     "Checkpoint failed: table {} not found in storage manager.", entry->getName()));
             }
-            hasChanges = tables.at(info.oid)->checkpoint(context, entry) || hasChanges;
+            hasChanges =
+                tables.at(info.oid)->checkpoint(context, entry, pageAllocator) || hasChanges;
         }
         entry->vacuumColumnIDs(1);
     }

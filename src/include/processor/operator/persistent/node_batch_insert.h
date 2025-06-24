@@ -123,7 +123,8 @@ public:
     // not written
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
-        std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;
+        std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm,
+        storage::PageAllocator& pageAllocator) const;
 
 private:
     void evaluateExpressions(uint64_t numTuples) const;
@@ -141,7 +142,7 @@ private:
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm,
-        NodeBatchInsertErrorHandler& errorHandler) const;
+        NodeBatchInsertErrorHandler& errorHandler, storage::PageAllocator& pageAllocator) const;
 };
 
 } // namespace processor

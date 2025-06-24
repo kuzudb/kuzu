@@ -1,6 +1,7 @@
 #pragma once
 
 #include "main/client_context.h"
+#include "storage/optimistic_allocator.h"
 #include "storage/page_range.h"
 
 namespace kuzu {
@@ -41,14 +42,13 @@ private:
 private:
     void writeDatabaseHeader(const DatabaseHeader& header);
     DatabaseHeader getCurrentDatabaseHeader() const;
-    PageRange serializeCatalog(const catalog::Catalog& catalog,
-        StorageManager& storageManager) const;
-    PageRange serializeMetadata(const catalog::Catalog& catalog,
-        StorageManager& storageManager) const;
+    PageRange serializeCatalog(const catalog::Catalog& catalog, StorageManager& storageManager);
+    PageRange serializeMetadata(const catalog::Catalog& catalog, StorageManager& storageManager);
 
 private:
     main::ClientContext& clientContext;
     bool isInMemory;
+    OptimisticAllocator optimisticAllocator;
 };
 
 } // namespace storage
