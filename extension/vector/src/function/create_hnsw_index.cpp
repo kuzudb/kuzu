@@ -2,6 +2,7 @@
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/hnsw_index_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
@@ -67,7 +68,7 @@ static std::unique_ptr<TableFuncLocalState> initCreateInMemHNSWLocalState(
     const auto* bindData = input.bindData.constPtrCast<CreateHNSWIndexBindData>();
     const auto& index = input.sharedState.ptrCast<CreateInMemHNSWSharedState>()->hnswIndex;
     return std::make_unique<CreateInMemHNSWLocalState>(bindData->numRows + 1,
-        index->getNumUpperLayerNodes());
+        index->getNumUpperLayerNodes(), index->constructEmbeddingsScanState());
 }
 
 static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {
@@ -79,9 +80,8 @@ static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncO
     const auto& hnswIndex = sharedState->hnswIndex;
     offset_t numNodesInserted = 0;
     for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
-        numNodesInserted += hnswIndex->insert(i,
-            input.localState->ptrCast<CreateInMemHNSWLocalState>()->upperVisited,
-            input.localState->ptrCast<CreateInMemHNSWLocalState>()->lowerVisited);
+        numNodesInserted +=
+            hnswIndex->insert(i, input.localState->ptrCast<CreateInMemHNSWLocalState>());
     }
     sharedState->numNodesInserted.fetch_add(numNodesInserted);
     return morsel.endOffset - morsel.startOffset;
@@ -343,9 +343,14 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     params += stringFormat("efc := {}, ", config.efc);
     params += stringFormat("metric := '{}', ", HNSWIndexConfig::metricToString(config.metric));
     params += stringFormat("alpha := {}, ", config.alpha);
-    params += stringFormat("pu := {}", config.pu);
+    params += stringFormat("pu := {}, ", config.pu);
+    params +=
+        stringFormat("cache_embeddings := {}", config.cacheEmbeddingsColumn ? "true" : "false");
     auto columnName = hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName();
-    query += stringFormat("CALL _CACHE_ARRAY_COLUMN_LOCALLY('{}', '{}');", tableName, columnName);
+    if (config.cacheEmbeddingsColumn) {
+        query +=
+            stringFormat("CALL _CACHE_ARRAY_COLUMN_LOCALLY('{}', '{}');", tableName, columnName);
+    }
     query += stringFormat("CALL _CREATE_HNSW_INDEX('{}', '{}', '{}', {});", tableName, indexName,
         columnName, params);
     query += stringFormat("RETURN 'Index {} has been created.' as result;", indexName);

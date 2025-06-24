@@ -199,6 +199,26 @@ static const LogicalType& getIndexColumnType(const NodeTableCatalogEntry& nodeEn
     return nodeEntry.getProperty(columnName).getType();
 }
 
+// This struct wraps a vector of embedding data
+// It exists so that we can match the interface for on-disk HNSW search
+template<typename T>
+struct HNSWQueryVector : GetEmbeddingsScanState {
+    HNSWQueryVector(main::ClientContext* context, std::shared_ptr<Expression> queryExpression,
+        const LogicalType& indexType, uint64_t dimension)
+        : data(getQueryVector<T>(context, std::move(queryExpression), indexType, dimension)) {}
+
+    void* getEmbeddingPtr([[maybe_unused]] const EmbeddingHandle& handle) override {
+        KU_ASSERT(!handle.isNull());
+        KU_ASSERT(handle.offsetInData == 0);
+        return reinterpret_cast<void*>(data.data());
+    }
+
+    void addEmbedding(const EmbeddingHandle&) override {};
+    void reclaimEmbedding(const EmbeddingHandle&) override {};
+
+    std::vector<T> data;
+};
+
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     const auto localState = input.localState->ptrCast<QueryHNSWLocalState>();
     const auto bindData = input.bindData->constPtrCast<QueryHNSWIndexBindData>();
@@ -217,10 +237,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         TypeUtils::visit(
             indexType,
             [&]<VectorElementType T>(T) {
-                auto queryVector = getQueryVector<T>(input.context->clientContext,
+                auto queryVector = HNSWQueryVector<T>(input.context->clientContext,
                     bindData->queryExpression, index.getElementType(), dimension);
+                auto queryVectorHandle = EmbeddingHandle{0, &queryVector};
                 localState->result = index.search(input.context->clientContext->getTransaction(),
-                    queryVector.data(), localState->searchState);
+                    queryVectorHandle, localState->searchState);
             },
             [&](auto) { KU_UNREACHABLE; });
     }

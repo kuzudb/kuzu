@@ -73,6 +73,12 @@ struct Efs {
     static void validate(int64_t value);
 };
 
+struct CacheEmbeddings {
+    static constexpr const char* NAME = "cache_embeddings";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
+    static constexpr bool DEFAULT_VALUE = true;
+};
+
 struct BlindSearchUpSelThreshold {
     static constexpr const char* NAME = "blind_search_up_sel";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::DOUBLE;
@@ -96,6 +102,7 @@ struct HNSWIndexConfig {
     MetricType metric = Metric::DEFAULT_VALUE;
     double alpha = Alpha::DEFAULT_VALUE;
     int64_t efc = Efc::DEFAULT_VALUE;
+    bool cacheEmbeddingsColumn = CacheEmbeddings::DEFAULT_VALUE;
 
     HNSWIndexConfig() = default;
 
@@ -112,7 +119,7 @@ struct HNSWIndexConfig {
 private:
     HNSWIndexConfig(const HNSWIndexConfig& other)
         : mu{other.mu}, ml{other.ml}, pu{other.pu}, metric{other.metric}, alpha{other.alpha},
-          efc{other.efc} {}
+          efc{other.efc}, cacheEmbeddingsColumn(other.cacheEmbeddingsColumn) {}
 
     static MetricType getMetricType(const std::string& metricName);
 };

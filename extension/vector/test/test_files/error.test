@@ -22,6 +22,9 @@ Binder exception: VECTOR_INDEX only supports FLOAT/DOUBLE ARRAY columns.
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index_ml_too_large', 'vec', ml := 3000);
+---- error(regex)
+Binder exception: Unsupported configured ml value 3000, the maximum supported value is \d+.
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', CAST([0.0459,0.0439,0.0251], 'FLOAT[3]'), 10) RETURN *;
 ---- error
 Binder exception: Cannot change literal expression data type from FLOAT[3] to FLOAT[960].

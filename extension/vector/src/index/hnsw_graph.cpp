@@ -12,9 +12,66 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace vector_extension {
 
+EmbeddingHandle::EmbeddingHandle(common::offset_t offset, GetEmbeddingsScanState* lifetimeManager)
+    : offsetInData(offset), lifetimeManager(lifetimeManager) {
+    if (lifetimeManager) {
+        KU_ASSERT(!isNull());
+        lifetimeManager->addEmbedding(*this);
+    }
+}
+
+EmbeddingHandle::~EmbeddingHandle() {
+    if (!isNull() && lifetimeManager) {
+        lifetimeManager->reclaimEmbedding(*this);
+    }
+}
+
+// NOLINTNEXTLINE Uses move assignment operator to assign to fields
+EmbeddingHandle::EmbeddingHandle(EmbeddingHandle&& o) noexcept {
+    *this = std::move(o);
+}
+
+EmbeddingHandle& EmbeddingHandle::operator=(EmbeddingHandle&& o) noexcept {
+    if (this != &o) {
+        offsetInData = o.offsetInData;
+        lifetimeManager = o.lifetimeManager;
+        o.offsetInData = common::INVALID_OFFSET;
+    }
+    return *this;
+}
+
+struct InMemEmbeddingLocalState : GetEmbeddingsScanState {
+    explicit InMemEmbeddingLocalState(const CachedColumn* data, const common::LogicalType& type)
+        : data(data), type(type) {}
+
+    void* getEmbeddingPtr(const EmbeddingHandle&) override;
+
+    void addEmbedding(const EmbeddingHandle&) override {}
+    void reclaimEmbedding(const EmbeddingHandle&) override {}
+
+    const CachedColumn* data;
+    const common::LogicalType& type;
+};
+
+void* InMemEmbeddingLocalState::getEmbeddingPtr(const EmbeddingHandle& handle) {
+    void* val = nullptr;
+    if (!handle.isNull()) {
+        common::TypeUtils::visit(type, [&]<typename T>(T) {
+            auto [nodeGroupIdx, offsetInGroup] =
+                StorageUtils::getNodeGroupIdxAndOffsetInChunk(handle.offsetInData);
+            KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
+            const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
+            val = &listChunk.getDataColumnChunk()
+                       ->getData<T>()[listChunk.getListStartOffset(offsetInGroup)];
+        });
+        KU_ASSERT(val != nullptr);
+    }
+    return val;
+}
+
 InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction,
     common::ArrayTypeInfo typeInfo, common::table_id_t tableID, common::column_id_t columnID)
-    : EmbeddingColumn{std::move(typeInfo)} {
+    : HNSWIndexEmbeddings{std::move(typeInfo)} {
     auto& cacheManager = transaction->getLocalCacheManager();
     const auto key = CachedColumn::getKey(tableID, columnID);
     if (cacheManager.contains(key)) {
@@ -24,42 +81,49 @@ InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction,
     }
 }
 
-void* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
-    void* val = nullptr;
-    common::TypeUtils::visit(typeInfo.getChildType(), [&]<typename T>(T) {
-        auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
-        KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
-        const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
-        val = &listChunk.getDataColumnChunk()
-                   ->getData<T>()[listChunk.getListStartOffset(offsetInGroup)];
-    });
-    KU_ASSERT(val != nullptr);
-    return val;
+std::unique_ptr<GetEmbeddingsScanState> InMemEmbeddings::constructScanState() const {
+    return std::make_unique<InMemEmbeddingLocalState>(data, info.typeInfo.getChildType());
 }
 
-bool InMemEmbeddings::isNull(common::offset_t offset) const {
+static bool isNull(common::offset_t offset, CachedColumn* data) {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
     KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
     const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
     return listChunk.isNull(offsetInGroup);
 }
 
-OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
-    MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID) {
-    std::vector columnIDs{columnID};
-    // The first ValueVector in scanChunk is reserved for nodeIDs.
-    std::vector<common::LogicalType> types;
-    types.emplace_back(common::LogicalType::INTERNAL_ID());
-    types.emplace_back(nodeTable.getColumn(columnID).getDataType().copy());
-    scanChunk = Table::constructDataChunk(mm, std::move(types));
-    std::vector outVectors{&scanChunk.getValueVectorMutable(1)};
-    scanState = std::make_unique<NodeTableScanState>(&scanChunk.getValueVectorMutable(0),
-        outVectors, scanChunk.state);
-    scanState->setToTable(transaction, &nodeTable, std::move(columnIDs));
+EmbeddingHandle InMemEmbeddings::getEmbedding(common::offset_t offset,
+    GetEmbeddingsScanState& scanState) const {
+    if (isNull(offset, data)) {
+        return EmbeddingHandle::createNullHandle();
+    }
+    return EmbeddingHandle{offset, &scanState};
 }
 
-void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
-    NodeTableScanState& scanState, common::offset_t offset) const {
+std::vector<EmbeddingHandle> InMemEmbeddings::getEmbeddings(
+    std::span<const common::offset_t> offsets, GetEmbeddingsScanState& scanState) const {
+    std::vector<EmbeddingHandle> ret;
+    ret.reserve(offsets.size());
+    for (common::offset_t offset : offsets) {
+        ret.push_back(getEmbedding(offset, scanState));
+    }
+    return ret;
+}
+
+OnDiskEmbeddings::OnDiskEmbeddings(transaction::Transaction* transaction,
+    storage::MemoryManager* mm, common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable,
+    common::column_id_t columnID)
+    : HNSWIndexEmbeddings(std::move(typeInfo)), transaction(transaction), mm(mm),
+      nodeTable(nodeTable), columnID(columnID) {}
+
+std::unique_ptr<GetEmbeddingsScanState> OnDiskEmbeddings::constructScanState() const {
+    return std::make_unique<OnDiskEmbeddingScanState>(transaction, mm, nodeTable, columnID,
+        info.getDimension());
+}
+
+EmbeddingHandle OnDiskEmbeddings::getEmbedding(common::offset_t offset,
+    GetEmbeddingsScanState& embeddingScanState) const {
+    auto& scanState = embeddingScanState.cast<OnDiskEmbeddingScanState>().getScanState();
     scanState.nodeIDVector->setValue(0, common::internalID_t{offset, nodeTable.getTableID()});
     scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(1);
     const auto source = scanState.source;
@@ -78,29 +142,20 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     } else {
         nodeTable.initScanState(transaction, scanState);
     }
-    scanState.outputVectors[0]->resetAuxiliaryBuffer();
-    const auto result = nodeTable.lookup(transaction, scanState);
+    const auto result = nodeTable.lookup<false>(transaction, scanState);
     KU_ASSERT(scanState.outputVectors.size() == 1 &&
               scanState.outputVectors[0]->state->getSelVector()[0] == 0);
     if (!result || scanState.outputVectors[0]->isNull(0)) {
-        return nullptr;
+        return EmbeddingHandle::createNullHandle();
     }
     const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(0);
-    KU_ASSERT(value.size == typeInfo.getNumElements());
-    KU_UNUSED(value);
-    const auto dataVector = common::ListVector::getDataVector(scanState.outputVectors[0]);
-    void* val = nullptr;
-    common::TypeUtils::visit(
-        typeInfo.getChildType(),
-        [&]<VectorElementType T>(
-            T) { val = reinterpret_cast<T*>(dataVector->getData()) + value.offset; },
-        [&](auto) { KU_UNREACHABLE; });
-    KU_ASSERT(val != nullptr);
-    return val;
+    KU_ASSERT(value.size == info.typeInfo.getNumElements());
+    return EmbeddingHandle{value.offset, &embeddingScanState};
 }
 
-std::vector<void*> OnDiskEmbeddings::getEmbeddings(transaction::Transaction* transaction,
-    NodeTableScanState& scanState, const std::vector<common::offset_t>& offsets) const {
+std::vector<EmbeddingHandle> OnDiskEmbeddings::getEmbeddings(
+    std::span<const common::offset_t> offsets, GetEmbeddingsScanState& embeddingScanState) const {
+    auto& scanState = embeddingScanState.cast<OnDiskEmbeddingScanState>().getScanState();
     for (auto i = 0u; i < offsets.size(); i++) {
         scanState.nodeIDVector->setValue(i,
             common::internalID_t{offsets[i], nodeTable.getTableID()});
@@ -108,30 +163,84 @@ std::vector<void*> OnDiskEmbeddings::getEmbeddings(transaction::Transaction* tra
     scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(offsets.size());
     KU_ASSERT(
         scanState.outputVectors[0]->dataType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
-    common::ListVector::resizeDataVector(scanState.outputVectors[0],
-        offsets.size() * typeInfo.getNumElements());
-    scanState.outputVectors[0]->resetAuxiliaryBuffer();
-    nodeTable.lookupMultiple(transaction, scanState);
-    std::vector<void*> embeddings;
+    nodeTable.lookupMultiple<false>(transaction, scanState);
+    std::vector<EmbeddingHandle> embeddings;
     embeddings.reserve(offsets.size());
     for (auto i = 0u; i < offsets.size(); i++) {
         if (scanState.outputVectors[0]->isNull(i)) {
-            embeddings.push_back(nullptr);
+            embeddings.emplace_back(EmbeddingHandle::createNullHandle());
         } else {
             const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(i);
-            KU_ASSERT(value.size == typeInfo.getNumElements());
-            const auto dataVector = common::ListVector::getDataVector(scanState.outputVectors[0]);
-            void* val = nullptr;
-            common::TypeUtils::visit(
-                typeInfo.getChildType(),
-                [&]<VectorElementType T>(
-                    T) { val = reinterpret_cast<T*>(dataVector->getData()) + value.offset; },
-                [&](auto) { KU_UNREACHABLE; });
-            KU_ASSERT(val != nullptr);
-            embeddings.push_back(val);
+            KU_ASSERT(value.size == info.typeInfo.getNumElements());
+            embeddings.emplace_back(value.offset, &embeddingScanState);
         }
     }
     return embeddings;
+}
+
+OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
+    MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID,
+    common::offset_t embeddingDim)
+    : embeddingDim(embeddingDim) {
+    std::vector columnIDs{columnID};
+    // The first ValueVector in scanChunk is reserved for nodeIDs.
+    std::vector<common::LogicalType> types;
+    types.emplace_back(common::LogicalType::INTERNAL_ID());
+    types.emplace_back(nodeTable.getColumn(columnID).getDataType().copy());
+    scanChunk = Table::constructDataChunk(mm, std::move(types));
+    std::vector outVectors{&scanChunk.getValueVectorMutable(1)};
+    scanState = std::make_unique<NodeTableScanState>(&scanChunk.getValueVectorMutable(0),
+        outVectors, scanChunk.state);
+    scanState->setToTable(transaction, &nodeTable, std::move(columnIDs));
+}
+
+void* OnDiskEmbeddingScanState::getEmbeddingPtr(const EmbeddingHandle& handle) {
+    KU_ASSERT(!handle.isNull());
+    void* val = nullptr;
+    const auto dataVector = common::ListVector::getDataVector(scanState->outputVectors[0]);
+    common::TypeUtils::visit(
+        dataVector->dataType,
+        [&]<VectorElementType T>(
+            T) { val = reinterpret_cast<T*>(dataVector->getData()) + handle.offsetInData; },
+        [&](auto) { KU_UNREACHABLE; });
+    KU_ASSERT(val != nullptr);
+    return val;
+}
+
+void OnDiskEmbeddingScanState::addEmbedding(const EmbeddingHandle& handle) {
+    KU_ASSERT(!handle.isNull());
+    KU_ASSERT(handle.offsetInData % embeddingDim == 0);
+    const auto offsetToAdd = handle.offsetInData / embeddingDim;
+    allocatedOffsets.set(offsetToAdd);
+    KU_ASSERT(usedEmbeddingOffsets.empty() || offsetToAdd > usedEmbeddingOffsets.top());
+    usedEmbeddingOffsets.push(offsetToAdd);
+}
+
+void OnDiskEmbeddingScanState::reclaimEmbedding(const EmbeddingHandle& handle) {
+    KU_ASSERT(!handle.isNull());
+    KU_ASSERT(handle.offsetInData % embeddingDim == 0);
+    const auto offsetToRemove = handle.offsetInData / embeddingDim;
+    allocatedOffsets.reset(offsetToRemove);
+
+    /**
+     * Reclaim space in output data vector
+     * The general idea for managing the used space is:
+     * - Each embedding is represented by its offset in the output list data vector
+     * - When an embedding is allocated, it is marked as used in 'allocatedOffsets', it is unmarked
+     * when it is freed.
+     * - When an embedding is allocated, it is also pushed to a stack. The offsets of the stack
+     * should be sorted in increasing order
+     * - After each free, we pop unmarked offsets off the stack. We then shrink the output list data
+     * vector based on the largest offset still on the stack.
+     */
+    while (!usedEmbeddingOffsets.empty() && !allocatedOffsets.test(usedEmbeddingOffsets.top())) {
+        usedEmbeddingOffsets.pop();
+    }
+    const auto numDataElemsToResizeTo =
+        usedEmbeddingOffsets.empty() ? 0 : (usedEmbeddingOffsets.top() + 1) * embeddingDim;
+    for (auto* outputVector : scanState->outputVectors) {
+        common::ListVector::resizeDataVector(outputVector, numDataElemsToResizeTo);
+    }
 }
 
 namespace {
@@ -198,9 +307,7 @@ compressed_offsets_t CompressedNodeOffsetBuffer::getNeighbors(common::offset_t n
 
 InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
     common::length_t maxDegree)
-    : numNodes{numNodes}, dstNodes(mm, numNodes, maxDegree), maxDegree{maxDegree},
-      invalidOffset(dstNodes.getInvalidOffset()) {
-    KU_ASSERT(invalidOffset > 0);
+    : numNodes{numNodes}, dstNodes(mm, numNodes, maxDegree), maxDegree{maxDegree} {
     csrLengthBuffer = mm->allocateBuffer(true, numNodes * sizeof(std::atomic<uint16_t>));
     csrLengths = reinterpret_cast<std::atomic<uint16_t>*>(csrLengthBuffer->getData());
     resetCSRLengthAndDstNodes();
@@ -211,7 +318,7 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
         setCSRLength(i, 0);
     }
     for (common::offset_t i = 0; i < numNodes * maxDegree; i++) {
-        setDstNode(i, getInvalidOffset());
+        setDstNodeInvalid(i);
     }
 }
 

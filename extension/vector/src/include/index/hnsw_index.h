@@ -23,6 +23,7 @@ class NodeTable;
 namespace vector_extension {
 
 struct HNSWIndexPartitionerSharedState;
+struct CreateInMemHNSWLocalState;
 
 struct MinNodePriorityQueueComparator {
     bool operator()(const NodeWithDistance& l, const NodeWithDistance& r) const {
@@ -82,6 +83,8 @@ struct HNSWStorageInfo final : storage::IndexStorageInfo {
 
 class HNSWIndex : public storage::Index {
 public:
+    static constexpr int64_t INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND = 100;
+
     HNSWIndex(storage::IndexInfo indexInfo, std::unique_ptr<storage::IndexStorageInfo> storageInfo,
         HNSWIndexConfig config, common::ArrayTypeInfo typeInfo)
         : Index{std::move(indexInfo), std::move(storageInfo)}, config{std::move(config)},
@@ -112,9 +115,10 @@ public:
         // DO NOTHING.
     }
 
-protected:
-    static constexpr int64_t INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND = 100;
+    static int64_t getDegreeThresholdToShrink(int64_t degree);
+    static int64_t getMaximumSupportedMl();
 
+protected:
     HNSWIndexConfig config;
     common::ArrayTypeInfo typeInfo;
     metric_func_t metricFunc;
@@ -123,7 +127,7 @@ protected:
 
 struct InMemHNSWLayerInfo {
     common::offset_t numNodes;
-    InMemEmbeddings* embeddings;
+    HNSWIndexEmbeddings* embeddings;
     metric_func_t metricFunc;
     // The degree threshold of a node that will start to trigger shrinking during insertions. Thus,
     // it is also the max degree of a node in the graph before shrinking.
@@ -134,7 +138,7 @@ struct InMemHNSWLayerInfo {
     int64_t efc;
     const NodeToHNSWGraphOffsetMap& offsetMap;
 
-    InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings,
+    InMemHNSWLayerInfo(common::offset_t numNodes, HNSWIndexEmbeddings* embeddings,
         metric_func_t metricFunc, int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha,
         int64_t efc, const NodeToHNSWGraphOffsetMap& offsetMap)
         : numNodes{numNodes}, embeddings{embeddings}, metricFunc{std::move(metricFunc)},
@@ -142,10 +146,13 @@ struct InMemHNSWLayerInfo {
           efc{efc}, offsetMap(offsetMap) {}
 
     uint64_t getDimension() const { return embeddings->getDimension(); }
-    void* getEmbedding(common::offset_t offsetInGraph) const {
+    EmbeddingHandle getEmbedding(common::offset_t offsetInGraph,
+        GetEmbeddingsScanState& scanState) const {
         KU_ASSERT(offsetInGraph < numNodes);
-        return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph));
+        return embeddings->getEmbedding(offsetMap.graphToNodeOffset(offsetInGraph), scanState);
     }
+    std::vector<EmbeddingHandle> getEmbeddings(std::span<const common::offset_t> offsetsInGraph,
+        GetEmbeddingsScanState& scanState) const;
 };
 
 class InMemHNSWLayer {
@@ -159,20 +166,24 @@ public:
     common::offset_t getEntryPoint() const { return entryPoint.load(); }
     common::offset_t getNumNodes() const { return info.numNodes; }
 
-    void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);
-    common::offset_t searchNN(const void* queryVector, common::offset_t entryNode) const;
+    void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited,
+        GetEmbeddingsScanState& scanState);
+    common::offset_t searchNN(const EmbeddingHandle& queryVector, common::offset_t entryNode,
+        GetEmbeddingsScanState& scanState) const;
     void finalize(common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
-        const NodeToHNSWGraphOffsetMap& selectedNodesMap) const;
+        const NodeToHNSWGraphOffsetMap& selectedNodesMap, GetEmbeddingsScanState& scanState) const;
 
     std::unique_ptr<InMemHNSWGraph> moveGraph() { return std::move(graph); }
 
 private:
-    std::vector<NodeWithDistance> searchKNN(const void* queryVector, common::offset_t entryNode,
-        common::length_t k, uint64_t configuredEf, VisitedState& visited) const;
+    std::vector<NodeWithDistance> searchKNN(const EmbeddingHandle& queryVector,
+        common::offset_t entryNode, common::length_t k, uint64_t configuredEf,
+        VisitedState& visited, GetEmbeddingsScanState& scanState) const;
     static void shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGraph* graph,
-        common::offset_t nodeOffset, common::length_t numNbrs);
+        common::offset_t nodeOffset, common::length_t numNbrs, GetEmbeddingsScanState& scanState);
 
-    void insertRel(common::offset_t srcNode, common::offset_t dstNode);
+    void insertRel(common::offset_t srcNode, common::offset_t dstNode,
+        GetEmbeddingsScanState& scanState);
 
 private:
     std::atomic<common::offset_t> entryPoint;
@@ -208,17 +219,19 @@ public:
         KU_UNREACHABLE;
     }
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
-    bool insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited);
+    bool insert(common::offset_t offset, CreateInMemHNSWLocalState* localState);
     void finalize(common::node_group_idx_t nodeGroupIdx);
 
-    void resetEmbeddings() { embeddings.reset(); }
-
     void moveToPartitionState(HNSWIndexPartitionerSharedState& partitionState);
+
+    std::unique_ptr<GetEmbeddingsScanState> constructEmbeddingsScanState() const {
+        return embeddings->constructScanState();
+    }
 
 private:
     std::unique_ptr<InMemHNSWLayer> upperLayer;
     std::unique_ptr<InMemHNSWLayer> lowerLayer;
-    std::unique_ptr<InMemEmbeddings> embeddings;
+    std::unique_ptr<HNSWIndexEmbeddings> embeddings;
 
     std::unique_ptr<NodeToHNSWGraphOffsetMap> lowerGraphSelectionMap; // this mapping is trivial
     std::unique_ptr<NodeToHNSWGraphOffsetMap> upperGraphSelectionMap;
@@ -234,6 +247,7 @@ enum class SearchType : uint8_t {
 
 struct HNSWSearchState {
     VisitedState visited;
+    std::unique_ptr<HNSWIndexEmbeddings> embeddings;
     OnDiskEmbeddingScanState embeddingScanState;
     uint64_t k;
     QueryHNSWConfig config;
@@ -286,7 +300,7 @@ public:
         std::unique_ptr<storage::IndexStorageInfo> storageInfo, HNSWIndexConfig config);
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
-        const void* queryVector, HNSWSearchState& searchState) const;
+        const EmbeddingHandle& queryVector, HNSWSearchState& searchState) const;
 
     static std::unique_ptr<Index> load(main::ClientContext* context,
         storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
@@ -307,64 +321,63 @@ public:
     void checkpoint(main::ClientContext* context, bool forceCheckpointAll) override;
 
 private:
-    common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
-        const void* queryVector, const HNSWSearchState& searchState) const;
+    common::offset_t searchNNInUpperLayer(const EmbeddingHandle& queryVector,
+        HNSWSearchState& searchState) const;
     std::vector<NodeWithDistance> searchKNNInLayer(transaction::Transaction* transaction,
-        const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState,
-        bool isUpperLayer) const;
+        const EmbeddingHandle& queryVector, common::offset_t entryNode,
+        HNSWSearchState& searchState, bool isUpperLayer) const;
     std::vector<NodeWithDistance> searchFromCheckpointed(transaction::Transaction* transaction,
-        const void* queryVector, HNSWSearchState& searchState) const;
-    void searchFromUnCheckpointed(transaction::Transaction* transaction, const void* queryVector,
-        storage::NodeTableScanState& embeddingScanState,
+        const EmbeddingHandle& queryVector, HNSWSearchState& searchState) const;
+    void searchFromUnCheckpointed(transaction::Transaction* transaction,
+        const EmbeddingHandle& queryVector, HNSWSearchState& searchState,
         std::vector<NodeWithDistance>& result) const;
 
     void initLayerSearchState(transaction::Transaction* transaction, HNSWSearchState& searchState,
         bool isUpperLayer) const;
-    void oneHopSearch(transaction::Transaction* transaction, const void* queryVector,
+    void oneHopSearch(const EmbeddingHandle& queryVector, graph::Graph::EdgeIterator& nbrItr,
+        HNSWSearchState& searchState, min_node_priority_queue_t& candidates,
+        max_node_priority_queue_t& results) const;
+    void directedTwoHopFilteredSearch(const EmbeddingHandle& queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
-    void directedTwoHopFilteredSearch(transaction::Transaction* transaction,
-        const void* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
-        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
-    void blindTwoHopFilteredSearch(transaction::Transaction* transaction, const void* queryVector,
+    void blindTwoHopFilteredSearch(const EmbeddingHandle& queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
     void insertInternal(transaction::Transaction* transaction, common::offset_t offset,
-        const void* vector, CheckpointInsertionState& insertState);
+        const EmbeddingHandle& vector, CheckpointInsertionState& insertState);
     void insertToLayer(transaction::Transaction* transaction, common::offset_t offset,
-        common::offset_t entryPoint, const void* queryVector, CheckpointInsertionState& insertState,
-        bool isUpperLayer);
+        common::offset_t entryPoint, const EmbeddingHandle& queryVector,
+        CheckpointInsertionState& insertState, bool isUpperLayer);
     void createRels(transaction::Transaction* transaction, common::offset_t offset,
         const std::vector<NodeWithDistance>& nbrs, bool isUpperLayer,
         CheckpointInsertionState& insertState);
     void shrinkForNode(transaction::Transaction* transaction, common::offset_t offset,
         bool isUpperLayer, common::length_t maxDegree, CheckpointInsertionState& insertState);
 
-    void processSecondHopCandidates(transaction::Transaction* transaction, const void* queryVector,
+    void processSecondHopCandidates(const EmbeddingHandle& queryVector,
         HNSWSearchState& searchState, int64_t& numVisitedNbrs,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         const std::vector<common::offset_t>& candidateOffsets) const;
-    void processSecondHopCandidates(transaction::Transaction* transaction, const void* queryVector,
+    void processSecondHopCandidates(const EmbeddingHandle& queryVector,
         HNSWSearchState& searchState, int64_t& numVisitedNbrs,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         min_node_priority_queue_t& candidatesQueue) const;
 
-    min_node_priority_queue_t collectFirstHopNbrsDirected(transaction::Transaction* transaction,
-        const void* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+    min_node_priority_queue_t collectFirstHopNbrsDirected(const EmbeddingHandle& queryVector,
+        graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         int64_t& numVisitedNbrs) const;
-    common::offset_vec_t collectFirstHopNbrsBlind(transaction::Transaction* transaction,
-        const void* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+    common::offset_vec_t collectFirstHopNbrsBlind(const EmbeddingHandle& queryVector,
+        graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         int64_t& numVisitedNbrs) const;
     // Return false if we've hit Ml limit.
-    bool searchOverSecondHopNbrs(transaction::Transaction* transaction, const void* queryVector,
-        uint64_t ef, HNSWSearchState& searchState, common::offset_t cand, int64_t& numVisitedNbrs,
+    bool searchOverSecondHopNbrs(const EmbeddingHandle& queryVector, uint64_t ef,
+        HNSWSearchState& searchState, common::offset_t cand, int64_t& numVisitedNbrs,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
 
-    void initSearchCandidates(transaction::Transaction* transaction, const void* queryVector,
-        HNSWSearchState& searchState, min_node_priority_queue_t& candidates,
-        max_node_priority_queue_t& results) const;
+    void initSearchCandidates(const EmbeddingHandle& queryVector, HNSWSearchState& searchState,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
 
     static SearchType getFilteredSearchType(transaction::Transaction* transaction,
         const HNSWSearchState& searchState);
@@ -377,7 +390,6 @@ private:
     storage::NodeTable& nodeTable;
     storage::RelTable* upperRelTable;
     storage::RelTable* lowerRelTable;
-    std::unique_ptr<OnDiskEmbeddings> embeddings;
 };
 
 } // namespace vector_extension
