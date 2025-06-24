@@ -1058,6 +1058,20 @@ jobs:
           IN_MEM_MODE: true
           HTTP_CACHE_FILE: false
         run: |
+          make extension-test
+
+      - name: Extension test with checkpoint at threshold 0
+        env:
+          AUTO_CHECKPOINT: true
+          CHECKPOINT_THRESHOLD: 0
+        run: |
+          make extension-test
+
+      - name: Extension test recovery
+        env:
+          AUTO_CHECKPOINT: false
+          CHECKPOINT_ON_CLOSE: false
+        run: |
           make extension-test && make clean
 
       # TODO(Royi) there is currently a known memory leak issue in the DuckDB postgres/delta/iceberg extension so we avoid running the postgres/delta extension tests with Leak Sanitizer
@@ -1123,6 +1137,20 @@ jobs:
         env:
           IN_MEM_MODE: true
           HTTP_CACHE_FILE: false
+        run: |
+          make extension-test
+
+      - name: Extension test with checkpoint at threshold 0
+        env:
+          AUTO_CHECKPOINT: true
+          CHECKPOINT_THRESHOLD: 0
+        run: |
+          make extension-test
+
+      - name: Extension test recovery
+        env:
+          AUTO_CHECKPOINT: false
+          CHECKPOINT_ON_CLOSE: false
         run: |
           make extension-test && make clean
 
@@ -1194,6 +1222,30 @@ jobs:
         env:
           IN_MEM_MODE: true
           HTTP_CACHE_FILE: false
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          python3 scripts/generate-tinysnb.py
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          start /b python scripts/setup-extension-repo.py
+          make extension-test
+
+      - name: Extension test with checkpoint at threshold 0
+        shell: cmd
+        env:
+          AUTO_CHECKPOINT: true
+          CHECKPOINT_THRESHOLD: 0
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          python3 scripts/generate-tinysnb.py
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          start /b python scripts/setup-extension-repo.py
+          make extension-test
+
+      - name: Extension test recovery
+        shell: cmd
+        env:
+          AUTO_CHECKPOINT: false
+          CHECKPOINT_ON_CLOSE: false
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           python3 scripts/generate-tinysnb.py
