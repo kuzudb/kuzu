@@ -72,11 +72,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
         warningColumnTypes.push_back(column->getDataType().copy());
     }
     auto info = std::make_unique<NodeBatchInsertInfo>(copyFromInfo->tableName,
-         std::move(warningColumnTypes), std::move(columnEvaluators),
+        std::move(warningColumnTypes), std::move(columnEvaluators),
         copyFromInfo->columnEvaluateTypes);
     auto printInfo = std::make_unique<NodeBatchInsertPrintInfo>(copyFromInfo->tableName);
-    auto batchInsert = std::make_unique<NodeBatchInsert>(std::move(info),
-        std::move(sharedState), std::move(prevOperator), getOperatorID(), std::move(printInfo));
+    auto batchInsert = std::make_unique<NodeBatchInsert>(std::move(info), std::move(sharedState),
+        std::move(prevOperator), getOperatorID(), std::move(printInfo));
     batchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(copyFrom.getSchema()));
     return batchInsert;
 }
@@ -155,12 +155,12 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
     physical_op_vector_t result;
     for (auto direction : directions) {
         auto insertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableName,
-             copyVector(warningColumnTypes), fromTableID, toTableID, direction);
+            copyVector(warningColumnTypes), fromTableID, toTableID, direction);
         auto printInfo = std::make_unique<RelBatchInsertPrintInfo>(copyFromInfo->tableName);
         auto progress = std::make_shared<RelBatchInsertProgressSharedState>();
-        auto batchInsert =
-            std::make_unique<RelBatchInsert>(std::move(insertInfo), partitionerSharedState,
-                batchInsertSharedState, getOperatorID(), std::move(printInfo), progress, std::make_unique<CopyRelBatchInsert>());
+        auto batchInsert = std::make_unique<RelBatchInsert>(std::move(insertInfo),
+            partitionerSharedState, batchInsertSharedState, getOperatorID(), std::move(printInfo),
+            progress, std::make_unique<CopyRelBatchInsert>());
         batchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(copyFrom.getSchema()));
         result.push_back(std::move(batchInsert));
     }

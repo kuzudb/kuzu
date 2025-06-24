@@ -39,8 +39,7 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
     evaluator::evaluator_vector_t columnEvaluators;
     std::vector<common::ColumnEvaluateType> evaluateTypes;
 
-    NodeBatchInsertInfo(std::string tableName,
-        std::vector<common::LogicalType> warningColumnTypes,
+    NodeBatchInsertInfo(std::string tableName, std::vector<common::LogicalType> warningColumnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<common::ColumnEvaluateType> evaluateTypes)
         : BatchInsertInfo{std::move(tableName), std::move(warningColumnTypes)},
@@ -97,8 +96,7 @@ public:
         std::shared_ptr<BatchInsertSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : BatchInsert{std::move(info), std::move(sharedState), id,
-              std::move(printInfo)} {
+        : BatchInsert{std::move(info), std::move(sharedState), id, std::move(printInfo)} {
         children.push_back(std::move(child));
     }
 
@@ -112,8 +110,8 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<NodeBatchInsert>(info->copy(), sharedState,
-            children[0]->copy(), id, printInfo->copy());
+        return std::make_unique<NodeBatchInsert>(info->copy(), sharedState, children[0]->copy(), id,
+            printInfo->copy());
     }
 
     // The node group will be reset so that the only values remaining are the ones which were
