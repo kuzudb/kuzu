@@ -397,7 +397,7 @@ std::unique_ptr<ValueVector> ValueVector::deSerialize(Deserializer& deSer,
     deSer.validateDebuggingInfo(key, "data_type");
     auto dataType = LogicalType::deserialize(deSer);
     auto result = std::make_unique<ValueVector>(std::move(dataType), mm);
-    result->state = dataChunkState;
+    result->setState(dataChunkState);
     deSer.validateDebuggingInfo(key, "num_values");
     sel_t numValues = 0;
     deSer.deserializeValue<sel_t>(numValues);

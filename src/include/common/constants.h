@@ -64,6 +64,7 @@ struct BufferPoolConstants {
 };
 
 struct StorageConstants {
+    static constexpr page_idx_t DB_HEADER_PAGE_IDX = 0;
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     static constexpr char SHADOWING_SUFFIX[] = ".shadow";

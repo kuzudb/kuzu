@@ -74,16 +74,22 @@ public:
         auto maxNumThreadsEnv = getSystemEnv("MAX_NUM_THREADS");
         auto enableCompressionEnv = getSystemEnv("ENABLE_COMPRESSION");
         auto checkpointThresholdEnv = getSystemEnv("CHECKPOINT_THRESHOLD");
+        auto forceCheckpointOnCloseEnv = getSystemEnv("FORCE_CHECKPOINT_ON_CLOSE");
         systemConfig->bufferPoolSize = bufferPoolSizeEnv.empty() ?
                                            DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
                                            std::stoull(bufferPoolSizeEnv);
         systemConfig->maxNumThreads = maxNumThreadsEnv.empty() ? 2 : std::stoull(maxNumThreadsEnv);
         if (!enableCompressionEnv.empty()) {
-            systemConfig->enableCompression = enableCompressionEnv == "true";
+            systemConfig->enableCompression =
+                common::StringUtils::caseInsensitiveEquals(enableCompressionEnv, "true");
         }
         systemConfig->checkpointThreshold = checkpointThresholdEnv.empty() ?
                                                 systemConfig->checkpointThreshold :
                                                 std::stoull(checkpointThresholdEnv);
+        systemConfig->forceCheckpointOnClose =
+            forceCheckpointOnCloseEnv.empty() ?
+                systemConfig->forceCheckpointOnClose :
+                common::StringUtils::caseInsensitiveEquals(forceCheckpointOnCloseEnv, "true");
         return systemConfig;
     }
 

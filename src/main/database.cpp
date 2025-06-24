@@ -30,9 +30,11 @@ namespace kuzu {
 namespace main {
 
 SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression,
-    bool readOnly, uint64_t maxDBSize, bool autoCheckpoint, uint64_t checkpointThreshold)
+    bool readOnly, uint64_t maxDBSize, bool autoCheckpoint, uint64_t checkpointThreshold,
+    bool forceCheckpointOnClose)
     : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly{readOnly},
-      autoCheckpoint{autoCheckpoint}, checkpointThreshold{checkpointThreshold} {
+      autoCheckpoint{autoCheckpoint}, checkpointThreshold{checkpointThreshold},
+      forceCheckpointOnClose{forceCheckpointOnClose} {
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;

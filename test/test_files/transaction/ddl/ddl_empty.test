@@ -657,6 +657,8 @@ Roma
 -STATEMENT match (m:movies) return m.name
 ---- error
 Binder exception: Table movies does not exist.
+-STATEMENT CHECKPOINT;
+---- ok
 -STATEMENT call fsm_info() return sum(num_pages) > 0
 ---- 1
 True
@@ -738,6 +740,8 @@ True
 -STATEMENT match (a)-[s:studyAt]->(b) return a.id, b.id
 ---- error
 Binder exception: Table studyAt does not exist.
+-STATEMENT CHECKPOINT;
+---- ok
 -STATEMENT call fsm_info() return sum(num_pages) > 0
 ---- 1
 True

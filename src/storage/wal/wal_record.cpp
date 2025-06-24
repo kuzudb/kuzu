@@ -306,7 +306,7 @@ std::unique_ptr<TableInsertionRecord> TableInsertionRecord::deserialize(Deserial
     deserializer.deserializeValue<row_idx_t>(numRows);
     deserializer.validateDebuggingInfo(key, "num_vectors");
     deserializer.deserializeValue(numVectors);
-    auto resultChunkState = std::make_shared<DataChunkState>();
+    auto resultChunkState = DataChunkState::getSingleValueDataChunkState();
     valueVectors.reserve(numVectors);
     for (auto i = 0u; i < numVectors; i++) {
         valueVectors.push_back(ValueVector::deSerialize(deserializer,
