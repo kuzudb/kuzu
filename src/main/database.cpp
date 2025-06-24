@@ -113,8 +113,8 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads);
     catalog = std::make_unique<Catalog>();
-    storageManager = std::make_unique<StorageManager>(dbPathStr, dbConfig.readOnly, *memoryManager,
-        dbConfig.enableCompression, vfs.get(), &clientContext);
+    storageManager = std::make_unique<StorageManager>(databasePath, dbConfig.readOnly,
+        *memoryManager, dbConfig.enableCompression, vfs.get(), &clientContext);
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
     databaseManager = std::make_unique<DatabaseManager>();
 

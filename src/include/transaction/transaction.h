@@ -19,6 +19,7 @@ namespace main {
 class ClientContext;
 } // namespace main
 namespace storage {
+class LocalWAL;
 class LocalStorage;
 class UndoBuffer;
 class WAL;
@@ -108,6 +109,10 @@ public:
         return isWriteTransaction() || isRecovery();
     }
     bool shouldLogToWAL() const;
+    storage::LocalWAL& getLocalWAL() const {
+        KU_ASSERT(localWAL);
+        return *localWAL;
+    }
 
     bool shouldForceCheckpoint() const;
 
@@ -162,6 +167,7 @@ private:
     main::ClientContext* clientContext;
     std::unique_ptr<storage::LocalStorage> localStorage;
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
+    std::unique_ptr<storage::LocalWAL> localWAL;
     LocalCacheManager localCacheManager;
     bool forceCheckpoint;
     std::atomic<bool> hasCatalogChanges;

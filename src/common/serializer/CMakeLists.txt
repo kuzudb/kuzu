@@ -1,9 +1,9 @@
 add_library(kuzu_common_serializer
         OBJECT
+        buffer_writer.cpp
         buffered_file.cpp
-        buffered_serializer.cpp
         deserializer.cpp
-        metadata_writer.cpp
+        in_mem_file_writer.cpp
         serializer.cpp)
 
 set(ALL_OBJECT_FILES

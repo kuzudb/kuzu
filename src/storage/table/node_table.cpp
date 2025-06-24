@@ -10,6 +10,7 @@
 #include "storage/local_storage/local_storage.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
+#include "storage/wal/local_wal.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -435,7 +436,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     if (insertState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
-        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        auto& wal = transaction->getLocalWAL();
         wal.logTableInsertion(tableID, TableType::NODE,
             nodeInsertState.nodeIDVector.state->getSelVector().getSelSize(),
             insertState.propertyVectors);
@@ -474,7 +475,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     if (updateState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
-        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        auto& wal = transaction->getLocalWAL();
         wal.logNodeUpdate(tableID, nodeUpdateState.columnID, nodeOffset,
             &nodeUpdateState.propertyVector);
     }
@@ -514,7 +515,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         if (deleteState.logToWAL && transaction->shouldLogToWAL()) {
             KU_ASSERT(transaction->isWriteTransaction());
             KU_ASSERT(transaction->getClientContext());
-            auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+            auto& wal = transaction->getLocalWAL();
             wal.logNodeDeletion(tableID, nodeOffset, &nodeDeleteState.pkVector);
         }
     }

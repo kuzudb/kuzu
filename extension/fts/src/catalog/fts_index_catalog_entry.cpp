@@ -1,8 +1,8 @@
 #include "catalog/fts_index_catalog_entry.h"
 
 #include "catalog/catalog.h"
-#include "common/serializer/buffered_reader.h"
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_reader.h"
+#include "common/serializer/buffer_writer.h"
 #include "common/string_utils.h"
 #include "main/client_context.h"
 #include "utils/fts_utils.h"
@@ -10,8 +10,8 @@
 namespace kuzu {
 namespace fts_extension {
 
-std::shared_ptr<common::BufferedSerializer> FTSIndexAuxInfo::serialize() const {
-    auto bufferWriter = std::make_shared<common::BufferedSerializer>();
+std::shared_ptr<common::BufferWriter> FTSIndexAuxInfo::serialize() const {
+    auto bufferWriter = std::make_shared<common::BufferWriter>();
     auto serializer = common::Serializer(bufferWriter);
     config.serialize(serializer);
     return bufferWriter;

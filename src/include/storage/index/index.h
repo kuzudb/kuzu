@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_writer.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "in_mem_hash_index.h"
@@ -70,7 +70,7 @@ struct KUZU_API IndexStorageInfo {
     virtual ~IndexStorageInfo();
     DELETE_COPY_DEFAULT_MOVE(IndexStorageInfo);
 
-    virtual std::shared_ptr<common::BufferedSerializer> serialize() const;
+    virtual std::shared_ptr<common::BufferWriter> serialize() const;
 
     template<typename TARGET>
     TARGET& cast() {

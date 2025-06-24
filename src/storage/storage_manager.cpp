@@ -3,7 +3,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
-#include "common/serializer/metadata_writer.h"
+#include "common/serializer/in_mem_file_writer.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
@@ -26,9 +26,9 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     main::ClientContext* context)
     : databasePath{databasePath}, readOnly{readOnly}, dataFH{nullptr}, memoryManager{memoryManager},
       enableCompression{enableCompression} {
-    wal = std::make_unique<WAL>(databasePath, readOnly, vfs, context);
-    shadowFile = std::make_unique<ShadowFile>(databasePath, readOnly,
-        *memoryManager.getBufferManager(), vfs, context);
+    wal = std::make_unique<WAL>(databasePath, readOnly, vfs);
+    shadowFile =
+        std::make_unique<ShadowFile>(*memoryManager.getBufferManager(), vfs, this->databasePath);
     inMemory = main::DBConfig::isDBPathInMemory(databasePath);
     initDataFileHandle(vfs, context);
     registerIndexType(PrimaryKeyIndex::getIndexType());
@@ -50,7 +50,7 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
                 dataFH->getPageManager()->allocatePage();
                 // Write a dummy database header page.
                 static const auto defaultHeader = DatabaseHeader{{}, {}};
-                auto headerWriter = std::make_shared<MetaWriter>(context->getMemoryManager());
+                auto headerWriter = std::make_shared<InMemFileWriter>(*context->getMemoryManager());
                 Serializer headerSerializer(headerWriter);
                 defaultHeader.serialize(headerSerializer);
                 dataFH->getFileInfo()->writeFile(headerWriter->getPage(0).data(), KUZU_PAGE_SIZE,
@@ -71,14 +71,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
         // In-memory mode. Nothing to recover from.
         return;
     }
-    const auto vfs = clientContext.getVFSUnsafe();
-    const auto walFilePath = StorageUtils::getWALFilePath(clientContext.getDatabasePath());
-    if (!vfs->fileOrPathExists(walFilePath, &clientContext)) {
-        return;
-    }
     try {
-        // TODO(Guodong): We should first check if there is CHECKPOINT record at the end.
-        // If so, we can skip replaying the WAL, instead directly replacing shadow files/pages.
         const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
         walReplayer->replay();
     } catch (std::exception& e) {

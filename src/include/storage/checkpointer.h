@@ -43,7 +43,6 @@ private:
     static void readCheckpoint(const std::string& dbPath, main::ClientContext* context,
         common::VirtualFileSystem* vfs, catalog::Catalog* catalog, StorageManager* storageManager);
 
-private:
     void writeDatabaseHeader(const DatabaseHeader& header);
     DatabaseHeader getCurrentDatabaseHeader() const;
     PageRange serializeCatalog(const catalog::Catalog& catalog, StorageManager& storageManager);

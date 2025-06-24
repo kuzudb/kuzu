@@ -15,6 +15,11 @@ public:
     void replay() const;
 
 private:
+    struct WALReplayInfo {
+        uint64_t offsetDeserialized = 0;
+        bool isLastRecordCheckpoint = false;
+    };
+
     void replayWALRecord(WALRecord& walRecord) const;
     void replayCreateCatalogEntryRecord(WALRecord& walRecord) const;
     void replayDropCatalogEntryRecord(const WALRecord& walRecord) const;
@@ -33,12 +38,17 @@ private:
 
     void replayLoadExtensionRecord(const WALRecord& walRecord) const;
 
+    // This function is used to deserialize the WAL records without actually applying them to the
+    // storage.
+    WALReplayInfo dryReplay() const;
+
+    void removeWALAndShadowFiles() const;
+    void removeFileIfExists(const std::string& path) const;
+
 private:
-    std::string walFilePath;
-    std::unique_ptr<uint8_t[]> pageBuffer;
-    // Warning: Some fields of the storageManager may not yet be initialized if the WALReplayer
-    // has been initialized during recovery, i.e., isRecovering=true.
     main::ClientContext& clientContext;
+    std::string walPath;
+    std::string shadowFilePath;
 };
 
 } // namespace storage

@@ -1,20 +1,17 @@
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_writer.h"
 
 #include <cstring>
 
 namespace kuzu {
 namespace common {
 
-BufferedSerializer::BufferedSerializer(uint64_t maximumSize)
-    : BufferedSerializer(std::make_unique<uint8_t[]>(maximumSize), maximumSize) {}
-
-BufferedSerializer::BufferedSerializer(std::unique_ptr<uint8_t[]> data, uint64_t size)
-    : maximumSize(size), data(data.get()) {
+BufferWriter::BufferWriter(uint64_t maximumSize) : maximumSize(maximumSize) {
+    blob.data = std::make_unique<uint8_t[]>(maximumSize);
     blob.size = 0;
-    blob.data = std::move(data);
+    data = blob.data.get();
 }
 
-void BufferedSerializer::write(const uint8_t* buffer, uint64_t len) {
+void BufferWriter::write(const uint8_t* buffer, uint64_t len) {
     if (blob.size + len >= maximumSize) {
         do {
             maximumSize *= 2;

@@ -7,7 +7,7 @@
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/checkpointer.h"
-#include "storage/storage_manager.h"
+#include "storage/wal/local_wal.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -40,7 +40,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
         activeWriteTransactions.insert(transaction->getID());
         KU_ASSERT(clientContext.getStorageManager());
         if (transaction->shouldLogToWAL()) {
-            clientContext.getStorageManager()->getWAL().logBeginTransaction();
+            transaction->getLocalWAL().logBeginTransaction();
         }
     } break;
     default: {

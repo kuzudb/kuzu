@@ -77,7 +77,7 @@ void BasicColumnWriter::beginWrite(ColumnWriterState& writerState) {
         hdr.data_page_header.definition_level_encoding = Encoding::RLE;
         hdr.data_page_header.repetition_level_encoding = Encoding::RLE;
 
-        writeInfo.bufferWriter = std::make_shared<BufferedSerializer>();
+        writeInfo.bufferWriter = std::make_shared<BufferWriter>();
         writeInfo.writer = std::make_unique<Serializer>(writeInfo.bufferWriter);
         writeInfo.writeCount = pageInfo.emptyCount;
         writeInfo.maxWriteCount = pageInfo.rowCount;
@@ -237,7 +237,7 @@ void BasicColumnWriter::flushPage(BasicColumnWriterState& state) {
 }
 
 void BasicColumnWriter::writeDictionary(BasicColumnWriterState& state,
-    std::unique_ptr<BufferedSerializer> bufferedSerializer, uint64_t rowCount) {
+    std::unique_ptr<BufferWriter> bufferedSerializer, uint64_t rowCount) {
     KU_ASSERT(bufferedSerializer);
     KU_ASSERT(bufferedSerializer->getSize() > 0);
 

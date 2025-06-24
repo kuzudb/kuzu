@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_writer.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "parquet_types.h"
@@ -23,7 +23,7 @@ public:
 
 struct PageWriteInformation {
     kuzu_parquet::format::PageHeader pageHeader;
-    std::shared_ptr<common::BufferedSerializer> bufferWriter;
+    std::shared_ptr<common::BufferWriter> bufferWriter;
     std::unique_ptr<common::Serializer> writer;
     std::unique_ptr<ColumnWriterPageState> pageState;
     uint64_t writePageIdx = 0;
@@ -101,7 +101,7 @@ protected:
     void handleDefineLevels(ColumnWriterState& state, ColumnWriterState* parent,
         common::ValueVector* vector, uint64_t count, uint16_t defineValue, uint16_t nullValue);
     void handleRepeatLevels(ColumnWriterState& stateToHandle, ColumnWriterState* parent);
-    void compressPage(common::BufferedSerializer& bufferedSerializer, size_t& compressedSize,
+    void compressPage(common::BufferWriter& bufferedSerializer, size_t& compressedSize,
         uint8_t*& compressedData, std::unique_ptr<uint8_t[]>& compressedBuf);
 };
 

@@ -88,6 +88,7 @@ private:
     std::unordered_map<common::page_idx_t, CachedPage> pageWriteCache;
 };
 
+class ShadowFile;
 class OverflowFile {
     friend class OverflowFileHandle;
 

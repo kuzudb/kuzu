@@ -12,6 +12,7 @@
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/table/rel_table_data.h"
+#include "storage/wal/local_wal.h"
 #include "transaction/transaction.h"
 #include <ranges>
 
@@ -196,7 +197,6 @@ void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
     if (insertState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
-        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
         const auto& relInsertState = insertState.cast<RelTableInsertState>();
         std::vector<ValueVector*> vectorsToLog;
         vectorsToLog.push_back(&relInsertState.srcNodeIDVector);
@@ -204,6 +204,7 @@ void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
         vectorsToLog.insert(vectorsToLog.end(), relInsertState.propertyVectors.begin(),
             relInsertState.propertyVectors.end());
         KU_ASSERT(relInsertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1);
+        auto& wal = transaction->getLocalWAL();
         wal.logTableInsertion(tableID, TableType::REL,
             relInsertState.srcNodeIDVector.state->getSelVector().getSelSize(), vectorsToLog);
     }
@@ -230,7 +231,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
     if (updateState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
-        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        auto& wal = transaction->getLocalWAL();
         wal.logRelUpdate(tableID, relUpdateState.columnID, &relUpdateState.srcNodeIDVector,
             &relUpdateState.dstNodeIDVector, &relUpdateState.relIDVector,
             &relUpdateState.propertyVector);
@@ -263,7 +264,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
         if (deleteState.logToWAL && transaction->shouldLogToWAL()) {
             KU_ASSERT(transaction->isWriteTransaction());
             KU_ASSERT(transaction->getClientContext());
-            auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+            auto& wal = transaction->getLocalWAL();
             wal.logRelDelete(tableID, &relDeleteState.srcNodeIDVector,
                 &relDeleteState.dstNodeIDVector, &relDeleteState.relIDVector);
         }
@@ -296,7 +297,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     if (deleteState->logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
-        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+        auto& wal = transaction->getLocalWAL();
         wal.logRelDetachDelete(tableID, direction, &deleteState->srcNodeIDVector);
     }
     hasChanges = true;

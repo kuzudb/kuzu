@@ -2,8 +2,8 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "common/serializer/buffered_reader.h"
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_reader.h"
+#include "common/serializer/buffer_writer.h"
 #include "common/serializer/deserializer.h"
 #include "index/hnsw_config.h"
 #include "main/client_context.h"
@@ -13,8 +13,8 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace vector_extension {
 
-std::shared_ptr<common::BufferedSerializer> HNSWIndexAuxInfo::serialize() const {
-    auto bufferWriter = std::make_shared<common::BufferedSerializer>();
+std::shared_ptr<common::BufferWriter> HNSWIndexAuxInfo::serialize() const {
+    auto bufferWriter = std::make_shared<common::BufferWriter>();
     auto serializer = common::Serializer(bufferWriter);
     config.serialize(serializer);
     return bufferWriter;
