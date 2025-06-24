@@ -38,8 +38,10 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto nodeTableEntry = clientContext->getCatalog()->getTableCatalogEntry(
-        clientContext->getTransaction(), info->tableName)->ptrCast<NodeTableCatalogEntry>();
+    auto nodeTableEntry =
+        clientContext->getCatalog()
+            ->getTableCatalogEntry(clientContext->getTransaction(), info->tableName)
+            ->ptrCast<NodeTableCatalogEntry>();
     auto nodeTable = clientContext->getStorageManager()->getTable(nodeTableEntry->getTableID());
     const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());

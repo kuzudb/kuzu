@@ -6,13 +6,13 @@
 #include "common/string_format.h"
 #include "common/task_system/progress_bar.h"
 #include "processor/execution_context.h"
+#include "processor/operator/persistent/rel_batch_insert.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
+#include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/rel_table.h"
-#include "storage/storage_manager.h"
-#include "processor/operator/persistent/rel_batch_insert.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -81,8 +81,10 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         info->columnTypes.push_back(type.copy());
         info->warningDataColumns.push_back(dataColumnIdx++);
     }
-    relBatchInsertInfo->partitioningIdx = relBatchInsertInfo->direction == RelDataDirection::FWD ? 0 : 1;
-    relBatchInsertInfo->boundNodeOffsetColumnID = relBatchInsertInfo->direction == RelDataDirection::FWD ? 0 : 1;
+    relBatchInsertInfo->partitioningIdx =
+        relBatchInsertInfo->direction == RelDataDirection::FWD ? 0 : 1;
+    relBatchInsertInfo->boundNodeOffsetColumnID =
+        relBatchInsertInfo->direction == RelDataDirection::FWD ? 0 : 1;
     // Init shared state
     sharedState->table = partitionerSharedState->relTable;
     progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();

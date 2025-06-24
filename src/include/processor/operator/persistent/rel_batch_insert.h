@@ -48,8 +48,8 @@ struct KUZU_API RelBatchInsertInfo final : BatchInsertInfo {
     RelBatchInsertInfo(std::string tableName, std::vector<common::LogicalType> warningColumnTypes,
         common::table_id_t fromTableID, common::table_id_t toTableID,
         common::RelDataDirection direction)
-        : BatchInsertInfo{std::move(tableName), std::move(warningColumnTypes)}, direction{direction},
-            fromTableID{fromTableID}, toTableID{toTableID} {}
+        : BatchInsertInfo{std::move(tableName), std::move(warningColumnTypes)},
+          direction{direction}, fromTableID{fromTableID}, toTableID{toTableID} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
         : BatchInsertInfo{other}, direction{other.direction}, fromTableID{other.fromTableID},
           toTableID{other.toTableID}, partitioningIdx{other.partitioningIdx},
@@ -127,8 +127,7 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState,
         std::unique_ptr<RelBatchInsertImpl> impl)
-        : BatchInsert{std::move(info), std::move(sharedState), id,
-              std::move(printInfo)},
+        : BatchInsert{std::move(info), std::move(sharedState), id, std::move(printInfo)},
           partitionerSharedState{std::move(partitionerSharedState)},
           progressSharedState{std::move(progressSharedState)}, impl(std::move(impl)) {}
 
@@ -143,8 +142,8 @@ public:
     void updateProgress(const ExecutionContext* context) const;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState,
-            sharedState, id, printInfo->copy(), progressSharedState, impl->copy());
+        return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState, sharedState,
+            id, printInfo->copy(), progressSharedState, impl->copy());
     }
 
 private:

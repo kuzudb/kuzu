@@ -24,7 +24,7 @@ struct BatchInsertInfo {
     std::vector<common::column_id_t> warningDataColumns;
 
     BatchInsertInfo(std::string tableName, std::vector<common::LogicalType> warningColumnTypes)
-         : tableName{std::move(tableName)}, warningColumnTypes{std::move(warningColumnTypes)} {}
+        : tableName{std::move(tableName)}, warningColumnTypes{std::move(warningColumnTypes)} {}
     BatchInsertInfo(const BatchInsertInfo& other)
         : tableName{other.tableName}, compressionEnabled{other.compressionEnabled},
           warningColumnTypes{copyVector(other.warningColumnTypes)},
@@ -95,8 +95,8 @@ public:
     BatchInsert(std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<BatchInsertSharedState> sharedState, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{type_, id, std::move(printInfo)},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+        : Sink{type_, id, std::move(printInfo)}, info{std::move(info)},
+          sharedState{std::move(sharedState)} {}
 
     ~BatchInsert() override = default;
 

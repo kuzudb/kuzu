@@ -154,12 +154,12 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     auto nodeTableID = nodeTable->getTableID();
     auto upperRelTableName = HNSWIndexUtils::getUpperGraphTableName(nodeTableID, indexName);
     auto upperRelTableEntry = catalog->getTableCatalogEntry(transaction, upperRelTableName)
-            ->ptrCast<catalog::RelGroupCatalogEntry>();
+                                  ->ptrCast<catalog::RelGroupCatalogEntry>();
     auto upperRelTable = storageManager->getTable(upperRelTableEntry->getSingleRelEntryInfo().oid)
                              ->ptrCast<storage::RelTable>();
     auto lowerRelTableName = HNSWIndexUtils::getLowerGraphTableName(nodeTableID, indexName);
     auto lowerRelTableEntry = catalog->getTableCatalogEntry(transaction, lowerRelTableName)
-            ->ptrCast<catalog::RelGroupCatalogEntry>();
+                                  ->ptrCast<catalog::RelGroupCatalogEntry>();
     // Initialize partitioner shared state.
     auto& partitionerSharedState = finalizeFuncSharedState->partitionerSharedState;
     partitionerSharedState->setTables(nodeTable, upperRelTable);
@@ -174,21 +174,25 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     // Create RelBatchInsert and dummy sink operators.
     const auto upperBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(fTable);
     auto upperInsertInfo = std::make_unique<RelBatchInsertInfo>(upperRelTableEntry->getName(),
-          std::vector<LogicalType>{} /* warningColumnTypes */, nodeTableID /* fromTableID */, nodeTableID /* toTableID */, RelDataDirection::FWD);
+        std::vector<LogicalType>{} /* warningColumnTypes */, nodeTableID /* fromTableID */,
+        nodeTableID /* toTableID */, RelDataDirection::FWD);
     auto upperPrintInfo = std::make_unique<RelBatchInsertPrintInfo>(upperRelTableEntry->getName());
     auto upperProgress = std::make_shared<RelBatchInsertProgressSharedState>();
     auto upperBatchInsert = std::make_unique<RelBatchInsert>(std::move(upperInsertInfo),
-         partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
-         planMapper->getOperatorID(), std::move(upperPrintInfo), upperProgress, std::make_unique<HNSWRelBatchInsert>());
+        partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
+        planMapper->getOperatorID(), std::move(upperPrintInfo), upperProgress,
+        std::make_unique<HNSWRelBatchInsert>());
     upperBatchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
     const auto lowerBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(fTable);
     auto lowerInsertInfo = std::make_unique<RelBatchInsertInfo>(lowerRelTableEntry->getName(),
-       std::vector<LogicalType>{} /* warningColumnTypes */, nodeTableID /* fromTableID */, nodeTableID /* toTableID */, RelDataDirection::FWD);
+        std::vector<LogicalType>{} /* warningColumnTypes */, nodeTableID /* fromTableID */,
+        nodeTableID /* toTableID */, RelDataDirection::FWD);
     auto lowerPrintInfo = std::make_unique<RelBatchInsertPrintInfo>(lowerRelTableEntry->getName());
     auto lowerProgress = std::make_shared<RelBatchInsertProgressSharedState>();
     auto lowerBatchInsert = std::make_unique<RelBatchInsert>(std::move(lowerInsertInfo),
         partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
-        planMapper->getOperatorID(), std::move(lowerPrintInfo), lowerProgress, std::make_unique<HNSWRelBatchInsert>());
+        planMapper->getOperatorID(), std::move(lowerPrintInfo), lowerProgress,
+        std::make_unique<HNSWRelBatchInsert>());
     lowerBatchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
     physical_op_vector_t children;
     children.push_back(std::move(upperBatchInsert));
