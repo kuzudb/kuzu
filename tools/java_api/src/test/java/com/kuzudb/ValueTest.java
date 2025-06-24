@@ -144,6 +144,17 @@ public class ValueTest extends TestBase {
     }
 
     @Test
+    void ValueCreateINT8() {
+        // INT8
+        Value value = new Value((byte) 127);
+        assertFalse(value.isOwnedByCPP());
+        assertEquals(value.getDataType().getID(), DataTypeID.INT8);
+        assertTrue(value.getValue().equals((byte) 127));
+        checkValueConversion(value);
+        value.close();
+    }
+
+    @Test
     void ValueCreateINT16() {
         // INT16
         Value value = new Value((short) 123);
@@ -172,6 +183,17 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         assertTrue(value.getValue().equals(123L));
+        checkValueConversion(value);
+        value.close();
+    }
+
+    @Test
+    void ValueCreateINT128() {
+        // INT128
+        Value value = new Value(new BigInteger("1180591620717411303424"));
+        assertFalse(value.isOwnedByCPP());
+        assertEquals(value.getDataType().getID(), DataTypeID.INT128);
+        assertTrue(value.getValue().equals(new BigInteger("1180591620717411303424")));
         checkValueConversion(value);
         value.close();
     }
@@ -659,7 +681,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetInt128() {
+    void ValueGetINT128() {
         // INT128
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID");
@@ -917,7 +939,11 @@ public class ValueTest extends TestBase {
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
-
+        UUID rand = UUID.randomUUID();
+        Value test = new Value(rand);
+        assertFalse(test.isNull());
+        assertTrue(test.getValue().equals(rand));
+        test.close();
         UUID uid = value.getValue();
         assertTrue(uid.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")));
         assertTrue(value.clone().getValue().equals(value.getValue()));
@@ -1604,5 +1630,18 @@ public class ValueTest extends TestBase {
                 }
             }
         }
+    }
+
+    @Test
+    void UnsupportedTypeCreate() {
+        try {
+            Value test = new Value(new Exception()); // random type
+            test.getValue();
+            test.close();
+        } catch (Exception e) {
+            assertEquals("Type of value is not supported in value_create_value", e.getMessage());
+            return;
+        }
+        fail("UnsupportedTypeCreate failed:");
     }
 }

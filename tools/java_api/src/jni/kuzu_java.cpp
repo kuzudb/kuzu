@@ -110,9 +110,12 @@ static jmethodID J_C_Short_M_shortValue;
 // Byte
 static jclass J_C_Byte;
 static jmethodID J_C_Byte_M_init;
+static jmethodID J_C_Byte_M_byteValue;
 // BigInteger
 static jclass J_C_BigInteger;
 static jmethodID J_C_BigInteger_M_init;
+static jmethodID J_C_BigInteger_M_longValue;
+static jmethodID J_C_BigInteger_M_shiftRight;
 // Float
 static jclass J_C_Float;
 static jmethodID J_C_Float_M_init;
@@ -123,7 +126,9 @@ static jmethodID J_C_Duration_M_ofMillis;
 static jmethodID J_C_Duration_M_toMillis;
 // UUID
 static jclass J_C_UUID;
-static jmethodID J_C_UUID_M_fromString;
+static jmethodID J_C_UUID_M_init;
+static jmethodID J_C_UUID_M_getMostSignificantBits;
+static jmethodID J_C_UUID_M_getLeastSignificantBits;
 // Connection
 static jclass J_C_Connection;
 static jfieldID J_C_Connection_F_conn_ref;
@@ -286,8 +291,9 @@ Value* getValue(JNIEnv* env, jobject thisValue) {
 
 internalID_t getInternalID(JNIEnv* env, jobject id) {
     try {
-        int64_t table_id = static_cast<long>(env->GetLongField(id, J_C_InternalID_F_tableId));
-        int64_t offset = static_cast<long>(env->GetLongField(id, J_C_InternalID_F_offset));
+        table_id_t table_id =
+            static_cast<table_id_t>(env->GetLongField(id, J_C_InternalID_F_tableId));
+        offset_t offset = static_cast<offset_t>(env->GetLongField(id, J_C_InternalID_F_offset));
         return internalID_t(offset, table_id);
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -1106,6 +1112,9 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
         if (env->IsInstanceOf(val, J_C_Boolean)) {
             jboolean value = env->CallBooleanMethod(val, J_C_Boolean_M_booleanValue);
             v = new Value(static_cast<bool>(value));
+        } else if (env->IsInstanceOf(val, J_C_Byte)) {
+            jbyte value = env->CallByteMethod(val, J_C_Byte_M_byteValue);
+            v = new Value(static_cast<int8_t>(value));
         } else if (env->IsInstanceOf(val, J_C_Short)) {
             jshort value = env->CallShortMethod(val, J_C_Short_M_shortValue);
             v = new Value(static_cast<int16_t>(value));
@@ -1115,6 +1124,13 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
         } else if (env->IsInstanceOf(val, J_C_Long)) {
             jlong value = env->CallLongMethod(val, J_C_Long_M_longValue);
             v = new Value(static_cast<int64_t>(value));
+        } else if (env->IsInstanceOf(val, J_C_BigInteger)) {
+            int64_t lower =
+                static_cast<int64_t>(env->CallLongMethod(val, J_C_BigInteger_M_longValue));
+            jobject shifted = env->CallObjectMethod(val, J_C_BigInteger_M_shiftRight, 64);
+            int64_t upper =
+                static_cast<int64_t>(env->CallLongMethod(shifted, J_C_BigInteger_M_longValue));
+            v = new Value(int128_t(lower, upper));
         } else if (env->IsInstanceOf(val, J_C_Float)) {
             jfloat value = env->CallFloatMethod(val, J_C_Float_M_floatValue);
             v = new Value(static_cast<float>(value));
@@ -1145,18 +1161,27 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
             std::string str = jstringToUtf8String(env, value);
             v = new Value(str.c_str());
         } else if (env->IsInstanceOf(val, J_C_InternalID)) {
-            int64_t table_id = static_cast<long>(env->GetLongField(val, J_C_InternalID_F_tableId));
-            int64_t offset = static_cast<long>(env->GetLongField(val, J_C_InternalID_F_offset));
+            int64_t table_id =
+                static_cast<int64_t>(env->GetLongField(val, J_C_InternalID_F_tableId));
+            int64_t offset = static_cast<int64_t>(env->GetLongField(val, J_C_InternalID_F_offset));
             internalID_t id(offset, table_id);
             v = new Value(id);
+        } else if (env->IsInstanceOf(val, J_C_UUID)) {
+            int64_t upper =
+                static_cast<int64_t>(env->CallLongMethod(val, J_C_UUID_M_getMostSignificantBits));
+            uint64_t lower =
+                static_cast<uint64_t>(env->CallLongMethod(val, J_C_UUID_M_getLeastSignificantBits));
+            int128_t uuid(lower, upper ^ (int64_t(1) << 63));
+            v = new Value(ku_uuid_t{uuid});
         } else if (env->IsInstanceOf(val, J_C_LocalDate)) {
-            int64_t days = static_cast<long>(env->CallLongMethod(val, J_C_LocalDate_M_toEpochDay));
+            int64_t days =
+                static_cast<int64_t>(env->CallLongMethod(val, J_C_LocalDate_M_toEpochDay));
             v = new Value(date_t(days));
         } else if (env->IsInstanceOf(val, J_C_Instant)) {
             // TODO: Need to review this for overflow
             int64_t seconds =
-                static_cast<long>(env->CallLongMethod(val, J_C_LocalDate_M_getEpochSecond));
-            int64_t nano = static_cast<long>(env->CallLongMethod(val, J_C_LocalDate_M_getNano));
+                static_cast<int64_t>(env->CallLongMethod(val, J_C_LocalDate_M_getEpochSecond));
+            int64_t nano = static_cast<int64_t>(env->CallLongMethod(val, J_C_LocalDate_M_getNano));
 
             int64_t micro = (seconds * 1000000L) + (nano / 1000L);
             v = new Value(timestamp_t(micro));
@@ -1164,7 +1189,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
             auto milis = env->CallLongMethod(val, J_C_Duration_M_toMillis);
             v = new Value(interval_t(0, 0, milis * 1000L));
         } else {
-            // Throw exception here
+            throwJNIException(env, "Type of value is not supported in value_create_value");
             return -1;
         }
         uint64_t address = reinterpret_cast<uint64_t>(v);
@@ -1447,8 +1472,9 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
         }
         case LogicalTypeID::UUID: {
             int128_t uuid = v->getValue<int128_t>();
-            jstring javaStr = env->NewStringUTF(UUID::toString(uuid).c_str());
-            jobject ret = env->CallStaticObjectMethod(J_C_UUID, J_C_UUID_M_fromString, javaStr);
+            jlong high = static_cast<jlong>(static_cast<uint64_t>(uuid.high ^ (int64_t(1) << 63)));
+            jlong low = static_cast<jlong>(static_cast<uint64_t>(uuid.low));
+            jobject ret = env->NewObject(J_C_UUID, J_C_UUID_M_init, high, low);
             return ret;
         }
         case LogicalTypeID::STRING: {
@@ -1463,8 +1489,9 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1value(JNIEnv*
             env->SetByteArrayRegion(ret, 0, str.size(), (jbyte*)byteBuffer);
             return ret;
         }
-        default: {
-        }
+        default:
+            throwJNIException(env, "Type of value is not supported in value_get_value");
+            return nullptr;
         }
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -1989,10 +2016,22 @@ void initGlobalMethodRef(JNIEnv* env) {
 
         J_C_BigInteger_M_init = env->GetMethodID(J_C_BigInteger, "<init>", "(Ljava/lang/String;)V");
 
-        J_C_UUID_M_fromString =
-            env->GetStaticMethodID(J_C_UUID, "fromString", "(Ljava/lang/String;)Ljava/util/UUID;");
+        J_C_BigInteger_M_longValue = env->GetMethodID(J_C_BigInteger, "longValue", "()J");
+
+        J_C_BigInteger_M_shiftRight =
+            env->GetMethodID(J_C_BigInteger, "shiftRight", "(I)Ljava/math/BigInteger;");
+
+        J_C_UUID_M_init = env->GetMethodID(J_C_UUID, "<init>", "(JJ)V");
+
+        J_C_UUID_M_getMostSignificantBits =
+            env->GetMethodID(J_C_UUID, "getMostSignificantBits", "()J");
+
+        J_C_UUID_M_getLeastSignificantBits =
+            env->GetMethodID(J_C_UUID, "getLeastSignificantBits", "()J");
 
         J_C_Boolean_M_booleanValue = env->GetMethodID(J_C_Boolean, "booleanValue", "()Z");
+
+        J_C_Byte_M_byteValue = env->GetMethodID(J_C_Byte, "byteValue", "()B");
 
         J_C_Short_M_shortValue = env->GetMethodID(J_C_Short, "shortValue", "()S");
 
