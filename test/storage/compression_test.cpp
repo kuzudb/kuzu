@@ -4,10 +4,9 @@
 #include "common/constants.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
-#include "common/serializer/buffered_reader.h"
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_reader.h"
+#include "common/serializer/buffer_writer.h"
 #include "common/serializer/deserializer.h"
-#include "common/serializer/reader.h"
 #include "common/serializer/serializer.h"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
@@ -65,7 +64,7 @@ bool operator==(const CompressionMetadata& a, const CompressionMetadata& b) {
 void testSerializeThenDeserialize(const CompressionMetadata& orig) {
     // test serializing/deserializing twice
 
-    const auto writer = std::make_shared<BufferedSerializer>();
+    const auto writer = std::make_shared<BufferWriter>();
     Serializer ser{writer};
     orig.serialize(ser);
     orig.serialize(ser);

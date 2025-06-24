@@ -45,25 +45,6 @@ std::string StorageUtils::getColumnName(const std::string& propertyName, ColumnT
     }
 }
 
-uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {
-    switch (type) {
-    case PhysicalTypeID::STRING: {
-        return sizeof(ku_string_t);
-    }
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST: {
-        return sizeof(ku_list_t);
-    }
-    case PhysicalTypeID::STRUCT: {
-        // Not calculable using this interface!
-        KU_UNREACHABLE;
-    }
-    default: {
-        return PhysicalTypeUtils::getFixedTypeSize(type);
-    }
-    }
-}
-
 uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
     switch (type.getPhysicalType()) {
     case PhysicalTypeID::STRING: {

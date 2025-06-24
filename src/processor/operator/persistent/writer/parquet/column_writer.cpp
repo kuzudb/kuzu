@@ -321,7 +321,7 @@ void ColumnWriter::handleDefineLevels(ColumnWriterState& state, ColumnWriterStat
     }
 }
 
-void ColumnWriter::compressPage(common::BufferedSerializer& bufferedSerializer,
+void ColumnWriter::compressPage(common::BufferWriter& bufferedSerializer,
     size_t& compressedSize, uint8_t*& compressedData, std::unique_ptr<uint8_t[]>& compressedBuf) {
     switch (writer.getCodec()) {
     case CompressionCodec::UNCOMPRESSED: {
