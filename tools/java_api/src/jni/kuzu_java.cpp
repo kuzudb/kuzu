@@ -291,7 +291,8 @@ Value* getValue(JNIEnv* env, jobject thisValue) {
 
 internalID_t getInternalID(JNIEnv* env, jobject id) {
     try {
-        table_id_t table_id = static_cast<table_id_t>(env->GetLongField(id, J_C_InternalID_F_tableId));
+        table_id_t table_id =
+            static_cast<table_id_t>(env->GetLongField(id, J_C_InternalID_F_tableId));
         offset_t offset = static_cast<offset_t>(env->GetLongField(id, J_C_InternalID_F_offset));
         return internalID_t(offset, table_id);
     } catch (const Exception& e) {
