@@ -76,11 +76,9 @@ static void validateInternalTablesNotExist(table_id_t tableID, const std::string
     const catalog::Catalog& catalog, const transaction::Transaction* transaction) {
     validateInternalTableNotExist(FTSUtils::getDocsTableName(tableID, indexName), catalog,
         transaction);
-    validateInternalTableNotExist(FTSUtils::getAppearsInTableName(tableID, indexName), catalog,
+    validateInternalTableNotExist(FTSUtils::getTermsTableName(tableID, indexName), catalog,
         transaction);
     validateInternalTableNotExist(FTSUtils::getAppearsInfoTableName(tableID, indexName), catalog,
-        transaction);
-    validateInternalTableNotExist(FTSUtils::getTermsTableName(tableID, indexName), catalog,
         transaction);
 }
 
@@ -191,24 +189,21 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                           "RETURN t.docID, CAST(count(t) AS UINT64)); ",
         docsTableName, appearsInfoTableName);
 
-    auto termsTableName = FTSUtils::getTermsTableName(tableID, indexName);
-    // Create the dic table which records all distinct terms and their document frequency.
-    query += stringFormat("CREATE NODE TABLE `{}` (term STRING, df UINT64, PRIMARY KEY(term));",
-        termsTableName);
-    query += stringFormat("COPY `{}` FROM "
-                          "(MATCH (t:`{}`) "
-                          "RETURN t.term, CAST(count(distinct t.docID) AS UINT64));",
-        termsTableName, appearsInfoTableName);
-
-    auto appearsInTableName = FTSUtils::getAppearsInTableName(tableID, indexName);
+    auto appearsInTableName = FTSUtils::getTermsTableName(tableID, indexName);
     // Finally, create a terms table that records the documents in which the terms appear, along
     // with the frequency of each term.
-    query += stringFormat("CREATE REL TABLE `{}` (FROM `{}` TO `{}`, tf UINT64);",
-        appearsInTableName, termsTableName, docsTableName);
-    query += stringFormat("COPY `{}` FROM ("
-                          "MATCH (b:`{}`) "
-                          "RETURN b.term, b.docID, CAST(count(*) as UINT64));",
-        appearsInTableName, appearsInfoTableName);
+    query += stringFormat(
+        "CREATE NODE TABLE `{}` (term STRING, docInfo STRUCT(docID INT64, tf UINT64)[], "
+        "df UINT64, PRIMARY KEY(term));",
+        appearsInTableName);
+    query +=
+        stringFormat("COPY `{}` FROM ("
+                     "MATCH (b:`{}`) "
+                     "WITH b.term AS term, b.docID AS docID, count(*) AS tf "
+                     "WITH term, collect({'docID': docID, 'tf': cast(tf as uint64)}) AS docInfo, "
+                     "CAST(count(DISTINCT docID) AS UINT64) AS df "
+                     "RETURN term, docInfo, df);",
+            appearsInTableName, appearsInfoTableName);
 
     // Drop the intermediate terms_in_doc table.
     query += stringFormat("DROP TABLE `{}`;", appearsInfoTableName);

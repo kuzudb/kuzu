@@ -311,11 +311,6 @@ Binder exception: Table: 0_docIdx2_terms already exists. Please drop or rename t
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx3', ['content'])
 ---- error
 Binder exception: Table: 0_docIdx3_appears_info already exists. Please drop or rename the table before creating a full text search index.
--STATEMENT create rel table `0_docIdx4_appears_in` (from doc to doc)
----- ok
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content'])
----- error
-Binder exception: Table: 0_docIdx4_appears_in already exists. Please drop or rename the table before creating a full text search index.
 
 -CASE show_indexes
 -SKIP_IN_MEM

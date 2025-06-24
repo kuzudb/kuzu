@@ -45,11 +45,6 @@ struct FTSUtils {
     static std::string getTermsTableName(common::table_id_t tableID, const std::string& indexName) {
         return common::stringFormat("{}_terms", getInternalTablePrefix(tableID, indexName));
     }
-
-    static std::string getAppearsInTableName(common::table_id_t tableID,
-        const std::string& indexName) {
-        return common::stringFormat("{}_appears_in", getInternalTablePrefix(tableID, indexName));
-    }
 };
 
 } // namespace fts_extension

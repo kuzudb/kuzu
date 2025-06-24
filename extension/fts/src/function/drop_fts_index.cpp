@@ -33,11 +33,9 @@ std::string dropFTSIndexQuery(ClientContext& context, const TableFuncBindData& b
     auto query = stringFormat("CALL _DROP_FTS_INDEX('{}', '{}');", ftsBindData->tableName,
         ftsBindData->indexName);
     query += stringFormat("DROP TABLE `{}`;",
-        FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName));
+        FTSUtils::getTermsTableName(ftsBindData->tableID, ftsBindData->indexName));
     query += stringFormat("DROP TABLE `{}`;",
         FTSUtils::getDocsTableName(ftsBindData->tableID, ftsBindData->indexName));
-    query += stringFormat("DROP TABLE `{}`;",
-        FTSUtils::getTermsTableName(ftsBindData->tableID, ftsBindData->indexName));
     return query;
 }
 

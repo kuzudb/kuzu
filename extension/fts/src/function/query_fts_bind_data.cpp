@@ -52,13 +52,16 @@ std::vector<std::string> QueryFTSBindData::getTerms(main::ClientContext& context
     auto queryInStr = ExpressionUtil::evaluateLiteral<std::string>(*query, LogicalType::STRING());
     FTSUtils::normalizeQuery(queryInStr);
     auto terms = StringUtils::split(queryInStr, " ");
+    std::sort(terms.begin(), terms.end());
+    auto last = std::unique(terms.begin(), terms.end());
+    terms.erase(last, terms.end());
     auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
-    auto stopWordsTable = context.getStorageManager()
-                              ->getTable(context.getCatalog()
-                                             ->getTableCatalogEntry(context.getTransaction(),
-                                                 config.stopWordsTableName)
-                                             ->getTableID())
-                              ->ptrCast<NodeTable>();
+    auto stopWordsTable =
+        context.getStorageManager()
+            ->getTable(context.getCatalog()
+                    ->getTableCatalogEntry(context.getTransaction(), config.stopWordsTableName)
+                    ->getTableID())
+            ->ptrCast<NodeTable>();
     return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
         context.getMemoryManager(), stopWordsTable, context.getTransaction(),
         getConfig().isConjunctive);
