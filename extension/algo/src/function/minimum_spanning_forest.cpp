@@ -1,6 +1,8 @@
+#include <cassert>
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <tuple>
 #include "binder/binder.h"
@@ -11,6 +13,8 @@
 #include "common/types/types.h"
 #include "function/algo_function.h"
 #include "function/gds/gds.h"
+#include "function/gds/gds_utils.h"
+#include "function/gds/gds_vertex_compute.h"
 #include "function/table/bind_input.h"
 #include "processor/execution_context.h"
 
@@ -25,6 +29,50 @@ using Edges = std::vector<Edge>;
 namespace kuzu {
 namespace algo_extension {
 
+
+class WriteResultsMSF final : public GDSResultVertexCompute {
+public:
+    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState, std::vector<std::vector<std::pair<offset_t, offset_t>>>& final)
+        : GDSResultVertexCompute{mm, sharedState}, finalResults{final} {
+        nodeIDVector = createVector(LogicalType::INTERNAL_ID());
+        toIDVector = createVector(LogicalType::INTERNAL_ID());
+        weightVector = createVector(LogicalType::INT64());
+    }
+
+    void beginOnTableInternal(table_id_t /*tableID*/) override {}
+
+    void VC(const table_id_t tableID)
+    {
+            for(auto i = 0u; i < finalResults.size(); ++i)
+            {
+                for(auto j = 0u; j < finalResults[i].size(); ++j)
+                {
+                    const auto nodeID = nodeID_t{i, tableID};
+                    nodeIDVector->setValue<nodeID_t>(0, nodeID);
+                    toIDVector->setValue<nodeID_t>(0, nodeID_t{finalResults[i][j].first, tableID});
+                    weightVector->setValue<offset_t>(0, finalResults[i][j].second);
+                    localFT->append(vectors);
+                }
+            }
+    }
+    
+
+    void vertexCompute(const offset_t startOffset, const offset_t endOffset, const table_id_t tableID) override {
+        (void)(startOffset+endOffset);
+        std::call_once(f1, [this, tableID](){this->VC(tableID);});
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<WriteResultsMSF>(mm, sharedState, finalResults);
+    }
+
+private:
+    std::vector<std::vector<std::pair<offset_t, offset_t>>>& finalResults;
+    std::unique_ptr<ValueVector> nodeIDVector;
+    std::unique_ptr<ValueVector> toIDVector;
+    std::unique_ptr<ValueVector> weightVector;
+    std::once_flag f1;
+};
 
 struct MSFConfig final : public GDSConfig {
     std::string weight_property;
@@ -62,7 +110,7 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     {
         throw RuntimeException("No parameter specifying the weight\n");
     }
-    config->weight_property = ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING(), [](std::string){return;});
+    config->weight_property = ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
 
     return config;
 }
@@ -147,10 +195,11 @@ static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>
 }
 
 
-static bool updateForest(Edges& finalEdges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
+static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>& finalEdges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
 {
     static constexpr uint64_t U = 0;
     static constexpr uint64_t V = 1;
+    static constexpr uint64_t WEIGHT = 2;
 
     bool addedEdge = false;
         for(auto& e : cheapest)
@@ -167,7 +216,10 @@ static bool updateForest(Edges& finalEdges, std::vector<std::atomic<uint64_t>>& 
             // DSU to mark two components as joined.
             if (tryUnion(parent, std::get<U>(e.value()), std::get<V>(e.value())))
             {
-                finalEdges.push_back(e.value());
+                finalEdges[std::get<U>(e.value())].push_back({std::get<V>(e.value()), std::get<WEIGHT>(e.value())});
+                finalEdges[std::get<V>(e.value())].push_back({std::get<U>(e.value()), std::get<WEIGHT>(e.value())});
+                auto [u, v, w] = e.value();
+                std::cout << "Adding " << u << " " << v << " " << w << std::endl;
                 addedEdge = true;
             }
             // Need to do this since we expect cheapest container to be reset
@@ -183,6 +235,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto graph = sharedState->graph.get();
     KU_ASSERT(graph->getNodeTableIDs().size() == 1);
     const auto tableId = graph->getNodeTableIDs()[0];
+    auto mm = clientContext->getMemoryManager();
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
@@ -196,7 +249,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
 
-    Edges edges, finalEdges;
+    Edges edges;
+    std::vector<std::vector<std::pair<offset_t, offset_t>>> finalEdges(numNodes);
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
@@ -247,15 +301,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         // Erase edges in the same component from candidates.
         filterEdges(edges, parent);
     }
-    for(offset_t i = 0; i < numNodes; ++i)
-    {
-        std::cout << i << std::endl;
-    }
 
-    for(auto [u, v, w] : finalEdges)
-    {
-        std::cout << u << " " << v << " " << w << std::endl;
-    }
+    const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, finalEdges);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
+
+    sharedState->factorizedTablePool.mergeLocalTables();
+
     return 0;
 }
 
@@ -266,8 +317,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
-    columns.push_back(input->binder->createVariable("U", LogicalType::INT64()));
-    columns.push_back(input->binder->createVariable("V", LogicalType::INT64()));
+    columns.push_back(input->binder->createVariable("TO", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("WEIGHT", LogicalType::INT64()));
     return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput, std::make_unique<MSFOptionalParams>(input->optionalParamsLegacy));
 }
