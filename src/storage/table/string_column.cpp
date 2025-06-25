@@ -130,8 +130,8 @@ void StringColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState)
     checkpointState.persistentData.syncNumValues();
 }
 
-void StringColumn::scanInternal(const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
+void StringColumn::scanInternal(const ChunkState& state, offset_t startOffsetInChunk,
+    row_idx_t numValuesToScan, ValueVector* resultVector) const {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     if (resultVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(state, startOffsetInChunk, numValuesToScan, resultVector);
@@ -164,8 +164,8 @@ void StringColumn::scanUnfiltered(const ChunkState& state, offset_t startOffsetI
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-void StringColumn::scanFiltered(const ChunkState& state,
-    offset_t startOffsetInChunk, ValueVector* resultVector) const {
+void StringColumn::scanFiltered(const ChunkState& state, offset_t startOffsetInChunk,
+    ValueVector* resultVector) const {
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
         const auto pos = resultVector->state->getSelVector()[i];
@@ -173,8 +173,8 @@ void StringColumn::scanFiltered(const ChunkState& state,
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
             const auto offsetInGroup = startOffsetInChunk + pos;
             string_index_t index = 0;
-            indexColumn->scan(getChildState(state, ChildStateIndex::INDEX),
-                offsetInGroup, offsetInGroup + 1, reinterpret_cast<uint8_t*>(&index));
+            indexColumn->scan(getChildState(state, ChildStateIndex::INDEX), offsetInGroup,
+                offsetInGroup + 1, reinterpret_cast<uint8_t*>(&index));
             offsetsToScan.emplace_back(index, pos);
         }
     }

@@ -291,8 +291,8 @@ list_size_t ListColumn::readSize(const ChunkState& state, offset_t offsetInNodeG
     return value;
 }
 
-ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(
-    const ChunkState& state, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) const {
+ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const ChunkState& state,
+    offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) const {
     const auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::INT64(),
         enableCompression, numOffsetsToRead, ResidencyState::IN_MEMORY);
@@ -300,8 +300,8 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(
         enableCompression, numOffsetsToRead, ResidencyState::IN_MEMORY);
     offsetColumn->scan(state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
         offsetColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
-    sizeColumn->scan(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
-        sizeColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
+    sizeColumn->scan(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX], sizeColumnChunk.get(),
+        startOffsetInNodeGroup, endOffsetInNodeGroup);
     auto numValuesScan = offsetColumnChunk->getNumValues();
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
