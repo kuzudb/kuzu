@@ -33,7 +33,7 @@ public:
     // STATIC selectionView over startPos..selectedSize
     explicit SelectionView(sel_t startPos, sel_t selectedSize);
 
-    template<class Func>
+    template<std::invocable<sel_t> Func>
     void forEach(Func&& func) const {
         if (state == State::DYNAMIC) {
             for (size_t i = 0; i < selectedSize; i++) {
@@ -47,7 +47,7 @@ public:
         }
     }
 
-    template<class Func>
+    template<std::invocable<sel_t> Func>
     void forEachBreakWhenFalse(Func&& func) const {
         if (state == State::DYNAMIC) {
             for (size_t i = 0; i < selectedSize; i++) {

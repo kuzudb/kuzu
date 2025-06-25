@@ -41,11 +41,13 @@ public:
         // Any neighbour for which the given function returns false
         // will be omitted from future iterations
         // Used in GDSTask/EdgeCompute for updating the frontier
-        template<class Func>
+        template<std::invocable<std::span<const common::nodeID_t>,
+            std::vector<common::ValueVector*>&, common::sel_t>
+                Func>
         void forEach(Func&& func) const {
             selVector.forEach([&](auto i) { func(nbrNodes, propertyVectors, i); });
         }
-        template<class Func>
+        template<std::invocable<std::span<const common::nodeID_t>, common::sel_t> Func>
         void forEachBreakWhenFalse(Func&& func) const {
             selVector.forEachBreakWhenFalse([&](auto i) -> bool { return func(nbrNodes, i); });
         }

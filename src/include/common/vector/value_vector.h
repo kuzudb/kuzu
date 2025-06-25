@@ -55,7 +55,7 @@ public:
         return std::nullopt;
     }
 
-    template<class Func>
+    template<std::invocable<sel_t> Func>
     void forEachNonNull(Func&& func) const {
         if (hasNoNullsGuarantee()) {
             state->getSelVector().forEach(func);

@@ -11,6 +11,8 @@
 #include "processor/result/base_hash_table.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/factorized_table_schema.h"
+#include "storage/index/hash_index_slot.h"
+#include <concepts>
 
 namespace kuzu {
 namespace common {
@@ -221,11 +223,11 @@ protected:
         return distinctAggKeyTypes;
     }
 
-    template<class Func>
+    template<std::invocable<uint8_t*> Func>
     uint8_t* findEntry(common::hash_t hash, Func compareKeys) {
         auto slotIdx = getSlotIdxForHash(hash);
         while (true) {
-            auto slot = (HashSlot*)getHashSlot(slotIdx);
+            auto* slot = getHashSlot(slotIdx);
             if (slot->entry == nullptr) {
                 return nullptr;
             } else if ((slot->hash == hash) && compareKeys(slot->entry)) {
