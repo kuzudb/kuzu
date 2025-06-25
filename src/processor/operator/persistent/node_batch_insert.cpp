@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/cast.h"
+#include "common/finally_wrapper.h"
 #include "common/string_format.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
@@ -180,22 +181,6 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
         nodeLocalState->errorHandler.value());
 }
 
-// The chunked group in batch insert may contain extra data to populate error messages
-// When we append to the table we only want the main data so this class is used to slice the
-// original chunked group
-// This class also makes sure the original chunked group is always restored after the slice even if
-// an exception is thrown
-struct ChunkedNodeGroupSlice {
-    ChunkedNodeGroupSlice(ChunkedNodeGroup& base, const std::vector<column_id_t>& selectedColumns)
-        : slice(base, selectedColumns), base(base), selectedColumns(selectedColumns) {}
-
-    ~ChunkedNodeGroupSlice() { base.merge(slice, selectedColumns); }
-
-    ChunkedNodeGroup slice;
-    ChunkedNodeGroup& base;
-    const std::vector<column_id_t>& selectedColumns;
-};
-
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
     std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder,
     MemoryManager* mm, NodeBatchInsertErrorHandler& errorHandler) const {
@@ -205,9 +190,16 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
     uint64_t nodeOffset{};
     uint64_t numRowsWritten{};
     {
-        ChunkedNodeGroupSlice sliceToWriteToDisk{*nodeGroup, info->outputDataColumns};
+        // The chunked group in batch insert may contain extra data to populate error messages
+        // When we append to the table we only want the main data so this class is used to slice the
+        // original chunked group
+        // The slice must be restored even if an exception is thrown to prevent other threads from
+        // reading invalid data
+        ChunkedNodeGroup sliceToWriteToDisk{*nodeGroup, info->outputDataColumns};
+        FinallyWrapper sliceRestorer{
+            [&]() { nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns); }};
         std::tie(nodeOffset, numRowsWritten) = nodeTable->appendToLastNodeGroup(*mm, transaction,
-            info->insertColumnIDs, sliceToWriteToDisk.slice);
+            info->insertColumnIDs, sliceToWriteToDisk);
     }
 
     if (indexBuilder) {
