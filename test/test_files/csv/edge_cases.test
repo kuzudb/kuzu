@@ -103,3 +103,29 @@ abc"def
 -STATEMENT copy values from "${KUZU_ROOT_DIRECTORY}/dataset/csv-edge-case-tests/header-num-columns-mismatch.csv"(delim = ' ')
 ---- error
 Binder exception: Number of columns mismatch. Expected 4 but got 6.
+
+-CASE EscapedQuoteInList
+-STATEMENT create node table test(id int64 primary key, f string[])
+---- ok
+-STATEMENT copy test from "${KUZU_ROOT_DIRECTORY}/dataset/csv-edge-case-tests/list-quote.csv"
+---- ok
+-STATEMENT match (a:test) return a.f, size(a.f)
+---- 15
+[ab\'c]|1
+[xyc"s]|1
+[qw\'e,a\',xh"zz]|3
+[ZCRB1:m7G(5")pppAm-c'apped]|1
+[a,b,c]|3
+[ca's,wqrqw''','qa',qwr'']|4
+[aqr"',"",q"w"r,x]|4
+['toronto','montr,eal']|2
+['tor""nto',"montr,'real"]|2
+[abc]|1
+[a'b']|1
+[ZCRB1:m7G(5')pppAm-capped]|1
+["ZCRB1:m7G(5')pppAm-capped"]|1
+[ZCRB1:m7G(5\')pppAm-capped]|1
+['test',qwerty,abc'xyz]|3
+-STATEMENT return cast("[ab\"cd]" as string[])
+---- 1
+[ab"cd]
