@@ -39,7 +39,6 @@ class FileHandle;
 struct SegmentState {
     const Column* column;
     ColumnChunkMetadata metadata;
-    uint64_t numValuesPerPage = UINT64_MAX;
     std::unique_ptr<SegmentState> nullState;
 
     // Used for struct/list/string columns.
@@ -55,8 +54,8 @@ struct SegmentState {
             nullState = std::make_unique<SegmentState>(false /*hasNull*/);
         }
     }
-    SegmentState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
-        : column{nullptr}, metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
+    explicit SegmentState(ColumnChunkMetadata metadata)
+        : column{nullptr}, metadata{std::move(metadata)} {
         nullState = std::make_unique<SegmentState>(false /*hasNull*/);
     }
 
@@ -457,6 +456,7 @@ public:
     common::NullMask getNullMask() const;
 };
 
+// TODO: This should be turned into a ColumnChunk class and it can store segments of type uint64
 class KUZU_API InternalIDChunkData final : public ColumnChunkData {
 public:
     // TODO(Guodong): Should make InternalIDChunkData has no NULL.

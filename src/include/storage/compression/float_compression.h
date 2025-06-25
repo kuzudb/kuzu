@@ -51,23 +51,22 @@ public:
     FloatCompression();
 
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
-        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
+        std::span<uint8_t> dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata, const common::NullMask* nullMask) const override;
 
     static uint64_t numValues(uint64_t dataSize, const CompressionMetadata& metadata);
 
     // this is included to satisfy the CompressionAlg interface but we don't actually use it
-    uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
-        uint8_t* dstBuffer, uint64_t dstBufferSize,
+    void compress(const uint8_t* srcBuffer, uint64_t numValues, std::span<uint8_t> dstBuffer,
         const CompressionMetadata& metadata) const override;
 
-    uint64_t compressNextPageWithExceptions(const uint8_t*& srcBuffer, uint64_t srcOffset,
-        uint64_t numValuesRemaining, uint8_t* dstBuffer, uint64_t dstBufferSize,
-        EncodeExceptionView<T> exceptionBuffer, uint64_t exceptionBufferSize,
-        uint64_t& exceptionCount, const CompressionMetadata& metadata) const;
+    void compressWithExceptions(const uint8_t* srcBuffer, uint64_t srcOffset, uint64_t numValues,
+        std::span<uint8_t> dstBuffer, EncodeExceptionView<T> exceptionBuffer,
+        uint64_t exceptionBufferSize, uint64_t& exceptionCount,
+        const CompressionMetadata& metadata) const;
 
     // does not patch exceptions (this is handled by the column reader)
-    void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
+    void decompress(std::span<const uint8_t> srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const override;
 
     static bool canUpdateInPlace(std::span<const T> value, const CompressionMetadata& metadata,
@@ -83,6 +82,8 @@ public:
     // exceptions)
     static common::page_idx_t getNumDataPages(common::page_idx_t numTotalPages,
         const CompressionMetadata& compMeta);
+
+    static uint64_t getMaxCapacity(common::page_idx_t numPages, CompressionMetadata compMeta);
 
 private:
     const CompressionAlg& getEncodedFloatBitpacker(const CompressionMetadata& metadata) const;
