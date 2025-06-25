@@ -119,7 +119,7 @@ HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
 
 std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
     std::unique_lock lck{mtx};
-    auto startOffset = currentOffset;
+    auto startOffset = currentOffset.load();
     auto numTuples = getNumTuples();
     if (startOffset >= numTuples) {
         return std::make_pair(startOffset, startOffset);

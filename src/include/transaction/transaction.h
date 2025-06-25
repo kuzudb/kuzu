@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <mutex>
 
 #include "common/types/types.h"
@@ -165,7 +166,7 @@ private:
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
     LocalCacheManager localCacheManager;
     bool forceCheckpoint;
-    bool hasCatalogChanges;
+    std::atomic<bool> hasCatalogChanges;
 
     // For each node table, we keep track of the minimum uncommitted node offset when the
     // transaction starts. This is mainly used to assign offsets to local nodes and determine if a

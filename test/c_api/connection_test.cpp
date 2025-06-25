@@ -164,7 +164,7 @@ TEST_F(CApiConnectionTest, Interrupt) {
     kuzu_query_result result;
     kuzu_state state;
     auto connection = getConnection();
-    bool finished = false;
+    std::atomic<bool> finished = false;
 
     // Interrupt the query after 100ms
     // This may happen too early, so try again until the query function finishes.

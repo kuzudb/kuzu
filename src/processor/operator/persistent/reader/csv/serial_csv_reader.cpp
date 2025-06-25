@@ -85,6 +85,7 @@ SerialCSVScanSharedState::SerialCSVScanSharedState(FileScanInfo fileScanInfo, ui
     : ScanFileWithProgressSharedState{std::move(fileScanInfo), numRows, context},
       csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)}, totalReadSizeByFile{0},
       queryID(queryID), populateErrorFunc(constructPopulateFunc()) {
+    std::lock_guard lck{mtx};
     initReader(context);
 }
 
@@ -267,6 +268,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     } else if (state->fileIdx >= state->fileScanInfo.getNumFiles()) {
         return 1.0;
     }
+    std::lock_guard lck{state->mtx};
     uint64_t totalReadSize = state->totalReadSizeByFile + state->reader->getFileOffset();
     return static_cast<double>(totalReadSize) / state->totalSize;
 }

@@ -111,11 +111,11 @@ void SimpleAggregateSharedState::finalizeAggregateStates() {
 std::pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
     std::unique_lock lck{mtx};
     if (currentOffset >= 1) {
-        return std::make_pair(currentOffset, currentOffset);
+        return std::make_pair(currentOffset.load(), currentOffset.load());
     }
-    auto startOffset = currentOffset;
+    auto startOffset = currentOffset.load();
     currentOffset++;
-    return std::make_pair(startOffset, currentOffset);
+    return std::make_pair(startOffset, currentOffset.load());
 }
 
 void SimpleAggregateSharedState::SimpleAggregatePartitioningData::appendTuples(

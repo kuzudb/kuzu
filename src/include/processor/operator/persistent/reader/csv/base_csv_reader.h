@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -138,10 +139,10 @@ protected:
 
     std::unique_ptr<char[]> buffer;
     uint64_t bufferIdx;
-    uint64_t bufferSize;
-    uint64_t position;
+    std::atomic<uint64_t> bufferSize;
+    std::atomic<uint64_t> position;
     LineContext lineContext;
-    uint64_t osFileOffset;
+    std::atomic<uint64_t> osFileOffset;
     common::idx_t fileIdx;
 
     LocalFileErrorHandler* errorHandler;
