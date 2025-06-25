@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <thread>
 #include <tuple>
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
@@ -106,6 +107,7 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
 }
 
 
+// we may be able to refactor this with componentID?
 static uint64_t find(std::vector<std::atomic<uint64_t>>& parent, uint64_t u) 
 {
     while (true) 
@@ -121,6 +123,7 @@ static uint64_t find(std::vector<std::atomic<uint64_t>>& parent, uint64_t u)
     }
 }
 
+// we may be able to refactor this with componentID?
 static bool tryUnion(std::vector<std::atomic<uint64_t>>& parent, uint64_t u, uint64_t v)
 {
     while (true)
@@ -151,47 +154,135 @@ static void filterEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent
 {
     static constexpr uint64_t U = 0;
     static constexpr uint64_t V = 1;
-    edges.erase
-    (
-        std::remove_if(edges.begin(), edges.end(), 
-        [&](auto& e) {return find(parent, std::get<U>(e)) == find(parent, std::get<V>(e));}
-        ),
-        edges.end()
-    );
+
+    auto numThreads = std::thread::hardware_concurrency();
+    auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
+    if (chunkSize < 10000)
+    {
+        edges.erase
+        (
+            std::remove_if(edges.begin(), edges.end(), 
+            [&](auto& e) {return find(parent, std::get<U>(e)) == find(parent, std::get<V>(e));}
+            ),
+            edges.end()
+        );
+        return;
+    }
+    std::vector<size_t> newSizes(numThreads);
+    std::vector<std::thread> threads;
+    for (auto t = 0u; t < numThreads; ++t) 
+    {
+        auto start = t * chunkSize;
+        auto end = std::min(edges.size(), start + chunkSize);
+
+        threads.emplace_back([&, t, start, end]()
+        {
+            auto writeIt = edges.begin() + start;
+            for (auto it = edges.begin() + start; it != edges.begin() + end; ++it) 
+            {
+                if (find(parent, std::get<U>(*it)) != find(parent, std::get<V>(*it)))
+                {
+                    *writeIt = std::move(*it);
+                    ++writeIt;
+                }
+            }
+            newSizes[t] = std::distance(edges.begin() + start, writeIt);
+        });
+    }
+    for(auto& th : threads)
+    {
+        th.join();
+    }
+    auto offset = 0u;
+    for (auto t = 0u; t < numThreads; ++t) 
+    {
+        auto start = t * chunkSize;
+        auto size = newSizes[t];
+        if (start != offset) 
+        {
+            std::move(edges.begin() + start, edges.begin() + start + size, edges.begin() + offset);
+        }
+        offset += size;
+    }
+    edges.resize(offset);
 }
 
 static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
 {
-    static constexpr uint64_t U = 0;
+    static constexpr uint64_t U = 0; 
     static constexpr uint64_t V = 1;
     static constexpr uint64_t WEIGHT = 2;
 
-    for(const auto& e : edges)
+    auto numThreads = std::thread::hardware_concurrency();
+    auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
+    if (chunkSize < 10000)
     {
-        auto u_comp = find(parent, std::get<U>(e));
-        auto v_comp = find(parent, std::get<V>(e));
-        // Update each component with the min edge found so far.
-        auto& cu = cheapest[u_comp];
-        if (cu == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cu.value()))
+        for(const auto& e : edges)
         {
-            cheapest[u_comp] = e;
+            auto u_comp = find(parent, std::get<U>(e));
+            auto v_comp = find(parent, std::get<V>(e));
+            // Update each component with the min edge found so far.
+            auto& cu = cheapest[u_comp];
+            if (cu == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cu.value()))
+            {
+                cheapest[u_comp] = e;
+            }
+            auto& cv = cheapest[v_comp];
+            if (cu == std::nullopt|| std::get<WEIGHT>(e) < std::get<WEIGHT>(cv.value()))
+            {
+                cheapest[v_comp] = e;
+            }
         }
-        auto& cv = cheapest[v_comp];
-        if (cv == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cv.value()))
+        return;
+    }
+    std::vector<std::thread> threads;
+    static std::vector<std::mutex> locks(cheapest.size());
+
+    for (auto t = 0u; t < numThreads; ++t) 
+    {
+        auto start = t * chunkSize;
+        auto end = std::min(edges.size(), start + chunkSize);
+
+        threads.emplace_back([&, start, end]()
         {
-            cheapest[v_comp] = e;
-        }
+            for (auto it = edges.begin() + start; it != edges.begin() + end; ++it) 
+            {
+                auto u_comp = find(parent, std::get<U>(*it));
+                auto v_comp = find(parent, std::get<V>(*it));
+                auto tryUpdate = [&](uint64_t comp, const std::tuple<uint64_t, uint64_t, uint64_t>& candidate) 
+                {
+                    std::lock_guard<std::mutex> guard(locks[comp]);
+                    auto& curr = cheapest[comp];
+                    if (curr == std::nullopt || std::get<WEIGHT>(candidate) < std::get<WEIGHT>(curr.value()))
+                    {
+                        curr = candidate;
+                    }
+                };
+                tryUpdate(u_comp, *it);
+                tryUpdate(v_comp, *it);
+            }
+        });
+    }
+    for(auto& th : threads)
+    {
+        th.join();
     }
 }
 
 
 static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>& finalEdges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
 {
-    static constexpr uint64_t U = 0;
+    
+    static constexpr uint64_t U = 0; 
     static constexpr uint64_t V = 1;
     static constexpr uint64_t WEIGHT = 2;
 
-    bool addedEdge = false;
+    auto numThreads = std::thread::hardware_concurrency();
+    auto chunkSize = (cheapest.size() + numThreads - 1) / numThreads;
+    // should have to do with density
+    if (chunkSize < 10000)
+    {
+        bool addedEdge = false;
         for(auto& e : cheapest)
         {
             // Skip all invalid components (i.e no outgoing edges or not the
@@ -215,6 +306,45 @@ static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>
             e = std::nullopt;
         }
         return addedEdge;
+    }
+    std::atomic<bool> addedEdge{false};
+    std::vector<std::thread> threads;
+    std::vector<Edges> localEdges(numThreads);
+    for (auto t = 0u; t < numThreads; ++t) 
+    {
+        auto start = t * chunkSize;
+        auto end = std::min(cheapest.size(), start + chunkSize);
+
+        threads.emplace_back([&, t, start, end]()
+        {
+            for (auto it = cheapest.begin() + start; it != cheapest.begin() + end; ++it) 
+            {
+                if (*it == std::nullopt)
+                {
+                    continue;
+                }
+                if (tryUnion(parent, std::get<U>(it->value()), std::get<V>(it->value())))
+                {
+                    localEdges[t].push_back(it->value());
+                    addedEdge.store(true, std::memory_order_relaxed);
+                }
+                *it = std::nullopt;
+            }
+        });
+    }
+    for(auto& th : threads)
+    {
+        th.join();
+    }
+    for (auto t = 0u; t < numThreads; ++t) 
+    {
+        for (auto& e : localEdges[t]) 
+        {
+            finalEdges[std::get<U>(e)].push_back({std::get<V>(e), std::get<WEIGHT>(e)});
+            finalEdges[std::get<V>(e)].push_back({std::get<U>(e), std::get<WEIGHT>(e)});
+        }
+    }
+    return addedEdge.load(std::memory_order_relaxed);
 }
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
@@ -238,7 +368,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
 
     Edges edges;
-    std::vector<std::vector<std::pair<offset_t, offset_t>>> finalEdges(numNodes);
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
@@ -272,6 +401,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         parent[i].store(i, std::memory_order_relaxed);
     }
 
+    std::vector<std::vector<std::pair<offset_t, offset_t>>> finalEdges(numNodes);
     int count = 0;
     while(++count)
     {
