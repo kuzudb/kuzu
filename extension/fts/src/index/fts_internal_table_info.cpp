@@ -13,25 +13,31 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
     auto appearsInTableName = FTSUtils::getAppearsInTableName(tableID, indexName);
     auto storageManager = context->getStorageManager();
     auto catalog = context->getCatalog();
-    auto trx = context->getTransaction();
     table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
     stopWordsTable =
         storageManager
-            ->getTable(catalog->getTableCatalogEntry(trx, stopWordsTableName)->getTableID())
+            ->getTable(
+                catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, stopWordsTableName)
+                    ->getTableID())
             ->ptrCast<storage::NodeTable>();
     docTable =
-        storageManager->getTable(catalog->getTableCatalogEntry(trx, docTableName)->getTableID())
+        storageManager
+            ->getTable(catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, docTableName)
+                    ->getTableID())
             ->ptrCast<storage::NodeTable>();
-    termsTable =
-        storageManager->getTable(catalog->getTableCatalogEntry(trx, termsTableName)->getTableID())
-            ->ptrCast<storage::NodeTable>();
+    termsTable = storageManager
+                     ->getTable(catalog
+                             ->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, termsTableName)
+                             ->getTableID())
+                     ->ptrCast<storage::NodeTable>();
     auto appearsInTableEntry =
-        catalog->getTableCatalogEntry(trx, appearsInTableName)
+        catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, appearsInTableName)
             ->constPtrCast<catalog::RelGroupCatalogEntry>()
             ->getRelEntryInfo(termsTable->getTableID(), docTable->getTableID());
     appearsInfoTable =
         storageManager->getTable(appearsInTableEntry->oid)->ptrCast<storage::RelTable>();
-    dfColumnID = catalog->getTableCatalogEntry(trx, termsTableName)->getColumnID("df");
+    dfColumnID = catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, termsTableName)
+                     ->getColumnID("df");
 }
 
 } // namespace fts_extension
