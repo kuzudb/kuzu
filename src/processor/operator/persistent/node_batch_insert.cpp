@@ -180,18 +180,35 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
         nodeLocalState->errorHandler.value());
 }
 
+// The chunked group in batch insert may contain extra data to populate error messages
+// When we append to the table we only want the main data so this class is used to slice the
+// original chunked group
+// This class also makes sure the original chunked group is always restored after the slice even if
+// an exception is thrown
+struct ChunkedNodeGroupSlice {
+    ChunkedNodeGroupSlice(ChunkedNodeGroup& base, const std::vector<column_id_t>& selectedColumns)
+        : slice(base, selectedColumns), base(base), selectedColumns(selectedColumns) {}
+
+    ~ChunkedNodeGroupSlice() { base.merge(slice, selectedColumns); }
+
+    ChunkedNodeGroup slice;
+    ChunkedNodeGroup& base;
+    const std::vector<column_id_t>& selectedColumns;
+};
+
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
     std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder,
     MemoryManager* mm, NodeBatchInsertErrorHandler& errorHandler) const {
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
 
-    // we only need to write the main data in the chunked node group, the extra data is only used
-    // during the lifetime of this operator to populate error messages
-    ChunkedNodeGroup sliceToWriteToDisk(*nodeGroup, info->outputDataColumns);
-    auto [nodeOffset, numRowsWritten] = nodeTable->appendToLastNodeGroup(*mm, transaction,
-        info->insertColumnIDs, sliceToWriteToDisk);
-    nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns);
+    uint64_t nodeOffset{};
+    uint64_t numRowsWritten{};
+    {
+        ChunkedNodeGroupSlice sliceToWriteToDisk{*nodeGroup, info->outputDataColumns};
+        std::tie(nodeOffset, numRowsWritten) = nodeTable->appendToLastNodeGroup(*mm, transaction,
+            info->insertColumnIDs, sliceToWriteToDisk.slice);
+    }
 
     if (indexBuilder) {
         std::vector<ColumnChunkData*> warningChunkData;
