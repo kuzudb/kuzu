@@ -90,6 +90,20 @@
 10|140
 9|126
 
+-LOG MSF
+-STATEMENT CALL minimum_spanning_forest('G', property:='rating') RETURN node, TO, WEIGHT LIMIT 10;
+---- 10
+{_ID: 0:512, _LABEL: nodes, id: 2103}|0:441|0
+{_ID: 0:513, _LABEL: nodes, id: 1896}|0:293|0
+{_ID: 0:514, _LABEL: nodes, id: 2006}|0:5|0
+{_ID: 0:515, _LABEL: nodes, id: 2104}|0:494|72340172838076673
+{_ID: 0:516, _LABEL: nodes, id: 1771}|0:2700|72340172838076673
+{_ID: 0:516, _LABEL: nodes, id: 1771}|0:3227|72340172838076673
+{_ID: 0:516, _LABEL: nodes, id: 1771}|0:3245|72340172838076673
+{_ID: 0:516, _LABEL: nodes, id: 1771}|0:3289|72615050745150210
+{_ID: 0:516, _LABEL: nodes, id: 1771}|0:3290|72340172871631362
+{_ID: 0:516, _LABEL: nodes, id: 1771}|0:5|0
+
 -CASE WSP
 # original dataset has negative edges, adjust so that all weights are positive
 -STATEMENT MATCH ()-[e:edges]->() SET e.rating = e.rating + 11
