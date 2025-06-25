@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "graph/graph_entry_set.h"

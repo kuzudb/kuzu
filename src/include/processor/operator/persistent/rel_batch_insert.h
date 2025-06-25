@@ -5,6 +5,10 @@
 #include "processor/operator/persistent/batch_insert.h"
 
 namespace kuzu {
+namespace catalog {
+class RelGroupCatalogEntry;
+} // namespace catalog
+
 namespace storage {
 class CSRNodeGroup;
 struct ChunkedCSRHeader;

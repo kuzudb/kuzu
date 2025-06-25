@@ -1,28 +1,15 @@
 #pragma once
 
-#include "catalog/catalog.h"
-#include "common/null_mask.h"
-#include "common/types/types.h"
-#include "storage/table/column_chunk_data.h"
 #include "storage/table/column_reader_writer.h"
 
 namespace kuzu {
-namespace evaluator {
-class ExpressionEvaluator;
-} // namespace evaluator
 namespace storage {
 class MemoryManager;
-
-struct CompressionMetadata;
-
-// This is a special usage for the `batchLookup` interface.
-using batch_lookup_func_t = read_values_to_page_func_t;
 
 class NullColumn;
 class StructColumn;
 class RelTableData;
 struct ColumnCheckpointState;
-class BufferManager;
 class Column {
     friend class StringColumn;
     friend class StructColumn;

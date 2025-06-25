@@ -18,7 +18,6 @@
 #include "storage/table/null_column.h"
 #include "storage/table/string_column.h"
 #include "storage/table/struct_column.h"
-#include "transaction/transaction.h"
 #include <bit>
 
 using namespace kuzu::catalog;
