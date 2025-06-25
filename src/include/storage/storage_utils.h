@@ -91,13 +91,21 @@ public:
         return std::make_pair(nodeGroupIdx, offsetInChunk);
     }
 
-    static std::string getDataFName(common::VirtualFileSystem* vfs, const std::string& directory) {
+    static std::string getDataFilePath(const common::VirtualFileSystem* vfs,
+        const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
     }
-
-    static std::string getLockFilePath(common::VirtualFileSystem* vfs,
+    static std::string getLockFilePath(const common::VirtualFileSystem* vfs,
         const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
+    }
+    static std::string getWALFilePath(const common::VirtualFileSystem* vfs,
+        const std::string& directory) {
+        return vfs->joinPath(directory, common::StorageConstants::WAL_FILE_SUFFIX);
+    }
+    static std::string getShadowFilePath(const common::VirtualFileSystem* vfs,
+        const std::string& directory) {
+        return vfs->joinPath(directory, common::StorageConstants::SHADOWING_SUFFIX);
     }
 
     static std::string expandPath(main::ClientContext* context, const std::string& path) {
@@ -122,10 +130,8 @@ public:
     static std::pair<uint64_t, uint64_t> getQuotientRemainder(uint64_t i, uint64_t divisor) {
         return std::make_pair(i / divisor, i % divisor);
     }
-    static uint64_t getQuotient(uint64_t i, uint64_t divisor) { return i / divisor; }
 
     static uint32_t getDataTypeSize(const common::LogicalType& type);
-    static uint32_t getDataTypeSize(common::PhysicalTypeID type);
 };
 
 } // namespace storage

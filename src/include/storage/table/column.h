@@ -30,8 +30,6 @@ class Column {
     friend class RelTableData;
 
 public:
-    // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware
-    // of transaction when reading/writing from/to disk pages.
     Column(std::string name, common::LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn = true);
     Column(std::string name, common::PhysicalTypeID physicalType, FileHandle* dataFH,

@@ -1,4 +1,4 @@
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_writer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "gmock/gmock-matchers.h"
@@ -62,7 +62,7 @@ struct BufferReader : Reader {
 };
 
 void testSerializeThenDeserialize(const ColumnChunkMetadata& orig) {
-    const auto writer = std::make_shared<BufferedSerializer>();
+    const auto writer = std::make_shared<BufferWriter>();
     Serializer ser{writer};
     orig.serialize(ser);
 

@@ -1,6 +1,5 @@
 #include "storage/storage_utils.h"
 
-#include "common/assert.h"
 #include "common/null_buffer.h"
 #include "common/string_format.h"
 #include "common/types/ku_list.h"
@@ -41,25 +40,6 @@ std::string StorageUtils::getColumnName(const std::string& propertyName, ColumnT
             return propertyName;
         }
         return stringFormat("{}_{}", prefix, propertyName);
-    }
-    }
-}
-
-uint32_t StorageUtils::getDataTypeSize(PhysicalTypeID type) {
-    switch (type) {
-    case PhysicalTypeID::STRING: {
-        return sizeof(ku_string_t);
-    }
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST: {
-        return sizeof(ku_list_t);
-    }
-    case PhysicalTypeID::STRUCT: {
-        // Not calculable using this interface!
-        KU_UNREACHABLE;
-    }
-    default: {
-        return PhysicalTypeUtils::getFixedTypeSize(type);
     }
     }
 }
