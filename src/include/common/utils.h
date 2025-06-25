@@ -42,9 +42,6 @@ uint64_t prevPowerOfTwo(uint64_t v);
 
 bool isLittleEndian();
 
-template<typename T>
-bool integerFitsIn(int64_t val);
-
 template<numeric_utils::IsIntegral T>
 constexpr T ceilDiv(T a, T b) {
     return (a / b) + (a % b != 0);

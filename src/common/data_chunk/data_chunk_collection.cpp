@@ -31,18 +31,7 @@ void DataChunkCollection::append(DataChunk& chunk) {
     }
 }
 
-void DataChunkCollection::merge(DataChunk chunk) {
-    if (chunks.empty()) {
-        initTypes(chunk);
-    }
-    KU_ASSERT(chunk.getNumValueVectors() == types.size());
-    for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
-        KU_ASSERT(chunk.getValueVector(vectorIdx).dataType == types[vectorIdx]);
-    }
-    chunks.push_back(std::move(chunk));
-}
-
-void DataChunkCollection::initTypes(DataChunk& chunk) {
+void DataChunkCollection::initTypes(const DataChunk& chunk) {
     types.clear();
     types.reserve(chunk.getNumValueVectors());
     for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
@@ -50,7 +39,7 @@ void DataChunkCollection::initTypes(DataChunk& chunk) {
     }
 }
 
-void DataChunkCollection::allocateChunk(DataChunk& chunk) {
+void DataChunkCollection::allocateChunk(const DataChunk& chunk) {
     if (chunks.empty()) {
         types.reserve(chunk.getNumValueVectors());
         for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {

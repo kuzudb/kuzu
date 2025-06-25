@@ -18,8 +18,8 @@ static const std::array<sel_t, DEFAULT_VECTOR_CAPACITY> INCREMENTAL_SELECTED_POS
         return selectedPos;
     }();
 
-SelectionView::SelectionView(sel_t startPos, sel_t selectedSize)
-    : selectedPositions{INCREMENTAL_SELECTED_POS.data() + startPos}, selectedSize{selectedSize},
+SelectionView::SelectionView(sel_t selectedSize)
+    : selectedPositions{INCREMENTAL_SELECTED_POS.data()}, selectedSize{selectedSize},
       state{State::STATIC} {}
 
 SelectionVector::SelectionVector() : SelectionVector{DEFAULT_VECTOR_CAPACITY} {}
