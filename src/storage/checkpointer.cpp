@@ -71,20 +71,15 @@ PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
     // The number of pages needed for the page manager should only decrease after making an
     // additional allocation so we just calculate the number of pages needed to serialize the
     // current state of the page manager
-    // auto& pageManager = *storageManager.getDataFH()->getPageManager();
-    // const auto pagesForPageManager = pageManager.estimatePagesNeededForSerialize();
-    // const auto allocatedPages =
-    //     pageManager.allocatePageRange(metadataWriter->getNumPagesToFlush() +
-    //     pagesForPageManager);
-    // pageManager.serialize(metadataSerializer);
-
-    // metadataWriter->flush(allocatedPages, storageManager.getDataFH(),
-    //     storageManager.getShadowFile());
-    // return allocatedPages;
-
     auto& pageManager = *storageManager.getDataFH()->getPageManager();
+    const auto pagesForPageManager = pageManager.estimatePagesNeededForSerialize();
+    const auto allocatedPages =
+        pageManager.allocatePageRange(metadataWriter->getNumPagesToFlush() + pagesForPageManager);
     pageManager.serialize(metadataSerializer);
-    return metadataWriter->flush(storageManager.getDataFH(), storageManager.getShadowFile());
+
+    metadataWriter->flush(allocatedPages, storageManager.getDataFH(),
+        storageManager.getShadowFile());
+    return allocatedPages;
 }
 
 void Checkpointer::writeCheckpoint() {
@@ -289,6 +284,7 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     storageManager->deserialize(context, catalog, deSer);
+    storageManager->getDataFH()->getPageManager()->deserialize(deSer);
 }
 
 } // namespace storage

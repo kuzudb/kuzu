@@ -42,7 +42,7 @@ void MetaWriter::flush(storage::PageRange allocatedPageRange, storage::FileHandl
     storage::ShadowFile& shadowFile) const {
     KU_ASSERT(allocatedPageRange.numPages >= getNumPagesToFlush());
     auto numPagesBeforeAllocate = allocatedPageRange.startPageIdx;
-    for (auto i = 0u; i < allocatedPageRange.numPages; i++) {
+    for (auto i = 0u; i < getNumPagesToFlush(); i++) {
         auto pageIdx = allocatedPageRange.startPageIdx + i;
         auto insertingNewPage = pageIdx >= numPagesBeforeAllocate;
         auto shadowPageAndFrame = storage::ShadowUtils::createShadowVersionIfNecessaryAndPinPage(
