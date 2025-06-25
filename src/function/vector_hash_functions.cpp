@@ -1,5 +1,6 @@
 #include "function/hash/vector_hash_functions.h"
 
+#include "common/data_chunk/sel_vector.h"
 #include "common/system_config.h"
 #include "common/type_utils.h"
 #include "function/hash/hash_functions.h"
@@ -19,8 +20,8 @@ static void executeOnValue(const ValueVector& operand, sel_t operandPos, ValueVe
 
 template<typename OPERAND_TYPE, typename RESULT_TYPE>
 void UnaryHashFunctionExecutor::execute(const ValueVector& operand,
-    const SelectionVector& operandSelectVec, ValueVector& result,
-    const SelectionVector& resultSelectVec) {
+    const SelectionView& operandSelectVec, ValueVector& result,
+    const SelectionView& resultSelectVec) {
     auto resultValues = (RESULT_TYPE*)result.getData();
     if (operand.hasNoNullsGuarantee()) {
         if (operandSelectVec.isUnfiltered()) {
@@ -69,8 +70,8 @@ static void executeOnValue(const common::ValueVector& left, common::sel_t leftPo
         result.getValue<RESULT_TYPE>(resultPos));
 }
 
-static void validateSelState(const common::SelectionVector& leftSelVec,
-    const common::SelectionVector& rightSelVec, const common::SelectionVector& resultSelVec) {
+static void validateSelState(const SelectionView& leftSelVec, const SelectionView& rightSelVec,
+    const SelectionView& resultSelVec) {
     auto leftSelSize = leftSelVec.getSelSize();
     auto rightSelSize = rightSelVec.getSelSize();
     auto resultSelSize = resultSelVec.getSelSize();
@@ -87,9 +88,9 @@ static void validateSelState(const common::SelectionVector& leftSelVec,
 
 template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
 void BinaryHashFunctionExecutor::execute(const common::ValueVector& left,
-    const common::SelectionVector& leftSelVec, const common::ValueVector& right,
-    const common::SelectionVector& rightSelVec, common::ValueVector& result,
-    const common::SelectionVector& resultSelVec) {
+    const SelectionView& leftSelVec, const common::ValueVector& right,
+    const SelectionView& rightSelVec, common::ValueVector& result,
+    const SelectionView& resultSelVec) {
     validateSelState(leftSelVec, rightSelVec, resultSelVec);
     result.resetAuxiliaryBuffer();
     if (leftSelVec.getSelSize() != 1 && rightSelVec.getSelSize() != 1) {
@@ -143,8 +144,8 @@ static std::unique_ptr<ValueVector> computeDataVecHash(const ValueVector& operan
     return hashVector;
 }
 
-static void finalizeDataVecHash(const ValueVector& operand, const SelectionVector& operandSelVec,
-    ValueVector& result, const SelectionVector& resultSelVec, ValueVector& tmpHashVec) {
+static void finalizeDataVecHash(const ValueVector& operand, const SelectionView& operandSelVec,
+    ValueVector& result, const SelectionView& resultSelVec, ValueVector& tmpHashVec) {
     for (auto i = 0u; i < operandSelVec.getSelSize(); i++) {
         auto pos = operandSelVec[i];
         auto resultPos = resultSelVec[i];
@@ -162,15 +163,14 @@ static void finalizeDataVecHash(const ValueVector& operand, const SelectionVecto
     }
 }
 
-static void computeListVectorHash(const ValueVector& operand,
-    const SelectionVector& operandSelectVec, ValueVector& result,
-    const SelectionVector& resultSelectVec) {
+static void computeListVectorHash(const ValueVector& operand, const SelectionView& operandSelectVec,
+    ValueVector& result, const SelectionView& resultSelectVec) {
     auto dataVecHash = computeDataVecHash(operand);
     finalizeDataVecHash(operand, operandSelectVec, result, resultSelectVec, *dataVecHash);
 }
 
-static void computeStructVecHash(const ValueVector& operand, const SelectionVector& operandSelVec,
-    ValueVector& result, const SelectionVector& resultSelVec) {
+static void computeStructVecHash(const ValueVector& operand, const SelectionView& operandSelVec,
+    ValueVector& result, const SelectionView& resultSelVec) {
     switch (operand.dataType.getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
         KU_ASSERT(0 == common::StructType::getFieldIdx(operand.dataType, InternalKeyword::ID));
@@ -188,12 +188,12 @@ static void computeStructVecHash(const ValueVector& operand, const SelectionVect
         VectorHashFunction::computeHash(*StructVector::getFieldVector(&operand, 0 /* idx */),
             operandSelVec, result, resultSelVec);
         auto tmpHashVector = std::make_unique<ValueVector>(LogicalType::HASH());
+        SelectionView tmpSel(resultSelVec.getSelSize());
         for (auto i = 1u; i < StructType::getNumFields(operand.dataType); i++) {
             auto fieldVector = StructVector::getFieldVector(&operand, i);
-            VectorHashFunction::computeHash(*fieldVector, operandSelVec, *tmpHashVector,
+            VectorHashFunction::computeHash(*fieldVector, operandSelVec, *tmpHashVector, tmpSel);
+            VectorHashFunction::combineHash(*tmpHashVector, tmpSel, result, resultSelVec, result,
                 resultSelVec);
-            VectorHashFunction::combineHash(*tmpHashVector, resultSelVec, result, resultSelVec,
-                result, resultSelVec);
         }
     } break;
     default:
@@ -202,8 +202,8 @@ static void computeStructVecHash(const ValueVector& operand, const SelectionVect
 }
 
 void VectorHashFunction::computeHash(const ValueVector& operand,
-    const SelectionVector& operandSelectVec, ValueVector& result,
-    const SelectionVector& resultSelectVec) {
+    const SelectionView& operandSelectVec, ValueVector& result,
+    const SelectionView& resultSelectVec) {
     result.state = operand.state;
     KU_ASSERT(result.dataType.getLogicalTypeID() == LogicalType::HASH().getLogicalTypeID());
     TypeUtils::visit(
@@ -225,9 +225,9 @@ void VectorHashFunction::computeHash(const ValueVector& operand,
         });
 }
 
-void VectorHashFunction::combineHash(const ValueVector& left, const SelectionVector& leftSelVec,
-    const ValueVector& right, const SelectionVector& rightSelVec, ValueVector& result,
-    const SelectionVector& resultSelVec) {
+void VectorHashFunction::combineHash(const ValueVector& left, const SelectionView& leftSelVec,
+    const ValueVector& right, const SelectionView& rightSelVec, ValueVector& result,
+    const SelectionView& resultSelVec) {
     KU_ASSERT(left.dataType.getLogicalTypeID() == LogicalType::HASH().getLogicalTypeID());
     KU_ASSERT(left.dataType.getLogicalTypeID() == right.dataType.getLogicalTypeID());
     KU_ASSERT(left.dataType.getLogicalTypeID() == result.dataType.getLogicalTypeID());
