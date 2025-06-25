@@ -21,6 +21,7 @@ class VirtualFileSystem;
 };
 namespace testing {
 class FlakyBufferManager;
+class BufferManagerTest;
 class CopyTestHelper;
 }; // namespace testing
 namespace storage {
@@ -185,6 +186,7 @@ private:
  */
 class BufferManager {
     friend class testing::FlakyBufferManager;
+    friend class testing::BufferManagerTest;
     friend class testing::CopyTestHelper;
 
     friend class FileHandle;

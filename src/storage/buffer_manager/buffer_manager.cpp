@@ -199,11 +199,12 @@ void handleAccessViolation(unsigned int exceptionCode, PEXCEPTION_POINTERS excep
 // Returns true if the function completes successfully
 inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
     const std::array<std::unique_ptr<VMRegion>, 2>& vmRegions [[maybe_unused]],
-    PageSizeClass pageSizeClass [[maybe_unused]]) {
+    PageSizeClass pageSizeClass [[maybe_unused]], [[maybe_unused]] PageState* pageState) {
 #if BM_MALLOC
     if (frame == nullptr) {
         return false;
     }
+    pageState->addReader();
 #endif
 
 #if defined(_WIN32) && !BM_MALLOC
@@ -222,6 +223,9 @@ inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
         }
     }
 #endif
+#if BM_MALLOC
+    pageState->removeReader();
+#endif
     return true;
 }
 
@@ -237,7 +241,7 @@ void BufferManager::optimisticRead(FileHandle& fileHandle, page_idx_t pageIdx,
         switch (PageState::getState(currStateAndVersion)) {
         case PageState::UNLOCKED: {
             if (!try_func(func, getFrame(fileHandle, pageIdx), vmRegions,
-                    fileHandle.getPageSizeClass())) {
+                    fileHandle.getPageSizeClass(), pageState)) {
                 continue;
             }
             if (pageState->getStateAndVersion() == currStateAndVersion) {
@@ -422,8 +426,14 @@ uint64_t BufferManager::tryEvictPage(std::atomic<EvictionCandidate>& _candidate)
     }
     // The pageState was locked, but another thread already evicted this candidate and unlocked it
     // before the lock occurred
-    if (_candidate.load() != candidate) {
-        pageState.unlock();
+    if (_candidate.load() != candidate
+#if BM_MALLOC
+        // When the pageState is locked, optimisticReads will wait, so at this point no new
+        // optimistic reads will begin and thus it is safe to free the buffer at this point
+        || pageState.getReaderCount() > 0
+#endif
+    ) {
+        pageState.unlockUnchanged();
         return 0;
     }
     if (fileHandles[candidate.fileIdx]->isInMemoryMode()) {
