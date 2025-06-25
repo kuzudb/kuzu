@@ -1,7 +1,6 @@
 #include "common/data_chunk/data_chunk_state.h"
 
 #include "common/system_config.h"
-#include "common/types/types.h"
 
 namespace kuzu {
 namespace common {
