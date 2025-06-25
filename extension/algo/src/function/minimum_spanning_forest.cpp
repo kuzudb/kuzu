@@ -1,7 +1,12 @@
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <tuple>
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
+#include "common/exception/binder.h"
+#include "common/exception/runtime.h"
+#include "common/string_utils.h"
 #include "common/types/types.h"
 #include "function/algo_function.h"
 #include "function/gds/gds.h"
@@ -18,6 +23,49 @@ using Edge = std::tuple<uint64_t, uint64_t, uint64_t>;
 using Edges = std::vector<Edge>;
 namespace kuzu {
 namespace algo_extension {
+
+
+struct MSFConfig final : public GDSConfig {
+    std::string weight_property;
+    MSFConfig() = default;
+};
+
+
+struct MSFOptionalParams final : public GDSOptionalParams {
+    std::shared_ptr<Expression> weightProperty;
+
+    explicit MSFOptionalParams(const expression_vector& optionalParams);
+
+    std::unique_ptr<GDSConfig> getConfig() const override;
+
+    std::unique_ptr<GDSOptionalParams> copy() const override {
+        return std::make_unique<MSFOptionalParams>(*this);
+    }
+};
+
+MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams)
+{
+    for (auto& optionalParam : optionalParams) {
+        auto paramName = StringUtils::getLower(optionalParam->getAlias());
+        if (paramName == "property") {
+            weightProperty = optionalParam;
+        } else {
+            throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
+        }
+    }
+}
+
+std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
+    auto config = std::make_unique<MSFConfig>();
+    if (weightProperty == nullptr)
+    {
+        throw RuntimeException("No parameter specifying the weight\n");
+    }
+    config->weight_property = ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING(), [](std::string){return;});
+
+    return config;
+}
+
 
 static uint64_t find(std::vector<std::atomic<uint64_t>>& parent, uint64_t u) 
 {
@@ -65,12 +113,12 @@ static void filterEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent
     static constexpr uint64_t U = 0;
     static constexpr uint64_t V = 1;
     edges.erase
-        (
-            std::remove_if(edges.begin(), edges.end(), 
-            [&](auto& e) {return find(parent, std::get<U>(e)) == find(parent, std::get<V>(e));}
-            ),
-            edges.end()
-        );
+    (
+        std::remove_if(edges.begin(), edges.end(), 
+        [&](auto& e) {return find(parent, std::get<U>(e)) == find(parent, std::get<V>(e));}
+        ),
+        edges.end()
+    );
 }
 
 static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
@@ -80,21 +128,21 @@ static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>
     static constexpr uint64_t WEIGHT = 2;
 
     for(const auto& e : edges)
+    {
+        auto u_comp = find(parent, std::get<U>(e));
+        auto v_comp = find(parent, std::get<V>(e));
+        // Update each component with the min edge found so far.
+        auto& cu = cheapest[u_comp];
+        if (cu == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cu.value()))
         {
-            auto u_comp = find(parent, std::get<U>(e));
-            auto v_comp = find(parent, std::get<V>(e));
-            // Update each component with the min edge found so far.
-            auto& cu = cheapest[u_comp];
-            if (cu == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cu.value()))
-            {
-                cheapest[u_comp] = e;
-            }
-            auto& cv = cheapest[v_comp];
-            if (cv == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cv.value()))
-            {
-                cheapest[v_comp] = e;
-            }
+            cheapest[u_comp] = e;
         }
+        auto& cv = cheapest[v_comp];
+        if (cv == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cv.value()))
+        {
+            cheapest[v_comp] = e;
+        }
+    }
 }
 
 
@@ -140,12 +188,20 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
+    auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
+    auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
+    if (!nbrTables[0].relGroupEntry->containsProperty(config.weight_property))
+    {
+        throw RuntimeException("Cannot find property " + config.weight_property);
+    }
+
     Edges edges, finalEdges;
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto, auto i) {
+            chunk.forEach([&](auto neighbors, auto props, auto i) {
                 auto nbrId = neighbors[i].offset;
+                (void)props;
                 if (nodeId < nbrId)
                 {
                     edges.push_back({nodeId, nbrId, 1});
@@ -213,7 +269,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columns.push_back(input->binder->createVariable("U", LogicalType::INT64()));
     columns.push_back(input->binder->createVariable("V", LogicalType::INT64()));
     columns.push_back(input->binder->createVariable("WEIGHT", LogicalType::INT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput, nullptr);
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput, std::make_unique<MSFOptionalParams>(input->optionalParamsLegacy));
 }
 
 function_set MinimumSpanningForest::getFunctionSet() {
