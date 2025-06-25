@@ -121,8 +121,8 @@ Column::Column(std::string name, LogicalType dataType, FileHandle* dataFH, Memor
 
 Column::Column(std::string name, PhysicalTypeID physicalType, FileHandle* dataFH, MemoryManager* mm,
     ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
-    : Column(name, LogicalType::ANY(physicalType), dataFH, mm, shadowFile, enableCompression,
-          requireNullColumn) {}
+    : Column(std::move(name), LogicalType::ANY(physicalType), dataFH, mm, shadowFile,
+          enableCompression, requireNullColumn) {}
 
 Column::~Column() = default;
 
@@ -132,13 +132,12 @@ Column* Column::getNullColumn() const {
 
 void Column::populateExtraChunkState(ChunkState& state) const {
     if (state.metadata.compMeta.compression == CompressionType::ALP) {
-        Transaction& transaction = DUMMY_CHECKPOINT_TRANSACTION;
         if (dataType.getPhysicalType() == PhysicalTypeID::DOUBLE) {
-            state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<double>>(&transaction,
-                state, dataFH, mm, shadowFile);
+            state.alpExceptionChunk =
+                std::make_unique<InMemoryExceptionChunk<double>>(state, dataFH, mm, shadowFile);
         } else if (dataType.getPhysicalType() == PhysicalTypeID::FLOAT) {
-            state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<float>>(&transaction,
-                state, dataFH, mm, shadowFile);
+            state.alpExceptionChunk =
+                std::make_unique<InMemoryExceptionChunk<float>>(state, dataFH, mm, shadowFile);
         }
     }
 }
@@ -184,33 +183,30 @@ ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData, FileHand
     return chunkData.flushBuffer(&dataFH, allocatedBlock, preScanMetadata);
 }
 
-void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInChunk,
-    row_idx_t numValuesToScan, ValueVector* resultVector) const {
+void Column::scan(const ChunkState& state, offset_t startOffsetInChunk, row_idx_t numValuesToScan,
+    ValueVector* resultVector) const {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
-        nullColumn->scan(transaction, *state.nullState, startOffsetInChunk, numValuesToScan,
-            resultVector);
+        nullColumn->scan(*state.nullState, startOffsetInChunk, numValuesToScan, resultVector);
     }
-    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
+    scanInternal(state, startOffsetInChunk, numValuesToScan, resultVector);
 }
 
-void Column::scan(const Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) const {
+void Column::scan(const ChunkState& state, offset_t startOffsetInGroup, offset_t endOffsetInGroup,
+    ValueVector* resultVector, uint64_t offsetInVector) const {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
-        nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
-            resultVector, offsetInVector);
+        nullColumn->scan(*state.nullState, startOffsetInGroup, endOffsetInGroup, resultVector,
+            offsetInVector);
     }
-    columnReadWriter->readCompressedValuesToVector(transaction, state, resultVector, offsetInVector,
+    columnReadWriter->readCompressedValuesToVector(state, resultVector, offsetInVector,
         startOffsetInGroup, endOffsetInGroup, readToVectorFunc);
 }
 
-void Column::scan(const Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
+void Column::scan(const ChunkState& state, ColumnChunkData* columnChunk, offset_t startOffset,
+    offset_t endOffset) const {
     if (nullColumn) {
-        nullColumn->scan(transaction, *state.nullState, columnChunk->getNullData(), startOffset,
-            endOffset);
+        nullColumn->scan(*state.nullState, columnChunk->getNullData(), startOffset, endOffset);
     }
 
     startOffset = std::min(startOffset, state.metadata.numValues);
@@ -226,23 +222,23 @@ void Column::scan(const Transaction* transaction, const ChunkState& state,
     }
 
     KU_ASSERT((numValuesToScan + startOffset) <= state.metadata.numValues);
-    const uint64_t numValuesScanned = columnReadWriter->readCompressedValuesToPage(transaction,
-        state, columnChunk->getData(), 0, startOffset, endOffset, readToPageFunc);
+    const uint64_t numValuesScanned = columnReadWriter->readCompressedValuesToPage(state,
+        columnChunk->getData(), 0, startOffset, endOffset, readToPageFunc);
 
     columnChunk->setNumValues(numValuesScanned);
 }
 
-void Column::scan(const Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, uint8_t* result) {
-    columnReadWriter->readCompressedValuesToPage(transaction, state, result, 0, startOffsetInGroup,
+void Column::scan(const ChunkState& state, offset_t startOffsetInGroup, offset_t endOffsetInGroup,
+    uint8_t* result) {
+    columnReadWriter->readCompressedValuesToPage(state, result, 0, startOffsetInGroup,
         endOffsetInGroup, readToPageFunc);
 }
 
-void Column::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
+void Column::scanInternal(const ChunkState& state, offset_t startOffsetInChunk,
+    row_idx_t numValuesToScan, ValueVector* resultVector) const {
     if (resultVector->state->getSelVector().isUnfiltered()) {
-        columnReadWriter->readCompressedValuesToVector(transaction, state, resultVector, 0,
-            startOffsetInChunk, startOffsetInChunk + numValuesToScan, readToVectorFunc);
+        columnReadWriter->readCompressedValuesToVector(state, resultVector, 0, startOffsetInChunk,
+            startOffsetInChunk + numValuesToScan, readToVectorFunc);
     } else {
         struct Filterer {
             explicit Filterer(const SelectionVector& selVector)
@@ -260,28 +256,27 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
             offset_t posInSelVector;
         };
 
-        columnReadWriter->readCompressedValuesToVector(transaction, state, resultVector, 0,
-            startOffsetInChunk, startOffsetInChunk + numValuesToScan, readToVectorFunc,
+        columnReadWriter->readCompressedValuesToVector(state, resultVector, 0, startOffsetInChunk,
+            startOffsetInChunk + numValuesToScan, readToVectorFunc,
             Filterer{resultVector->state->getSelVector()});
     }
 }
 
-void Column::lookupValue(const Transaction* transaction, const ChunkState& state,
-    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
+void Column::lookupValue(const ChunkState& state, offset_t nodeOffset, ValueVector* resultVector,
+    uint32_t posInVector) const {
     if (nullColumn) {
-        nullColumn->lookupValue(transaction, *state.nullState, nodeOffset, resultVector,
-            posInVector);
+        nullColumn->lookupValue(*state.nullState, nodeOffset, resultVector, posInVector);
     }
     if (resultVector->isNull(posInVector)) {
         return;
     }
-    lookupInternal(transaction, state, nodeOffset, resultVector, posInVector);
+    lookupInternal(state, nodeOffset, resultVector, posInVector);
 }
 
-void Column::lookupInternal(const Transaction* transaction, const ChunkState& state,
-    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
-    columnReadWriter->readCompressedValueToVector(transaction, state, nodeOffset, resultVector,
-        posInVector, readToVectorFunc);
+void Column::lookupInternal(const ChunkState& state, offset_t nodeOffset, ValueVector* resultVector,
+    uint32_t posInVector) const {
+    columnReadWriter->readCompressedValueToVector(state, nodeOffset, resultVector, posInVector,
+        readToVectorFunc);
 }
 
 [[maybe_unused]] static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata,
@@ -402,7 +397,7 @@ void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     const auto numRows = std::max(checkpointState.endRowIdxToWrite, state.metadata.numValues);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
-    scan(&DUMMY_CHECKPOINT_TRANSACTION, state, &checkpointState.persistentData);
+    scan(state, &checkpointState.persistentData);
     state.reclaimAllocatedPages(*dataFH);
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         checkpointState.persistentData.write(chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/,

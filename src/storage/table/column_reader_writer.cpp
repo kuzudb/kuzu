@@ -9,7 +9,6 @@
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/column_chunk_metadata.h"
-#include "transaction/transaction.h"
 #include <concepts>
 
 namespace kuzu::storage {
@@ -80,36 +79,35 @@ public:
     DefaultColumnReadWriter(FileHandle* dataFH, ShadowFile* shadowFile)
         : ColumnReadWriter(dataFH, shadowFile) {}
 
-    void readCompressedValueToPage(const Transaction* transaction, const ChunkState& state,
-        offset_t nodeOffset, uint8_t* result, uint32_t offsetInResult,
-        const read_value_from_page_func_t<uint8_t*>& readFunc) override {
+    void readCompressedValueToPage(const ChunkState& state, offset_t nodeOffset, uint8_t* result,
+        uint32_t offsetInResult, const read_value_from_page_func_t<uint8_t*>& readFunc) override {
         auto [offsetInChunk, cursor] = getOffsetAndCursor(nodeOffset, state);
-        readCompressedValue<uint8_t*>(transaction, state.metadata, cursor, offsetInChunk, result,
+        readCompressedValue<uint8_t*>(state.metadata, cursor, offsetInChunk, result, offsetInResult,
+            readFunc);
+    }
+
+    void readCompressedValueToVector(const ChunkState& state, offset_t nodeOffset,
+        ValueVector* result, uint32_t offsetInResult,
+        const read_value_from_page_func_t<ValueVector*>& readFunc) override {
+        auto [offsetInChunk, cursor] = getOffsetAndCursor(nodeOffset, state);
+        readCompressedValue<ValueVector*>(state.metadata, cursor, offsetInChunk, result,
             offsetInResult, readFunc);
     }
 
-    void readCompressedValueToVector(const Transaction* transaction, const ChunkState& state,
-        offset_t nodeOffset, ValueVector* result, uint32_t offsetInResult,
-        const read_value_from_page_func_t<ValueVector*>& readFunc) override {
-        auto [offsetInChunk, cursor] = getOffsetAndCursor(nodeOffset, state);
-        readCompressedValue<ValueVector*>(transaction, state.metadata, cursor, offsetInChunk,
-            result, offsetInResult, readFunc);
+    uint64_t readCompressedValuesToPage(const ChunkState& state, uint8_t* result,
+        uint32_t startOffsetInResult, uint64_t startNodeOffset, uint64_t endNodeOffset,
+        const read_values_from_page_func_t<uint8_t*>& readFunc,
+        const std::optional<filter_func_t>& filterFunc) override {
+        return readCompressedValues(state, result, startOffsetInResult, startNodeOffset,
+            endNodeOffset, readFunc, filterFunc);
     }
 
-    uint64_t readCompressedValuesToPage(const Transaction* transaction, const ChunkState& state,
-        uint8_t* result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-        uint64_t endNodeOffset, const read_values_from_page_func_t<uint8_t*>& readFunc,
+    uint64_t readCompressedValuesToVector(const ChunkState& state, ValueVector* result,
+        uint32_t startOffsetInResult, uint64_t startNodeOffset, uint64_t endNodeOffset,
+        const read_values_from_page_func_t<ValueVector*>& readFunc,
         const std::optional<filter_func_t>& filterFunc) override {
-        return readCompressedValues(transaction, state, result, startOffsetInResult,
-            startNodeOffset, endNodeOffset, readFunc, filterFunc);
-    }
-
-    uint64_t readCompressedValuesToVector(const Transaction* transaction, const ChunkState& state,
-        ValueVector* result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-        uint64_t endNodeOffset, const read_values_from_page_func_t<ValueVector*>& readFunc,
-        const std::optional<filter_func_t>& filterFunc) override {
-        return readCompressedValues(transaction, state, result, startOffsetInResult,
-            startNodeOffset, endNodeOffset, readFunc, filterFunc);
+        return readCompressedValues(state, result, startOffsetInResult, startNodeOffset,
+            endNodeOffset, readFunc, filterFunc);
     }
 
     void writeValueToPageFromVector(ChunkState& state, offset_t offsetInChunk,
@@ -154,20 +152,20 @@ public:
     }
 
     template<typename OutputType>
-    void readCompressedValue(const Transaction* transaction, const ColumnChunkMetadata& metadata,
-        PageCursor cursor, offset_t /*offsetInChunk*/, OutputType result, uint32_t offsetInResult,
+    void readCompressedValue(const ColumnChunkMetadata& metadata, PageCursor cursor,
+        offset_t /*offsetInChunk*/, OutputType result, uint32_t offsetInResult,
         const read_value_from_page_func_t<OutputType>& readFunc) {
 
-        readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
+        readFromPage(cursor.pageIdx, [&](uint8_t* frame) -> void {
             readFunc(frame, cursor, result, offsetInResult, 1 /* numValuesToRead */,
                 metadata.compMeta);
         });
     }
 
     template<typename OutputType>
-    uint64_t readCompressedValues(const Transaction* transaction, const ChunkState& state,
-        OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-        uint64_t endNodeOffset, const read_values_from_page_func_t<OutputType>& readFunc,
+    uint64_t readCompressedValues(const ChunkState& state, OutputType result,
+        uint32_t startOffsetInResult, uint64_t startNodeOffset, uint64_t endNodeOffset,
+        const read_values_from_page_func_t<OutputType>& readFunc,
         const std::optional<filter_func_t>& filterFunc) {
         const ColumnChunkMetadata& chunkMeta = state.metadata;
         const auto numValuesToScan = endNodeOffset - startNodeOffset;
@@ -192,7 +190,7 @@ public:
                     readFunc(frame, pageCursor, result, numValuesScanned + startOffsetInResult,
                         numValuesToScanInPage, chunkMeta.compMeta);
                 };
-                readFromPage(transaction, pageCursor.pageIdx, std::cref(readFromPageFunc));
+                readFromPage(pageCursor.pageIdx, std::cref(readFromPageFunc));
             }
             numValuesScanned += numValuesToScanInPage;
             pageCursor.nextPage();
@@ -209,36 +207,33 @@ public:
         : ColumnReadWriter(dataFH, shadowFile),
           defaultReader(std::make_unique<DefaultColumnReadWriter>(dataFH, shadowFile)) {}
 
-    void readCompressedValueToPage(const Transaction* transaction, const ChunkState& state,
-        offset_t nodeOffset, uint8_t* result, uint32_t offsetInResult,
-        const read_value_from_page_func_t<uint8_t*>& readFunc) override {
+    void readCompressedValueToPage(const ChunkState& state, offset_t nodeOffset, uint8_t* result,
+        uint32_t offsetInResult, const read_value_from_page_func_t<uint8_t*>& readFunc) override {
         auto [offsetInChunk, cursor] = getOffsetAndCursor(nodeOffset, state);
-        readCompressedValue<uint8_t*>(transaction, state, offsetInChunk, result, offsetInResult,
-            readFunc);
+        readCompressedValue<uint8_t*>(state, offsetInChunk, result, offsetInResult, readFunc);
     }
 
-    void readCompressedValueToVector(const Transaction* transaction, const ChunkState& state,
-        offset_t nodeOffset, ValueVector* result, uint32_t offsetInResult,
+    void readCompressedValueToVector(const ChunkState& state, offset_t nodeOffset,
+        ValueVector* result, uint32_t offsetInResult,
         const read_value_from_page_func_t<ValueVector*>& readFunc) override {
         auto [offsetInChunk, cursor] = getOffsetAndCursor(nodeOffset, state);
-        readCompressedValue<ValueVector*>(transaction, state, offsetInChunk, result, offsetInResult,
-            readFunc);
+        readCompressedValue<ValueVector*>(state, offsetInChunk, result, offsetInResult, readFunc);
     }
 
-    uint64_t readCompressedValuesToPage(const Transaction* transaction, const ChunkState& state,
-        uint8_t* result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-        uint64_t endNodeOffset, const read_values_from_page_func_t<uint8_t*>& readFunc,
+    uint64_t readCompressedValuesToPage(const ChunkState& state, uint8_t* result,
+        uint32_t startOffsetInResult, uint64_t startNodeOffset, uint64_t endNodeOffset,
+        const read_values_from_page_func_t<uint8_t*>& readFunc,
         const std::optional<filter_func_t>& filterFunc) override {
-        return readCompressedValues(transaction, state, result, startOffsetInResult,
-            startNodeOffset, endNodeOffset, readFunc, filterFunc);
+        return readCompressedValues(state, result, startOffsetInResult, startNodeOffset,
+            endNodeOffset, readFunc, filterFunc);
     }
 
-    uint64_t readCompressedValuesToVector(const Transaction* transaction, const ChunkState& state,
-        ValueVector* result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-        uint64_t endNodeOffset, const read_values_from_page_func_t<ValueVector*>& readFunc,
+    uint64_t readCompressedValuesToVector(const ChunkState& state, ValueVector* result,
+        uint32_t startOffsetInResult, uint64_t startNodeOffset, uint64_t endNodeOffset,
+        const read_values_from_page_func_t<ValueVector*>& readFunc,
         const std::optional<filter_func_t>& filterFunc) override {
-        return readCompressedValues(transaction, state, result, startOffsetInResult,
-            startNodeOffset, endNodeOffset, readFunc, filterFunc);
+        return readCompressedValues(state, result, startOffsetInResult, startNodeOffset,
+            endNodeOffset, readFunc, filterFunc);
     }
 
     void writeValueToPageFromVector(ChunkState& state, offset_t offsetInChunk,
@@ -296,22 +291,21 @@ private:
     }
 
     template<typename OutputType>
-    void readCompressedValue(const Transaction* transaction, const ChunkState& state,
-        offset_t offsetInChunk, OutputType result, uint32_t offsetInResult,
-        const read_value_from_page_func_t<OutputType>& readFunc) {
+    void readCompressedValue(const ChunkState& state, offset_t offsetInChunk, OutputType result,
+        uint32_t offsetInResult, const read_value_from_page_func_t<OutputType>& readFunc) {
         RUNTIME_CHECK(const ColumnChunkMetadata& metadata = state.metadata);
         KU_ASSERT(metadata.compMeta.compression == CompressionType::ALP ||
                   metadata.compMeta.compression == CompressionType::CONSTANT ||
                   metadata.compMeta.compression == CompressionType::UNCOMPRESSED);
         std::optional<filter_func_t> filterFunc{};
-        readCompressedValues(transaction, state, result, offsetInResult, offsetInChunk,
-            offsetInChunk + 1, readFunc, filterFunc);
+        readCompressedValues(state, result, offsetInResult, offsetInChunk, offsetInChunk + 1,
+            readFunc, filterFunc);
     }
 
     template<typename OutputType>
-    uint64_t readCompressedValues(const Transaction* transaction, const ChunkState& state,
-        OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
-        uint64_t endNodeOffset, const read_values_from_page_func_t<OutputType>& readFunc,
+    uint64_t readCompressedValues(const ChunkState& state, OutputType result,
+        uint32_t startOffsetInResult, uint64_t startNodeOffset, uint64_t endNodeOffset,
+        const read_values_from_page_func_t<OutputType>& readFunc,
         const std::optional<filter_func_t>& filterFunc) {
         const ColumnChunkMetadata& metadata = state.metadata;
         KU_ASSERT(metadata.compMeta.compression == CompressionType::ALP ||
@@ -320,8 +314,8 @@ private:
 
         const uint64_t numValuesToScan = endNodeOffset - startNodeOffset;
         const uint64_t numValuesScanned =
-            defaultReader->readCompressedValues(transaction, state, result, startOffsetInResult,
-                startNodeOffset, endNodeOffset, readFunc, std::optional<filter_func_t>{filterFunc});
+            defaultReader->readCompressedValues(state, result, startOffsetInResult, startNodeOffset,
+                endNodeOffset, readFunc, std::optional<filter_func_t>{filterFunc});
 
         if (metadata.compMeta.compression == CompressionType::ALP && numValuesScanned > 0) {
             // we pass in copies of the filter func as it can hold state which may need resetting
@@ -422,16 +416,14 @@ std::unique_ptr<ColumnReadWriter> ColumnReadWriterFactory::createColumnReadWrite
 ColumnReadWriter::ColumnReadWriter(FileHandle* dataFH, ShadowFile* shadowFile)
     : dataFH(dataFH), shadowFile(shadowFile) {}
 
-void ColumnReadWriter::readFromPage(const Transaction* transaction, page_idx_t pageIdx,
+void ColumnReadWriter::readFromPage(page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& readFunc) const {
     // For constant compression, call read on a nullptr since there is no data on disk and
     // decompression only requires metadata
     if (pageIdx == INVALID_PAGE_IDX) {
         return readFunc(nullptr);
     }
-    auto [fileHandleToPin, pageIdxToPin] = ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(
-        *dataFH, pageIdx, *shadowFile, transaction->getType());
-    fileHandleToPin->optimisticReadPage(pageIdxToPin, readFunc);
+    dataFH->optimisticReadPage(pageIdx, readFunc);
 }
 
 void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,

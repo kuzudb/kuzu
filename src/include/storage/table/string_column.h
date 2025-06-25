@@ -17,11 +17,11 @@ public:
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         FileHandle& dataFH);
 
-    void scan(const transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector = 0) const override;
-    void scan(const transaction::Transaction* transaction, const ChunkState& state,
-        ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
+    void scan(const ChunkState& state, common::offset_t startOffsetInGroup,
+        common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
+        uint64_t offsetInVector = 0) const override;
+    void scan(const ChunkState& state, ColumnChunkData* columnChunk,
+        common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) const override;
 
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
@@ -36,18 +36,16 @@ public:
     static const ChunkState& getChildState(const ChunkState& state, ChildStateIndex child);
 
 protected:
-    void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) const override;
-    void scanUnfiltered(const transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInChunk, common::offset_t numValuesToRead,
-        common::ValueVector* resultVector, common::sel_t startPosInVector = 0) const;
-    void scanFiltered(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInChunk, common::ValueVector* resultVector) const;
+    void scanInternal(const ChunkState& state, common::offset_t startOffsetInChunk,
+        common::row_idx_t numValuesToScan, common::ValueVector* resultVector) const override;
+    void scanUnfiltered(const ChunkState& state, common::offset_t startOffsetInChunk,
+        common::offset_t numValuesToRead, common::ValueVector* resultVector,
+        common::sel_t startPosInVector = 0) const;
+    void scanFiltered(const ChunkState& state, common::offset_t startOffsetInChunk,
+        common::ValueVector* resultVector) const;
 
-    void lookupInternal(const transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t nodeOffset, common::ValueVector* resultVector,
-        uint32_t posInVector) const override;
+    void lookupInternal(const ChunkState& state, common::offset_t nodeOffset,
+        common::ValueVector* resultVector, uint32_t posInVector) const override;
 
 private:
     bool canCheckpointInPlace(const ChunkState& state,

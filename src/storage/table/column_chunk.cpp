@@ -45,7 +45,7 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
         data->scan(output, offsetInChunk, length);
     } break;
     case ResidencyState::ON_DISK: {
-        state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &output);
+        state.column->scan(state, offsetInChunk, length, &output);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -91,8 +91,7 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
     switch (const auto residencyState = getResidencyState()) {
     case ResidencyState::ON_DISK: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
-            chunkState.column->scan(transaction, chunkState, &output.getData(), startRow,
-                startRow + numRows);
+            chunkState.column->scan(chunkState, &output.getData(), startRow, startRow + numRows);
             scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan, startRow,
                 numRows);
         }
@@ -166,7 +165,7 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
         data->lookup(rowInChunk, output, posInOutputVector);
     } break;
     case ResidencyState::ON_DISK: {
-        state.column->lookupValue(transaction, state, rowInChunk, &output, posInOutputVector);
+        state.column->lookupValue(state, rowInChunk, &output, posInOutputVector);
     } break;
     }
     if (updateInfo) {
@@ -201,7 +200,7 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
 }
 
 MergedColumnChunkStats ColumnChunk::getMergedColumnChunkStats(
-    const transaction::Transaction* transaction) const {
+    const Transaction* transaction) const {
     auto baseStats = data->getMergedColumnChunkStats();
     if (updateInfo) {
         for (idx_t i = 0; i < updateInfo->getNumVectors(); ++i) {

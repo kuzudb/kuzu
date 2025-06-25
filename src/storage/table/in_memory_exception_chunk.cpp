@@ -8,7 +8,6 @@
 #include "storage/storage_utils.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk_data.h"
-#include "transaction/transaction.h"
 #include <concepts>
 
 namespace kuzu::storage {
@@ -20,8 +19,8 @@ template<std::floating_point T>
 using ExceptionInBuffer = std::array<std::byte, EncodeException<T>::sizeInBytes()>;
 
 template<std::floating_point T>
-InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, const ChunkState& state,
-    FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile)
+InMemoryExceptionChunk<T>::InMemoryExceptionChunk(const ChunkState& state, FileHandle* dataFH,
+    MemoryManager* memoryManager, ShadowFile* shadowFile)
     : exceptionCount(state.metadata.compMeta.floatMetadata()->exceptionCount),
       finalizedExceptionCount(exceptionCount),
       exceptionCapacity(state.metadata.compMeta.floatMetadata()->exceptionCapacity),
@@ -43,7 +42,7 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, cons
     chunkData = std::make_unique<ColumnChunkData>(*memoryManager, physicalType, false,
         exceptionChunkMeta, true);
     chunkData->setToInMemory();
-    column->scan(transaction, *chunkState, chunkData.get());
+    column->scan(*chunkState, chunkData.get());
 }
 
 template<std::floating_point T>

@@ -22,8 +22,8 @@ struct ChunkState;
 template<std::floating_point T>
 class KUZU_API InMemoryExceptionChunk {
 public:
-    InMemoryExceptionChunk(transaction::Transaction* transaction, const ChunkState& state,
-        FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile);
+    InMemoryExceptionChunk(const ChunkState& state, FileHandle* dataFH,
+        MemoryManager* memoryManager, ShadowFile* shadowFile);
     ~InMemoryExceptionChunk();
 
     void finalizeAndFlushToDisk(ChunkState& state);
