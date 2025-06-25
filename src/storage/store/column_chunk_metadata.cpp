@@ -1,13 +1,19 @@
 #include "storage/store/column_chunk_metadata.h"
 
+#include <cstdint>
+
 #include "alp/decode.hpp"
 #include "alp/encode.hpp"
+#include "common/assert.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/type_utils.h"
+#include "common/types/types.h"
 #include "common/utils.h"
+#include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
 #include "storage/store/column_chunk_data.h"
+#include <concepts>
 
 namespace kuzu::storage {
 using namespace common;
@@ -27,6 +33,14 @@ ColumnChunkMetadata GetCompressionMetadata::operator()(std::span<const uint8_t> 
         return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
             CompressionMetadata(min, max, CompressionType::CONSTANT));
     }
+    // FIXME(bmwinger): this isn't right. If we're choosing the compression type ahead of time then
+    // GetCompressionMetadata should switch based on that, not on the data type. On the other hand,
+    // that prevents us from doing things like dynamic compression types. So maybe we shouldn't be
+    // initializing the alg ahead of time at all and should make that decision here (I mean,
+    // CompressionAlg doesn't store any non-trivial data anyway)...
+    if (alg->getCompressionType() == CompressionType::UNCOMPRESSED) {
+        return uncompressedGetMetadata(buffer, numValues, min, max);
+    }
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         return booleanGetMetadata(buffer, capacity, numValues, min, max);
@@ -44,7 +58,7 @@ ColumnChunkMetadata GetCompressionMetadata::operator()(std::span<const uint8_t> 
     case PhysicalTypeID::UINT16:
     case PhysicalTypeID::UINT8:
     case PhysicalTypeID::INT128: {
-        return GetBitpackingMetadata(alg, dataType)(buffer, capacity, numValues, min, max);
+        return getBitpackingMetadata(*alg, dataType, buffer, capacity, numValues, min, max);
     }
     case PhysicalTypeID::DOUBLE: {
         return GetFloatCompressionMetadata<double>(alg, dataType)(buffer, capacity, numValues, min,
@@ -55,13 +69,13 @@ ColumnChunkMetadata GetCompressionMetadata::operator()(std::span<const uint8_t> 
             max);
     }
     default: {
-        return uncompressedGetMetadata(buffer, capacity, numValues, min, max);
+        return uncompressedGetMetadata(buffer, numValues, min, max);
     }
     }
 }
 
-ColumnChunkMetadata uncompressedGetMetadata(std::span<const uint8_t> buffer, uint64_t /*capacity*/,
-    uint64_t numValues, StorageValue min, StorageValue max) {
+ColumnChunkMetadata uncompressedGetMetadata(std::span<const uint8_t> buffer, uint64_t numValues,
+    StorageValue min, StorageValue max) {
     return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
 }
 
@@ -104,31 +118,86 @@ page_idx_t ColumnChunkMetadata::getNumDataPages(PhysicalTypeID dataType) const {
     }
 }
 
-ColumnChunkMetadata GetBitpackingMetadata::operator()(std::span<const uint8_t> /*buffer*/,
-    uint64_t capacity, uint64_t numValues, StorageValue min, StorageValue max) {
+uint64_t ColumnChunkMetadata::getMaxCapacity(PhysicalTypeID dataType) const {
+    switch (compMeta.compression) {
+    case CompressionType::CONSTANT: {
+        return UINT64_MAX;
+    } break;
+    case CompressionType::UNCOMPRESSED: {
+        return Uncompressed::getMaxCapacity(pageRange.numPages, dataType);
+    } break;
+    case CompressionType::INTEGER_BITPACKING: {
+        return TypeUtils::visit(
+            dataType,
+            [&]<IntegerBitpackingType T>(T) -> page_idx_t {
+                return IntegerBitpacking<T>().getMaxCapacity(pageRange.numPages, compMeta);
+            },
+            [&](internalID_t) -> page_idx_t {
+                return IntegerBitpacking<uint64_t>().getMaxCapacity(pageRange.numPages, compMeta);
+            },
+            [](auto) -> page_idx_t { KU_UNREACHABLE; });
+        ;
+    } break;
+    case CompressionType::BOOLEAN_BITPACKING: {
+        return BooleanBitpacking().getMaxCapacity(pageRange.numPages);
+    } break;
+    case CompressionType::ALP: {
+        return TypeUtils::visit(
+            dataType,
+            [&]<std::floating_point T>(T) -> page_idx_t {
+                return FloatCompression<T>().getMaxCapacity(pageRange.numPages, compMeta);
+            },
+            [](auto) -> page_idx_t { KU_UNREACHABLE; });
+    } break;
+    }
+    KU_UNREACHABLE;
+}
+
+ColumnChunkMetadata getBitpackingMetadata(const CompressionAlg& alg, const LogicalType& dataType,
+    std::span<const uint8_t> /*buffer*/, uint64_t capacity, uint64_t numValues, StorageValue min,
+    StorageValue max) {
     // For supported types, min and max may be null if all values are null
     // Compression is supported in this case
     // Unsupported types always return a dummy value (where min != max)
     // so that we don't constant compress them
-    auto compMeta = CompressionMetadata(min, max, alg->getCompressionType());
-    if (alg->getCompressionType() == CompressionType::INTEGER_BITPACKING) {
-        TypeUtils::visit(
-            dataType.getPhysicalType(),
-            [&]<IntegerBitpackingType T>(T) {
-                // If integer bitpacking bitwidth is the maximum, bitpacking cannot be used
-                // and has poor performance compared to uncompressed
-                if (IntegerBitpacking<T>::getPackingInfo(compMeta).bitWidth >= sizeof(T) * 8) {
-                    compMeta = CompressionMetadata(min, max, CompressionType::UNCOMPRESSED);
-                }
-            },
-            [&](auto) {});
+    auto compMeta = CompressionMetadata(min, max, alg.getCompressionType());
+    if (alg.getCompressionType() == CompressionType::UNCOMPRESSED) {
+        const auto numPages = Uncompressed::getMinPages(capacity, dataType.getPhysicalType());
+        return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
     }
-    const auto numValuesPerPage = compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-    const auto numPages =
-        numValuesPerPage == UINT64_MAX ?
-            0 :
-            capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
-    return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
+    KU_ASSERT(alg.getCompressionType() == CompressionType::INTEGER_BITPACKING);
+    return TypeUtils::visit(
+        dataType.getPhysicalType(),
+        [&]<IntegerBitpackingType T>(T) {
+            // If integer bitpacking bitwidth is the maximum, bitpacking cannot be used
+            // and has poor performance compared to uncompressed
+            if (IntegerBitpacking<T>::getPackingInfo(compMeta).bitWidth >= sizeof(T) * 8) {
+                compMeta = CompressionMetadata(min, max, CompressionType::UNCOMPRESSED);
+                return ColumnChunkMetadata(INVALID_PAGE_IDX,
+                    Uncompressed::getMinPages(numValues, dataType.getPhysicalType()), numValues,
+                    compMeta);
+            }
+            const auto numPages = IntegerBitpacking<T>::getMinPages(capacity, compMeta);
+            return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
+        },
+        [&](internalID_t) {
+            // If integer bitpacking bitwidth is the maximum, bitpacking cannot be used
+            // and has poor performance compared to uncompressed
+            if (IntegerBitpacking<uint64_t>::getPackingInfo(compMeta).bitWidth >=
+                sizeof(uint64_t) * 8) {
+                compMeta = CompressionMetadata(min, max, CompressionType::UNCOMPRESSED);
+                return ColumnChunkMetadata(INVALID_PAGE_IDX,
+                    Uncompressed::getMinPages(numValues, dataType.getPhysicalType()), numValues,
+                    compMeta);
+            }
+            const auto numPages = IntegerBitpacking<uint64_t>::getMinPages(capacity, compMeta);
+            return ColumnChunkMetadata(INVALID_PAGE_IDX, numPages, numValues, compMeta);
+        },
+
+        [&](auto) {
+            KU_UNREACHABLE;
+            return ColumnChunkMetadata();
+        });
 }
 
 namespace {
@@ -232,8 +301,9 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(std::span<const u
         return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
     }
 
-    const auto numValuesPerPage = compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-    const auto numPagesForEncoded = ceilDiv(capacity, numValuesPerPage);
+    const auto numPagesForEncoded =
+        IntegerBitpacking<typename FloatCompression<T>::EncodedType>::getMinPages(capacity,
+            compMeta.children.front());
     const auto numPagesForExceptions =
         EncodeException<T>::numPagesFromExceptions(floatMetadata->exceptionCapacity);
     return ColumnChunkMetadata(INVALID_PAGE_IDX, numPagesForEncoded + numPagesForExceptions,

@@ -55,8 +55,13 @@ void ChunkState::reclaimAllocatedPages(FileHandle& dataFH) const {
 
 static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataType,
     bool enableCompression) {
+    // FIXME(bmwinger): this is really messy, combined with what's in GetCompressionMetadata
     if (!enableCompression) {
-        return std::make_shared<Uncompressed>(dataType);
+        if (dataType.getPhysicalType() == PhysicalTypeID::BOOL) {
+            return std::make_shared<BooleanBitpacking>();
+        } else {
+            return std::make_shared<Uncompressed>(dataType);
+        }
     }
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::INT128: {
@@ -92,6 +97,9 @@ static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataTyp
     }
     case PhysicalTypeID::DOUBLE: {
         return std::make_shared<FloatCompression<double>>();
+    }
+    case PhysicalTypeID::BOOL: {
+        return std::make_shared<BooleanBitpacking>();
     }
     default: {
         return std::make_shared<Uncompressed>(dataType);
@@ -272,6 +280,8 @@ void ColumnChunkData::resetInMemoryStats() {
 ColumnChunkMetadata ColumnChunkData::getMetadataToFlush() const {
     KU_ASSERT(numValues <= capacity);
     StorageValue minValue = {}, maxValue = {};
+    // TODO: Combine min/max calculation with one which calculates the size of the segment for the
+    // given values
     if (capacity > 0) {
         std::optional<NullMask> nullMask;
         if (nullData) {
@@ -312,6 +322,9 @@ void ColumnChunkData::append(const ColumnChunkData* other, offset_t startPosInOt
 void ColumnChunkData::flush(FileHandle& dataFH) {
     const auto preScanMetadata = getMetadataToFlush();
     auto allocatedEntry = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
+    // TODO(bmwinger): instead of having flushBuffer return ColumnChunkMetadata; set the page range
+    // here and don't modify anything (the only flush function doing anything else but updating the
+    // page range is ALP, which will be rewritten)
     const auto flushedMetadata = flushBuffer(&dataFH, allocatedEntry, preScanMetadata);
     setToOnDisk(flushedMetadata);
     if (nullData) {
@@ -361,8 +374,6 @@ void ColumnChunkData::initializeScanState(SegmentState& state, const Column* col
     state.column = column;
     if (residencyState == ResidencyState::ON_DISK) {
         state.metadata = metadata;
-        state.numValuesPerPage = state.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-
         state.column->populateExtraChunkState(state);
     }
 }

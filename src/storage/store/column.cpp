@@ -14,6 +14,7 @@
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"
+#include "storage/store/column_chunk_metadata.h"
 #include "storage/store/list_column.h"
 #include "storage/store/null_column.h"
 #include "storage/store/string_column.h"
@@ -31,14 +32,15 @@ namespace storage {
 
 struct ReadInternalIDValuesToVector {
     ReadInternalIDValuesToVector() : compressedReader{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
-    void operator()(const uint8_t* frame, PageCursor& pageCursor, ValueVector* resultVector,
-        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
+    void operator()(std::span<uint8_t> segment, uint64_t startOffsetInSegment,
+        ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
+        const CompressionMetadata& metadata) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
 
         KU_ASSERT(numValuesToRead <= DEFAULT_VECTOR_CAPACITY);
         offset_t offsetBuffer[DEFAULT_VECTOR_CAPACITY];
 
-        compressedReader(frame, pageCursor, reinterpret_cast<uint8_t*>(offsetBuffer), 0,
+        compressedReader(segment, startOffsetInSegment, reinterpret_cast<uint8_t*>(offsetBuffer), 0,
             numValuesToRead, metadata);
         auto resultData = reinterpret_cast<internalID_t*>(resultVector->getData());
         for (auto i = 0u; i < numValuesToRead; i++) {
@@ -47,26 +49,27 @@ struct ReadInternalIDValuesToVector {
     }
 
 private:
-    ReadCompressedValuesFromPage compressedReader;
+    ReadCompressedValues compressedReader;
 };
 
 struct WriteInternalIDValuesToPage {
     WriteInternalIDValuesToPage() : compressedWriter{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
-    void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data, uint32_t dataOffset,
-        offset_t numValues, const CompressionMetadata& metadata, const NullMask* nullMask) {
-        compressedWriter(frame, posInFrame, data, dataOffset, numValues, metadata, nullMask);
+    void operator()(std::span<uint8_t> segment, uint16_t posInSegment, const uint8_t* data,
+        uint32_t dataOffset, offset_t numValues, const CompressionMetadata& metadata,
+        const NullMask* nullMask) {
+        compressedWriter(segment, posInSegment, data, dataOffset, numValues, metadata, nullMask);
     }
-    void operator()(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
+    void operator()(std::span<uint8_t> segment, uint16_t posInSegment, ValueVector* vector,
         uint32_t offsetInVector, offset_t numValues, const CompressionMetadata& metadata) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-        compressedWriter(frame, posInFrame,
+        compressedWriter(segment, posInSegment,
             reinterpret_cast<const uint8_t*>(
                 &vector->getValue<internalID_t>(offsetInVector).offset),
             0 /*dataOffset*/, numValues, metadata);
     }
 
 private:
-    WriteCompressedValuesToPage compressedWriter;
+    WriteCompressedValues compressedWriter;
 };
 
 static read_values_to_vector_func_t getReadValuesToVectorFunc(const LogicalType& logicalType) {
@@ -74,7 +77,7 @@ static read_values_to_vector_func_t getReadValuesToVectorFunc(const LogicalType&
     case LogicalTypeID::INTERNAL_ID:
         return ReadInternalIDValuesToVector();
     default:
-        return ReadCompressedValuesFromPageToVector(logicalType);
+        return ReadCompressedValuesToVector(logicalType);
     }
 }
 
@@ -83,7 +86,7 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     case LogicalTypeID::INTERNAL_ID:
         return WriteInternalIDValuesToPage();
     default:
-        return WriteCompressedValuesToPage(logicalType);
+        return WriteCompressedValues(logicalType);
     }
 }
 
@@ -109,7 +112,7 @@ Column::Column(std::string name, common::LogicalType dataType, FileHandle* dataF
       columnReadWriter(ColumnReadWriterFactory::createColumnReadWriter(
           this->dataType.getPhysicalType(), dbFileID, dataFH, shadowFile)) {
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
-    readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
+    readToPageFunc = ReadCompressedValues(this->dataType);
     writeFunc = getWriteValuesFunc(this->dataType);
     if (requireNullColumn) {
         auto columnName =
@@ -302,13 +305,7 @@ void Column::lookupInternal(const Transaction* transaction, const SegmentState& 
     if (metadata.compMeta.compression == CompressionType::CONSTANT) {
         return metadata.getNumDataPages(dataType.getPhysicalType()) == 0;
     }
-    const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-    if (numValuesPerPage == UINT64_MAX) {
-        return metadata.getNumDataPages(dataType.getPhysicalType()) == 0;
-    }
-    return std::ceil(
-               static_cast<double>(metadata.numValues) / static_cast<double>(numValuesPerPage)) <=
-           metadata.getNumDataPages(dataType.getPhysicalType());
+    return true;
 }
 
 void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
@@ -393,18 +390,6 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, SegmentState& st
     return startOffset;
 }
 
-bool Column::isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
-    offset_t endOffset) const {
-    if (metadata.compMeta.compression != CompressionType::CONSTANT &&
-        (metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType) *
-            metadata.getNumDataPages(dataType.getPhysicalType())) <= endOffset) {
-        // Note that for constant compression, `metadata.numPages` will be equal to 0.
-        // Thus, this function will always return true.
-        return true;
-    }
-    return false;
-}
-
 void Column::checkpointColumnChunkInPlace(SegmentState& state,
     const ColumnCheckpointState& checkpointState) const {
     for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
@@ -452,14 +437,22 @@ void Column::checkpointColumnChunkOutOfPlace(const SegmentState& state,
 
 bool Column::canCheckpointInPlace(const SegmentState& state,
     const ColumnCheckpointState& checkpointState) const {
-    if (isEndOffsetOutOfPagesCapacity(checkpointState.persistentData.getMetadata(),
-            checkpointState.endRowIdxToWrite)) {
+    if (checkpointState.persistentData.getMetadata().getMaxCapacity(dataType.getPhysicalType()) <
+        checkpointState.endRowIdxToWrite) {
         return false;
     }
+
+    // If this is true, then the capacity returned by ColumnChunkMetadata::getMaxCapacity
+    // should be the actual capacity of the segment for any input
     if (checkpointState.persistentData.getMetadata().compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
 
+    // TODO(bmwinger): this will become very tricky for the new compression types
+    // We can no longer guarantee that we can determine if an update can be done in-place just by
+    // looking at the metadata We can sometimes (e.g. integer bitpacking without exceptions), so we
+    // can keep this, but maybe the way to handle it is just that, unless we know we won't be able
+    // to update in place, we attempt to do so and if it fails update out of place
     InPlaceUpdateLocalState localUpdateState{};
     for (auto& chunkCheckpointState : checkpointState.segmentCheckpointStates) {
         auto& chunkData = chunkCheckpointState.chunkData;

@@ -2,11 +2,10 @@
 
 #include "storage/compression/float_compression.h"
 #include "storage/db_file_id.h"
+#include "storage/page_range.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
-namespace transaction {
-class Transaction;
-}
 namespace storage {
 
 class FileHandle;
@@ -16,19 +15,21 @@ struct ColumnChunkMetadata;
 struct SegmentState;
 
 template<typename OutputType>
-using read_value_from_page_func_t = std::function<void(uint8_t*, PageCursor&, OutputType, uint32_t,
-    uint64_t, const CompressionMetadata&)>;
+using read_value_from_page_func_t =
+    std::function<void(std::span<uint8_t> segment, uint64_t offsetInSegment, OutputType,
+        uint32_t offsetInResult, uint64_t length, const CompressionMetadata&)>;
 
 template<typename OutputType>
-using read_values_from_page_func_t = std::function<void(uint8_t*, PageCursor&, OutputType, uint32_t,
-    uint64_t, const CompressionMetadata&)>;
+using read_values_from_page_func_t =
+    std::function<void(std::span<uint8_t> segment, uint64_t offsetInSegment, OutputType,
+        uint32_t offsetInResult, uint64_t length, const CompressionMetadata&)>;
 
 using read_values_to_vector_func_t = read_values_from_page_func_t<common::ValueVector*>;
 using read_values_to_page_func_t = read_values_from_page_func_t<uint8_t*>;
 
 template<typename InputType, typename... AdditionalArgs>
-using write_values_to_page_func_t = std::function<void(uint8_t*, uint16_t, InputType, uint32_t,
-    common::offset_t, const CompressionMetadata&, AdditionalArgs...)>;
+using write_values_to_page_func_t = std::function<void(std::span<uint8_t>, uint64_t offsetInSegment,
+    InputType, uint32_t, common::offset_t, const CompressionMetadata&, AdditionalArgs...)>;
 
 using write_values_from_vector_func_t = write_values_to_page_func_t<common::ValueVector*>;
 
@@ -76,11 +77,11 @@ public:
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
         common::offset_t numValues, const write_values_func_t& writeFunc) = 0;
 
-    void readFromPage(const transaction::Transaction* transaction, common::page_idx_t pageIdx,
-        const std::function<void(uint8_t*)>& readFunc);
+    void readSegment(transaction::TransactionType transactionType, storage::PageRange pages,
+        const std::function<void(std::span<uint8_t>)>& readFunc) const;
 
-    void updatePageWithCursor(PageCursor cursor,
-        const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
+    void updateSegment(PageRange pages,
+        const std::function<void(std::span<uint8_t>)>& writeOp) const;
 
 protected:
     PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,

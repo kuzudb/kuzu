@@ -240,7 +240,7 @@ bool StringColumn::canCheckpointInPlace(const SegmentState& state,
 bool StringColumn::canIndexCommitInPlace(const SegmentState& state, uint64_t numStrings,
     offset_t maxOffset) const {
     const SegmentState& indexState = getChildState(state, ChildStateIndex::INDEX);
-    if (indexColumn->isEndOffsetOutOfPagesCapacity(indexState.metadata, maxOffset)) {
+    if (indexState.metadata.getMaxCapacity(indexColumn->dataType.getPhysicalType()) < maxOffset) {
         return false;
     }
     if (indexState.metadata.compMeta.canAlwaysUpdateInPlace()) {

@@ -10,6 +10,7 @@
 #include "common/assert.h"
 #include "common/null_mask.h"
 #include "common/numeric_utils.h"
+#include "common/system_config.h"
 #include "common/types/types.h"
 #include <span>
 
@@ -149,8 +150,10 @@ struct KUZU_API CompressionMetadata {
 
     CompressionType compression;
 
+    // TODO: maybe this should be stored inside the segment. The metadata should be as minimal as
+    // possible
     std::optional<std::unique_ptr<ExtraMetadata>> extraMetadata;
-
+    // TODO: This will be removed since the ALP exception data will be stored inside the segment
     std::vector<CompressionMetadata> children;
 
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression)
@@ -188,10 +191,6 @@ struct KUZU_API CompressionMetadata {
     void serialize(common::Serializer& serializer) const;
     static CompressionMetadata deserialize(common::Deserializer& deserializer);
 
-    // Returns the number of values which will be stored in the given data size
-    // This must be consistent with the compression implementation for the given size
-    uint64_t numValues(uint64_t dataSize, common::PhysicalTypeID dataType) const;
-    uint64_t numValues(uint64_t dataSize, const common::LogicalType& dataType) const;
     // Returns true if and only if the provided value within the vector can be updated
     // in this chunk in-place.
     bool canUpdateInPlace(const uint8_t* data, uint32_t pos, uint64_t numValues,
@@ -212,33 +211,24 @@ public:
     // nullMask may be null if no mask is available (all values are non-null)
     // Storage of null values is handled by the implementation and decompression of null values
     // does not have to produce the original value passed to this function.
+    //
+    // dstBuffer points to an entire segment
     virtual void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
-        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
+        std::span<uint8_t> dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata, const common::NullMask* nullMask) const = 0;
 
     // Takes uncompressed data from the srcBuffer and compresses it into the dstBuffer
-    //
-    // stores only as much data in dstBuffer as will fit, and advances the srcBuffer pointer
-    // to the beginning of the next value to store.
-    // (This means that we can't start the next page on an unaligned value.
-    // Maybe instead we could use value offsets, but the compression algorithms
-    // usually work on aligned chunks anyway)
-    //
-    // dstBufferSize is the size in bytes
-    // numValuesRemaining is the number of values remaining in the srcBuffer to be compressed.
-    //      compressNextPage must store the least of either the number of values per page
-    //      (as calculated by CompressionMetadata::numValues), or the remaining number of values.
-    //
-    // returns the size in bytes of the compressed data within the page (rounded up to the nearest
-    // byte)
-    virtual uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
-        uint8_t* dstBuffer, uint64_t dstBufferSize,
-        const struct CompressionMetadata& metadata) const = 0;
+    // All values should be able to fit in the buffer, and the result will be stored as an entire
+    // segment
+    // TODO(bmwinger): is there any way of re-using the buffers from one segment to the next?
+    // Otherwise we should just assume that the buffer is already zeroed
+    virtual void compress(const uint8_t* srcBuffer, uint64_t numValues,
+        std::span<uint8_t> dstBuffer, const struct CompressionMetadata& metadata) const = 0;
 
     // Takes compressed data from the srcBuffer and decompresses it into the dstBuffer
     // Offsets refer to value offsets, not byte offsets
-    // srcBuffer points to the beginning of a page
-    virtual void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset,
+    // srcBuffer points to the entire segment
+    virtual void decompress(std::span<const uint8_t> srcBuffer, uint64_t srcOffset,
         uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
         const CompressionMetadata& metadata) const = 0;
 
@@ -254,28 +244,31 @@ public:
 
     // Shouldn't be used, there's a special case when compressing which ends early for constant
     // compression
-    uint64_t compressNextPage(const uint8_t*&, uint64_t, uint8_t*, uint64_t,
-        const struct CompressionMetadata&) const override {
-        return 0;
-    };
+    void compress(const uint8_t*, uint64_t, std::span<uint8_t>,
+        const struct CompressionMetadata&) const override {};
 
     static void decompressValues(uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
         common::PhysicalTypeID physicalType, uint32_t numBytesPerValue,
         const CompressionMetadata& metadata);
 
-    void decompressFromPage(const uint8_t* /*srcBuffer*/, uint64_t /*srcOffset*/,
+    void decompress(std::span<const uint8_t> /*srcBuffer*/, uint64_t /*srcOffset*/,
         uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
         const CompressionMetadata& metadata) const override;
 
-    void copyFromPage(const uint8_t* /*srcBuffer*/, uint64_t /*srcOffset*/, uint8_t* dstBuffer,
-        uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const;
+    void copy(uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
+        const CompressionMetadata& metadata) const;
 
     // Nothing to do; constant compressed data is only updated if the update is to the same value
-    void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
-        common::offset_t, const CompressionMetadata&,
+    void setValuesFromUncompressed(const uint8_t*, common::offset_t, std::span<uint8_t>,
+        common::offset_t, common::offset_t, const CompressionMetadata&,
         const common::NullMask* /*nullMask*/) const override {}
 
     CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
+
+    static uint64_t getMaxCapacity(common::page_idx_t, common::PhysicalTypeID,
+        CompressionMetadata) {
+        return UINT64_MAX;
+    }
 
 private:
     uint8_t numBytesPerValue;
@@ -293,38 +286,43 @@ public:
 
     Uncompressed(const Uncompressed&) = default;
 
-    inline void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
-        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
+    void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
+        std::span<uint8_t> dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& /*metadata*/, const common::NullMask* /*nullMask*/) const final {
-        memcpy(dstBuffer + dstOffset * numBytesPerValue, srcBuffer + srcOffset * numBytesPerValue,
-            numBytesPerValue * numValues);
+        memcpy(dstBuffer.data() + dstOffset * numBytesPerValue,
+            srcBuffer + srcOffset * numBytesPerValue, numBytesPerValue * numValues);
     }
 
     static uint64_t numValues(uint64_t dataSize, common::PhysicalTypeID physicalType);
     static uint64_t numValues(uint64_t dataSize, const common::LogicalType& logicalType);
+    static uint64_t getMinPages(uint64_t capacity, common::PhysicalTypeID physicalType);
 
-    inline uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
-        uint8_t* dstBuffer, uint64_t dstBufferSize,
+    void compress(const uint8_t* srcBuffer, uint64_t numValues, std::span<uint8_t> dstBuffer,
         const struct CompressionMetadata& /*metadata*/) const override {
         if (numBytesPerValue == 0) {
-            return 0;
+            return;
         }
-        uint64_t numValues = std::min(numValuesRemaining, dstBufferSize / numBytesPerValue);
         uint64_t sizeToCopy = numValues * numBytesPerValue;
-        KU_ASSERT(sizeToCopy <= dstBufferSize);
-        std::memcpy(dstBuffer, srcBuffer, sizeToCopy);
-        srcBuffer += sizeToCopy;
-        return sizeToCopy;
+        KU_ASSERT(sizeToCopy <= dstBuffer.size());
+        std::memcpy(dstBuffer.data(), srcBuffer, sizeToCopy);
     }
 
-    inline void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
+    void decompress(std::span<const uint8_t> srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues,
         const CompressionMetadata& /*metadata*/) const override {
         std::memcpy(dstBuffer + dstOffset * numBytesPerValue,
-            srcBuffer + srcOffset * numBytesPerValue, numValues * numBytesPerValue);
+            srcBuffer.data() + srcOffset * numBytesPerValue, numValues * numBytesPerValue);
     }
 
     CompressionType getCompressionType() const override { return CompressionType::UNCOMPRESSED; }
+
+    static uint64_t getMaxCapacity(common::page_idx_t numPages, common::PhysicalTypeID dataType) {
+        auto numBytesPerValue = getDataTypeSizeInChunk(dataType);
+        if (numBytesPerValue == 0) {
+            return UINT64_MAX;
+        }
+        return numPages * common::KUZU_PAGE_SIZE / numBytesPerValue;
+    }
 
 protected:
     const uint32_t numBytesPerValue;
@@ -354,7 +352,7 @@ public:
     IntegerBitpacking(const IntegerBitpacking&) = default;
 
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
-        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
+        std::span<uint8_t> dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata, const common::NullMask* nullMask) const final;
 
     static BitpackInfo<T> getPackingInfo(const CompressionMetadata& metadata);
@@ -372,11 +370,10 @@ public:
         return numValues(dataSize, info);
     }
 
-    uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
-        uint8_t* dstBuffer, uint64_t dstBufferSize,
+    void compress(const uint8_t* srcBuffer, uint64_t numValues, std::span<uint8_t> dstBuffer,
         const struct CompressionMetadata& metadata) const final;
 
-    void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
+    void decompress(std::span<const uint8_t> srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues,
         const struct CompressionMetadata& metadata) const final;
 
@@ -387,6 +384,9 @@ public:
     CompressionType getCompressionType() const override {
         return CompressionType::INTEGER_BITPACKING;
     }
+
+    static uint64_t getMaxCapacity(common::page_idx_t numPages, CompressionMetadata compMeta);
+    static uint64_t getMinPages(uint64_t capacity, CompressionMetadata compMeta);
 
 protected:
     // Read multiple values from within a chunk. Cannot span multiple chunks.
@@ -417,23 +417,26 @@ public:
     BooleanBitpacking(const BooleanBitpacking&) = default;
 
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
-        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
+        std::span<uint8_t> dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata, const common::NullMask* nullMask) const final;
 
     static inline uint64_t numValues(uint64_t dataSize) { return dataSize * 8; }
 
-    uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
-        uint8_t* dstBuffer, uint64_t dstBufferSize,
+    void compress(const uint8_t* srcBuffer, uint64_t numValues, std::span<uint8_t> dstBuffer,
         const struct CompressionMetadata& metadata) const final;
 
-    void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
+    void decompress(std::span<const uint8_t> srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const final;
 
-    void copyFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
-        uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const;
+    void copy(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer, uint64_t dstOffset,
+        uint64_t numValues, const CompressionMetadata& metadata) const;
 
     CompressionType getCompressionType() const override {
         return CompressionType::BOOLEAN_BITPACKING;
+    }
+
+    static uint64_t getMaxCapacity(common::page_idx_t numPages) {
+        return numPages * common::KUZU_PAGE_SIZE * 8;
     }
 };
 
@@ -451,37 +454,38 @@ protected:
     const common::PhysicalTypeID physicalType;
 };
 
-class ReadCompressedValuesFromPageToVector : public CompressedFunctor {
+class ReadCompressedValuesToVector : public CompressedFunctor {
 public:
-    explicit ReadCompressedValuesFromPageToVector(const common::LogicalType& logicalType)
+    explicit ReadCompressedValuesToVector(const common::LogicalType& logicalType)
         : CompressedFunctor(logicalType) {}
-    ReadCompressedValuesFromPageToVector(const ReadCompressedValuesFromPageToVector&) = default;
+    ReadCompressedValuesToVector(const ReadCompressedValuesToVector&) = default;
 
-    void operator()(const uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
-        uint32_t posInVector, uint64_t numValuesToRead, const CompressionMetadata& metadata);
+    void operator()(std::span<const uint8_t> segment, uint64_t startOffset,
+        common::ValueVector* resultVector, uint32_t posInVector, uint64_t numValuesToRead,
+        const CompressionMetadata& metadata);
 };
 
-class ReadCompressedValuesFromPage : public CompressedFunctor {
+class ReadCompressedValues : public CompressedFunctor {
 public:
-    explicit ReadCompressedValuesFromPage(const common::LogicalType& logicalType)
+    explicit ReadCompressedValues(const common::LogicalType& logicalType)
         : CompressedFunctor(logicalType) {}
-    ReadCompressedValuesFromPage(const ReadCompressedValuesFromPage&) = default;
+    ReadCompressedValues(const ReadCompressedValues&) = default;
 
-    void operator()(const uint8_t* frame, PageCursor& pageCursor, uint8_t* result,
+    void operator()(std::span<const uint8_t> segment, uint64_t startOffset, uint8_t* result,
         uint32_t startPosInResult, uint64_t numValuesToRead, const CompressionMetadata& metadata);
 };
 
-class WriteCompressedValuesToPage : public CompressedFunctor {
+class WriteCompressedValues : public CompressedFunctor {
 public:
-    explicit WriteCompressedValuesToPage(const common::LogicalType& logicalType)
+    explicit WriteCompressedValues(const common::LogicalType& logicalType)
         : CompressedFunctor(logicalType) {}
-    WriteCompressedValuesToPage(const WriteCompressedValuesToPage&) = default;
+    WriteCompressedValues(const WriteCompressedValues&) = default;
 
-    void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
+    void operator()(std::span<uint8_t> segment, uint64_t posInSegment, const uint8_t* data,
         common::offset_t dataOffset, common::offset_t numValues,
         const CompressionMetadata& metadata, const common::NullMask* nullMask = nullptr);
 
-    void operator()(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
+    void operator()(std::span<uint8_t> segment, uint64_t posInSegment, common::ValueVector* vector,
         uint32_t posInVector, common::offset_t numValues, const CompressionMetadata& metadata);
 };
 

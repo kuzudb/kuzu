@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdint>
 
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
@@ -115,18 +116,15 @@ TEST(CompressionTests, IntegerBitpackingMetadataInvalidPhysicalType) {
     EXPECT_THROW(metadata.canUpdateInPlace(&data, 0, 1, PhysicalTypeID::ARRAY, localUpdateState),
         StorageException);
 
-    EXPECT_THROW(metadata.numValues(KUZU_PAGE_SIZE, LogicalType::STRING()), StorageException);
-
     EXPECT_THROW(metadata.toString(PhysicalTypeID::FLOAT), InternalException);
     EXPECT_THROW(metadata.toString(PhysicalTypeID::BOOL), InternalException);
 
     uint8_t result = 0;
-    PageCursor cursor;
-    EXPECT_THROW(ReadCompressedValuesFromPage{LogicalType::DOUBLE()}.operator()(&data, cursor,
+    EXPECT_THROW(ReadCompressedValues{LogicalType::DOUBLE()}.operator()(std::span(&data, 1), 0,
                      &result, 0, 1, metadata),
         NotImplementedException);
-    EXPECT_THROW(WriteCompressedValuesToPage{LogicalType::DOUBLE()}.operator()(&data, 0, &result, 0,
-                     1, metadata),
+    EXPECT_THROW(WriteCompressedValues{LogicalType::DOUBLE()}.operator()(std::span(&data, 1), 0,
+                     &result, 0, 1, metadata),
         NotImplementedException);
 }
 
@@ -138,17 +136,14 @@ TEST(CompressionTests, FloatCompressionMetadataInvalidPhysicalType) {
     EXPECT_THROW(metadata.canUpdateInPlace(&data, 0, 1, PhysicalTypeID::INT32, localUpdateState),
         StorageException);
 
-    EXPECT_THROW(metadata.numValues(KUZU_PAGE_SIZE, LogicalType::UINT64()), StorageException);
-
     EXPECT_THROW(metadata.toString(PhysicalTypeID::STRUCT), InternalException);
 
     uint8_t result = 0;
-    PageCursor cursor;
-    EXPECT_THROW(ReadCompressedValuesFromPage{LogicalType::DATE()}.operator()(&data, cursor,
+    EXPECT_THROW(ReadCompressedValues{LogicalType::DATE()}.operator()(std::span(&data, 1), 0,
                      &result, 0, 1, metadata),
         NotImplementedException);
-    EXPECT_THROW(WriteCompressedValuesToPage{LogicalType::DATE()}.operator()(&data, 0, &result, 0,
-                     1, metadata),
+    EXPECT_THROW(WriteCompressedValues{LogicalType::DATE()}.operator()(std::span(&data, 1), 0,
+                     &result, 0, 1, metadata),
         NotImplementedException);
 }
 
@@ -173,10 +168,10 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
 
     auto numValuesRemaining = src.size();
     const uint8_t* srcCursor = (uint8_t*)src.data();
-    alg.compressNextPage(srcCursor, numValuesRemaining, dest.data(), pageSize, metadata);
+    alg.compress(srcCursor, numValuesRemaining, dest, metadata);
     std::vector<T> decompressed(src.size());
-    alg.decompressFromPage(dest.data(), 0 /*srcOffset*/, (uint8_t*)decompressed.data(),
-        0 /*dstOffset*/, src.size(), metadata);
+    alg.decompress(dest, 0 /*srcOffset*/, (uint8_t*)decompressed.data(), 0 /*dstOffset*/,
+        src.size(), metadata);
     EXPECT_EQ(src, decompressed);
     // works with all bit widths (but not all offsets)
     T value = 0;
@@ -185,17 +180,16 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
         value = *std::min_element(src.begin(), src.end());
     }
 
-    alg.setValuesFromUncompressed((uint8_t*)&value, 0 /*srcOffset*/, (uint8_t*)dest.data(),
-        1 /*dstOffset*/, 1 /*numValues*/, metadata, nullptr /*nullMask*/);
-    alg.decompressFromPage(dest.data(), 0 /*srcOffset*/, (uint8_t*)decompressed.data(),
-        0 /*dstOffset*/, src.size(), metadata);
+    alg.setValuesFromUncompressed((uint8_t*)&value, 0 /*srcOffset*/, dest, 1 /*dstOffset*/,
+        1 /*numValues*/, metadata, nullptr /*nullMask*/);
+    alg.decompress(dest, 0 /*srcOffset*/, (uint8_t*)decompressed.data(), 0 /*dstOffset*/,
+        src.size(), metadata);
     src[1] = value;
     EXPECT_EQ(decompressed, src);
     EXPECT_EQ(decompressed[1], value);
 
     for (auto i = 0u; i < src.size(); i++) {
-        alg.decompressFromPage(dest.data(), i, (uint8_t*)decompressed.data(), i, 1 /*numValues*/,
-            metadata);
+        alg.decompress(dest, i, (uint8_t*)decompressed.data(), i, 1 /*numValues*/, metadata);
         EXPECT_EQ(decompressed[i], src[i]);
     }
     EXPECT_EQ(decompressed, src);
@@ -203,7 +197,7 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
     // Decompress part of a page
     decompressed.clear();
     decompressed.resize(src.size() / 2);
-    alg.decompressFromPage(dest.data(), src.size() / 3 /*srcOffset*/, (uint8_t*)decompressed.data(),
+    alg.decompress(dest, src.size() / 3 /*srcOffset*/, (uint8_t*)decompressed.data(),
         0 /*dstOffset*/, src.size() / 2 /*numValues*/, metadata);
     auto expected = std::vector(src);
     expected.erase(expected.begin(), expected.begin() + src.size() / 3);
@@ -212,7 +206,7 @@ void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset
 
     decompressed.clear();
     decompressed.resize(src.size() / 2);
-    alg.decompressFromPage(dest.data(), src.size() / 7 /*srcOffset*/, (uint8_t*)decompressed.data(),
+    alg.decompress(dest, src.size() / 7 /*srcOffset*/, (uint8_t*)decompressed.data(),
         0 /*dstOffset*/, src.size() / 2 /*numValues*/, metadata);
     expected = std::vector(src);
     expected.erase(expected.begin(), expected.begin() + src.size() / 7);
@@ -264,18 +258,19 @@ TEST(CompressionTests, IntegerPackingTest64SetValuesFromUncompressed) {
     src[100] = 1LL << 61;
     auto alg = IntegerBitpacking<int64_t>();
     std::vector<int64_t> dest(src.size());
+    auto destSpan = std::span((uint8_t*)dest.data(), dest.size() * sizeof(int64_t));
 
     const auto& [min, max] = std::minmax_element(src.begin(), src.end());
     auto metadata =
         CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
 
     {
-        alg.setValuesFromUncompressed((uint8_t*)src.data(), 0, (uint8_t*)dest.data(), 0, src.size(),
-            metadata, nullptr);
+        alg.setValuesFromUncompressed((uint8_t*)src.data(), 0, destSpan, 0, src.size(), metadata,
+            nullptr);
 
         std::vector<int64_t> decompressed(src.size());
-        alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
-            decompressed.size(), metadata);
+        alg.decompress(destSpan, 0, (uint8_t*)decompressed.data(), 0, decompressed.size(),
+            metadata);
 
         EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
     }
@@ -287,13 +282,12 @@ TEST(CompressionTests, IntegerPackingTest64SetValuesFromUncompressed) {
             src[i] = src[i - 1] * 2 - 1;
         }
         const auto updatedSrc = std::span(src.begin(), src.begin() + endUpdateIdx);
-        alg.setValuesFromUncompressed((uint8_t*)updatedSrc.data(), startUpdateIdx,
-            (uint8_t*)dest.data(), startUpdateIdx, endUpdateIdx - startUpdateIdx, metadata,
-            nullptr);
+        alg.setValuesFromUncompressed((uint8_t*)updatedSrc.data(), startUpdateIdx, destSpan,
+            startUpdateIdx, endUpdateIdx - startUpdateIdx, metadata, nullptr);
 
         std::vector<int64_t> decompressed(src.size());
-        alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
-            decompressed.size(), metadata);
+        alg.decompress(destSpan, 0, (uint8_t*)decompressed.data(), 0, decompressed.size(),
+            metadata);
 
         EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
     }
@@ -312,11 +306,10 @@ TEST(CompressionTests, IntegerPackingTest128WorksOnNonZeroBuffer) {
         CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
 
     const auto* srcCursor = (const uint8_t*)src.data();
-    alg.compressNextPage(srcCursor, src.size(), dest.data(), dest.size(), metadata);
+    alg.compress(srcCursor, src.size(), dest, metadata);
 
     std::vector<int128_t> decompressed(src.size());
-    alg.decompressFromPage((uint8_t*)dest.data(), 0, (uint8_t*)decompressed.data(), 0,
-        decompressed.size(), metadata);
+    alg.decompress(dest, 0, (uint8_t*)decompressed.data(), 0, decompressed.size(), metadata);
 
     EXPECT_THAT(decompressed, ::testing::ContainerEq(src));
 }
@@ -396,22 +389,16 @@ TEST(CompressionTests, CopyMultiPage) {
     std::vector<int64_t> src(numValues, -6);
 
     auto alg = Uncompressed(LogicalType(LogicalTypeID::INT64));
-    auto pageSize = 64;
     const auto& [min, max] = std::minmax_element(src.begin(), src.end());
     auto metadata =
         CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
-    auto numValuesRemaining = numValues;
-    auto numValuesPerPage = metadata.numValues(pageSize, LogicalType(LogicalTypeID::INT64));
     const uint8_t* srcCursor = (uint8_t*)src.data();
-    // TODO: accumulate output and then decompress
-    while (numValuesRemaining > 0) {
-        std::vector<uint8_t> dest(pageSize);
-        auto compressedSize =
-            alg.compressNextPage(srcCursor, numValuesRemaining, dest.data(), pageSize, metadata);
-        numValuesRemaining -= numValuesPerPage;
-        ASSERT_EQ(compressedSize, pageSize);
-    }
-    ASSERT_EQ((int64_t*)srcCursor - src.data(), numValues);
+    // TODO(bmwinger): we need a better way of estimating the compressed size
+    std::vector<uint8_t> dest(numValues * sizeof(int64_t));
+    alg.compress(srcCursor, numValues, dest, metadata);
+    std::vector<int64_t> srcCopy(numValues);
+    alg.decompress(dest, 0, (uint8_t*)srcCopy.data(), 0, numValues, metadata);
+    KU_ASSERT(srcCopy == src);
 }
 
 template<typename T>
@@ -421,34 +408,20 @@ void integerPackingMultiPage(const std::vector<T>& src) {
     const auto& [min, max] = std::minmax_element(src.begin(), src.end());
     auto metadata =
         CompressionMetadata(StorageValue(*min), StorageValue(*max), alg.getCompressionType());
-    auto numValuesPerPage = metadata.numValues(pageSize, LogicalType(LogicalTypeID::INT64));
-    int64_t numValuesRemaining = src.size();
-    const uint8_t* srcCursor = (uint8_t*)src.data();
+    auto numValuesPerPage = IntegerBitpacking<T>::numValues(pageSize, metadata);
     auto pages = src.size() / numValuesPerPage + 1;
-    std::vector<std::vector<uint8_t>> dest(pages, std::vector<uint8_t>(pageSize));
-    size_t pageNum = 0;
-    while (numValuesRemaining > 0) {
-        ASSERT_LT(pageNum, pages);
-        alg.compressNextPage(srcCursor, numValuesRemaining, dest[pageNum++].data(), pageSize,
-            metadata);
-        numValuesRemaining -= numValuesPerPage;
-    }
-    ASSERT_EQ(srcCursor, (uint8_t*)(src.data() + src.size()));
+    std::vector<uint8_t> dest(pages * pageSize);
+
+    alg.compress((uint8_t*)src.data(), src.size(), dest, metadata);
+
     for (auto i = 0u; i < src.size(); i++) {
-        auto page = i / numValuesPerPage;
-        auto indexInPage = i % numValuesPerPage;
-        T value;
-        alg.decompressFromPage(dest[page].data(), indexInPage, (uint8_t*)&value, 0, 1 /*numValues*/,
-            metadata);
+        T value = 0;
+        alg.decompress(dest, i, (uint8_t*)&value, 0, 1 /*numValues*/, metadata);
         EXPECT_EQ(src[i] - value, 0);
         EXPECT_EQ(src[i], value);
     }
     std::vector<T> decompressed(src.size());
-    for (auto i = 0u; i < src.size(); i += numValuesPerPage) {
-        auto page = i / numValuesPerPage;
-        alg.decompressFromPage(dest[page].data(), 0, (uint8_t*)decompressed.data(), i,
-            std::min(numValuesPerPage, (uint64_t)src.size() - i), metadata);
-    }
+    alg.decompress(dest, 0, (uint8_t*)decompressed.data(), 0, src.size(), metadata);
     ASSERT_EQ(decompressed, src);
 }
 

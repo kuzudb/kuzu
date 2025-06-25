@@ -39,8 +39,7 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction,
         safeIntegerConversion<page_idx_t>(
             EncodeException<T>::numPagesFromExceptions(exceptionCapacity)),
         exceptionCapacity, compMeta);
-    chunkState = std::make_unique<SegmentState>(exceptionChunkMeta,
-        EncodeException<T>::exceptionBytesPerPage() / EncodeException<T>::sizeInBytes());
+    chunkState = std::make_unique<SegmentState>(exceptionChunkMeta);
 
     chunkData = std::make_unique<ColumnChunkData>(*memoryManager, physicalType, false,
         exceptionChunkMeta, true);

@@ -1,10 +1,15 @@
 #include "storage/store/column_reader_writer.h"
 
+#include <memory>
+
 #include "alp/encode.hpp"
+#include "common/system_config.h"
+#include "common/types/types.h"
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "storage/compression/float_compression.h"
 #include "storage/file_handle.h"
+#include "storage/page_range.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
@@ -83,9 +88,7 @@ public:
     void readCompressedValueToPage(const transaction::Transaction* transaction,
         const SegmentState& state, common::offset_t offsetInSegment, uint8_t* result,
         uint32_t offsetInResult, const read_value_from_page_func_t<uint8_t*>& readFunc) override {
-        auto cursor = getPageCursorForOffsetInGroup(offsetInSegment,
-            state.metadata.getStartPageIdx(), state.numValuesPerPage);
-        readCompressedValue<uint8_t*>(transaction, state.metadata, cursor, offsetInSegment, result,
+        readCompressedValue<uint8_t*>(transaction, state.metadata, offsetInSegment, result,
             offsetInResult, readFunc);
     }
 
@@ -93,10 +96,8 @@ public:
         const SegmentState& state, common::offset_t offsetInSegment, common::ValueVector* result,
         uint32_t offsetInResult,
         const read_value_from_page_func_t<common::ValueVector*>& readFunc) override {
-        auto cursor = getPageCursorForOffsetInGroup(offsetInSegment,
-            state.metadata.getStartPageIdx(), state.numValuesPerPage);
-        readCompressedValue<ValueVector*>(transaction, state.metadata, cursor, offsetInSegment,
-            result, offsetInResult, readFunc);
+        readCompressedValue<ValueVector*>(transaction, state.metadata, offsetInSegment, result,
+            offsetInResult, readFunc);
     }
 
     uint64_t readCompressedValuesToPage(const transaction::Transaction* transaction,
@@ -135,39 +136,26 @@ public:
         offset_t srcOffset, offset_t numValues,
         const write_values_to_page_func_t<InputType, AdditionalArgs...>& writeFunc,
         const NullMask* nullMask) {
-        auto numValuesWritten = 0u;
-        auto cursor = getPageCursorForOffsetInGroup(dstOffset, state.metadata.getStartPageIdx(),
-            state.numValuesPerPage);
-        while (numValuesWritten < numValues) {
-            KU_ASSERT(
-                cursor.pageIdx == INVALID_PAGE_IDX /*constant compression*/ ||
-                cursor.pageIdx < state.metadata.getStartPageIdx() + state.metadata.getNumPages());
-            auto numValuesToWriteInPage = std::min(numValues - numValuesWritten,
-                state.numValuesPerPage - cursor.elemPosInPage);
-            updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
-                if constexpr (std::is_same_v<InputType, ValueVector*>) {
-                    writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
-                        numValuesToWriteInPage, state.metadata.compMeta);
-                } else {
-                    writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
-                        numValuesToWriteInPage, state.metadata.compMeta, nullMask);
-                }
-            });
-            numValuesWritten += numValuesToWriteInPage;
-            cursor.nextPage();
-        }
+        updateSegment(state.metadata.pageRange, [&](std::span<uint8_t> segment) {
+            if constexpr (std::is_same_v<InputType, ValueVector*>) {
+                writeFunc(segment, dstOffset, data, srcOffset, numValues, state.metadata.compMeta);
+            } else {
+                writeFunc(segment, dstOffset, data, srcOffset, numValues, state.metadata.compMeta,
+                    nullMask);
+            }
+        });
     }
 
     template<typename OutputType>
     void readCompressedValue(const transaction::Transaction* transaction,
-        const ColumnChunkMetadata& metadata, PageCursor cursor,
-        common::offset_t /*offsetInSegment*/, OutputType result, uint32_t offsetInResult,
-        const read_value_from_page_func_t<OutputType>& readFunc) {
+        const ColumnChunkMetadata& metadata, common::offset_t offsetInSegment, OutputType result,
+        uint32_t offsetInResult, const read_value_from_page_func_t<OutputType>& readFunc) {
 
-        readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
-            readFunc(frame, cursor, result, offsetInResult, 1 /* numValuesToRead */,
-                metadata.compMeta);
-        });
+        readSegment(transaction->getType(), metadata.pageRange,
+            [&](std::span<uint8_t> segmentData) -> void {
+                readFunc(segmentData, offsetInSegment, result, offsetInResult,
+                    1 /* numValuesToRead */, metadata.compMeta);
+            });
     }
 
     template<typename OutputType>
@@ -180,29 +168,17 @@ public:
             return 0;
         }
 
-        auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInSegment,
-            chunkMeta.getStartPageIdx(), state.numValuesPerPage);
-        KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
-
-        uint64_t numValuesScanned = 0;
-        while (numValuesScanned < length) {
-            uint64_t numValuesToScanInPage = std::min(
-                state.numValuesPerPage - pageCursor.elemPosInPage, length - numValuesScanned);
-            KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
-            if (!filterFunc.has_value() ||
-                filterFunc.value()(numValuesScanned, numValuesScanned + numValuesToScanInPage)) {
-
-                const auto readFromPageFunc = [&](uint8_t* frame) -> void {
-                    readFunc(frame, pageCursor, result, numValuesScanned + startOffsetInResult,
-                        numValuesToScanInPage, chunkMeta.compMeta);
-                };
-                readFromPage(transaction, pageCursor.pageIdx, std::cref(readFromPageFunc));
-            }
-            numValuesScanned += numValuesToScanInPage;
-            pageCursor.nextPage();
+        // FIXME(bmwinger): this seems unhelpful. Presumably the filter can be handled in the parent
+        // scope
+        if (!filterFunc.has_value() || filterFunc.value()(0, length)) {
+            readSegment(transaction->getType(), chunkMeta.pageRange,
+                [&](std::span<uint8_t> segment) -> void {
+                    readFunc(segment, startOffsetInSegment, result, startOffsetInResult, length,
+                        chunkMeta.compMeta);
+                });
         }
 
-        return numValuesScanned;
+        return length;
     }
 };
 
@@ -428,35 +404,42 @@ std::unique_ptr<ColumnReadWriter> ColumnReadWriterFactory::createColumnReadWrite
 ColumnReadWriter::ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile)
     : dbFileID(dbFileID), dataFH(dataFH), shadowFile(shadowFile) {}
 
-void ColumnReadWriter::readFromPage(const Transaction* transaction, page_idx_t pageIdx,
-    const std::function<void(uint8_t*)>& readFunc) {
+void ColumnReadWriter::readSegment(TransactionType transactionType, PageRange pages,
+    const std::function<void(std::span<uint8_t>)>& readFunc) const {
     // For constant compression, call read on a nullptr since there is no data on disk and
     // decompression only requires metadata
-    if (pageIdx == INVALID_PAGE_IDX) {
-        return readFunc(nullptr);
+    if (pages.startPageIdx == INVALID_PAGE_IDX || pages.numPages == 0) {
+        return readFunc(std::span<uint8_t>());
     }
-    auto [fileHandleToPin, pageIdxToPin] = ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(
-        *dataFH, pageIdx, *shadowFile, transaction->getType());
-    fileHandleToPin->optimisticReadPage(pageIdxToPin, readFunc);
+    auto buffer = std::make_unique<uint8_t[]>(pages.numPages * KUZU_PAGE_SIZE);
+    for (page_idx_t pageIdx = 0; pageIdx < pages.numPages; pageIdx++) {
+        auto [fileHandleToPin, pageIdxToPin] = ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(
+            *dataFH, pages.startPageIdx + pageIdx, *shadowFile, transactionType);
+        fileHandleToPin->optimisticReadPage(pageIdxToPin, [&](auto* frame) {
+            memcpy(buffer.get() + pageIdx * KUZU_PAGE_SIZE, frame, KUZU_PAGE_SIZE);
+        });
+    }
+    readFunc(std::span(buffer.get(), pages.numPages * KUZU_PAGE_SIZE));
 }
 
-void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
-    const std::function<void(uint8_t*, offset_t)>& writeOp) const {
-    if (cursor.pageIdx == INVALID_PAGE_IDX) {
-        writeOp(nullptr, cursor.elemPosInPage);
+void ColumnReadWriter::updateSegment(PageRange pages,
+    const std::function<void(std::span<uint8_t>)>& writeOp) const {
+    if (pages.startPageIdx == INVALID_PAGE_IDX) {
+        writeOp(std::span<uint8_t>());
         return;
     }
-    KU_ASSERT(cursor.pageIdx < dataFH->getNumPages());
 
-    ShadowUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, false /*insertingNewPage*/,
-        *shadowFile, [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
-}
-
-PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInSegment,
-    page_idx_t groupPageIdx, uint64_t numValuesPerPage) const {
-    auto pageCursor = PageUtils::getPageCursorForPos(offsetInSegment, numValuesPerPage);
-    pageCursor.pageIdx += groupPageIdx;
-    return pageCursor;
+    // FIXME(bmwinger): not positive this is reliable, but it should generally work
+    // Ideally we should pin the pages for writing before doing the writeOp
+    readSegment(TransactionType::WRITE, pages, [&](std::span<uint8_t> segment) {
+        writeOp(segment);
+        for (page_idx_t pageIdx = 0; pageIdx < pages.numPages; pageIdx++) {
+            ShadowUtils::updatePage(*dataFH, dbFileID, pages.startPageIdx + pageIdx,
+                true /*overwriting*/, *shadowFile, [&](auto frame) {
+                    memcpy(frame, segment.data() + pageIdx * KUZU_PAGE_SIZE, KUZU_PAGE_SIZE);
+                });
+        }
+    });
 }
 
 } // namespace kuzu::storage

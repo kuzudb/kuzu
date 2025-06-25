@@ -18,6 +18,8 @@ struct ColumnChunkMetadata {
     // exceptions
     common::page_idx_t getNumDataPages(common::PhysicalTypeID dataType) const;
 
+    uint64_t getMaxCapacity(common::PhysicalTypeID dataType) const;
+
     void serialize(common::Serializer& serializer) const;
     static ColumnChunkMetadata deserialize(common::Deserializer& deserializer);
 
@@ -44,19 +46,9 @@ public:
         uint64_t numValues, StorageValue min, StorageValue max) const;
 };
 
-class GetBitpackingMetadata {
-    std::shared_ptr<CompressionAlg> alg;
-    const common::LogicalType& dataType;
-
-public:
-    GetBitpackingMetadata(std::shared_ptr<CompressionAlg> alg, const common::LogicalType& dataType)
-        : alg{std::move(alg)}, dataType{dataType} {}
-
-    GetBitpackingMetadata(const GetBitpackingMetadata& other) = default;
-
-    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, uint64_t capacity,
-        uint64_t numValues, StorageValue min, StorageValue max);
-};
+ColumnChunkMetadata getBitpackingMetadata(const CompressionAlg& alg,
+    const common::LogicalType& dataType, std::span<const uint8_t> buffer, uint64_t capacity,
+    uint64_t numValues, StorageValue min, StorageValue max);
 
 template<std::floating_point T>
 class GetFloatCompressionMetadata {
@@ -74,8 +66,8 @@ public:
         uint64_t numValues, StorageValue min, StorageValue max);
 };
 
-ColumnChunkMetadata uncompressedGetMetadata(std::span<const uint8_t> buffer, uint64_t capacity,
-    uint64_t numValues, StorageValue min, StorageValue max);
+ColumnChunkMetadata uncompressedGetMetadata(std::span<const uint8_t> buffer, uint64_t numValues,
+    StorageValue min, StorageValue max);
 
 ColumnChunkMetadata booleanGetMetadata(std::span<const uint8_t> buffer, uint64_t capacity,
     uint64_t numValues, StorageValue min, StorageValue max);

@@ -1,8 +1,11 @@
 #include "storage/compression/float_compression.h"
 
 #include "alp/encode.hpp"
+#include "common/assert.h"
+#include "common/cast.h"
 #include "common/system_config.h"
 #include "common/utils.h"
+#include "storage/compression/compression.h"
 #include <ranges>
 
 namespace kuzu {
@@ -23,8 +26,8 @@ common::LogicalType getBitpackingLogicalType() {
 
 template<std::floating_point T>
 size_t EncodeException<T>::numPagesFromExceptions(size_t exceptionCount) {
-    return common::ceilDiv(static_cast<uint64_t>(exceptionCount),
-        common::KUZU_PAGE_SIZE / sizeInBytes());
+    return common::ceilDiv(static_cast<uint64_t>(exceptionCount) * sizeInBytes(),
+        common::KUZU_PAGE_SIZE);
 }
 
 template<std::floating_point T>
@@ -60,24 +63,30 @@ FloatCompression<T>::FloatCompression()
     : constantEncodedFloatBitpacker(getBitpackingLogicalType<T>()), encodedFloatBitpacker() {}
 
 template<std::floating_point T>
-uint64_t FloatCompression<T>::compressNextPage(const uint8_t*&, uint64_t, uint8_t*, uint64_t,
+void FloatCompression<T>::compress(const uint8_t*, uint64_t, std::span<uint8_t>,
     const struct CompressionMetadata&) const {
     KU_UNREACHABLE;
 }
 
 template<std::floating_point T>
-uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& srcBuffer,
-    uint64_t srcOffset, uint64_t numValuesRemaining, uint8_t* dstBuffer, uint64_t dstBufferSize,
-    EncodeExceptionView<T> exceptionBuffer, [[maybe_unused]] uint64_t exceptionBufferSize,
-    uint64_t& exceptionCount, const struct CompressionMetadata& metadata) const {
+void FloatCompression<T>::compressWithExceptions(const uint8_t* srcBuffer, uint64_t srcOffset,
+    uint64_t numValues, std::span<uint8_t> dstBuffer, EncodeExceptionView<T> exceptionBuffer,
+    [[maybe_unused]] uint64_t exceptionBufferSize, uint64_t& exceptionCount,
+    const struct CompressionMetadata& metadata) const {
     KU_ASSERT(metadata.compression == CompressionType::ALP);
 
-    const size_t numValuesToCompress =
-        std::min(numValuesRemaining, numValues(dstBufferSize, metadata));
+    RUNTIME_CHECK({
+        auto capacity =
+            IntegerBitpacking<EncodedType>::numValues(dstBuffer.size(), metadata.getChild(0));
+        auto minPages =
+            IntegerBitpacking<EncodedType>::getMinPages(numValues, metadata.getChild(0));
+        KU_ASSERT(numValues <= capacity);
+        KU_ASSERT(dstBuffer.size() / common::KUZU_PAGE_SIZE >= minPages);
+    });
 
-    std::vector<EncodedType> integerEncodedValues(numValuesToCompress);
-    for (size_t posInPage = 0; posInPage < numValuesToCompress; ++posInPage) {
-        const auto floatValue = reinterpret_cast<const T*>(srcBuffer)[posInPage];
+    std::vector<EncodedType> integerEncodedValues(numValues);
+    for (size_t posInSegment = 0; posInSegment < numValues; ++posInSegment) {
+        const auto floatValue = reinterpret_cast<const T*>(srcBuffer)[posInSegment];
         const auto* floatMetadata = metadata.floatMetadata();
         const EncodedType encodedValue =
             alp::AlpEncode<T>::encode_value(floatValue, floatMetadata->fac, floatMetadata->exp);
@@ -87,47 +96,39 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
         if (floatValue != decodedValue) {
             KU_ASSERT(
                 (exceptionCount + 1) * EncodeException<T>::sizeInBytes() <= exceptionBufferSize);
-            exceptionBuffer.setValue(
-                {.value = floatValue,
-                    .posInChunk = common::safeIntegerConversion<uint32_t>(srcOffset + posInPage)},
+            exceptionBuffer.setValue({.value = floatValue,
+                                         .posInChunk = common::safeIntegerConversion<uint32_t>(
+                                             srcOffset + posInSegment)},
                 exceptionCount);
 
             // We don't need to replace with 1st successful encode as the integer bitpacking
             // metadata is already populated
             ++exceptionCount;
         } else {
-            integerEncodedValues[posInPage] = encodedValue;
+            integerEncodedValues[posInSegment] = encodedValue;
         }
     }
-    srcBuffer += numValuesToCompress * sizeof(T);
 
     const auto* castedIntegerEncodedBuffer =
         reinterpret_cast<const uint8_t*>(integerEncodedValues.data());
-    const auto compressedIntegerSize =
-        getEncodedFloatBitpacker(metadata).compressNextPage(castedIntegerEncodedBuffer,
-            numValuesToCompress, dstBuffer, dstBufferSize, metadata.getChild(BITPACKING_CHILD_IDX));
-
-    // zero out unused parts of the page
-    memset(dstBuffer + compressedIntegerSize, 0, dstBufferSize - compressedIntegerSize);
-
-    // since we already do the zeroing we return the size of the whole page
-    return dstBufferSize;
+    getEncodedFloatBitpacker(metadata).compress(castedIntegerEncodedBuffer, numValues, dstBuffer,
+        metadata.getChild(BITPACKING_CHILD_IDX));
 }
 
 template<std::floating_point T>
 uint64_t FloatCompression<T>::numValues(uint64_t dataSize, const CompressionMetadata& metadata) {
-    return metadata.getChild(BITPACKING_CHILD_IDX)
-        .numValues(dataSize, getBitpackingLogicalType<T>());
+    return IntegerBitpacking<EncodedType>::numValues(dataSize,
+        metadata.getChild(BITPACKING_CHILD_IDX));
 }
 
 template<std::floating_point T>
-void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset,
+void FloatCompression<T>::decompress(std::span<const uint8_t> srcBuffer, uint64_t srcOffset,
     uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
     const struct CompressionMetadata& metadata) const {
 
     // use dstBuffer for unpacking the ALP encoded values then decode them in place
-    getEncodedFloatBitpacker(metadata).decompressFromPage(srcBuffer, srcOffset, dstBuffer,
-        dstOffset, numValues, metadata.getChild(BITPACKING_CHILD_IDX));
+    getEncodedFloatBitpacker(metadata).decompress(srcBuffer, srcOffset, dstBuffer, dstOffset,
+        numValues, metadata.getChild(BITPACKING_CHILD_IDX));
 
     static_assert(sizeof(EncodedType) == sizeof(T));
     auto* integerEncodedValues = reinterpret_cast<EncodedType*>(dstBuffer);
@@ -140,7 +141,7 @@ void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t 
 
 template<std::floating_point T>
 void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
-    common::offset_t srcOffset, uint8_t* dstBuffer, common::offset_t dstOffset,
+    common::offset_t srcOffset, std::span<uint8_t> dstBuffer, common::offset_t dstOffset,
     common::offset_t numValues, const CompressionMetadata& metadata,
     const common::NullMask* nullMask) const {
     // each individual value that is being updated should be able to be updated in place
@@ -233,6 +234,12 @@ common::page_idx_t FloatCompression<T>::getNumDataPages(common::page_idx_t numTo
     const CompressionMetadata& compMeta) {
     return numTotalPages -
            EncodeException<T>::numPagesFromExceptions(compMeta.floatMetadata()->exceptionCapacity);
+}
+
+template<std::floating_point T>
+uint64_t FloatCompression<T>::getMaxCapacity(common::page_idx_t numPages,
+    CompressionMetadata compMeta) {
+    return IntegerBitpacking<EncodedType>::getMaxCapacity(numPages, compMeta);
 }
 
 template class FloatCompression<double>;

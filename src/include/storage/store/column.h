@@ -136,9 +136,6 @@ protected:
         const std::optional<StorageValue>& min, const std::optional<StorageValue>& max) const;
 
 protected:
-    bool isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
-        common::offset_t maxOffset) const;
-
     virtual bool canCheckpointInPlace(const SegmentState& state,
         const ColumnCheckpointState& checkpointState) const;
 

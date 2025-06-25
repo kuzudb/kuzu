@@ -1,7 +1,9 @@
 #include "storage/store/compression_flush_buffer.h"
 
+#include "common/system_config.h"
 #include "storage/file_handle.h"
 #include "storage/page_manager.h"
+#include "storage/page_range.h"
 #include "storage/store/column_chunk_data.h"
 
 namespace kuzu::storage {
@@ -20,36 +22,11 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
     FileHandle* dataFH, const PageRange& entry, const ColumnChunkMetadata& metadata) const {
     auto valuesRemaining = metadata.numValues;
     const uint8_t* bufferStart = buffer.data();
-    const auto compressedBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
-    auto numPages = 0u;
-    const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-    KU_ASSERT(numValuesPerPage * entry.numPages >= metadata.numValues);
-    while (valuesRemaining > 0) {
-        const auto compressedSize = alg->compressNextPage(bufferStart, valuesRemaining,
-            compressedBuffer.get(), KUZU_PAGE_SIZE, metadata.compMeta);
-        // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
-        // UINT64_MAX)
-        if (numValuesPerPage > valuesRemaining) {
-            valuesRemaining = 0;
-        } else {
-            valuesRemaining -= numValuesPerPage;
-        }
-        if (compressedSize < KUZU_PAGE_SIZE) {
-            memset(compressedBuffer.get() + compressedSize, 0, KUZU_PAGE_SIZE - compressedSize);
-        }
-        KU_ASSERT(numPages < entry.numPages);
-        KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + numPages);
-        dataFH->writePageToFile(compressedBuffer.get(), entry.startPageIdx + numPages);
-        numPages++;
-    }
-    // Make sure that the on-disk file is the right length
-    if (!dataFH->isInMemoryMode() && numPages < entry.numPages) {
-        memset(compressedBuffer.get(), 0, KUZU_PAGE_SIZE);
-        while (numPages < entry.numPages) {
-            dataFH->writePageToFile(compressedBuffer.get(), entry.startPageIdx + numPages);
-            ++numPages;
-        }
-    }
+    auto compressedSize = entry.numPages * KUZU_PAGE_SIZE;
+    const auto compressedBuffer = std::make_unique<uint8_t[]>(compressedSize);
+    alg->compress(bufferStart, valuesRemaining, std::span(compressedBuffer.get(), compressedSize),
+        metadata.compMeta);
+    dataFH->writePagesToFile(compressedBuffer.get(), compressedSize, entry.startPageIdx);
     return ColumnChunkMetadata(entry.startPageIdx, entry.numPages, metadata.numValues,
         metadata.compMeta);
 }
@@ -57,7 +34,7 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
 namespace {
 template<std::floating_point T>
 std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const CompressionAlg& alg,
-    PhysicalTypeID dataType, std::span<const uint8_t> buffer, FileHandle* dataFH,
+    PhysicalTypeID /*dataType*/, std::span<const uint8_t> buffer, FileHandle* dataFH,
     const PageRange& entry, const ColumnChunkMetadata& metadata) {
     const auto& castedAlg = ku_dynamic_cast<const FloatCompression<T>&>(alg);
 
@@ -73,38 +50,23 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
     auto exceptionBuffer = std::make_unique<uint8_t[]>(exceptionBufferSize);
     std::byte* exceptionBufferCursor = reinterpret_cast<std::byte*>(exceptionBuffer.get());
 
-    const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-    KU_ASSERT(numValuesPerPage * metadata.getNumDataPages(dataType) >= metadata.numValues);
-
-    const auto compressedBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
-    const uint8_t* bufferCursor = buffer.data();
-    auto numPages = 0u;
+    const auto compressedBuffer = std::make_unique<uint8_t[]>(entry.numPages * KUZU_PAGE_SIZE);
     size_t remainingExceptionBufferSize = exceptionBufferSize;
     RUNTIME_CHECK(size_t totalExceptionCount = 0);
 
-    while (valuesRemaining > 0) {
-        uint64_t pageExceptionCount = 0;
-        (void)castedAlg.compressNextPageWithExceptions(bufferCursor,
-            metadata.numValues - valuesRemaining, valuesRemaining, compressedBuffer.get(),
-            KUZU_PAGE_SIZE, EncodeExceptionView<T>{exceptionBufferCursor},
-            remainingExceptionBufferSize, pageExceptionCount, metadata.compMeta);
+    uint64_t pageExceptionCount = 0;
+    (void)castedAlg.compressWithExceptions(buffer.data(), metadata.numValues - valuesRemaining,
+        valuesRemaining, std::span(compressedBuffer.get(), entry.numPages * KUZU_PAGE_SIZE),
+        EncodeExceptionView<T>{exceptionBufferCursor}, remainingExceptionBufferSize,
+        pageExceptionCount, metadata.compMeta);
 
-        exceptionBufferCursor += pageExceptionCount * EncodeException<T>::sizeInBytes();
-        remainingExceptionBufferSize -= pageExceptionCount * EncodeException<T>::sizeInBytes();
-        RUNTIME_CHECK(totalExceptionCount += pageExceptionCount);
+    exceptionBufferCursor += pageExceptionCount * EncodeException<T>::sizeInBytes();
+    remainingExceptionBufferSize -= pageExceptionCount * EncodeException<T>::sizeInBytes();
+    RUNTIME_CHECK(totalExceptionCount += pageExceptionCount);
 
-        // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
-        // UINT64_MAX)
-        if (numValuesPerPage > valuesRemaining) {
-            valuesRemaining = 0;
-        } else {
-            valuesRemaining -= numValuesPerPage;
-        }
-        KU_ASSERT(numPages < entry.numPages);
-        KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + numPages);
-        dataFH->writePageToFile(compressedBuffer.get(), entry.startPageIdx + numPages);
-        numPages++;
-    }
+    KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + entry.numPages);
+    dataFH->writePagesToFile(compressedBuffer.get(), entry.numPages * KUZU_PAGE_SIZE,
+        entry.startPageIdx);
 
     KU_ASSERT(totalExceptionCount == floatMetadata->exceptionCount);
 
@@ -115,9 +77,8 @@ template<std::floating_point T>
 void flushALPExceptions(std::span<const uint8_t> exceptionBuffer, FileHandle* dataFH,
     const PageRange& entry, const ColumnChunkMetadata& metadata) {
     // we don't care about the min/max values for exceptions
-    const auto preExceptionMetadata =
-        uncompressedGetMetadata(exceptionBuffer, exceptionBuffer.size(),
-            metadata.compMeta.floatMetadata()->exceptionCapacity, StorageValue{0}, StorageValue{0});
+    const auto preExceptionMetadata = uncompressedGetMetadata(exceptionBuffer,
+        metadata.compMeta.floatMetadata()->exceptionCount, StorageValue{0}, StorageValue{0});
 
     const auto exceptionStartPageIdx =
         entry.startPageIdx + entry.numPages - preExceptionMetadata.getNumPages();

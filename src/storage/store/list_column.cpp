@@ -359,24 +359,8 @@ void ListColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) cons
         }
     }
 
-    SegmentState chunkState;
-    checkpointState.persistentData.initializeScanState(chunkState, this);
-    ColumnCheckpointState listDataCheckpointState(*persistentDataChunk,
-        std::move(listDataChunkCheckpointStates));
-    const auto listDataCanCheckpointInPlace = dataColumn->canCheckpointInPlace(
-        chunkState.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-        listDataCheckpointState);
-    if (!listDataCanCheckpointInPlace) {
-        // If we cannot checkpoint list data chunk in place, we need to checkpoint the whole chunk
-        // out of place.
-        checkpointColumnChunkOutOfPlace(chunkState, checkpointState);
-        return;
-    }
-
-    // In place checkpoint for list data.
-    dataColumn->checkpointColumnChunkInPlace(
-        chunkState.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-        listDataCheckpointState);
+    dataColumn->checkpointSegment(
+        ColumnCheckpointState(*persistentDataChunk, std::move(listDataChunkCheckpointStates)));
 
     // Checkpoint offset data.
     std::vector<SegmentCheckpointState> offsetChunkCheckpointStates;
@@ -386,19 +370,21 @@ void ListColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) cons
         [](const auto& a, const auto& b) { return a.startRowInData < b.startRowInData; }));
     std::vector<std::unique_ptr<ColumnChunkData>> offsetsToWrite;
     for (const auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
-        KU_ASSERT(
-            segmentCheckpointState.chunkData.getNumValues() == segmentCheckpointState.numRows);
         offsetsToWrite.push_back(
             ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::UINT64(), false,
                 segmentCheckpointState.numRows, ResidencyState::IN_MEMORY));
         const auto& listChunk = segmentCheckpointState.chunkData.cast<ListChunkData>();
+        auto startOffsetInData =
+            listChunk.getListStartOffset(segmentCheckpointState.startRowInData);
         for (auto i = 0u; i < segmentCheckpointState.numRows; i++) {
             offsetsToWrite.back()->setValue<offset_t>(
-                persistentListDataSize + listChunk.getListEndOffset(i), i);
+                persistentListDataSize +
+                    listChunk.getListEndOffset(segmentCheckpointState.startRowInData + i) -
+                    startOffsetInData,
+                i);
         }
-        offsetChunkCheckpointStates.push_back(
-            SegmentCheckpointState{*offsetsToWrite.back(), segmentCheckpointState.startRowInData,
-                segmentCheckpointState.offsetInSegment, segmentCheckpointState.numRows});
+        offsetChunkCheckpointStates.push_back(SegmentCheckpointState{*offsetsToWrite.back(), 0,
+            segmentCheckpointState.offsetInSegment, segmentCheckpointState.numRows});
     }
 
     offsetColumn->checkpointSegment(ColumnCheckpointState(

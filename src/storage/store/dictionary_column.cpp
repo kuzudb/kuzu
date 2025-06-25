@@ -7,6 +7,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/compression/compression.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/string_column.h"
@@ -173,8 +174,7 @@ bool DictionaryColumn::canOffsetCommitInPlace(const SegmentState& offsetState,
     const SegmentState& dataState, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) const {
     auto totalStringOffsetsAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
     auto offsetCapacity =
-        offsetState.metadata.compMeta.numValues(KUZU_PAGE_SIZE, offsetColumn->getDataType()) *
-        offsetState.metadata.getNumPages();
+        offsetState.metadata.getMaxCapacity(offsetColumn->getDataType().getPhysicalType());
     auto numStringsAfterUpdate = offsetState.metadata.numValues + numNewStrings;
     if (numStringsAfterUpdate > offsetCapacity) {
         // Offsets cannot be updated in place
