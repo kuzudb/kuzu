@@ -25,12 +25,12 @@ Spiller::Spiller(std::string tmpFilePath, BufferManager& bufferManager,
 }
 
 FileHandle* Spiller::getDataFH() const {
-    if (dataFH) {
+    if (dataFH.load()) {
         return dataFH;
     }
     std::unique_lock lock(fileCreationMutex);
     // Another thread may have created the file while the lock was being acquired
-    if (dataFH) {
+    if (dataFH.load()) {
         return dataFH;
     }
     const_cast<Spiller*>(this)->dataFH = bufferManager.getFileHandle(tmpFilePath,
@@ -75,7 +75,7 @@ void Spiller::loadFromDisk(ColumnChunkData& chunk) const {
     auto& buffer = *chunk.buffer;
     if (buffer.evicted) {
         buffer.prepareLoadFromDisk();
-        dataFH->getFileInfo()->readFromFile(buffer.buffer.data(), buffer.buffer.size(),
+        getDataFH()->getFileInfo()->readFromFile(buffer.buffer.data(), buffer.buffer.size(),
             buffer.filePosition);
     }
 }
@@ -98,8 +98,9 @@ uint64_t Spiller::claimNextGroup() {
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Function shouldn't be re-ordered
 void Spiller::clearFile() {
-    if (dataFH) {
-        dataFH->getFileInfo()->truncate(0);
+    auto curDataFH = getDataFH();
+    if (curDataFH) {
+        curDataFH->getFileInfo()->truncate(0);
     }
 }
 
