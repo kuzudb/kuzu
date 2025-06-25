@@ -228,7 +228,7 @@ static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>
                 cheapest[u_comp] = e;
             }
             auto& cv = cheapest[v_comp];
-            if (cu == std::nullopt|| std::get<WEIGHT>(e) < std::get<WEIGHT>(cv.value()))
+            if (cv == std::nullopt|| std::get<WEIGHT>(e) < std::get<WEIGHT>(cv.value()))
             {
                 cheapest[v_comp] = e;
             }
