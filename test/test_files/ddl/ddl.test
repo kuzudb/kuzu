@@ -614,3 +614,14 @@ Binder exception: Multiple FROM/TO pairs are not supported for CREATE REL TABLE 
 ---- 2
 Alice|Carol
 Bob|Dan
+
+-CASE DropTablesReloadWithoutForceCheckpoint
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT DROP TABLE studyAt
+---- ok
+-STATEMENT DROP TABLE workAt
+---- ok
+-RELOADDB
+-STATEMENT DROP TABLE knows
+---- ok

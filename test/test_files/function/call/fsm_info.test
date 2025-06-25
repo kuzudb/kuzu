@@ -53,10 +53,10 @@ True
 # copy for new table should reuse most of the old pages
 -STATEMENT COPY person1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
 ---- ok
-# allow margin equal to the largest page range for a column chunk in the table
--STATEMENT CALL fsm_info() with sum(num_pages) as num_free_pages
-           call storage_info('person1') with num_free_pages, max(num_pages) as largest_range
-           return num_free_pages is null or largest_range >= num_free_pages
+# since the copy should reuse pages use start_page_idx to see if person1 has older pages than some pages in person
+-STATEMENT call storage_info('person1') with min(start_page_idx) as oldest_newly_allocated_page
+            call storage_info('person') where start_page_idx < 4294967295 with oldest_newly_allocated_page, max(start_page_idx) as newest_old_allocated_page
+           return oldest_newly_allocated_page < newest_old_allocated_page
 ---- 1
 True
 

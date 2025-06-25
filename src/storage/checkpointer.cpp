@@ -65,7 +65,25 @@ PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
     auto metadataWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
     common::Serializer metadataSerializer(metadataWriter);
     storageManager.serialize(catalog, metadataSerializer);
-    return metadataWriter->flush(storageManager.getDataFH(), storageManager.getShadowFile());
+
+    // We need to preallocate the pages for the page manager before we actually serialize it
+    // This is because the page manager needs to track the pages used for itself
+    // The number of pages needed for the page manager should only decrease after making an
+    // additional allocation so we just calculate the number of pages needed to serialize the
+    // current state of the page manager
+    // Thus it is possible that we allocate an extra page that we won't end up writing to when we
+    // flush the metadata writer. This may cause a discrepancy between the number of tracked pages
+    // and the number of physical pages in the file but shouldn't cause any actual incorrect
+    // behaviour in the database
+    auto& pageManager = *storageManager.getDataFH()->getPageManager();
+    const auto pagesForPageManager = pageManager.estimatePagesNeededForSerialize();
+    const auto allocatedPages =
+        pageManager.allocatePageRange(metadataWriter->getNumPagesToFlush() + pagesForPageManager);
+    pageManager.serialize(metadataSerializer);
+
+    metadataWriter->flush(allocatedPages, storageManager.getDataFH(),
+        storageManager.getShadowFile());
+    return allocatedPages;
 }
 
 void Checkpointer::writeCheckpoint() {
@@ -270,6 +288,7 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
     storageManager->deserialize(context, catalog, deSer);
+    storageManager->getDataFH()->getPageManager()->deserialize(deSer);
 }
 
 } // namespace storage

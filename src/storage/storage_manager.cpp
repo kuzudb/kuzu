@@ -8,7 +8,6 @@
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/checkpointer.h"
-#include "storage/page_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
 #include "storage/wal/wal_replayer.h"
@@ -247,8 +246,6 @@ void StorageManager::serialize(const Catalog& catalog, Serializer& ser) {
             tables.at(info.oid)->serialize(ser);
         }
     }
-    ser.writeDebuggingInfo("page_manager");
-    dataFH->getPageManager()->serialize(ser);
 }
 
 void StorageManager::deserialize(main::ClientContext* context, const Catalog* catalog,
@@ -295,8 +292,6 @@ void StorageManager::deserialize(main::ClientContext* context, const Catalog* ca
             tables.at(info.oid)->deserialize(context, this, deSer);
         }
     }
-    deSer.validateDebuggingInfo(key, "page_manager");
-    dataFH->getPageManager()->deserialize(deSer);
 }
 
 } // namespace storage

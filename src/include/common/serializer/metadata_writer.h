@@ -26,6 +26,12 @@ public:
 
     storage::PageRange flush(storage::FileHandle* fileHandle,
         storage::ShadowFile& shadowFile) const;
+    void flush(storage::PageRange allocatedPages, storage::FileHandle* fileHandle,
+        storage::ShadowFile& shadowFile) const;
+
+    page_idx_t getNumPagesToFlush() const { return pages.size(); }
+
+    static uint64_t getPageSize();
 
 private:
     bool needNewBuffer(uint64_t size) const;
