@@ -1,8 +1,6 @@
 #include <cassert>
 #include <cstdint>
-#include <iostream>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <tuple>
 #include "binder/binder.h"
@@ -41,25 +39,18 @@ public:
 
     void beginOnTableInternal(table_id_t /*tableID*/) override {}
 
-    void VC(const table_id_t tableID)
-    {
-            for(auto i = 0u; i < finalResults.size(); ++i)
-            {
-                for(auto j = 0u; j < finalResults[i].size(); ++j)
-                {
-                    const auto nodeID = nodeID_t{i, tableID};
-                    nodeIDVector->setValue<nodeID_t>(0, nodeID);
-                    toIDVector->setValue<nodeID_t>(0, nodeID_t{finalResults[i][j].first, tableID});
-                    weightVector->setValue<offset_t>(0, finalResults[i][j].second);
-                    localFT->append(vectors);
-                }
-            }
-    }
-    
-
     void vertexCompute(const offset_t startOffset, const offset_t endOffset, const table_id_t tableID) override {
-        (void)(startOffset+endOffset);
-        std::call_once(f1, [this, tableID](){this->VC(tableID);});
+        for(auto i = startOffset; i < endOffset; ++i)
+        {
+            for(auto j = 0u; j < finalResults[i].size(); ++j)
+            {
+                const auto nodeID = nodeID_t{i, tableID};
+                nodeIDVector->setValue<nodeID_t>(0, nodeID);
+                toIDVector->setValue<nodeID_t>(0, nodeID_t{finalResults[i][j].first, tableID});
+                weightVector->setValue<offset_t>(0, finalResults[i][j].second);
+                localFT->append(vectors);
+            }
+        }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
@@ -71,7 +62,6 @@ private:
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> toIDVector;
     std::unique_ptr<ValueVector> weightVector;
-    std::once_flag f1;
 };
 
 struct MSFConfig final : public GDSConfig {
@@ -218,8 +208,6 @@ static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>
             {
                 finalEdges[std::get<U>(e.value())].push_back({std::get<V>(e.value()), std::get<WEIGHT>(e.value())});
                 finalEdges[std::get<V>(e.value())].push_back({std::get<U>(e.value()), std::get<WEIGHT>(e.value())});
-                auto [u, v, w] = e.value();
-                std::cout << "Adding " << u << " " << v << " " << w << std::endl;
                 addedEdge = true;
             }
             // Need to do this since we expect cheapest container to be reset
