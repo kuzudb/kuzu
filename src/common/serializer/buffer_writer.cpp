@@ -1,6 +1,6 @@
-#include <cstring>
-
 #include "common/serializer/buffer_writer.h"
+
+#include <cstring>
 
 namespace kuzu {
 namespace common {
