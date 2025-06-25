@@ -73,11 +73,11 @@ True
 ---- 1
 False
 
--STATEMENT RETURN list_slice(["成績評価","の甘","業が", "这是中文"], 1, 2)
+-STATEMENT RETURN list_slice(["成績評価","の甘","業が", "这是中文"], 1, 1)
 ---- 1
 [成績評価]
 
--STATEMENT RETURN array_slice(["成績評価","の甘","業が", "这是中文"], 1, 4)
+-STATEMENT RETURN array_slice(["成績評価","の甘","業が", "这是中文"], 1, 3)
 ---- 1
 [成績評価,の甘,業が]
 
