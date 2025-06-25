@@ -31,7 +31,7 @@ public:
     void addUncheckpointedFreePages(PageRange entry);
     void rollbackCheckpoint();
 
-    common::page_idx_t estimateNumPagesNeededForSerialize() const;
+    common::page_idx_t getMaxNumPagesForSerialization() const;
     void serialize(common::Serializer& serializer) const;
     void deserialize(common::Deserializer& deSer);
     void finalizeCheckpoint(FileHandle* fileHandle);

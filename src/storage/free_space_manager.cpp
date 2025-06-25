@@ -149,7 +149,7 @@ void FreeSpaceManager::serializeInternal(ValueProcessor& ser) const {
     KU_ASSERT(numCheckpointedEntries + numUncheckpointedEntries == numEntries);
 }
 
-common::page_idx_t FreeSpaceManager::estimateNumPagesNeededForSerialize() const {
+common::page_idx_t FreeSpaceManager::getMaxNumPagesForSerialization() const {
     SerializePagesUsedTracker ser{};
     serializeInternal(ser);
     return ser.numPagesUsed + (ser.numBytesUsedInPage > 0);
