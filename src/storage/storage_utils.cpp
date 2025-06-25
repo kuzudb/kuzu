@@ -1,6 +1,5 @@
 #include "storage/storage_utils.h"
 
-#include "common/assert.h"
 #include "common/null_buffer.h"
 #include "common/string_format.h"
 #include "common/types/ku_list.h"

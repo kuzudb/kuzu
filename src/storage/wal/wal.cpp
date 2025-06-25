@@ -1,6 +1,5 @@
 #include "storage/wal/wal.h"
 
-#include "common/constants.h"
 #include "common/file_system/file_info.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
@@ -14,8 +13,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-WAL::WAL(const std::string& directory, bool readOnly, VirtualFileSystem* vfs)
-    : directory{directory}, readOnly{readOnly}, vfs{vfs} {}
+WAL::WAL(std::string directory, bool readOnly, VirtualFileSystem* vfs)
+    : directory{std::move(directory)}, readOnly{readOnly}, vfs{vfs} {}
 
 WAL::~WAL() {}
 

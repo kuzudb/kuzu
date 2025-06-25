@@ -30,9 +30,9 @@ ShadowPageRecord ShadowPageRecord::deserialize(Deserializer& deserializer) {
     return ShadowPageRecord{originalFileIdx, originalPageIdx};
 }
 
-ShadowFile::ShadowFile(BufferManager& bm, VirtualFileSystem* vfs, std::string databasePath)
-    : bm{bm}, shadowFilePath{StorageUtils::getShadowFilePath(vfs, std::move(databasePath))},
-      vfs{vfs}, shadowingFH{nullptr} {
+ShadowFile::ShadowFile(BufferManager& bm, VirtualFileSystem* vfs, const std::string& databasePath)
+    : bm{bm}, shadowFilePath{StorageUtils::getShadowFilePath(vfs, databasePath)}, vfs{vfs},
+      shadowingFH{nullptr} {
     KU_ASSERT(vfs);
 }
 

@@ -2,13 +2,9 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
-#include "common/constants.h"
-#include "common/file_system/file_info.h"
-#include "common/file_system/virtual_file_system.h"
 #include "common/serializer/in_mem_file_writer.h"
 #include "common/serializer/serializer.h"
 #include "common/vector/value_vector.h"
-#include "main/db_config.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

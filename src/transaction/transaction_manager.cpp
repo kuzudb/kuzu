@@ -7,7 +7,6 @@
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/checkpointer.h"
-#include "storage/storage_manager.h"
 #include "storage/wal/local_wal.h"
 
 using namespace kuzu::common;

@@ -1,8 +1,5 @@
 #pragma once
 
-#include <unordered_set>
-
-#include "common/enums/rel_direction.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {

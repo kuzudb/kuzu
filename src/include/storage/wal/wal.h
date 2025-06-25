@@ -1,8 +1,5 @@
 #pragma once
 
-#include <unordered_set>
-
-#include "common/enums/rel_direction.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
@@ -15,7 +12,7 @@ namespace storage {
 class LocalWAL;
 class WAL {
 public:
-    WAL(const std::string& directory, bool readOnly, common::VirtualFileSystem* vfs);
+    WAL(std::string directory, bool readOnly, common::VirtualFileSystem* vfs);
     ~WAL();
 
     void logCommittedWAL(const LocalWAL& localWAL, main::ClientContext* context);

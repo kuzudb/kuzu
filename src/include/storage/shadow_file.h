@@ -21,7 +21,7 @@ class BufferManager;
 // NOTE: This class is NOT thread-safe for now, as we are not checkpointing in parallel yet.
 class ShadowFile {
 public:
-    ShadowFile(BufferManager& bm, common::VirtualFileSystem* vfs, std::string databasePath);
+    ShadowFile(BufferManager& bm, common::VirtualFileSystem* vfs, const std::string& databasePath);
 
     // TODO(Guodong): Remove originalFile param.
     bool hasShadowPage(common::file_idx_t originalFile, common::page_idx_t originalPage) const {
