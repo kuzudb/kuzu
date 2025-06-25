@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -185,34 +186,36 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
-    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
-    const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
-
     auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
     auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
     if (!nbrTables[0].relGroupEntry->containsProperty(config.weight_property))
     {
         throw RuntimeException("Cannot find property " + config.weight_property);
     }
+    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {config.weight_property});
+    const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
+
 
     Edges edges, finalEdges;
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto props, auto i) {
+            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
-                (void)props;
                 if (nodeId < nbrId)
                 {
-                    edges.push_back({nodeId, nbrId, 1});
+                    auto weight = propertyVectors[0]->template getValue<uint64_t>(i);
+                    edges.push_back({nodeId, nbrId, weight});
                 }
             });
         }
         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto, auto i) {
+            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
-                if (nodeId < nbrId) {
-                    edges.push_back({nodeId, nbrId, 1});
+                if (nodeId < nbrId)
+                {
+                    auto weight = propertyVectors[0]->template getValue<uint64_t>(i);
+                    edges.push_back({nodeId, nbrId, weight});
                 }
             });
         }
@@ -253,9 +256,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     {
         std::cout << u << " " << v << " " << w << std::endl;
     }
-
-
-
     return 0;
 }
 
