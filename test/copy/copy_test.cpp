@@ -81,6 +81,8 @@ public:
     void SetUp() override {
         BaseGraphTest::SetUp();
         failureFrequency = 32;
+        dbSizeInPagesBeforeExceptions = 0;
+        numFreePagesBeforeExceptions = 0;
     }
 
     void resetDB(uint64_t bufferPoolSize) {
@@ -110,6 +112,8 @@ public:
     std::string getInputDir() override { KU_UNREACHABLE; }
     void BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg);
     std::atomic<uint64_t> failureFrequency;
+    common::page_idx_t dbSizeInPagesBeforeExceptions;
+    common::page_idx_t numFreePagesBeforeExceptions;
     FlakyBufferManager* currentBM;
 };
 
@@ -142,14 +146,15 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
             cfg.canFailDuringCommit);
     }
 
-    auto dbSizeInPagesBeforeExceptions = getDbSizeInPages(conn.get());
+    dbSizeInPagesBeforeExceptions = getDbSizeInPages(conn.get());
+    numFreePagesBeforeExceptions = getNumFreePages(conn.get());
     for (int i = 0;; i++) {
         ASSERT_LT(i, 20);
         auto result = cfg.executeFunc(conn.get(), i);
         if (!result->isSuccess()) {
             auto dbSizeInPagesAfterException = getDbSizeInPages(conn.get());
-            auto numFreePages = getNumFreePages(conn.get());
-            EXPECT_EQ(dbSizeInPagesBeforeExceptions + numFreePages, dbSizeInPagesAfterException);
+            auto numNewFreePages = getNumFreePages(conn.get()) - numFreePagesBeforeExceptions;
+            EXPECT_EQ(dbSizeInPagesBeforeExceptions + numNewFreePages, dbSizeInPagesAfterException);
 
             if (cfg.earlyExitOnFailureFunc(result.get())) {
                 break;
@@ -320,12 +325,14 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
                 failureFrequency = 512;
             },
         .executeFunc =
-            [](main::Connection* conn, int) {
-                const auto queryString = common::stringFormat(
+            [this](main::Connection* conn, int) {
+                conn->query("call auto_checkpoint=false");
+                EXPECT_TRUE(conn->query(common::stringFormat(
                     "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
-                    KUZU_ROOT_DIRECTORY);
-
-                return conn->query(queryString);
+                    KUZU_ROOT_DIRECTORY)));
+                dbSizeInPagesBeforeExceptions = getDbSizeInPages(conn);
+                numFreePagesBeforeExceptions = getNumFreePages(conn);
+                return conn->query("CHECKPOINT");
             },
         .earlyExitOnFailureFunc =
             [this](main::QueryResult*) {
@@ -356,10 +363,14 @@ TEST_F(CopyTest, RelCopyCheckpointBMExceptionRecovery) {
                 failureFrequency = 1024;
             },
         .executeFunc =
-            [](main::Connection* conn, int) {
-                return conn->query(common::stringFormat(
+            [this](main::Connection* conn, int) {
+                conn->query("call auto_checkpoint=false");
+                EXPECT_TRUE(conn->query(common::stringFormat(
                     "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
-                    KUZU_ROOT_DIRECTORY));
+                    KUZU_ROOT_DIRECTORY)));
+                dbSizeInPagesBeforeExceptions = getDbSizeInPages(conn);
+                numFreePagesBeforeExceptions = getNumFreePages(conn);
+                return conn->query("CHECKPOINT");
             },
         .earlyExitOnFailureFunc =
             [this](main::QueryResult*) {
