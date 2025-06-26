@@ -12,28 +12,22 @@ public:
     DELETE_COPY_DEFAULT_MOVE(DataChunkCollection);
 
     void append(DataChunk& chunk);
-    inline const std::vector<common::DataChunk>& getChunks() const { return chunks; }
-    inline std::vector<common::DataChunk>& getChunksUnsafe() { return chunks; }
-    inline uint64_t getNumChunks() const { return chunks.size(); }
-    inline const DataChunk& getChunk(uint64_t idx) const {
+    const std::vector<DataChunk>& getChunks() const { return chunks; }
+    std::vector<DataChunk>& getChunksUnsafe() { return chunks; }
+    uint64_t getNumChunks() const { return chunks.size(); }
+    const DataChunk& getChunk(uint64_t idx) const {
         KU_ASSERT(idx < chunks.size());
         return chunks[idx];
     }
-    inline DataChunk& getChunkUnsafe(uint64_t idx) {
+    DataChunk& getChunkUnsafe(uint64_t idx) {
         KU_ASSERT(idx < chunks.size());
         return chunks[idx];
     }
-    inline void merge(DataChunkCollection* other) {
-        for (auto& chunk : other->chunks) {
-            merge(std::move(chunk));
-        }
-    }
-    void merge(DataChunk chunk);
 
 private:
-    void allocateChunk(DataChunk& chunk);
+    void allocateChunk(const DataChunk& chunk);
 
-    void initTypes(DataChunk& chunk);
+    void initTypes(const DataChunk& chunk);
 
 private:
     storage::MemoryManager* mm;

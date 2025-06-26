@@ -29,9 +29,7 @@ protected:
 
 public:
     // STATIC selectionView over 0..selectedSize
-    explicit SelectionView(sel_t selectedSize) : SelectionView{0, selectedSize} {}
-    // STATIC selectionView over startPos..selectedSize
-    explicit SelectionView(sel_t startPos, sel_t selectedSize);
+    explicit SelectionView(sel_t selectedSize);
 
     template<class Func>
     void forEach(Func&& func) const {

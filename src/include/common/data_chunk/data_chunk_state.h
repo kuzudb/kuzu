@@ -34,8 +34,6 @@ public:
         this->selVector = std::move(selVector_);
     }
 
-    void slice(offset_t offset);
-
 private:
     std::shared_ptr<SelectionVector> selVector;
     // TODO: We should get rid of `fStateType` and merge DataChunkState with SelectionVector.
