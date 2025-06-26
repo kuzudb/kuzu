@@ -38,11 +38,16 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(transaction_t timest
         newEntry->setComment(commentInfo.comment);
     } break;
     case AlterType::ADD_FROM_TO_CONNECTION: {
-        auto& fromToConnectionInfo =
-            *alterInfo.extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
-        newEntry->ptrCast<RelGroupCatalogEntry>()->addFromToConnection(
-            fromToConnectionInfo.srcTableID, fromToConnectionInfo.dstTableID,
-            tables->getNextOIDNoLock());
+        auto& connectionInfo =
+            *alterInfo.extraInfo->constPtrCast<BoundExtraAlterFromToConnection>();
+        newEntry->ptrCast<RelGroupCatalogEntry>()->addFromToConnection(connectionInfo.fromTableID,
+            connectionInfo.toTableID, tables->getNextOIDNoLock());
+    } break;
+    case AlterType::DROP_FROM_TO_CONNECTION: {
+        auto& connectionInfo =
+            *alterInfo.extraInfo->constPtrCast<BoundExtraAlterFromToConnection>();
+        newEntry->ptrCast<RelGroupCatalogEntry>()->dropFromToConnection(connectionInfo.fromTableID,
+            connectionInfo.toTableID);
     } break;
     default: {
         KU_UNREACHABLE;

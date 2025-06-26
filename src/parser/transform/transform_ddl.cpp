@@ -17,15 +17,20 @@ std::unique_ptr<Statement> Transformer::transformAlterTable(
     CypherParser::KU_AlterTableContext& ctx) {
     if (ctx.kU_AlterOptions()->kU_AddProperty()) {
         return transformAddProperty(ctx);
-    } else if (ctx.kU_AlterOptions()->kU_DropProperty()) {
-        return transformDropProperty(ctx);
-    } else if (ctx.kU_AlterOptions()->kU_RenameTable()) {
-        return transformRenameTable(ctx);
-    } else if (ctx.kU_AlterOptions()->kU_AddFromToConnection()) {
-        return transformAddFromToConnection(ctx);
-    } else {
-        return transformRenameProperty(ctx);
     }
+    if (ctx.kU_AlterOptions()->kU_DropProperty()) {
+        return transformDropProperty(ctx);
+    }
+    if (ctx.kU_AlterOptions()->kU_RenameTable()) {
+        return transformRenameTable(ctx);
+    }
+    if (ctx.kU_AlterOptions()->kU_AddFromToConnection()) {
+        return transformAddFromToConnection(ctx);
+    }
+    if (ctx.kU_AlterOptions()->kU_DropFromToConnection()) {
+        return transformDropFromToConnection(ctx);
+    }
+    return transformRenameProperty(ctx);
 }
 
 std::string Transformer::getPKName(CypherParser::KU_CreateNodeTableContext& ctx) {
@@ -211,18 +216,38 @@ std::unique_ptr<Statement> Transformer::transformRenameTable(
 std::unique_ptr<Statement> Transformer::transformAddFromToConnection(
     CypherParser::KU_AlterTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    auto srcTableName = transformSchemaName(*ctx.kU_AlterOptions()
-                                                 ->kU_AddFromToConnection()
-                                                 ->kU_FromToConnection()
-                                                 ->oC_SchemaName()[0]);
-    auto dstTableName = transformSchemaName(*ctx.kU_AlterOptions()
-                                                 ->kU_AddFromToConnection()
-                                                 ->kU_FromToConnection()
-                                                 ->oC_SchemaName()[1]);
+    auto schemaNameCtx =
+        ctx.kU_AlterOptions()->kU_AddFromToConnection()->kU_FromToConnection()->oC_SchemaName();
+    KU_ASSERT(schemaNameCtx.size() == 2);
+    auto srcTableName = transformSchemaName(*schemaNameCtx[0]);
+    auto dstTableName = transformSchemaName(*schemaNameCtx[1]);
     auto extraInfo = std::make_unique<ExtraAddFromToConnection>(std::move(srcTableName),
         std::move(dstTableName));
-    auto info =
-        AlterInfo(AlterType::ADD_FROM_TO_CONNECTION, std::move(tableName), std::move(extraInfo));
+    ConflictAction action = ConflictAction::ON_CONFLICT_THROW;
+    if (ctx.kU_AlterOptions()->kU_AddFromToConnection()->kU_IfNotExists()) {
+        action = ConflictAction::ON_CONFLICT_DO_NOTHING;
+    }
+    auto info = AlterInfo(AlterType::ADD_FROM_TO_CONNECTION, std::move(tableName),
+        std::move(extraInfo), action);
+    return std::make_unique<Alter>(std::move(info));
+}
+
+std::unique_ptr<Statement> Transformer::transformDropFromToConnection(
+    CypherParser::KU_AlterTableContext& ctx) {
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto schemaNameCtx =
+        ctx.kU_AlterOptions()->kU_DropFromToConnection()->kU_FromToConnection()->oC_SchemaName();
+    KU_ASSERT(schemaNameCtx.size() == 2);
+    auto srcTableName = transformSchemaName(*schemaNameCtx[0]);
+    auto dstTableName = transformSchemaName(*schemaNameCtx[1]);
+    auto extraInfo = std::make_unique<ExtraAddFromToConnection>(std::move(srcTableName),
+        std::move(dstTableName));
+    ConflictAction action = ConflictAction::ON_CONFLICT_THROW;
+    if (ctx.kU_AlterOptions()->kU_DropFromToConnection()->kU_IfExists()) {
+        action = ConflictAction::ON_CONFLICT_DO_NOTHING;
+    }
+    auto info = AlterInfo(AlterType::DROP_FROM_TO_CONNECTION, std::move(tableName),
+        std::move(extraInfo), action);
     return std::make_unique<Alter>(std::move(info));
 }
 
@@ -252,9 +277,9 @@ std::unique_ptr<Statement> Transformer::transformDropProperty(
     auto dropProperty = ctx.kU_AlterOptions()->kU_DropProperty();
     auto propertyName = transformPropertyKeyName(*dropProperty->oC_PropertyKeyName());
     auto extraInfo = std::make_unique<ExtraDropPropertyInfo>(std::move(propertyName));
-    common::ConflictAction action = common::ConflictAction::ON_CONFLICT_THROW;
+    ConflictAction action = ConflictAction::ON_CONFLICT_THROW;
     if (dropProperty->kU_IfExists()) {
-        action = common::ConflictAction::ON_CONFLICT_DO_NOTHING;
+        action = ConflictAction::ON_CONFLICT_DO_NOTHING;
     }
     auto info = AlterInfo(AlterType::DROP_PROPERTY, tableName, std::move(extraInfo), action);
     return std::make_unique<Alter>(std::move(info));

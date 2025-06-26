@@ -80,6 +80,7 @@ public:
 
     void addFromToConnection(common::table_id_t srcTableID, common::table_id_t dstTableID,
         common::oid_t oid);
+    void dropFromToConnection(common::table_id_t srcTableID, common::table_id_t dstTableID);
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelGroupCatalogEntry> deserialize(common::Deserializer& deserializer);
     std::string toCypher(const ToCypherInfo& info) const override;

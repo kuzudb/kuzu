@@ -14,9 +14,21 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace catalog {
 
-void RelGroupCatalogEntry::addFromToConnection(common::table_id_t srcTableID,
-    common::table_id_t dstTableID, common::oid_t oid) {
+void RelGroupCatalogEntry::addFromToConnection(table_id_t srcTableID, table_id_t dstTableID,
+    oid_t oid) {
     relTableInfos.emplace_back(NodeTableIDPair{srcTableID, dstTableID}, oid);
+}
+
+void RelGroupCatalogEntry::dropFromToConnection(table_id_t srcTableID, table_id_t dstTableID) {
+    auto tmpInfos = relTableInfos;
+    relTableInfos.clear();
+    for (auto& tmpInfo : tmpInfos) {
+        if (tmpInfo.nodePair.srcTableID == srcTableID &&
+            tmpInfo.nodePair.dstTableID == dstTableID) {
+            continue;
+        }
+        relTableInfos.emplace_back(tmpInfo);
+    }
 }
 
 void RelTableCatalogInfo::serialize(Serializer& ser) const {

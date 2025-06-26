@@ -55,7 +55,7 @@ public:
     }
 
 private:
-    void alterTable(main::ClientContext* clientContext, catalog::TableCatalogEntry* entry,
+    void alterTable(main::ClientContext* clientContext, const catalog::TableCatalogEntry& entry,
         const binder::BoundAlterInfo& alterInfo) const;
 
     binder::BoundAlterInfo info;

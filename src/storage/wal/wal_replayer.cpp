@@ -219,11 +219,11 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         }
     } break;
     case AlterType::ADD_FROM_TO_CONNECTION: {
-        auto extraInfo = ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddFromToConnection>();
+        auto extraInfo = ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAlterFromToConnection>();
         auto relGroupEntry = catalog->getTableCatalogEntry(transaction, ownedAlterInfo->tableName)
                                  ->ptrCast<RelGroupCatalogEntry>();
         auto relEntryInfo =
-            relGroupEntry->getRelEntryInfo(extraInfo->srcTableID, extraInfo->dstTableID);
+            relGroupEntry->getRelEntryInfo(extraInfo->fromTableID, extraInfo->toTableID);
         storageManager->addRelTable(relGroupEntry, *relEntryInfo);
     } break;
     default:
