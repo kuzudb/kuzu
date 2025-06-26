@@ -482,12 +482,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         g.initNextNode();
         const nodeID_t nextNodeId = {nodeId, tableId};
-        std::cout << "On " << nodeId << std::endl;
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
             chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
                 auto weight = propertyVectors[0]->template getValue<int64_t>(i);
-                std::cout << "Forwards: Adding " << nbrId <<  " <- " << nodeId << std::endl;
                 g.insertNbr(nbrId, weight);
             });
         }
