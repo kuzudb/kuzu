@@ -344,11 +344,6 @@ TEST_F(CopyTest, GracefulBMExceptionHandlingManyThreads) {
     GTEST_SKIP();
 #endif
 #endif
-
-    // TODO(Royi) Figure why this test sometimes fails for in mem mode
-    if (inMemMode) {
-        GTEST_SKIP();
-    }
     systemConfig->maxNumThreads = 32;
     resetDB(TestHelper::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
 
@@ -384,9 +379,9 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
             "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
             KUZU_ROOT_DIRECTORY));
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(),
-            "Buffer manager exception: Unable to allocate memory! The buffer pool is full and no "
-            "memory could be freed!");
+        ASSERT_EQ(result->getErrorMessage(), "Buffer manager exception: Unable to allocate "
+                                             "memory! The buffer pool is full and no "
+                                             "memory could be freed!");
     }
     // Try opening then closing the database
     resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);
@@ -423,9 +418,9 @@ TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
             "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
             KUZU_ROOT_DIRECTORY));
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(),
-            "Buffer manager exception: Unable to allocate memory! The buffer pool is full and no "
-            "memory could be freed!");
+        ASSERT_EQ(result->getErrorMessage(), "Buffer manager exception: Unable to allocate "
+                                             "memory! The buffer pool is full and no "
+                                             "memory could be freed!");
     }
     // Try dropping the table before trying again with a larger buffer pool size
     resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);

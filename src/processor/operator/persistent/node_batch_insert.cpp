@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/cast.h"
+#include "common/finally_wrapper.h"
 #include "common/string_format.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
@@ -186,12 +187,20 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
 
-    // we only need to write the main data in the chunked node group, the extra data is only used
-    // during the lifetime of this operator to populate error messages
-    ChunkedNodeGroup sliceToWriteToDisk(*nodeGroup, info->outputDataColumns);
-    auto [nodeOffset, numRowsWritten] = nodeTable->appendToLastNodeGroup(*mm, transaction,
-        info->insertColumnIDs, sliceToWriteToDisk);
-    nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns);
+    uint64_t nodeOffset{};
+    uint64_t numRowsWritten{};
+    {
+        // The chunked group in batch insert may contain extra data to populate error messages
+        // When we append to the table we only want the main data so this class is used to slice the
+        // original chunked group
+        // The slice must be restored even if an exception is thrown to prevent other threads from
+        // reading invalid data
+        ChunkedNodeGroup sliceToWriteToDisk{*nodeGroup, info->outputDataColumns};
+        FinallyWrapper sliceRestorer{
+            [&]() { nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns); }};
+        std::tie(nodeOffset, numRowsWritten) = nodeTable->appendToLastNodeGroup(*mm, transaction,
+            info->insertColumnIDs, sliceToWriteToDisk);
+    }
 
     if (indexBuilder) {
         std::vector<ColumnChunkData*> warningChunkData;
