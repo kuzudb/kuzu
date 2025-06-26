@@ -1,5 +1,7 @@
+#include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <thread>
@@ -8,6 +10,8 @@
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "common/in_mem_gds_utils.h"
+#include "common/in_mem_graph.h"
 #include "common/string_utils.h"
 #include "common/types/types.h"
 #include "function/algo_function.h"
@@ -155,117 +159,117 @@ static bool tryUnion(std::vector<std::atomic<uint64_t>>& parent, uint64_t u, uin
     }
 }
 
-static void filterEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent)
-{
-    auto numThreads = std::thread::hardware_concurrency();
-    auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
-    if (chunkSize < 10000)
-    {
-        edges.erase
-        (
-            std::remove_if(edges.begin(), edges.end(), 
-            [&](auto& e) {return find(parent, std::get<U>(e)) == find(parent, std::get<V>(e));}
-            ),
-            edges.end()
-        );
-        return;
-    }
-    std::vector<size_t> newSizes(numThreads);
-    std::vector<std::thread> threads;
-    for (auto t = 0u; t < numThreads; ++t) 
-    {
-        auto start = t * chunkSize;
-        auto end = std::min(edges.size(), start + chunkSize);
+//static void filterEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent)
+//{
+//    auto numThreads = std::thread::hardware_concurrency();
+//    auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
+//    if (chunkSize < 10000)
+//    {
+//        edges.erase
+//        (
+//            std::remove_if(edges.begin(), edges.end(), 
+//            [&](auto& e) {return find(parent, std::get<U>(e)) == find(parent, std::get<V>(e));}
+//            ),
+//            edges.end()
+//        );
+//        return;
+//    }
+//    std::vector<size_t> newSizes(numThreads);
+//    std::vector<std::thread> threads;
+//    for (auto t = 0u; t < numThreads; ++t) 
+//    {
+//        auto start = t * chunkSize;
+//        auto end = std::min(edges.size(), start + chunkSize);
+//
+//        threads.emplace_back([&, t, start, end]()
+//        {
+//            auto writeIt = edges.begin() + start;
+//            for (auto it = edges.begin() + start; it != edges.begin() + end; ++it) 
+//            {
+//                if (find(parent, std::get<U>(*it)) != find(parent, std::get<V>(*it)))
+//                {
+//                    *writeIt = std::move(*it);
+//                    ++writeIt;
+//                }
+//            }
+//            newSizes[t] = std::distance(edges.begin() + start, writeIt);
+//        });
+//    }
+//    for(auto& th : threads)
+//    {
+//        th.join();
+//    }
+//    auto offset = 0u;
+//    for (auto t = 0u; t < numThreads; ++t) 
+//    {
+//        auto start = t * chunkSize;
+//        auto size = newSizes[t];
+//        if (start != offset) 
+//        {
+//            std::move(edges.begin() + start, edges.begin() + start + size, edges.begin() + offset);
+//        }
+//        offset += size;
+//    }
+//    edges.resize(offset);
+//}
 
-        threads.emplace_back([&, t, start, end]()
-        {
-            auto writeIt = edges.begin() + start;
-            for (auto it = edges.begin() + start; it != edges.begin() + end; ++it) 
-            {
-                if (find(parent, std::get<U>(*it)) != find(parent, std::get<V>(*it)))
-                {
-                    *writeIt = std::move(*it);
-                    ++writeIt;
-                }
-            }
-            newSizes[t] = std::distance(edges.begin() + start, writeIt);
-        });
-    }
-    for(auto& th : threads)
-    {
-        th.join();
-    }
-    auto offset = 0u;
-    for (auto t = 0u; t < numThreads; ++t) 
-    {
-        auto start = t * chunkSize;
-        auto size = newSizes[t];
-        if (start != offset) 
-        {
-            std::move(edges.begin() + start, edges.begin() + start + size, edges.begin() + offset);
-        }
-        offset += size;
-    }
-    edges.resize(offset);
-}
-
-static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
-{
-    auto numThreads = std::thread::hardware_concurrency();
-    auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
-    if (chunkSize < 10000)
-    {
-        for(const auto& e : edges)
-        {
-            auto u_comp = find(parent, std::get<U>(e));
-            auto v_comp = find(parent, std::get<V>(e));
-            // Update each component with the min edge found so far.
-            auto& cu = cheapest[u_comp];
-            if (cu == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cu.value()))
-            {
-                cheapest[u_comp] = e;
-            }
-            auto& cv = cheapest[v_comp];
-            if (cv == std::nullopt|| std::get<WEIGHT>(e) < std::get<WEIGHT>(cv.value()))
-            {
-                cheapest[v_comp] = e;
-            }
-        }
-        return;
-    }
-    std::vector<std::thread> threads;
-    static std::vector<std::mutex> locks(cheapest.size());
-
-    for (auto t = 0u; t < numThreads; ++t) 
-    {
-        auto start = t * chunkSize;
-        auto end = std::min(edges.size(), start + chunkSize);
-
-        threads.emplace_back([&, start, end]()
-        {
-            for (auto it = edges.begin() + start; it != edges.begin() + end; ++it) 
-            {
-                auto u_comp = find(parent, std::get<U>(*it));
-                auto v_comp = find(parent, std::get<V>(*it));
-                auto tryUpdate = [&](uint64_t comp, const Edge& candidate) 
-                {
-                    std::lock_guard<std::mutex> guard(locks[comp]);
-                    auto& curr = cheapest[comp];
-                    if (curr == std::nullopt || std::get<WEIGHT>(candidate) < std::get<WEIGHT>(curr.value()))
-                    {
-                        curr = candidate;
-                    }
-                };
-                tryUpdate(u_comp, *it);
-                tryUpdate(v_comp, *it);
-            }
-        });
-    }
-    for(auto& th : threads)
-    {
-        th.join();
-    }
-}
+//static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
+//{
+//    auto numThreads = std::thread::hardware_concurrency();
+//    auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
+//    if (chunkSize < 10000)
+//    {
+//        for(const auto& e : edges)
+//        {
+//            auto u_comp = find(parent, std::get<U>(e));
+//            auto v_comp = find(parent, std::get<V>(e));
+//            // Update each component with the min edge found so far.
+//            auto& cu = cheapest[u_comp];
+//            if (cu == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cu.value()))
+//            {
+//                cheapest[u_comp] = e;
+//            }
+//            auto& cv = cheapest[v_comp];
+//            if (cv == std::nullopt|| std::get<WEIGHT>(e) < std::get<WEIGHT>(cv.value()))
+//            {
+//                cheapest[v_comp] = e;
+//            }
+//        }
+//        return;
+//    }
+//    std::vector<std::thread> threads;
+//    static std::vector<std::mutex> locks(cheapest.size());
+//
+//    for (auto t = 0u; t < numThreads; ++t) 
+//    {
+//        auto start = t * chunkSize;
+//        auto end = std::min(edges.size(), start + chunkSize);
+//
+//        threads.emplace_back([&, start, end]()
+//        {
+//            for (auto it = edges.begin() + start; it != edges.begin() + end; ++it) 
+//            {
+//                auto u_comp = find(parent, std::get<U>(*it));
+//                auto v_comp = find(parent, std::get<V>(*it));
+//                auto tryUpdate = [&](uint64_t comp, const Edge& candidate) 
+//                {
+//                    std::lock_guard<std::mutex> guard(locks[comp]);
+//                    auto& curr = cheapest[comp];
+//                    if (curr == std::nullopt || std::get<WEIGHT>(candidate) < std::get<WEIGHT>(curr.value()))
+//                    {
+//                        curr = candidate;
+//                    }
+//                };
+//                tryUpdate(u_comp, *it);
+//                tryUpdate(v_comp, *it);
+//            }
+//        });
+//    }
+//    for(auto& th : threads)
+//    {
+//        th.join();
+//    }
+//}
 
 
 static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>& finalEdges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
@@ -340,6 +344,121 @@ static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>
     return addedEdge.load(std::memory_order::relaxed);
 }
 
+struct BoruvkaState 
+{
+    InMemGraph& graph;
+    std::vector<std::atomic<uint64_t>> parent;
+    std::vector<std::optional<Edge>> cheapest;
+    std::vector<std::vector<std::pair<offset_t, offset_t>>> finalEdges;
+    std::vector<std::mutex> locks;
+    std::vector<std::atomic<bool>> validEdges;
+    explicit BoruvkaState(offset_t numNodes, InMemGraph& graph) : graph{graph}, parent(numNodes), cheapest(numNodes, std::nullopt), finalEdges(numNodes), locks(numNodes), validEdges(graph.numEdges)
+    {
+        for(auto i = 0u; i < parent.size(); ++i) 
+        {
+            parent[i].store(i, std::memory_order::relaxed);
+        }
+
+        for(auto i = 0u; i < validEdges.size(); ++i) 
+        {
+            validEdges[i].store(true, std::memory_order::relaxed);
+        }
+
+    }
+};
+
+class AssignCheapestEdgesCompute final : public InMemVertexCompute {
+public:
+    explicit AssignCheapestEdgesCompute(BoruvkaState& state) : state{state} {}
+    ~AssignCheapestEdgesCompute() override = default;
+    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+        for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
+            const auto startCSROffset = state.graph.csrOffsets[nodeId];
+            const auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
+            for (auto offset = startCSROffset; offset < endCSROffset; offset++)
+            {
+                if (!state.validEdges[offset].load(std::memory_order::relaxed))
+                {
+                    continue;
+                }
+                auto u_comp = find(state.parent, nodeId);
+                auto v_comp = find(state.parent, state.graph.csrEdges[offset].neighbor);
+                auto tryUpdate = [&](uint64_t comp, const Edge& candidate) 
+                {
+                    std::lock_guard<std::mutex> guard(state.locks[comp]);
+                    auto& curr = state.cheapest[comp];
+                    if (curr == std::nullopt || std::get<WEIGHT>(candidate) < std::get<WEIGHT>(curr.value()))
+                    {
+                        curr = candidate;
+                    }
+                };
+                Edge edge = {nodeId, state.graph.csrEdges[offset].neighbor, state.graph.csrEdges[offset].weight};
+                tryUpdate(u_comp, edge);
+                tryUpdate(v_comp, edge);
+            }
+        }
+    }
+    std::unique_ptr<InMemVertexCompute> copy() override {
+        return std::make_unique<AssignCheapestEdgesCompute>(state);
+    }
+private:
+    BoruvkaState& state;
+};
+
+
+
+class UpdateForestCompute final : public InMemVertexCompute {
+public:
+    explicit UpdateForestCompute(BoruvkaState& state) : state{state} {}
+    ~UpdateForestCompute() override = default;
+    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+        for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
+            const auto startCSROffset = state.graph.csrOffsets[nodeId];
+            const auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
+            for (auto offset = startCSROffset; offset < endCSROffset; offset++)
+            {
+            }
+        }
+    }
+    std::unique_ptr<InMemVertexCompute> copy() override {
+        return std::make_unique<UpdateForestCompute>(state);
+    }
+private:
+    BoruvkaState& state;
+};
+
+
+class FilterEdgesCompute final : public InMemVertexCompute {
+public:
+    explicit FilterEdgesCompute(BoruvkaState& state) : state{state} {}
+    ~FilterEdgesCompute() override = default;
+    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+        for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
+            const auto startCSROffset = state.graph.csrOffsets[nodeId];
+            const auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
+            for (auto offset = startCSROffset; offset < endCSROffset; offset++)
+            {
+                if (!state.validEdges[offset].load(std::memory_order::relaxed))
+                {
+                    continue;
+                }
+
+                if (find(state.parent, nodeId) == find(state.parent, state.graph.csrEdges[offset].neighbor))
+                {
+                    state.validEdges[offset].store(false, std::memory_order::relaxed);
+                }
+            }
+        }
+    }
+    std::unique_ptr<InMemVertexCompute> copy() override {
+        return std::make_unique<FilterEdgesCompute>(state);
+    }
+private:
+    BoruvkaState& state;
+};
+
+
+
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
@@ -359,57 +478,48 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {config.weight_property});
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
-    Edges edges;
-    // TODO(Tanvir) Confirm this is the right way to treat these edges.
-    // Gets all forward direction edges.
-    // We treat these edges as undirected anyways.
+    InMemGraph g(numNodes, mm);
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
+        g.initNextNode();
         const nodeID_t nextNodeId = {nodeId, tableId};
+        std::cout << "On " << nodeId << std::endl;
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
             chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
-                    auto weight = propertyVectors[0]->template getValue<int64_t>(i);
-                    //TODO(Tanvir) Remove this assertion. Attempt to use visit
-                    //from wsp_utils.h
-                    assert(weight >= 0);
-                    edges.push_back({nodeId, nbrId, weight});
+                auto weight = propertyVectors[0]->template getValue<int64_t>(i);
+                std::cout << "Forwards: Adding " << nbrId <<  " <- " << nodeId << std::endl;
+                g.insertNbr(nbrId, weight);
             });
         }
     }
-    // Boruvka's Algo Init Stuff.
-    std::vector<std::atomic<uint64_t>> parent(numNodes);
-    // Track cheapest edge coming out of a component.
-    std::vector<std::optional<Edge>> cheapest(numNodes, std::nullopt);
-    // Initially treat every vertex as its own component.
-    for(auto i = 0u; i < parent.size(); ++i) 
-    {
-        parent[i].store(i, std::memory_order::relaxed);
-    }
+    // Finalize
+    g.initNextNode();
 
-    // List of (node.offset | List of((nbrNode.offset, weight)))
-    std::vector<std::vector<std::pair<offset_t, offset_t>>> finalEdges(numNodes);
+    BoruvkaState state(numNodes, g);
+    AssignCheapestEdgesCompute assignCheapestEdges(state);
+    FilterEdgesCompute filterEdges(state);
+
     //TODO(Tanvir) Inquire about maxIterations
     int count = 0;
     while(++count)
     {
         // Loop over all edges finding the cheapest outgoing edge on a
         // component.
-        assignCheapestEdges(edges, parent, cheapest);
-
+        InMemGDSUtils::runVertexCompute(assignCheapestEdges, numNodes, input.context);
         // Add the cheapest edge from each component to the forest. 
         // This also updates our component container (parent).
         // We break if we make no progress on a round.
-        bool addedEdge = updateForest(finalEdges, parent, cheapest);
+        bool addedEdge = updateForest(state.finalEdges, state.parent, state.cheapest);
         if (!addedEdge)
         {
             break;
         }
         
         // Optimization: Erase edges in the same component from candidates.
-        filterEdges(edges, parent);
+        InMemGDSUtils::runVertexCompute(filterEdges, numNodes, input.context);
     }
 
-    const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, finalEdges);
+    const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.finalEdges);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
 
     sharedState->factorizedTablePool.mergeLocalTables();
