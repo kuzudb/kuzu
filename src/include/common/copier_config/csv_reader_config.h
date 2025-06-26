@@ -25,6 +25,7 @@ struct CSVOption {
     bool setDelim;
     bool setQuote;
     bool setHeader;
+    std::vector<std::string> nullStrings;
 
     CSVOption()
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
@@ -39,7 +40,8 @@ struct CSVOption {
           setEscape{CopyConstants::DEFAULT_CSV_SET_DIALECT},
           setDelim{CopyConstants::DEFAULT_CSV_SET_DIALECT},
           setQuote{CopyConstants::DEFAULT_CSV_SET_DIALECT},
-          setHeader{CopyConstants::DEFAULT_CSV_SET_DIALECT} {}
+          setHeader{CopyConstants::DEFAULT_CSV_SET_DIALECT},
+          nullStrings{CopyConstants::DEFAULT_CSV_NULL_STRINGS[0]} {}
 
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
@@ -85,7 +87,7 @@ struct CSVOption {
                                             // sampleSize is 0
           allowUnbracedList{other.allowUnbracedList}, ignoreErrors{other.ignoreErrors},
           autoDetection{other.autoDetection}, setEscape{other.setEscape}, setDelim{other.setDelim},
-          setQuote{other.setQuote}, setHeader{other.setHeader} {}
+          setQuote{other.setQuote}, setHeader{other.setHeader}, nullStrings{other.nullStrings} {}
 };
 
 struct CSVReaderConfig {

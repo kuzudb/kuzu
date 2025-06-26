@@ -134,10 +134,13 @@ struct CopyConstants {
     static constexpr std::array DEFAULT_CSV_DELIMITER_SEARCH_SPACE = {',', ';', '\t', '|'};
     static constexpr std::array DEFAULT_CSV_QUOTE_SEARCH_SPACE = {'"', '\''};
     static constexpr std::array DEFAULT_CSV_ESCAPE_SEARCH_SPACE = {'"', '\\', '\''};
+    static constexpr std::array DEFAULT_CSV_NULL_STRINGS = {""};
 
     static constexpr const char* INT_CSV_PARSING_OPTIONS[] = {"SKIP", "SAMPLE_SIZE"};
     static constexpr uint64_t DEFAULT_CSV_SKIP_NUM = 0;
     static constexpr uint64_t DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE = 256;
+
+    static constexpr const char* LIST_CSV_PARSING_OPTIONS[] = {"NULL_STRINGS"};
 
     // metadata columns used to populate CSV warnings
     static constexpr std::array SHARED_WARNING_DATA_COLUMN_NAMES = {"blockIdx", "offsetInBlock",

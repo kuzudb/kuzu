@@ -847,14 +847,34 @@ void CastString::operation(const ku_string_t& input, union_entry_t& result,
         resultVector, rowToAdd, CSVOption);
 }
 
+static void setVectorNull(ValueVector* vector, uint64_t vectorPos, std::string_view strVal,
+    const CSVOption* option) {
+    auto& type = vector->dataType;
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::STRING: {
+        if (std::any_of(option->nullStrings.begin(), option->nullStrings.end(),
+                [&](const std::string& nullStr) { return nullStr == strVal; })) {
+            vector->setNull(vectorPos, true /* isNull */);
+            return;
+        }
+    } break;
+    default: {
+        if (isNull(strVal)) {
+            vector->setNull(vectorPos, true /* isNull */);
+            return;
+        }
+    } break;
+    }
+    vector->setNull(vectorPos, false /* isNull */);
+}
+
 void CastString::copyStringToVector(ValueVector* vector, uint64_t vectorPos,
     std::string_view strVal, const CSVOption* option) {
     auto& type = vector->dataType;
-    if (strVal.empty() || isNull(strVal) || isAnyType(strVal)) {
-        vector->setNull(vectorPos, true /* isNull */);
+    setVectorNull(vector, vectorPos, strVal, option);
+    if (vector->isNull(vectorPos)) {
         return;
     }
-    vector->setNull(vectorPos, false /* isNull */);
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT128: {
         int128_t val = 0;
