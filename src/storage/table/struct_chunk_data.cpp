@@ -87,7 +87,7 @@ void StructChunkData::flush(PageAllocator& pageAllocator) {
     }
 }
 
-void StructChunkData::reclaimStorage(PageAllocator &pageAllocator) {
+void StructChunkData::reclaimStorage(PageAllocator& pageAllocator) {
     ColumnChunkData::reclaimStorage(pageAllocator);
     for (const auto& childChunk : childChunks) {
         childChunk->reclaimStorage(pageAllocator);
