@@ -369,21 +369,6 @@ jobs:
           find . -name "*.gcda" -delete
           lcov --zerocounters --directory ./
 
-      - name: Extension test coverage
-        run: make extension-lcov
-
-      - name: Generate coverage report
-        run: |
-          lcov --config-file .lcovrc -c -d ./ --no-external -o cover_extension.info &&\
-          lcov --remove cover_extension.info $(< .github/workflows/lcov_exclude) -o cover_extension.info
-
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v4.5.0
-        with:
-          file: cover_extension.info
-          flags: extension
-          name: extension-coverage
-
   webassembly-build-test:
     name: webassembly build & test
     needs: [ sanity-checks, generate-binary-datasets ]
@@ -1172,6 +1157,21 @@ jobs:
       - name: Extension test with asan
         run: |
           make clean && make extension-test ASAN=1 WERROR=0 EXTENSION_TEST_EXCLUDE_FILTER="(delta|postgres|iceberg)" && make clean
+
+      - name: Extension test coverage
+        run: make extension-lcov
+
+      - name: Generate coverage report
+        run: |
+          lcov --config-file .lcovrc -c -d ./ --no-external -o cover_extension.info &&\
+          lcov --remove cover_extension.info $(< .github/workflows/lcov_exclude) -o cover_extension.info
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4.5.0
+        with:
+          file: cover_extension.info
+          flags: extension
+          name: extension-coverage
 
   macos-extension-test:
     name: macos extension test
