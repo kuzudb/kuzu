@@ -135,14 +135,11 @@ RelTable::RelTable(RelGroupCatalogEntry* relGroupEntry, table_id_t fromTableID,
     auto relEntryInfo = relGroupEntry->getRelEntryInfo(fromNodeTableID, toNodeTableID);
     tableID = relEntryInfo->oid;
     relGroupID = relGroupEntry->getTableID();
-    // TODO(Royi) the page allocator should be set somewhere common and passed in as we could want
-    // to used thread-local OptimisticAllocators
-    auto& pageAllocator = *storageManager->getDataFH()->getPageManager();
     for (auto direction : relGroupEntry->getRelDataDirections()) {
         auto nbrTableID = RelDirectionUtils::getNbrTableID(direction, fromTableID, toTableID);
         directedRelData.emplace_back(
-            std::make_unique<RelTableData>(pageAllocator, memoryManager, shadowFile, *relGroupEntry,
-                relEntryInfo->oid, direction, nbrTableID, enableCompression));
+            std::make_unique<RelTableData>(storageManager->getDataFH(), memoryManager, shadowFile,
+                *relGroupEntry, relEntryInfo->oid, direction, nbrTableID, enableCompression));
     }
 }
 

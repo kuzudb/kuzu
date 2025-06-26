@@ -71,10 +71,9 @@ public:
 template<typename T>
 class HashIndex final : public OnDiskHashIndex {
 public:
-    HashIndex(MemoryManager& memoryManager, PageAllocator& pageAllocator,
-        OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
-        ShadowFile* shadowFile, const HashIndexHeader& indexHeaderForReadTrx,
-        HashIndexHeader& indexHeaderForWriteTrx);
+    HashIndex(MemoryManager& memoryManager, OverflowFileHandle* overflowFileHandle,
+        DiskArrayCollection& diskArrays, uint64_t indexPos, ShadowFile* shadowFile,
+        const HashIndexHeader& indexHeaderForReadTrx, HashIndexHeader& indexHeaderForWriteTrx);
 
     ~HashIndex() override;
 

@@ -14,17 +14,17 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StructColumn::StructColumn(std::string name, LogicalType dataType, PageAllocator& pageAllocator,
+StructColumn::StructColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
     MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
-    : Column{std::move(name), std::move(dataType), pageAllocator, mm, shadowFile, enableCompression,
+    : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
           true /* requireNullColumn */} {
     const auto fieldTypes = StructType::getFieldTypes(this->dataType);
     childColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         const auto childColName = StorageUtils::getColumnName(this->name,
             StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
-        childColumns[i] = ColumnFactory::createColumn(childColName, fieldTypes[i]->copy(),
-            pageAllocator, mm, shadowFile, enableCompression);
+        childColumns[i] = ColumnFactory::createColumn(childColName, fieldTypes[i]->copy(), dataFH,
+            mm, shadowFile, enableCompression);
     }
 }
 
@@ -93,7 +93,8 @@ void StructColumn::write(ColumnChunkData& persistentChunk, ChunkState& state,
     }
 }
 
-void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+    PageAllocator& pageAllocator) {
     auto& persistentStructChunk = checkpointState.persistentData.cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
         std::vector<ChunkCheckpointState> childChunkCheckpointStates;
@@ -105,9 +106,9 @@ void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState)
         }
         ColumnCheckpointState childColumnCheckpointState(*persistentStructChunk.getChild(i),
             std::move(childChunkCheckpointStates));
-        childColumns[i]->checkpointColumnChunk(childColumnCheckpointState);
+        childColumns[i]->checkpointColumnChunk(childColumnCheckpointState, pageAllocator);
     }
-    Column::checkpointNullData(checkpointState);
+    Column::checkpointNullData(checkpointState, pageAllocator);
     persistentStructChunk.syncNumValues();
 }
 

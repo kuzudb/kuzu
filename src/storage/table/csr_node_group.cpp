@@ -594,7 +594,7 @@ void CSRNodeGroup::checkpointColumn(const UniqLock& lock, column_id_t columnID,
     }
     ColumnCheckpointState checkpointState(persistentChunkGroup->getColumnChunk(columnID).getData(),
         std::move(chunkCheckpointStates));
-    csrState.columns[columnID]->checkpointColumnChunk(checkpointState);
+    csrState.columns[columnID]->checkpointColumnChunk(checkpointState, csrState.pageAllocator);
 }
 
 ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock,
@@ -620,7 +620,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     dummyChunkForNulls->getData().resetToAllNull();
     // Copy per csr list from old chunk and merge with new insertions into the newChunkData.
     for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-         nodeOffset++) {
+        nodeOffset++) {
         const auto oldCSRLength = csrState.oldHeader->getCSRLength(nodeOffset);
         KU_ASSERT(csrState.oldHeader->getStartCSROffset(nodeOffset) >= leftCSROffset);
         const auto oldStartRow = csrState.oldHeader->getStartCSROffset(nodeOffset) - leftCSROffset;
@@ -684,14 +684,16 @@ void CSRNodeGroup::checkpointCSRHeaderColumns(const CSRNodeGroupCheckpointState&
     ColumnCheckpointState csrOffsetCheckpointState(
         persistentChunkGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader().offset->getData(),
         std::move(csrOffsetChunkCheckpointStates));
-    csrState.csrOffsetColumn->checkpointColumnChunk(csrOffsetCheckpointState);
+    csrState.csrOffsetColumn->checkpointColumnChunk(csrOffsetCheckpointState,
+        csrState.pageAllocator);
     std::vector<ChunkCheckpointState> csrLengthChunkCheckpointStates;
     csrLengthChunkCheckpointStates.push_back(
         ChunkCheckpointState{csrState.newHeader->length->moveData(), 0, numNodes});
     ColumnCheckpointState csrLengthCheckpointState(
         persistentChunkGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader().length->getData(),
         std::move(csrLengthChunkCheckpointStates));
-    csrState.csrLengthColumn->checkpointColumnChunk(csrLengthCheckpointState);
+    csrState.csrLengthColumn->checkpointColumnChunk(csrLengthCheckpointState,
+        csrState.pageAllocator);
 }
 
 void CSRNodeGroup::collectRegionChangesAndUpdateHeaderLength(const UniqLock& lock,
@@ -705,7 +707,7 @@ void CSRNodeGroup::collectInMemRegionChangesAndUpdateHeaderLength(const UniqLock
     row_idx_t numInsertionsInRegion = 0u;
     if (csrIndex) {
         for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-             nodeOffset++) {
+            nodeOffset++) {
             auto rows = csrIndex->indices[nodeOffset].getRows();
             row_idx_t numInsertedRows = rows.size();
             row_idx_t numInMemDeletionsInCSR = 0;
@@ -738,7 +740,7 @@ void CSRNodeGroup::collectOnDiskRegionChangesAndUpdateHeaderLength(const UniqLoc
     int64_t numDeletionsInRegion = 0u;
     if (persistentChunkGroup) {
         for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-             nodeOffset++) {
+            nodeOffset++) {
             const auto numDeletedRows =
                 getNumDeletionsForNodeInPersistentData(nodeOffset, csrState);
             if (numDeletedRows == 0) {

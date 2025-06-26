@@ -56,7 +56,7 @@ private:
 
 class RelTableData {
 public:
-    RelTableData(PageAllocator& pageAllocator, MemoryManager* mm, ShadowFile* shadowFile,
+    RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
         const catalog::RelGroupCatalogEntry& relGroupEntry, common::table_id_t tableID,
         common::RelDataDirection direction, common::table_id_t nbrTableID, bool enableCompression);
 
@@ -117,9 +117,9 @@ public:
     common::RelDataDirection getDirection() const { return direction; }
 
 private:
-    void initCSRHeaderColumns(PageAllocator& pageAllocator);
+    void initCSRHeaderColumns(FileHandle* dataFH);
     void initPropertyColumns(const catalog::RelGroupCatalogEntry& relGroupEntry,
-        common::table_id_t nbrTableID, PageAllocator& pageAllocator);
+        common::table_id_t nbrTableID, FileHandle* dataFH);
 
     std::pair<CSRNodeGroupScanSource, common::row_idx_t> findMatchingRow(
         transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,

@@ -27,10 +27,9 @@ class DiskArrayCollection {
     static_assert(std::has_unique_object_representations_v<HeaderPage>);
 
 public:
-    explicit DiskArrayCollection(ShadowFile& shadowFile, bool bypassShadowing = false);
-    // This constructor is explicit to prevent implicit casting from bool to page_idx_t
-    // This makes it more difficult to mix up the usage of the two constructors
-    explicit DiskArrayCollection(PageAllocator& pageAllocator, ShadowFile& shadowFile,
+    explicit DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
+        bool bypassShadowing = false);
+    DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
         common::page_idx_t firstHeaderPage, bool bypassShadowing = false);
 
     void checkpoint(common::page_idx_t firstHeaderPage, PageAllocator& pageAllocator);
@@ -51,19 +50,20 @@ public:
     void reclaimStorage(PageAllocator& pageAllocator, common::page_idx_t firstHeaderPage) const;
 
     template<typename T>
-    std::unique_ptr<DiskArray<T>> getDiskArray(uint32_t idx, PageAllocator& pageAllocator) {
+    std::unique_ptr<DiskArray<T>> getDiskArray(uint32_t idx) {
         KU_ASSERT(idx < numHeaders);
         auto& readHeader = headersForReadTrx[idx / HeaderPage::NUM_HEADERS_PER_PAGE]
                                ->headers[idx % HeaderPage::NUM_HEADERS_PER_PAGE];
         auto& writeHeader = headersForWriteTrx[idx / HeaderPage::NUM_HEADERS_PER_PAGE]
                                 ->headers[idx % HeaderPage::NUM_HEADERS_PER_PAGE];
-        return std::make_unique<DiskArray<T>>(pageAllocator, readHeader, writeHeader, &shadowFile,
+        return std::make_unique<DiskArray<T>>(fileHandle, readHeader, writeHeader, &shadowFile,
             bypassShadowing);
     }
 
     size_t addDiskArray(PageAllocator& pageAllocator);
 
 private:
+    FileHandle& fileHandle;
     ShadowFile& shadowFile;
     bool bypassShadowing;
     common::page_idx_t headerPagesOnDisk;

@@ -55,25 +55,24 @@ bool ListOffsetSizeInfo::isOffsetSortedAscending(uint64_t startPos, uint64_t end
     return true;
 }
 
-ListColumn::ListColumn(std::string name, LogicalType dataType, PageAllocator& pageAllocator,
+ListColumn::ListColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
     MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
-    : Column{std::move(name), std::move(dataType), pageAllocator, mm, shadowFile, enableCompression,
+    : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
           true /* requireNullColumn */} {
     auto offsetColName =
         StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::OFFSET, "offset_");
     auto sizeColName =
         StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::OFFSET, "");
     auto dataColName = StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::DATA, "");
-    sizeColumn = std::make_unique<Column>(sizeColName, LogicalType::UINT32(), pageAllocator, mm,
+    sizeColumn = std::make_unique<Column>(sizeColName, LogicalType::UINT32(), dataFH, mm,
         shadowFile, enableCompression, false /*requireNullColumn*/);
-    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), pageAllocator, mm,
+    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), dataFH, mm,
         shadowFile, enableCompression, false /*requireNullColumn*/);
     if (disableCompressionOnData(this->dataType)) {
         enableCompression = false;
     }
-    dataColumn =
-        ColumnFactory::createColumn(dataColName, ListType::getChildType(this->dataType).copy(),
-            pageAllocator, mm, shadowFile, enableCompression);
+    dataColumn = ColumnFactory::createColumn(dataColName,
+        ListType::getChildType(this->dataType).copy(), dataFH, mm, shadowFile, enableCompression);
 }
 
 bool ListColumn::disableCompressionOnData(const LogicalType& dataType) {
@@ -307,7 +306,8 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const ChunkState& state,
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
 
-void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+    PageAllocator& pageAllocator) {
     auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
     const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
     // First, check if we can checkpoint list data chunk in place.
@@ -346,12 +346,12 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
             chunkCheckpointState->chunkData->cast<ListChunkData>().setDataColumnChunk(
                 std::move(listDataCheckpointState.chunkCheckpointStates[i].chunkData));
         }
-        checkpointColumnChunkOutOfPlace(chunkState, checkpointState);
+        checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator);
     } else {
         // In place checkpoint for list data.
         dataColumn->checkpointColumnChunkInPlace(
             chunkState.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-            listDataCheckpointState);
+            listDataCheckpointState, pageAllocator);
 
         // Checkpoint offset data.
         std::vector<ChunkCheckpointState> offsetChunkCheckpointStates;
@@ -377,7 +377,7 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 
         ColumnCheckpointState offsetCheckpointState(*persistentListChunk.getOffsetColumnChunk(),
             std::move(offsetChunkCheckpointStates));
-        offsetColumn->checkpointColumnChunk(offsetCheckpointState);
+        offsetColumn->checkpointColumnChunk(offsetCheckpointState, pageAllocator);
 
         // Checkpoint size data.
         std::vector<ChunkCheckpointState> sizeChunkCheckpointStates;
@@ -388,9 +388,9 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
         }
         ColumnCheckpointState sizeCheckpointState(*persistentListChunk.getSizeColumnChunk(),
             std::move(sizeChunkCheckpointStates));
-        sizeColumn->checkpointColumnChunk(sizeCheckpointState);
+        sizeColumn->checkpointColumnChunk(sizeCheckpointState, pageAllocator);
         // Checkpoint null data.
-        Column::checkpointNullData(checkpointState);
+        Column::checkpointNullData(checkpointState, pageAllocator);
 
         KU_ASSERT(persistentListChunk.getNullData()->getNumValues() ==
                       persistentListChunk.getOffsetColumnChunk()->getNumValues() &&

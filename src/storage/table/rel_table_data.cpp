@@ -56,15 +56,15 @@ void InMemoryVersionRecordHandler::rollbackInsert(Transaction* transaction,
     relTableData->rollbackGroupCollectionInsert(numRowsToRollback, false);
 }
 
-RelTableData::RelTableData(PageAllocator& pageAllocator, MemoryManager* mm, ShadowFile* shadowFile,
+RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
     const RelGroupCatalogEntry& relGroupEntry, table_id_t tableID, RelDataDirection direction,
     table_id_t nbrTableID, bool enableCompression)
     : tableID{tableID}, tableName{relGroupEntry.getName()}, memoryManager{mm},
       shadowFile{shadowFile}, enableCompression{enableCompression}, direction{direction},
       multiplicity{relGroupEntry.getMultiplicity(direction)}, persistentVersionRecordHandler(this),
       inMemoryVersionRecordHandler(this) {
-    initCSRHeaderColumns(pageAllocator);
-    initPropertyColumns(relGroupEntry, nbrTableID, pageAllocator);
+    initCSRHeaderColumns(dataFH);
+    initPropertyColumns(relGroupEntry, nbrTableID, dataFH);
     // default to using the persistent version record handler
     // if we want to use the in-memory handler, we will explicitly pass it into
     // nodeGroups.pushInsertInfo()
@@ -72,33 +72,33 @@ RelTableData::RelTableData(PageAllocator& pageAllocator, MemoryManager* mm, Shad
         &persistentVersionRecordHandler);
 }
 
-void RelTableData::initCSRHeaderColumns(PageAllocator& pageAllocator) {
+void RelTableData::initCSRHeaderColumns(FileHandle* dataFH) {
     // No NULL values is allowed for the csr length and offset column.
     auto csrOffsetColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_OFFSET,
         RelDirectionUtils::relDirectionToString(direction));
     csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, LogicalType::UINT64(),
-        pageAllocator, memoryManager, shadowFile, enableCompression, false /* requireNullColumn */);
+        dataFH, memoryManager, shadowFile, enableCompression, false /* requireNullColumn */);
     auto csrLengthColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_LENGTH,
         RelDirectionUtils::relDirectionToString(direction));
     csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, LogicalType::UINT64(),
-        pageAllocator, memoryManager, shadowFile, enableCompression, false /* requireNullColumn */);
+        dataFH, memoryManager, shadowFile, enableCompression, false /* requireNullColumn */);
 }
 
 void RelTableData::initPropertyColumns(const RelGroupCatalogEntry& relGroupEntry,
-    table_id_t nbrTableID, PageAllocator& pageAllocator) {
+    table_id_t nbrTableID, FileHandle* dataFH) {
     const auto maxColumnID = relGroupEntry.getMaxColumnID();
     columns.resize(maxColumnID + 1);
     auto nbrIDColName = StorageUtils::getColumnName("NBR_ID", StorageUtils::ColumnType::DEFAULT,
         RelDirectionUtils::relDirectionToString(direction));
-    auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, pageAllocator,
-        memoryManager, shadowFile, enableCompression);
+    auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, dataFH, memoryManager,
+        shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
     for (auto& property : relGroupEntry.getProperties()) {
         const auto columnID = relGroupEntry.getColumnID(property.getName());
         const auto colName = StorageUtils::getColumnName(property.getName(),
             StorageUtils::ColumnType::DEFAULT, RelDirectionUtils::relDirectionToString(direction));
-        columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(),
-            pageAllocator, memoryManager, shadowFile, enableCompression);
+        columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(), dataFH,
+            memoryManager, shadowFile, enableCompression);
     }
     // Set common tableID for nbrIDColumn and relIDColumn.
     columns[NBR_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(nbrTableID);
@@ -149,7 +149,7 @@ void RelTableData::addColumn(Transaction* transaction, TableAddColumnState& addC
     PageAllocator& pageAllocator) {
     auto& definition = addColumnState.propertyDefinition;
     columns.push_back(ColumnFactory::createColumn(definition.getName(), definition.getType().copy(),
-        pageAllocator, memoryManager, shadowFile, enableCompression));
+        pageAllocator.getDataFH(), memoryManager, shadowFile, enableCompression));
     nodeGroups->addColumn(transaction, addColumnState, &pageAllocator);
 }
 

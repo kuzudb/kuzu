@@ -19,10 +19,9 @@ class Column {
     friend class RelTableData;
 
 public:
-    Column(std::string name, common::LogicalType dataType, PageAllocator& pageAllocator,
-        MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression,
-        bool requireNullColumn = true);
-    Column(std::string name, common::PhysicalTypeID physicalType, PageAllocator& pageAllocator,
+    Column(std::string name, common::LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
+        ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn = true);
+    Column(std::string name, common::PhysicalTypeID physicalType, FileHandle* dataFH,
         MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
 
@@ -70,7 +69,8 @@ public:
     common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t numValues);
 
-    virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
+    virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+        PageAllocator& pageAllocator);
 
     template<class TARGET>
     TARGET& cast() {
@@ -103,11 +103,12 @@ protected:
         const ColumnCheckpointState& checkpointState);
 
     void checkpointColumnChunkInPlace(ChunkState& state,
-        const ColumnCheckpointState& checkpointState);
-    void checkpointNullData(const ColumnCheckpointState& checkpointState) const;
+        const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator);
+    void checkpointNullData(const ColumnCheckpointState& checkpointState,
+        PageAllocator& pageAllocator) const;
 
     void checkpointColumnChunkOutOfPlace(const ChunkState& state,
-        const ColumnCheckpointState& checkpointState);
+        const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const;
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
@@ -117,8 +118,8 @@ protected:
 protected:
     std::string name;
     common::LogicalType dataType;
-    PageAllocator& pageAllocator;
     MemoryManager* mm;
+    FileHandle* dataFH;
     ShadowFile* shadowFile;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
@@ -131,7 +132,7 @@ protected:
 
 class InternalIDColumn final : public Column {
 public:
-    InternalIDColumn(std::string name, PageAllocator& pageAllocator, MemoryManager* mm,
+    InternalIDColumn(std::string name, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 
     void scan(const ChunkState& state, common::offset_t startOffsetInChunk,
@@ -166,10 +167,9 @@ private:
 
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
-        PageAllocator& pageAllocator, MemoryManager* mm, ShadowFile* shadowFile,
-        bool enableCompression);
+        FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
     static std::unique_ptr<Column> createColumn(std::string name,
-        common::PhysicalTypeID physicalType, PageAllocator& pageAllocator, MemoryManager* mm,
+        common::PhysicalTypeID physicalType, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 };
 

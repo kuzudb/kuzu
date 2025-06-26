@@ -36,13 +36,12 @@ PIPWrapper::PIPWrapper(const FileHandle& fileHandle, page_idx_t pipPageIdx)
     fileHandle.readPageFromDisk(reinterpret_cast<uint8_t*>(&pipContents), pipPageIdx);
 }
 
-DiskArrayInternal::DiskArrayInternal(PageAllocator& pageAllocator,
+DiskArrayInternal::DiskArrayInternal(FileHandle& fileHandle,
     const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
     ShadowFile* shadowFile, uint64_t elementSize, bool bypassShadowing)
-    : storageInfo{elementSize}, fileHandle(*pageAllocator.getDataFH()), header{headerForReadTrx},
+    : storageInfo{elementSize}, fileHandle(fileHandle), header{headerForReadTrx},
       headerForWriteTrx{headerForWriteTrx}, hasTransactionalUpdates{false}, shadowFile{shadowFile},
       lastAPPageIdx{INVALID_PAGE_IDX}, lastPageOnDisk{INVALID_PAGE_IDX} {
-    auto& fileHandle = *pageAllocator.getDataFH();
     if (this->header.firstPIPPageIdx != ShadowUtils::NULL_PAGE_IDX) {
         pips.emplace_back(fileHandle, header.firstPIPPageIdx);
         while (pips[pips.size() - 1].pipContents.nextPipPageIdx != ShadowUtils::NULL_PAGE_IDX) {

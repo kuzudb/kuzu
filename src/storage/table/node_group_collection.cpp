@@ -12,9 +12,11 @@ namespace kuzu {
 namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
-    const bool enableCompression, bool onDisk, const VersionRecordHandler* versionRecordHandler)
+    const bool enableCompression, bool isPersistent,
+    const VersionRecordHandler* versionRecordHandler)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      onDisk{onDisk}, stats{std::span{types}}, versionRecordHandler(versionRecordHandler) {
+      isPersistent{isPersistent}, stats{std::span{types}},
+      versionRecordHandler(versionRecordHandler) {
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         numTotalRows += nodeGroup->getNumRows();
@@ -176,6 +178,7 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(const Transaction* transact
 
 void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
     PageAllocator* pageAllocator) {
+    KU_ASSERT((pageAllocator != nullptr) == isPersistent);
     const auto lock = nodeGroups.lock();
     auto& newColumnStats = stats.addNewColumn(addColumnState.propertyDefinition.getType());
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
@@ -196,7 +199,7 @@ uint64_t NodeGroupCollection::getEstimatedMemoryUsage() const {
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     NodeGroupCheckpointState& state) {
-    KU_ASSERT(onDisk);
+    KU_ASSERT(isPersistent);
     const auto lock = nodeGroups.lock();
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         nodeGroup->checkpoint(memoryManager, state);
@@ -238,7 +241,7 @@ void NodeGroupCollection::pushInsertInfo(const Transaction* transaction,
     node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows,
     const VersionRecordHandler* versionRecordHandler, bool incrementNumRows) {
     // we only append to the undo buffer if the node group collection is persistent
-    if (onDisk && transaction->shouldAppendToUndoBuffer()) {
+    if (isPersistent && transaction->shouldAppendToUndoBuffer()) {
         transaction->pushInsertInfo(nodeGroupIdx, startRow, numRows, versionRecordHandler);
     }
     if (incrementNumRows) {
@@ -256,7 +259,7 @@ void NodeGroupCollection::serialize(Serializer& ser) {
 void NodeGroupCollection::deserialize(Deserializer& deSer, MemoryManager& memoryManager) {
     std::string key;
     deSer.validateDebuggingInfo(key, "node_groups");
-    KU_ASSERT(onDisk);
+    KU_ASSERT(isPersistent);
     nodeGroups.deserializeGroups(memoryManager, deSer, types);
     deSer.validateDebuggingInfo(key, "stats");
     stats.deserialize(deSer);

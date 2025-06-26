@@ -49,7 +49,7 @@ class ListColumn final : public Column {
     static constexpr size_t CHILD_COLUMN_COUNT = 3;
 
 public:
-    ListColumn(std::string name, common::LogicalType dataType, PageAllocator& pageAllocator,
+    ListColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
         MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
 
     static bool disableCompressionOnData(const common::LogicalType& dataType);
@@ -68,7 +68,8 @@ public:
     Column* getSizeColumn() const { return sizeColumn.get(); }
     Column* getDataColumn() const { return dataColumn.get(); }
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+        PageAllocator& pageAllocator) override;
 
 protected:
     void scanInternal(const ChunkState& state, common::offset_t startOffsetInChunk,
