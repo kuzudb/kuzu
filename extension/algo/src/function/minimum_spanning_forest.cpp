@@ -154,7 +154,6 @@ struct BoruvkaState
     std::vector<std::mutex> locks;
     std::vector<std::atomic<bool>> validEdges;
     std::atomic<bool> addedEdge;
-    std::mutex mergeLock;
     explicit BoruvkaState(offset_t numNodes, InMemGraph& graph) : graph{graph}, components(numNodes), cheapest(numNodes, std::nullopt), finalEdges(numNodes), locks(numNodes), validEdges(graph.numEdges)
     {
         for(auto i = 0u; i < components.size(); ++i) 
@@ -235,9 +234,10 @@ public:
         {
             return;
         }
-        std::lock_guard<std::mutex> guard(state.mergeLock);
         for(auto [u, v, w] : localresult)
         {
+            KU_ASSERT_UNCONDITIONAL(u != v);
+            std::scoped_lock g(state.locks[u], state.locks[v]);
             state.finalEdges[u].push_back({v, w});
             state.finalEdges[v].push_back({u, w});
         }
@@ -307,6 +307,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
             chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
+                if (nbrId == nodeId)
+                {
+                    return;
+                }
                 auto weight = propertyVectors[0]->template getValue<int64_t>(i);
                 g.insertNbr(nbrId, weight);
             });
