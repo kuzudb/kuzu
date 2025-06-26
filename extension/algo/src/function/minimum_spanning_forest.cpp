@@ -1,10 +1,9 @@
 #include <atomic>
 #include <cassert>
 #include <cstdint>
-#include <iostream>
 #include <memory>
+#include <mutex>
 #include <optional>
-#include <thread>
 #include <tuple>
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
@@ -30,9 +29,6 @@ using namespace kuzu::function;
 using Edge = std::tuple<uint64_t, uint64_t, uint64_t>;
 using Edges = std::vector<Edge>;
 
-static constexpr uint64_t U = 0; 
-static constexpr uint64_t V = 1;
-static constexpr uint64_t WEIGHT = 2;
 
 namespace kuzu {
 namespace algo_extension {
@@ -159,191 +155,6 @@ static bool tryUnion(std::vector<std::atomic<uint64_t>>& parent, uint64_t u, uin
     }
 }
 
-//static void filterEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent)
-//{
-//    auto numThreads = std::thread::hardware_concurrency();
-//    auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
-//    if (chunkSize < 10000)
-//    {
-//        edges.erase
-//        (
-//            std::remove_if(edges.begin(), edges.end(), 
-//            [&](auto& e) {return find(parent, std::get<U>(e)) == find(parent, std::get<V>(e));}
-//            ),
-//            edges.end()
-//        );
-//        return;
-//    }
-//    std::vector<size_t> newSizes(numThreads);
-//    std::vector<std::thread> threads;
-//    for (auto t = 0u; t < numThreads; ++t) 
-//    {
-//        auto start = t * chunkSize;
-//        auto end = std::min(edges.size(), start + chunkSize);
-//
-//        threads.emplace_back([&, t, start, end]()
-//        {
-//            auto writeIt = edges.begin() + start;
-//            for (auto it = edges.begin() + start; it != edges.begin() + end; ++it) 
-//            {
-//                if (find(parent, std::get<U>(*it)) != find(parent, std::get<V>(*it)))
-//                {
-//                    *writeIt = std::move(*it);
-//                    ++writeIt;
-//                }
-//            }
-//            newSizes[t] = std::distance(edges.begin() + start, writeIt);
-//        });
-//    }
-//    for(auto& th : threads)
-//    {
-//        th.join();
-//    }
-//    auto offset = 0u;
-//    for (auto t = 0u; t < numThreads; ++t) 
-//    {
-//        auto start = t * chunkSize;
-//        auto size = newSizes[t];
-//        if (start != offset) 
-//        {
-//            std::move(edges.begin() + start, edges.begin() + start + size, edges.begin() + offset);
-//        }
-//        offset += size;
-//    }
-//    edges.resize(offset);
-//}
-
-//static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
-//{
-//    auto numThreads = std::thread::hardware_concurrency();
-//    auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
-//    if (chunkSize < 10000)
-//    {
-//        for(const auto& e : edges)
-//        {
-//            auto u_comp = find(parent, std::get<U>(e));
-//            auto v_comp = find(parent, std::get<V>(e));
-//            // Update each component with the min edge found so far.
-//            auto& cu = cheapest[u_comp];
-//            if (cu == std::nullopt || std::get<WEIGHT>(e) < std::get<WEIGHT>(cu.value()))
-//            {
-//                cheapest[u_comp] = e;
-//            }
-//            auto& cv = cheapest[v_comp];
-//            if (cv == std::nullopt|| std::get<WEIGHT>(e) < std::get<WEIGHT>(cv.value()))
-//            {
-//                cheapest[v_comp] = e;
-//            }
-//        }
-//        return;
-//    }
-//    std::vector<std::thread> threads;
-//    static std::vector<std::mutex> locks(cheapest.size());
-//
-//    for (auto t = 0u; t < numThreads; ++t) 
-//    {
-//        auto start = t * chunkSize;
-//        auto end = std::min(edges.size(), start + chunkSize);
-//
-//        threads.emplace_back([&, start, end]()
-//        {
-//            for (auto it = edges.begin() + start; it != edges.begin() + end; ++it) 
-//            {
-//                auto u_comp = find(parent, std::get<U>(*it));
-//                auto v_comp = find(parent, std::get<V>(*it));
-//                auto tryUpdate = [&](uint64_t comp, const Edge& candidate) 
-//                {
-//                    std::lock_guard<std::mutex> guard(locks[comp]);
-//                    auto& curr = cheapest[comp];
-//                    if (curr == std::nullopt || std::get<WEIGHT>(candidate) < std::get<WEIGHT>(curr.value()))
-//                    {
-//                        curr = candidate;
-//                    }
-//                };
-//                tryUpdate(u_comp, *it);
-//                tryUpdate(v_comp, *it);
-//            }
-//        });
-//    }
-//    for(auto& th : threads)
-//    {
-//        th.join();
-//    }
-//}
-
-
-static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>& finalEdges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
-{
-    auto numThreads = std::thread::hardware_concurrency();
-    auto chunkSize = (cheapest.size() + numThreads - 1) / numThreads;
-    // should have to do with density
-    if (chunkSize < 10000)
-    {
-        bool addedEdge = false;
-        for(auto& e : cheapest)
-        {
-            // Skip all invalid components (i.e no outgoing edges or not the
-            // parent of the component).
-            if (e == std::nullopt)
-            {
-                continue;
-            }
-            // We must do this check again... if not done an earlier iteration of the loop
-            // may have added an edge such that a later iteration attempts to
-            // add an edge that causes a cycle.
-            // DSU to mark two components as joined.
-            if (tryUnion(parent, std::get<U>(e.value()), std::get<V>(e.value())))
-            {
-                finalEdges[std::get<U>(e.value())].push_back({std::get<V>(e.value()), std::get<WEIGHT>(e.value())});
-                finalEdges[std::get<V>(e.value())].push_back({std::get<U>(e.value()), std::get<WEIGHT>(e.value())});
-                addedEdge = true;
-            }
-            // Need to do this since we expect cheapest container to be reset
-            // for next round.
-            e = std::nullopt;
-        }
-        return addedEdge;
-    }
-    std::atomic<bool> addedEdge{false};
-    std::vector<std::thread> threads;
-    std::vector<Edges> localEdges(numThreads);
-    for (auto t = 0u; t < numThreads; ++t) 
-    {
-        auto start = t * chunkSize;
-        auto end = std::min(cheapest.size(), start + chunkSize);
-
-        threads.emplace_back([&, t, start, end]()
-        {
-            for (auto it = cheapest.begin() + start; it != cheapest.begin() + end; ++it) 
-            {
-                if (*it == std::nullopt)
-                {
-                    continue;
-                }
-                if (tryUnion(parent, std::get<U>(it->value()), std::get<V>(it->value())))
-                {
-                    localEdges[t].push_back(it->value());
-                    addedEdge.store(true, std::memory_order::relaxed);
-                }
-                *it = std::nullopt;
-            }
-        });
-    }
-    for(auto& th : threads)
-    {
-        th.join();
-    }
-    for (auto t = 0u; t < numThreads; ++t) 
-    {
-        for (auto& e : localEdges[t]) 
-        {
-            finalEdges[std::get<U>(e)].push_back({std::get<V>(e), std::get<WEIGHT>(e)});
-            finalEdges[std::get<V>(e)].push_back({std::get<U>(e), std::get<WEIGHT>(e)});
-        }
-    }
-    return addedEdge.load(std::memory_order::relaxed);
-}
-
 struct BoruvkaState 
 {
     InMemGraph& graph;
@@ -352,6 +163,8 @@ struct BoruvkaState
     std::vector<std::vector<std::pair<offset_t, offset_t>>> finalEdges;
     std::vector<std::mutex> locks;
     std::vector<std::atomic<bool>> validEdges;
+    std::atomic<bool> addedEdge;
+    std::mutex mergeLock;
     explicit BoruvkaState(offset_t numNodes, InMemGraph& graph) : graph{graph}, parent(numNodes), cheapest(numNodes, std::nullopt), finalEdges(numNodes), locks(numNodes), validEdges(graph.numEdges)
     {
         for(auto i = 0u; i < parent.size(); ++i) 
@@ -363,7 +176,7 @@ struct BoruvkaState
         {
             validEdges[i].store(true, std::memory_order::relaxed);
         }
-
+        addedEdge.store(false, std::memory_order::relaxed);
     }
 };
 
@@ -372,6 +185,7 @@ public:
     explicit AssignCheapestEdgesCompute(BoruvkaState& state) : state{state} {}
     ~AssignCheapestEdgesCompute() override = default;
     void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+        static constexpr uint64_t WEIGHT = 2;
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             const auto startCSROffset = state.graph.csrOffsets[nodeId];
             const auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
@@ -412,12 +226,30 @@ public:
     explicit UpdateForestCompute(BoruvkaState& state) : state{state} {}
     ~UpdateForestCompute() override = default;
     void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+        std::vector<Edge> localresult;
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-            const auto startCSROffset = state.graph.csrOffsets[nodeId];
-            const auto endCSROffset = state.graph.csrOffsets[nodeId + 1];
-            for (auto offset = startCSROffset; offset < endCSROffset; offset++)
+            if (state.cheapest[nodeId] == std::nullopt)
             {
+                continue;
             }
+            auto [u, v, w] = state.cheapest[nodeId].value();
+
+            if (tryUnion(state.parent, u, v))
+            {
+                localresult.push_back(state.cheapest[nodeId].value());
+                state.addedEdge.store(true, std::memory_order::relaxed);
+            }
+            state.cheapest[nodeId] = std::nullopt;
+        }
+        if (localresult.empty())
+        {
+            return;
+        }
+        std::lock_guard<std::mutex> guard(state.mergeLock);
+        for(auto [u, v, w] : localresult)
+        {
+            state.finalEdges[u].push_back({v, w});
+            state.finalEdges[v].push_back({u, w});
         }
     }
     std::unique_ptr<InMemVertexCompute> copy() override {
@@ -495,6 +327,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
     BoruvkaState state(numNodes, g);
     AssignCheapestEdgesCompute assignCheapestEdges(state);
+    UpdateForestCompute updateForest(state);
     FilterEdgesCompute filterEdges(state);
 
     //TODO(Tanvir) Inquire about maxIterations
@@ -507,12 +340,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         // Add the cheapest edge from each component to the forest. 
         // This also updates our component container (parent).
         // We break if we make no progress on a round.
-        bool addedEdge = updateForest(state.finalEdges, state.parent, state.cheapest);
-        if (!addedEdge)
+        InMemGDSUtils::runVertexCompute(updateForest, numNodes, input.context);
+        if (!state.addedEdge.load(std::memory_order::relaxed))
         {
             break;
         }
-        
+        state.addedEdge.store(false, std::memory_order::relaxed);
         // Optimization: Erase edges in the same component from candidates.
         InMemGDSUtils::runVertexCompute(filterEdges, numNodes, input.context);
     }
