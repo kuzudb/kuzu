@@ -1105,6 +1105,7 @@ jobs:
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
       ASAN_OPTIONS: detect_leaks=1
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
