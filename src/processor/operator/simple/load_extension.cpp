@@ -15,7 +15,8 @@ std::string LoadExtensionPrintInfo::toString() const {
 }
 
 void LoadExtension::executeInternal(ExecutionContext* context) {
-    context->clientContext->getExtensionManager()->loadExtension(path, context->clientContext);
+    auto extensionManager = context->clientContext->getExtensionManager();
+    extensionManager->loadExtension(path, context->clientContext);
 }
 
 std::string LoadExtension::getOutputMsg() {

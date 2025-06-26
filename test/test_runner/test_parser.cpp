@@ -207,6 +207,12 @@ TestQueryResult TestParser::extractExpectedResultFromToken() {
         tokenize();
         queryResult.numTuples = stoi(currentToken.params[0]);
         queryResult.expectedResult.push_back(currentToken.params.back());
+    } else if (result == "multi_results") {
+        queryResult.type = ResultType::MULTI_RESULTS;
+        nextLine();
+        queryResult.expectedResult.push_back(line);
+        nextLine();
+        queryResult.expectedResult.push_back(line);
     } else {
         checkMinimumParams(1);
         queryResult.numTuples = stoi(result);
