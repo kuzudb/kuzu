@@ -8,7 +8,6 @@
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
-#include "storage/optimistic_allocator.h"
 #include "storage/storage_manager.h"
 #include "storage/table/chunked_node_group.h"
 #include "storage/table/node_table.h"
