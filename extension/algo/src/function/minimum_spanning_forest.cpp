@@ -25,6 +25,11 @@ using namespace kuzu::graph;
 using namespace kuzu::function;
 using Edge = std::tuple<uint64_t, uint64_t, uint64_t>;
 using Edges = std::vector<Edge>;
+
+static constexpr uint64_t U = 0; 
+static constexpr uint64_t V = 1;
+static constexpr uint64_t WEIGHT = 2;
+
 namespace kuzu {
 namespace algo_extension {
 
@@ -152,9 +157,6 @@ static bool tryUnion(std::vector<std::atomic<uint64_t>>& parent, uint64_t u, uin
 
 static void filterEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent)
 {
-    static constexpr uint64_t U = 0;
-    static constexpr uint64_t V = 1;
-
     auto numThreads = std::thread::hardware_concurrency();
     auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
     if (chunkSize < 10000)
@@ -209,10 +211,6 @@ static void filterEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent
 
 static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
 {
-    static constexpr uint64_t U = 0; 
-    static constexpr uint64_t V = 1;
-    static constexpr uint64_t WEIGHT = 2;
-
     auto numThreads = std::thread::hardware_concurrency();
     auto chunkSize = (edges.size() + numThreads - 1) / numThreads;
     if (chunkSize < 10000)
@@ -272,11 +270,6 @@ static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>
 
 static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>& finalEdges, std::vector<std::atomic<uint64_t>>& parent, std::vector<std::optional<Edge>>& cheapest)
 {
-    
-    static constexpr uint64_t U = 0; 
-    static constexpr uint64_t V = 1;
-    static constexpr uint64_t WEIGHT = 2;
-
     auto numThreads = std::thread::hardware_concurrency();
     auto chunkSize = (cheapest.size() + numThreads - 1) / numThreads;
     // should have to do with density
@@ -366,28 +359,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {config.weight_property});
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
-
     Edges edges;
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
             chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
-                if (nodeId < nbrId)
-                {
                     auto weight = propertyVectors[0]->template getValue<uint64_t>(i);
                     edges.push_back({nodeId, nbrId, weight});
-                }
-            });
-        }
-        for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
-                auto nbrId = neighbors[i].offset;
-                if (nodeId < nbrId)
-                {
-                    auto weight = propertyVectors[0]->template getValue<uint64_t>(i);
-                    edges.push_back({nodeId, nbrId, weight});
-                }
             });
         }
     }
@@ -432,6 +411,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto graphName = input->getLiteralVal<std::string>(0);
     auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
+    if (graphEntry.nodeInfos.size() != 1) {
+        throw BinderException(std::string(MinimumSpanningForest::name) + " only supports operations on one node table.");
+    }
+    if (graphEntry.relInfos.size() != 1) {
+        throw BinderException(std::string(MinimumSpanningForest::name) + " only supports operations on one edge table.");
+    }
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
