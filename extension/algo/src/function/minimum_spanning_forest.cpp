@@ -1,10 +1,3 @@
-#include <atomic>
-#include <cassert>
-#include <cstdint>
-#include <memory>
-#include <mutex>
-#include <optional>
-#include <tuple>
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
@@ -12,12 +5,9 @@
 #include "common/in_mem_gds_utils.h"
 #include "common/in_mem_graph.h"
 #include "common/string_utils.h"
-#include "common/types/types.h"
 #include "function/algo_function.h"
-#include "function/gds/gds.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
-#include "function/table/bind_input.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::binder;

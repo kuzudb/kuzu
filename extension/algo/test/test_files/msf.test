@@ -1,0 +1,13 @@
+-DATASET CSV MSF
+
+--
+
+-CASE WeightTest
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
+----ok
+-STATEMENT CALL project_graph('Graph', ['node'], ['rel']);
+----ok 
+-STATEMENT CALL minimum_spanning_forest('Graph', property:='weight') RETURN SUM(WEIGHT) / 2;
+----1
+1713878
+
