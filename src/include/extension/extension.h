@@ -46,7 +46,7 @@ struct ExtensionRepoInfo {
     std::string repoURL;
 };
 
-enum class ExtensionSource : uint8_t { OFFICIAL, USER };
+enum class ExtensionSource : uint8_t { OFFICIAL, USER, STATIC_LINKED };
 
 struct ExtensionSourceUtils {
     static std::string toString(ExtensionSource source);
@@ -175,6 +175,8 @@ public:
     ext_name_func_t getNameFunc();
 
     ext_install_func_t getInstallFunc();
+
+    void unload();
 
 private:
     void* getDynamicLibFunc(const std::string& funcName);

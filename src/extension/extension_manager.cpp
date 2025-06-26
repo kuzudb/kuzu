@@ -1,5 +1,6 @@
 #include "extension/extension_manager.h"
 
+#include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "extension/extension.h"
@@ -30,10 +31,18 @@ void ExtensionManager::loadExtension(const std::string& path, main::ClientContex
     }
 
     auto libLoader = ExtensionLibLoader(path, fullPath);
-    auto init = libLoader.getInitFunc();
-    (*init)(context);
     auto name = libLoader.getNameFunc();
     auto extensionName = (*name)();
+    if (std::any_of(loadedExtensions.begin(), loadedExtensions.end(),
+            [&](const LoadedExtension& ext) { return ext.getExtensionName() == extensionName; })) {
+        libLoader.unload();
+        throw common::BinderException{
+            common::stringFormat("Extension: {} is already loaded. You can check loaded extensions "
+                                 "by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.",
+                extensionName)};
+    }
+    auto init = libLoader.getInitFunc();
+    (*init)(context);
     loadedExtensions.push_back(LoadedExtension(extensionName, fullPath,
         isOfficial ? ExtensionSource::OFFICIAL : ExtensionSource::USER));
 }
@@ -79,7 +88,7 @@ std::vector<storage::StorageExtension*> ExtensionManager::getStorageExtensions()
 }
 
 void ExtensionManager::autoLoadLinkedExtensions(main::ClientContext* context) {
-    loadLinkedExtensions(context);
+    loadLinkedExtensions(context, loadedExtensions);
 }
 
 } // namespace extension

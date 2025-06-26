@@ -5,7 +5,9 @@
 -CASE Basic
 
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- multi_results
+aaa
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CALL _CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- error
 Catalog exception: function _CREATE_FTS_INDEX does not exist.
