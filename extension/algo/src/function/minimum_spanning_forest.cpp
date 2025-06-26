@@ -360,12 +360,18 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     Edges edges;
+    // TODO(Tanvir) Confirm this is the right way to treat these edges.
+    // Gets all forward direction edges.
+    // We treat these edges as undirected anyways.
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
             chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
-                    auto weight = propertyVectors[0]->template getValue<uint64_t>(i);
+                    auto weight = propertyVectors[0]->template getValue<int64_t>(i);
+                    //TODO(Tanvir) Remove this assertion. Attempt to use visit
+                    //from wsp_utils.h
+                    assert(weight >= 0);
                     edges.push_back({nodeId, nbrId, weight});
             });
         }
@@ -380,7 +386,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         parent[i].store(i, std::memory_order_relaxed);
     }
 
+    // List of (node.offset | List of((nbrNode.offset, weight)))
     std::vector<std::vector<std::pair<offset_t, offset_t>>> finalEdges(numNodes);
+    //TODO(Tanvir) Inquire about maxIterations
     int count = 0;
     while(++count)
     {
@@ -388,6 +396,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         // component.
         assignCheapestEdges(edges, parent, cheapest);
 
+        // Add the cheapest edge from each component to the forest. 
+        // This also updates our component container (parent).
         // We break if we make no progress on a round.
         bool addedEdge = updateForest(finalEdges, parent, cheapest);
         if (!addedEdge)
@@ -395,7 +405,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             break;
         }
         
-        // Erase edges in the same component from candidates.
+        // Optimization: Erase edges in the same component from candidates.
         filterEdges(edges, parent);
     }
 
@@ -411,6 +421,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto graphName = input->getLiteralVal<std::string>(0);
     auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
+    //TODO (TANVIR) Attempt to remove this restriction
     if (graphEntry.nodeInfos.size() != 1) {
         throw BinderException(std::string(MinimumSpanningForest::name) + " only supports operations on one node table.");
     }
