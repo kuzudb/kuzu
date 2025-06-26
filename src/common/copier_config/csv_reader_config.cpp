@@ -5,6 +5,7 @@
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
+#include "common/types/value/nested.h"
 
 namespace kuzu {
 namespace common {
@@ -74,6 +75,15 @@ static void bindIntParsingOption(CSVReaderConfig& config, const std::string& opt
     }
 }
 
+static void bindListParsingOption(CSVReaderConfig& config, const std::string& optionName,
+    const std::vector<std::string>& optionValue) {
+    if (optionName == "NULL_STRINGS") {
+        config.option.nullStrings = optionValue;
+    } else {
+        KU_UNREACHABLE;
+    }
+}
+
 template<uint64_t size>
 static bool hasOption(const char* const (&arr)[size], const std::string& option) {
     return std::find(std::begin(arr), std::end(arr), option) != std::end(arr);
@@ -89,6 +99,10 @@ static bool validateStringParsingOptionName(const std::string& parsingOptionName
 
 static bool validateIntParsingOptionName(const std::string& parsingOptionName) {
     return hasOption(CopyConstants::INT_CSV_PARSING_OPTIONS, parsingOptionName);
+}
+
+static bool validateListParsingOptionName(const std::string& parsingOptionName) {
+    return hasOption(CopyConstants::LIST_CSV_PARSING_OPTIONS, parsingOptionName);
 }
 
 static bool isValidBooleanOptionValue(const Value& value, const std::string& name) {
@@ -115,6 +129,7 @@ CSVReaderConfig CSVReaderConfig::construct(const case_insensitive_map_t<Value>& 
         auto isValidStringParsingOption = validateStringParsingOptionName(name);
         auto isValidBoolParsingOption = validateBoolParsingOptionName(name);
         auto isValidIntParsingOption = validateIntParsingOptionName(name);
+        auto isValidListParsingOption = validateListParsingOptionName(name);
         if (isValidBoolParsingOption) {
             bindBoolParsingOption(config, name, isValidBooleanOptionValue(op.second, name));
         } else if (isValidStringParsingOption) {
@@ -129,6 +144,17 @@ CSVReaderConfig CSVReaderConfig::construct(const case_insensitive_map_t<Value>& 
                     stringFormat("The type of csv parsing option {} must be a INT64.", name));
             }
             bindIntParsingOption(config, name, op.second.getValue<int64_t>());
+        } else if (isValidListParsingOption) {
+            if (op.second.getDataType() != LogicalType::LIST(LogicalType::STRING())) {
+                throw BinderException(
+                    stringFormat("The type of csv parsing option {} must be a STRING[].", name));
+            }
+            std::vector<std::string> optionValues;
+            for (auto i = 0u; i < op.second.getChildrenSize(); i++) {
+                optionValues.push_back(
+                    NestedVal::getChildVal(&op.second, i)->getValue<std::string>());
+            }
+            bindListParsingOption(config, name, optionValues);
         } else {
             throw BinderException(stringFormat("Unrecognized csv parsing option: {}.", name));
         }

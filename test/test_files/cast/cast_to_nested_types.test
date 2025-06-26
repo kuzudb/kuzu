@@ -3,7 +3,7 @@
 --
 
 -CASE CastToNestedTypes
--STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), array INT16[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/should_pass.csv" RETURN *;
+-STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), array INT16[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/should_pass.csv"(null_strings=['null','Null','',"NULL","nUll","nuLl","nulL","nuLL","NUll","NuLl","NulL",' nuLL ',' null ',' null']) RETURN *;
 ---- 10
 [[1,3,423,124,43242],[432]]|{num: -423432, str: this is a string []}|[255,254,43]
 [[1,3,423,124,43242],[432]]|{num: 3423423, str: this is a string}|[250,249,21]
@@ -15,7 +15,7 @@
 []||[111,0,0]
 ||[0,111,12]
 |{num: , str: }|[0,0,0]
--STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (ESCAPE="~") RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (ESCAPE="~",NULL_STRINGS=['NULL']) RETURN * ;
 ---- 3
 [escape,is escape success? ~]| ' [ ] do not need to escape sepeical | []|{a: {b: }}
 [this,is a word,normal not escape,' [ ] | , ~ ']|try escape ~|{a: {b: {c: [3432423,-43423,31231,]}}}
@@ -25,7 +25,7 @@
 {c={a=3423}, b={g=3421}}
 {d={}}
 {}
--STATEMENT LOAD WITH HEADERS (map MAP(INT32[], STRUCT(c STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv" (DELIM=">") RETURN *;
+-STATEMENT LOAD WITH HEADERS (map MAP(INT32[], STRUCT(c STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv" (DELIM=">", NULL_STRINGS=['NULL','']) RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv on line 7: Conversion exception: Map does not allow null as key. Line/record containing the error: '"{={c: '~~ have some , ,'}}"'
 -STATEMENT LOAD WITH HEADERS (map MAP(MAP(INT64, INT64), MAP(STRING, STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN *;
@@ -34,7 +34,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/
 -STATEMENT LOAD WITH HEADERS (array INT32[92]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/long_array2.csv" RETURN *;
 ---- 1
 [32131,0,0,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313]
--STATEMENT LOAD WITH HEADERS (array FLOAT[1], bool BOOLEAN, intv INTERVAL) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/array_correct.csv" RETURN *;
+-STATEMENT LOAD WITH HEADERS (array FLOAT[1], bool BOOLEAN, intv INTERVAL) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/array_correct.csv"(null_strings=['null','']) RETURN *;
 ---- 6
 [23123.433594]|True|1 month 2 days
 [-4321312.500000]|True|1 year 3 days
@@ -50,7 +50,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/
 -STATEMENT LOAD WITH HEADERS (array DOUBLE[83]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/long_array.csv" RETURN *;
 ---- 1
 [4123.120000,0.000000,0.000000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,543523442342.434326]
--STATEMENT LOAD WITH HEADERS (u UNION(v1 INT64, v2 BOOLEAN), u2 UNION(v1 UINT32, v2 INT32, v3 DATE), u3 UNION(v1 UINT8, v2 UINT16, v3 TIMESTAMP, v4 FLOAT), u4 UNION(v1 UINT64, v2 INT8, v3 INT16, v4 DOUBLE), u5 UNION(v1 STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_correct.csv" RETURN *;
+-STATEMENT LOAD WITH HEADERS (u UNION(v1 INT64, v2 BOOLEAN), u2 UNION(v1 UINT32, v2 INT32, v3 DATE), u3 UNION(v1 UINT8, v2 UINT16, v3 TIMESTAMP, v4 FLOAT), u4 UNION(v1 UINT64, v2 INT8, v3 INT16, v4 DOUBLE), u5 UNION(v1 STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_correct.csv"(null_strings=['null','',' Null ']) RETURN *;
 ---- 9
 False||255|18446744073709551615|fsdfa
 True|432|0|-1.432415|543fasf
@@ -99,10 +99,8 @@ False|-4325||18446744073709551616.000000|  dfsa
 [-4212.423340]
 [-2.000000]
 -STATEMENT LOAD WITH HEADERS (stockPrice STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/array_with_null.csv" RETURN cast(stockPrice, "DOUBLE[3]");
----- 3
-[3324.123000,342423.437500,432.123000]
-
-[1.000000,4231.000000,432.123000]
+---- error
+Conversion exception: Each array should have fixed number of elements. Expected: 3, Actual: 0.
 -STATEMENT LOAD WITH HEADERS (stockPrice STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/array_with_null.csv" where size(stockPrice) > 10 RETURN cast(stockPrice, "FLOAT[3]");
 ---- 2
 [3324.123047,342423.437500,432.122986]
@@ -216,7 +214,7 @@ Conversion exception: Map does not allow null as key.
 -STATEMENT RETURN cast(cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING, c STRING)"), "STRUCT(a INT128, b INT128, c INT128)"), "STRUCT(a INT64, b INT64, c INT64)"), cast(cast(cast("{a: 15}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT32, b INT32)"), "STRUCT(a INT16, b INT16)"), cast(cast(cast("{b: 15}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT8, b INT8)"), "STRUCT(a UINT16, b UINT16)"), cast(cast(cast("{}", "STRUCT(a STRING, b STRING)"), "STRUCT(a UINT32, b UINT32)"), "STRUCT(a UINT64, b UINT64)"), cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a DOUBLE, b DOUBLE)"), cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a FLOAT, b FLOAT)");
 ---- 1
 {a: 12, b: 0, c: }|{a: 15, b: }|{a: , b: 15}|{a: , b: }|{a: 12.000000, b: 0.000000}|{a: 12.000000, b: 0.000000}
--STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), array INT16[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/should_pass.csv" RETURN cast(a, "struct(num INT64, str STRING)"), cast(a, "struct(num INT128, str STRING)"), cast(a, "struct(num STRING, str STRING)"), cast(a, "struct(num DOUBLE, str STRING)"), cast(a, "struct(num FLOAT, str STRING)");
+-STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), array INT16[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/should_pass.csv"(null_strings=['','null']) RETURN cast(a, "struct(num INT64, str STRING)"), cast(a, "struct(num INT128, str STRING)"), cast(a, "struct(num STRING, str STRING)"), cast(a, "struct(num DOUBLE, str STRING)"), cast(a, "struct(num FLOAT, str STRING)");
 ---- 10
 {num: -423432, str: this is a string []}|{num: -423432, str: this is a string []}|{num: -423432, str: this is a string []}|{num: -423432.000000, str: this is a string []}|{num: -423432.000000, str: this is a string []}
 {num: 0, str: this is a string}|{num: 0, str: this is a string}|{num: 0, str: this is a string}|{num: 0.000000, str: this is a string}|{num: 0.000000, str: this is a string}

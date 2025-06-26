@@ -95,7 +95,7 @@ abc"def
 -CASE SpecialDoubleLiterals
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/all_types/inf_nan_null.csv" RETURN *
 ---- 1
-[42.000000,999.000000,inf,-inf,-42.000000]|[42.000000,,inf,-inf,,-42.000000]
+[42.000000,999.000000,inf,-inf,-42.000000]|[42.000000,nan,inf,-inf,,-42.000000]
 
 -CASE HeaderNumColumnsSmallerThanActual
 -STATEMENT create node table values(val1 int32, val2 int32, val3 string, val4 string, primary key(val1))
