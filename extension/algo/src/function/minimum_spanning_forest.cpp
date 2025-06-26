@@ -117,13 +117,13 @@ static uint64_t find(std::vector<std::atomic<uint64_t>>& parent, uint64_t u)
 {
     while (true) 
     {
-        uint64_t p = parent[u].load(std::memory_order_acquire);
-        uint64_t gp = parent[p].load(std::memory_order_acquire);
+        uint64_t p = parent[u].load(std::memory_order::acquire);
+        uint64_t gp = parent[p].load(std::memory_order::acquire);
         if (p == gp)
         {
             return p;
         }
-        parent[u].compare_exchange_weak(p, gp, std::memory_order_acq_rel);
+        parent[u].compare_exchange_weak(p, gp, std::memory_order::acq_rel);
         u = p;
     }
 }
@@ -146,7 +146,7 @@ static bool tryUnion(std::vector<std::atomic<uint64_t>>& parent, uint64_t u, uin
             std::swap(u, v);
         }
 
-        if (parent[u].compare_exchange_strong(u, v, std::memory_order_acq_rel))
+        if (parent[u].compare_exchange_strong(u, v, std::memory_order::acq_rel))
         {
             return true;
         }
@@ -247,7 +247,7 @@ static void assignCheapestEdges(Edges& edges, std::vector<std::atomic<uint64_t>>
             {
                 auto u_comp = find(parent, std::get<U>(*it));
                 auto v_comp = find(parent, std::get<V>(*it));
-                auto tryUpdate = [&](uint64_t comp, const std::tuple<uint64_t, uint64_t, uint64_t>& candidate) 
+                auto tryUpdate = [&](uint64_t comp, const Edge& candidate) 
                 {
                     std::lock_guard<std::mutex> guard(locks[comp]);
                     auto& curr = cheapest[comp];
@@ -319,7 +319,7 @@ static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>
                 if (tryUnion(parent, std::get<U>(it->value()), std::get<V>(it->value())))
                 {
                     localEdges[t].push_back(it->value());
-                    addedEdge.store(true, std::memory_order_relaxed);
+                    addedEdge.store(true, std::memory_order::relaxed);
                 }
                 *it = std::nullopt;
             }
@@ -337,7 +337,7 @@ static bool updateForest(std::vector<std::vector<std::pair<offset_t, offset_t>>>
             finalEdges[std::get<V>(e)].push_back({std::get<U>(e), std::get<WEIGHT>(e)});
         }
     }
-    return addedEdge.load(std::memory_order_relaxed);
+    return addedEdge.load(std::memory_order::relaxed);
 }
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
@@ -383,7 +383,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     // Initially treat every vertex as its own component.
     for(auto i = 0u; i < parent.size(); ++i) 
     {
-        parent[i].store(i, std::memory_order_relaxed);
+        parent[i].store(i, std::memory_order::relaxed);
     }
 
     // List of (node.offset | List of((nbrNode.offset, weight)))
