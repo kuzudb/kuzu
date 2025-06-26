@@ -10,20 +10,23 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-DiskArrayCollection::DiskArrayCollection(ShadowFile& shadowFile, bool bypassShadowing)
-    : shadowFile{shadowFile}, bypassShadowing{bypassShadowing}, numHeaders{0} {
+DiskArrayCollection::DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
+    bool bypassShadowing)
+    : fileHandle(fileHandle), shadowFile{shadowFile}, bypassShadowing{bypassShadowing},
+      numHeaders{0} {
     headersForReadTrx.push_back(std::make_unique<HeaderPage>());
     headersForWriteTrx.push_back(std::make_unique<HeaderPage>());
     headerPagesOnDisk = 0;
 }
 
-DiskArrayCollection::DiskArrayCollection(PageAllocator& pageAllocator, ShadowFile& shadowFile,
+DiskArrayCollection::DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
     page_idx_t firstHeaderPage, bool bypassShadowing)
-    : shadowFile{shadowFile}, bypassShadowing{bypassShadowing}, numHeaders{0} {
+    : fileHandle(fileHandle), shadowFile{shadowFile}, bypassShadowing{bypassShadowing},
+      numHeaders{0} {
     // Read headers from disk
     page_idx_t headerPageIdx = firstHeaderPage;
     do {
-        pageAllocator.getDataFH()->optimisticReadPage(headerPageIdx, [&](auto* frame) {
+        fileHandle.optimisticReadPage(headerPageIdx, [&](auto* frame) {
             const auto page = reinterpret_cast<HeaderPage*>(frame);
             headersForReadTrx.push_back(std::make_unique<HeaderPage>(*page));
             headersForWriteTrx.push_back(std::make_unique<HeaderPage>(*page));

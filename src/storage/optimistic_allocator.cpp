@@ -18,12 +18,6 @@ void OptimisticAllocator::freePageRange(PageRange block) {
     pageManager.freePageRange(block);
 }
 
-/**
- * To rollback we need to do two things:
- * 1. Free any pages that have been allocated since the last commit/checkpoint
- * 2. Any pages marked as freed but not checkpointed (e.g. from checkpointing dropped tables) are
- * no longer freed
- */
 void OptimisticAllocator::rollback() {
     for (const auto& entry : uncommittedAllocatedPages) {
         pageManager.freeImmediatelyRewritablePageRange(pageManager.getDataFH(), entry);

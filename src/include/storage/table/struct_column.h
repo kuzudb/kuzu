@@ -8,7 +8,7 @@ class MemoryManager;
 
 class StructColumn final : public Column {
 public:
-    StructColumn(std::string name, common::LogicalType dataType, PageAllocator& pageAllocator,
+    StructColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
         MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
@@ -28,7 +28,8 @@ public:
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t offsetInChunk,
         ColumnChunkData* data, common::offset_t dataOffset, common::length_t numValues) override;
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+        PageAllocator& pageAllocator) override;
 
 protected:
     void scanInternal(const ChunkState& state, common::offset_t startOffsetInChunk,

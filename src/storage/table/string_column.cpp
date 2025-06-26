@@ -22,15 +22,15 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-StringColumn::StringColumn(std::string name, common::LogicalType dataType,
-    PageAllocator& pageAllocator, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
-    : Column{std::move(name), std::move(dataType), pageAllocator, mm, shadowFile, enableCompression,
+StringColumn::StringColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
+    MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
+    : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
           true /* requireNullColumn */},
-      dictionary{this->name, pageAllocator, mm, shadowFile, enableCompression} {
+      dictionary{this->name, dataFH, mm, shadowFile, enableCompression} {
     auto indexColumnName =
         StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::INDEX, "index");
-    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(), pageAllocator,
-        mm, shadowFile, enableCompression, false /*requireNullColumn*/);
+    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(), dataFH, mm,
+        shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
 ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {
@@ -125,8 +125,9 @@ void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, of
         dstOffset + numValues - 1, minWritten, maxWritten);
 }
 
-void StringColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
-    Column::checkpointColumnChunk(checkpointState);
+void StringColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+    PageAllocator& pageAllocator) {
+    Column::checkpointColumnChunk(checkpointState, pageAllocator);
     checkpointState.persistentData.syncNumValues();
 }
 

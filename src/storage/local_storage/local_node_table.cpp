@@ -107,7 +107,7 @@ bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteS
 }
 
 bool LocalNodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
-    nodeGroups.addColumn(transaction, addColumnState, nullptr);
+    nodeGroups.addColumn(transaction, addColumnState);
     return true;
 }
 

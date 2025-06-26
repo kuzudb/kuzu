@@ -83,13 +83,9 @@ void LocalStorage::rollback() {
     for (auto& optimisticAllocator : optimisticAllocators) {
         optimisticAllocator->rollback();
     }
-    if (!optimisticAllocators.empty()) {
-        auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();
-        clientContext.getStorageManager()
-            ->getDataFH()
-            ->getPageManager()
-            ->clearEvictedBMEntriesIfNeeded(bufferManager);
-    }
+    auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    clientContext.getStorageManager()->getDataFH()->getPageManager()->clearEvictedBMEntriesIfNeeded(
+        bufferManager);
 }
 
 uint64_t LocalStorage::getEstimatedMemUsage() const {

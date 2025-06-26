@@ -14,7 +14,7 @@ class MemoryManager;
 class NodeGroupCollection {
 public:
     NodeGroupCollection(const std::vector<common::LogicalType>& types, bool enableCompression,
-        bool onDisk = false, const VersionRecordHandler* versionRecordHandler = nullptr);
+        bool isPersistent = false, const VersionRecordHandler* versionRecordHandler = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
@@ -73,7 +73,7 @@ public:
     common::column_id_t getNumColumns() const { return types.size(); }
 
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        PageAllocator* pageAllocator);
+        PageAllocator* pageAllocator = nullptr);
 
     uint64_t getEstimatedMemoryUsage() const;
 
@@ -115,7 +115,7 @@ private:
     std::atomic<common::row_idx_t> numTotalRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;
-    bool onDisk;
+    bool isPersistent;
     TableStats stats;
     const VersionRecordHandler* versionRecordHandler;
 };

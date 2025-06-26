@@ -168,7 +168,9 @@ void Checkpointer::rollback() {
     }
     const auto storageManager = clientContext.getStorageManager();
     auto catalog = clientContext.getCatalog();
+    // Any pages freed during the checkpoint are no longer freed
     storageManager->rollbackCheckpoint(*catalog);
+    // Any optimistically allocated pages are freed
     optimisticAllocator.rollback();
 
     auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();

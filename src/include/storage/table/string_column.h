@@ -11,7 +11,7 @@ public:
     enum class ChildStateIndex : common::idx_t { DATA = 0, OFFSET = 1, INDEX = 2 };
     static constexpr size_t CHILD_STATE_COUNT = 3;
 
-    StringColumn(std::string name, common::LogicalType dataType, PageAllocator& pageAllocator,
+    StringColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
         MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
@@ -27,7 +27,8 @@ public:
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
         ColumnChunkData* data, common::offset_t srcOffset, common::length_t numValues) override;
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+        PageAllocator& pageAllocator) override;
 
     const DictionaryColumn& getDictionary() const { return dictionary; }
     const Column* getIndexColumn() const { return indexColumn.get(); }

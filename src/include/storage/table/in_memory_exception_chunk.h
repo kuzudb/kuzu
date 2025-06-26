@@ -14,7 +14,6 @@ class MemoryManager;
 class ColumnReadWriter;
 struct ColumnChunkMetadata;
 struct ChunkState;
-class PageAllocator;
 
 // In memory representation of ALP exception chunk
 // NOTE: read and write operations on this chunk cannot both be performed on this
@@ -23,7 +22,7 @@ class PageAllocator;
 template<std::floating_point T>
 class KUZU_API InMemoryExceptionChunk {
 public:
-    InMemoryExceptionChunk(const ChunkState& state, PageAllocator& pageAllocator,
+    InMemoryExceptionChunk(const ChunkState& state, FileHandle* dataFH,
         MemoryManager* memoryManager, ShadowFile* shadowFile);
     ~InMemoryExceptionChunk();
 
