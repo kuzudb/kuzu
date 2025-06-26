@@ -103,28 +103,28 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
 
 
 // we may be able to refactor this with componentID?
-static uint64_t find(std::vector<std::atomic<uint64_t>>& parent, uint64_t u) 
+static uint64_t find(std::vector<std::atomic<uint64_t>>& components, uint64_t u) 
 {
     while (true) 
     {
-        uint64_t p = parent[u].load(std::memory_order::acquire);
-        uint64_t gp = parent[p].load(std::memory_order::acquire);
+        uint64_t p = components[u].load(std::memory_order::acquire);
+        uint64_t gp = components[p].load(std::memory_order::acquire);
         if (p == gp)
         {
             return p;
         }
-        parent[u].compare_exchange_weak(p, gp, std::memory_order::acq_rel);
+        components[u].compare_exchange_weak(p, gp, std::memory_order::acq_rel);
         u = p;
     }
 }
 
 // we may be able to refactor this with componentID?
-static bool tryUnion(std::vector<std::atomic<uint64_t>>& parent, uint64_t u, uint64_t v)
+static bool tryUnion(std::vector<std::atomic<uint64_t>>& components, uint64_t u, uint64_t v)
 {
     while (true)
     {
-        u = find(parent, u);
-        v = find(parent, v);
+        u = find(components, u);
+        v = find(components, v);
         if (u == v) 
         {
             // Nodes already in same component
@@ -136,7 +136,7 @@ static bool tryUnion(std::vector<std::atomic<uint64_t>>& parent, uint64_t u, uin
             std::swap(u, v);
         }
 
-        if (parent[u].compare_exchange_strong(u, v, std::memory_order::acq_rel))
+        if (components[u].compare_exchange_strong(u, v, std::memory_order::acq_rel))
         {
             return true;
         }
@@ -148,18 +148,18 @@ static bool tryUnion(std::vector<std::atomic<uint64_t>>& parent, uint64_t u, uin
 struct BoruvkaState 
 {
     InMemGraph& graph;
-    std::vector<std::atomic<uint64_t>> parent;
+    std::vector<std::atomic<uint64_t>> components;
     std::vector<std::optional<Edge>> cheapest;
     std::vector<std::vector<std::pair<offset_t, offset_t>>> finalEdges;
     std::vector<std::mutex> locks;
     std::vector<std::atomic<bool>> validEdges;
     std::atomic<bool> addedEdge;
     std::mutex mergeLock;
-    explicit BoruvkaState(offset_t numNodes, InMemGraph& graph) : graph{graph}, parent(numNodes), cheapest(numNodes, std::nullopt), finalEdges(numNodes), locks(numNodes), validEdges(graph.numEdges)
+    explicit BoruvkaState(offset_t numNodes, InMemGraph& graph) : graph{graph}, components(numNodes), cheapest(numNodes, std::nullopt), finalEdges(numNodes), locks(numNodes), validEdges(graph.numEdges)
     {
-        for(auto i = 0u; i < parent.size(); ++i) 
+        for(auto i = 0u; i < components.size(); ++i) 
         {
-            parent[i].store(i, std::memory_order::relaxed);
+            components[i].store(i, std::memory_order::relaxed);
         }
 
         for(auto i = 0u; i < validEdges.size(); ++i) 
@@ -185,8 +185,8 @@ public:
                 {
                     continue;
                 }
-                auto u_comp = find(state.parent, nodeId);
-                auto v_comp = find(state.parent, state.graph.csrEdges[offset].neighbor);
+                auto u_comp = find(state.components, nodeId);
+                auto v_comp = find(state.components, state.graph.csrEdges[offset].neighbor);
                 auto tryUpdate = [&](uint64_t comp, const Edge& candidate) 
                 {
                     std::lock_guard<std::mutex> guard(state.locks[comp]);
@@ -224,7 +224,7 @@ public:
             }
             auto [u, v, w] = state.cheapest[nodeId].value();
 
-            if (tryUnion(state.parent, u, v))
+            if (tryUnion(state.components, u, v))
             {
                 localresult.push_back(state.cheapest[nodeId].value());
                 state.addedEdge.store(true, std::memory_order::relaxed);
@@ -265,7 +265,7 @@ public:
                     continue;
                 }
 
-                if (find(state.parent, nodeId) == find(state.parent, state.graph.csrEdges[offset].neighbor))
+                if (find(state.components, nodeId) == find(state.components, state.graph.csrEdges[offset].neighbor))
                 {
                     state.validEdges[offset].store(false, std::memory_order::relaxed);
                 }
@@ -328,7 +328,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         // component.
         InMemGDSUtils::runVertexCompute(assignCheapestEdges, numNodes, input.context);
         // Add the cheapest edge from each component to the forest. 
-        // This also updates our component container (parent).
+        // This also updates our component container.
         // We break if we make no progress on a round.
         InMemGDSUtils::runVertexCompute(updateForest, numNodes, input.context);
         if (!state.addedEdge.load(std::memory_order::relaxed))
