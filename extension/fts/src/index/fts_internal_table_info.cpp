@@ -23,13 +23,14 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
     docTable =
         storageManager
             ->getTable(catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, docTableName)
+                           ->getTableID())
+            ->ptrCast<storage::NodeTable>();
+    termsTable =
+        storageManager
+            ->getTable(
+                catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, termsTableName)
                     ->getTableID())
             ->ptrCast<storage::NodeTable>();
-    termsTable = storageManager
-                     ->getTable(catalog
-                             ->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, termsTableName)
-                             ->getTableID())
-                     ->ptrCast<storage::NodeTable>();
     auto appearsInTableEntry =
         catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, appearsInTableName)
             ->constPtrCast<catalog::RelGroupCatalogEntry>()
