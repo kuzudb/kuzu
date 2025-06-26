@@ -1,2 +1,0 @@
-CREATE NODE TABLE node( id INT64, PRIMARY KEY (id));
-CREATE REL TABLE rel( FROM node TO node, weight INT64);
