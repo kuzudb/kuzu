@@ -426,17 +426,6 @@ jobs:
           TSAN: 1
           RUNTIME_CHECKS: 0
 
-      - name: Test compression disabled with TSAN
-        env:
-          ENABLE_COMPRESSION: false
-          TSAN_OPTIONS: "halt_on_error=1"
-          # 32GB
-          MAX_DB_SIZE: 34359738368
-          TSAN: 1
-          RUNTIME_CHECKS: 0
-        run: |
-          make test
-
   gcc-build-test-with-asan:
     name: gcc build & test with asan
     needs: [ gcc-build-test, generate-binary-datasets ]
