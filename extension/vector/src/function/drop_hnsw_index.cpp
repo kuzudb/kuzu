@@ -1,3 +1,4 @@
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"

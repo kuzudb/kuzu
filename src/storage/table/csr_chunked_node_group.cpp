@@ -281,11 +281,9 @@ void ChunkedCSRNodeGroup::scanCSRHeader(MemoryManager& memoryManager,
     KU_ASSERT(csrHeader.length->getResidencyState() == ResidencyState::ON_DISK);
     csrHeader.offset->initializeScanState(headerChunkState, csrState.csrOffsetColumn);
     KU_ASSERT(csrState.csrOffsetColumn && csrState.csrLengthColumn);
-    csrState.csrOffsetColumn->scan(&transaction::DUMMY_CHECKPOINT_TRANSACTION, headerChunkState,
-        &csrState.oldHeader->offset->getData());
+    csrState.csrOffsetColumn->scan(headerChunkState, &csrState.oldHeader->offset->getData());
     csrHeader.length->initializeScanState(headerChunkState, csrState.csrLengthColumn);
-    csrState.csrLengthColumn->scan(&transaction::DUMMY_CHECKPOINT_TRANSACTION, headerChunkState,
-        &csrState.oldHeader->length->getData());
+    csrState.csrLengthColumn->scan(headerChunkState, &csrState.oldHeader->length->getData());
 }
 
 void ChunkedCSRNodeGroup::serialize(Serializer& serializer) const {

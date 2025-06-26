@@ -11,7 +11,6 @@
 #include "storage/table/column_chunk.h"
 #include "storage/table/null_column.h"
 #include "storage/table/string_chunk_data.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -23,7 +22,7 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-StringColumn::StringColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
+StringColumn::StringColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
     MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
     : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
           true /* requireNullColumn */},
@@ -60,38 +59,37 @@ std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkD
     return flushedChunkData;
 }
 
-void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) const {
-    nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
-        resultVector, offsetInVector);
-    scanUnfiltered(transaction, state, startOffsetInGroup, endOffsetInGroup - startOffsetInGroup,
-        resultVector, offsetInVector);
+void StringColumn::scan(const ChunkState& state, offset_t startOffsetInGroup,
+    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) const {
+    nullColumn->scan(*state.nullState, startOffsetInGroup, endOffsetInGroup, resultVector,
+        offsetInVector);
+    scanUnfiltered(state, startOffsetInGroup, endOffsetInGroup - startOffsetInGroup, resultVector,
+        offsetInVector);
 }
 
-void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
+void StringColumn::scan(const ChunkState& state, ColumnChunkData* columnChunk, offset_t startOffset,
+    offset_t endOffset) const {
     KU_ASSERT(state.nullState);
-    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
+    Column::scan(state, columnChunk, startOffset, endOffset);
     if (columnChunk->getNumValues() == 0) {
         return;
     }
 
     auto& stringColumnChunk = columnChunk->cast<StringChunkData>();
-    indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX),
+    indexColumn->scan(getChildState(state, ChildStateIndex::INDEX),
         stringColumnChunk.getIndexColumnChunk(), startOffset, endOffset);
-    dictionary.scan(transaction, state, stringColumnChunk.getDictionaryChunk());
+    dictionary.scan(state, stringColumnChunk.getDictionaryChunk());
 }
 
-void StringColumn::lookupInternal(const Transaction* transaction, const ChunkState& state,
-    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
+void StringColumn::lookupInternal(const ChunkState& state, offset_t nodeOffset,
+    ValueVector* resultVector, uint32_t posInVector) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     string_index_t index = 0;
-    indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX), offsetInChunk,
+    indexColumn->scan(getChildState(state, ChildStateIndex::INDEX), offsetInChunk,
         offsetInChunk + 1, reinterpret_cast<uint8_t*>(&index));
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan(1);
     offsetsToScan.emplace_back(index, posInVector);
-    dictionary.scan(transaction, getChildState(state, ChildStateIndex::OFFSET),
+    dictionary.scan(getChildState(state, ChildStateIndex::OFFSET),
         getChildState(state, ChildStateIndex::DATA), offsetsToScan, resultVector,
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
@@ -132,23 +130,22 @@ void StringColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState)
     checkpointState.persistentData.syncNumValues();
 }
 
-void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
+void StringColumn::scanInternal(const ChunkState& state, offset_t startOffsetInChunk,
+    row_idx_t numValuesToScan, ValueVector* resultVector) const {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     if (resultVector->state->getSelVector().isUnfiltered()) {
-        scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
+        scanUnfiltered(state, startOffsetInChunk, numValuesToScan, resultVector);
     } else {
-        scanFiltered(transaction, state, startOffsetInChunk, resultVector);
+        scanFiltered(state, startOffsetInChunk, resultVector);
     }
 }
 
-void StringColumn::scanUnfiltered(const Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, offset_t numValuesToRead, ValueVector* resultVector,
-    sel_t startPosInVector) const {
+void StringColumn::scanUnfiltered(const ChunkState& state, offset_t startOffsetInChunk,
+    offset_t numValuesToRead, ValueVector* resultVector, sel_t startPosInVector) const {
     // TODO: Replace indices with ValueVector to avoid maintaining `scan` interface from
     // uint8_t*.
     auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
-    indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX), startOffsetInChunk,
+    indexColumn->scan(getChildState(state, ChildStateIndex::INDEX), startOffsetInChunk,
         startOffsetInChunk + numValuesToRead, reinterpret_cast<uint8_t*>(indices.get()));
 
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
@@ -162,13 +159,13 @@ void StringColumn::scanUnfiltered(const Transaction* transaction, const ChunkSta
         // All scanned values are null
         return;
     }
-    dictionary.scan(transaction, getChildState(state, ChildStateIndex::OFFSET),
+    dictionary.scan(getChildState(state, ChildStateIndex::OFFSET),
         getChildState(state, ChildStateIndex::DATA), offsetsToScan, resultVector,
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, ValueVector* resultVector) const {
+void StringColumn::scanFiltered(const ChunkState& state, offset_t startOffsetInChunk,
+    ValueVector* resultVector) const {
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
         const auto pos = resultVector->state->getSelVector()[i];
@@ -176,8 +173,8 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& stat
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
             const auto offsetInGroup = startOffsetInChunk + pos;
             string_index_t index = 0;
-            indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX),
-                offsetInGroup, offsetInGroup + 1, reinterpret_cast<uint8_t*>(&index));
+            indexColumn->scan(getChildState(state, ChildStateIndex::INDEX), offsetInGroup,
+                offsetInGroup + 1, reinterpret_cast<uint8_t*>(&index));
             offsetsToScan.emplace_back(index, pos);
         }
     }
@@ -186,7 +183,7 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& stat
         // All scanned values are null
         return;
     }
-    dictionary.scan(transaction, getChildState(state, ChildStateIndex::OFFSET),
+    dictionary.scan(getChildState(state, ChildStateIndex::OFFSET),
         getChildState(state, ChildStateIndex::DATA), offsetsToScan, resultVector,
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }

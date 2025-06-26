@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string_view>
@@ -115,7 +114,7 @@ public:
     }
 
 protected:
-    explicit OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager);
+    explicit OverflowFile(MemoryManager& memoryManager);
 
     common::page_idx_t getNewPageIdx() {
         // If this isn't the first call reserving the page header, then the header flag must be set
@@ -150,8 +149,7 @@ protected:
 
 class InMemOverflowFile final : public OverflowFile {
 public:
-    explicit InMemOverflowFile(MemoryManager& memoryManager)
-        : OverflowFile{nullptr, memoryManager} {}
+    explicit InMemOverflowFile(MemoryManager& memoryManager) : OverflowFile{memoryManager} {}
 };
 
 } // namespace storage

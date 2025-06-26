@@ -1,5 +1,6 @@
 #include "index/fts_index.h"
 
+#include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "index/fts_update_state.h"
 #include "utils/fts_utils.h"

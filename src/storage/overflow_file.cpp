@@ -191,12 +191,9 @@ OverflowFile::OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager, Sha
     }
 }
 
-OverflowFile::OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager)
-    : numPagesOnDisk{0}, fileHandle{dataFH}, shadowFile{nullptr}, memoryManager{memoryManager},
+OverflowFile::OverflowFile(MemoryManager& memoryManager)
+    : numPagesOnDisk{0}, fileHandle{nullptr}, shadowFile{nullptr}, memoryManager{memoryManager},
       headerChanged{false}, headerPageIdx{INVALID_PAGE_IDX} {
-    if (fileHandle) {
-        numPagesOnDisk = fileHandle->getNumPages();
-    }
     // Reserve a page for the header
     this->headerPageIdx = getNewPageIdx();
     header = StringOverflowFileHeader();

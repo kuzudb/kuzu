@@ -40,44 +40,42 @@ std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkD
     return flushedChunk;
 }
 
-void StructColumn::scan(const Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
+void StructColumn::scan(const ChunkState& state, ColumnChunkData* columnChunk, offset_t startOffset,
+    offset_t endOffset) const {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    Column::scan(transaction, state, columnChunk, startOffset, endOffset);
+    Column::scan(state, columnChunk, startOffset, endOffset);
     auto& structColumnChunk = columnChunk->cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->scan(transaction, state.childrenStates[i], structColumnChunk.getChild(i),
-            startOffset, endOffset);
+        childColumns[i]->scan(state.childrenStates[i], structColumnChunk.getChild(i), startOffset,
+            endOffset);
     }
 }
 
-void StructColumn::scan(const Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) const {
-    nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
-        resultVector, offsetInVector);
+void StructColumn::scan(const ChunkState& state, offset_t startOffsetInGroup,
+    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) const {
+    nullColumn->scan(*state.nullState, startOffsetInGroup, endOffsetInGroup, resultVector,
+        offsetInVector);
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scan(transaction, state.childrenStates[i], startOffsetInGroup,
-            endOffsetInGroup, fieldVector, offsetInVector);
+        childColumns[i]->scan(state.childrenStates[i], startOffsetInGroup, endOffsetInGroup,
+            fieldVector, offsetInVector);
     }
 }
 
-void StructColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
+void StructColumn::scanInternal(const ChunkState& state, offset_t startOffsetInChunk,
+    row_idx_t numValuesToScan, ValueVector* resultVector) const {
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->scan(transaction, state.childrenStates[i], startOffsetInChunk,
-            numValuesToScan, fieldVector);
+        childColumns[i]->scan(state.childrenStates[i], startOffsetInChunk, numValuesToScan,
+            fieldVector);
     }
 }
 
-void StructColumn::lookupInternal(const Transaction* transaction, const ChunkState& state,
-    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
+void StructColumn::lookupInternal(const ChunkState& state, offset_t nodeOffset,
+    ValueVector* resultVector, uint32_t posInVector) const {
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
-        childColumns[i]->lookupValue(transaction, state.childrenStates[i], nodeOffset, fieldVector,
-            posInVector);
+        childColumns[i]->lookupValue(state.childrenStates[i], nodeOffset, fieldVector, posInVector);
     }
 }
 
