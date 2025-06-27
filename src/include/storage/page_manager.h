@@ -4,6 +4,7 @@
 
 #include "common/types/types.h"
 #include "storage/free_space_manager.h"
+#include "storage/page_allocator.h"
 #include "storage/page_range.h"
 
 namespace kuzu {
@@ -16,20 +17,19 @@ struct DBFileID;
 class PageManager;
 class FileHandle;
 
-class PageManager {
+class PageManager : public PageAllocator {
 public:
     explicit PageManager(FileHandle* fileHandle)
-        : freeSpaceManager(std::make_unique<FreeSpaceManager>()), fileHandle(fileHandle),
-          version(0) {}
+        : PageAllocator(fileHandle), freeSpaceManager(std::make_unique<FreeSpaceManager>()),
+          fileHandle(fileHandle), version(0) {}
 
     uint64_t getVersion() const { return version; }
     bool changedSinceLastCheckpoint() const { return version != 0; }
     void resetVersion() { version = 0; }
 
-    PageRange allocatePageRange(common::page_idx_t numPages);
-    common::page_idx_t allocatePage() { return allocatePageRange(1).startPageIdx; }
-    void freePageRange(PageRange block);
-    void freePage(common::page_idx_t pageIdx) { freePageRange(PageRange(pageIdx, 1)); }
+    PageRange allocatePageRange(common::page_idx_t numPages) override;
+    void freePageRange(PageRange block) override;
+    void freeImmediatelyRewritablePageRange(FileHandle* fileHandle, PageRange block);
 
     // The page manager must first allocate space for itself so that its serialized version also
     // tracks the pages allocated itself
@@ -45,6 +45,8 @@ public:
         common::row_idx_t endOffset) const {
         return freeSpaceManager->getEntries(startOffset, endOffset);
     }
+
+    void clearEvictedBMEntriesIfNeeded(BufferManager* bufferManager);
 
 private:
     std::unique_ptr<FreeSpaceManager> freeSpaceManager;

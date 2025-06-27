@@ -39,7 +39,7 @@ PIPWrapper::PIPWrapper(const FileHandle& fileHandle, page_idx_t pipPageIdx)
 DiskArrayInternal::DiskArrayInternal(FileHandle& fileHandle,
     const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
     ShadowFile* shadowFile, uint64_t elementSize, bool bypassShadowing)
-    : storageInfo{elementSize}, fileHandle{fileHandle}, header{headerForReadTrx},
+    : storageInfo{elementSize}, fileHandle(fileHandle), header{headerForReadTrx},
       headerForWriteTrx{headerForWriteTrx}, hasTransactionalUpdates{false}, shadowFile{shadowFile},
       lastAPPageIdx{INVALID_PAGE_IDX}, lastPageOnDisk{INVALID_PAGE_IDX} {
     if (this->header.firstPIPPageIdx != ShadowUtils::NULL_PAGE_IDX) {
@@ -141,21 +141,13 @@ void DiskArrayInternal::update(const Transaction* transaction, uint64_t idx,
     });
 }
 
-uint64_t DiskArrayInternal::pushBack(const Transaction* transaction, std::span<std::byte> val) {
-    std::unique_lock xLck{diskArraySharedMtx};
-    auto it = iter_mut(val.size());
-    auto originalNumElements = getNumElementsNoLock(transaction->getType());
-    it.pushBack(transaction, val);
-    return originalNumElements;
-}
-
-uint64_t DiskArrayInternal::resize(const Transaction* transaction, uint64_t newNumElements,
-    std::span<std::byte> defaultVal) {
+uint64_t DiskArrayInternal::resize(PageAllocator& pageAllocator, const Transaction* transaction,
+    uint64_t newNumElements, std::span<std::byte> defaultVal) {
     std::unique_lock xLck{diskArraySharedMtx};
     auto it = iter_mut(defaultVal.size());
     auto originalNumElements = getNumElementsNoLock(transaction->getType());
     while (it.size() < newNumElements) {
-        it.pushBack(transaction, defaultVal);
+        it.pushBack(pageAllocator, transaction, defaultVal);
     }
     return originalNumElements;
 }
@@ -246,15 +238,15 @@ void DiskArrayInternal::checkpoint() {
     }
 }
 
-void DiskArrayInternal::reclaimStorage(PageManager& pageManager) const {
+void DiskArrayInternal::reclaimStorage(PageAllocator& pageAllocator) const {
     for (auto& pip : pips) {
         for (auto pageIdx : pip.pipContents.pageIdxs) {
             if (pageIdx != ShadowUtils::NULL_PAGE_IDX) {
-                pageManager.freePage(pageIdx);
+                pageAllocator.freePage(pageIdx);
             }
         }
         if (pip.pipPageIdx != ShadowUtils::NULL_PAGE_IDX) {
-            pageManager.freePage(pip.pipPageIdx);
+            pageAllocator.freePage(pip.pipPageIdx);
         }
     }
 }
@@ -271,7 +263,7 @@ bool DiskArrayInternal::hasPIPUpdatesNoLock(uint64_t pipIdx) const {
 
 std::pair<page_idx_t, bool>
 DiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
-    const Transaction* transaction, page_idx_t apIdx) {
+    PageAllocator& pageAllocator, const Transaction* transaction, page_idx_t apIdx) {
     if (apIdx == getNumAPs(headerForWriteTrx) - 1 && lastAPPageIdx != INVALID_PAGE_IDX) {
         return std::make_pair(lastAPPageIdx, false /*not a new page*/);
     } else if (apIdx < getNumAPs(headerForWriteTrx)) {
@@ -284,7 +276,7 @@ DiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
         KU_ASSERT(apIdx == getNumAPs(headerForWriteTrx));
         // We need to add a new AP. This may further cause a new pip to be inserted, which is
         // handled by the if/else-if/else branch below.
-        page_idx_t newAPPageIdx = fileHandle.getPageManager()->allocatePage();
+        page_idx_t newAPPageIdx = pageAllocator.allocatePage();
         // We need to create a new array page and then add its apPageIdx (newAPPageIdx variable) to
         // an appropriate PIP.
         auto pipIdxAndOffsetOfNewAP =
@@ -306,7 +298,7 @@ DiskArrayInternal::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
             pip.pipContents.pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
         } else {
             // We need to create a new PIP and make the previous PIP (or the header) point to it.
-            page_idx_t pipPageIdx = fileHandle.getPageManager()->allocatePage();
+            page_idx_t pipPageIdx = pageAllocator.allocatePage();
             pipUpdates.newPIPs.emplace_back(pipPageIdx);
             uint64_t pipIdxOfPreviousPIP = pipIdx - 1;
             setNextPIPPageIDxOfPIPNoLock(pipIdxOfPreviousPIP, pipPageIdx);
@@ -328,14 +320,14 @@ DiskArrayInternal::WriteIterator& DiskArrayInternal::WriteIterator::seek(size_t 
     return *this;
 }
 
-void DiskArrayInternal::WriteIterator::pushBack(const Transaction* transaction,
-    std::span<std::byte> val) {
+void DiskArrayInternal::WriteIterator::pushBack(PageAllocator& pageAllocator,
+    const Transaction* transaction, std::span<std::byte> val) {
     idx = diskArray.headerForWriteTrx.numElements;
     auto oldPageIdx = apCursor.pageIdx;
     apCursor = getAPIdxAndOffsetInAP(diskArray.storageInfo, idx);
     // If this would add a new page, pin new page and update PIP
     auto [apPageIdx, isNewlyAdded] =
-        diskArray.getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(transaction,
+        diskArray.getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(pageAllocator, transaction,
             apCursor.pageIdx);
     diskArray.lastAPPageIdx = apPageIdx;
     // Used to calculate the number of APs, so it must be updated after the PIPs are.

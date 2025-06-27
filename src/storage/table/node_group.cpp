@@ -348,38 +348,13 @@ bool NodeGroup::hasDeletions(const Transaction* transaction) const {
 }
 
 void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    FileHandle* dataFH, ColumnStats* newColumnStats) {
+    PageAllocator* pageAllocator, ColumnStats* newColumnStats) {
     dataTypes.push_back(addColumnState.propertyDefinition.getType().copy());
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, dataFH,
+        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, pageAllocator,
             newColumnStats);
     }
-}
-
-void NodeGroup::flush(const Transaction* transaction, FileHandle& dataFH) {
-    const auto lock = chunkedGroups.lock();
-    if (chunkedGroups.getNumGroups(lock) == 1) {
-        const auto chunkedGroupToFlush = chunkedGroups.getFirstGroup(lock);
-        chunkedGroupToFlush->flush(dataFH);
-    } else {
-        // Merge all chunkedGroups into a single one first. Then flush it to disk.
-        auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(
-            *transaction->getClientContext()->getMemoryManager(), dataTypes, enableCompression,
-            StorageConfig::NODE_GROUP_SIZE, getStartRowIdxInGroup(lock), ResidencyState::IN_MEMORY);
-        std::vector<column_id_t> dummyColumnIDs;
-        for (auto i = 0u; i < dataTypes.size(); i++) {
-            dummyColumnIDs.push_back(i);
-        }
-        for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-            mergedChunkedGroup->append(transaction, dummyColumnIDs, *chunkedGroup, 0,
-                chunkedGroup->getNumRows());
-        }
-        mergedChunkedGroup->flush(dataFH);
-        chunkedGroups.replaceGroup(lock, 0, std::move(mergedChunkedGroup));
-    }
-    // Clear all chunkedGroups except the first one, which is persistent.
-    chunkedGroups.resize(lock, 1);
 }
 
 void NodeGroup::rollbackInsert(row_idx_t startRow) {
@@ -389,13 +364,13 @@ void NodeGroup::rollbackInsert(row_idx_t startRow) {
     numRows = startRow;
 }
 
-void NodeGroup::reclaimStorage(PageManager& pageManager) const {
-    reclaimStorage(pageManager, chunkedGroups.lock());
+void NodeGroup::reclaimStorage(PageAllocator& pageAllocator) const {
+    reclaimStorage(pageAllocator, chunkedGroups.lock());
 }
 
-void NodeGroup::reclaimStorage(PageManager& pageManager, const UniqLock& lock) const {
+void NodeGroup::reclaimStorage(PageAllocator& pageAllocator, const UniqLock& lock) const {
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->reclaimStorage(pageManager);
+        chunkedGroup->reclaimStorage(pageAllocator);
     }
 }
 
@@ -409,12 +384,12 @@ void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointStat
     std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
     if (checkpointedVersionInfo->getNumDeletions(&DUMMY_CHECKPOINT_TRANSACTION, 0, numRows) ==
         numRows - firstGroup->getStartRowIdx()) {
-        reclaimStorage(*state.dataFH.getPageManager(), lock);
+        reclaimStorage(state.pageAllocator, lock);
         // TODO(Royi) figure out how to make this rollback-friendly
         checkpointedChunkedGroup =
             std::make_unique<ChunkedNodeGroup>(memoryManager, dataTypes, enableCompression,
                 StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, numRows, ResidencyState::IN_MEMORY);
-        checkpointedChunkedGroup->flush(state.dataFH);
+        checkpointedChunkedGroup->flush(state.pageAllocator);
     } else {
         if (hasPersistentData) {
             checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
@@ -475,7 +450,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
         }
         ColumnCheckpointState columnCheckpointState(firstGroup->getColumnChunk(columnID).getData(),
             std::move(chunkCheckpointStates));
-        state.columns[i]->checkpointColumnChunk(columnCheckpointState);
+        state.columns[i]->checkpointColumnChunk(columnCheckpointState, state.pageAllocator);
     }
     auto checkpointedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(*chunkedGroups.getGroup(lock, 0), state.columnIDs);
@@ -485,7 +460,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
     // The first chunked group is the only persistent one
     // The checkpointed columns have been moved to the checkpointedChunkedGroup, the
     // remaining must have been dropped
-    chunkedGroups.getGroup(lock, 0)->reclaimStorage(*state.dataFH.getPageManager());
+    chunkedGroups.getGroup(lock, 0)->reclaimStorage(state.pageAllocator);
     return checkpointedChunkedGroup;
 }
 
@@ -499,7 +474,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(MemoryManager& 
     }
     auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager,
         lock, state.columnIDs, columnPtrs);
-    insertChunkedGroup->flush(state.dataFH);
+    insertChunkedGroup->flush(state.pageAllocator);
     return insertChunkedGroup;
 }
 

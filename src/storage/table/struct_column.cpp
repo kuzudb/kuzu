@@ -29,12 +29,12 @@ StructColumn::StructColumn(std::string name, LogicalType dataType, FileHandle* d
 }
 
 std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkData& chunk,
-    FileHandle& dataFH) {
-    auto flushedChunk = flushNonNestedChunkData(chunk, dataFH);
+    PageAllocator& pageAllocator) {
+    auto flushedChunk = flushNonNestedChunkData(chunk, pageAllocator);
     auto& structChunk = chunk.cast<StructChunkData>();
     auto& flushedStructChunk = flushedChunk->cast<StructChunkData>();
     for (auto i = 0u; i < structChunk.getNumChildren(); i++) {
-        auto flushedChildChunk = Column::flushChunkData(structChunk.getChild(i), dataFH);
+        auto flushedChildChunk = Column::flushChunkData(structChunk.getChild(i), pageAllocator);
         flushedStructChunk.setChild(i, std::move(flushedChildChunk));
     }
     return flushedChunk;
@@ -93,7 +93,8 @@ void StructColumn::write(ColumnChunkData& persistentChunk, ChunkState& state,
     }
 }
 
-void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+    PageAllocator& pageAllocator) {
     auto& persistentStructChunk = checkpointState.persistentData.cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
         std::vector<ChunkCheckpointState> childChunkCheckpointStates;
@@ -105,9 +106,9 @@ void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState)
         }
         ColumnCheckpointState childColumnCheckpointState(*persistentStructChunk.getChild(i),
             std::move(childChunkCheckpointStates));
-        childColumns[i]->checkpointColumnChunk(childColumnCheckpointState);
+        childColumns[i]->checkpointColumnChunk(childColumnCheckpointState, pageAllocator);
     }
-    Column::checkpointNullData(checkpointState);
+    Column::checkpointNullData(checkpointState, pageAllocator);
     persistentStructChunk.syncNumValues();
 }
 

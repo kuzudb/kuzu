@@ -434,18 +434,18 @@ void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData)
         ColumnChunkData::deserialize(chunkData.getMemoryManager(), deSer);
 }
 
-void ListChunkData::flush(FileHandle& dataFH) {
-    ColumnChunkData::flush(dataFH);
-    sizeColumnChunk->flush(dataFH);
-    dataColumnChunk->flush(dataFH);
-    offsetColumnChunk->flush(dataFH);
+void ListChunkData::flush(PageAllocator& pageAllocator) {
+    ColumnChunkData::flush(pageAllocator);
+    sizeColumnChunk->flush(pageAllocator);
+    dataColumnChunk->flush(pageAllocator);
+    offsetColumnChunk->flush(pageAllocator);
 }
 
-void ListChunkData::reclaimStorage(PageManager& pageManager) {
-    ColumnChunkData::reclaimStorage(pageManager);
-    sizeColumnChunk->reclaimStorage(pageManager);
-    dataColumnChunk->reclaimStorage(pageManager);
-    offsetColumnChunk->reclaimStorage(pageManager);
+void ListChunkData::reclaimStorage(PageAllocator& pageAllocator) {
+    ColumnChunkData::reclaimStorage(pageAllocator);
+    sizeColumnChunk->reclaimStorage(pageAllocator);
+    dataColumnChunk->reclaimStorage(pageAllocator);
+    offsetColumnChunk->reclaimStorage(pageAllocator);
 }
 
 } // namespace storage

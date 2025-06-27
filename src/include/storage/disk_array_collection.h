@@ -27,12 +27,12 @@ class DiskArrayCollection {
     static_assert(std::has_unique_object_representations_v<HeaderPage>);
 
 public:
-    DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
+    explicit DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
         bool bypassShadowing = false);
     DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
         common::page_idx_t firstHeaderPage, bool bypassShadowing = false);
 
-    void checkpoint(common::page_idx_t firstHeaderPage);
+    void checkpoint(common::page_idx_t firstHeaderPage, PageAllocator& pageAllocator);
 
     void checkpointInMemory() {
         for (size_t i = 0; i < headersForWriteTrx.size(); i++) {
@@ -47,7 +47,7 @@ public:
         }
     }
 
-    void reclaimStorage(PageManager& pageManager, common::page_idx_t firstHeaderPage) const;
+    void reclaimStorage(PageAllocator& pageAllocator, common::page_idx_t firstHeaderPage) const;
 
     template<typename T>
     std::unique_ptr<DiskArray<T>> getDiskArray(uint32_t idx) {
@@ -61,6 +61,8 @@ public:
     }
 
     size_t addDiskArray();
+
+    void populateNextHeaderPages(PageAllocator& pageAllocator);
 
 private:
     FileHandle& fileHandle;

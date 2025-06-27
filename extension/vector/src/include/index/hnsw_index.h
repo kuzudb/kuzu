@@ -318,7 +318,8 @@ public:
         return HNSW_INDEX_TYPE;
     }
 
-    void checkpoint(main::ClientContext* context, bool forceCheckpointAll) override;
+    void checkpoint(main::ClientContext* context, storage::PageAllocator& pageAllocator,
+        bool forceCheckpointAll) override;
 
 private:
     common::offset_t searchNNInUpperLayer(const EmbeddingHandle& queryVector,

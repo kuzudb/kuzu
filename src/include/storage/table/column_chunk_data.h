@@ -33,6 +33,7 @@ namespace storage {
 class Column;
 class NullChunkData;
 class ColumnStats;
+class PageAllocator;
 class FileHandle;
 
 // TODO(bmwinger): Hide access to variables.
@@ -83,7 +84,7 @@ struct ChunkState {
         return std::get<GetType>(alpExceptionChunk).get();
     }
 
-    void reclaimAllocatedPages(FileHandle& dataFH) const;
+    void reclaimAllocatedPages(PageAllocator& pageAllocator) const;
 };
 
 class Spiller;
@@ -158,9 +159,9 @@ public:
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
-    virtual void flush(FileHandle& dataFH);
+    virtual void flush(PageAllocator& pageAllocator);
 
-    ColumnChunkMetadata flushBuffer(FileHandle* dataFH, const PageRange& entry,
+    ColumnChunkMetadata flushBuffer(PageAllocator& pageAllocator, const PageRange& entry,
         const ColumnChunkMetadata& metadata) const;
 
     static common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
@@ -238,7 +239,7 @@ public:
 
     void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
 
-    virtual void reclaimStorage(PageManager& pageManager);
+    virtual void reclaimStorage(PageAllocator& pageAllocator);
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in

@@ -153,9 +153,9 @@ struct CSRNodeGroupCheckpointState final : NodeGroupCheckpointState {
     std::unique_ptr<ChunkedCSRHeader> newHeader;
 
     CSRNodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
-        std::vector<Column*> columns, FileHandle& dataFH, MemoryManager* mm, Column* csrOffsetCol,
-        Column* csrLengthCol)
-        : NodeGroupCheckpointState{std::move(columnIDs), std::move(columns), dataFH, mm},
+        std::vector<Column*> columns, PageAllocator& pageAllocator, MemoryManager* mm,
+        Column* csrOffsetCol, Column* csrLengthCol)
+        : NodeGroupCheckpointState{std::move(columnIDs), std::move(columns), pageAllocator, mm},
           csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol} {}
 };
 
@@ -207,10 +207,10 @@ public:
         common::row_idx_t rowIdxInGroup);
 
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        FileHandle* dataFH, ColumnStats* newColumnStats) override;
+        PageAllocator* pageAllocator, ColumnStats* newColumnStats) override;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
-    void reclaimStorage(PageManager& pageManager, const common::UniqLock& lock) const override;
+    void reclaimStorage(PageAllocator& pageAllocator, const common::UniqLock& lock) const override;
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 

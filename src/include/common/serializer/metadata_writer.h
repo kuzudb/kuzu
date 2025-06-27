@@ -8,6 +8,7 @@
 namespace kuzu::storage {
 struct PageRange;
 class ShadowFile;
+class PageAllocator;
 } // namespace kuzu::storage
 
 namespace kuzu {
@@ -24,7 +25,7 @@ public:
         return pages[pageIdx]->getBuffer();
     }
 
-    storage::PageRange flush(storage::FileHandle* fileHandle,
+    storage::PageRange flush(storage::PageAllocator& pageAllocator,
         storage::ShadowFile& shadowFile) const;
     void flush(storage::PageRange allocatedPages, storage::FileHandle* fileHandle,
         storage::ShadowFile& shadowFile) const;

@@ -80,17 +80,17 @@ void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkDat
         });
 }
 
-void StructChunkData::flush(FileHandle& dataFH) {
-    ColumnChunkData::flush(dataFH);
+void StructChunkData::flush(PageAllocator& pageAllocator) {
+    ColumnChunkData::flush(pageAllocator);
     for (const auto& childChunk : childChunks) {
-        childChunk->flush(dataFH);
+        childChunk->flush(pageAllocator);
     }
 }
 
-void StructChunkData::reclaimStorage(PageManager& pageManager) {
-    ColumnChunkData::reclaimStorage(pageManager);
+void StructChunkData::reclaimStorage(PageAllocator& pageAllocator) {
+    ColumnChunkData::reclaimStorage(pageAllocator);
     for (const auto& childChunk : childChunks) {
-        childChunk->reclaimStorage(pageManager);
+        childChunk->reclaimStorage(pageAllocator);
     }
 }
 

@@ -14,6 +14,7 @@ add_library(kuzu_storage
         disk_array_collection.cpp
         file_handle.cpp
         free_space_manager.cpp
+        optimistic_allocator.cpp
         overflow_file.cpp
         page_manager.cpp
         shadow_file.cpp

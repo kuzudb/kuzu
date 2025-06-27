@@ -233,15 +233,15 @@ length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
-    transaction::Transaction* transaction, FileHandle& dataFH) const {
+    transaction::Transaction* transaction, PageAllocator& pageAllocator) const {
     auto csrOffset = std::make_unique<ColumnChunk>(csrHeader.offset->isCompressionEnabled(),
-        Column::flushChunkData(csrHeader.offset->getData(), dataFH));
+        Column::flushChunkData(csrHeader.offset->getData(), pageAllocator));
     auto csrLength = std::make_unique<ColumnChunk>(csrHeader.length->isCompressionEnabled(),
-        Column::flushChunkData(csrHeader.length->getData(), dataFH));
+        Column::flushChunkData(csrHeader.length->getData(), pageAllocator));
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
-            Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
+            Column::flushChunkData(getColumnChunk(i).getData(), pageAllocator));
     }
     ChunkedCSRHeader newCSRHeader{std::move(csrOffset), std::move(csrLength)};
     auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(newCSRHeader),
@@ -252,21 +252,21 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGrou
     return flushedChunkedGroup;
 }
 
-void ChunkedCSRNodeGroup::flush(FileHandle& dataFH) {
-    csrHeader.offset->getData().flush(dataFH);
-    csrHeader.length->getData().flush(dataFH);
+void ChunkedCSRNodeGroup::flush(PageAllocator& pageAllocator) {
+    csrHeader.offset->getData().flush(pageAllocator);
+    csrHeader.length->getData().flush(pageAllocator);
     for (auto i = 0u; i < getNumColumns(); i++) {
-        getColumnChunk(i).getData().flush(dataFH);
+        getColumnChunk(i).getData().flush(pageAllocator);
     }
 }
 
-void ChunkedCSRNodeGroup ::reclaimStorage(PageManager& pageManager) const {
-    ChunkedNodeGroup::reclaimStorage(pageManager);
+void ChunkedCSRNodeGroup ::reclaimStorage(PageAllocator& pageAllocator) const {
+    ChunkedNodeGroup::reclaimStorage(pageAllocator);
     if (csrHeader.offset) {
-        csrHeader.offset->reclaimStorage(pageManager);
+        csrHeader.offset->reclaimStorage(pageAllocator);
     }
     if (csrHeader.length) {
-        csrHeader.length->reclaimStorage(pageManager);
+        csrHeader.length->reclaimStorage(pageAllocator);
     }
 }
 

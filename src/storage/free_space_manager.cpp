@@ -4,6 +4,7 @@
 #include "common/serializer/metadata_writer.h"
 #include "common/serializer/serializer.h"
 #include "common/utils.h"
+#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
 #include "storage/page_range.h"
 
@@ -17,7 +18,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0), needClearEvictedEntries(false){};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -36,6 +37,11 @@ void FreeSpaceManager::addFreePages(PageRange entry) {
     KU_ASSERT(!getFreeList(freeLists, entryLevel).contains(entry));
     getFreeList(freeLists, entryLevel).insert(entry);
     ++numEntries;
+}
+
+void FreeSpaceManager::evictAndAddFreePages(FileHandle* fileHandle, PageRange entry) {
+    evictPages(fileHandle, entry);
+    addFreePages(entry);
 }
 
 void FreeSpaceManager::addUncheckpointedFreePages(PageRange entry) {
@@ -177,13 +183,18 @@ void FreeSpaceManager::deserialize(common::Deserializer& deSer) {
     }
 }
 
+void FreeSpaceManager::evictPages(FileHandle* fileHandle, const PageRange& entry) {
+    needClearEvictedEntries = true;
+    for (uint64_t i = 0; i < entry.numPages; ++i) {
+        const auto pageIdx = entry.startPageIdx + i;
+        fileHandle->removePageFromFrameIfNecessary(pageIdx);
+    }
+}
+
 void FreeSpaceManager::finalizeCheckpoint(FileHandle* fileHandle) {
     // evict pages before they're added to the free list
     for (const auto& entry : uncheckpointedFreePageRanges) {
-        for (uint64_t i = 0; i < entry.numPages; ++i) {
-            const auto pageIdx = entry.startPageIdx + i;
-            fileHandle->removePageFromFrameIfNecessary(pageIdx);
-        }
+        evictPages(fileHandle, entry);
     }
 
     mergePageRanges(std::move(uncheckpointedFreePageRanges), fileHandle);
@@ -247,6 +258,13 @@ std::vector<PageRange> FreeSpaceManager::getEntries(common::row_idx_t startOffse
         ++it;
     }
     return ret;
+}
+
+void FreeSpaceManager::clearEvictedBufferManagerEntriesIfNeeded(BufferManager* bufferManager) {
+    if (needClearEvictedEntries) {
+        bufferManager->removeEvictedCandidates();
+        needClearEvictedEntries = false;
+    }
 }
 
 void FreeEntryIterator::advance(common::row_idx_t numEntries) {
