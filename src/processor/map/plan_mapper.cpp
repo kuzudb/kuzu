@@ -22,8 +22,10 @@ static void setPhysicalPlanIfProfile(const LogicalPlan* logicalPlan, PhysicalPla
 std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(const LogicalPlan* logicalPlan,
     const expression_vector& expressionsToCollect) {
     auto lastOperator = mapOperator(logicalPlan->getLastOperator().get());
-    lastOperator = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
-        logicalPlan->getSchema(), std::move(lastOperator));
+    if (!lastOperator->isSink()) {
+        lastOperator = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
+            logicalPlan->getSchema(), std::move(lastOperator));
+    }
     auto physicalPlan = make_unique<PhysicalPlan>(std::move(lastOperator));
     setPhysicalPlanIfProfile(logicalPlan, physicalPlan.get());
     return physicalPlan;

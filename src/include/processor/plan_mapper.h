@@ -35,7 +35,7 @@ class LogicalCopyFrom;
 
 namespace processor {
 
-class HashJoinBuildInfo;
+struct HashJoinBuildInfo;
 struct AggregateInfo;
 class NodeInsertExecutor;
 class RelInsertExecutor;
@@ -198,9 +198,8 @@ public:
         const binder::expression_vector& exprs, const planner::Schema* schema,
         std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize);
 
-    static std::unique_ptr<HashJoinBuildInfo> createHashBuildInfo(
-        const planner::Schema& buildSideSchema, const binder::expression_vector& keys,
-        const binder::expression_vector& payloads);
+    static HashJoinBuildInfo createHashBuildInfo(const planner::Schema& buildSideSchema,
+        const binder::expression_vector& keys, const binder::expression_vector& payloads);
 
     std::unique_ptr<PhysicalOperator> createDistinctHashAggregate(
         const binder::expression_vector& keys, const binder::expression_vector& payloads,

@@ -76,7 +76,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     auto outputExpr = {exportDatabase->getOutputExpression()};
     auto resultCollector = createResultCollector(AccumulateType::REGULAR, outputExpr,
         exportDatabase->getSchema(), std::move(exportDB));
-    auto resultFT = resultCollector->getResultFactorizedTable();
+    auto resultFT = resultCollector->getResultFTable();
     children.push_back(std::move(resultCollector));
     return createFTableScan(outputExpr, {0} /* colIdxes */, exportDatabase->getSchema(), resultFT,
         1 /* maxMorselSize */, std::move(children));

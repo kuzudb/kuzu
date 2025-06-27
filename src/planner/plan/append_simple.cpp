@@ -19,7 +19,6 @@
 #include "planner/operator/ddl/logical_create_type.h"
 #include "planner/operator/ddl/logical_drop.h"
 #include "planner/operator/logical_create_macro.h"
-#include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_noop.h"
 #include "planner/operator/logical_standalone_call.h"
@@ -69,8 +68,7 @@ LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
         }
         }
         auto create = std::make_shared<LogicalCreateTable>(info.copy(), dummyStr);
-        auto dummySink = std::make_shared<LogicalDummySink>(std::move(create));
-        children.push_back(std::move(dummySink));
+        children.push_back(std::move(create));
         auto noop = std::make_shared<LogicalNoop>(children);
         return getSimplePlan(std::move(noop));
     }

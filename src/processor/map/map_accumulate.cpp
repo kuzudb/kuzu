@@ -18,7 +18,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(
     auto expressions = acc.getPayloads();
     auto resultCollector = createResultCollector(acc.getAccumulateType(), expressions, inSchema,
         std::move(prevOperator));
-    auto table = resultCollector->getResultFactorizedTable();
+    auto table = resultCollector->getResultFTable();
     auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     if (acc.hasMark()) {
         expressions.push_back(acc.getMark());

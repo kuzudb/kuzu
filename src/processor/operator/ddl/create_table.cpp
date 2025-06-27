@@ -16,13 +16,12 @@ void CreateTable::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
+    auto memoryManager = clientContext->getMemoryManager();
     // Check conflict
-    // We don't allow naming conflicting between tables and rel groups because rel groups are
-    // transparent to the user.
-    auto contains = catalog->containsTable(transaction, info.tableName);
-    if (contains) {
+    if (catalog->containsTable(transaction, info.tableName)) {
         switch (info.onConflict) {
         case ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            appendMessage(stringFormat("Table {} already exists.", info.tableName), memoryManager);
             return;
         }
         case ConflictAction::ON_CONFLICT_THROW: {
@@ -43,14 +42,8 @@ void CreateTable::executeInternal(ExecutionContext* context) {
         KU_UNREACHABLE;
     }
     clientContext->getStorageManager()->createTable(entry->ptrCast<TableCatalogEntry>());
-    tableCreated = true;
-}
-
-std::string CreateTable::getOutputMsg() {
-    if (tableCreated) {
-        return stringFormat("Table {} has been created.", info.tableName);
-    }
-    return stringFormat("Table {} already exists.", info.tableName);
+    appendMessage(stringFormat("Table {} has been created.", info.tableName), memoryManager);
+    sharedState->tableCreated = true;
 }
 
 } // namespace processor

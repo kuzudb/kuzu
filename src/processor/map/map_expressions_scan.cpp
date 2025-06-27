@@ -32,7 +32,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(
     KU_ASSERT(physicalOp->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL);
     KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::RESULT_COLLECTOR);
     auto resultCollector = physicalOp->getChild(0)->ptrCast<ResultCollector>();
-    auto table = resultCollector->getResultFactorizedTable();
+    auto table = resultCollector->getResultFTable();
     return createFTableScan(expressionsToScan, colIndicesToScan, schema, table,
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
 }

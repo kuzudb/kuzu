@@ -19,8 +19,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(const LogicalOperator* 
     auto outSchema = logicalExplain.getSchema();
     auto inSchema = logicalExplain.getChild(0)->getSchema();
     auto root = mapOperator(logicalExplain.getChild(0).get());
-    root = createResultCollector(AccumulateType::REGULAR,
-        logicalExplain.getOutputExpressionsToExplain(), inSchema, std::move(root));
+    if (!root->isSink()) {
+        root = createResultCollector(AccumulateType::REGULAR,
+            logicalExplain.getOutputExpressionsToExplain(), inSchema, std::move(root));
+    }
+
     auto outputExpression = logicalExplain.getOutputExpression();
     if (logicalExplain.getExplainType() == ExplainType::PROFILE) {
         auto outputPosition = getDataPos(*outputExpression, *outSchema);
