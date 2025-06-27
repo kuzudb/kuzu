@@ -51,6 +51,24 @@ PK|NATIVE
 multipleTableWithFilter|NATIVE
 withFilter|NATIVE
 emptygraph|NATIVE
+-STATEMENT CALL PROJECTED_GRAPH_INFO('emptygraph') RETURN *
+---- 1
+NATIVE||
+-STATEMENT CALL PROJECTED_GRAPH_INFO('G') RETURN *
+---- 1
+CYPHER|MATCH (n) WHERE n.age < 10 RETURN n
+-STATEMENT CALL PROJECTED_GRAPH_INFO('withFilter') RETURN *
+---- 1
+NATIVE|{{'table': 'person','predicate': 'n.age > 35'}}|{{'table': 'knows','predicate': 'size(r.comments) > 5'}}
+-STATEMENT CALL PROJECTED_GRAPH_INFO('multipleTableWithFilter') RETURN *
+---- 1
+NATIVE|{{'table': 'person','predicate': 'n.age > 35'},{'table': 'organisation','predicate': 'n.ID > 2'}}|{{'table': 'knows','predicate': 'size(r.comments) > 5'}}
+-STATEMENT CALL PROJECTED_GRAPH_INFO('PKWO') RETURN *
+---- 1
+NATIVE|{{'table': 'person'},{'table': 'organisation'}}|{{'table': 'knows'},{'table': 'workAt'}}
+-STATEMENT CALL PROJECTED_GRAPH_INFO('PK') RETURN *
+---- 1
+NATIVE|{{'table': 'person'}}|{{'table': 'knows'}}
 -STATEMENT CALL drop_projected_graph('dummy')
 ---- error
 Runtime exception: Projected graph dummy does not exists.

@@ -16,5 +16,14 @@ std::string GraphEntryTypeUtils::toString(GraphEntryType type) {
     }
 }
 
+std::string ParsedNativeGraphTableInfo::toString() const {
+    auto result = common::stringFormat("{'table': '{}'", tableName);
+    if (predicate != "") {
+        result += common::stringFormat(",'predicate': '{}'", predicate);
+    }
+    result += "}";
+    return result;
+}
+
 } // namespace graph
 } // namespace kuzu

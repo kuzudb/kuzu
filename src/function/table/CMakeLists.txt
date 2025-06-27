@@ -28,6 +28,7 @@ add_library(kuzu_table_function
         simple_table_function.cpp
         table_function.cpp
         table_info.cpp
+        projected_graph_info.cpp
         )
 
 set(ALL_OBJECT_FILES

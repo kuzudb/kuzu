@@ -36,6 +36,8 @@ struct ParsedNativeGraphTableInfo {
 
     ParsedNativeGraphTableInfo(std::string tableName, std::string predicate)
         : tableName{std::move(tableName)}, predicate{std::move(predicate)} {}
+
+    std::string toString() const;
 };
 
 struct KUZU_API ParsedNativeGraphEntry : ParsedGraphEntry {
