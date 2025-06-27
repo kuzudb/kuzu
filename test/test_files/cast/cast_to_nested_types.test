@@ -372,3 +372,27 @@ Conversion exception: Map does not allow null as key.
 -STATEMENT RETURN cast(cast([220], "decimal(21,4)[]"), "int[1]")
 ---- 1
 [220]
+
+-CASE CastToUnion
+-STATEMENT CREATE NODE TABLE Person(id INT64, description UNION(height INT64, name STRING), PRIMARY KEY(id))
+---- ok
+-STATEMENT CREATE (p:Person {id: 5, description: 6})
+---- ok
+-STATEMENT CREATE (p:Person {id: 7, description: 'Alice'})
+---- ok
+-STATEMENT MATCH (p:Person) RETURN p.*
+---- 2
+5|6
+7|Alice
+-STATEMENT RETURN CAST(127 AS UNION(a STRING, b INT64, c FLOAT))
+---- 1
+127
+-STATEMENT WITH CAST(42 AS UNION(a STRING, b INT64, c FLOAT)) AS u RETURN u, union_tag(u)
+---- 1
+42|b
+-STATEMENT WITH CAST(42 AS UNION(a STRING, c FLOAT)) AS u RETURN u, union_tag(u)
+---- 1
+42.000000|c
+-STATEMENT WITH CAST(42 AS UNION(a STRING, b BOOL)) AS u RETURN u, union_tag(u)
+---- 1
+42|a
