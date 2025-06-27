@@ -469,7 +469,7 @@ std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, Stora
     auto storageInfo = HNSWStorageInfo::deserialize(std::move(reader));
     const auto catalog = context->getCatalog();
     const auto indexEntry =
-        catalog->getIndex(&transaction::DUMMY_TRANSACTION, indexInfo.tableID, indexInfo.name);
+        catalog->getIndex(context->getTransaction(), indexInfo.tableID, indexInfo.name);
     const auto auxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
     return std::make_unique<OnDiskHNSWIndex>(context, std::move(indexInfo), std::move(storageInfo),
         auxInfo.config.copy());

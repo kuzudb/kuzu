@@ -41,8 +41,7 @@ static void addJsonScalarFunction(main::Database& db) {
 
 void JsonExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    db.getCatalog()->createType(&transaction::DUMMY_TRANSACTION, JSON_TYPE_NAME,
-        JsonType::getJsonType());
+    db.getCatalog()->createType(context->getTransaction(), JSON_TYPE_NAME, JsonType::getJsonType());
     addJsonCreationFunction(db);
     addJsonExtractFunction(db);
     addJsonScalarFunction(db);

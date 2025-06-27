@@ -10,17 +10,17 @@ using namespace extension;
 
 void AlgoExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    extension::ExtensionUtils::addTableFunc<SCCFunction>(db);
-    extension::ExtensionUtils::addTableFuncAlias<SCCAliasFunction>(db);
-    extension::ExtensionUtils::addTableFunc<SCCKosarajuFunction>(db);
-    extension::ExtensionUtils::addTableFuncAlias<SCCKosarajuAliasFunction>(db);
-    extension::ExtensionUtils::addTableFunc<WeaklyConnectedComponentsFunction>(db);
-    extension::ExtensionUtils::addTableFuncAlias<WeaklyConnectedComponentsAliasFunction>(db);
-    extension::ExtensionUtils::addTableFunc<PageRankFunction>(db);
-    extension::ExtensionUtils::addTableFuncAlias<PageRankAliasFunction>(db);
-    extension::ExtensionUtils::addTableFunc<KCoreDecompositionFunction>(db);
-    extension::ExtensionUtils::addTableFuncAlias<KCoreDecompositionAliasFunction>(db);
-    extension::ExtensionUtils::addTableFunc<LouvainFunction>(db);
+    ExtensionUtils::addTableFunc<SCCFunction>(db);
+    ExtensionUtils::addTableFuncAlias<SCCAliasFunction>(db);
+    ExtensionUtils::addTableFunc<SCCKosarajuFunction>(db);
+    ExtensionUtils::addTableFuncAlias<SCCKosarajuAliasFunction>(db);
+    ExtensionUtils::addTableFunc<WeaklyConnectedComponentsFunction>(db);
+    ExtensionUtils::addTableFuncAlias<WeaklyConnectedComponentsAliasFunction>(db);
+    ExtensionUtils::addTableFunc<PageRankFunction>(db);
+    ExtensionUtils::addTableFuncAlias<PageRankAliasFunction>(db);
+    ExtensionUtils::addTableFunc<KCoreDecompositionFunction>(db);
+    ExtensionUtils::addTableFuncAlias<KCoreDecompositionAliasFunction>(db);
+    ExtensionUtils::addTableFunc<LouvainFunction>(db);
 }
 
 } // namespace algo_extension
