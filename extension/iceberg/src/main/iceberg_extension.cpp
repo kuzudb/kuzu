@@ -4,7 +4,6 @@
 #include "main/client_context.h"
 #include "main/database.h"
 #include "main/duckdb_extension.h"
-#include "s3fs_config.h"
 
 namespace kuzu {
 namespace iceberg_extension {
@@ -13,9 +12,9 @@ using namespace kuzu::extension;
 
 void IcebergExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    ExtensionUtils::addTableFunc<IcebergScanFunction>(db);
-    ExtensionUtils::addTableFunc<IcebergMetadataFunction>(db);
-    ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(db);
+    ExtensionUtils::addTableFunc<IcebergScanFunction>(context->getTransaction(), db);
+    ExtensionUtils::addTableFunc<IcebergMetadataFunction>(context->getTransaction(), db);
+    ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(context->getTransaction(), db);
     duckdb_extension::DuckdbExtension::loadRemoteFSOptions(context);
 }
 

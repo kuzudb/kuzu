@@ -22,7 +22,7 @@ void StandaloneCallRewriter::visitStandaloneCallFunction(const Statement& statem
         *context->getTransactionContext(),
         [&]() -> void {
             auto funcName = standaloneCallFunc.getFunctionExpression()
-                                ->constPtrCast<parser::ParsedFunctionExpression>()
+                                ->constPtrCast<ParsedFunctionExpression>()
                                 ->getFunctionName();
             if (!context->getCatalog()->containsFunction(context->getTransaction(), funcName) &&
                 !singleStatement) {

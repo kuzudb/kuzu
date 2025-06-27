@@ -19,7 +19,7 @@ static void executeExtensionLoader(main::ClientContext* context, const std::stri
 
 void ExtensionManager::loadExtension(const std::string& path, main::ClientContext* context) {
     auto fullPath = path;
-    bool isOfficial = extension::ExtensionUtils::isOfficialExtension(path);
+    bool isOfficial = ExtensionUtils::isOfficialExtension(path);
     if (isOfficial) {
         auto localPathForSharedLib = ExtensionUtils::getLocalPathForSharedLib(context);
         if (!context->getVFSUnsafe()->fileOrPathExists(localPathForSharedLib)) {

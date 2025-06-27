@@ -3,7 +3,6 @@
 #include <filesystem>
 
 #include "catalog/duckdb_catalog.h"
-#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "connector/sqlite_connector.h"
 #include "extension/extension.h"
@@ -34,10 +33,11 @@ std::unique_ptr<main::AttachedDatabase> attachSqlite(std::string dbName, std::st
         SqliteStorageExtension::DB_TYPE, std::move(catalog), std::move(connector));
 }
 
-SqliteStorageExtension::SqliteStorageExtension(main::Database* database)
+SqliteStorageExtension::SqliteStorageExtension(transaction::Transaction* transaction,
+    main::Database& database)
     : StorageExtension{attachSqlite} {
     extension::ExtensionUtils::addStandaloneTableFunc<duckdb_extension::ClearCacheFunction>(
-        *database);
+        transaction, database);
 }
 
 bool SqliteStorageExtension::canHandleDB(std::string dbType_) const {

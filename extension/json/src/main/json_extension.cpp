@@ -15,38 +15,38 @@ namespace json_extension {
 
 using namespace kuzu::extension;
 
-static void addJsonCreationFunction(main::Database& db) {
-    ExtensionUtils::addScalarFunc<ToJsonFunction>(db);
-    ExtensionUtils::addScalarFuncAlias<JsonQuoteFunction>(db);
-    ExtensionUtils::addScalarFuncAlias<ArrayToJsonFunction>(db);
-    ExtensionUtils::addScalarFuncAlias<RowToJsonFunction>(db);
-    ExtensionUtils::addScalarFunc<CastToJsonFunction>(db);
-    ExtensionUtils::addScalarFunc<JsonArrayFunction>(db);
-    ExtensionUtils::addScalarFunc<JsonObjectFunction>(db);
-    ExtensionUtils::addScalarFunc<JsonMergePatchFunction>(db);
+static void addJsonCreationFunction(transaction::Transaction* transaction, main::Database& db) {
+    ExtensionUtils::addScalarFunc<ToJsonFunction>(transaction, db);
+    ExtensionUtils::addScalarFuncAlias<JsonQuoteFunction>(transaction, db);
+    ExtensionUtils::addScalarFuncAlias<ArrayToJsonFunction>(transaction, db);
+    ExtensionUtils::addScalarFuncAlias<RowToJsonFunction>(transaction, db);
+    ExtensionUtils::addScalarFunc<CastToJsonFunction>(transaction, db);
+    ExtensionUtils::addScalarFunc<JsonArrayFunction>(transaction, db);
+    ExtensionUtils::addScalarFunc<JsonObjectFunction>(transaction, db);
+    ExtensionUtils::addScalarFunc<JsonMergePatchFunction>(transaction, db);
 }
 
-static void addJsonExtractFunction(main::Database& db) {
-    ExtensionUtils::addScalarFunc<JsonExtractFunction>(db);
+static void addJsonExtractFunction(transaction::Transaction* transaction, main::Database& db) {
+    ExtensionUtils::addScalarFunc<JsonExtractFunction>(transaction, db);
 }
 
-static void addJsonScalarFunction(main::Database& db) {
-    ExtensionUtils::addScalarFunc<JsonArrayLengthFunction>(db);
-    ExtensionUtils::addScalarFunc<JsonContainsFunction>(db);
-    ExtensionUtils::addScalarFunc<JsonKeysFunction>(db);
-    ExtensionUtils::addScalarFunc<JsonStructureFunction>(db);
-    ExtensionUtils::addScalarFunc<JsonValidFunction>(db);
-    ExtensionUtils::addScalarFunc<MinifyJsonFunction>(db);
+static void addJsonScalarFunction(transaction::Transaction* transaction, main::Database& db) {
+    ExtensionUtils::addScalarFunc<JsonArrayLengthFunction>(transaction, db);
+    ExtensionUtils::addScalarFunc<JsonContainsFunction>(transaction, db);
+    ExtensionUtils::addScalarFunc<JsonKeysFunction>(transaction, db);
+    ExtensionUtils::addScalarFunc<JsonStructureFunction>(transaction, db);
+    ExtensionUtils::addScalarFunc<JsonValidFunction>(transaction, db);
+    ExtensionUtils::addScalarFunc<MinifyJsonFunction>(transaction, db);
 }
 
 void JsonExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     db.getCatalog()->createType(context->getTransaction(), JSON_TYPE_NAME, JsonType::getJsonType());
-    addJsonCreationFunction(db);
-    addJsonExtractFunction(db);
-    addJsonScalarFunction(db);
-    ExtensionUtils::addScalarFunc<JsonExportFunction>(db);
-    ExtensionUtils::addTableFunc<JsonScan>(db);
+    addJsonCreationFunction(context->getTransaction(), db);
+    addJsonExtractFunction(context->getTransaction(), db);
+    addJsonScalarFunction(context->getTransaction(), db);
+    ExtensionUtils::addScalarFunc<JsonExportFunction>(context->getTransaction(), db);
+    ExtensionUtils::addTableFunc<JsonScan>(context->getTransaction(), db);
 }
 
 } // namespace json_extension

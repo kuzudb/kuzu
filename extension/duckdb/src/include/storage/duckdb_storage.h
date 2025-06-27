@@ -18,9 +18,10 @@ public:
 
     static constexpr bool SKIP_UNSUPPORTED_TABLE_DEFAULT_VAL = false;
 
-    explicit DuckDBStorageExtension(main::Database* database);
+    explicit DuckDBStorageExtension(transaction::Transaction* transaction,
+        main::Database& db);
 
-    bool canHandleDB(std::string dbType) const override;
+    bool canHandleDB(std::string dbType_) const override;
 };
 
 } // namespace duckdb_extension

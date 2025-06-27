@@ -10,7 +10,7 @@ namespace delta_extension {
 
 void DeltaExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    extension::ExtensionUtils::addTableFunc<DeltaScanFunction>(db);
+    extension::ExtensionUtils::addTableFunc<DeltaScanFunction>(context->getTransaction(), db);
     duckdb_extension::DuckdbExtension::loadRemoteFSOptions(context);
 }
 

@@ -2,7 +2,6 @@
 
 #include <filesystem>
 
-#include "binder/bound_attach_info.h"
 #include "catalog/duckdb_catalog.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
@@ -37,9 +36,9 @@ std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::st
         std::move(duckdbCatalog), std::move(connector));
 }
 
-DuckDBStorageExtension::DuckDBStorageExtension(main::Database* db)
+DuckDBStorageExtension::DuckDBStorageExtension(transaction::Transaction* transaction, main::Database& db)
     : StorageExtension{attachDuckDB} {
-    extension::ExtensionUtils::addStandaloneTableFunc<ClearCacheFunction>(*db);
+    extension::ExtensionUtils::addStandaloneTableFunc<ClearCacheFunction>(transaction, db);
 }
 
 bool DuckDBStorageExtension::canHandleDB(std::string dbType_) const {

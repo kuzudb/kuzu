@@ -131,14 +131,16 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
             return;
         }
         switch (catalogEntry.getType()) {
-        // Eventually we probably want to merge these
+        // Eventually, we probably want to merge these
         case CatalogEntryType::NODE_TABLE_ENTRY:
         case CatalogEntryType::REL_GROUP_ENTRY:
         case CatalogEntryType::SEQUENCE_ENTRY: {
             wal->logDropCatalogEntryRecord(catalogEntry.getOID(), catalogEntry.getType());
         } break;
         case CatalogEntryType::INDEX_ENTRY:
-        case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
+        case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
+        case CatalogEntryType::TABLE_FUNCTION_ENTRY:
+        case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY: {
             // DO NOTHING. We don't persistent index/function entries.
         } break;
         case CatalogEntryType::SCALAR_MACRO_ENTRY:
@@ -150,8 +152,10 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         }
         }
     } break;
+    case CatalogEntryType::INDEX_ENTRY:
     case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
-    case CatalogEntryType::INDEX_ENTRY: {
+    case CatalogEntryType::TABLE_FUNCTION_ENTRY:
+    case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY: {
         // DO NOTHING. We don't persistent function/index entries.
     } break;
     default: {

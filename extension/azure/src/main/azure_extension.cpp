@@ -12,7 +12,7 @@ namespace azure_extension {
 
 void AzureExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    extension::ExtensionUtils::addTableFunc<AzureScanFunction>(db);
+    extension::ExtensionUtils::addTableFunc<AzureScanFunction>(context->getTransaction(), db);
     db.registerFileSystem(std::make_unique<AzureFileSystem>());
     auto config = AzureConfig::getDefault();
     config.registerExtensionOptions(context->getDatabase());
