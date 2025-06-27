@@ -454,6 +454,7 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
         ASSERT_TRUE(result->isSuccess()) << result->toString();
 
         auto dbSizeInPagesBeforeException = getDbSizeInPages(conn.get());
+        auto numFreePagesBeforeException = getNumFreePages(conn.get());
 
         result = conn->query(common::stringFormat(
             "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
@@ -464,8 +465,8 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
             "memory could be freed!");
 
         auto dbSizeInPagesAfterException = getDbSizeInPages(conn.get());
-        auto numFreePages = getNumFreePages(conn.get());
-        EXPECT_EQ(dbSizeInPagesBeforeException + numFreePages, dbSizeInPagesAfterException);
+        auto numNewFreePages = getNumFreePages(conn.get()) - numFreePagesBeforeException;
+        EXPECT_EQ(dbSizeInPagesBeforeException + numNewFreePages, dbSizeInPagesAfterException);
     }
     // Try opening then closing the database
     resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);
