@@ -118,11 +118,6 @@ public:
     void update(const transaction::Transaction* transaction, uint64_t idx,
         std::span<std::byte> val);
 
-    // Note: This function is to be used only by the WRITE trx.
-    // The return value is the idx of val in array.
-    uint64_t pushBack(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
-        std::span<std::byte> val);
-
     // Note: Currently, this function doesn't support shrinking the size of the array.
     uint64_t resize(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
         uint64_t newNumElements, std::span<std::byte> defaultVal);
@@ -275,13 +270,6 @@ public:
         DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, bool bypassWAL = false)
         : diskArray(fileHandle, headerForReadTrx, headerForWriteTrx, shadowFile, sizeof(U),
               bypassWAL) {}
-
-    // Note: This function is to be used only by the WRITE trx.
-    // The return value is the idx of val in array.
-    inline uint64_t pushBack(PageAllocator& pageAllocator,
-        const transaction::Transaction* transaction, U val) {
-        return diskArray.pushBack(pageAllocator, transaction, getSpan(val));
-    }
 
     // Note: This function is to be used only by the WRITE trx.
     inline void update(const transaction::Transaction* transaction, uint64_t idx, U val) {
