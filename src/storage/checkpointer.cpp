@@ -51,14 +51,14 @@ void DatabaseHeader::serialize(common::Serializer& ser) const {
 Checkpointer::Checkpointer(main::ClientContext& clientContext)
     : clientContext{clientContext},
       isInMemory{main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())},
-      optimisticAllocator(*clientContext.getStorageManager()->getDataFH()->getPageManager()) {}
+      pageAllocator(*clientContext.getStorageManager()->getDataFH()->getPageManager()) {}
 
 PageRange Checkpointer::serializeCatalog(const catalog::Catalog& catalog,
     StorageManager& storageManager) {
     auto catalogWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
     common::Serializer catalogSerializer(catalogWriter);
     catalog.serialize(catalogSerializer);
-    return catalogWriter->flush(optimisticAllocator, storageManager.getShadowFile());
+    return catalogWriter->flush(pageAllocator, storageManager.getShadowFile());
 }
 
 PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
@@ -78,11 +78,11 @@ PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
     // behaviour in the database
     auto& pageManager = *storageManager.getDataFH()->getPageManager();
     const auto pagesForPageManager = pageManager.estimatePagesNeededForSerialize();
-    const auto allocatedPages = optimisticAllocator.allocatePageRange(
-        metadataWriter->getNumPagesToFlush() + pagesForPageManager);
+    const auto allocatedPages =
+        pageAllocator.allocatePageRange(metadataWriter->getNumPagesToFlush() + pagesForPageManager);
     pageManager.serialize(metadataSerializer);
 
-    metadataWriter->flush(allocatedPages, optimisticAllocator.getDataFH(),
+    metadataWriter->flush(allocatedPages, pageAllocator.getDataFH(),
         storageManager.getShadowFile());
     return allocatedPages;
 }
@@ -99,7 +99,7 @@ void Checkpointer::writeCheckpoint() {
 
     // Checkpoint storage. Note that we first checkpoint storage before serializing the catalog, as
     // checkpointing storage may overwrite columnIDs in the catalog.
-    bool hasStorageChanges = storageManager->checkpoint(&clientContext, optimisticAllocator);
+    bool hasStorageChanges = storageManager->checkpoint(&clientContext, pageAllocator);
 
     auto& shadowFile = storageManager->getShadowFile();
     auto* dataFH = storageManager->getDataFH();
@@ -170,11 +170,6 @@ void Checkpointer::rollback() {
     auto catalog = clientContext.getCatalog();
     // Any pages freed during the checkpoint are no longer freed
     storageManager->rollbackCheckpoint(*catalog);
-    // Any optimistically allocated pages are freed
-    optimisticAllocator.rollback();
-
-    auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();
-    storageManager->getDataFH()->getPageManager()->clearEvictedBMEntriesIfNeeded(bufferManager);
 }
 
 bool Checkpointer::canAutoCheckpoint(const main::ClientContext& clientContext) {
