@@ -17,7 +17,7 @@ using namespace extension;
 
 static void initFTSEntries(main::ClientContext* context, catalog::Catalog& catalog) {
     auto storageManager = context->getStorageManager();
-    for (auto& indexEntry : catalog.getIndexEntries(&transaction::DUMMY_TRANSACTION)) {
+    for (auto& indexEntry : catalog.getIndexEntries(context->getTransaction())) {
         if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME &&
             !indexEntry->isLoaded()) {
             indexEntry->setAuxInfo(FTSIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
@@ -34,12 +34,14 @@ static void initFTSEntries(main::ClientContext* context, catalog::Catalog& catal
 
 void FtsExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    ExtensionUtils::addScalarFunc<StemFunction>(db);
-    ExtensionUtils::addTableFunc<QueryFTSFunction>(db);
-    ExtensionUtils::addStandaloneTableFunc<CreateFTSFunction>(db);
-    ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateFTSFunction>(db);
-    ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(db);
-    ExtensionUtils::addInternalStandaloneTableFunc<InternalDropFTSFunction>(db);
+    ExtensionUtils::addScalarFunc<StemFunction>(context->getTransaction(), db);
+    ExtensionUtils::addTableFunc<QueryFTSFunction>(context->getTransaction(), db);
+    ExtensionUtils::addStandaloneTableFunc<CreateFTSFunction>(context->getTransaction(), db);
+    ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateFTSFunction>(
+        context->getTransaction(), db);
+    ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(context->getTransaction(), db);
+    ExtensionUtils::addInternalStandaloneTableFunc<InternalDropFTSFunction>(
+        context->getTransaction(), db);
     ExtensionUtils::registerIndexType(db, FTSIndex::getIndexType());
     initFTSEntries(context, *db.getCatalog());
 }

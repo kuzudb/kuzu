@@ -9,7 +9,8 @@ namespace sqlite_extension {
 
 void SqliteExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
-    db->registerStorageExtension(EXTENSION_NAME, std::make_unique<SqliteStorageExtension>(db));
+    db->registerStorageExtension(EXTENSION_NAME,
+        std::make_unique<SqliteStorageExtension>(context->getTransaction(), *db));
     db->addExtensionOption("sqlite_all_varchar", common::LogicalTypeID::BOOL, common::Value{false});
 }
 

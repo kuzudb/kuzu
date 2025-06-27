@@ -1,7 +1,6 @@
 #include "storage/unity_catalog_storage.h"
 
 #include "catalog/duckdb_catalog.h"
-#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "connector/unity_catalog_connector.h"
 #include "extension/extension.h"
@@ -26,10 +25,11 @@ std::unique_ptr<main::AttachedDatabase> attachUnityCatalog(std::string dbName, s
         UnityCatalogStorageExtension::DB_TYPE, std::move(catalog), std::move(connector));
 }
 
-UnityCatalogStorageExtension::UnityCatalogStorageExtension(main::Database* database)
+UnityCatalogStorageExtension::UnityCatalogStorageExtension(transaction::Transaction* transaction,
+    main::Database& database)
     : StorageExtension{attachUnityCatalog} {
     extension::ExtensionUtils::addStandaloneTableFunc<duckdb_extension::ClearCacheFunction>(
-        *database);
+        transaction, database);
 }
 
 bool UnityCatalogStorageExtension::canHandleDB(std::string dbType_) const {

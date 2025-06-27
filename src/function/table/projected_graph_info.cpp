@@ -26,9 +26,13 @@ struct ProjectedTableInfo {
     std::string tableType;
     std::string tableName;
     std::string predicate;
+
+    ProjectedTableInfo(std::string tableType, std::string tableName, std::string predicate)
+        : tableType{std::move(tableType)}, tableName{std::move(tableName)},
+          predicate{std::move(predicate)} {}
 };
 
-struct NativeProjectedGraphInfo : public ProjectedGraphInfo {
+struct NativeProjectedGraphInfo final : ProjectedGraphInfo {
     std::vector<ProjectedTableInfo> tableInfo;
 
     explicit NativeProjectedGraphInfo(std::vector<ProjectedTableInfo> tableInfo)
@@ -39,7 +43,7 @@ struct NativeProjectedGraphInfo : public ProjectedGraphInfo {
     }
 };
 
-struct CypherProjectedGraphInfo : public ProjectedGraphInfo {
+struct CypherProjectedGraphInfo final : ProjectedGraphInfo {
     std::string cypherQuery;
 
     explicit CypherProjectedGraphInfo(std::string cypherQuery)
@@ -50,7 +54,7 @@ struct CypherProjectedGraphInfo : public ProjectedGraphInfo {
     }
 };
 
-struct ProjectedGraphInfoBindData : public TableFuncBindData {
+struct ProjectedGraphInfoBindData final : TableFuncBindData {
     graph::GraphEntryType type;
     std::unique_ptr<ProjectedGraphInfo> info;
 

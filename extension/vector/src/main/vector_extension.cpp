@@ -12,7 +12,7 @@ namespace vector_extension {
 static void initHNSWEntries(main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto storageManager = context->getStorageManager();
-    for (auto& indexEntry : catalog->getIndexEntries(&transaction::DUMMY_TRANSACTION)) {
+    for (auto& indexEntry : catalog->getIndexEntries(context->getTransaction())) {
         if (indexEntry->getIndexType() == HNSWIndexCatalogEntry::TYPE_NAME &&
             !indexEntry->isLoaded()) {
             indexEntry->setAuxInfo(HNSWIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
@@ -30,13 +30,18 @@ static void initHNSWEntries(main::ClientContext* context) {
 
 void VectorExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    extension::ExtensionUtils::addTableFunc<QueryVectorIndexFunction>(db);
-    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateHNSWIndexFunction>(db);
-    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalFinalizeHNSWIndexFunction>(
+    extension::ExtensionUtils::addTableFunc<QueryVectorIndexFunction>(context->getTransaction(),
         db);
-    extension::ExtensionUtils::addStandaloneTableFunc<CreateVectorIndexFunction>(db);
-    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalDropHNSWIndexFunction>(db);
-    extension::ExtensionUtils::addStandaloneTableFunc<DropVectorIndexFunction>(db);
+    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateHNSWIndexFunction>(
+        context->getTransaction(), db);
+    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalFinalizeHNSWIndexFunction>(
+        context->getTransaction(), db);
+    extension::ExtensionUtils::addStandaloneTableFunc<CreateVectorIndexFunction>(
+        context->getTransaction(), db);
+    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalDropHNSWIndexFunction>(
+        context->getTransaction(), db);
+    extension::ExtensionUtils::addStandaloneTableFunc<DropVectorIndexFunction>(
+        context->getTransaction(), db);
     extension::ExtensionUtils::registerIndexType(db, OnDiskHNSWIndex::getIndexType());
     initHNSWEntries(context);
 }
