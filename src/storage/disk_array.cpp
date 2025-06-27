@@ -141,15 +141,6 @@ void DiskArrayInternal::update(const Transaction* transaction, uint64_t idx,
     });
 }
 
-uint64_t DiskArrayInternal::pushBack(PageAllocator& pageAllocator, const Transaction* transaction,
-    std::span<std::byte> val) {
-    std::unique_lock xLck{diskArraySharedMtx};
-    auto it = iter_mut(val.size());
-    auto originalNumElements = getNumElementsNoLock(transaction->getType());
-    it.pushBack(pageAllocator, transaction, val);
-    return originalNumElements;
-}
-
 uint64_t DiskArrayInternal::resize(PageAllocator& pageAllocator, const Transaction* transaction,
     uint64_t newNumElements, std::span<std::byte> defaultVal) {
     std::unique_lock xLck{diskArraySharedMtx};
