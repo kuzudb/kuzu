@@ -189,7 +189,14 @@ ext_install_func_t ExtensionLibLoader::getInstallFunc() {
     return (ext_install_func_t)getDynamicLibFunc(EXTENSION_INSTALL_FUNC_NAME);
 }
 
+void ExtensionLibLoader::unload() {
+    KU_ASSERT(libHdl != nullptr);
+    dlclose(libHdl);
+    libHdl = nullptr;
+}
+
 void* ExtensionLibLoader::getDynamicLibFunc(const std::string& funcName) {
+    KU_ASSERT(libHdl != nullptr);
     auto sym = dlsym(libHdl, funcName.c_str());
     if (sym == nullptr) {
         throw common::IOException(

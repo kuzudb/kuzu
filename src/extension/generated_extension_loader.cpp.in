@@ -1,9 +1,11 @@
+#include "extension/loaded_extension.h"
 #include "generated_extension_loader.h"
 
 namespace kuzu {
 namespace extension {
 
-void loadLinkedExtensions([[maybe_unused]] main::ClientContext* context) {
+void loadLinkedExtensions([[maybe_unused]] main::ClientContext* context,
+    [[maybe_unused]] std::vector<LoadedExtension>& loadedExtensions) {
     @LOAD_LINKED_EXTENSION@
 }
 
