@@ -1,5 +1,7 @@
 #include "function/cast/vector_cast_functions.h"
 
+#include <set>
+
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "catalog/catalog.h"
@@ -11,8 +13,6 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
 #include "main/client_context.h"
-
-#include <set>
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -136,8 +136,7 @@ static void nestedTypesCastExecFunction(
     }
 }
 
-static void toUnionCastExecFunction(
-    const std::vector<std::shared_ptr<common::ValueVector>>& params,
+static void toUnionCastExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
     const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
     common::SelectionVector*, void*) {
     KU_ASSERT(params.size() == 1);
@@ -153,7 +152,8 @@ static void toUnionCastExecFunction(
     for (union_field_idx_t i = 0; i < numFields; ++i) {
         const LogicalType& fieldType = UnionType::getFieldType(targetType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
-            uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(), fieldType.getLogicalTypeID());
+            uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(),
+                fieldType.getLogicalTypeID());
             if (castCost < minCastCost) {
                 minCastCost = castCost;
                 minFieldIdx = i;
@@ -166,13 +166,16 @@ static void toUnionCastExecFunction(
     tagVector->setValue<union_field_idx_t>(0, minFieldIdx);
     const LogicalType& innerType = UnionType::getFieldType(targetType, minFieldIdx);
     if (sourceType != innerType) {
-        std::shared_ptr<ScalarFunction> innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType, innerType);
+        std::shared_ptr<ScalarFunction> innerCast =
+            CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType,
+                innerType);
         std::vector<std::shared_ptr<ValueVector>> innerParams{inputVector};
         ValueVector innerResult(innerType.copy());
         CastFunctionBindData innerBindData(innerType.copy());
         auto& selVector = *paramSelVectors[0];
         innerBindData.numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
-        innerCast->execFunc(innerParams, SelectionVector::fromValueVectors(innerParams), innerResult, innerResult.getSelVectorPtr(), &innerBindData);
+        innerCast->execFunc(innerParams, SelectionVector::fromValueVectors(innerParams),
+            innerResult, innerResult.getSelVectorPtr(), &innerBindData);
         valVector->copyFromRowData(0, innerResult.getData());
     } else {
         valVector->copyFromRowData(0, inputVector->getData());
@@ -695,7 +698,8 @@ static std::unique_ptr<ScalarFunction> bindCastToUnion(const std::string& functi
 static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     // todo: compile time checking of nested types
-    if (CastArrayHelper::checkCompatibleNestedTypes(sourceType.getLogicalTypeID(), targetType.getLogicalTypeID())) {
+    if (CastArrayHelper::checkCompatibleNestedTypes(sourceType.getLogicalTypeID(),
+            targetType.getLogicalTypeID())) {
         return std::make_unique<ScalarFunction>(functionName,
             std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()},
             targetType.getLogicalTypeID(), nestedTypesCastExecFunction);
