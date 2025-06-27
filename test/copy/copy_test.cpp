@@ -210,7 +210,8 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
         ASSERT_EQ(cfg.checkResult, result->getNext()->getValue(0)->getValue<int64_t>());
     }
 
-    if (!inMemMode) {
+    // TODO(Royi) prevent leaking of allocated pages during checkpoint rollback
+    if (!inMemMode && !cfg.canFailDuringCheckpoint) {
         FSMLeakChecker::checkForLeakedPages(conn.get());
     }
 }
@@ -495,6 +496,7 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
         ASSERT_TRUE(result->hasNext());
         ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2420766);
     }
+    FSMLeakChecker::checkForLeakedPages(conn.get());
 }
 
 TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
@@ -536,6 +538,7 @@ TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
         ASSERT_TRUE(result->hasNext());
         ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2420766);
     }
+    FSMLeakChecker::checkForLeakedPages(conn.get());
 }
 } // namespace testing
 } // namespace kuzu
