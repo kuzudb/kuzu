@@ -36,7 +36,8 @@ std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::st
         std::move(duckdbCatalog), std::move(connector));
 }
 
-DuckDBStorageExtension::DuckDBStorageExtension(transaction::Transaction* transaction, main::Database& db)
+DuckDBStorageExtension::DuckDBStorageExtension(transaction::Transaction* transaction,
+    main::Database& db)
     : StorageExtension{attachDuckDB} {
     extension::ExtensionUtils::addStandaloneTableFunc<ClearCacheFunction>(transaction, db);
 }
