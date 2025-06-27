@@ -26,6 +26,10 @@ struct ProjectedTableInfo {
     std::string tableType;
     std::string tableName;
     std::string predicate;
+
+    ProjectedTableInfo(const std::string& tableType, const std::string& tableName,
+        const std::string& predicate)
+        : tableType{tableType}, tableName{tableName}, predicate{predicate} {}
 };
 
 struct NativeProjectedGraphInfo : public ProjectedGraphInfo {
