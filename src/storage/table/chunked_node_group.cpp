@@ -159,7 +159,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
     } catch ([[maybe_unused]] std::exception& e) {
         handleAppendException();
     }
-    if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
+    if (transaction->shouldAppendToUndoBuffer()) {
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }
@@ -206,7 +206,7 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
     } catch ([[maybe_unused]] std::exception& e) {
         handleAppendException();
     }
-    if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
+    if (transaction->shouldAppendToUndoBuffer()) {
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }

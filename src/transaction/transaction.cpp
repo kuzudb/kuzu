@@ -56,6 +56,8 @@ Transaction::Transaction(TransactionType transactionType, common::transaction_t 
 }
 
 bool Transaction::shouldLogToWAL() const {
+    // Only write transactions should log to the WAL under on-disk mode.
+    // Recovery transactions should skip logging to the WAL.
     return isWriteTransaction() && !clientContext->isInMemory();
 }
 

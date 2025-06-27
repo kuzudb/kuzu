@@ -104,10 +104,10 @@ public:
 
     void setForceCheckpoint() { forceCheckpoint = true; }
     bool shouldAppendToUndoBuffer() const {
-        return getID() > DUMMY_TRANSACTION_ID && !isReadOnly();
+        // Only write transactions and recovery transactions should append to the undo buffer.
+        return isWriteTransaction() || isRecovery();
     }
     bool shouldLogToWAL() const;
-
     bool shouldForceCheckpoint() const;
 
     void commit(storage::WAL* wal);
