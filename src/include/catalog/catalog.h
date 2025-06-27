@@ -144,6 +144,7 @@ public:
     // Drop index entry with name.
     void dropIndex(transaction::Transaction* transaction, common::table_id_t tableID,
         const std::string& indexName) const;
+    void dropIndex(transaction::Transaction* transaction, common::oid_t indexOID);
 
     // ----------------------------- Functions ----------------------------
 

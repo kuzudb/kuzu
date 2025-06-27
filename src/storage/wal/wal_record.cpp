@@ -49,7 +49,7 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     case WALRecordType::NODE_DELETION_RECORD: {
         walRecord = NodeDeletionRecord::deserialize(deserializer, clientContext);
     } break;
-    case WALRecordType::NODE_UDPATE_RECORD: {
+    case WALRecordType::NODE_UPDATE_RECORD: {
         walRecord = NodeUpdateRecord::deserialize(deserializer, clientContext);
     } break;
     case WALRecordType::REL_DELETION_RECORD: {
@@ -69,6 +69,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         walRecord = UpdateSequenceRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::LOAD_EXTENSION_RECORD: {
+        walRecord = LoadExtensionRecord::deserialize(deserializer);
     } break;
     case WALRecordType::INVALID_RECORD: {
         throw RuntimeException("Corrupted wal file. Read out invalid WAL record type.");
@@ -152,13 +155,15 @@ std::unique_ptr<CopyTableRecord> CopyTableRecord::deserialize(Deserializer& dese
 
 void DropCatalogEntryRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
-    serializer.write(entryID);
+    serializer.write<oid_t>(entryID);
+    serializer.write<catalog::CatalogEntryType>(entryType);
 }
 
 std::unique_ptr<DropCatalogEntryRecord> DropCatalogEntryRecord::deserialize(
     Deserializer& deserializer) {
     auto retVal = std::make_unique<DropCatalogEntryRecord>();
     deserializer.deserializeValue(retVal->entryID);
+    deserializer.deserializeValue(retVal->entryType);
     return retVal;
 }
 
@@ -479,6 +484,20 @@ std::unique_ptr<RelUpdateRecord> RelUpdateRecord::deserialize(Deserializer& dese
         ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
     return std::make_unique<RelUpdateRecord>(tableID, columnID, std::move(srcNodeIDVector),
         std::move(dstNodeIDVector), std::move(relIDVector), std::move(propertyVector));
+}
+
+void LoadExtensionRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.writeDebuggingInfo("path");
+    serializer.write<std::string>(path);
+}
+
+std::unique_ptr<LoadExtensionRecord> LoadExtensionRecord::deserialize(Deserializer& deserializer) {
+    std::string key;
+    deserializer.validateDebuggingInfo(key, "path");
+    std::string path;
+    deserializer.deserializeValue<std::string>(path);
+    return std::make_unique<LoadExtensionRecord>(std::move(path));
 }
 
 } // namespace storage

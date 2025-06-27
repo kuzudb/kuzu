@@ -109,6 +109,7 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
     KU_ASSERT(wal);
     const auto newCatalogEntry = catalogEntry.getNext();
     switch (newCatalogEntry->getType()) {
+    case CatalogEntryType::INDEX_ENTRY:
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY: {
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
@@ -139,16 +140,16 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
             return;
         }
         switch (catalogEntry.getType()) {
+        case CatalogEntryType::INDEX_ENTRY:
         case CatalogEntryType::NODE_TABLE_ENTRY:
         case CatalogEntryType::REL_GROUP_ENTRY:
         case CatalogEntryType::SEQUENCE_ENTRY: {
             wal->logDropCatalogEntryRecord(catalogEntry.getOID(), catalogEntry.getType());
         } break;
-        case CatalogEntryType::INDEX_ENTRY:
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
         case CatalogEntryType::TABLE_FUNCTION_ENTRY:
         case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY: {
-            // DO NOTHING. We don't persistent index/function entries.
+            // DO NOTHING. We don't persist index/function entries.
         } break;
         case CatalogEntryType::SCALAR_MACRO_ENTRY:
         case CatalogEntryType::TYPE_ENTRY:
@@ -159,11 +160,10 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         }
         }
     } break;
-    case CatalogEntryType::INDEX_ENTRY:
     case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
     case CatalogEntryType::TABLE_FUNCTION_ENTRY:
     case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY: {
-        // DO NOTHING. We don't persistent function/index entries.
+        // DO NOTHING. We don't persist function/index entries.
     } break;
     default: {
         throw common::RuntimeException(

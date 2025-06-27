@@ -7,6 +7,7 @@
 #include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
+#include "extension/extension_manager.h"
 #include "main/client_context.h"
 #include "processor/expression_mapper.h"
 #include "storage/local_storage/local_rel_table.h"
@@ -38,7 +39,7 @@ void WALReplayer::replay() const {
     auto fileInfo =
         clientContext.getVFSUnsafe()->openFile(walFilePath, FileOpenFlags(FileFlags::READ_ONLY));
     const auto walFileSize = fileInfo->getFileSize();
-    // Check if the wal file is empty or corrupted. so nothing to read.
+    // Check if the wal file is empty. If so, nothing to read.
     if (walFileSize == 0) {
         return;
     }
@@ -53,7 +54,7 @@ void WALReplayer::replay() const {
             try {
                 replayWALRecord(*walRecord);
                 RUNTIME_CHECK(nextRecordShouldBeRollback = false);
-            } catch (const Exception& e) {
+            } catch (const Exception&) {
                 // exception while replaying a WAL record
                 // stop executing the current query, the next record should be a rollback record
                 RUNTIME_CHECK(nextRecordShouldBeRollback = true);
@@ -66,7 +67,7 @@ void WALReplayer::replay() const {
             clientContext.getTransactionContext()->rollback();
             clientContext.getStorageManager()->getWAL().clearWAL();
         }
-    } catch (const Exception& e) {
+    } catch (const Exception&) {
         if (clientContext.getTransactionContext()->hasActiveTransaction()) {
             // Handle the case that some transaction went during replaying. We should roll back
             // under this case.
@@ -101,7 +102,7 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     case WALRecordType::NODE_DELETION_RECORD: {
         replayNodeDeletionRecord(walRecord);
     } break;
-    case WALRecordType::NODE_UDPATE_RECORD: {
+    case WALRecordType::NODE_UPDATE_RECORD: {
         replayNodeUpdateRecord(walRecord);
     } break;
     case WALRecordType::REL_DELETION_RECORD: {
@@ -118,6 +119,9 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         replayUpdateSequenceRecord(walRecord);
+    } break;
+    case WALRecordType::LOAD_EXTENSION_RECORD: {
+        replayLoadExtensionRecord(walRecord);
     } break;
     case WALRecordType::CHECKPOINT_RECORD: {
         // This record should not be replayed. It is only used to indicate that the previous records
@@ -156,6 +160,10 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
         auto& typeEntry = record.ownedCatalogEntry->constCast<TypeCatalogEntry>();
         catalog->createType(transaction, typeEntry.getName(), typeEntry.getLogicalType().copy());
     } break;
+    case CatalogEntryType::INDEX_ENTRY: {
+        // auto& indexEntry = record.ownedCatalogEntry->constCast<IndexCatalogEntry>();
+        // catalog->createIndex(transaction, std::move(record.ownedCatalogEntry));
+    } break;
     default: {
         KU_UNREACHABLE;
     }
@@ -175,6 +183,9 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
         catalog->dropSequence(transaction, entryID);
+    } break;
+    case CatalogEntryType::INDEX_ENTRY: {
+        catalog->dropIndex(transaction, entryID);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -396,6 +407,11 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
     const auto entry =
         clientContext.getCatalog()->getSequenceEntry(clientContext.getTransaction(), sequenceID);
     entry->nextKVal(clientContext.getTransaction(), sequenceEntryRecord.kCount);
+}
+
+void WALReplayer::replayLoadExtensionRecord(const WALRecord& walRecord) const {
+    const auto& loadExtensionRecord = walRecord.constCast<LoadExtensionRecord>();
+    clientContext.getExtensionManager()->loadExtension(loadExtensionRecord.path, &clientContext);
 }
 
 } // namespace storage

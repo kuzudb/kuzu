@@ -45,6 +45,9 @@ void ExtensionManager::loadExtension(const std::string& path, main::ClientContex
     (*init)(context);
     loadedExtensions.push_back(LoadedExtension(extensionName, fullPath,
         isOfficial ? ExtensionSource::OFFICIAL : ExtensionSource::USER));
+    if (context->getTransaction()->shouldLogToWAL()) {
+        context->getWAL()->logLoadExtension(path);
+    }
 }
 
 std::string ExtensionManager::toCypher() {
