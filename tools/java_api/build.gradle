@@ -10,10 +10,9 @@ java {
 }
 
 group = 'com.kuzudb'
-def projectRoot = projectDir.toPath().getParent().getParent()
-def cmakePath = projectRoot.resolve('CMakeLists.txt')
-def cmakeFile = cmakePath.toFile().text
-def versionLine = cmakeFile.split('\n').find { it.startsWith('project(Kuzu VERSION ') }
+def projectRoot = projectDir.parentFile.parentFile
+def cmakeFile = new File(projectRoot, 'CMakeLists.txt').text
+def versionLine = cmakeFile.readLines().find { it.startsWith('project(Kuzu VERSION ') }
 def cmakeVersion = versionLine.split(' ')[2]
 def versionParts = cmakeVersion.split('\\.')
 if (versionParts.length > 3) {
@@ -78,29 +77,20 @@ publishing {
     }
 
     repositories {
-        // Currently, we only publish releases to Sonatype
-        // Snapshots are published to GitHub Packages
+        // The local repository is used for manual publishing to Maven Central
+        // Portal. It is located in `build/repo`.
+        // To publish, run `././gradlew publishMavenJavaToLocalRepo`
+        // This is a workaround to force Gradle handle signing and checksum
+        maven {
+            name = 'LocalRepo'
+            url = uri("$buildDir/repo")
+        }
         maven {
             name = 'GitHubPackages'
             url = uri('https://maven.pkg.github.com/kuzudb/kuzu')
             credentials {
                 username = System.getenv('GITHUB_ACTOR')
                 password = System.getenv('GITHUB_TOKEN')
-            }
-        }
-
-        if (!version.endsWith('-SNAPSHOT')) {
-            maven {
-                name = 'OSSRH'
-                if (version.endsWith('-SNAPSHOT')) {
-                    url = uri('https://s01.oss.sonatype.org/content/repositories/snapshots')
-                } else {
-                    url = uri('https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/')
-                }
-                credentials {
-                    username = System.getenv('OSSRH_USERNAME')
-                    password = System.getenv('OSSRH_PASSWORD')
-                }
             }
         }
     }
