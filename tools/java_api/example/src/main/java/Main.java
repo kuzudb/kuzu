@@ -1,7 +1,7 @@
 import com.kuzudb.*;
 
 public class Main {
-    public static void main(String[] args) throws ObjectRefDestroyedException {
+    public static void main(String[] args) {
         // Create an in-memory database and connect to it
         Database db = new Database(":memory:");
         Connection conn = new Connection(db);

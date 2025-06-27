@@ -3,11 +3,6 @@ package com.kuzudb;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Files;
-
-
-import com.kuzudb.*;
 
 public class TestHelper {
     private static Database db;
@@ -21,7 +16,7 @@ public class TestHelper {
         return conn;
     }
 
-    public static void loadData(String dbPath) throws IOException, ObjectRefDestroyedException {
+    public static void loadData(String dbPath) throws IOException {
         BufferedReader reader;
         db = new Database(dbPath);
         conn = new Connection(db);

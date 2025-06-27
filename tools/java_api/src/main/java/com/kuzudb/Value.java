@@ -11,9 +11,9 @@ public class Value implements AutoCloseable {
     /**
      * Construct a Value from a val.
      *
-     * @throws ObjectRefDestroyedException If the Value has been destroyed.
+     * @throws RuntimeException If the Value has been destroyed.
      */
-    public <T> Value(T val) throws ObjectRefDestroyedException {
+    public <T> Value(T val) {
         checkNotDestroyed();
         v_ref = Native.kuzu_value_create_value(val);
     }
@@ -49,20 +49,20 @@ public class Value implements AutoCloseable {
     /**
      * Check if the Value has been destroyed.
      *
-     * @throws ObjectRefDestroyedException If the Value has been destroyed.
+     * @throws RuntimeException If the Value has been destroyed.
      */
-    public void checkNotDestroyed() throws ObjectRefDestroyedException {
+    public void checkNotDestroyed() {
         if (destroyed)
-            throw new ObjectRefDestroyedException("Value has been destroyed.");
+            throw new RuntimeException("Value has been destroyed.");
     }
 
     /**
      * Close the value and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
      *
-     * @throws ObjectRefDestroyedException If the Value has been destroyed.
+     * @throws RuntimeException If the Value has been destroyed.
      */
     @Override
-    public void close() throws ObjectRefDestroyedException {
+    public void close() {
         destroy();
     }
 
@@ -73,9 +73,9 @@ public class Value implements AutoCloseable {
     /**
      * Destroy the Value.
      *
-     * @throws ObjectRefDestroyedException If the Value has been destroyed.
+     * @throws RuntimeException If the Value has been destroyed.
      */
-    private void destroy() throws ObjectRefDestroyedException {
+    private void destroy() {
         checkNotDestroyed();
         if (!isOwnedByCPP) {
             Native.kuzu_value_destroy(this);
@@ -87,9 +87,9 @@ public class Value implements AutoCloseable {
      * Check if the Value is null.
      *
      * @return True if the Value is null, false otherwise.
-     * @throws ObjectRefDestroyedException If the Value has been destroyed.
+     * @throws RuntimeException If the Value has been destroyed.
      */
-    public boolean isNull() throws ObjectRefDestroyedException {
+    public boolean isNull() {
         checkNotDestroyed();
         return Native.kuzu_value_is_null(this);
     }
@@ -98,9 +98,9 @@ public class Value implements AutoCloseable {
      * Set the Value to null.
      *
      * @param flag: True if the Value is set to null, false otherwise.
-     * @throws ObjectRefDestroyedException If the Value has been destroyed.
+     * @throws RuntimeException If the Value has been destroyed.
      */
-    public void setNull(boolean flag) throws ObjectRefDestroyedException {
+    public void setNull(boolean flag) {
         checkNotDestroyed();
         Native.kuzu_value_set_null(this, flag);
     }
@@ -109,9 +109,9 @@ public class Value implements AutoCloseable {
      * Copy the Value from another Value.
      *
      * @param other: The Value to copy from.
-     * @throws ObjectRefDestroyedException If the Value has been destroyed.
+     * @throws RuntimeException If the Value has been destroyed.
      */
-    public void copy(Value other) throws ObjectRefDestroyedException {
+    public void copy(Value other) {
         checkNotDestroyed();
         Native.kuzu_value_copy(this, other);
     }
@@ -132,9 +132,9 @@ public class Value implements AutoCloseable {
      * Get the actual value from the Value.
      *
      * @return The value of the given type.
-     * @throws ObjectRefDestroyedException If the Value has been destroyed.
+     * @throws RuntimeException If the Value has been destroyed.
      */
-    public <T> T getValue() throws ObjectRefDestroyedException {
+    public <T> T getValue() {
         checkNotDestroyed();
         return Native.kuzu_value_get_value(this);
     }
@@ -143,9 +143,9 @@ public class Value implements AutoCloseable {
      * Get the data type of the Value.
      *
      * @return The data type of the Value.
-     * @throws ObjectRefDestroyedException If the Value has been destroyed.
+     * @throws RuntimeException If the Value has been destroyed.
      */
-    public DataType getDataType() throws ObjectRefDestroyedException {
+    public DataType getDataType() {
         checkNotDestroyed();
         return Native.kuzu_value_get_data_type(this);
     }

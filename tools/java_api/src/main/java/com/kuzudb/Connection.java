@@ -25,29 +25,29 @@ public class Connection implements AutoCloseable {
     /**
      * Check if the connection has been destroyed.
      *
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
-    private void checkNotDestroyed() throws ObjectRefDestroyedException {
+    private void checkNotDestroyed() {
         if (destroyed)
-            throw new ObjectRefDestroyedException("Connection has been destroyed.");
+            throw new RuntimeException("Connection has been destroyed.");
     }
 
     /**
      * Close the connection and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
      *
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
     @Override
-    public void close() throws ObjectRefDestroyedException {
+    public void close() {
         destroy();
     }
 
     /**
      * Destroy the connection.
      *
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
-    private void destroy() throws ObjectRefDestroyedException {
+    private void destroy() {
         checkNotDestroyed();
         Native.kuzu_connection_destroy(this);
         destroyed = true;
@@ -57,9 +57,9 @@ public class Connection implements AutoCloseable {
      * Return the maximum number of threads used for execution in the current connection.
      *
      * @return The maximum number of threads used for execution in the current connection.
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
-    public long getMaxNumThreadForExec() throws ObjectRefDestroyedException {
+    public long getMaxNumThreadForExec() {
         checkNotDestroyed();
         return Native.kuzu_connection_get_max_num_thread_for_exec(this);
     }
@@ -68,9 +68,9 @@ public class Connection implements AutoCloseable {
      * Sets the maximum number of threads to use for execution in the current connection.
      *
      * @param numThreads: The maximum number of threads to use for execution in the current connection
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
-    public void setMaxNumThreadForExec(long numThreads) throws ObjectRefDestroyedException {
+    public void setMaxNumThreadForExec(long numThreads) {
         checkNotDestroyed();
         Native.kuzu_connection_set_max_num_thread_for_exec(this, numThreads);
     }
@@ -80,9 +80,9 @@ public class Connection implements AutoCloseable {
      *
      * @param queryStr: The query to execute.
      * @return The result of the query.
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
-    public QueryResult query(String queryStr) throws ObjectRefDestroyedException {
+    public QueryResult query(String queryStr) {
         checkNotDestroyed();
         return Native.kuzu_connection_query(this, queryStr);
     }
@@ -92,9 +92,9 @@ public class Connection implements AutoCloseable {
      *
      * @param queryStr: The query to prepare.
      * @return The prepared statement.
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
-    public PreparedStatement prepare(String queryStr) throws ObjectRefDestroyedException {
+    public PreparedStatement prepare(String queryStr) {
         checkNotDestroyed();
         return Native.kuzu_connection_prepare(this, queryStr);
     }
@@ -106,9 +106,9 @@ public class Connection implements AutoCloseable {
      * @param m:  The parameter pack where each arg is a std::pair with the first element being parameter name and second
      *            element being parameter value
      * @return The result of the query.
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
-    public QueryResult execute(PreparedStatement ps, Map<String, Value> m) throws ObjectRefDestroyedException {
+    public QueryResult execute(PreparedStatement ps, Map<String, Value> m) {
         checkNotDestroyed();
         return Native.kuzu_connection_execute(this, ps, m);
     }
@@ -116,9 +116,9 @@ public class Connection implements AutoCloseable {
     /**
      * Interrupts all queries currently executed within this connection.
      *
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
-    public void interrupt() throws ObjectRefDestroyedException {
+    public void interrupt() {
         checkNotDestroyed();
         Native.kuzu_connection_interrupt(this);
     }
@@ -127,9 +127,9 @@ public class Connection implements AutoCloseable {
      * Sets the query timeout value of the current connection. A value of zero (the default) disables the timeout.
      *
      * @param timeoutInMs: The query timeout value in milliseconds.
-     * @throws ObjectRefDestroyedException If the connection has been destroyed.
+     * @throws RuntimeException If the connection has been destroyed.
      */
-    public void setQueryTimeout(long timeoutInMs) throws ObjectRefDestroyedException {
+    public void setQueryTimeout(long timeoutInMs) {
         checkNotDestroyed();
         Native.kuzu_connection_set_query_timeout(this, timeoutInMs);
     }

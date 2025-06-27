@@ -44,6 +44,35 @@ public class DatabaseTest extends TestBase {
         }
     }
 
+
+    @Test
+    void DBCreationWithInvalidMaxDBSize() {
+        String dbPath = "";
+        try {
+            dbPath = tmpDir.toFile().getAbsolutePath();
+        } catch (Exception e) {
+            fail("Cannot get database path: " + e.getMessage());
+        }
+        try {
+            Database database = new Database(
+                            dbPath,
+                            1 << 28 /* 256 MB */,
+                            true /* compression */,
+                            false /* readOnly */,
+                            (1 << 30) - 1 /* 1 GB - 1 Byte (Odd Number)*/,
+                            false /* autoCheckpoint */,
+                            1234 /* checkpointThreshold */);
+
+            fail("DBCreationWithInvalidMaxDBSize failed:");
+        }
+        catch (Exception e) {
+            assertEquals("Buffer manager exception: The given max db size should be a power of 2.", e.getMessage());
+            return;
+        }
+        fail("DBCreationWithInvalidMaxDBSize failed:");
+    }
+
+
     @Test
     void DBCreationAndDestroyWithPathOnly() {
         String dbPath = "";

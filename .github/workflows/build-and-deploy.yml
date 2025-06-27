@@ -107,8 +107,6 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ github.token }}
       GITHUB_ACTOR: ${{ github.actor }}
-      OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-      OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
       GPG_SIGNING_KEY: ${{ secrets.PGP_PRIVATE_KEY }}
       GPG_SIGNING_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
       SKIP_CMAKE_BUILD: true
@@ -165,7 +163,32 @@ jobs:
           name: kuzu-java-multiplatform-jar
           path: tools/java_api/build/libs/kuzu*.jar
 
-      - name: Deploy Java JAR
+      - name: Create Maven Central bundle
+        working-directory: tools/java_api
+        run: |
+            ORIGINAL_PWD=$(pwd)
+            ./gradlew publishMavenJavaToLocalRepo -i
+            cd build/repo
+            zip -r kuzu-java-bundle.zip com
+            mv kuzu-java-bundle.zip $ORIGINAL_PWD
+      
+      - name: Upload Maven Central bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: kuzu-java-multiplatform-bundle
+          path: tools/java_api/kuzu-java-bundle.zip
+      
+      - name: Deploy to Maven Central
+        if: ${{ github.event.inputs.isDeploy == 'true' && github.event.inputs.isNightly != 'true' }}
+        working-directory: tools/java_api
+        run: |
+          curl --request POST \
+          --verbose \
+          --header 'Authorization: Bearer ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN }}' \
+          --form bundle=@kuzu-java-bundle.zip \
+          https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC
+        
+      - name: Publish to GitHub Packages
         if: ${{ github.event.inputs.isDeploy == 'true' || github.event_name == 'schedule' }}
         working-directory: tools/java_api
         run: |

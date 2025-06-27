@@ -76,32 +76,32 @@ public class Database implements AutoCloseable {
     /**
      * Checks if the database instance has been destroyed.
      *
-     * @throws ObjectRefDestroyedException If the database instance is destroyed.
+     * @throws RuntimeException If the database instance is destroyed.
      */
-    private void checkNotDestroyed() throws ObjectRefDestroyedException {
+    private void checkNotDestroyed() {
         if (destroyed)
-            throw new ObjectRefDestroyedException("Database has been destroyed.");
+            throw new RuntimeException("Database has been destroyed.");
     }
 
     /**
      * Close the database and release the underlying resources. This method is
      * invoked automatically on objects managed by the try-with-resources statement.
      *
-     * @throws ObjectRefDestroyedException If the database instance has been
+     * @throws RuntimeException If the database instance has been
      *                                     destroyed.
      */
     @Override
-    public void close() throws ObjectRefDestroyedException {
+    public void close() {
         destroy();
     }
 
     /**
      * Destroy the database instance.
      *
-     * @throws ObjectRefDestroyedException If the database instance has been
+     * @throws RuntimeException If the database instance has been
      *                                     destroyed.
      */
-    private void destroy() throws ObjectRefDestroyedException {
+    private void destroy() {
         checkNotDestroyed();
         Native.kuzu_database_destroy(this);
         destroyed = true;

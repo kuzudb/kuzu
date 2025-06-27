@@ -14,26 +14,41 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ValueTest extends TestBase {
 
+    void checkValueConversion(Value val) {
+        Map<String, Value> parameters = Map.of("a", val);
+        try (PreparedStatement preparedStatement = conn.prepare("RETURN $a")) {
+            assertNotNull(preparedStatement);
+            assertTrue(preparedStatement.getErrorMessage().equals(""));
+            QueryResult result = conn.execute(preparedStatement, parameters);
+            if (result.hasNext()) {
+                Value cur = result.getNext().getValue(0);
+                assertTrue(val.isNull() && cur.isNull() || val.getValue().equals(cur.getValue()));
+            }
+        }
+    }
+
     @Test
-    void ValueCreateNull() throws ObjectRefDestroyedException {
+    void ValueCreateNull() {
         Value value = Value.createNull();
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.ANY);
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateNullWithDatatype() throws ObjectRefDestroyedException {
+    void ValueCreateNullWithDatatype() {
         DataType type = new DataType(DataTypeID.INT64, null, 0);
         Value value = Value.createNullWithDataType(type);
         assertFalse(value.isOwnedByCPP());
         type.close();
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueIsNull() throws ObjectRefDestroyedException {
+    void ValueIsNull() {
         Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
         assertFalse(value.isNull());
@@ -51,7 +66,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueSetNull() throws ObjectRefDestroyedException {
+    void ValueSetNull() {
         Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
         assertFalse(value.isNull());
@@ -65,7 +80,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateDefault() throws ObjectRefDestroyedException {
+    void ValueCreateDefault() {
         DataType type = new DataType(DataTypeID.INT64, null, 0);
         Value value = Value.createDefault(type);
         assertFalse(value.isOwnedByCPP());
@@ -74,6 +89,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         assertTrue(value.getValue().equals(0L));
+        checkValueConversion(value);
         value.close();
 
         type = new DataType(DataTypeID.STRING, null, 0);
@@ -84,11 +100,12 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
         assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         assertTrue(value.getValue().equals(""));
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateAndCloseDefault() throws ObjectRefDestroyedException {
+    void ValueCreateAndCloseDefault() {
         try (DataType type = new DataType(DataTypeID.INT64, null, 0);
                 Value value = Value.createDefault(type)) {
 
@@ -109,84 +126,114 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateBool() throws ObjectRefDestroyedException {
+    void ValueCreateBool() {
         // bool
         Value value = new Value(true);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.BOOL);
         assertTrue(value.getValue().equals(true));
+        checkValueConversion(value);
         value.close();
 
         value = new Value(false);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.BOOL);
         assertTrue(value.getValue().equals(false));
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateINT16() throws ObjectRefDestroyedException {
+    void ValueCreateINT8() {
+        // INT8
+        Value value = new Value((byte) 127);
+        assertFalse(value.isOwnedByCPP());
+        assertEquals(value.getDataType().getID(), DataTypeID.INT8);
+        assertTrue(value.getValue().equals((byte) 127));
+        checkValueConversion(value);
+        value.close();
+    }
+
+    @Test
+    void ValueCreateINT16() {
         // INT16
         Value value = new Value((short) 123);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT16);
         assertTrue(value.getValue().equals((short) 123));
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateINT32() throws ObjectRefDestroyedException {
+    void ValueCreateINT32() {
         // INT32
         Value value = new Value(123);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT32);
         assertTrue(value.getValue().equals(123));
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateINT64() throws ObjectRefDestroyedException {
+    void ValueCreateINT64() {
         // INT64
         Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         assertTrue(value.getValue().equals(123L));
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateFloat() throws ObjectRefDestroyedException {
+    void ValueCreateINT128() {
+        // INT128
+        Value value = new Value(new BigInteger("1180591620717411303424"));
+        assertFalse(value.isOwnedByCPP());
+        assertEquals(value.getDataType().getID(), DataTypeID.INT128);
+        assertTrue(value.getValue().equals(new BigInteger("1180591620717411303424")));
+        checkValueConversion(value);
+        value.close();
+    }
+
+    @Test
+    void ValueCreateFloat() {
         // float
         Value value = new Value((float) 123.456);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.FLOAT);
         assertTrue(value.getValue().equals((float) 123.456));
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateDouble() throws ObjectRefDestroyedException {
+    void ValueCreateDouble() {
         // double
         Value value = new Value((float) 123.456);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.FLOAT);
         assertTrue(value.getValue().equals((float) 123.456));
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateDecimal() throws ObjectRefDestroyedException {
+    void ValueCreateDecimal() {
         // decimal
         Value value = new Value(new BigDecimal("-3.140"));
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.DECIMAL);
         BigDecimal val = (BigDecimal) value.getValue();
         assertTrue(val.compareTo(new BigDecimal("-3.14")) == 0);
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateInternalID() throws ObjectRefDestroyedException {
+    void ValueCreateInternalID() {
         // InternalID
         Value value = new Value(new InternalID(1, 123));
         assertFalse(value.isOwnedByCPP());
@@ -194,22 +241,24 @@ public class ValueTest extends TestBase {
         InternalID id = value.getValue();
         assertEquals(id.tableId, 1);
         assertEquals(id.offset, 123);
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateDate() throws ObjectRefDestroyedException {
+    void ValueCreateDate() {
         // date
         Value value = new Value(LocalDate.ofEpochDay(123));
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.DATE);
         LocalDate date = value.getValue();
         assertEquals(date.toEpochDay(), 123);
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateTimeStamp() throws ObjectRefDestroyedException {
+    void ValueCreateTimeStamp() {
         // timestamp
         Value value = new Value(Instant.ofEpochSecond(123 / 1000000L, 123 % 1000000 * 1000)); // 123 microseconds
         assertFalse(value.isOwnedByCPP());
@@ -217,6 +266,7 @@ public class ValueTest extends TestBase {
         Instant stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 0);
         assertEquals(stamp.getNano(), 123000);
+        checkValueConversion(value);
         value.close();
 
         value = new Value(Instant.ofEpochSecond(123123123L / 1000000L, 123123123L % 1000000 * 1000));
@@ -225,11 +275,18 @@ public class ValueTest extends TestBase {
         stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 123);
         assertEquals(stamp.getNano(), 123123000);
+        checkValueConversion(value);
         value.close();
+
+        Instant t = Instant.now();
+        Value v = new Value(t);
+        Instant vt = v.getValue();
+        assertEquals(vt.getEpochSecond(), t.getEpochSecond());
+        v.close();
     }
 
     @Test
-    void ValueCreateInterval() throws ObjectRefDestroyedException {
+    void ValueCreateInterval() {
         // interval
         Duration inputDuration = Duration.ofMillis(31795200003L);
         Value value = new Value(inputDuration);
@@ -237,22 +294,28 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), DataTypeID.INTERVAL);
         Duration interval = value.getValue();
         assertEquals(interval.toMillis(), inputDuration.toMillis());
+        checkValueConversion(value);
         value.close();
     }
 
     @Test
-    void ValueCreateString() throws ObjectRefDestroyedException {
+    void ValueCreateString() {
         // String
         Value value = new Value("abcdefg");
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         String str = value.getValue();
         assertTrue(str.equals("abcdefg"));
+        checkValueConversion(value);
         value.close();
+        Value special = new Value("12🍞x🚗😂😃🧘🏻‍♂️a🌍🍞🚗😂😃🧘🏻‍♂️aSóló🌍 xyz");
+        assertTrue(special.toString().equals("12🍞x🚗😂😃🧘🏻‍♂️a🌍🍞🚗😂😃🧘🏻‍♂️aSóló🌍 xyz"));
+        checkValueConversion(special);
+        special.close();
     }
 
     @Test
-    void ValueClone() throws ObjectRefDestroyedException {
+    void ValueClone() {
         Value value = new Value("abcdefg");
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.STRING);
@@ -270,7 +333,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCopy() throws ObjectRefDestroyedException {
+    void ValueCopy() {
         Value value = new Value("abc");
         Value value2 = new Value("abcdefg");
 
@@ -285,7 +348,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateListLiteral() throws ObjectRefDestroyedException {
+    void CreateListLiteral() {
         Value[] listValues = { new Value(1), new Value(2), new Value(3) };
         KuzuList list = new KuzuList(listValues);
         Value[] listAsArray = list.toArray();
@@ -316,7 +379,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateListLiteralNested() throws ObjectRefDestroyedException {
+    void CreateListLiteralNested() {
         Value[][] nestedListValues = { { new Value(1), new Value(2), new Value(3) },
                 { new Value(4), new Value(5), new Value(6) } };
         KuzuList[] nestedLists = { new KuzuList(nestedListValues[0]), new KuzuList(nestedListValues[1]) };
@@ -356,7 +419,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateListDefaultValues() throws ObjectRefDestroyedException {
+    void CreateListDefaultValues() {
         int listLength = 5;
         KuzuList list = new KuzuList(new DataType(DataTypeID.INT32), listLength);
         assertEquals(listLength, list.getListSize());
@@ -369,7 +432,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetListSize() throws ObjectRefDestroyedException {
+    void ValueGetListSize() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -389,7 +452,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetListElement() throws ObjectRefDestroyedException {
+    void ValueGetListElement() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -423,7 +486,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetDatatype() throws ObjectRefDestroyedException {
+    void ValueGetDatatype() {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
@@ -451,7 +514,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetBool() throws ObjectRefDestroyedException {
+    void ValueGetBool() {
         // bool
         QueryResult result = conn.query("MATCH (a:person) RETURN a.isStudent ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -462,13 +525,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(true));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetINT8() throws ObjectRefDestroyedException {
+    void ValueGetINT8() {
         // INT8
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.level ORDER BY a.ID");
@@ -480,13 +544,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((byte) 5));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetINT16() throws ObjectRefDestroyedException {
+    void ValueGetINT16() {
         // INT16
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.length ORDER BY a.ID");
@@ -498,13 +563,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((short) 5));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetINT32() throws ObjectRefDestroyedException {
+    void ValueGetINT32() {
         // INT32
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.length ORDER BY m.name");
         assertTrue(result.isSuccess());
@@ -515,13 +581,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(298));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetINT64() throws ObjectRefDestroyedException {
+    void ValueGetINT64() {
         // INT64
         QueryResult result = conn.query("MATCH (a:person) RETURN a.ID ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -532,13 +599,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(0L));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetUINT8() throws ObjectRefDestroyedException {
+    void ValueGetUINT8() {
         // UINT8
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulevel ORDER BY a.ID");
@@ -550,13 +618,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((short) 250));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetUINT16() throws ObjectRefDestroyedException {
+    void ValueGetUINT16() {
         // UINT16
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulength ORDER BY a.ID");
@@ -568,13 +637,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(33768));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetUINT32() throws ObjectRefDestroyedException {
+    void ValueGetUINT32() {
         // UINT32
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.temperature ORDER BY a.ID");
@@ -586,13 +656,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(32800L));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetUINT64() throws ObjectRefDestroyedException {
+    void ValueGetUINT64() {
         // UINT64
         QueryResult result = conn.query("RETURN cast(1000043524, \"UINT64\")");
         assertTrue(result.isSuccess());
@@ -603,13 +674,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertEquals(value.getValue(), new BigInteger("1000043524"));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetInt128() throws ObjectRefDestroyedException {
+    void ValueGetINT128() {
         // INT128
         QueryResult result = conn
                 .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID");
@@ -622,13 +694,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertEquals(value.getValue(), new BigInteger("1844674407370955161811111111"));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetSERIAL() throws ObjectRefDestroyedException {
+    void ValueGetSERIAL() {
         // SERIAL
         QueryResult result = conn.query("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;");
         assertTrue(result.isSuccess());
@@ -639,13 +712,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(2L));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetFloat() throws ObjectRefDestroyedException {
+    void ValueGetFloat() {
         // FLOAT
         QueryResult result = conn.query("MATCH (a:person) RETURN a.height ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -656,13 +730,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((float) 1.731));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetDouble() throws ObjectRefDestroyedException {
+    void ValueGetDouble() {
         // Double
         QueryResult result = conn.query("MATCH (a:person) RETURN a.eyeSight ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -673,13 +748,14 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((double) 5.0));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetDate() throws ObjectRefDestroyedException {
+    void ValueGetDate() {
         // Date
         QueryResult result = conn.query("MATCH (a:person) RETURN a.birthdate ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -691,13 +767,14 @@ public class ValueTest extends TestBase {
 
         LocalDate date = value.getValue();
         assertEquals((long) date.toEpochDay(), -25567L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetTimeStamp() throws ObjectRefDestroyedException {
+    void ValueGetTimeStamp() {
         // timestamp
         QueryResult result = conn.query("MATCH (a:person) RETURN a.registerTime ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -709,13 +786,14 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.toEpochMilli(), 1313839530000L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetTimeStampTz() throws ObjectRefDestroyedException {
+    void ValueGetTimeStampTz() {
         // timestamp_tz
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_tz");
         assertTrue(result.isSuccess());
@@ -727,13 +805,14 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.toEpochMilli(), 1313839530123L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetTimeStampNs() throws ObjectRefDestroyedException {
+    void ValueGetTimeStampNs() {
         // timestamp_ns
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ns");
         assertTrue(result.isSuccess());
@@ -745,13 +824,14 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.getNano(), 123456000L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetTimeStampMs() throws ObjectRefDestroyedException {
+    void ValueGetTimeStampMs() {
         // timestamp_ms
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ms");
         assertTrue(result.isSuccess());
@@ -763,13 +843,14 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.toEpochMilli(), 1313839530123L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetTimeStampSec() throws ObjectRefDestroyedException {
+    void ValueGetTimeStampSec() {
         // timestamp_sec
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_sec");
         assertTrue(result.isSuccess());
@@ -782,13 +863,14 @@ public class ValueTest extends TestBase {
         Instant stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 1313839530L);
         assertEquals(stamp.getNano(), 0L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetInterval() throws ObjectRefDestroyedException {
+    void ValueGetInterval() {
         // Interval
         QueryResult result = conn.query("MATCH (a:person) RETURN a.lastJobDuration ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -805,13 +887,14 @@ public class ValueTest extends TestBase {
         assertEquals(month, 36);
         assertEquals(day, 2);
         assertEquals(micros, 46920000000L);
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetString() throws ObjectRefDestroyedException {
+    void ValueGetString() {
         // String
         QueryResult result = conn.query("MATCH (a:person) RETURN a.fName ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -823,13 +906,14 @@ public class ValueTest extends TestBase {
 
         String str = value.getValue();
         assertTrue(str.equals("Alice"));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueGetBlob() throws ObjectRefDestroyedException {
+    void ValueGetBlob() {
         QueryResult result = conn.query("RETURN BLOB('\\\\xAA\\\\xBB\\\\xCD\\\\x1A');");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -847,7 +931,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUUID() throws ObjectRefDestroyedException {
+    void ValueGetUUID() {
         QueryResult result = conn.query("RETURN UUID(\"A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11\");");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -855,16 +939,21 @@ public class ValueTest extends TestBase {
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
-
+        UUID rand = UUID.randomUUID();
+        Value test = new Value(rand);
+        assertFalse(test.isNull());
+        assertTrue(test.getValue().equals(rand));
+        test.close();
         UUID uid = value.getValue();
         assertTrue(uid.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")));
+        assertTrue(value.clone().getValue().equals(value.getValue()));
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void ValueToString() throws ObjectRefDestroyedException {
+    void ValueToString() {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
@@ -889,7 +978,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValGetID() throws ObjectRefDestroyedException {
+    void NodeValGetID() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -901,13 +990,19 @@ public class ValueTest extends TestBase {
         InternalID id = ValueNodeUtil.getID(value);
         assertEquals(id.tableId, 0);
         assertEquals(id.offset, 0);
+
+        Value cloned = value.clone();
+        InternalID id2 = ValueNodeUtil.getID(cloned);
+        assertEquals(id2.tableId, 0);
+        assertEquals(id2.offset, 0);
+
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void NodeValGetLabelName() throws ObjectRefDestroyedException {
+    void NodeValGetLabelName() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -918,13 +1013,18 @@ public class ValueTest extends TestBase {
 
         String label = ValueNodeUtil.getLabelName(value);
         assertEquals(label, "person");
+
+        Value cloned = value.clone();
+        String label2 = ValueNodeUtil.getLabelName(cloned);
+        assertEquals(label2, "person");
+
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void NodeValGetProperty() throws ObjectRefDestroyedException {
+    void NodeValGetProperty() {
         QueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -963,7 +1063,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValToString() throws ObjectRefDestroyedException {
+    void NodeValToString() {
         QueryResult result = conn.query("MATCH (b:organisation) RETURN b ORDER BY b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -981,7 +1081,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RelValGetIDsAndLabel() throws ObjectRefDestroyedException {
+    void RelValGetIDsAndLabel() {
         QueryResult result = conn.query("MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1014,7 +1114,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RelValGetProperty() throws ObjectRefDestroyedException {
+    void RelValGetProperty() {
         QueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1042,7 +1142,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RelValToString() throws ObjectRefDestroyedException {
+    void RelValToString() {
         QueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1050,15 +1150,14 @@ public class ValueTest extends TestBase {
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         String str = ValueRelUtil.toString(value);
-        assertEquals(str, "(0:2)-{_LABEL: workAt, _ID: 5:0, year: 2015, grading: [3.800000,2.500000], " +
-                "rating: 8.200000}->(1:1)");
+        assertEquals(str, "(0:2)-{_LABEL: workAt, _ID: 5:0, year: 2015, grading: [3.800000,2.500000], rating: 8.200000}->(1:1)");
         value.close();
         flatTuple.close();
         result.close();
     }
 
     @Test
-    void CreateStructLiteral() throws ObjectRefDestroyedException {
+    void CreateStructLiteral() {
         String[] fieldNames = { "name", "ID", "age" };
         Value[] fieldValues = { new Value("Alice"), new Value(1), new Value(20) };
         KuzuStruct structVal = new KuzuStruct(fieldNames, fieldValues);
@@ -1082,7 +1181,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateStructLiteralNested() throws ObjectRefDestroyedException {
+    void CreateStructLiteralNested() {
         String[] personFieldNames = { "name", "ID" };
         Value[] personFieldValues = { new Value("Alice"), new Value(1) };
         KuzuStruct person = new KuzuStruct(personFieldNames, personFieldValues);
@@ -1115,7 +1214,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateStructLiteralFromMap() throws ObjectRefDestroyedException {
+    void CreateStructLiteralFromMap() {
         Map<String, Value> fields = Map.of(
                 "name", new Value("Alice"),
                 "ID", new Value(2),
@@ -1148,7 +1247,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetNumFields() throws ObjectRefDestroyedException {
+    void StructValGetNumFields() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1165,7 +1264,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void InternalIDEquality() throws ObjectRefDestroyedException {
+    void InternalIDEquality() {
         QueryResult result = conn.query("MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1198,7 +1297,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetIndexByFieldName() throws ObjectRefDestroyedException {
+    void StructValGetIndexByFieldName() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1224,7 +1323,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetFieldNameByIndex() throws ObjectRefDestroyedException {
+    void StructValGetFieldNameByIndex() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1250,7 +1349,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetValueByFieldName() throws ObjectRefDestroyedException {
+    void StructValGetValueByFieldName() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description ORDER BY m.name");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1271,7 +1370,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetValueByIndex() throws ObjectRefDestroyedException {
+    void StructValGetValueByIndex() {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description ORDER BY m.name");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1294,7 +1393,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateMapLiteral() throws ObjectRefDestroyedException {
+    void CreateMapLiteral() {
         Value[] keys = { new Value("Alice"), new Value("Bob") };
         Value[] values = { new Value(1), new Value(2) };
         KuzuMap kuzuMap = new KuzuMap(keys, values);
@@ -1317,7 +1416,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void CreateMapLiteralNested() throws ObjectRefDestroyedException {
+    void CreateMapLiteralNested() {
         Value[][] nestedKeys = { { new Value("Alice"), new Value("Bob") }, { new Value("Carol"), new Value("Dan") } };
         Value[][] nestedValues = { { new Value(1), new Value(2) }, { new Value(3), new Value(4) } };
         KuzuMap map0 = new KuzuMap(nestedKeys[0], nestedValues[0]);
@@ -1362,7 +1461,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void MapValGetNumFields() throws ObjectRefDestroyedException {
+    void MapValGetNumFields() {
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
         assertTrue(result.isSuccess());
 
@@ -1399,7 +1498,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void MapValGetKey() throws ObjectRefDestroyedException {
+    void MapValGetKey() {
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1443,7 +1542,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void MapValGetValue() throws ObjectRefDestroyedException {
+    void MapValGetValue() {
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1491,7 +1590,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RecursiveRelGetNodeAndRelList() throws ObjectRefDestroyedException {
+    void RecursiveRelGetNodeAndRelList() {
         try (QueryResult result = conn
                 .query("MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;")) {
             assertTrue(result.isSuccess());
@@ -1530,5 +1629,18 @@ public class ValueTest extends TestBase {
                 }
             }
         }
+    }
+
+    @Test
+    void UnsupportedTypeCreate() {
+        try {
+            Value test = new Value(new Exception()); // random type
+            test.getValue();
+            test.close();
+        } catch (Exception e) {
+            assertEquals("Type of value is not supported in value_create_value", e.getMessage());
+            return;
+        }
+        fail("UnsupportedTypeCreate failed:");
     }
 }
