@@ -164,6 +164,12 @@ struct ShowProjectedGraphsFunction final {
     static function_set getFunctionSet();
 };
 
+struct ProjectedGraphInfoFunction final {
+    static constexpr const char* name = "PROJECTED_GRAPH_INFO";
+
+    static function_set getFunctionSet();
+};
+
 // Cache a table column to the transaction local cache.
 // Note this is only used for internal purpose, and only supports node tables for now.
 struct LocalCacheArrayColumnFunction final {
