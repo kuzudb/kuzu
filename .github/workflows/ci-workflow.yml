@@ -301,25 +301,73 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
-      - name: Test with coverage
-        run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          make lcov
+      - name: Setup dataset symlink
+        run: ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
 
-      - name: Test with coverage in mem
+      - name: Test coverage for on-disk mode
+        run: make lcov
+
+      - name: Generate coverage report for on-disk mode
+        run: |
+          lcov --config-file .lcovrc -c -d ./ --no-external -o cover_on_disk.info &&\
+          lcov --remove cover_on_disk.info $(< .github/workflows/lcov_exclude) -o cover_on_disk.info
+
+      - name: Upload coverage report for on-disk mode
+        uses: codecov/codecov-action@v4.5.0
+        with:
+          file: cover_on_disk.info
+          flags: on-disk
+          name: on-disk-coverage
+
+      - name: Clean coverage data
+        run: |
+          find . -name "*.gcda" -delete
+          lcov --zerocounters --directory ./
+
+      - name: Test coverage for in-mem mode
         env:
           IN_MEM_MODE: true
         run: make lcov
 
-      - name: Generate coverage report
+      - name: Generate coverage report for in-mem mode
         run: |
-          lcov --config-file .lcovrc -c -d ./ --no-external -o cover.info &&\
-          lcov --remove cover.info $(< .github/workflows/lcov_exclude) -o cover.info
+          lcov --config-file .lcovrc -c -d ./ --no-external -o cover_in_mem.info &&\
+          lcov --remove cover_in_mem.info $(< .github/workflows/lcov_exclude) -o cover_in_mem.info
 
-      - name: Upload coverage report
+      - name: Upload coverage report for in-mem mode
         uses: codecov/codecov-action@v4.5.0
         with:
-          file: cover.info
+          file: cover_in_mem.info
+          flags: in-mem
+          name: in-mem-coverage
+
+      - name: Clean coverage data
+        run: |
+          find . -name "*.gcda" -delete
+          lcov --zerocounters --directory ./
+
+      - name: Test coverate for recovery
+        env:
+          AUTO_CHECKPOINT: false
+          CHECKPOINT_ON_CLOSE: false
+        run: make lcov
+
+      - name: Generate coverage report for recovery
+        run: |
+          lcov --config-file .lcovrc -c -d ./ --no-external -o cover_recovery.info &&\
+          lcov --remove cover_recovery.info $(< .github/workflows/lcov_exclude) -o cover_recovery.info
+
+      - name: Upload coverage report for recovery
+        uses: codecov/codecov-action@v4.5.0
+        with:
+          file: cover_recovery.info
+          flags: recovery
+          name: recovery-coverage
+
+      - name: Clean coverage data
+        run: |
+          find . -name "*.gcda" -delete
+          lcov --zerocounters --directory ./
 
   webassembly-build-test:
     name: webassembly build & test
@@ -1057,6 +1105,7 @@ jobs:
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
       ASAN_OPTIONS: detect_leaks=1
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -1109,6 +1158,21 @@ jobs:
       - name: Extension test with asan
         run: |
           make clean && make extension-test ASAN=1 WERROR=0 EXTENSION_TEST_EXCLUDE_FILTER="(delta|postgres|iceberg)" && make clean
+
+      - name: Extension test coverage
+        run: make extension-lcov
+
+      - name: Generate coverage report
+        run: |
+          lcov --config-file .lcovrc -c -d ./ --no-external -o cover_extension.info &&\
+          lcov --remove cover_extension.info $(< .github/workflows/lcov_exclude) -o cover_extension.info
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4.5.0
+        with:
+          file: cover_extension.info
+          flags: extension
+          name: extension-coverage
 
   macos-extension-test:
     name: macos extension test
