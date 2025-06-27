@@ -223,11 +223,14 @@ static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& 
     uint64_t numFieldsDst = UnionType::getNumFields(dstType);
     // srcType is either non-nested or a union
     if (srcType.getLogicalTypeID() == LogicalTypeID::UNION) {
+        // to be supported with subsequent PR
+
+        /*
         std::set<LogicalTypeID> dstFieldTypes;
         for (union_field_idx_t i = 0; i < numFieldsDst; ++i) {
             dstFieldTypes.insert(UnionType::getFieldType(dstType, i).getLogicalTypeID());
         }
-        // note: we don't allow implicit casts here
+        // allow implicit casts
         uint64_t numFieldsSrc = UnionType::getNumFields(srcType);
         for (union_field_idx_t i = 0; i < numFieldsSrc; ++i) {
             const LogicalType& fieldType = UnionType::getFieldType(srcType, i);
@@ -236,6 +239,9 @@ static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& 
             }
         }
         return true;
+        */
+
+        return false;
     } else {
         for (union_field_idx_t i = 0; i < numFieldsDst; ++i) {
             const LogicalType& fieldType = UnionType::getFieldType(dstType, i);
