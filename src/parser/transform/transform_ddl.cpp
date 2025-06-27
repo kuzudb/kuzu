@@ -337,6 +337,19 @@ std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
 }
 
 std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {
+    if (ctx.kU_ColumnDefinitions()) {
+        std::string type = ctx.STRUCT() ? "STRUCT" : ctx.UNION() ? "UNION" : ctx.oC_SymbolicName()->getText();
+        std::set<std::string> fieldNames;
+        for (auto& field : ctx.kU_ColumnDefinitions()->kU_ColumnDefinition()) {
+            std::string fieldName = field->oC_PropertyKeyName()->getText();
+            if (!fieldNames.insert(fieldName).second) {
+                throw ParserException("Duplicate field " + fieldName + " in " + type + " definition");
+            }
+        }
+        if (ctx.kU_ColumnDefinitions()->kU_ColumnDefinition().size() > INVALID_STRUCT_FIELD_IDX) {
+            throw ParserException("Too many fields in " + type + " definition");
+        }
+    }
     return ctx.getText();
 }
 
