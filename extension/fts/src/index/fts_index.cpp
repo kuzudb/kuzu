@@ -168,32 +168,35 @@ void FTSIndex::checkpoint(main::ClientContext* context, bool forceCheckpointAll)
     KU_UNUSED(forceCheckpointAll);
     auto& ftsStorageInfo = storageInfo->cast<FTSStorageInfo>();
     const auto numTotalRows =
-        internalTableInfo.table->getNumTotalRows(&transaction::DUMMY_CHECKPOINT_TRANSACTION);
-    //    if (numTotalRows == ftsStorageInfo.numCheckpointedNodes) {
-    //        return;
-    //    }
-    auto transaction = std::make_unique<transaction::Transaction>(*context,
-        transaction::TransactionType::CHECKPOINT, transaction::Transaction::DUMMY_TRANSACTION_ID,
-        transaction::Transaction::START_TRANSACTION_ID - 1);
-    context->getTransactionContext()->setActiveTransaction(std::move(transaction));
-    auto dataChunk = DataChunkState::getSingleValueDataChunkState();
-    ValueVector idVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunk};
-    IndexTableState indexTableState{context->getMemoryManager(), context->getTransaction(),
-        internalTableInfo, indexInfo.columnIDs, idVector, dataChunk};
-    internalID_t insertedNodeID = {INVALID_OFFSET, internalTableInfo.table->getTableID()};
-    for (; ftsStorageInfo.numCheckpointedNodes < numTotalRows;) {
-        insertedNodeID.offset = ftsStorageInfo.numCheckpointedNodes++;
-        idVector.setValue(0, insertedNodeID);
-        internalTableInfo.table->initScanState(context->getTransaction(),
-            *indexTableState.scanState, insertedNodeID.tableID, insertedNodeID.offset);
-        bool result =
-            internalTableInfo.table->lookup(context->getTransaction(), *indexTableState.scanState);
-        KU_ASSERT(result);
-        auto insertState = initInsertState(context->getTransaction(), context->getMemoryManager(),
-            [](offset_t) { return true; });
-        insert(context->getTransaction(), idVector, indexTableState.indexVectors, *insertState);
+        internalTableInfo.table->getNumTotalRows(&DUMMY_CHECKPOINT_TRANSACTION);
+    if (numTotalRows == ftsStorageInfo.numCheckpointedNodes) {
+        return;
     }
-    context->getTransaction()->commit(nullptr /* wal */);
+    auto transaction = std::make_unique<Transaction>(*context, TransactionType::CHECKPOINT,
+        Transaction::DUMMY_TRANSACTION_ID, Transaction::START_TRANSACTION_ID - 1);
+    context->getTransactionContext()->setActiveTransaction(std::move(transaction));
+    try {
+        auto dataChunk = DataChunkState::getSingleValueDataChunkState();
+        ValueVector idVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunk};
+        IndexTableState indexTableState{context->getMemoryManager(), context->getTransaction(),
+            internalTableInfo, indexInfo.columnIDs, idVector, dataChunk};
+        internalID_t insertedNodeID = {INVALID_OFFSET, internalTableInfo.table->getTableID()};
+        for (; ftsStorageInfo.numCheckpointedNodes < numTotalRows;) {
+            insertedNodeID.offset = ftsStorageInfo.numCheckpointedNodes++;
+            idVector.setValue(0, insertedNodeID);
+            internalTableInfo.table->initScanState(context->getTransaction(),
+                *indexTableState.scanState, insertedNodeID.tableID, insertedNodeID.offset);
+            bool result = internalTableInfo.table->lookup(context->getTransaction(),
+                *indexTableState.scanState);
+            KU_ASSERT(result);
+            auto insertState = initInsertState(context->getTransaction(),
+                context->getMemoryManager(), [](offset_t) { return true; });
+            insert(context->getTransaction(), idVector, indexTableState.indexVectors, *insertState);
+        }
+        context->getTransaction()->commit(nullptr /* wal */);
+    } catch ([[maybe_unused]] const std::exception& e) {
+        context->getTransaction()->rollback(nullptr);
+    }
     auto catalog = context->getCatalog();
     internalTableInfo.docTable->checkpoint(context,
         catalog->getTableCatalogEntry(context->getTransaction(),
