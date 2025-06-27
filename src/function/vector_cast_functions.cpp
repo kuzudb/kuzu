@@ -147,7 +147,7 @@ static void toUnionCastExecFunction(const std::vector<std::shared_ptr<common::Va
     const auto& targetType = result.dataType;
 
     uint32_t minCastCost = UNDEFINED_CAST_COST;
-    union_field_idx_t minFieldIdx;
+    union_field_idx_t minFieldIdx = 0;
     uint64_t numFields = UnionType::getNumFields(targetType);
     for (union_field_idx_t i = 0; i < numFields; ++i) {
         const LogicalType& fieldType = UnionType::getFieldType(targetType, i);
