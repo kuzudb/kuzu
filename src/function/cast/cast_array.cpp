@@ -17,7 +17,7 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
     }
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
-        return targetTypeID == LogicalTypeID::STRUCT || targetTypeID == LogicalTypeID::UNION;
+        return sourceTypeID == targetTypeID || targetTypeID == LogicalTypeID::UNION;
     }
     case LogicalTypeID::ARRAY: {
         return targetTypeID == LogicalTypeID::LIST || targetTypeID == LogicalTypeID::ARRAY;
