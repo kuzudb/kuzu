@@ -26,7 +26,6 @@ public:
 private:
     PageManager& pageManager;
     std::vector<PageRange> uncommittedAllocatedPages;
-    bool inMemoryMode;
 };
 } // namespace storage
 } // namespace kuzu
