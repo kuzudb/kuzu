@@ -1,7 +1,5 @@
 #include "function/cast/vector_cast_functions.h"
 
-#include <set>
-
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "catalog/catalog.h"
@@ -148,8 +146,7 @@ static void toUnionCastExecFunction(const std::vector<std::shared_ptr<common::Va
 
     uint32_t minCastCost = UNDEFINED_CAST_COST;
     union_field_idx_t minFieldIdx = 0;
-    uint64_t numFields = UnionType::getNumFields(targetType);
-    for (union_field_idx_t i = 0; i < numFields; ++i) {
+    for (union_field_idx_t i = 0; i < UnionType::getNumFields(targetType); ++i) {
         const LogicalType& fieldType = UnionType::getFieldType(targetType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
             uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(),
@@ -228,8 +225,7 @@ static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& 
         // todo
         return false;
     } else {
-        uint64_t numFields = UnionType::getNumFields(dstType);
-        for (union_field_idx_t i = 0; i < numFields; ++i) {
+        for (union_field_idx_t i = 0; i < UnionType::getNumFields(dstType); ++i) {
             const LogicalType& fieldType = UnionType::getFieldType(dstType, i);
             if (CastFunction::hasImplicitCast(srcType, fieldType)) {
                 return true;
