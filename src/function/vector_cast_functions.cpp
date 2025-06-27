@@ -222,8 +222,16 @@ static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType&
 static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& dstType) {
     // srcType is either non-nested or a union
     if (srcType.getLogicalTypeID() == LogicalTypeID::UNION) {
-        // todo
-        return false;
+        for (uint64_t i = 0; i < UnionType::getNumFields(srcType); ++i) {
+            std::string fieldName = UnionType::getFieldName(srcType, i);
+            const LogicalType& fieldTypeSrc = UnionType::getFieldType(srcType, i);
+            if (!StructType::hasField(dstType, fieldName) ||
+                !CastFunction::hasImplicitCast(fieldTypeSrc,
+                    StructType::getFieldType(dstType, fieldName))) {
+                return false;
+            }
+        }
+        return true;
     } else {
         for (uint64_t i = 0; i < UnionType::getNumFields(dstType); ++i) {
             const LogicalType& fieldType = UnionType::getFieldType(dstType, i);
