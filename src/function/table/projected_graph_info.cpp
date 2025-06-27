@@ -22,15 +22,20 @@ struct ProjectedGraphInfo {
     virtual std::unique_ptr<ProjectedGraphInfo> copy() const = 0;
 };
 
-struct NativeProjectedGraphInfo : public ProjectedGraphInfo {
-    std::string nodeInfo;
-    std::string relInfo;
+struct ProjectedTableInfo {
+    std::string tableType;
+    std::string tableName;
+    std::string predicate;
+};
 
-    NativeProjectedGraphInfo(std::string nodeInfo, std::string relInfo)
-        : nodeInfo{std::move(nodeInfo)}, relInfo{std::move(relInfo)} {}
+struct NativeProjectedGraphInfo : public ProjectedGraphInfo {
+    std::vector<ProjectedTableInfo> tableInfo;
+
+    explicit NativeProjectedGraphInfo(std::vector<ProjectedTableInfo> tableInfo)
+        : tableInfo{std::move(tableInfo)} {}
 
     std::unique_ptr<ProjectedGraphInfo> copy() const override {
-        return std::make_unique<NativeProjectedGraphInfo>(nodeInfo, relInfo);
+        return std::make_unique<NativeProjectedGraphInfo>(tableInfo);
     }
 };
 
@@ -51,59 +56,49 @@ struct ProjectedGraphInfoBindData : public TableFuncBindData {
 
     ProjectedGraphInfoBindData(binder::expression_vector columns, graph::GraphEntryType type,
         std::unique_ptr<ProjectedGraphInfo> info)
-        : TableFuncBindData{std::move(columns), 1 /* oneRowResult */}, type{std::move(type)},
-          info{std::move(info)} {}
+        : TableFuncBindData{std::move(columns),
+              type == graph::GraphEntryType::NATIVE ?
+                  info->constCast<NativeProjectedGraphInfo>().tableInfo.size() :
+                  1},
+          type{type}, info{std::move(info)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ProjectedGraphInfoBindData>(columns, type, info->copy());
     }
 };
 
-static offset_t internalTableFunc(const TableFuncMorsel& /*morsel*/, const TableFuncInput& input,
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
     DataChunk& output) {
     auto projectedGraphData = input.bindData->constPtrCast<ProjectedGraphInfoBindData>();
-    output.getValueVectorMutable(0).setValue(0,
-        graph::GraphEntryTypeUtils::toString(projectedGraphData->type));
     switch (projectedGraphData->type) {
     case graph::GraphEntryType::NATIVE: {
-        output.getValueVectorMutable(1).setValue(0,
-            projectedGraphData->info->constCast<NativeProjectedGraphInfo>().nodeInfo);
-        output.getValueVectorMutable(2).setValue(0,
-            projectedGraphData->info->constCast<NativeProjectedGraphInfo>().relInfo);
-    } break;
+        auto morselSize = morsel.getMorselSize();
+        auto nativeProjectedGraphInfo =
+            projectedGraphData->info->constCast<NativeProjectedGraphInfo>();
+        for (auto i = 0u; i < morselSize; i++) {
+            output.getValueVectorMutable(0).setValue(i,
+                nativeProjectedGraphInfo.tableInfo[i].tableType);
+            output.getValueVectorMutable(1).setValue(i,
+                nativeProjectedGraphInfo.tableInfo[i].tableName);
+            output.getValueVectorMutable(2).setValue(i,
+                nativeProjectedGraphInfo.tableInfo[i].predicate);
+        }
+        return morselSize;
+    }
     case graph::GraphEntryType::CYPHER: {
-        output.getValueVectorMutable(1).setValue(0,
+        output.getValueVectorMutable(0).setValue(0,
             projectedGraphData->info->constCast<CypherProjectedGraphInfo>().cypherQuery);
-    } break;
+        return 1;
+    }
     default:
         KU_UNREACHABLE;
     }
-    return 1;
-}
-
-static std::string getNodeOrRelInfo(
-    const std::vector<graph::ParsedNativeGraphTableInfo>& tableInfo) {
-    if (tableInfo.empty()) {
-        return "";
-    }
-    std::string info = "{";
-    for (auto i = 0u; i < tableInfo.size(); i++) {
-        info += tableInfo[i].toString();
-        if (i == tableInfo.size() - 1) {
-            info += "}";
-        } else {
-            info += ",";
-        }
-    }
-    return info;
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
     std::vector<std::string> returnColumnNames;
     std::vector<LogicalType> returnTypes;
-    returnColumnNames.emplace_back("type");
-    returnTypes.emplace_back(LogicalType::STRING());
     auto graphEntry = context->getGraphEntrySet().getEntry(input->getValue(0).toString());
     switch (graphEntry->type) {
     case graph::GraphEntryType::CYPHER: {
@@ -111,9 +106,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
         returnTypes.emplace_back(LogicalType::STRING());
     } break;
     case graph::GraphEntryType::NATIVE: {
-        returnColumnNames.emplace_back("nodes");
+        returnColumnNames.emplace_back("table type");
         returnTypes.emplace_back(LogicalType::STRING());
-        returnColumnNames.emplace_back("rels");
+        returnColumnNames.emplace_back("table name");
+        returnTypes.emplace_back(LogicalType::STRING());
+        returnColumnNames.emplace_back("predicate");
         returnTypes.emplace_back(LogicalType::STRING());
     } break;
     default: {
@@ -132,9 +129,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     } break;
     case graph::GraphEntryType::NATIVE: {
         auto& nativeGraphEntry = graphEntry->cast<graph::ParsedNativeGraphEntry>();
-        projectedGraphInfo =
-            std::make_unique<NativeProjectedGraphInfo>(getNodeOrRelInfo(nativeGraphEntry.nodeInfos),
-                getNodeOrRelInfo(nativeGraphEntry.relInfos));
+        std::vector<ProjectedTableInfo> tableInfo;
+        for (auto& nodeInfo : nativeGraphEntry.nodeInfos) {
+            tableInfo.emplace_back(TableTypeUtils::toString(TableType::NODE), nodeInfo.tableName,
+                nodeInfo.predicate);
+        }
+        for (auto& relInfo : nativeGraphEntry.relInfos) {
+            tableInfo.emplace_back(TableTypeUtils::toString(TableType::REL), relInfo.tableName,
+                relInfo.predicate);
+        }
+        projectedGraphInfo = std::make_unique<NativeProjectedGraphInfo>(std::move(tableInfo));
     } break;
     default:
         KU_UNREACHABLE;
