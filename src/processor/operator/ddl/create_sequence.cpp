@@ -15,29 +15,22 @@ std::string CreateSequencePrintInfo::toString() const {
 }
 
 void CreateSequence::executeInternal(ExecutionContext* context) {
-    auto catalog = context->clientContext->getCatalog();
-    auto transaction = context->clientContext->getTransaction();
-    switch (info.onConflict) {
-    case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
-        if (catalog->containsSequence(transaction, info.sequenceName)) {
+    auto clientContext = context->clientContext;
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
+    auto memoryManager = clientContext->getMemoryManager();
+    if (catalog->containsSequence(transaction, info.sequenceName)) {
+        switch (info.onConflict) {
+        case ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            appendMessage(stringFormat("Sequence {} already exists.", info.sequenceName), memoryManager);
             return;
         }
-    }
-    default:
-        break;
+        default:
+            break;
+        }
     }
     catalog->createSequence(transaction, info);
-}
-
-std::string CreateSequence::getOutputMsg() {
-    switch (info.onConflict) {
-    case common::ConflictAction::ON_CONFLICT_THROW:
-        return stringFormat("Sequence {} has been created.", info.sequenceName);
-    case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
-        return stringFormat("Sequence {} already exists.", info.sequenceName);
-    default:
-        KU_UNREACHABLE;
-    }
+    appendMessage(stringFormat("Sequence {} has been created.", info.sequenceName), memoryManager);
 }
 
 } // namespace processor

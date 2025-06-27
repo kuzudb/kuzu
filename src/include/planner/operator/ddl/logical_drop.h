@@ -18,8 +18,8 @@ class LogicalDrop : public LogicalSimple {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::DROP;
 
 public:
-    LogicalDrop(parser::DropInfo dropInfo, std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalSimple{type_, std::move(outputExpression)}, dropInfo{std::move(dropInfo)} {}
+    explicit LogicalDrop(parser::DropInfo dropInfo)
+        : LogicalSimple{type_}, dropInfo{std::move(dropInfo)} {}
 
     std::string getExpressionsForPrinting() const override { return dropInfo.name; }
 
@@ -30,7 +30,7 @@ public:
     }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalDrop>(dropInfo, outputExpression);
+        return std::make_unique<LogicalDrop>(dropInfo);
     }
 
 private:

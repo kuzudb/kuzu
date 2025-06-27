@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/bound_attach_info.h"
-#include "processor/operator/simple/simple.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
@@ -24,19 +24,18 @@ private:
         : OPPrintInfo{other}, dbName{other.dbName}, dbPath{other.dbPath} {}
 };
 
-class AttachDatabase final : public Simple {
+class AttachDatabase final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ATTACH_DATABASE;
 
 public:
-    AttachDatabase(binder::AttachInfo attachInfo, const DataPos& outputPos, uint32_t id,
+    AttachDatabase(binder::AttachInfo attachInfo, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)}, attachInfo{std::move(attachInfo)} {}
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, attachInfo{std::move(attachInfo)} {}
 
     void executeInternal(ExecutionContext* context) override;
-    std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<AttachDatabase>(attachInfo, outputPos, id, printInfo->copy());
+        return std::make_unique<AttachDatabase>(attachInfo, messageTable, id, printInfo->copy());
     }
 
 private:
