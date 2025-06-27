@@ -155,7 +155,7 @@ void HashIndex<T>::splitSlots(PageAllocator& pageAllocator, const Transaction* t
         Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
         do {
             for (entry_pos_t originalEntryPos = 0; originalEntryPos < getSlotCapacity<T>();
-                 originalEntryPos++) {
+                originalEntryPos++) {
                 if (!originalSlot->header.isEntryValid(originalEntryPos)) {
                     continue; // Skip invalid entries.
                 }
@@ -302,10 +302,9 @@ void HashIndex<T>::mergeBulkInserts(PageAllocator& pageAllocator, const Transact
     // may not be consecutive, but we reduce the memory overhead for storing the information about
     // the sorted data and still just process each page once.
     for (uint64_t localSlotId = 0; localSlotId < insertLocalStorage.numPrimarySlots();
-         localSlotId += NUM_SLOTS_PER_PAGE) {
+        localSlotId += NUM_SLOTS_PER_PAGE) {
         for (size_t i = 0;
-             i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots();
-             i++) {
+            i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots(); i++) {
             auto localSlot =
                 typename InMemHashIndex<T>::SlotIterator(localSlotId + i, &insertLocalStorage);
             partitionedEntries[i].clear();
@@ -458,7 +457,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStora
             *shadowFile, true /*bypassShadowing*/);
         // Each index has a primary slot array and an overflow slot array
         for (size_t i = 0; i < NUM_HASH_INDEXES * 2; i++) {
-            hashIndexDiskArrays->addDiskArray(pageAllocator);
+            hashIndexDiskArrays->addDiskArray();
         }
     } else {
         size_t headerIdx = 0;
@@ -467,7 +466,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStora
                 hashIndexStorageInfo.firstHeaderPage + headerPageIdx, [&](auto* frame) {
                     const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                     for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                         i++) {
+                        i++) {
                         hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
                         headerIdx++;
                     }
@@ -605,6 +604,7 @@ void PrimaryKeyIndex::writeHeaders(PageAllocator& pageAllocator) const {
         const auto allocatedPages = pageAllocator.allocatePageRange(
             NUM_HEADER_PAGES + 1 /*first DiskArrayCollection header page*/);
         hashIndexStorageInfo.firstHeaderPage = allocatedPages.startPageIdx;
+        hashIndexDiskArrays->populateNextHeaderPages(pageAllocator);
     }
     for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
         ShadowUtils::updatePage(*pageAllocator.getDataFH(),
@@ -613,7 +613,7 @@ void PrimaryKeyIndex::writeHeaders(PageAllocator& pageAllocator) const {
             [&](auto* frame) {
                 const auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
+                    i++) {
                     hashIndexHeadersForWriteTrx[headerIdx++].write(onDiskFrame[i]);
                 }
             });

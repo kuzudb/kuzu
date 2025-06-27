@@ -59,19 +59,25 @@ void DiskArrayCollection::checkpoint(page_idx_t firstHeaderPage, PageAllocator& 
     headerPagesOnDisk = headersForWriteTrx.size();
 }
 
-size_t DiskArrayCollection::addDiskArray(PageAllocator& pageAllocator) {
+void DiskArrayCollection::populateNextHeaderPages(PageAllocator& pageAllocator) {
+    KU_ASSERT(headersForReadTrx.size() == headersForWriteTrx.size());
+    for (size_t i = 0; i < headersForReadTrx.size() - 1; ++i) {
+        auto nextHeaderPage = pageAllocator.allocatePage();
+        headersForWriteTrx[i]->nextHeaderPage = nextHeaderPage;
+        // We can't really roll back the structural changes in the PKIndex (the disk arrays are
+        // created in the destructor and there are a fixed number which does not change after that
+        // point), so we apply those to the version that would otherwise be identical to the one on
+        // disk
+        headersForReadTrx[i]->nextHeaderPage = nextHeaderPage;
+    }
+}
+
+size_t DiskArrayCollection::addDiskArray() {
     auto oldSize = numHeaders++;
     // This may not be the last header page. If we rollback there may be header pages which are
     // empty
     auto pageIdx = numHeaders % HeaderPage::NUM_HEADERS_PER_PAGE;
     if (pageIdx >= headersForWriteTrx.size()) {
-        auto nextHeaderPage = pageAllocator.allocatePage();
-        headersForWriteTrx.back()->nextHeaderPage = nextHeaderPage;
-        // We can't really roll back the structural changes in the PKIndex (the disk arrays are
-        // created in the destructor and there are a fixed number which does not change after that
-        // point), so we apply those to the version that would otherwise be identical to the one on
-        // disk
-        headersForReadTrx.back()->nextHeaderPage = nextHeaderPage;
 
         headersForWriteTrx.emplace_back(std::make_unique<HeaderPage>());
         // Also add a new read header page as we need to pass read headers to the disk arrays
@@ -90,13 +96,13 @@ size_t DiskArrayCollection::addDiskArray(PageAllocator& pageAllocator) {
 
 void DiskArrayCollection::reclaimStorage(PageAllocator& pageAllocator,
     common::page_idx_t firstHeaderPage) const {
-    page_idx_t headerPage = firstHeaderPage;
+    auto headerPage = firstHeaderPage;
     for (page_idx_t indexInMemory = 0; indexInMemory < headersForReadTrx.size(); indexInMemory++) {
-        if (headerPage != INVALID_PAGE_IDX) {
-            pageAllocator.freePage(headerPage);
-
-            headerPage = headersForReadTrx[indexInMemory]->nextHeaderPage;
+        if (headerPage == INVALID_PAGE_IDX) {
+            break;
         }
+        pageAllocator.freePage(headerPage);
+        headerPage = headersForReadTrx[indexInMemory]->nextHeaderPage;
     }
 }
 
