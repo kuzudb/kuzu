@@ -5,6 +5,9 @@
 #include "storage/page_range.h"
 
 namespace kuzu {
+namespace testing {
+struct FSMLeakChecker;
+}
 namespace main {
 class AttachedKuzuDatabase;
 } // namespace main
@@ -24,6 +27,7 @@ struct DatabaseHeader {
 
 class Checkpointer {
     friend class main::AttachedKuzuDatabase;
+    friend struct testing::FSMLeakChecker;
 
 public:
     explicit Checkpointer(main::ClientContext& clientContext);

@@ -25,7 +25,7 @@ public:
     // Return nullptr if no local table exists.
     LocalTable* getLocalTable(common::table_id_t tableID) const;
 
-    OptimisticAllocator* addOptimisticAllocator();
+    PageAllocator* addOptimisticAllocator();
 
     void commit();
     void rollback();

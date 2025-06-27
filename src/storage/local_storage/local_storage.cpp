@@ -44,10 +44,14 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID) const {
     return nullptr;
 }
 
-OptimisticAllocator* LocalStorage::addOptimisticAllocator() {
+PageAllocator* LocalStorage::addOptimisticAllocator() {
+    auto* dataFH = clientContext.getStorageManager()->getDataFH();
+    if (dataFH->isInMemoryMode()) {
+        return dataFH->getPageManager();
+    }
     common::UniqLock lck{mtx};
-    optimisticAllocators.emplace_back(std::make_unique<OptimisticAllocator>(
-        *clientContext.getStorageManager()->getDataFH()->getPageManager()));
+    optimisticAllocators.emplace_back(
+        std::make_unique<OptimisticAllocator>(*dataFH->getPageManager()));
     return optimisticAllocators.back().get();
 }
 
