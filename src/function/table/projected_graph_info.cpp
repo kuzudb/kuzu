@@ -76,12 +76,10 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
         auto nativeProjectedGraphInfo =
             projectedGraphData->info->constCast<NativeProjectedGraphInfo>();
         for (auto i = 0u; i < morselSize; i++) {
-            output.getValueVectorMutable(0).setValue(i,
-                nativeProjectedGraphInfo.tableInfo[i].tableType);
-            output.getValueVectorMutable(1).setValue(i,
-                nativeProjectedGraphInfo.tableInfo[i].tableName);
-            output.getValueVectorMutable(2).setValue(i,
-                nativeProjectedGraphInfo.tableInfo[i].predicate);
+            auto& tableInfo = nativeProjectedGraphInfo.tableInfo[i + morsel.startOffset];
+            output.getValueVectorMutable(0).setValue(i, tableInfo.tableType);
+            output.getValueVectorMutable(1).setValue(i, tableInfo.tableName);
+            output.getValueVectorMutable(2).setValue(i, tableInfo.predicate);
         }
         return morselSize;
     }
