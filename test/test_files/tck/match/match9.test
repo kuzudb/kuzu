@@ -144,7 +144,6 @@
 
 # Variable length relationship in OPTIONAL MATCH
 -CASE Scenario8
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
@@ -159,7 +158,7 @@
              AND a <> b
            RETURN b;
 ---- 1
-{...}
+{_ID: 1:0, _LABEL: B, ID: 0}
 
 # Optionally matching named paths with variable length patterns
 -CASE Scenario9

@@ -195,7 +195,6 @@
 
 # Return two subgraphs with bound undirected relationship and optional relationship
 -CASE Scenario11
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -211,8 +210,8 @@
            WHERE r <> r2
            RETURN a, b, c;
 ---- 2
-{...}|{...}|{...}
-{...}|{...}|{...}
+{_ID: 0:0, _LABEL: A, ID: 0, num: 1}|{_ID: 1:0, _LABEL: B, ID: 0, num: 2}|{_ID: 2:0, _LABEL: C, ID: 0, num: 3}
+{_ID: 1:0, _LABEL: B, ID: 0, num: 2}|{_ID: 0:0, _LABEL: A, ID: 0, num: 1}|
 
 # Variable length optional relationships
 -CASE Scenario12

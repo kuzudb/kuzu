@@ -140,7 +140,6 @@
 
 # Returning the minimum length of paths
 -CASE Scenario13
--SKIP
 -STATEMENT CREATE NODE TABLE T(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE R(FROM T TO T);
@@ -151,9 +150,10 @@
 -STATEMENT MATCH p = (a:T {name: 'a'})-[:R*]->(other:T)
            WHERE other <> a
            WITH a, other, min(length(p)) AS len
-           RETURN a.name AS name, collect(other.name) AS others, len;
----- 1
-a|[c,b]|1
+           RETURN a.name AS name, other.name, len;
+---- 2
+a|b|1
+a|c|1
 
 # Aggregates in aggregates
 -CASE Scenario14
