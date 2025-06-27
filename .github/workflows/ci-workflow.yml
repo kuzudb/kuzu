@@ -410,6 +410,13 @@ jobs:
           source /home/runner/emsdk/emsdk_env.sh
           make wasmtest
 
+      - name: Kernel build & test in memory
+        run: |
+          source /home/runner/emsdk/emsdk_env.sh
+          make wasmtest
+        env:
+          IN_MEM_MODE: true
+
       - name: Kernel build & test (single-threaded)
         env:
           SINGLE_THREADED: true
@@ -497,7 +504,7 @@ jobs:
       - name: Test with ASAN
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          make test ASAN=1
+          make test ASAN=1 BM_MALLOC=ON
         env:
           ASAN_OPTIONS: "detect_leaks=1"
 

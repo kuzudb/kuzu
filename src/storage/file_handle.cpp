@@ -159,5 +159,18 @@ void FileHandle::flushPageIfDirtyWithoutLock(page_idx_t pageIdx) {
     }
 }
 
+void FileHandle::writePagesToFile(const uint8_t* buffer, uint64_t size,
+    common::page_idx_t startPageIdx) {
+    if (isInMemoryMode()) {
+        auto pageSize = getPageSize();
+        for (uint64_t i = 0; i < size; i += pageSize) {
+            const auto frame = getFrame(startPageIdx + i / pageSize);
+            memcpy(frame, buffer + i, std::min(pageSize, size - i));
+        }
+    } else {
+        fileInfo->writeFile(buffer, size, startPageIdx * getPageSize());
+    }
+}
+
 } // namespace storage
 } // namespace kuzu
