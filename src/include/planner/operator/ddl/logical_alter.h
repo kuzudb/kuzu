@@ -24,8 +24,8 @@ class LogicalAlter final : public LogicalSimple {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::ALTER;
 
 public:
-    LogicalAlter(binder::BoundAlterInfo info, std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalSimple{type_, std::move(outputExpression)}, info{std::move(info)} {}
+    explicit LogicalAlter(binder::BoundAlterInfo info)
+        : LogicalSimple{type_}, info{std::move(info)} {}
 
     std::string getExpressionsForPrinting() const override { return info.tableName; }
 
@@ -36,7 +36,7 @@ public:
     }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalAlter>(info.copy(), outputExpression);
+        return std::make_unique<LogicalAlter>(info.copy());
     }
 
 private:

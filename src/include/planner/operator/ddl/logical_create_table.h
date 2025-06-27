@@ -26,9 +26,8 @@ class LogicalCreateTable final : public LogicalSimple {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CREATE_TABLE;
 
 public:
-    LogicalCreateTable(binder::BoundCreateTableInfo info,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalSimple{type_, std::move(outputExpression)}, info{std::move(info)} {}
+    explicit LogicalCreateTable(binder::BoundCreateTableInfo info)
+        : LogicalSimple{type_}, info{std::move(info)} {}
 
     std::string getExpressionsForPrinting() const override { return info.tableName; }
 
@@ -39,7 +38,7 @@ public:
     }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalCreateTable>(info.copy(), outputExpression);
+        return std::make_unique<LogicalCreateTable>(info.copy());
     }
 
 private:

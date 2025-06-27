@@ -4,16 +4,16 @@
 -CASE AlterRelGroup
 -STATEMENT ALTER TABLE KNOWS ADD FROM person to organisation
 ---- 1
-Table KNOWS altered.
+person->organisation added to table knows.
 -STATEMENT ALTER TABLE KNOWS ADD FROM person to person1
 ---- error
 Binder exception: Table person1 does not exist.
 -STATEMENT ALTER TABLE KNOWS ADD FROM person to organisation
 ---- error
-Binder exception: Node table pair person->organisation already exists in knows table.
+Binder exception: person->organisation already exists in knows table.
 -STATEMENT ALTER TABLE KNOWS ADD IF NOT EXISTS FROM person to organisation
 ---- 1
-Table KNOWS altered.
+person->organisation already exists in knows table.
 -STATEMENT MATCH (p:person {ID: 0}), (o:organisation {ID: 4}) CREATE (p)-[:knows]->(o)
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(o:organisation) RETURN p.ID, o.ID
@@ -38,7 +38,7 @@ Table KNOWS altered.
 7|9
 -STATEMENT ALTER TABLE KNOWS ADD FROM organisation to organisation
 ---- 1
-Table KNOWS altered.
+organisation->organisation added to table knows.
 -STATEMENT MATCH (p:organisation {ID: 6}), (o:organisation {ID: 4}) CREATE (p)-[:knows]->(o)
 ---- ok
 -STATEMENT MATCH (o1:organisation)-[e:knows]->(o2:organisation) RETURN o1.ID, o2.ID
@@ -75,7 +75,7 @@ Binder exception: Cannot delete node table organisation because it is referenced
 Binder exception: Table X does not exist.
 -STATEMENT ALTER TABLE KNOWS DROP FROM person TO organisation;
 ---- 1
-Table KNOWS altered.
+person->organisation has been dropped from table knows.
 -STATEMENT MATCH (p:person)-[e:knows]->(o:organisation) RETURN p.ID, o.ID
 ---- 0
 
@@ -84,7 +84,7 @@ Table KNOWS altered.
 14
 -STATEMENT ALTER TABLE KNOWS DROP FROM organisation TO organisation;
 ---- 1
-Table KNOWS altered.
+organisation->organisation has been dropped from table knows.
 -RELOADDB
 -STATEMENT MATCH (o1:organisation)-[e:knows]->(o2:organisation) RETURN o1.ID, o2.ID
 ---- 0
@@ -94,13 +94,13 @@ Table KNOWS altered.
 14
 -STATEMENT ALTER TABLE KNOWS DROP FROM person TO person;
 ---- 1
-Table KNOWS altered.
+person->person has been dropped from table knows.
 -STATEMENT ALTER TABLE KNOWS DROP FROM person TO person;
 ---- error
-Binder exception: Node table pair person->person does not exist in knows table.
+Binder exception: person->person does not exist in knows table.
 -STATEMENT ALTER TABLE KNOWS DROP IF EXISTS FROM person TO person;
 ---- 1
-Table KNOWS altered.
+person->person does not exist in knows table.
 -STATEMENT MATCH (p)-[e:knows]->(o) RETURN COUNT(*)
 ---- 1
 0

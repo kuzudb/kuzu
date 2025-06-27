@@ -1,6 +1,6 @@
 #pragma once
 
-#include "simple.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
@@ -21,19 +21,18 @@ private:
         : OPPrintInfo{other}, name{other.name} {}
 };
 
-class DetachDatabase final : public Simple {
+class DetachDatabase final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DETACH_DATABASE;
 
 public:
-    DetachDatabase(std::string dbName, const DataPos& outputPos, uint32_t id,
+    DetachDatabase(std::string dbName, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)}, dbName{std::move(dbName)} {}
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, dbName{std::move(dbName)} {}
 
-    void executeInternal(ExecutionContext* context) final;
-    std::string getOutputMsg() final;
+    void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<DetachDatabase>(dbName, outputPos, id, printInfo->copy());
+        return std::make_unique<DetachDatabase>(dbName, messageTable, id, printInfo->copy());
     }
 
 private:

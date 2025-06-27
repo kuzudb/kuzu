@@ -21,26 +21,26 @@ static void validateQueryResult(main::QueryResult* queryResult) {
 }
 
 void ImportDB::executeInternal(ExecutionContext* context) {
+    auto clientContext = context->clientContext;
     if (query.empty()) { // Export empty database.
+        appendMessage("Imported database successfully.", clientContext->getMemoryManager());
         return;
     }
     // TODO(Guodong): this is special for "Import database". Should refactor after we support
     // multiple DDL and COPY statements in a single transaction.
     // Currently, we split multiple query statements into single query and execute them one by one,
     // each with an auto transaction.
-    if (context->clientContext->getTransactionContext()->hasActiveTransaction()) {
-        context->clientContext->getTransactionContext()->commit();
+    auto transactionContext = clientContext->getTransactionContext();
+    if (transactionContext->hasActiveTransaction()) {
+        transactionContext->commit();
     }
-    auto res = context->clientContext->queryNoLock(query);
+    auto res = clientContext->queryNoLock(query);
     validateQueryResult(res.get());
     if (!indexQuery.empty()) {
-        res = context->clientContext->queryNoLock(indexQuery);
+        res = clientContext->queryNoLock(indexQuery);
         validateQueryResult(res.get());
     }
-}
-
-std::string ImportDB::getOutputMsg() {
-    return "Imported database successfully.";
+    appendMessage("Imported database successfully.", clientContext->getMemoryManager());
 }
 
 } // namespace processor

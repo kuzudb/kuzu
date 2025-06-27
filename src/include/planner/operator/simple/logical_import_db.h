@@ -6,10 +6,11 @@ namespace kuzu {
 namespace planner {
 
 class LogicalImportDatabase : public LogicalSimple {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::IMPORT_DATABASE;
+
 public:
-    LogicalImportDatabase(std::string query, std::string indexQuery,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalSimple{LogicalOperatorType::IMPORT_DATABASE, std::move(outputExpression)},
+    LogicalImportDatabase(std::string query, std::string indexQuery)
+        : LogicalSimple{type_},
           query{std::move(query)}, indexQuery{std::move(indexQuery)} {}
 
     std::string getQuery() const { return query; }
@@ -19,7 +20,7 @@ public:
     std::string getExpressionsForPrinting() const override { return std::string{}; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalImportDatabase>(query, indexQuery, outputExpression);
+        return make_unique<LogicalImportDatabase>(query, indexQuery);
     }
 
 private:

@@ -191,10 +191,7 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     // write the index.cypher file
     writeStringStreamToFile(clientContext, getIndexCypher(clientContext, boundFileInfo),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::INDEX_FILE_NAME);
-}
-
-std::string ExportDB::getOutputMsg() {
-    return "Exported database successfully.";
+    appendMessage("Exported database successfully.", clientContext->getMemoryManager());
 }
 
 } // namespace processor

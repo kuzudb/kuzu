@@ -19,12 +19,6 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static DataPos getOutputPos(const LogicalSimple& simple) {
-    auto outSchema = simple.getSchema();
-    auto outputExpression = simple.getOutputExpression();
-    return DataPos(outSchema->getExpressionPos(*outputExpression));
-}
-
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(
     const LogicalOperator* logicalOperator) {
     auto& createTable = logicalOperator->constCast<LogicalCreateTable>();
@@ -42,8 +36,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateType(
     auto typeName = createType.getExpressionsForPrinting();
     auto printInfo =
         std::make_unique<CreateTypePrintInfo>(typeName, createType.getType().toString());
+    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     return std::make_unique<CreateType>(typeName, createType.getType().copy(),
-        getOutputPos(createType), getOperatorID(), std::move(printInfo));
+        std::move(messageTable), getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(
@@ -51,7 +46,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(
     auto& createSequence = logicalOperator->constCast<LogicalCreateSequence>();
     auto printInfo =
         std::make_unique<CreateSequencePrintInfo>(createSequence.getInfo().sequenceName);
-    return std::make_unique<CreateSequence>(createSequence.getInfo(), getOutputPos(createSequence),
+    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    return std::make_unique<CreateSequence>(createSequence.getInfo(), std::move(messageTable),
         getOperatorID(), std::move(printInfo));
 }
 
@@ -59,7 +55,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDrop(const LogicalOperator* log
     auto& drop = logicalOperator->constCast<LogicalDrop>();
     auto& dropInfo = drop.getDropInfo();
     auto printInfo = std::make_unique<DropPrintInfo>(drop.getDropInfo().name);
-    return std::make_unique<Drop>(dropInfo, getOutputPos(drop), getOperatorID(),
+    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    return std::make_unique<Drop>(dropInfo, std::move(messageTable), getOperatorID(),
         std::move(printInfo));
 }
 
@@ -72,8 +69,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(const LogicalOperator* lo
         defaultValueEvaluator = exprMapper.getEvaluator(addPropInfo.boundDefault);
     }
     auto printInfo = std::make_unique<LogicalAlterPrintInfo>(alter.getInfo()->copy());
+    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     return std::make_unique<Alter>(alter.getInfo()->copy(), std::move(defaultValueEvaluator),
-        getOutputPos(alter), getOperatorID(), std::move(printInfo));
+        std::move(messageTable), getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

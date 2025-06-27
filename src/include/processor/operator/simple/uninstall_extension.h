@@ -1,7 +1,7 @@
 #pragma once
 
 #include "extension_print_info.h"
-#include "processor/operator/simple/simple.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
@@ -17,19 +17,18 @@ struct UninstallExtensionPrintInfo final : public ExtensionPrintInfo {
     }
 };
 
-class UninstallExtension final : public Simple {
+class UninstallExtension final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::UNINSTALL_EXTENSION;
 
 public:
-    UninstallExtension(std::string path, const DataPos& outputPos, uint32_t id,
+    UninstallExtension(std::string path, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)}, path{std::move(path)} {}
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, path{std::move(path)} {}
 
     void executeInternal(ExecutionContext* context) override;
-    std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<UninstallExtension>(path, outputPos, id, printInfo->copy());
+        return std::make_unique<UninstallExtension>(path, messageTable, id, printInfo->copy());
     }
 
 private:

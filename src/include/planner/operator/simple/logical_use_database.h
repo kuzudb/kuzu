@@ -1,19 +1,31 @@
 #pragma once
 
-#include "logical_database.h"
+#include "logical_simple.h"
 
 namespace kuzu {
 namespace planner {
 
-class LogicalUseDatabase final : public LogicalDatabase {
+class LogicalUseDatabase final : public LogicalSimple {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::USE_DATABASE;
+
 public:
-    explicit LogicalUseDatabase(std::string dbName,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalDatabase{LogicalOperatorType::USE_DATABASE, outputExpression, std::move(dbName)} {}
+    explicit LogicalUseDatabase(std::string dbName)
+        : LogicalSimple{type_}, dbName{std::move(dbName)} {}
+
+    std::string getDBName() const {
+        return dbName;
+    }
+
+    std::string getExpressionsForPrinting() const override {
+        return dbName;
+    }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalUseDatabase>(dbName, outputExpression);
+        return std::make_unique<LogicalUseDatabase>(dbName);
     }
+
+private:
+    std::string dbName;
 };
 
 } // namespace planner
