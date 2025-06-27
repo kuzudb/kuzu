@@ -223,30 +223,13 @@ static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType&
 }
 
 static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& dstType) {
-    uint64_t numFieldsDst = UnionType::getNumFields(dstType);
     // srcType is either non-nested or a union
     if (srcType.getLogicalTypeID() == LogicalTypeID::UNION) {
-        // to be supported with subsequent PR
-
-        /*
-        std::set<LogicalTypeID> dstFieldTypes;
-        for (union_field_idx_t i = 0; i < numFieldsDst; ++i) {
-            dstFieldTypes.insert(UnionType::getFieldType(dstType, i).getLogicalTypeID());
-        }
-        // allow implicit casts
-        uint64_t numFieldsSrc = UnionType::getNumFields(srcType);
-        for (union_field_idx_t i = 0; i < numFieldsSrc; ++i) {
-            const LogicalType& fieldType = UnionType::getFieldType(srcType, i);
-            if (!dstFieldTypes.contains(fieldType.getLogicalTypeID())) {
-                return false;
-            }
-        }
-        return true;
-        */
-
+        // todo
         return false;
     } else {
-        for (union_field_idx_t i = 0; i < numFieldsDst; ++i) {
+        uint64_t numFields = UnionType::getNumFields(dstType);
+        for (union_field_idx_t i = 0; i < numFields; ++i) {
             const LogicalType& fieldType = UnionType::getFieldType(dstType, i);
             if (CastFunction::hasImplicitCast(srcType, fieldType)) {
                 return true;
@@ -885,15 +868,15 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
         return bindCastToTimestampFunction<EXECUTOR, timestamp_t>(functionName, sourceType,
             targetType);
     }
-    case LogicalTypeID::LIST:
-    case LogicalTypeID::ARRAY:
-    case LogicalTypeID::MAP:
     case LogicalTypeID::UNION: {
         if (!LogicalTypeUtils::isNested(sourceType.getLogicalTypeID())) {
             return bindCastToUnion(functionName, sourceType, targetType);
         }
         [[fallthrough]];
     }
+    case LogicalTypeID::LIST:
+    case LogicalTypeID::ARRAY:
+    case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
         return bindCastBetweenNested(functionName, sourceType, targetType);
     }
