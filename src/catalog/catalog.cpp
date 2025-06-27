@@ -329,6 +329,14 @@ void Catalog::dropIndex(Transaction* transaction, table_id_t tableID,
     indexes->dropEntry(transaction, uniqueName, entry->getOID());
 }
 
+void Catalog::dropIndex(Transaction* transaction, oid_t indexOID) {
+    const auto entry = indexes->getEntryOfOID(transaction, indexOID);
+    if (entry == nullptr) {
+        throw CatalogException{stringFormat("Index with OID {} does not exist.", indexOID)};
+    }
+    indexes->dropEntry(transaction, entry->getName(), indexOID);
+}
+
 bool Catalog::containsFunction(const Transaction* transaction, const std::string& name,
     bool useInternal) const {
     auto hasEntry = functions->containsEntry(transaction, name);

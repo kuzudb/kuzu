@@ -31,6 +31,8 @@ private:
     void replayNodeTableInsertRecord(const WALRecord& walRecord) const;
     void replayRelTableInsertRecord(const WALRecord& walRecord) const;
 
+    void replayLoadExtensionRecord(const WALRecord& walRecord) const;
+
 private:
     std::string walFilePath;
     std::unique_ptr<uint8_t[]> pageBuffer;
