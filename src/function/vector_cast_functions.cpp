@@ -116,7 +116,7 @@ static void nestedTypesCastExecFunction(
     const auto& inputVector = params[0];
     const auto* inputVectorSelVector = paramSelVectors[0];
 
-    // check if all selected list entry have the required fixed list size
+    // check if all selected list entries have the required fixed list size
     if (CastArrayHelper::containsListToArray(inputVector->dataType, result.dataType)) {
         for (auto i = 0u; i < inputVectorSelVector->getSelSize(); i++) {
             auto pos = (*inputVectorSelVector)[i];
@@ -146,7 +146,7 @@ static void toUnionCastExecFunction(const std::vector<std::shared_ptr<common::Va
 
     uint32_t minCastCost = UNDEFINED_CAST_COST;
     union_field_idx_t minFieldIdx = 0;
-    for (union_field_idx_t i = 0; i < UnionType::getNumFields(targetType); ++i) {
+    for (uint64_t i = 0; i < UnionType::getNumFields(targetType); ++i) {
         const LogicalType& fieldType = UnionType::getFieldType(targetType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
             uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(),
@@ -225,7 +225,7 @@ static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& 
         // todo
         return false;
     } else {
-        for (union_field_idx_t i = 0; i < UnionType::getNumFields(dstType); ++i) {
+        for (uint64_t i = 0; i < UnionType::getNumFields(dstType); ++i) {
             const LogicalType& fieldType = UnionType::getFieldType(dstType, i);
             if (CastFunction::hasImplicitCast(srcType, fieldType)) {
                 return true;
