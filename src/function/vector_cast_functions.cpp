@@ -225,7 +225,9 @@ static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& 
         for (uint64_t i = 0; i < UnionType::getNumFields(srcType); ++i) {
             std::string fieldName = UnionType::getFieldName(srcType, i);
             const LogicalType& fieldTypeSrc = UnionType::getFieldType(srcType, i);
-            if (!StructType::hasField(dstType, fieldName) || !CastFunction::hasImplicitCast(fieldTypeSrc, StructType::getFieldType(dstType, fieldName))) {
+            if (!StructType::hasField(dstType, fieldName) ||
+                !CastFunction::hasImplicitCast(fieldTypeSrc,
+                    StructType::getFieldType(dstType, fieldName))) {
                 return false;
             }
         }
