@@ -456,6 +456,10 @@ TEST_F(CopyTest, GracefulBMExceptionHandlingManyThreads) {
         ASSERT_FALSE(result->isSuccess());
         conn->query("drop table Comment");
     }
+
+    if (!inMemMode) {
+        FSMLeakChecker::checkForLeakedPages(conn.get());
+    }
 }
 
 TEST_F(CopyTest, OutOfMemoryRecovery) {
@@ -496,7 +500,6 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
         ASSERT_TRUE(result->hasNext());
         ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2420766);
     }
-    FSMLeakChecker::checkForLeakedPages(conn.get());
 }
 
 TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
@@ -538,7 +541,6 @@ TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
         ASSERT_TRUE(result->hasNext());
         ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2420766);
     }
-    FSMLeakChecker::checkForLeakedPages(conn.get());
 }
 } // namespace testing
 } // namespace kuzu

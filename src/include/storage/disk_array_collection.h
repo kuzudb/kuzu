@@ -60,7 +60,9 @@ public:
             bypassShadowing);
     }
 
-    size_t addDiskArray(PageAllocator& pageAllocator);
+    size_t addDiskArray();
+
+    void populateNextHeaderPages(PageAllocator& pageAllocator);
 
 private:
     FileHandle& fileHandle;
