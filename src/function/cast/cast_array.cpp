@@ -13,25 +13,18 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
         return true;
     }
     case LogicalTypeID::LIST: {
-        if (targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::LIST) {
-            return true;
-        }
-    } break;
+        return targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::LIST;
+    }
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
-        if (sourceTypeID == targetTypeID || targetTypeID == LogicalTypeID::UNION) {
-            return true;
-        }
-    } break;
+        return targetTypeID == LogicalTypeID::STRUCT || targetTypeID == LogicalTypeID::UNION;
+    }
     case LogicalTypeID::ARRAY: {
-        if (targetTypeID == LogicalTypeID::LIST || targetTypeID == LogicalTypeID::ARRAY) {
-            return true;
-        }
-    } break;
+        return targetTypeID == LogicalTypeID::LIST || targetTypeID == LogicalTypeID::ARRAY;
+    }
     default:
         return false;
     }
-    return false;
 }
 
 bool CastArrayHelper::containsListToArray(const LogicalType& srcType, const LogicalType& dstType) {
