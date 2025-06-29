@@ -68,11 +68,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     auto printInfo = std::make_unique<ExportDBPrintInfo>(filePath, boundFileInfo->options);
     auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     auto exportDB = std::make_unique<ExportDB>(boundFileInfo->copy(),
-        std::move(messageTable), getOperatorID(), std::move(printInfo));
+        messageTable, getOperatorID(), std::move(printInfo));
+    auto sink = std::make_unique<DummySimpleSink>(messageTable, getOperatorID());
     for (auto child : exportDatabase->getChildren()) {
-        exportDB->addChild(mapOperator(child.get()));
+        sink->addChild(mapOperator(child.get()));
     }
-    return exportDB;
+    sink->addChild(std::move(exportDB));
+    return sink;
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(

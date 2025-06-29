@@ -17,10 +17,10 @@ Binder exception: test already exists in catalog.
 1
 -STATEMENT DROP TABLE test;
 ---- 1
-Table test has been dropped.
+Table test dropped.
 -STATEMENT DROP SEQUENCE test;
 ---- 1
-Sequence test has been dropped.
+Sequence test dropped.
 
 -CASE CreateOptions
 -STATEMENT CREATE SEQUENCE a;
