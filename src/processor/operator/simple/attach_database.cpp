@@ -22,20 +22,28 @@ std::string AttachDatabasePrintInfo::toString() const {
     return result;
 }
 
+static std::string attachMessage() {
+    return "Attached database successfully.";
+}
+
 void AttachDatabase::executeInternal(ExecutionContext* context) {
     auto client = context->clientContext;
+    auto databaseManager = client->getDatabaseManager();
+    auto memoryManager = client->getMemoryManager();
     if (common::StringUtils::getUpper(attachInfo.dbType) == common::ATTACHED_KUZU_DB_TYPE) {
-        auto attachedKuzuDB = std::make_unique<main::AttachedKuzuDatabase>(attachInfo.dbPath,
-            attachInfo.dbAlias, common::ATTACHED_KUZU_DB_TYPE, context->clientContext);
-        client->setDefaultDatabase(attachedKuzuDB.get());
-        client->getDatabaseManager()->registerAttachedDatabase(std::move(attachedKuzuDB));
+        auto db = std::make_unique<main::AttachedKuzuDatabase>(attachInfo.dbPath,
+            attachInfo.dbAlias, common::ATTACHED_KUZU_DB_TYPE, client);
+        client->setDefaultDatabase(db.get());
+        databaseManager->registerAttachedDatabase(std::move(db));
+        appendMessage(attachMessage(), memoryManager);
         return;
     }
     for (auto& storageExtension : client->getDatabase()->getStorageExtensions()) {
         if (storageExtension->canHandleDB(attachInfo.dbType)) {
             auto db = storageExtension->attach(attachInfo.dbAlias, attachInfo.dbPath, client,
                 attachInfo.options);
-            client->getDatabaseManager()->registerAttachedDatabase(std::move(db));
+            databaseManager->registerAttachedDatabase(std::move(db));
+            appendMessage(attachMessage(), memoryManager);
             return;
         }
     }
@@ -49,10 +57,6 @@ void AttachDatabase::executeInternal(ExecutionContext* context) {
                   "extension postgres;";
     }
     throw common::RuntimeException{errMsg};
-}
-
-std::string AttachDatabase::getOutputMsg() {
-    return "Attached database successfully.";
 }
 
 } // namespace processor

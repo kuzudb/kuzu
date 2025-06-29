@@ -11,15 +11,10 @@ std::string LogicalCreateMacroPrintInfo::toString() const {
 
 void LogicalCreateMacro::computeFlatSchema() {
     createEmptySchema();
-    schema->createGroup();
-    schema->insertToGroupAndScope(outputExpression, 0);
 }
 
 void LogicalCreateMacro::computeFactorizedSchema() {
     createEmptySchema();
-    auto groupPos = schema->createGroup();
-    schema->insertToGroupAndScope(outputExpression, groupPos);
-    schema->setGroupAsSingleState(groupPos);
 }
 
 } // namespace planner

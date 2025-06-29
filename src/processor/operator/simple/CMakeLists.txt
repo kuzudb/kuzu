@@ -2,7 +2,6 @@ add_library(kuzu_processor_operator_simple
         OBJECT
         attach_database.cpp
         detach_database.cpp
-        simple.cpp
         install_extension.cpp
         load_extension.cpp
         import_db.cpp

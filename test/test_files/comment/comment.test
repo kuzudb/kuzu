@@ -5,10 +5,10 @@
 -CASE CommentOnTable
 -STATEMENT COMMENT ON TABLE person IS 'A test comment'
 ---- 1
-Table person comment updated.
+Comment added to table person.
 -STATEMENT COMMENT ON TABLE knows IS 'Another test comment'
 ---- 1
-Table knows comment updated.
+Comment added to table knows.
 -STATEMENT CALL show_tables() RETURN *
 ---- 8
 0|person|NODE|local(kuzu)|A test comment

@@ -6,25 +6,23 @@
 namespace kuzu {
 namespace planner {
 
-using namespace kuzu::extension;
-
 class LogicalExtension final : public LogicalSimple {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::EXTENSION;
+
 public:
-    LogicalExtension(std::unique_ptr<ExtensionAuxInfo> auxInfo,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalSimple{LogicalOperatorType::EXTENSION, std::move(outputExpression)},
-          auxInfo{std::move(auxInfo)} {}
+    explicit LogicalExtension(std::unique_ptr<extension::ExtensionAuxInfo> auxInfo)
+        : LogicalSimple{type_}, auxInfo{std::move(auxInfo)} {}
 
     std::string getExpressionsForPrinting() const override { return path; }
 
-    const ExtensionAuxInfo& getAuxInfo() const { return *auxInfo; }
+    const extension::ExtensionAuxInfo& getAuxInfo() const { return *auxInfo; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalExtension>(auxInfo->copy(), outputExpression);
+        return std::make_unique<LogicalExtension>(auxInfo->copy());
     }
 
 private:
-    std::unique_ptr<ExtensionAuxInfo> auxInfo;
+    std::unique_ptr<extension::ExtensionAuxInfo> auxInfo;
     std::string path;
 };
 

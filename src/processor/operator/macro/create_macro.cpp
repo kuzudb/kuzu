@@ -12,17 +12,13 @@ std::string CreateMacroPrintInfo::toString() const {
     return macroName;
 }
 
-bool CreateMacro::getNextTuplesInternal(ExecutionContext* context) {
-    if (hasExecuted) {
-        return false;
-    }
-    createMacroInfo->catalog->addScalarMacroFunction(context->clientContext->getTransaction(),
-        createMacroInfo->macroName, createMacroInfo->macro->copy());
-    hasExecuted = true;
-    outputVector->setValue<std::string>(outputVector->state->getSelVector()[0],
-        stringFormat("Macro: {} has been created.", createMacroInfo->macroName));
-    metrics->numOutputTuple.incrementByOne();
-    return true;
+void CreateMacro::executeInternal(ExecutionContext* context) {
+    auto clientContext = context->clientContext;
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
+    catalog->addScalarMacroFunction(transaction, info.macroName, info.macro->copy());
+    appendMessage(stringFormat("Macro: {} has been created.", info.macroName),
+        clientContext->getMemoryManager());
 }
 
 } // namespace processor

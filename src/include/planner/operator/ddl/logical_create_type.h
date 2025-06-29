@@ -27,10 +27,8 @@ class LogicalCreateType : public LogicalSimple {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CREATE_TYPE;
 
 public:
-    LogicalCreateType(std::string typeName, common::LogicalType type,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalSimple{type_, std::move(outputExpression)}, typeName{std::move(typeName)},
-          type{std::move(type)} {}
+    LogicalCreateType(std::string typeName, common::LogicalType type)
+        : LogicalSimple{type_}, typeName{std::move(typeName)}, type{std::move(type)} {}
 
     std::string getExpressionsForPrinting() const override { return typeName; }
 
@@ -40,8 +38,8 @@ public:
         return std::make_unique<LogicalCreateTypePrintInfo>(typeName, type.toString());
     }
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateType>(typeName, type.copy(), outputExpression);
+    std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalCreateType>(typeName, type.copy());
     }
 
 private:

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/ddl/bound_create_sequence_info.h"
-#include "processor/operator/simple/simple.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
@@ -22,20 +22,20 @@ private:
         : OPPrintInfo{other}, seqName{other.seqName} {}
 };
 
-class CreateSequence final : public Simple {
+class CreateSequence final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_SEQUENCE;
 
 public:
-    CreateSequence(binder::BoundCreateSequenceInfo info, const DataPos& outputPos, uint32_t id,
+    CreateSequence(binder::BoundCreateSequenceInfo info,
+        std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)} {}
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          info{std::move(info)} {}
 
-    void executeInternal(ExecutionContext* context) final;
-
-    std::string getOutputMsg() override;
+    void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<CreateSequence>(info.copy(), outputPos, id, printInfo->copy());
+        return std::make_unique<CreateSequence>(info.copy(), messageTable, id, printInfo->copy());
     }
 
 private:

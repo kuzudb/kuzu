@@ -23,8 +23,8 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalP
     // one.
     auto sink = lastOperator->ptrCast<Sink>();
     auto task = std::make_shared<ProcessorTask>(sink, context);
-    if (lastOperator->getNumChildren() != 0) {
-        decomposePlanIntoTask(lastOperator->getChild(0), task.get(), context);
+    for (auto i = (int64_t)sink->getNumChildren() - 1; i >= 0; --i) {
+        decomposePlanIntoTask(sink->getChild(i), task.get(), context);
     }
     initTask(task.get());
     context->clientContext->getProgressBar()->startProgress(context->queryID);
