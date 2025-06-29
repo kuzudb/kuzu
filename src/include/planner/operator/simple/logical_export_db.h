@@ -13,8 +13,7 @@ class LogicalExportDatabase final : public LogicalSimple {
 public:
     LogicalExportDatabase(common::FileScanInfo boundFileInfo,
         const std::vector<std::shared_ptr<LogicalOperator>>& plans)
-        : LogicalSimple{type_, plans},
-          boundFileInfo{std::move(boundFileInfo)} {}
+        : LogicalSimple{type_, plans}, boundFileInfo{std::move(boundFileInfo)} {}
 
     std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
     common::FileType getFileType() const { return boundFileInfo.fileTypeInfo.fileType; }

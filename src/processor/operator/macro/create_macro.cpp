@@ -17,7 +17,8 @@ void CreateMacro::executeInternal(ExecutionContext* context) {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
     catalog->addScalarMacroFunction(transaction, info.macroName, info.macro->copy());
-    appendMessage(stringFormat("Macro: {} has been created.", info.macroName), clientContext->getMemoryManager());
+    appendMessage(stringFormat("Macro: {} has been created.", info.macroName),
+        clientContext->getMemoryManager());
 }
 
 } // namespace processor

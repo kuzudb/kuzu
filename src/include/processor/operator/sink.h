@@ -101,7 +101,7 @@ public:
     DummySimpleSink(std::shared_ptr<FactorizedTable> messageTable, physical_op_id id)
         : SimpleSink{type_, std::move(messageTable), id, OPPrintInfo::EmptyInfo()} {}
 
-    void executeInternal(ExecutionContext *) override {}
+    void executeInternal(ExecutionContext*) override {}
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<DummySimpleSink>(messageTable, id);

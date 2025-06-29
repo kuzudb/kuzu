@@ -12,13 +12,9 @@ public:
     explicit LogicalUseDatabase(std::string dbName)
         : LogicalSimple{type_}, dbName{std::move(dbName)} {}
 
-    std::string getDBName() const {
-        return dbName;
-    }
+    std::string getDBName() const { return dbName; }
 
-    std::string getExpressionsForPrinting() const override {
-        return dbName;
-    }
+    std::string getExpressionsForPrinting() const override { return dbName; }
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalUseDatabase>(dbName);

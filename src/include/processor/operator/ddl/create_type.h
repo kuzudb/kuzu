@@ -27,10 +27,11 @@ class CreateType final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_TYPE;
 
 public:
-    CreateType(std::string name, common::LogicalType type, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
+    CreateType(std::string name, common::LogicalType type,
+        std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, name{std::move(name)},
-          type{std::move(type)} {}
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          name{std::move(name)}, type{std::move(type)} {}
 
     void executeInternal(ExecutionContext* context) override;
 

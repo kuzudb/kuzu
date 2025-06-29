@@ -21,9 +21,10 @@ class UninstallExtension final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::UNINSTALL_EXTENSION;
 
 public:
-    UninstallExtension(std::string path, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, path{std::move(path)} {}
+    UninstallExtension(std::string path, std::shared_ptr<FactorizedTable> messageTable,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          path{std::move(path)} {}
 
     void executeInternal(ExecutionContext* context) override;
 

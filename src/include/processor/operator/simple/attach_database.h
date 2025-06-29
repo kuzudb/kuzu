@@ -28,9 +28,10 @@ class AttachDatabase final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ATTACH_DATABASE;
 
 public:
-    AttachDatabase(binder::AttachInfo attachInfo, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, attachInfo{std::move(attachInfo)} {}
+    AttachDatabase(binder::AttachInfo attachInfo, std::shared_ptr<FactorizedTable> messageTable,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          attachInfo{std::move(attachInfo)} {}
 
     void executeInternal(ExecutionContext* context) override;
 

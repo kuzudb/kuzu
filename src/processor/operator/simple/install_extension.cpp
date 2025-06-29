@@ -11,16 +11,21 @@ using namespace kuzu::extension;
 
 void InstallExtension::setOutputMessage(bool installed, storage::MemoryManager* memoryManager) {
     if (info.forceInstall) {
-        appendMessage(stringFormat("Extension: {} updated from the repo: {}.", info.name, info.repo), memoryManager);
+        appendMessage(
+            stringFormat("Extension: {} updated from the repo: {}.", info.name, info.repo),
+            memoryManager);
         return;
     }
     if (installed) {
-        appendMessage(stringFormat("Extension: {} installed from the repo: {}.",
-            info.name, info.repo), memoryManager);
+        appendMessage(
+            stringFormat("Extension: {} installed from the repo: {}.", info.name, info.repo),
+            memoryManager);
     } else {
-        appendMessage(stringFormat(
-            "Extension: {} is already installed.\nTo update it, you can run: UPDATE {}.", info.name,
-            info.name), memoryManager);
+        appendMessage(
+            stringFormat(
+                "Extension: {} is already installed.\nTo update it, you can run: UPDATE {}.",
+                info.name, info.name),
+            memoryManager);
     }
 }
 

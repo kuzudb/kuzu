@@ -15,23 +15,22 @@ using namespace kuzu::extension;
 void UninstallExtension::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     auto vfs = clientContext->getVFSUnsafe();
-    auto localLibFilePath =
-        ExtensionUtils::getLocalPathForExtensionLib(clientContext, path);
+    auto localLibFilePath = ExtensionUtils::getLocalPathForExtensionLib(clientContext, path);
     if (!vfs->fileOrPathExists(localLibFilePath)) {
-        throw RuntimeException{stringFormat(
-            "Can not uninstall extension: {} since it has not been installed.", path)};
+        throw RuntimeException{
+            stringFormat("Can not uninstall extension: {} since it has not been installed.", path)};
     }
     std::error_code errCode;
     if (!std::filesystem::remove_all(
-            extension::ExtensionUtils::getLocalDirForExtension(clientContext, path),
-            errCode)) {
+            extension::ExtensionUtils::getLocalDirForExtension(clientContext, path), errCode)) {
         // LCOV_EXCL_START
         throw RuntimeException{
             stringFormat("An error occurred while uninstalling extension: {}. Error: {}.", path,
                 errCode.message())};
         // LCOV_EXCL_STOP
     }
-    appendMessage(stringFormat("Extension: {} has been uninstalled", path), clientContext->getMemoryManager());
+    appendMessage(stringFormat("Extension: {} has been uninstalled", path),
+        clientContext->getMemoryManager());
 }
 
 } // namespace processor

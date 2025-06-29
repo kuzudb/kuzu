@@ -25,9 +25,10 @@ class DetachDatabase final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DETACH_DATABASE;
 
 public:
-    DetachDatabase(std::string dbName, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, dbName{std::move(dbName)} {}
+    DetachDatabase(std::string dbName, std::shared_ptr<FactorizedTable> messageTable,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          dbName{std::move(dbName)} {}
 
     void executeInternal(ExecutionContext* context) override;
 
