@@ -636,7 +636,9 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
 static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     if (targetType.getLogicalTypeID() == LogicalTypeID::UNION) {
-        throw ConversionException{stringFormat("Casting from {} to UNION is not supported right now.", LogicalTypeUtils::toString(sourceType.getLogicalTypeID()))};
+        throw ConversionException{
+            stringFormat("Casting from {} to UNION is not supported right now.",
+                LogicalTypeUtils::toString(sourceType.getLogicalTypeID()))};
     }
     // todo: compile time checking of nested types
     if (CastArrayHelper::checkCompatibleNestedTypes(sourceType.getLogicalTypeID(),
