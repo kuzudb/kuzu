@@ -396,3 +396,23 @@ Conversion exception: Map does not allow null as key.
 -STATEMENT WITH CAST(42 AS UNION(a STRING, b BOOL)) AS u RETURN u, union_tag(u)
 ---- 1
 42|a
+-STATEMENT MATCH (p:Person) RETURN CAST(p.id AS UNION(a INT64, b STRING))
+---- 2
+5
+7
+-STATEMENT MATCH (p:Person) RETURN CAST(p.id AS UNION(a FLOAT, b STRING))
+---- 2
+5.000000
+7.000000
+-STATEMENT WITH CAST(127 AS UNION(a INT64, b INT32)) AS q RETURN q, union_tag(q)
+---- 1
+127|a
+-STATEMENT WITH CAST(3.2 AS UNION(a FLOAT, b DOUBLE)) AS q RETURN q, union_tag(q)
+---- 1
+3.200000|b
+-STATEMENT RETURN CAST(union_value(a := 3.2) AS UNION(a FLOAT, b BOOL))
+---- error
+Conversion exception: Casting from UNION to UNION is not supported right now.
+-STATEMENT RETURN CAST({b: 42} AS UNION(a FLOAT, b INT64))
+---- error
+Conversion exception: Casting from STRUCT to UNION is not supported right now.
