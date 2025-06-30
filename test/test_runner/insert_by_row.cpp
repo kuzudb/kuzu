@@ -5,7 +5,6 @@
 #include "common/exception/test.h"
 #include "common/string_utils.h"
 #include "test_helper/test_helper.h"
-#include "test_runner/csv_converter.h"
 
 using namespace kuzu::common;
 
