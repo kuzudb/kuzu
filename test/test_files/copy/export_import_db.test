@@ -313,3 +313,16 @@ Binder exception: The 'SCHEMA_ONLY' option must have a BOOL value.
 ---- ok
 -STATEMENT MATCH (a:`N Table`)-[e:`R Table`]->(b:`N Table`) RETURN a.*, e.*, b.*;
 ---- 0
+
+-CASE ExportEmptyDBSchemaOnly
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/empty-db-schema-only" (SCHEMA_ONLY=true);
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/empty-db-schema-only"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/empty-db-schema-only";
+---- ok
+-STATEMENT MATCH (a) return a
+---- 0
+-STATEMENT MATCH (a)-[e]->(b) return e
+---- 0

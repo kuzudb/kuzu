@@ -19,8 +19,9 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace planner {
 
-void Planner::planExportTableData(const BoundStatement& statement,
-    std::vector<std::shared_ptr<LogicalOperator>>& logicalOperators) {
+std::vector<std::shared_ptr<LogicalOperator>> Planner::planExportTableData(
+    const BoundStatement& statement) {
+    std::vector<std::shared_ptr<LogicalOperator>> logicalOperators;
     auto& boundExportDatabase = statement.constCast<BoundExportDatabase>();
     auto fileTypeStr = FileTypeUtils::toString(boundExportDatabase.getFileType());
     StringUtils::toLower(fileTypeStr);
@@ -45,6 +46,7 @@ void Planner::planExportTableData(const BoundStatement& statement,
             tablePlan.getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }
+    return logicalOperators;
 }
 
 LogicalPlan Planner::planExportDatabase(const BoundStatement& statement) {
@@ -52,7 +54,7 @@ LogicalPlan Planner::planExportDatabase(const BoundStatement& statement) {
     auto logicalOperators = std::vector<std::shared_ptr<LogicalOperator>>();
     auto plan = LogicalPlan();
     if (!boundExportDatabase.exportSchemaOnly()) {
-        planExportTableData(statement, logicalOperators);
+        logicalOperators = planExportTableData(statement);
     }
     auto exportDatabase = std::make_shared<LogicalExportDatabase>(
         boundExportDatabase.getBoundFileInfo()->copy(), statement.getSingleColumnExpr(),
