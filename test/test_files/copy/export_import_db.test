@@ -288,3 +288,41 @@ Runtime exception: Import database failed: Binder exception: Table org does not 
 -STATEMENT MATCH (a:`N Table`)-[e:`R Table`]->(b:`N Table`) RETURN a.*, e.*, b.*;
 ---- 1
 0|A|Edge|1|B
+
+-CASE ExportDBSchemaOnly
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_property_name" (SCHEMA_ONLY=true, format='csv');
+---- error
+Binder exception: When 'SCHEMA_ONLY' option is set to true in export database, no other options are allowed.
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_property_name" (SCHEMA_ONLY='abc');
+---- error
+Binder exception: The 'SCHEMA_ONLY' option must have a BOOL value.
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_property_name" (SCHEMA_ONLY=false, format='csv');
+---- ok
+-STATEMENT CREATE NODE TABLE `N Table` (ID INT64 PRIMARY KEY, `PROP 1` STRING);
+---- ok
+-STATEMENT CREATE REL TABLE `R Table` (FROM `N Table` TO `N Table`, `PROP 1` STRING);
+---- ok
+-STATEMENT CREATE (a:`N Table` {id:0, `prop 1`: 'A'})-[:`R Table` {`prop 1`: 'Edge'}]->(b: `N Table` {id:1, `prop 1`: 'B'})
+---- ok
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_property_name1" (SCHEMA_ONLY=true);
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_property_name1"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_property_name1";
+---- ok
+-STATEMENT MATCH (a:`N Table`)-[e:`R Table`]->(b:`N Table`) RETURN a.*, e.*, b.*;
+---- 0
+
+-CASE ExportEmptyDBSchemaOnly
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/empty-db-schema-only" (SCHEMA_ONLY=true);
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/empty-db-schema-only"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/empty-db-schema-only";
+---- ok
+-STATEMENT MATCH (a) return a
+---- 0
+-STATEMENT MATCH (a)-[e]->(b) return e
+---- 0

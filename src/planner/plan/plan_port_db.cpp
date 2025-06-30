@@ -19,37 +19,46 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace planner {
 
-LogicalPlan Planner::planExportDatabase(const BoundStatement& statement) {
+std::vector<std::shared_ptr<LogicalOperator>> Planner::planExportTableData(
+    const BoundStatement& statement) {
+    std::vector<std::shared_ptr<LogicalOperator>> logicalOperators;
     auto& boundExportDatabase = statement.constCast<BoundExportDatabase>();
-    auto filePath = boundExportDatabase.getFilePath();
-    auto fileType = boundExportDatabase.getFileType();
-    auto exportData = boundExportDatabase.getExportData();
-    auto logicalOperators = std::vector<std::shared_ptr<LogicalOperator>>();
-    auto plan = LogicalPlan();
-    auto fileTypeStr = FileTypeUtils::toString(fileType);
+    auto fileTypeStr = FileTypeUtils::toString(boundExportDatabase.getFileType());
     StringUtils::toLower(fileTypeStr);
     // TODO(Ziyi): Shouldn't these be done in Binder?
-    std::string name = stringFormat("COPY_{}", FileTypeUtils::toString(fileType));
+    std::string name =
+        stringFormat("COPY_{}", FileTypeUtils::toString(boundExportDatabase.getFileType()));
     auto entry =
         clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
     auto func = function::BuiltInFunctionsUtils::matchFunction(name,
         entry->ptrCast<FunctionCatalogEntry>());
     KU_ASSERT(func != nullptr);
     auto exportFunc = *func->constPtrCast<function::ExportFunction>();
-    for (auto& exportTableData : *exportData) {
+    for (auto& exportTableData : *boundExportDatabase.getExportData()) {
         auto regularQuery = exportTableData.getRegularQuery();
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = planStatement(*regularQuery);
-        auto path = clientContext->getVFSUnsafe()->joinPath(filePath, exportTableData.fileName);
+        auto path = clientContext->getVFSUnsafe()->joinPath(boundExportDatabase.getFilePath(),
+            exportTableData.fileName);
         function::ExportFuncBindInput bindInput{exportTableData.columnNames, std::move(path),
             boundExportDatabase.getExportOptions()};
         auto copyTo = std::make_shared<LogicalCopyTo>(exportFunc.bind(bindInput), exportFunc,
             tablePlan.getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }
-    auto exportDatabase =
-        std::make_shared<LogicalExportDatabase>(boundExportDatabase.getBoundFileInfo()->copy(),
-            statement.getSingleColumnExpr(), std::move(logicalOperators));
+    return logicalOperators;
+}
+
+LogicalPlan Planner::planExportDatabase(const BoundStatement& statement) {
+    auto& boundExportDatabase = statement.constCast<BoundExportDatabase>();
+    auto logicalOperators = std::vector<std::shared_ptr<LogicalOperator>>();
+    auto plan = LogicalPlan();
+    if (!boundExportDatabase.exportSchemaOnly()) {
+        logicalOperators = planExportTableData(statement);
+    }
+    auto exportDatabase = std::make_shared<LogicalExportDatabase>(
+        boundExportDatabase.getBoundFileInfo()->copy(), statement.getSingleColumnExpr(),
+        std::move(logicalOperators), boundExportDatabase.exportSchemaOnly());
     plan.setLastOperator(std::move(exportDatabase));
     return plan;
 }

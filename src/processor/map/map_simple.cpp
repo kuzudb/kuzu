@@ -72,7 +72,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     }
     auto printInfo = std::make_unique<ExportDBPrintInfo>(filePath, boundFileInfo->options);
     auto exportDB = std::make_unique<ExportDB>(exportDatabase->getBoundFileInfo()->copy(),
-        getOutputPos(exportDatabase), getOperatorID(), std::move(printInfo));
+        exportDatabase->exportSchemaOnly(), getOutputPos(exportDatabase), getOperatorID(),
+        std::move(printInfo));
     auto outputExpr = {exportDatabase->getOutputExpression()};
     auto resultCollector = createResultCollector(AccumulateType::REGULAR, outputExpr,
         exportDatabase->getSchema(), std::move(exportDB));
