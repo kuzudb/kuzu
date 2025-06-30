@@ -279,6 +279,11 @@ private:
     uint64_t headerPageIdx;
     std::unique_ptr<DiskArray<Slot<T>>> pSlots;
     std::unique_ptr<DiskArray<Slot<T>>> oSlots;
+    // Used by the in memory hash index if the PK is of type string
+    // During checkpoint the contents will be merged into the persistent overflow file
+    // TODO(Royi) clear this on checkpoint
+    std::unique_ptr<InMemOverflowFile> inMemOverflowFile;
+    // Handle for persistent overflow file
     OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<HashIndexLocalStorage<T>> localStorage;
     const HashIndexHeader& indexHeaderForReadTrx;
@@ -443,7 +448,6 @@ public:
     void checkpointInMemory() override;
     void checkpoint(main::ClientContext*, PageAllocator& pageAllocator,
         bool forceCheckpointAll = false) override;
-    OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
     void rollbackCheckpoint() override;
 

@@ -275,7 +275,8 @@ private:
         KU_ASSERT(HashIndexUtils::getFingerprintForHash(HashIndexUtils::hash(key)) == fingerprint);
         auto& entry = slot->entries[entryPos];
         if constexpr (std::same_as<T, common::ku_string_t>) {
-            entry = SlotEntry<common::ku_string_t>(overflowFileHandle->writeString(key), value);
+            entry = SlotEntry<common::ku_string_t>(overflowFileHandle->writeString(nullptr, key),
+                value);
             slot->header.setEntryValid(entryPos, fingerprint);
         } else {
             entry = SlotEntry<T>(key, value);

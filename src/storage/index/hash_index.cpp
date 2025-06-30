@@ -32,11 +32,17 @@ HashIndex<T>::HashIndex(MemoryManager& memoryManager, OverflowFileHandle* overfl
     DiskArrayCollection& diskArrays, uint64_t indexPos, ShadowFile* shadowFile,
     const HashIndexHeader& indexHeaderForReadTrx, HashIndexHeader& indexHeaderForWriteTrx)
     : shadowFile{shadowFile}, headerPageIdx{0}, overflowFileHandle{overflowFileHandle},
-      localStorage{std::make_unique<HashIndexLocalStorage<T>>(memoryManager, overflowFileHandle)},
       indexHeaderForReadTrx{indexHeaderForReadTrx}, indexHeaderForWriteTrx{indexHeaderForWriteTrx},
       memoryManager{memoryManager} {
     pSlots = diskArrays.getDiskArray<Slot<T>>(indexPos);
     oSlots = diskArrays.getDiskArray<Slot<T>>(NUM_HASH_INDEXES + indexPos);
+    OverflowFileHandle* inMemOverflowFileHandle = nullptr;
+    if constexpr (std::is_same_v<T, ku_string_t>) {
+        inMemOverflowFile = std::make_unique<InMemOverflowFile>(memoryManager);
+        inMemOverflowFileHandle = inMemOverflowFile->addHandle();
+    }
+    localStorage =
+        std::make_unique<HashIndexLocalStorage<T>>(memoryManager, inMemOverflowFileHandle);
 }
 
 template<typename T>
@@ -155,7 +161,7 @@ void HashIndex<T>::splitSlots(PageAllocator& pageAllocator, const Transaction* t
         Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
         do {
             for (entry_pos_t originalEntryPos = 0; originalEntryPos < getSlotCapacity<T>();
-                 originalEntryPos++) {
+                originalEntryPos++) {
                 if (!originalSlot->header.isEntryValid(originalEntryPos)) {
                     continue; // Skip invalid entries.
                 }
@@ -302,10 +308,9 @@ void HashIndex<T>::mergeBulkInserts(PageAllocator& pageAllocator, const Transact
     // may not be consecutive, but we reduce the memory overhead for storing the information about
     // the sorted data and still just process each page once.
     for (uint64_t localSlotId = 0; localSlotId < insertLocalStorage.numPrimarySlots();
-         localSlotId += NUM_SLOTS_PER_PAGE) {
+        localSlotId += NUM_SLOTS_PER_PAGE) {
         for (size_t i = 0;
-             i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots();
-             i++) {
+            i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots(); i++) {
             auto localSlot =
                 typename InMemHashIndex<T>::SlotIterator(localSlotId + i, &insertLocalStorage);
             partitionedEntries[i].clear();
@@ -467,7 +472,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStora
                 hashIndexStorageInfo.firstHeaderPage + headerPageIdx, [&](auto* frame) {
                     const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                     for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                         i++) {
+                        i++) {
                         hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
                         headerIdx++;
                     }
@@ -492,8 +497,8 @@ void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& m
         if (inMemMode) {
             overflowFile = std::make_unique<InMemOverflowFile>(mm);
         } else {
-            overflowFile = std::make_unique<OverflowFile>(&pageAllocator, mm, &shadowFile,
-                storageInfo.overflowHeaderPage);
+            overflowFile = std::make_unique<OverflowFile>(pageAllocator, pageAllocator.getDataFH(),
+                mm, &shadowFile, storageInfo.overflowHeaderPage);
         }
     }
     hashIndices.reserve(NUM_HASH_INDEXES);
@@ -614,7 +619,7 @@ void PrimaryKeyIndex::writeHeaders(PageAllocator& pageAllocator) const {
             [&](auto* frame) {
                 const auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
+                    i++) {
                     hashIndexHeadersForWriteTrx[headerIdx++].write(onDiskFrame[i]);
                 }
             });
