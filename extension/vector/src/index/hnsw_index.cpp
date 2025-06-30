@@ -582,13 +582,15 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
             shrinkForNode(context->getTransaction(), offset, false, config.ml, *insertState);
         }
         context->getTransaction()->commit(nullptr /* wal */);
-        auto storageManager = context->getStorageManager();
-        auto upperRelTable =
-            storageManager->getTable(upperRelTableEntry.getSingleRelEntryInfo().oid);
-        auto lowerRelTable =
-            storageManager->getTable(lowerRelTableEntry.getSingleRelEntryInfo().oid);
-        upperRelTable->checkpoint(context, &upperRelTableEntry);
-        lowerRelTable->checkpoint(context, &lowerRelTableEntry);
+        if (!context->isInMemory()) {
+            auto storageManager = context->getStorageManager();
+            auto upperRelTable =
+                storageManager->getTable(upperRelTableEntry.getSingleRelEntryInfo().oid);
+            auto lowerRelTable =
+                storageManager->getTable(lowerRelTableEntry.getSingleRelEntryInfo().oid);
+            upperRelTable->checkpoint(context, &upperRelTableEntry);
+            lowerRelTable->checkpoint(context, &lowerRelTableEntry);
+        }
         hnswStorageInfo.numCheckpointedNodes = numTotalRows;
     } catch ([[maybe_unused]] std::exception& e) {
         context->getTransaction()->rollback(nullptr /* wal */);

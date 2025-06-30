@@ -194,21 +194,23 @@ void FTSIndex::checkpoint(main::ClientContext* context, bool forceCheckpointAll)
             insert(context->getTransaction(), idVector, indexTableState.indexVectors, *insertState);
         }
         context->getTransaction()->commit(nullptr /* wal */);
+        if (!context->isInMemory()) {
+            auto catalog = context->getCatalog();
+            internalTableInfo.docTable->checkpoint(context,
+                catalog->getTableCatalogEntry(context->getTransaction(),
+                    internalTableInfo.docTable->getTableID()));
+            internalTableInfo.termsTable->checkpoint(context,
+                catalog->getTableCatalogEntry(context->getTransaction(),
+                    internalTableInfo.termsTable->getTableID()));
+            auto appearsInTableName = FTSUtils::getAppearsInTableName(
+                internalTableInfo.table->getTableID(), indexInfo.name);
+            auto appearsInTableEntry =
+                catalog->getTableCatalogEntry(context->getTransaction(), appearsInTableName);
+            internalTableInfo.appearsInfoTable->checkpoint(context, appearsInTableEntry);
+        }
     } catch ([[maybe_unused]] const std::exception& e) {
         context->getTransaction()->rollback(nullptr);
     }
-    auto catalog = context->getCatalog();
-    internalTableInfo.docTable->checkpoint(context,
-        catalog->getTableCatalogEntry(context->getTransaction(),
-            internalTableInfo.docTable->getTableID()));
-    internalTableInfo.termsTable->checkpoint(context,
-        catalog->getTableCatalogEntry(context->getTransaction(),
-            internalTableInfo.termsTable->getTableID()));
-    auto appearsInTableName =
-        FTSUtils::getAppearsInTableName(internalTableInfo.table->getTableID(), indexInfo.name);
-    auto appearsInTableEntry =
-        catalog->getTableCatalogEntry(context->getTransaction(), appearsInTableName);
-    internalTableInfo.appearsInfoTable->checkpoint(context, appearsInTableEntry);
     context->getTransactionContext()->clearTransaction();
 }
 

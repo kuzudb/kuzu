@@ -304,18 +304,22 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         nodeTable->getNumTotalRows(context.clientContext->getTransaction()));
     auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
         std::move(ftsConfig), context.clientContext);
-    // Checkpoint internal tables.
-    onDiskIndex->getInternalTableInfo().docTable->checkpoint(context.clientContext, docTableEntry);
-    auto termsTableName = FTSUtils::getTermsTableName(bindData.tableID, bindData.indexName);
-    auto termsTableEntry =
-        context.clientContext->getCatalog()->getTableCatalogEntry(transaction, termsTableName);
-    onDiskIndex->getInternalTableInfo().termsTable->checkpoint(context.clientContext,
-        termsTableEntry);
-    auto appearsInTableName = FTSUtils::getAppearsInTableName(bindData.tableID, bindData.indexName);
-    auto appearsInTableEntry =
-        context.clientContext->getCatalog()->getTableCatalogEntry(transaction, appearsInTableName);
-    onDiskIndex->getInternalTableInfo().appearsInfoTable->checkpoint(context.clientContext,
-        appearsInTableEntry);
+    if (!context.clientContext->isInMemory()) {
+        // Checkpoint internal tables.
+        onDiskIndex->getInternalTableInfo().docTable->checkpoint(context.clientContext,
+            docTableEntry);
+        auto termsTableName = FTSUtils::getTermsTableName(bindData.tableID, bindData.indexName);
+        auto termsTableEntry =
+            context.clientContext->getCatalog()->getTableCatalogEntry(transaction, termsTableName);
+        onDiskIndex->getInternalTableInfo().termsTable->checkpoint(context.clientContext,
+            termsTableEntry);
+        auto appearsInTableName =
+            FTSUtils::getAppearsInTableName(bindData.tableID, bindData.indexName);
+        auto appearsInTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
+            transaction, appearsInTableName);
+        onDiskIndex->getInternalTableInfo().appearsInfoTable->checkpoint(context.clientContext,
+            appearsInTableEntry);
+    }
     nodeTable->addIndex(std::move(onDiskIndex));
     transaction->setForceCheckpoint();
     return 0;
