@@ -11,6 +11,7 @@ namespace llm_extension {
 class OllamaEmbedding final : public EmbeddingProvider {
     OllamaEmbedding() = default;
     DELETE_COPY_AND_MOVE(OllamaEmbedding);
+    std::optional<std::string> endpoint;
 
 public:
     ~OllamaEmbedding() override = default;
@@ -21,7 +22,7 @@ public:
     nlohmann::json getPayload(const std::string& model, const std::string& text) const override;
     std::vector<float> parseResponse(const httplib::Result& res) const override;
     void configure(const std::optional<uint64_t>& dimensions,
-        const std::optional<std::string>& region) override;
+        const std::optional<std::string>& endpoint) override;
 };
 
 } // namespace llm_extension
