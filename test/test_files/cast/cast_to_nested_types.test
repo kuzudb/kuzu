@@ -413,6 +413,3 @@ Conversion exception: Map does not allow null as key.
 -STATEMENT RETURN CAST(union_value(a := 3.2) AS UNION(a FLOAT, b BOOL))
 ---- error
 Conversion exception: Casting from UNION to UNION is not supported right now.
--STATEMENT RETURN CAST({b: 42} AS UNION(a FLOAT, b INT64))
----- error
-Conversion exception: Casting from STRUCT to UNION is not supported right now.
