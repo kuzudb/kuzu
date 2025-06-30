@@ -27,7 +27,7 @@ class DiskArrayCollection {
     static_assert(std::has_unique_object_representations_v<HeaderPage>);
 
 public:
-    explicit DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
+    DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
         bool bypassShadowing = false);
     DiskArrayCollection(FileHandle& fileHandle, ShadowFile& shadowFile,
         common::page_idx_t firstHeaderPage, bool bypassShadowing = false);

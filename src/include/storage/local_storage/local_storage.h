@@ -35,6 +35,8 @@ public:
 private:
     main::ClientContext& clientContext;
     std::unordered_map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
+
+    // The mutex is only needed when working with the optimistic allocators
     std::mutex mtx;
     std::vector<std::unique_ptr<OptimisticAllocator>> optimisticAllocators;
 };

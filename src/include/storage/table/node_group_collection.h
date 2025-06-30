@@ -14,7 +14,8 @@ class MemoryManager;
 class NodeGroupCollection {
 public:
     NodeGroupCollection(const std::vector<common::LogicalType>& types, bool enableCompression,
-        bool isPersistent = false, const VersionRecordHandler* versionRecordHandler = nullptr);
+        ResidencyState residency = ResidencyState::IN_MEMORY,
+        const VersionRecordHandler* versionRecordHandler = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
@@ -115,7 +116,7 @@ private:
     std::atomic<common::row_idx_t> numTotalRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;
-    bool isPersistent;
+    ResidencyState residency;
     TableStats stats;
     const VersionRecordHandler* versionRecordHandler;
 };

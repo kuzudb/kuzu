@@ -58,7 +58,6 @@ private:
 
     template<typename ValueProcessor>
     void serializeInternal(ValueProcessor& serializer) const;
-    common::page_idx_t estimateNumPagesForSerialization();
 
     std::vector<sorted_free_list_t> freeLists;
     free_list_t uncheckpointedFreePageRanges;

@@ -68,8 +68,8 @@ RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* sh
     // default to using the persistent version record handler
     // if we want to use the in-memory handler, we will explicitly pass it into
     // nodeGroups.pushInsertInfo()
-    nodeGroups = std::make_unique<NodeGroupCollection>(getColumnTypes(), enableCompression, true,
-        &persistentVersionRecordHandler);
+    nodeGroups = std::make_unique<NodeGroupCollection>(getColumnTypes(), enableCompression,
+        ResidencyState::ON_DISK, &persistentVersionRecordHandler);
 }
 
 void RelTableData::initCSRHeaderColumns(FileHandle* dataFH) {

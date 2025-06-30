@@ -281,7 +281,7 @@ void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEnt
     catalog->alterTableEntry(transaction, alterInfo);
     // We don't use an optimistic allocator in this case since rollback of new columns is already
     // handled by checkpoint
-    auto& pageAllocator = *clientContext->getStorageManager()->getDataFH()->getPageManager();
+    auto& pageAllocator = *storageManager->getDataFH()->getPageManager();
     switch (info.alterType) {
     case AlterType::ADD_PROPERTY: {
         auto& boundAddPropInfo = info.extraInfo->constCast<BoundExtraAddPropertyInfo>();

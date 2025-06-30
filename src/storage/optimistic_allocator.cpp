@@ -9,7 +9,7 @@ OptimisticAllocator::OptimisticAllocator(PageManager& pageManager)
 PageRange OptimisticAllocator::allocatePageRange(common::page_idx_t numPages) {
     auto pageRange = pageManager.allocatePageRange(numPages);
     if (numPages > 0) {
-        uncommittedAllocatedPages.push_back(pageRange);
+        optimisticallyAllocatedPages.push_back(pageRange);
     }
     return pageRange;
 }
@@ -19,13 +19,13 @@ void OptimisticAllocator::freePageRange(PageRange block) {
 }
 
 void OptimisticAllocator::rollback() {
-    for (const auto& entry : uncommittedAllocatedPages) {
+    for (const auto& entry : optimisticallyAllocatedPages) {
         pageManager.freeImmediatelyRewritablePageRange(pageManager.getDataFH(), entry);
     }
-    uncommittedAllocatedPages.clear();
+    optimisticallyAllocatedPages.clear();
 }
 
 void OptimisticAllocator::commit() {
-    uncommittedAllocatedPages.clear();
+    optimisticallyAllocatedPages.clear();
 }
 } // namespace kuzu::storage
