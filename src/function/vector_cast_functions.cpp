@@ -643,7 +643,6 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& 
             targetType.getLogicalTypeID(), nestedTypesCastExecFunction);
     }
     if (targetType.getLogicalTypeID() == LogicalTypeID::UNION) {
-        std::cout << targetType.toString() << std::endl;
         throw ConversionException{
             stringFormat("Casting from {} to UNION is not supported right now.",
                 LogicalTypeUtils::toString(sourceType.getLogicalTypeID()))};
