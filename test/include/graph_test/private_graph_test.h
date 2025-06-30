@@ -15,19 +15,19 @@ namespace testing {
 // Graph test which uses private APIs
 class PrivateGraphTest : public BaseGraphTest {
 protected:
-    static inline transaction::TransactionManager* getTransactionManager(main::Database& database) {
+    static transaction::TransactionManager* getTransactionManager(main::Database& database) {
         return database.transactionManager.get();
     }
-    static inline transaction::TransactionMode getTransactionMode(main::Connection& connection) {
+    static transaction::TransactionMode getTransactionMode(main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->getTransactionMode();
     }
-    static inline transaction::Transaction* getActiveTransaction(main::Connection& connection) {
+    static transaction::Transaction* getActiveTransaction(main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->getActiveTransaction();
     }
-    static inline uint64_t getActiveTransactionID(main::Connection& connection) {
+    static uint64_t getActiveTransactionID(main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->getActiveTransaction()->getID();
     }
-    static inline bool hasActiveTransaction(main::Connection& connection) {
+    static bool hasActiveTransaction(main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->hasActiveTransaction();
     }
 };
@@ -42,7 +42,8 @@ class ConcurrentTestExecutor {
 public:
     ConcurrentTestExecutor(bool& connectionsPaused, main::Connection& connection,
         std::string databasePath)
-        : connectionPaused{connectionsPaused}, connection{connection}, databasePath{databasePath} {}
+        : connectionPaused{connectionsPaused}, connection{connection},
+          databasePath{std::move(databasePath)} {}
 
     void execute() { connThread = std::thread(&ConcurrentTestExecutor::runStatements, this); }
     void join() {

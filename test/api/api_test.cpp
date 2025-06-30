@@ -8,7 +8,7 @@
 #include <windows.h>
 #endif
 
-#include "main_test_helper/main_test_helper.h"
+#include "api_test/api_test.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;

@@ -65,38 +65,11 @@ public:
     static std::string appendKuzuRootPath(const std::string& path) {
         if (std::filesystem::path(path).is_relative()) {
             return KUZU_ROOT_DIRECTORY + std::string("/") + path;
-        } else {
-            return path;
         }
+        return path;
     }
 
-    static std::unique_ptr<main::SystemConfig> getSystemConfigFromEnv() {
-        auto systemConfig = std::make_unique<main::SystemConfig>();
-        auto bufferPoolSizeEnv = getSystemEnv("BUFFER_POOL_SIZE");
-        auto maxNumThreadsEnv = getSystemEnv("MAX_NUM_THREADS");
-        auto enableCompressionEnv = getSystemEnv("ENABLE_COMPRESSION");
-        auto checkpointThresholdEnv = getSystemEnv("CHECKPOINT_THRESHOLD");
-        auto forceCheckpointOnCloseEnv = getSystemEnv("FORCE_CHECKPOINT_ON_CLOSE");
-        auto maxDBSizeEnv = getSystemEnv("MAX_DB_SIZE");
-        systemConfig->bufferPoolSize = bufferPoolSizeEnv.empty() ?
-                                           DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
-                                           std::stoull(bufferPoolSizeEnv);
-        systemConfig->maxNumThreads = maxNumThreadsEnv.empty() ? 2 : std::stoull(maxNumThreadsEnv);
-        if (!enableCompressionEnv.empty()) {
-            systemConfig->enableCompression =
-                common::StringUtils::caseInsensitiveEquals(enableCompressionEnv, "true");
-        }
-        systemConfig->checkpointThreshold = checkpointThresholdEnv.empty() ?
-                                                systemConfig->checkpointThreshold :
-                                                std::stoull(checkpointThresholdEnv);
-        systemConfig->forceCheckpointOnClose =
-            forceCheckpointOnCloseEnv.empty() ?
-                systemConfig->forceCheckpointOnClose :
-                common::StringUtils::caseInsensitiveEquals(forceCheckpointOnCloseEnv, "true");
-        systemConfig->maxDBSize =
-            maxDBSizeEnv.empty() ? systemConfig->maxDBSize : std::stoull(maxDBSizeEnv);
-        return systemConfig;
-    }
+    static std::unique_ptr<main::SystemConfig> getSystemConfigFromEnv();
 
     static void updateClientConfigFromEnv(main::ClientConfig& clientConfig) {
         auto sparseFrontierThresholdEnv = getSystemEnv("SPARSE_FRONTIER_THRESHOLD");
@@ -111,9 +84,8 @@ public:
         auto tempDir = std::getenv("RUNNER_TEMP");
         if (tempDir != nullptr) {
             return std::filesystem::path(tempDir) / "kuzu";
-        } else {
-            return std::filesystem::temp_directory_path() / "kuzu";
         }
+        return std::filesystem::temp_directory_path() / "kuzu";
     }
 
     static std::string getTempDir(const std::string& name) {

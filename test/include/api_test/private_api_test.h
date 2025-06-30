@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graph_test/graph_test.h"
+#include "graph_test/private_graph_test.h"
 
 namespace kuzu {
 namespace testing {

@@ -9,8 +9,6 @@ class BaseGraphTest;
 class PrivateGraphTest;
 class TestHelper;
 class TestRunner;
-class TinySnbDDLTest;
-class TinySnbCopyCSVTransactionTest;
 } // namespace testing
 
 namespace benchmark {

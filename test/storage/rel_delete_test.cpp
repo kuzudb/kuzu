@@ -1,9 +1,8 @@
-
+#include "api_test/private_api_test.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/types/date_t.h"
 #include "common/types/types.h"
-#include "main_test_helper/private_main_test_helper.h"
 #include "storage/storage_manager.h"
 #include "storage/table/rel_table.h"
 #include "storage/table/table.h"
