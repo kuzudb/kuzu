@@ -4,7 +4,10 @@
 #include "common/string_format.h"
 #include "common/type_utils.h"
 #include "common/vector/value_vector.h"
+#include "function/built_in_function_utils.h"
 #include "function/cast/functions/numeric_cast.h"
+#include "function/cast/cast_function_bind_data.h"
+#include "function/cast/vector_cast_functions.h"
 
 namespace kuzu {
 namespace function {
@@ -31,6 +34,45 @@ struct CastRelToString {
         common::ValueVector& inputVector, common::ValueVector& resultVector) {
         auto str = common::TypeUtils::relToString(input, &inputVector);
         common::StringVector::addString(&resultVector, result, str);
+    }
+};
+
+struct CastToUnion {
+    template<typename T>
+    static inline void operation(T&, common::union_entry_t&, common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        SelectionVector* selVector = inputVector.getSelVectorPtr();
+        const auto& sourceType = inputVector.dataType;
+        const auto& targetType = resultVector.dataType;
+        uint32_t minCastCost = UNDEFINED_CAST_COST;
+        union_field_idx_t minCostField = 0;
+        for (uint64_t i = 0; i < UnionType::getNumFields(targetType); ++i) {
+            const LogicalType& fieldType = UnionType::getFieldType(targetType, i);
+            if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
+                uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(),
+                    fieldType.getLogicalTypeID());
+                if (castCost < minCastCost) {
+                    minCastCost = castCost;
+                    minCostField = i;
+                }
+            }
+        }
+        ValueVector* tagVector = UnionVector::getTagVector(&resultVector);
+        ValueVector* valVector = UnionVector::getValVector(&resultVector, minCostField);
+        const LogicalType& innerType = UnionType::getFieldType(targetType, minCostField);
+        for (auto& pos : selVector->getSelectedPositions()) {
+            tagVector->setValue<union_field_idx_t>(pos, minCostField);
+        }
+        if (sourceType != innerType) {
+            std::shared_ptr<ScalarFunction> innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType, innerType);
+            std::vector<std::shared_ptr<ValueVector>> innerParams{std::shared_ptr<ValueVector>(&inputVector, [](ValueVector*){})};
+            CastFunctionBindData innerBindData(innerType.copy());
+            innerBindData.numOfEntries = (*selVector)[selVector->getSelSize() - 1] + 1;
+            innerCast->execFunc(innerParams, SelectionVector::fromValueVectors(innerParams), *valVector, valVector->getSelVectorPtr(), &innerBindData);
+        } else {
+            for (auto& pos : inputVector.getSelVectorPtr()->getSelectedPositions()) {
+                valVector->copyFromVectorData(pos, &inputVector, pos);
+            }
+        }
     }
 };
 
