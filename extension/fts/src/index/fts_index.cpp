@@ -138,7 +138,7 @@ std::unique_ptr<Index::DeleteState> FTSIndex::initDeleteState(const Transaction*
 }
 
 void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector,
-    Index::DeleteState& deleteState) {
+    DeleteState& deleteState) {
     auto& ftsDeleteState = deleteState.cast<FTSDeleteState>();
     auto& ftsStorageInfo = storageInfo->cast<FTSStorageInfo>();
     double totalDocLen = ftsStorageInfo.avgDocLen * ftsStorageInfo.numDocs;
@@ -204,6 +204,11 @@ void FTSIndex::checkpoint(main::ClientContext* context, bool forceCheckpointAll)
     internalTableInfo.termsTable->checkpoint(context,
         catalog->getTableCatalogEntry(context->getTransaction(),
             internalTableInfo.termsTable->getTableID()));
+    auto appearsInTableName =
+        FTSUtils::getAppearsInTableName(internalTableInfo.table->getTableID(), indexInfo.name);
+    auto appearsInTableEntry =
+        catalog->getTableCatalogEntry(context->getTransaction(), appearsInTableName);
+    internalTableInfo.appearsInfoTable->checkpoint(context, appearsInTableEntry);
     context->getTransactionContext()->clearTransaction();
 }
 

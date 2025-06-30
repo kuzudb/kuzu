@@ -4,8 +4,8 @@
 
 -CASE Basic
 
-#-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
-#---- ok
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE Book (ID SERIAL, title STRING, author STRING, abstract STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');

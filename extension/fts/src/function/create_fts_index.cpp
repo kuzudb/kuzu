@@ -266,9 +266,10 @@ void LenCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk) {
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& bindData = *input.bindData->constPtrCast<CreateFTSBindData>();
     auto& context = *input.context;
+    auto transaction = context.clientContext->getTransaction();
+    auto catalog = context.clientContext->getCatalog();
     auto docTableName = FTSUtils::getDocsTableName(bindData.tableID, bindData.indexName);
-    auto docTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
-        context.clientContext->getTransaction(), docTableName);
+    auto docTableEntry = catalog->getTableCatalogEntry(transaction, docTableName);
     graph::NativeGraphEntry entry{{docTableEntry}, {} /* relTableEntries */};
     graph::OnDiskGraph graph(context.clientContext, std::move(entry));
     auto sharedState = LenComputeSharedState{};
@@ -283,14 +284,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(FTSIndexCatalogEntry::TYPE_NAME,
         bindData.tableID, bindData.indexName, bindData.propertyIDs,
         std::make_unique<FTSIndexAuxInfo>(ftsConfig));
-    auto catalog = context.clientContext->getCatalog();
-    catalog->createIndex(context.clientContext->getTransaction(), std::move(indexEntry));
+    catalog->createIndex(transaction, std::move(indexEntry));
 
-    auto nodeTable = context.clientContext->getStorageManager()
-                         ->getTable(bindData.tableID)
-                         ->ptrCast<storage::NodeTable>();
-    auto tableEntry =
-        catalog->getTableCatalogEntry(context.clientContext->getTransaction(), bindData.tableID);
+    auto storageManager = context.clientContext->getStorageManager();
+    auto nodeTable = storageManager->getTable(bindData.tableID)->ptrCast<storage::NodeTable>();
+    auto tableEntry = catalog->getTableCatalogEntry(transaction, bindData.tableID);
     std::vector<column_id_t> columnIDs;
     std::vector<PhysicalTypeID> columnTypes;
     for (auto& propertyID : bindData.propertyIDs) {
@@ -306,9 +304,20 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         nodeTable->getNumTotalRows(context.clientContext->getTransaction()));
     auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
         std::move(ftsConfig), context.clientContext);
+    // Checkpoint internal tables.
+    onDiskIndex->getInternalTableInfo().docTable->checkpoint(context.clientContext, docTableEntry);
+    auto termsTableName = FTSUtils::getTermsTableName(bindData.tableID, bindData.indexName);
+    auto termsTableEntry =
+        context.clientContext->getCatalog()->getTableCatalogEntry(transaction, termsTableName);
+    onDiskIndex->getInternalTableInfo().termsTable->checkpoint(context.clientContext,
+        termsTableEntry);
+    auto appearsInTableName = FTSUtils::getAppearsInTableName(bindData.tableID, bindData.indexName);
+    auto appearsInTableEntry =
+        context.clientContext->getCatalog()->getTableCatalogEntry(transaction, appearsInTableName);
+    onDiskIndex->getInternalTableInfo().appearsInfoTable->checkpoint(context.clientContext,
+        appearsInTableEntry);
     nodeTable->addIndex(std::move(onDiskIndex));
-    context.clientContext->getTransaction()->setForceCheckpoint();
-    nodeTable->setHasChanges();
+    transaction->setForceCheckpoint();
     return 0;
 }
 
