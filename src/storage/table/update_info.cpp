@@ -45,7 +45,6 @@ VectorUpdateInfo* UpdateInfo::getVectorInfo(const Transaction* transaction, idx_
     auto current = vectorsInfo[idx].get();
     while (current) {
         if (current->version == transaction->getID()) {
-            KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
             return current;
         }
         if (current->version <= transaction->getStartTS()) {
@@ -108,7 +107,6 @@ VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(MemoryManager& memoryManager
     while (current) {
         if (current->version == transaction->getID()) {
             // Same transaction.
-            KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
             info = current;
         } else if (current->version > transaction->getStartTS()) {
             // Potentially there can be conflicts. `current` can be uncommitted transaction (version
