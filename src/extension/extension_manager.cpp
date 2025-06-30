@@ -88,7 +88,10 @@ std::vector<storage::StorageExtension*> ExtensionManager::getStorageExtensions()
 }
 
 void ExtensionManager::autoLoadLinkedExtensions(main::ClientContext* context) {
+    auto trxContext = context->getTransactionContext();
+    trxContext->beginWriteTransaction();
     loadLinkedExtensions(context, loadedExtensions);
+    trxContext->commit();
 }
 
 } // namespace extension

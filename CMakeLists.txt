@@ -401,6 +401,16 @@ include_directories(
 )
 
 add_subdirectory(src)
+
+# Link extensions which require static linking.
+foreach(ext IN LISTS STATICALLY_LINKED_EXTENSIONS)
+    if (${BUILD_EXTENSION_TESTS})
+        add_compile_definitions(__STATIC_LINK_EXTENSION_TEST__)
+    endif ()
+    target_link_libraries(kuzu PRIVATE "kuzu_${ext}_static_extension")
+    target_link_libraries(kuzu_shared PRIVATE "kuzu_${ext}_static_extension")
+endforeach()
+
 if (${BUILD_TESTS} OR ${BUILD_EXTENSION_TESTS})
     add_subdirectory(test)
 elseif (${BUILD_BENCHMARK})
@@ -408,12 +418,6 @@ elseif (${BUILD_BENCHMARK})
 endif ()
 add_subdirectory(tools)
 endif ()
-
-# Link extensions which require static linking.
-foreach(ext IN LISTS STATICALLY_LINKED_EXTENSIONS)
-    target_link_libraries(kuzu PRIVATE "kuzu_${ext}_static_extension")
-    target_link_libraries(kuzu_shared PRIVATE "kuzu_${ext}_static_extension")
-endforeach()
 
 if (${BUILD_EXAMPLES})
     add_subdirectory(examples/c)

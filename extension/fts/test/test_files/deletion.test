@@ -4,7 +4,9 @@
 
 -CASE FTSDeletion
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE (b:Book {title: 'Alice wonderland', author: 'newton', abstract: 'machine'})
 ---- ok
 -STATEMENT CREATE (b:Book {title: 'Alice w', author: 'newton', abstract: 'not exist'})
@@ -35,7 +37,9 @@ The Quantum World|0.634506
 
 -CASE consecutiveDeletions
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT COPY doc FROM '${KUZU_ROOT_DIRECTORY}/dataset/ms-passage/vDoc.csv'
@@ -68,7 +72,9 @@ The Quantum World|0.634506
 
 -CASE FTSDeletionEmptyDoc
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT create (d:doc {ID: 100, content: 'alice is brother of bob'})

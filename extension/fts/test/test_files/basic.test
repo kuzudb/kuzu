@@ -5,8 +5,8 @@
 -CASE Basic
 
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- multi_results
-aaa
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
 Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CALL _CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- error
@@ -110,7 +110,9 @@ Harry Potter and the Goblet of Fire
 -CASE Creation
 
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE NODE TABLE Book1 (ID SERIAL, abstract STRING, author STRING, title STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE Book2 (ID SERIAL, abstract STRING, author STRING, title STRING, PRIMARY KEY (ID));
@@ -164,7 +166,9 @@ Binder exception: Table Book0 does not exist.
 -CASE CaseSensitivity
 
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT CREATE (b:Documents {title: 'six', text: 'Hello World'});
@@ -187,7 +191,9 @@ eight
 -CASE Stemming
 
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT CREATE (b:Documents {title: 'one', text: ' quacking'});
@@ -210,7 +216,9 @@ two
 -CASE StopWords
 
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT CREATE (b:Documents {title: 'four', text: 'the quick brown fox'});
@@ -231,7 +239,9 @@ five
 -CASE SpecialCharacters
 
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT CREATE (b:Documents {title: 'six', text: 'test.case'});
@@ -280,7 +290,9 @@ twelve
 -CASE DuplicateEntries
 
 -STATEMENT LOAD '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .* has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, quantity INT64, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT CREATE (b:Documents {title: 'title1', text: 'test.case', quantity: 1});
@@ -314,7 +326,9 @@ title3
 -STATEMENT FORCE INSTALL fts FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load fts
----- ok
+---- extension_load_result
+Extension: .* has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
@@ -324,7 +338,9 @@ Learning Machines
 
 -CASE DropTableWithIndex
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+---- extension_load_result
+Extension: .*libfts\.kuzu_extension has been loaded.
+Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
 -STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, quantity INT64, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT CREATE (b:Documents {title: 'title1', text: 'test.case', quantity: 1});

@@ -16,29 +16,26 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
     table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
     stopWordsTable =
         storageManager
-            ->getTable(
-                catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, stopWordsTableName)
+            ->getTable(catalog->getTableCatalogEntry(context->getTransaction(), stopWordsTableName)
                     ->getTableID())
             ->ptrCast<storage::NodeTable>();
-    docTable =
-        storageManager
-            ->getTable(catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, docTableName)
+    docTable = storageManager
+                   ->getTable(catalog->getTableCatalogEntry(context->getTransaction(), docTableName)
                            ->getTableID())
-            ->ptrCast<storage::NodeTable>();
+                   ->ptrCast<storage::NodeTable>();
     termsTable =
         storageManager
-            ->getTable(
-                catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, termsTableName)
+            ->getTable(catalog->getTableCatalogEntry(context->getTransaction(), termsTableName)
                     ->getTableID())
             ->ptrCast<storage::NodeTable>();
     auto appearsInTableEntry =
-        catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, appearsInTableName)
+        catalog->getTableCatalogEntry(context->getTransaction(), appearsInTableName)
             ->constPtrCast<catalog::RelGroupCatalogEntry>()
             ->getRelEntryInfo(termsTable->getTableID(), docTable->getTableID());
     appearsInfoTable =
         storageManager->getTable(appearsInTableEntry->oid)->ptrCast<storage::RelTable>();
-    dfColumnID = catalog->getTableCatalogEntry(&transaction::DUMMY_TRANSACTION, termsTableName)
-                     ->getColumnID("df");
+    dfColumnID =
+        catalog->getTableCatalogEntry(context->getTransaction(), termsTableName)->getColumnID("df");
 }
 
 } // namespace fts_extension

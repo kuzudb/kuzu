@@ -31,7 +31,7 @@ enum class ResultType {
     CSV_FILE,
     ERROR_MSG,
     ERROR_REGEX,
-    MULTI_RESULTS,
+    EXTENSION_LOAD_RESULT,
 };
 
 struct TestQueryResult {

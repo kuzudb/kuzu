@@ -101,7 +101,7 @@ void TestRunner::checkLogicalPlan(Connection& conn, QueryResult* queryResult,
             << "Expected error to match regex: " << testAnswer.expectedResult[0]
             << " actual error: " << actualError;
     } break;
-    case ResultType::MULTI_RESULTS: {
+    case ResultType::EXTENSION_LOAD_RESULT: {
         if (queryResult->isSuccess()) {
             auto result = convertResultToString(*queryResult, statement->checkOutputOrder,
                 statement->checkColumnNames);

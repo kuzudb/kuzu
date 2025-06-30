@@ -124,6 +124,12 @@ void TestParser::parseHeader() {
 #endif
             break;
         }
+        case TokenType::SKIP_STATIC_LINK: {
+#ifdef __STATIC_LINK_TEST__
+            testGroup->group = "DISABLED_" + testGroup->group;
+#endif
+            break;
+        }
         case TokenType::WASM_ONLY: {
 #ifndef __WASM__
             testGroup->group = "DISABLED_" + testGroup->group;
@@ -207,8 +213,8 @@ TestQueryResult TestParser::extractExpectedResultFromToken() {
         tokenize();
         queryResult.numTuples = stoi(currentToken.params[0]);
         queryResult.expectedResult.push_back(currentToken.params.back());
-    } else if (result == "multi_results") {
-        queryResult.type = ResultType::MULTI_RESULTS;
+    } else if (result == "extension_load_result") {
+        queryResult.type = ResultType::EXTENSION_LOAD_RESULT;
         nextLine();
         queryResult.expectedResult.push_back(line);
         nextLine();
@@ -492,6 +498,12 @@ void TestParser::parseBody() {
         }
         case TokenType::SKIP_WASM: {
 #ifdef __WASM__
+            testCaseName = "DISABLED_" + testCaseName;
+#endif
+            break;
+        }
+        case TokenType::SKIP_STATIC_LINK: {
+#ifdef __STATIC_LINK_EXTENSION_TEST__
             testCaseName = "DISABLED_" + testCaseName;
 #endif
             break;
