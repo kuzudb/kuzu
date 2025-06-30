@@ -93,6 +93,8 @@ public:
         binder::expression_vector outExprs);
 
     // Plan export/import database
+    void planExportTableData(const binder::BoundStatement& boundExportDatabase,
+        std::vector<std::shared_ptr<LogicalOperator>>& logicalOperators);
     LogicalPlan planExportDatabase(const binder::BoundStatement& statement);
     LogicalPlan planImportDatabase(const binder::BoundStatement& statement);
 

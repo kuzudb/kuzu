@@ -23,16 +23,17 @@ namespace kuzu {
 namespace binder {
 
 FileTypeInfo getFileType(case_insensitive_map_t<Value>& options) {
-    auto fileTypeInfo = FileTypeInfo{FileType::PARQUET, "PARQUET"};
-    if (options.contains("FORMAT")) {
-        auto value = options.at("FORMAT");
+    auto fileTypeInfo =
+        FileTypeInfo{FileType::PARQUET, PortDBConstants::DEFAULT_EXPORT_FORMAT_OPTION};
+    if (options.contains(PortDBConstants::EXPORT_FORMAT_OPTION)) {
+        auto value = options.at(PortDBConstants::EXPORT_FORMAT_OPTION);
         if (value.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
             throw BinderException("The type of format option must be a string.");
         }
         auto valueStr = value.getValue<std::string>();
         StringUtils::toUpper(valueStr);
         fileTypeInfo = FileTypeInfo{FileTypeUtils::fromString(valueStr), valueStr};
-        options.erase("FORMAT");
+        options.erase(PortDBConstants::EXPORT_FORMAT_OPTION);
     }
     return fileTypeInfo;
 }
@@ -116,6 +117,30 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
     return exportData;
 }
 
+static bool schemaOnly(case_insensitive_map_t<Value>& parsedOptions,
+    const parser::ExportDB& exportDB) {
+    auto isSchemaOnlyOption = [](const std::pair<std::string, Value>& option) -> bool {
+        if (option.first != PortDBConstants::SCHEMA_ONLY_OPTION) {
+            return false;
+        }
+        if (option.second.getDataType() != LogicalType::BOOL()) {
+            throw common::BinderException{common::stringFormat(
+                "The '{}' option must have a BOOL value.", PortDBConstants::SCHEMA_ONLY_OPTION)};
+        }
+        return option.second.getValue<bool>();
+    };
+    auto exportSchemaOnly =
+        std::count_if(parsedOptions.begin(), parsedOptions.end(), isSchemaOnlyOption) != 0;
+    if (exportSchemaOnly && exportDB.getParsingOptionsRef().size() != 1) {
+        throw common::BinderException{
+            common::stringFormat("When '{}' option is set to true in export "
+                                 "database, no other options are allowed.",
+                PortDBConstants::SCHEMA_ONLY_OPTION)};
+    }
+    parsedOptions.erase(PortDBConstants::SCHEMA_ONLY_OPTION);
+    return exportSchemaOnly;
+}
+
 std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement& statement) {
     auto& exportDB = statement.constCast<ExportDB>();
     auto parsedOptions = bindParsingOptions(exportDB.getParsingOptionsRef());
@@ -127,7 +152,8 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     default:
         throw BinderException("Export database currently only supports csv and parquet files.");
     }
-    if (fileTypeInfo.fileType != FileType::CSV && parsedOptions.size() != 0) {
+    auto exportSchemaOnly = schemaOnly(parsedOptions, exportDB);
+    if (!exportSchemaOnly && fileTypeInfo.fileType != FileType::CSV && parsedOptions.size() != 0) {
         throw BinderException{"Only export to csv can have options."};
     }
     auto exportData =
@@ -135,7 +161,7 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     auto boundFilePath =
         clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
     return std::make_unique<BoundExportDatabase>(boundFilePath, fileTypeInfo, std::move(exportData),
-        std::move(parsedOptions));
+        std::move(parsedOptions), exportSchemaOnly);
 }
 
 } // namespace binder

@@ -28,10 +28,10 @@ class ExportDB final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::EXPORT_DATABASE;
 
 public:
-    ExportDB(common::FileScanInfo boundFileInfo, const DataPos& outputPos, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
+    ExportDB(common::FileScanInfo boundFileInfo, bool schemaOnly, const DataPos& outputPos,
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
         : Simple{type_, outputPos, id, std::move(printInfo)},
-          boundFileInfo{std::move(boundFileInfo)} {}
+          boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly} {}
 
     void initGlobalStateInternal(ExecutionContext* context) override;
 
@@ -39,12 +39,13 @@ public:
     std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<ExportDB>(std::move(boundFileInfo), outputPos, id,
+        return std::make_unique<ExportDB>(std::move(boundFileInfo), schemaOnly, outputPos, id,
             printInfo->copy());
     }
 
 private:
     common::FileScanInfo boundFileInfo;
+    bool schemaOnly;
 };
 } // namespace processor
 } // namespace kuzu

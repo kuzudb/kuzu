@@ -181,6 +181,9 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     // write the schema.cypher file
     writeStringStreamToFile(clientContext, getSchemaCypher(clientContext),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::SCHEMA_FILE_NAME);
+    if (schemaOnly) {
+        return;
+    }
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
     writeStringStreamToFile(clientContext, getCopyCypher(clientContext, &boundFileInfo),

@@ -18,6 +18,9 @@ static std::string getQueryFromFile(VirtualFileSystem* vfs, const std::string& b
     const std::string& fileName, main::ClientContext* context) {
     auto filePath = vfs->joinPath(boundFilePath, fileName);
     if (!vfs->fileOrPathExists(filePath, context)) {
+        if (fileName == PortDBConstants::COPY_FILE_NAME) {
+            return "";
+        }
         if (fileName == PortDBConstants::INDEX_FILE_NAME) {
             return "";
         }
