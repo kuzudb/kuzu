@@ -21,7 +21,7 @@ struct DatabaseHeader {
     PageRange metadataPageRange;
 
     void updateCatalogPageRange(PageManager& pageManager, PageRange newPageRange);
-    void updateMetadataPageRange(PageManager& pageManager, PageRange newPageRange);
+    void freeMetadataPageRange(PageManager& pageManager) const;
     void serialize(common::Serializer& ser) const;
 };
 

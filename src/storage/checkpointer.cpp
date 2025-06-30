@@ -21,11 +21,10 @@ void DatabaseHeader::updateCatalogPageRange(PageManager& pageManager, PageRange 
     catalogPageRange = newPageRange;
 }
 
-void DatabaseHeader::updateMetadataPageRange(PageManager& pageManager, PageRange newPageRange) {
+void DatabaseHeader::freeMetadataPageRange(PageManager& pageManager) const {
     if (metadataPageRange.startPageIdx != common::INVALID_PAGE_IDX) {
         pageManager.freePageRange(metadataPageRange);
     }
-    metadataPageRange = newPageRange;
 }
 
 static void writeMagicBytes(common::Serializer& serializer) {
@@ -114,8 +113,10 @@ void Checkpointer::writeCheckpoint() {
     if (databaseHeader.metadataPageRange.startPageIdx == common::INVALID_PAGE_IDX ||
         hasStorageChanges || catalog->changedSinceLastCheckpoint() ||
         dataFH->getPageManager()->changedSinceLastCheckpoint()) {
-        databaseHeader.updateMetadataPageRange(*dataFH->getPageManager(),
-            serializeMetadata(*catalog, *storageManager));
+        // We must free the existing metadata page range before serializing
+        // So that the freed pages are serialized by the FSM
+        databaseHeader.freeMetadataPageRange(*dataFH->getPageManager());
+        databaseHeader.metadataPageRange = serializeMetadata(*catalog, *storageManager);
     }
 
     writeDatabaseHeader(databaseHeader);
