@@ -41,6 +41,7 @@ struct CastToUnion {
     template<typename T>
     static inline void operation(T&, common::union_entry_t&, common::ValueVector& inputVector,
         common::ValueVector& resultVector) {
+        using namespace common;
         SelectionVector* selVector = inputVector.getSelVectorPtr();
         const auto& sourceType = inputVector.dataType;
         const auto& targetType = resultVector.dataType;
