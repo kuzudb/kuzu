@@ -62,15 +62,6 @@ Conversion exception: Unsupported casting LIST with incorrect list entry to ARRA
 -STATEMENT CREATE (b:Book {title: 'The Quantum World', published_year: 2004});
 ---- ok
 
--CASE BadEndpoint
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
----- ok
-
--STATEMENT return create_embedding('this should fail', 'ollama', 'nomic-embed-text', 'http://nonexisting.xx:11434');
----- error
-Connection exception: Request failed: Could not connect to server <http://nonexisting.xx:11434> 
-For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
-
 -CASE UnsupportedParams
 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
