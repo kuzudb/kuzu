@@ -17,6 +17,7 @@
 #include "storage/wal/local_wal.h"
 #include "storage/table/column_chunk.h"
 #include "storage/table/column_chunk_data.h"
+#include "storage/table/rel_table_data.h"
 #include "transaction/transaction.h"
 #include <ranges>
 
@@ -461,9 +462,8 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
             const auto committedRelOffset = getCommittedOffset(localRelOffset, maxCommittedOffset);
             internalIDChunk.setValue<offset_t>(committedRelOffset, rowIdx);
         }
-        // TODO(bmwinger): not sure how to handle this. Maybe we need an InternalIDChunk subclass of ColumnChunk
-        //
-        // internalIDData.setTableID(tableID);
+
+        internalIDChunk.setTableID(tableID);
     }
     KU_ASSERT(totalNumRows == localNodeGroup.getNumRows());
 }

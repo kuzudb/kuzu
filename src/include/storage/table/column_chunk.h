@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "common/cast.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/spill_result.h"
 #include "storage/page_allocator.h"
@@ -271,6 +272,13 @@ public:
     void syncNumValues() {
         for (auto& segment : data) {
             segment->syncNumValues();
+        }
+    }
+
+    void setTableID(common::table_id_t tableID) {
+        for (const auto& segment : data) {
+            auto internalIDSegment = common::ku_dynamic_cast<InternalIDChunkData*>(segment.get());
+            internalIDSegment->setTableID(tableID);
         }
     }
 
