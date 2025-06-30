@@ -164,6 +164,40 @@ Binder exception: Table knows does not exist.
 3|propj|INT32|5 + 5|False
 4|propy|INT64|1|False
 
+-CASE AddNodePropertyRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
+---- ok
+-STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true);
+---- ok
+-STATEMENT alter table Comment add propx int64;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (c:Comment) RETURN SUM(c.propx);
+---- 1
+
+-CASE AddRelPropertyRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
+---- ok
+-STATEMENT create rel table replyOf (FROM Comment TO Comment, MANY_ONE);
+---- ok
+-STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true);
+---- ok
+-STATEMENT copy replyOf from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment_replyOf_Comment.csv' (HEADER=true);
+---- ok
+-STATEMENT alter table replyOf add propx int64;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (c:Comment)-[r:replyOf]->(c2:Comment) RETURN SUM(r.propx);
+---- 1
+
 -CASE AddRelProperty
 -STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
 ---- ok
