@@ -13,7 +13,7 @@ EmbeddingProvider& OllamaEmbedding::getInstance() {
 }
 
 std::string OllamaEmbedding::getClient() const {
-    return "http://localhost:11434";
+    return endpoint.value_or("http://localhost:11434");
 }
 
 std::string OllamaEmbedding::getPath(const std::string& /*model*/) const {
@@ -34,16 +34,13 @@ std::vector<float> OllamaEmbedding::parseResponse(const httplib::Result& res) co
 }
 
 void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
-    const std::optional<std::string>& region) {
+    const std::optional<std::string>& endpoint) {
     if (dimensions.has_value()) {
         throw(BinderException(
             "Ollama does not support the dimensions argument, but received dimension: " +
             std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
     }
-    if (region.has_value()) {
-        throw(BinderException("Ollama does not support the region argument, but received region: " +
-                              region.value() + '\n' + std::string(referenceKuzuDocs)));
-    }
+    this->endpoint = endpoint;
 }
 
 } // namespace llm_extension

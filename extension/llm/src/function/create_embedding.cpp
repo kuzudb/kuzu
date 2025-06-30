@@ -94,20 +94,20 @@ static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr,
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::optional<uint64_t> dimensions = std::nullopt;
-    std::optional<std::string> region = std::nullopt;
+    std::optional<std::string> regionOrEndpoint = std::nullopt;
     auto& provider = getInstance(StringUtils::getLower(input.arguments[1]->toString()));
     if (input.arguments.size() == 5) {
         dimensions = parseDimensions(input.arguments[3], input.context);
-        region = StringUtils::getLower(input.arguments[4]->toString());
+        regionOrEndpoint = StringUtils::getLower(input.arguments[4]->toString());
     } else if (input.arguments.size() == 4) {
         if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
-            region = StringUtils::getLower(input.arguments[3]->toString());
+            regionOrEndpoint = StringUtils::getLower(input.arguments[3]->toString());
         } else {
             dimensions = parseDimensions(input.arguments[3], input.context);
         }
     }
 
-    provider.configure(dimensions, region);
+    provider.configure(dimensions, regionOrEndpoint);
     return FunctionBindData::getSimpleBindData(input.arguments,
         LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
 }
