@@ -87,10 +87,8 @@ public:
     // Plan copy.
     LogicalPlan planCopyTo(const binder::BoundStatement& statement);
     LogicalPlan planCopyFrom(const binder::BoundStatement& statement);
-    LogicalPlan planCopyNodeFrom(const binder::BoundCopyFromInfo* info,
-        binder::expression_vector outExprs);
-    LogicalPlan planCopyRelFrom(const binder::BoundCopyFromInfo* info,
-        binder::expression_vector outExprs);
+    LogicalPlan planCopyNodeFrom(const binder::BoundCopyFromInfo* info);
+    LogicalPlan planCopyRelFrom(const binder::BoundCopyFromInfo* info);
 
     // Plan export/import database
     std::vector<std::shared_ptr<LogicalOperator>> planExportTableData(

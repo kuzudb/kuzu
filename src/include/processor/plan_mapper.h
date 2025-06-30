@@ -92,7 +92,7 @@ public:
     std::unique_ptr<PhysicalOperator> mapCopyFrom(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyNodeFrom(
         const planner::LogicalOperator* logicalOperator);
-    physical_op_vector_t mapCopyRelFrom(const planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCopyRelFrom(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyTo(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateMacro(
         const planner::LogicalOperator* logicalOperator);

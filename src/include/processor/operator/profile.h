@@ -1,46 +1,33 @@
 #pragma once
 
-#include "processor/operator/physical_operator.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
 class PhysicalPlan;
 
 struct ProfileInfo {
-    PhysicalPlan* physicalPlan;
+    PhysicalPlan* physicalPlan = nullptr;
 };
 
-struct ProfileLocalState {
-    bool hasExecuted = false;
-};
-
-class Profile final : public PhysicalOperator {
+class Profile final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PROFILE;
 
 public:
-    Profile(DataPos outputPos, ProfileInfo info, ProfileLocalState localState, uint32_t id,
+    Profile(ProfileInfo info, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, id, std::move(printInfo)}, outputPos{outputPos}, info{info},
-          localState{localState}, outputVector(nullptr) {}
-
-    bool isSource() const override { return true; }
-    bool isParallel() const override { return false; }
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, info{info} {}
 
     void setPhysicalPlan(PhysicalPlan* physicalPlan) { info.physicalPlan = physicalPlan; }
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
-
-    bool getNextTuplesInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext *context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<Profile>(outputPos, info, localState, id, printInfo->copy());
+        return std::make_unique<Profile>(info, messageTable, id, printInfo->copy());
     }
 
 private:
-    DataPos outputPos;
     ProfileInfo info;
-    ProfileLocalState localState;
-    common::ValueVector* outputVector;
 };
 
 } // namespace processor
