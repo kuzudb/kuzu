@@ -619,10 +619,10 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     for (uint64_t i = 0; i < numFields; ++i) {
         const LogicalType& fieldType = UnionType::getFieldType(targetType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
-            scalar_func_exec_t execFunc =
-                TypeUtils::visit(sourceType, []<typename T>(T) -> scalar_func_exec_t {
-                    return ScalarFunction::UnaryCastExecFunction<T, union_entry_t, CastToUnion>;
-                });
+            scalar_func_exec_t execFunc;
+            TypeUtils::visit(sourceType, [&execFunc]<typename T>(T) {
+                execFunc = ScalarFunction::UnaryCastExecFunction<T, union_entry_t, CastToUnion>;
+            });
             return std::make_unique<ScalarFunction>(functionName,
                 std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()},
                 targetType.getLogicalTypeID(), execFunc);
