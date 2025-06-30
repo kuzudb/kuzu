@@ -154,12 +154,13 @@ void HashIndex<T>::splitSlots(PageAllocator& pageAllocator, const Transaction* t
         entry_pos_t newEntryPos = 0;
         Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
         do {
-            for (entry_pos_t originalEntryPos = 0; originalEntryPos < getSlotCapacity<T>();
-                 originalEntryPos++) {
+            for (entry_pos_t originalEntryPos = 0;
+                originalEntryPos < getSlotCapacity<typename InMemHashIndex<T>::OwnedType>();
+                originalEntryPos++) {
                 if (!originalSlot->header.isEntryValid(originalEntryPos)) {
                     continue; // Skip invalid entries.
                 }
-                if (newEntryPos >= getSlotCapacity<T>()) {
+                if (newEntryPos >= getSlotCapacity<typename InMemHashIndex<T>::OwnedType>()) {
                     newSlot->header.nextOvfSlotId =
                         newOverflowSlots.size() + oSlots->getNumElements();
                     newOverflowSlots.emplace_back();
@@ -209,9 +210,10 @@ void HashIndex<T>::reserve(PageAllocator& pageAllocator, const Transaction* tran
     slot_id_t numRequiredEntries =
         HashIndexUtils::getNumRequiredEntries(this->indexHeaderForWriteTrx.numEntries + newEntries);
     // Can be no fewer slots than the current level requires
-    auto numRequiredSlots =
-        std::max((numRequiredEntries + getSlotCapacity<T>() - 1) / getSlotCapacity<T>(),
-            static_cast<slot_id_t>(1ul << this->indexHeaderForWriteTrx.currentLevel));
+    auto numRequiredSlots = std::max(
+        (numRequiredEntries + getSlotCapacity<typename InMemHashIndex<T>::OwnedType>() - 1) /
+            getSlotCapacity<typename InMemHashIndex<T>::OwnedType>(),
+        static_cast<slot_id_t>(1ul << this->indexHeaderForWriteTrx.currentLevel));
     // Always start with at least one page worth of slots.
     // This guarantees that when splitting the source and destination slot are never on the same
     // page, which allows safe use of multiple disk array iterators.
@@ -302,10 +304,9 @@ void HashIndex<T>::mergeBulkInserts(PageAllocator& pageAllocator, const Transact
     // may not be consecutive, but we reduce the memory overhead for storing the information about
     // the sorted data and still just process each page once.
     for (uint64_t localSlotId = 0; localSlotId < insertLocalStorage.numPrimarySlots();
-         localSlotId += NUM_SLOTS_PER_PAGE) {
+        localSlotId += NUM_SLOTS_PER_PAGE) {
         for (size_t i = 0;
-             i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots();
-             i++) {
+            i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots(); i++) {
             auto localSlot =
                 typename InMemHashIndex<T>::SlotIterator(localSlotId + i, &insertLocalStorage);
             partitionedEntries[i].clear();
@@ -363,10 +364,10 @@ size_t HashIndex<T>::mergeSlot(PageAllocator& pageAllocator, const Transaction* 
             return merged;
         }
         // Find the next empty entry or add a new slot if there are no more entries
-        while (
-            diskSlot->header.isEntryValid(diskEntryPos) || diskEntryPos >= getSlotCapacity<T>()) {
+        while (diskSlot->header.isEntryValid(diskEntryPos) ||
+               diskEntryPos >= getSlotCapacity<typename InMemHashIndex<T>::OwnedType>()) {
             diskEntryPos++;
-            if (diskEntryPos >= getSlotCapacity<T>()) {
+            if (diskEntryPos >= getSlotCapacity<typename InMemHashIndex<T>::OwnedType>()) {
                 if (diskSlot->header.nextOvfSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
                     // If there are no more disk slots in this chain, we need to add one
                     diskSlot->header.nextOvfSlotId = diskOverflowSlotIterator.size();
@@ -387,8 +388,14 @@ size_t HashIndex<T>::mergeSlot(PageAllocator& pageAllocator, const Transaction* 
                 diskEntryPos = 0;
             }
         }
-        KU_ASSERT(diskEntryPos < getSlotCapacity<T>());
-        diskSlot->entries[diskEntryPos] = *it->entry;
+        KU_ASSERT(diskEntryPos < getSlotCapacity<typename InMemHashIndex<T>::OwnedType>());
+        if constexpr (std::is_same_v<T, ku_string_t>) {
+            auto* inMemEntry = it->entry;
+            auto kuString = overflowFileHandle->writeString(&pageAllocator, inMemEntry->key);
+            diskSlot->entries[diskEntryPos] = SlotEntry<T>{kuString, inMemEntry->value};
+        } else {
+            diskSlot->entries[diskEntryPos] = *it->entry;
+        }
         diskSlot->header.setEntryValid(diskEntryPos, it->fingerprint);
         KU_ASSERT([&]() {
             const auto& key = it->entry->key;
@@ -467,7 +474,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(IndexInfo indexInfo, std::unique_ptr<IndexStora
                 hashIndexStorageInfo.firstHeaderPage + headerPageIdx, [&](auto* frame) {
                     const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                     for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                         i++) {
+                        i++) {
                         hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
                         headerIdx++;
                     }
@@ -492,8 +499,8 @@ void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& m
         if (inMemMode) {
             overflowFile = std::make_unique<InMemOverflowFile>(mm);
         } else {
-            overflowFile = std::make_unique<OverflowFile>(&pageAllocator, mm, &shadowFile,
-                storageInfo.overflowHeaderPage);
+            overflowFile = std::make_unique<OverflowFile>(pageAllocator.getDataFH(), mm,
+                &shadowFile, storageInfo.overflowHeaderPage);
         }
     }
     hashIndices.reserve(NUM_HASH_INDEXES);
@@ -613,7 +620,7 @@ void PrimaryKeyIndex::writeHeaders(PageAllocator& pageAllocator) const {
             [&](auto* frame) {
                 const auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
+                    i++) {
                     hashIndexHeadersForWriteTrx[headerIdx++].write(onDiskFrame[i]);
                 }
             });
@@ -633,6 +640,14 @@ void PrimaryKeyIndex::rollbackCheckpoint() {
     }
 }
 
+static void updateOverflowHeaderPageIfNeeded(IndexStorageInfo* storageInfo,
+    OverflowFile* overflowFile) {
+    auto& hashIndexStorageInfo = storageInfo->cast<PrimaryKeyIndexStorageInfo>();
+    if (hashIndexStorageInfo.overflowHeaderPage == INVALID_PAGE_IDX) {
+        hashIndexStorageInfo.overflowHeaderPage = overflowFile->getHeaderPageIdx();
+    }
+}
+
 void PrimaryKeyIndex::checkpoint(main::ClientContext*, storage::PageAllocator& pageAllocator) {
     bool indexChanged = false;
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
@@ -645,7 +660,8 @@ void PrimaryKeyIndex::checkpoint(main::ClientContext*, storage::PageAllocator& p
         hashIndexDiskArrays->checkpoint(getDiskArrayFirstHeaderPage(), pageAllocator);
     }
     if (overflowFile) {
-        overflowFile->checkpoint();
+        overflowFile->checkpoint(pageAllocator);
+        updateOverflowHeaderPageIfNeeded(storageInfo.get(), overflowFile.get());
     }
     // Make sure that changes which bypassed the WAL are written.
     // There is no other mechanism for enforcing that they are flushed

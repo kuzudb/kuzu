@@ -25,6 +25,9 @@ enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT
 template<typename T>
 class HashIndexLocalStorage final : public BaseHashIndexLocalStorage {
 public:
+    using OwnedType = InMemHashIndex<T>::OwnedType;
+    using KeyType = InMemHashIndex<T>::KeyType;
+
     explicit HashIndexLocalStorage(MemoryManager& memoryManager, OverflowFileHandle* handle)
         : localDeletions{}, localInsertions{memoryManager, handle} {}
     using OwnedKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;

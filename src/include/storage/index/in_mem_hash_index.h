@@ -57,10 +57,15 @@ using HashIndexType =
 // (see BufferKeyType and Key)
 template<typename T>
 class InMemHashIndex final {
-    static_assert(getSlotCapacity<T>() <= SlotHeader::FINGERPRINT_CAPACITY);
+public:
+    using OwnedType = std::conditional_t<std::is_same_v<T, common::ku_string_t>, std::string, T>;
+    using KeyType = std::conditional_t<std::is_same_v<T, common::ku_string_t>, std::string_view, T>;
+    static_assert(std::is_constructible_v<OwnedType, KeyType>);
+
+    static_assert(getSlotCapacity<OwnedType>() <= SlotHeader::FINGERPRINT_CAPACITY);
     // Size of the validity mask
-    static_assert(getSlotCapacity<T>() <= sizeof(SlotHeader().validityMask) * 8);
-    static_assert(getSlotCapacity<T>() <= std::numeric_limits<entry_pos_t>::max() + 1);
+    static_assert(getSlotCapacity<OwnedType>() <= sizeof(SlotHeader().validityMask) * 8);
+    static_assert(getSlotCapacity<OwnedType>() <= std::numeric_limits<entry_pos_t>::max() + 1);
     static_assert(DiskArray<Slot<T>>::getAlignedElementSize() <=
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES);
     static_assert(DiskArray<Slot<T>>::getAlignedElementSize() >= sizeof(Slot<T>));
@@ -80,9 +85,9 @@ public:
         reserve(indexHeader.numEntries + numNewEntries);
     }
 
-    using BufferKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;
+    using BufferKeyType = OwnedType;
     // TODO(Ben): Ideally, `Key` should reuse `HashIndexType`.
-    using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
+    using Key = KeyType;
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
     size_t append(const IndexBuffer<BufferKeyType>& buffer, uint64_t bufferOffset,
@@ -132,7 +137,7 @@ public:
         explicit SlotIterator(SlotInfo slotInfo, const InMemHashIndex* builder)
             : slotInfo{slotInfo}, slot(builder->getSlot(slotInfo)) {}
         SlotInfo slotInfo;
-        Slot<T>* slot;
+        Slot<OwnedType>* slot;
     };
 
     // Leaves the slot pointer pointing at the last slot to make it easier to add a new one
@@ -166,7 +171,7 @@ public:
         SlotIterator iter(slotId, this);
         std::optional<entry_pos_t> deletedPos;
         do {
-            for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
+            for (auto entryPos = 0u; entryPos < getSlotCapacity<OwnedType>(); entryPos++) {
                 if (iter.slot->header.isEntryValid(entryPos) &&
                     iter.slot->header.fingerprints[entryPos] == fingerprint &&
                     equals(key, iter.slot->entries[entryPos].key)) {
@@ -218,7 +223,7 @@ private:
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
             // The key already exists
             return false;
-        } else if (numEntries < getSlotCapacity<T>()) [[likely]] {
+        } else if (numEntries < getSlotCapacity<OwnedType>()) [[likely]] {
             // The key does not exist and the last slot has free space
             insert(key, iter.slot, numEntries, value, fingerprint);
             this->indexHeader.numEntries++;
@@ -229,7 +234,7 @@ private:
         this->indexHeader.numEntries++;
         return true;
     }
-    Slot<T>* getSlot(const SlotInfo& slotInfo) const;
+    Slot<OwnedType>* getSlot(const SlotInfo& slotInfo) const;
 
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
@@ -242,48 +247,24 @@ private:
     void splitSlot();
     // Reclaims empty overflow slots to be re-used, starting from the given slot iterator
     void reclaimOverflowSlots(SlotIterator iter);
-    void addFreeOverflowSlot(Slot<T>& overflowSlot, SlotInfo slotInfo);
+    void addFreeOverflowSlot(Slot<OwnedType>& overflowSlot, SlotInfo slotInfo);
     uint64_t countSlots(SlotIterator iter) const;
     // Make sure that the free overflow slot chain is at least as long as the totalSlotsRequired
     void reserveOverflowSlots(uint64_t totalSlotsRequired);
 
-    bool equals(Key keyToLookup, const T& keyInEntry) const {
-        if constexpr (std::same_as<T, common::ku_string_t>) {
-            // Checks if prefix and len matches first.
-            if (!HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
-                return false;
-            }
-            if (keyInEntry.len <= common::ku_string_t::PREFIX_LENGTH) {
-                // For strings shorter than PREFIX_LENGTH, the result must be true.
-                return true;
-            } else if (keyInEntry.len <= common::ku_string_t::SHORT_STR_LENGTH) {
-                // For short strings, whose lengths are larger than PREFIX_LENGTH, check if their
-                // actual values are equal.
-                return memcmp(keyToLookup.data(), keyInEntry.prefix, keyInEntry.len) == 0;
-            } else {
-                // For long strings, compare with overflow data
-                return overflowFileHandle->equals(transaction::TransactionType::WRITE, keyToLookup,
-                    keyInEntry);
-            }
-        } else {
-            return keyToLookup == keyInEntry;
-        }
+    bool equals(Key keyToLookup, const OwnedType& keyInEntry) const {
+        return keyToLookup == keyInEntry;
     }
 
-    void insert(Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value,
+    void insert(Key key, Slot<OwnedType>* slot, uint8_t entryPos, common::offset_t value,
         uint8_t fingerprint) {
         KU_ASSERT(HashIndexUtils::getFingerprintForHash(HashIndexUtils::hash(key)) == fingerprint);
         auto& entry = slot->entries[entryPos];
-        if constexpr (std::same_as<T, common::ku_string_t>) {
-            entry = SlotEntry<common::ku_string_t>(overflowFileHandle->writeString(key), value);
-            slot->header.setEntryValid(entryPos, fingerprint);
-        } else {
-            entry = SlotEntry<T>(key, value);
-            slot->header.setEntryValid(entryPos, fingerprint);
-        }
+        entry = SlotEntry<OwnedType>(OwnedType{key}, value);
+        slot->header.setEntryValid(entryPos, fingerprint);
     }
 
-    void insertToNewOvfSlot(Key key, Slot<T>* previousSlot, common::offset_t offset,
+    void insertToNewOvfSlot(Key key, Slot<OwnedType>* previousSlot, common::offset_t offset,
         uint8_t fingerprint) {
         auto newSlotId = allocateAOSlot();
         previousSlot->header.nextOvfSlotId = newSlotId;
@@ -292,8 +273,8 @@ private:
         insert(key, newSlot, entryPos, offset, fingerprint);
     }
 
-    common::hash_t hashStored(const T& key) const;
-    Slot<T>* clearNextOverflowAndAdvanceIter(SlotIterator& iter);
+    common::hash_t hashStored(const OwnedType& key) const;
+    Slot<OwnedType>* clearNextOverflowAndAdvanceIter(SlotIterator& iter);
 
     // Finds the entry matching the given key. The iterator will be advanced and will either point
     // to the slot containing the matching entry, or the last slot available
@@ -310,7 +291,7 @@ private:
                     return entryPos;
                 }
             }
-            if (numEntries < getSlotCapacity<T>()) {
+            if (numEntries < getSlotCapacity<OwnedType>()) {
                 return SlotHeader::INVALID_ENTRY_POS;
             }
         } while (nextChainedSlot(iter));
@@ -321,8 +302,8 @@ private:
     // TODO: might be more efficient to use a vector for each slot since this is now only needed
     // in-memory and it would remove the need to handle overflow slots.
     OverflowFileHandle* overflowFileHandle;
-    std::unique_ptr<BlockVector<Slot<T>>> pSlots;
-    std::unique_ptr<BlockVector<Slot<T>>> oSlots;
+    std::unique_ptr<BlockVector<Slot<OwnedType>>> pSlots;
+    std::unique_ptr<BlockVector<Slot<OwnedType>>> oSlots;
     HashIndexHeader indexHeader;
     MemoryManager& memoryManager;
     uint64_t numFreeSlots;

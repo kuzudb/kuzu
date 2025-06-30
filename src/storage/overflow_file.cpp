@@ -68,8 +68,8 @@ bool OverflowFileHandle::equals(TransactionType trxType, std::string_view keyToL
     return true;
 }
 
-uint8_t* OverflowFileHandle::addANewPage() {
-    page_idx_t newPageIdx = overflowFile.getNewPageIdx();
+uint8_t* OverflowFileHandle::addANewPage(PageAllocator* pageAllocator) {
+    page_idx_t newPageIdx = overflowFile.getNewPageIdx(pageAllocator);
     if (pageWriteCache.size() > 0) {
         memcpy(pageWriteCache[nextPosToWriteTo.pageIdx]->getData() + END_OF_PAGE, &newPageIdx,
             sizeof(page_idx_t));
@@ -84,15 +84,15 @@ uint8_t* OverflowFileHandle::addANewPage() {
     return pageWriteCache[newPageIdx]->getData();
 }
 
-void OverflowFileHandle::setStringOverflow(const char* srcRawString, uint64_t len,
-    ku_string_t& diskDstString) {
+void OverflowFileHandle::setStringOverflow(PageAllocator* pageAllocator, const char* srcRawString,
+    uint64_t len, ku_string_t& diskDstString) {
     if (len <= ku_string_t::SHORT_STR_LENGTH) {
         return;
     }
     overflowFile.headerChanged = true;
     uint8_t* pageToWrite = nullptr;
     if (nextPosToWriteTo.pageIdx == INVALID_PAGE_IDX) {
-        pageToWrite = addANewPage();
+        pageToWrite = addANewPage(pageAllocator);
     } else {
         auto cached = pageWriteCache.find(nextPosToWriteTo.pageIdx);
         if (cached != pageWriteCache.end()) {
@@ -120,18 +120,19 @@ void OverflowFileHandle::setStringOverflow(const char* srcRawString, uint64_t le
         remainingLength -= numBytesToWriteInPage;
         nextPosToWriteTo.elemPosInPage += numBytesToWriteInPage;
         if (nextPosToWriteTo.elemPosInPage >= END_OF_PAGE) {
-            pageToWrite = addANewPage();
+            pageToWrite = addANewPage(pageAllocator);
         }
     }
 }
 
-ku_string_t OverflowFileHandle::writeString(std::string_view rawString) {
+ku_string_t OverflowFileHandle::writeString(PageAllocator* pageAllocator,
+    std::string_view rawString) {
     ku_string_t result;
     result.len = rawString.length();
     auto shortStrLen = ku_string_t::SHORT_STR_LENGTH;
     auto inlineLen = std::min(shortStrLen, static_cast<uint64_t>(result.len));
     memcpy(result.prefix, rawString.data(), inlineLen);
-    setStringOverflow(rawString.data(), rawString.length(), result);
+    setStringOverflow(pageAllocator, rawString.data(), rawString.length(), result);
     return result;
 }
 
@@ -176,51 +177,64 @@ void OverflowFileHandle::read(TransactionType trxType, page_idx_t pageIdx,
     overflowFile.readFromDisk(trxType, pageIdx, func);
 }
 
-OverflowFile::OverflowFile(PageAllocator* pageAllocator, MemoryManager& memoryManager,
+OverflowFile::OverflowFile(FileHandle* fileHandle, MemoryManager& memoryManager,
     ShadowFile* shadowFile, page_idx_t headerPageIdx)
-    : numPagesOnDisk{0}, pageAllocator{pageAllocator}, shadowFile{shadowFile},
+    : numPagesOnDisk{0}, fileHandle{fileHandle}, shadowFile{shadowFile},
       memoryManager{memoryManager}, headerChanged{false}, headerPageIdx{headerPageIdx} {
     KU_ASSERT(shadowFile);
     if (headerPageIdx != INVALID_PAGE_IDX) {
         readFromDisk(TransactionType::READ_ONLY, headerPageIdx,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
     } else {
-        // Reserve a page for the header
-        this->headerPageIdx = getNewPageIdx();
         header = StringOverflowFileHeader();
     }
 }
 
 OverflowFile::OverflowFile(MemoryManager& memoryManager)
-    : numPagesOnDisk{0}, pageAllocator{nullptr}, shadowFile{nullptr}, memoryManager{memoryManager},
+    : numPagesOnDisk{0}, fileHandle{nullptr}, shadowFile{nullptr}, memoryManager{memoryManager},
       headerChanged{false}, headerPageIdx{INVALID_PAGE_IDX} {
     // Reserve a page for the header
-    this->headerPageIdx = getNewPageIdx();
+    this->headerPageIdx = getNewPageIdx(nullptr);
     header = StringOverflowFileHeader();
+}
+
+common::page_idx_t OverflowFile::getNewPageIdx(PageAllocator* pageAllocator) {
+    // If this isn't the first call reserving the page header, then the header flag must be set
+    // prior to this
+    if (pageAllocator) {
+        return pageAllocator->allocatePage();
+    } else {
+        return pageCounter.fetch_add(1);
+    }
 }
 
 void OverflowFile::readFromDisk(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
     KU_ASSERT(shadowFile);
     auto [fileHandleToPin, pageIdxToPin] = ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(
-        *getFileHandle(), pageIdx, *shadowFile, trxType);
+        *fileHandle, pageIdx, *shadowFile, trxType);
     fileHandleToPin->optimisticReadPage(pageIdxToPin, func);
 }
 
 void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
     if (pageIdx < numPagesOnDisk) {
         KU_ASSERT(shadowFile);
-        ShadowUtils::updatePage(*getFileHandle(), pageIdx, true /* overwriting entire page*/,
+        ShadowUtils::updatePage(*fileHandle, pageIdx, true /* overwriting entire page*/,
             *shadowFile, [&](auto* frame) { memcpy(frame, data, KUZU_PAGE_SIZE); });
     } else {
-        KU_ASSERT(pageAllocator);
-        KU_ASSERT(!getFileHandle()->isInMemoryMode());
-        getFileHandle()->writePageToFile(data, pageIdx);
+        KU_ASSERT(fileHandle);
+        KU_ASSERT(!fileHandle->isInMemoryMode());
+        fileHandle->writePageToFile(data, pageIdx);
     }
 }
 
-void OverflowFile::checkpoint() {
-    KU_ASSERT(pageAllocator);
+void OverflowFile::checkpoint(PageAllocator& pageAllocator) {
+    KU_ASSERT(fileHandle);
+    if (headerPageIdx == INVALID_PAGE_IDX) {
+        // Reserve a page for the header
+        this->headerPageIdx = getNewPageIdx(&pageAllocator);
+        headerChanged = true;
+    }
     // TODO(bmwinger): Ideally this could be done separately and in parallel by each HashIndex
     // However fileHandle->addNewPages needs to be called beforehand,
     // but after each HashIndex::prepareCommit has written to the in-memory pages
@@ -241,6 +255,7 @@ void OverflowFile::checkpointInMemory() {
 }
 
 void OverflowFile::rollbackInMemory() {
+    KU_ASSERT(getFileHandle()->getNumPages() <= INVALID_PAGE_IDX);
     if (getFileHandle()->getNumPages() > headerPageIdx) {
         readFromDisk(TransactionType::READ_ONLY, headerPageIdx,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });

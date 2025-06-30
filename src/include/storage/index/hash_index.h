@@ -223,7 +223,7 @@ private:
     struct HashIndexEntryView {
         slot_id_t diskSlotId;
         uint8_t fingerprint;
-        const SlotEntry<T>* entry;
+        const SlotEntry<typename InMemHashIndex<T>::OwnedType>* entry;
     };
 
     void sortEntries(const transaction::Transaction* transaction,
@@ -245,6 +245,11 @@ private:
 
     inline common::hash_t hashStored(const transaction::Transaction* /*transaction*/,
         const T& key) const {
+        return HashIndexUtils::hash(key);
+    }
+
+    inline common::hash_t hashStored(const transaction::Transaction* /*transaction*/,
+        std::string_view key) const {
         return HashIndexUtils::hash(key);
     }
 

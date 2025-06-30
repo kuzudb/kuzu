@@ -49,9 +49,9 @@ public:
     bool equals(transaction::TransactionType trxType, std::string_view keyToLookup,
         const common::ku_string_t& keyInEntry) const;
 
-    common::ku_string_t writeString(std::string_view rawString);
-    common::ku_string_t writeString(const char* rawString) {
-        return writeString(std::string_view(rawString));
+    common::ku_string_t writeString(PageAllocator* pageAllocator, std::string_view rawString);
+    common::ku_string_t writeString(PageAllocator* pageAllocator, const char* rawString) {
+        return writeString(pageAllocator, std::string_view(rawString));
     }
 
     void checkpoint();
@@ -63,8 +63,8 @@ public:
     void reclaimStorage(PageAllocator& pageAllocator);
 
 private:
-    uint8_t* addANewPage();
-    void setStringOverflow(const char* inMemSrcStr, uint64_t len,
+    uint8_t* addANewPage(PageAllocator* pageAllocator);
+    void setStringOverflow(PageAllocator* pageAllocator, const char* inMemSrcStr, uint64_t len,
         common::ku_string_t& diskDstString);
 
     void read(transaction::TransactionType trxType, common::page_idx_t pageIdx,
@@ -87,7 +87,7 @@ class OverflowFile {
 
 public:
     // For reading an existing overflow file
-    OverflowFile(PageAllocator* pageAllocator, MemoryManager& memoryManager, ShadowFile* shadowFile,
+    OverflowFile(FileHandle* fileHandle, MemoryManager& memoryManager, ShadowFile* shadowFile,
         common::page_idx_t headerPageIdx);
 
     virtual ~OverflowFile() = default;
@@ -96,10 +96,12 @@ public:
     OverflowFile(OverflowFile&& other) = delete;
 
     void rollbackInMemory();
-    void checkpoint();
+    void checkpoint(PageAllocator& pageAllocator);
     void checkpointInMemory();
 
     void reclaimStorage(PageAllocator& pageAllocator) const;
+
+    common::page_idx_t getHeaderPageIdx() const { return headerPageIdx; }
 
     OverflowFileHandle* addHandle() {
         KU_ASSERT(handles.size() < NUM_HASH_INDEXES);
@@ -109,22 +111,14 @@ public:
     }
 
     FileHandle* getFileHandle() const {
-        KU_ASSERT(pageAllocator);
-        return pageAllocator->getDataFH();
+        KU_ASSERT(fileHandle);
+        return fileHandle;
     }
 
 protected:
     explicit OverflowFile(MemoryManager& memoryManager);
 
-    common::page_idx_t getNewPageIdx() {
-        // If this isn't the first call reserving the page header, then the header flag must be set
-        // prior to this
-        if (pageAllocator) {
-            return pageAllocator->allocatePage();
-        } else {
-            return pageCounter.fetch_add(1);
-        }
-    }
+    common::page_idx_t getNewPageIdx(PageAllocator* pageAllocator);
 
 private:
     void readFromDisk(transaction::TransactionType trxType, common::page_idx_t pageIdx,
@@ -139,7 +133,7 @@ protected:
     std::vector<std::unique_ptr<OverflowFileHandle>> handles;
     StringOverflowFileHeader header;
     common::page_idx_t numPagesOnDisk;
-    PageAllocator* pageAllocator;
+    FileHandle* fileHandle;
     ShadowFile* shadowFile;
     MemoryManager& memoryManager;
     std::atomic<common::page_idx_t> pageCounter;
