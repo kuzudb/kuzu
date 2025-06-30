@@ -60,9 +60,7 @@ public:
             storage::IndexDefinitionType::EXTENSION, load};
         return FTS_INDEX_TYPE;
     }
-    FTSInternalTableInfo& getInternalTableInfo() {
-        return internalTableInfo;
-    }
+    FTSInternalTableInfo& getInternalTableInfo() { return internalTableInfo; }
 
 private:
     common::nodeID_t insertToDocTable(transaction::Transaction* transaction,
