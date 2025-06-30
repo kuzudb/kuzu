@@ -1827,8 +1827,8 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const std::vector<LogicalType>& type
     return true;
 }
 
-LogicalType LogicalTypeUtils::combineTypes(const common::LogicalType& lft,
-    const common::LogicalType& rit) { // always succeeds
+LogicalType LogicalTypeUtils::combineTypes(const LogicalType& lft,
+    const LogicalType& rit) { // always succeeds
     if (lft.getLogicalTypeID() == LogicalTypeID::STRING ||
         rit.getLogicalTypeID() == LogicalTypeID::STRING) {
         return LogicalType::STRING();
@@ -1875,6 +1875,23 @@ LogicalType LogicalTypeUtils::combineTypes(const common::LogicalType& lft,
     }
     return result;
 }
+
+LogicalType LogicalTypeUtils::combineTypes(const std::vector<LogicalType>& types) {
+   if (types.empty()) {
+       // LCOV_EXCL_START
+       throw RuntimeException(stringFormat("Trying to combine empty types. This should never happen."));
+       // LCOV_EXCL_STOP
+   }
+    if (types.size() == 1) {
+        return types[0].copy();
+    }
+    auto result = combineTypes(types[0], types[1]);
+    for (auto i = 2u; i < types.size(); i++) {
+        result = combineTypes(result, types[i]);
+    }
+    return result;
+}
+
 
 LogicalType LogicalTypeUtils::purgeAny(const LogicalType& type, const LogicalType& replacement) {
     switch (type.getLogicalTypeID()) {

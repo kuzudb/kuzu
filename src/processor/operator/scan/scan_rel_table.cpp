@@ -54,30 +54,38 @@ std::string ScanRelTablePrintInfo::toString() const {
     return result;
 }
 
+void ScanRelTableInfo::initScanState(TableScanState& scanState,
+    const std::vector<ValueVector*>& outVectors, main::ClientContext* context) {
+    auto transaction = context->getTransaction();
+    scanState.setToTable(transaction, table,columnIDs, copyVector(columnPredicates), direction);
+    initScanStateVectors(scanState, outVectors, context->getMemoryManager());
+}
+
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    std::vector<ValueVector*> outVectors;
-    for (auto& pos : info.outVectorsPos) {
-        outVectors.push_back(resultSet->getValueVector(pos).get());
-    }
-    scanState = std::make_unique<RelTableScanState>(*context->clientContext->getMemoryManager(),
-        resultSet->getValueVector(info.nodeIDPos).get(), outVectors, outVectors[0]->state);
-    scanState->setToTable(context->clientContext->getTransaction(), relInfo.table,
-        relInfo.columnIDs, copyVector(relInfo.columnPredicates), relInfo.direction);
+    ScanTable::initLocalStateInternal(resultSet, context);
+    auto clientContext = context->clientContext;
+    auto boundNodeIDVector = resultSet->getValueVector(opInfo.nodeIDPos).get();
+    auto nbrNodeIDVector = outVectors[0];
+    scanState = std::make_unique<RelTableScanState>(*clientContext->getMemoryManager(),
+        boundNodeIDVector, outVectors, nbrNodeIDVector->state);
+    tableInfo.initScanState(*scanState, outVectors, clientContext);
 }
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     const auto transaction = context->clientContext->getTransaction();
     while (true) {
-        while (relInfo.table->scan(transaction, *scanState)) {
-            if (scanState->outState->getSelVector().getSelSize() > 0) {
-                metrics->numOutputTuple.increase(scanState->outState->getSelVector().getSelSize());
+        while (tableInfo.table->scan(transaction, *scanState)) {
+            const auto outputSize = scanState->outState->getSelVector().getSelSize();
+            if (outputSize > 0) {
+                // No need to perform column cast because this is single table scan.
+                metrics->numOutputTuple.increase(outputSize);
                 return true;
             }
         }
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        relInfo.table->initScanState(transaction, *scanState);
+        tableInfo.table->initScanState(transaction, *scanState);
     }
 }
 

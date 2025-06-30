@@ -39,23 +39,6 @@ private:
     std::unique_ptr<common::SemiMask> semiMask;
 };
 
-struct ScanNodeTableInfo {
-    storage::NodeTable* table;
-    std::vector<common::column_id_t> columnIDs;
-    std::vector<storage::ColumnPredicateSet> columnPredicates;
-
-    ScanNodeTableInfo(storage::NodeTable* table, std::vector<common::column_id_t> columnIDs,
-        std::vector<storage::ColumnPredicateSet> columnPredicates)
-        : table{table}, columnIDs{std::move(columnIDs)},
-          columnPredicates{std::move(columnPredicates)} {}
-    EXPLICIT_COPY_DEFAULT_MOVE(ScanNodeTableInfo);
-
-private:
-    ScanNodeTableInfo(const ScanNodeTableInfo& other)
-        : table{other.table}, columnIDs{other.columnIDs},
-          columnPredicates{copyVector(other.columnPredicates)} {}
-};
-
 struct ScanNodeTablePrintInfo final : OPPrintInfo {
     std::vector<std::string> tableNames;
     std::string alias;
@@ -78,19 +61,29 @@ private:
           properties{other.properties} {}
 };
 
+struct ScanNodeTableInfo : ScanTableInfo {
+    ScanNodeTableInfo(storage::Table* table, std::vector<storage::ColumnPredicateSet> columnPredicates) : ScanTableInfo{table, std::move(columnPredicates)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(ScanNodeTableInfo);
+
+    void initScanState(storage::TableScanState &scanState, const std::vector<common::ValueVector *> &outVectors, main::ClientContext *context) override;
+
+private:
+    ScanNodeTableInfo(const ScanNodeTableInfo& other) : ScanTableInfo {other} {}
+};
+
 class ScanNodeTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_NODE_TABLE;
 
 public:
-    ScanNodeTable(ScanTableInfo info, std::vector<ScanNodeTableInfo> nodeInfos,
+    ScanNodeTable(ScanOpInfo opInfo, std::vector<ScanNodeTableInfo> tableInfos,
         std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState)
-        : ScanTable{type_, std::move(info), id, std::move(printInfo)}, currentTableIdx{0},
-          scanState{nullptr}, nodeInfos{std::move(nodeInfos)},
+        : ScanTable{type_, std::move(opInfo), id, std::move(printInfo)}, currentTableIdx{0},
+          scanState{nullptr}, tableInfos{std::move(tableInfos)},
           sharedStates{std::move(sharedStates)},
           progressSharedState{std::move(progressSharedState)} {
-        KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
+        KU_ASSERT(this->tableInfos.size() == this->sharedStates.size());
     }
 
     common::table_id_map_t<common::SemiMask*> getSemiMasks() const;
@@ -107,7 +100,7 @@ public:
     }
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<ScanNodeTable>(info.copy(), copyVector(nodeInfos), sharedStates, id,
+        return std::make_unique<ScanNodeTable>(opInfo.copy(), copyVector(tableInfos), sharedStates, id,
             printInfo->copy(), progressSharedState);
     }
 
@@ -116,10 +109,12 @@ public:
 private:
     void initGlobalStateInternal(ExecutionContext* context) override;
 
+    void initCurrentTable(ExecutionContext* context);
+
 private:
     common::idx_t currentTableIdx;
     std::unique_ptr<storage::NodeTableScanState> scanState;
-    std::vector<ScanNodeTableInfo> nodeInfos;
+    std::vector<ScanNodeTableInfo> tableInfos;
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
     std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState;
 };

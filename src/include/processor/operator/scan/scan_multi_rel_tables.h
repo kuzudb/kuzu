@@ -40,7 +40,7 @@ public:
         }
     }
 
-    bool scan(transaction::Transaction* transaction, storage::RelTableScanState& scanState);
+    bool scan(main::ClientContext* context, storage::RelTableScanState& scanState, const std::vector<common::ValueVector*>& outVectors);
 
 private:
     RelTableCollectionScanner(const RelTableCollectionScanner& other)
@@ -58,9 +58,9 @@ class ScanMultiRelTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
 
 public:
-    ScanMultiRelTable(ScanTableInfo info, DirectionInfo directionInfo,
+    ScanMultiRelTable(ScanOpInfo info, DirectionInfo directionInfo,
         common::table_id_map_t<RelTableCollectionScanner> scanners,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<PhysicalOperator> child, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : ScanTable{type_, std::move(info), std::move(child), id, std::move(printInfo)},
           directionInfo{std::move(directionInfo)}, scanState{nullptr}, boundNodeIDVector{nullptr},
@@ -71,7 +71,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(),
+        return make_unique<ScanMultiRelTable>(opInfo.copy(), directionInfo.copy(),
             copyUnorderedMap(scanners), children[0]->copy(), id, printInfo->copy());
     }
 

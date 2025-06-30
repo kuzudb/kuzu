@@ -1,7 +1,6 @@
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 
 #include "processor/execution_context.h"
-#include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_storage.h"
 
 using namespace kuzu::common;
@@ -21,44 +20,41 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
     return false;
 }
 
-bool RelTableCollectionScanner::scan(Transaction* transaction, RelTableScanState& scanState) {
+bool RelTableCollectionScanner::scan(main::ClientContext* context, RelTableScanState& scanState, const std::vector<ValueVector*>& outVectors) {
+    auto transaction = context->getTransaction();
     while (true) {
-        const auto& relInfo = relInfos[currentTableIdx];
+        auto& relInfo = relInfos[currentTableIdx];
         if (relInfo.table->scan(transaction, scanState)) {
+            auto& selVector = scanState.outState->getSelVector();
             if (directionVector != nullptr) {
-                for (auto i = 0u; i < scanState.outState->getSelVector().getSelSize(); ++i) {
-                    auto pos = scanState.outState->getSelVector()[i];
-                    directionVector->setValue<bool>(pos, directionValues[currentTableIdx]);
+                for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+                    directionVector->setValue<bool>(selVector[i], directionValues[currentTableIdx]);
                 }
             }
-            if (scanState.outState->getSelVector().getSelSize() > 0) {
+            if (selVector.getSelSize() > 0) {
+                relInfo.castColumns();
                 return true;
             }
-
         } else {
             currentTableIdx = nextTableIdx;
             if (currentTableIdx == relInfos.size()) {
                 return false;
             }
-            auto& currentRelInfo = relInfos[currentTableIdx];
-            scanState.setToTable(transaction, currentRelInfo.table, currentRelInfo.columnIDs,
-                copyVector(currentRelInfo.columnPredicates), currentRelInfo.direction);
-            currentRelInfo.table->initScanState(transaction, scanState, currentTableIdx == 0);
+            auto& currentInfo = relInfos[currentTableIdx];
+            currentInfo.initScanState(scanState, outVectors, context);
+            currentInfo.table->initScanState(transaction, scanState, currentTableIdx == 0);
             nextTableIdx++;
         }
     }
 }
 
 void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    boundNodeIDVector = resultSet->getValueVector(info.nodeIDPos).get();
-    KU_ASSERT(!info.outVectorsPos.empty());
-    auto outState = resultSet->getValueVector(info.outVectorsPos[0])->state;
-    std::vector<ValueVector*> outVectors;
-    for (auto& pos : info.outVectorsPos) {
-        outVectors.push_back(resultSet->getValueVector(pos).get());
-    }
-    scanState = std::make_unique<RelTableScanState>(*context->clientContext->getMemoryManager(),
-        boundNodeIDVector, outVectors, outState);
+    ScanTable::initLocalStateInternal(resultSet, context);
+    auto clientContext = context->clientContext;
+    boundNodeIDVector = resultSet->getValueVector(opInfo.nodeIDPos).get();
+    auto nbrNodeIDVector = outVectors[0];
+    scanState = std::make_unique<RelTableScanState>(*clientContext->getMemoryManager(),
+        boundNodeIDVector, outVectors, nbrNodeIDVector->state);
     for (auto& [_, scanner] : scanners) {
         for (auto& relInfo : scanner.relInfos) {
             if (directionInfo.directionPos.isValid()) {
@@ -73,8 +69,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
 
 bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (currentScanner != nullptr &&
-            currentScanner->scan(context->clientContext->getTransaction(), *scanState)) {
+        if (currentScanner != nullptr && currentScanner->scan(context->clientContext, *scanState, outVectors)) {
             metrics->numOutputTuple.increase(scanState->outState->getSelVector().getSelSize());
             return true;
         }

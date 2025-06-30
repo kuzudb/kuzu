@@ -41,12 +41,12 @@ class PrimaryKeyScanNodeTable : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PRIMARY_KEY_SCAN_NODE_TABLE;
 
 public:
-    PrimaryKeyScanNodeTable(ScanTableInfo info, std::vector<ScanNodeTableInfo> nodeInfos,
+    PrimaryKeyScanNodeTable(ScanOpInfo opInfo, std::vector<ScanNodeTableInfo> tableInfos,
         std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator,
-        std::shared_ptr<PrimaryKeyScanSharedState> sharedState, uint32_t id,
+        std::shared_ptr<PrimaryKeyScanSharedState> sharedState, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : ScanTable{type_, std::move(info), id, std::move(printInfo)}, scanState{nullptr},
-          nodeInfos{std::move(nodeInfos)}, indexEvaluator{std::move(indexEvaluator)},
+        : ScanTable{type_, std::move(opInfo), id, std::move(printInfo)}, scanState{nullptr},
+          tableInfos{std::move(tableInfos)}, indexEvaluator{std::move(indexEvaluator)},
           sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }
@@ -58,13 +58,13 @@ public:
     bool isParallel() const override { return false; }
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<PrimaryKeyScanNodeTable>(info.copy(), copyVector(nodeInfos),
+        return std::make_unique<PrimaryKeyScanNodeTable>(opInfo.copy(), copyVector(tableInfos),
             indexEvaluator->copy(), sharedState, id, printInfo->copy());
     }
 
 private:
     std::unique_ptr<storage::NodeTableScanState> scanState;
-    std::vector<ScanNodeTableInfo> nodeInfos;
+    std::vector<ScanNodeTableInfo> tableInfos;
     std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator;
     std::shared_ptr<PrimaryKeyScanSharedState> sharedState;
 };
