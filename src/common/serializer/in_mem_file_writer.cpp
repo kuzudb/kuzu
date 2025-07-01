@@ -39,7 +39,7 @@ storage::PageRange InMemFileWriter::flush(storage::FileHandle* fileHandle,
     return pageRange;
 }
 
-void MetaWriter::flush(storage::PageRange allocatedPageRange, storage::FileHandle* fileHandle,
+void InMemFileWriter::flush(storage::PageRange allocatedPageRange, storage::FileHandle* fileHandle,
     storage::ShadowFile& shadowFile) const {
     KU_ASSERT(allocatedPageRange.numPages >= getNumPagesToFlush());
     auto numPagesBeforeAllocate = allocatedPageRange.startPageIdx;
@@ -64,7 +64,7 @@ bool InMemFileWriter::needNewBuffer(uint64_t size) const {
     return pages.empty() || pageOffset + size > KUZU_PAGE_SIZE;
 }
 
-uint64_t MetaWriter::getPageSize() {
+uint64_t InMemFileWriter::getPageSize() {
     return KUZU_PAGE_SIZE;
 }
 

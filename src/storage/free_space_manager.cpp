@@ -1,7 +1,7 @@
 #include "storage/free_space_manager.h"
 
 #include "common/serializer/deserializer.h"
-#include "common/serializer/metadata_writer.h"
+#include "common/serializer/in_mem_file_writer.h"
 #include "common/serializer/serializer.h"
 #include "common/utils.h"
 #include "storage/file_handle.h"
@@ -17,7 +17,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -80,7 +80,7 @@ struct SerializePagesUsedTracker {
     uint64_t numBytesUsedInPage;
 
     void updatePagesUsed(uint64_t numBytesToAdd) {
-        if (numBytesUsedInPage + numBytesToAdd > common::MetaWriter::getPageSize()) {
+        if (numBytesUsedInPage + numBytesToAdd > common::InMemFileWriter::getPageSize()) {
             ++numPagesUsed;
             numBytesUsedInPage = 0;
         }

@@ -112,7 +112,7 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay() const {
             }
             }
         }
-    } catch (...) {
+    } catch (...) { // NOLINT
         // If we hit an exception while deserializing, we assume that the WAL file is (partially)
         // corrupted.
     }
