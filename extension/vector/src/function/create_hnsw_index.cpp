@@ -245,7 +245,7 @@ static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutp
         return 0;
     }
     for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
-        hnswIndex->finalize(i);
+        hnswIndex->finalizeNodeGroup(i);
     }
     sharedState->numNodeGroupsFinalized.fetch_add(morsel.endOffset - morsel.startOffset);
     return morsel.endOffset - morsel.startOffset;

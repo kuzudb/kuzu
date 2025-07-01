@@ -52,7 +52,8 @@ public:
         // table being indexed.
     }
 
-    void checkpoint(main::ClientContext*, bool forceCheckpointAll = false) override;
+    void checkpoint(main::ClientContext*, bool forceCheckpointAll) override;
+    void finalize(main::ClientContext* context) override;
 
     static storage::IndexType getIndexType() {
         static const storage::IndexType FTS_INDEX_TYPE{"FTS",

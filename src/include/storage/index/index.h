@@ -140,6 +140,9 @@ public:
     virtual void rollbackCheckpoint() {
         // DO NOTHING.
     }
+    virtual void finalize(main::ClientContext*) {
+        // DO NOTHING.
+    }
 
     std::span<uint8_t> getStorageBuffer() const {
         KU_ASSERT(!loaded);
@@ -184,6 +187,13 @@ public:
         if (loaded) {
             KU_ASSERT(index);
             index->rollbackCheckpoint();
+        }
+    }
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
+    void finalize(main::ClientContext* context) {
+        if (loaded) {
+            KU_ASSERT(index);
+            index->finalize(context);
         }
     }
 

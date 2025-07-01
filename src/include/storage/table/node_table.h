@@ -160,27 +160,10 @@ public:
         KU_ASSERT(index.has_value());
         return &index.value()->cast<PrimaryKeyIndex>();
     }
-    std::optional<std::reference_wrapper<IndexHolder>> getIndexHolder(const std::string& name) {
-        for (auto& index : indexes) {
-            if (common::StringUtils::caseInsensitiveEquals(index.getName(), name)) {
-                return index;
-            }
-        }
-        return std::nullopt;
-    }
-    std::optional<Index*> getIndex(const std::string& name) const {
-        for (auto& index : indexes) {
-            if (common::StringUtils::caseInsensitiveEquals(index.getName(), name)) {
-                if (index.isLoaded()) {
-                    return index.getIndex();
-                }
-                throw common::RuntimeException(common::stringFormat(
-                    "Index {} is not loaded yet. Please load the index before accessing it.",
-                    name));
-            }
-        }
-        return std::nullopt;
-    }
+    std::optional<std::reference_wrapper<IndexHolder>> getIndexHolder(const std::string& name);
+    std::optional<Index*> getIndex(const std::string& name) const;
+    std::vector<IndexHolder>& getIndexes() { return indexes; }
+
     common::column_id_t getNumColumns() const { return columns.size(); }
     Column& getColumn(common::column_id_t columnID) {
         KU_ASSERT(columnID < columns.size());

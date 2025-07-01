@@ -281,7 +281,8 @@ void NodeTable::initScanState(Transaction* transaction, TableScanState& scanStat
 
 void NodeTable::initScanState(Transaction* transaction, TableScanState& scanState,
     table_id_t tableID, offset_t startOffset) const {
-    if (transaction->isUnCommitted(tableID, startOffset)) {
+    if (transaction->isUnCommitted(tableID, startOffset) &&
+        transaction->getLocalStorage()->getLocalTable(tableID)) {
         scanState.source = TableScanSource::UNCOMMITTED;
         scanState.nodeGroupIdx =
             StorageUtils::getNodeGroupIdx(transaction->getLocalRowIdx(tableID, startOffset));
@@ -306,7 +307,8 @@ bool NodeTable::lookup(const Transaction* transaction, const TableScanState& sca
     }
     const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
     const offset_t rowIdxInGroup =
-        transaction->isUnCommitted(tableID, nodeOffset) ?
+        transaction->isUnCommitted(tableID, nodeOffset) &&
+                transaction->getLocalStorage()->getLocalTable(tableID) ?
             transaction->getLocalRowIdx(tableID, nodeOffset) -
                 StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) :
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
@@ -573,7 +575,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -714,7 +716,7 @@ void NodeTable::scanIndexColumns(Transaction* transaction, IndexScanHelper& scan
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to
@@ -745,12 +747,35 @@ void NodeTable::addIndex(std::unique_ptr<Index> index) {
 void NodeTable::dropIndex(const std::string& name) {
     KU_ASSERT(getIndex(name) != nullptr);
     for (auto it = indexes.begin(); it != indexes.end(); ++it) {
-        if (common::StringUtils::caseInsensitiveEquals(it->getName(), name)) {
+        if (StringUtils::caseInsensitiveEquals(it->getName(), name)) {
             KU_ASSERT(it->isLoaded());
             indexes.erase(it);
             return;
         }
     }
+}
+
+std::optional<std::reference_wrapper<IndexHolder>> NodeTable::getIndexHolder(
+    const std::string& name) {
+    for (auto& index : indexes) {
+        if (StringUtils::caseInsensitiveEquals(index.getName(), name)) {
+            return index;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<Index*> NodeTable::getIndex(const std::string& name) const {
+    for (auto& index : indexes) {
+        if (StringUtils::caseInsensitiveEquals(index.getName(), name)) {
+            if (index.isLoaded()) {
+                return index.getIndex();
+            }
+            throw RuntimeException(stringFormat(
+                "Index {} is not loaded yet. Please load the index before accessing it.", name));
+        }
+    }
+    return std::nullopt;
 }
 
 void NodeTable::serialize(Serializer& serializer) const {

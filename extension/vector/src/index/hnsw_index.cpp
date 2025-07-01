@@ -234,7 +234,7 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     graph->setCSRLength(nodeOffset, newSize);
 }
 
-void InMemHNSWLayer::finalize(common::node_group_idx_t nodeGroupIdx,
+void InMemHNSWLayer::finalizeNodeGroup(common::node_group_idx_t nodeGroupIdx,
     common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap,
     GetEmbeddingsScanState& scanState) const {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
@@ -367,11 +367,11 @@ bool InMemHNSWIndex::insert(common::offset_t offset, CreateInMemHNSWLocalState* 
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void InMemHNSWIndex::finalize(common::node_group_idx_t nodeGroupIdx) {
+void InMemHNSWIndex::finalizeNodeGroup(common::node_group_idx_t nodeGroupIdx) {
     const auto numNodesInTable = lowerLayer->getNumNodes();
     auto scanState = embeddings->constructScanState();
-    upperLayer->finalize(nodeGroupIdx, numNodesInTable, *upperGraphSelectionMap, *scanState);
-    lowerLayer->finalize(nodeGroupIdx, numNodesInTable, *lowerGraphSelectionMap, *scanState);
+    upperLayer->finalizeNodeGroup(nodeGroupIdx, numNodesInTable, *upperGraphSelectionMap, *scanState);
+    lowerLayer->finalizeNodeGroup(nodeGroupIdx, numNodesInTable, *lowerGraphSelectionMap, *scanState);
 }
 
 std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {

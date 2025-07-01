@@ -256,6 +256,10 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
         errorHandler.flushStoredErrors();
     }
 
+    auto& nodeTable = nodeSharedState->table->cast<NodeTable>();
+    for (auto& index : nodeTable.getIndexes()) {
+        index.finalize(context->clientContext);
+    }
     // we want to flush all index errors before children call finalize
     // as the children (if they are table function calls) are responsible for populating the errors
     // and sending it to the warning context

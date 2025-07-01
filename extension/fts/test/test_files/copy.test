@@ -20,7 +20,7 @@ The Quantum World|0.857996
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.ID,score;
 ---- 4
-0|1.233142
-2|1.189789
-5|1.233142
-7|1.189789
+0|0.916985
+2|0.884747
+5|0.916985
+7|0.884747
