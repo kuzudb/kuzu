@@ -17,16 +17,16 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
     stopWordsTable =
         storageManager
             ->getTable(catalog->getTableCatalogEntry(context->getTransaction(), stopWordsTableName)
-                    ->getTableID())
+                           ->getTableID())
             ->ptrCast<storage::NodeTable>();
     docTable = storageManager
                    ->getTable(catalog->getTableCatalogEntry(context->getTransaction(), docTableName)
-                           ->getTableID())
+                                  ->getTableID())
                    ->ptrCast<storage::NodeTable>();
     termsTable =
         storageManager
             ->getTable(catalog->getTableCatalogEntry(context->getTransaction(), termsTableName)
-                    ->getTableID())
+                           ->getTableID())
             ->ptrCast<storage::NodeTable>();
     auto appearsInTableEntry =
         catalog->getTableCatalogEntry(context->getTransaction(), appearsInTableName)
