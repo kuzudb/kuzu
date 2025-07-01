@@ -78,7 +78,8 @@ LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
 
 LogicalPlan Planner::planCreateType(const BoundStatement& statement) {
     auto& createType = statement.constCast<BoundCreateType>();
-    auto op = std::make_shared<LogicalCreateType>(createType.getName(), createType.getType().copy());
+    auto op =
+        std::make_shared<LogicalCreateType>(createType.getName(), createType.getType().copy());
     return getSimplePlan(std::move(op));
 }
 
@@ -91,15 +92,13 @@ LogicalPlan Planner::planCreateSequence(const BoundStatement& statement) {
 
 LogicalPlan Planner::planDrop(const BoundStatement& statement) {
     auto& dropTable = statement.constCast<BoundDrop>();
-    auto op =
-        std::make_shared<LogicalDrop>(dropTable.getDropInfo());
+    auto op = std::make_shared<LogicalDrop>(dropTable.getDropInfo());
     return getSimplePlan(std::move(op));
 }
 
 LogicalPlan Planner::planAlter(const BoundStatement& statement) {
     auto& alter = statement.constCast<BoundAlter>();
-    auto op =
-        std::make_shared<LogicalAlter>(alter.getInfo().copy());
+    auto op = std::make_shared<LogicalAlter>(alter.getInfo().copy());
     return getSimplePlan(std::move(op));
 }
 
@@ -130,8 +129,8 @@ LogicalPlan Planner::planExplain(const BoundStatement& statement) {
 
 LogicalPlan Planner::planCreateMacro(const BoundStatement& statement) {
     auto& createMacro = statement.constCast<BoundCreateMacro>();
-    auto op = std::make_shared<LogicalCreateMacro>(
-        createMacro.getMacroName(), createMacro.getMacro());
+    auto op =
+        std::make_shared<LogicalCreateMacro>(createMacro.getMacroName(), createMacro.getMacro());
     return getSimplePlan(std::move(op));
 }
 

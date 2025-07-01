@@ -9,10 +9,11 @@ class ImportDB final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::IMPORT_DATABASE;
 
 public:
-    ImportDB(std::string query, std::string indexQuery, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
+    ImportDB(std::string query, std::string indexQuery,
+        std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, query{std::move(query)},
-          indexQuery{std::move(indexQuery)} {}
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          query{std::move(query)}, indexQuery{std::move(indexQuery)} {}
 
     void executeInternal(ExecutionContext* context) override;
 

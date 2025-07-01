@@ -38,9 +38,10 @@ class Alter final : public SimpleSink {
 public:
     Alter(binder::BoundAlterInfo info,
         std::unique_ptr<evaluator::ExpressionEvaluator> defaultValueEvaluator,
-        std::shared_ptr<FactorizedTable> messageTable, physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
-        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, info{std::move(info)},
-          defaultValueEvaluator{std::move(defaultValueEvaluator)} {}
+        std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          info{std::move(info)}, defaultValueEvaluator{std::move(defaultValueEvaluator)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -48,8 +49,8 @@ public:
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<Alter>(info.copy(),
-            defaultValueEvaluator == nullptr ? nullptr : defaultValueEvaluator->copy(), messageTable,
-            id, printInfo->copy());
+            defaultValueEvaluator == nullptr ? nullptr : defaultValueEvaluator->copy(),
+            messageTable, id, printInfo->copy());
     }
 
 private:

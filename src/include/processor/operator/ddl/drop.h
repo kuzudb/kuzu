@@ -25,9 +25,10 @@ class Drop final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DROP;
 
 public:
-    Drop(parser::DropInfo dropInfo, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, dropInfo{std::move(dropInfo)} {}
+    Drop(parser::DropInfo dropInfo, std::shared_ptr<FactorizedTable> messageTable,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          dropInfo{std::move(dropInfo)} {}
 
     void executeInternal(ExecutionContext* context) override;
 

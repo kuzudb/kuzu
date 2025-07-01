@@ -84,9 +84,7 @@ public:
     bool isSource() const final { return true; }
     bool isParallel() const final { return false; }
 
-    std::shared_ptr<FactorizedTable> getResultFTable() const override {
-        return messageTable;
-    }
+    std::shared_ptr<FactorizedTable> getResultFTable() const override { return messageTable; }
 
 protected:
     void appendMessage(const std::string& msg, storage::MemoryManager* memoryManager);
@@ -104,7 +102,7 @@ public:
     DummySimpleSink(std::shared_ptr<FactorizedTable> messageTable, physical_op_id id)
         : SimpleSink{type_, std::move(messageTable), id, OPPrintInfo::EmptyInfo()} {}
 
-    void executeInternal(ExecutionContext *) override {}
+    void executeInternal(ExecutionContext*) override {}
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<DummySimpleSink>(messageTable, id);

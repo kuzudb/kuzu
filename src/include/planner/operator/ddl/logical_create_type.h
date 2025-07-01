@@ -28,8 +28,7 @@ class LogicalCreateType : public LogicalSimple {
 
 public:
     LogicalCreateType(std::string typeName, common::LogicalType type)
-        : LogicalSimple{type_}, typeName{std::move(typeName)},
-          type{std::move(type)} {}
+        : LogicalSimple{type_}, typeName{std::move(typeName)}, type{std::move(type)} {}
 
     std::string getExpressionsForPrinting() const override { return typeName; }
 

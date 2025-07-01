@@ -22,7 +22,8 @@ void CreateSequence::executeInternal(ExecutionContext* context) {
     if (catalog->containsSequence(transaction, info.sequenceName)) {
         switch (info.onConflict) {
         case ConflictAction::ON_CONFLICT_DO_NOTHING: {
-            appendMessage(stringFormat("Sequence {} already exists.", info.sequenceName), memoryManager);
+            appendMessage(stringFormat("Sequence {} already exists.", info.sequenceName),
+                memoryManager);
             return;
         }
         default:

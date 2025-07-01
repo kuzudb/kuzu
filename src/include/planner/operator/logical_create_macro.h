@@ -26,10 +26,8 @@ class LogicalCreateMacro final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CREATE_MACRO;
 
 public:
-    LogicalCreateMacro(std::string macroName,
-        std::unique_ptr<function::ScalarMacroFunction> macro)
-        : LogicalOperator{type_}, macroName{std::move(macroName)},
-          macro{std::move(macro)} {}
+    LogicalCreateMacro(std::string macroName, std::unique_ptr<function::ScalarMacroFunction> macro)
+        : LogicalOperator{type_}, macroName{std::move(macroName)}, macro{std::move(macro)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;

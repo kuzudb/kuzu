@@ -7,8 +7,7 @@ namespace planner {
 
 class LogicalSimple : public LogicalOperator {
 public:
-    explicit LogicalSimple(LogicalOperatorType operatorType)
-        : LogicalOperator{operatorType} {}
+    explicit LogicalSimple(LogicalOperatorType operatorType) : LogicalOperator{operatorType} {}
     LogicalSimple(LogicalOperatorType operatorType,
         const std::vector<std::shared_ptr<LogicalOperator>>& plans)
         : LogicalOperator{operatorType, plans} {}

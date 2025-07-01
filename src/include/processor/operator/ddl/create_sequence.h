@@ -26,9 +26,11 @@ class CreateSequence final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_SEQUENCE;
 
 public:
-    CreateSequence(binder::BoundCreateSequenceInfo info, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
+    CreateSequence(binder::BoundCreateSequenceInfo info,
+        std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, info{std::move(info)} {}
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          info{std::move(info)} {}
 
     void executeInternal(ExecutionContext* context) override;
 

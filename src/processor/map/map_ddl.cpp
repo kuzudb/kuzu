@@ -36,7 +36,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateType(
     auto typeName = createType.getExpressionsForPrinting();
     auto printInfo =
         std::make_unique<CreateTypePrintInfo>(typeName, createType.getType().toString());
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     return std::make_unique<CreateType>(typeName, createType.getType().copy(),
         std::move(messageTable), getOperatorID(), std::move(printInfo));
 }
@@ -46,7 +47,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(
     auto& createSequence = logicalOperator->constCast<LogicalCreateSequence>();
     auto printInfo =
         std::make_unique<CreateSequencePrintInfo>(createSequence.getInfo().sequenceName);
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     return std::make_unique<CreateSequence>(createSequence.getInfo(), std::move(messageTable),
         getOperatorID(), std::move(printInfo));
 }
@@ -55,7 +57,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDrop(const LogicalOperator* log
     auto& drop = logicalOperator->constCast<LogicalDrop>();
     auto& dropInfo = drop.getDropInfo();
     auto printInfo = std::make_unique<DropPrintInfo>(drop.getDropInfo().name);
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     return std::make_unique<Drop>(dropInfo, std::move(messageTable), getOperatorID(),
         std::move(printInfo));
 }
@@ -69,7 +72,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(const LogicalOperator* lo
         defaultValueEvaluator = exprMapper.getEvaluator(addPropInfo.boundDefault);
     }
     auto printInfo = std::make_unique<LogicalAlterPrintInfo>(alter.getInfo()->copy());
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     return std::make_unique<Alter>(alter.getInfo()->copy(), std::move(defaultValueEvaluator),
         std::move(messageTable), getOperatorID(), std::move(printInfo));
 }

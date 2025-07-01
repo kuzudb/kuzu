@@ -10,8 +10,7 @@ class LogicalImportDatabase : public LogicalSimple {
 
 public:
     LogicalImportDatabase(std::string query, std::string indexQuery)
-        : LogicalSimple{type_},
-          query{std::move(query)}, indexQuery{std::move(indexQuery)} {}
+        : LogicalSimple{type_}, query{std::move(query)}, indexQuery{std::move(indexQuery)} {}
 
     std::string getQuery() const { return query; }
 

@@ -30,7 +30,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUseDatabase(
     const LogicalOperator* logicalOperator) {
     auto useDatabase = logicalOperator->constPtrCast<LogicalUseDatabase>();
     auto printInfo = std::make_unique<UseDatabasePrintInfo>(useDatabase->getDBName());
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     return std::make_unique<UseDatabase>(useDatabase->getDBName(), std::move(messageTable),
         getOperatorID(), std::move(printInfo));
 }
@@ -39,20 +40,21 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAttachDatabase(
     const LogicalOperator* logicalOperator) {
     auto attachDatabase = logicalOperator->constPtrCast<LogicalAttachDatabase>();
     auto info = attachDatabase->getAttachInfo();
-    auto printInfo = std::make_unique<AttachDatabasePrintInfo>(
-        info.dbAlias, info.dbPath);
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    return std::make_unique<AttachDatabase>(std::move(info),
-        std::move(messageTable), getOperatorID(), std::move(printInfo));
+    auto printInfo = std::make_unique<AttachDatabasePrintInfo>(info.dbAlias, info.dbPath);
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    return std::make_unique<AttachDatabase>(std::move(info), std::move(messageTable),
+        getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
     const LogicalOperator* logicalOperator) {
     auto detachDatabase = logicalOperator->constPtrCast<LogicalDetachDatabase>();
     auto printInfo = std::make_unique<OPPrintInfo>();
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    return std::make_unique<DetachDatabase>(detachDatabase->getDBName(),
-        std::move(messageTable), getOperatorID(), std::move(printInfo));
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    return std::make_unique<DetachDatabase>(detachDatabase->getDBName(), std::move(messageTable),
+        getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
@@ -66,9 +68,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         throw RuntimeException(stringFormat("Directory {} already exists.", filePath));
     }
     auto printInfo = std::make_unique<ExportDBPrintInfo>(filePath, boundFileInfo->options);
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    auto exportDB = std::make_unique<ExportDB>(boundFileInfo->copy(), exportDatabase->isSchemaOnly(),
-        messageTable, getOperatorID(), std::move(printInfo));
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto exportDB = std::make_unique<ExportDB>(boundFileInfo->copy(),
+        exportDatabase->isSchemaOnly(), messageTable, getOperatorID(), std::move(printInfo));
     auto sink = std::make_unique<DummySimpleSink>(messageTable, getOperatorID());
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
@@ -81,7 +84,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(
     const LogicalOperator* logicalOperator) {
     auto importDatabase = logicalOperator->constPtrCast<LogicalImportDatabase>();
     auto printInfo = std::make_unique<OPPrintInfo>();
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     return std::make_unique<ImportDB>(importDatabase->getQuery(), importDatabase->getIndexQuery(),
         std::move(messageTable), getOperatorID(), std::move(printInfo));
 }
@@ -90,15 +94,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(const LogicalOperator
     auto logicalExtension = logicalOperator->constPtrCast<LogicalExtension>();
     auto& auxInfo = logicalExtension->getAuxInfo();
     auto path = auxInfo.path;
-    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto messageTable =
+        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     switch (auxInfo.action) {
     case ExtensionAction::INSTALL: {
         auto installAuxInfo = auxInfo.contCast<InstallExtensionAuxInfo>();
-        InstallExtensionInfo info{path, installAuxInfo.extensionRepo,
-            installAuxInfo.forceInstall};
+        InstallExtensionInfo info{path, installAuxInfo.extensionRepo, installAuxInfo.forceInstall};
         auto printInfo = std::make_unique<InstallExtensionPrintInfo>(path);
-        return std::make_unique<InstallExtension>(std::move(info), std::move(messageTable), getOperatorID(),
-            std::move(printInfo));
+        return std::make_unique<InstallExtension>(std::move(info), std::move(messageTable),
+            getOperatorID(), std::move(printInfo));
     }
     case ExtensionAction::UNINSTALL: {
         auto printInfo = std::make_unique<UninstallExtensionPrintInfo>(path);

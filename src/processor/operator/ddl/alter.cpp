@@ -50,7 +50,8 @@ static void validate(ConflictAction action, const on_conflict_throw_action& thro
     }
 }
 
-static std::string propertyNotInTableMessage(const std::string& tableName, const std::string& propertyName) {
+static std::string propertyNotInTableMessage(const std::string& tableName,
+    const std::string& propertyName) {
     return stringFormat("{} table does not have property {}.", tableName, propertyName);
 }
 
@@ -63,7 +64,8 @@ static void validatePropertyExist(ConflictAction action, const TableCatalogEntry
     });
 }
 
-static std::string propertyInTableMessage(const std::string& tableName, const std::string& propertyName) {
+static std::string propertyInTableMessage(const std::string& tableName,
+    const std::string& propertyName) {
     return stringFormat("{} table already has property {}.", tableName, propertyName);
 }
 
@@ -140,9 +142,10 @@ static bool checkRenameTableConflicts(const BoundAlterInfo& info, main::ClientCo
     return false;
 }
 
-static std::string fromToInTableMessage(const std::string& relGroupName, const std::string& fromTableName, const std::string& toTableName) {
-    return stringFormat("{}->{} already exists in {} table.",
-                fromTableName, toTableName, relGroupName);
+static std::string fromToInTableMessage(const std::string& relGroupName,
+    const std::string& fromTableName, const std::string& toTableName) {
+    return stringFormat("{}->{} already exists in {} table.", fromTableName, toTableName,
+        relGroupName);
 }
 
 static bool checkAddFromToConflicts(const TableCatalogEntry& tableEntry, const BoundAlterInfo& info,
@@ -157,7 +160,8 @@ static bool checkAddFromToConflicts(const TableCatalogEntry& tableEntry, const B
                 catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
             auto toTableName =
                 catalog->getTableCatalogEntry(transaction, extraInfo.toTableID)->getName();
-            throw BinderException{fromToInTableMessage(relGroupEntry.getName(), fromTableName, toTableName)};
+            throw BinderException{
+                fromToInTableMessage(relGroupEntry.getName(), fromTableName, toTableName)};
         }
     });
     return skipAlter(info.onConflict, [&relGroupEntry, &extraInfo]() {
@@ -165,9 +169,10 @@ static bool checkAddFromToConflicts(const TableCatalogEntry& tableEntry, const B
     });
 }
 
-static std::string fromToNotInTableMessage(const std::string& relGroupName, const std::string& fromTableName, const std::string& toTableName) {
-    return stringFormat("{}->{} does not exist in {} table.",
-                fromTableName, toTableName, relGroupName);
+static std::string fromToNotInTableMessage(const std::string& relGroupName,
+    const std::string& fromTableName, const std::string& toTableName) {
+    return stringFormat("{}->{} does not exist in {} table.", fromTableName, toTableName,
+        relGroupName);
 }
 
 static bool checkDropFromToConflicts(const TableCatalogEntry& tableEntry,
@@ -182,7 +187,8 @@ static bool checkDropFromToConflicts(const TableCatalogEntry& tableEntry,
                 catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
             auto toTableName =
                 catalog->getTableCatalogEntry(transaction, extraInfo.toTableID)->getName();
-            throw BinderException{fromToNotInTableMessage(relGroupEntry.getName(), fromTableName, toTableName)};
+            throw BinderException{
+                fromToNotInTableMessage(relGroupEntry.getName(), fromTableName, toTableName)};
         }
     });
     return skipAlter(info.onConflict, [&relGroupEntry, &extraInfo]() {
@@ -204,7 +210,8 @@ void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEnt
             appendMessage(propertyInTableMessage(tableName, propertyName), memoryManager);
             return;
         }
-        appendMessage(stringFormat("Property {} added to table {}.", propertyName, tableName), memoryManager);
+        appendMessage(stringFormat("Property {} added to table {}.", propertyName, tableName),
+            memoryManager);
     } break;
     case AlterType::DROP_PROPERTY: {
         auto& extraInfo = info.extraInfo->constCast<BoundExtraDropPropertyInfo>();
@@ -213,39 +220,54 @@ void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEnt
             appendMessage(propertyNotInTableMessage(tableName, propertyName), memoryManager);
             return;
         }
-        appendMessage(stringFormat("Property {} has been dropped from table {}.", propertyName, tableName), memoryManager);
+        appendMessage(
+            stringFormat("Property {} has been dropped from table {}.", propertyName, tableName),
+            memoryManager);
     } break;
     case AlterType::RENAME_PROPERTY: {
         // Rename property does not have IF EXISTS
         checkRenamePropertyConflicts(entry, info);
         auto& extraInfo = info.extraInfo->constCast<BoundExtraRenamePropertyInfo>();
-        appendMessage(stringFormat("Property {} renamed to {}.", extraInfo.oldName, extraInfo.newName), memoryManager);
+        appendMessage(
+            stringFormat("Property {} renamed to {}.", extraInfo.oldName, extraInfo.newName),
+            memoryManager);
     } break;
     case AlterType::RENAME: {
         // Rename table does not have IF EXISTS
         checkRenameTableConflicts(info, *clientContext);
         auto& extraInfo = info.extraInfo->constCast<BoundExtraRenameTableInfo>();
-        appendMessage(stringFormat("Table {} renamed to {}.", tableName, extraInfo.newName), memoryManager);
+        appendMessage(stringFormat("Table {} renamed to {}.", tableName, extraInfo.newName),
+            memoryManager);
     } break;
     case AlterType::ADD_FROM_TO_CONNECTION: {
         auto& extraInfo = info.extraInfo->constCast<BoundExtraAlterFromToConnection>();
-        auto fromTableName = catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
-        auto toTableName = catalog->getTableCatalogEntry(transaction, extraInfo.toTableID)->getName();
+        auto fromTableName =
+            catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
+        auto toTableName =
+            catalog->getTableCatalogEntry(transaction, extraInfo.toTableID)->getName();
         if (checkAddFromToConflicts(entry, info, *clientContext)) {
-            appendMessage(fromToInTableMessage(tableName, fromTableName, toTableName), memoryManager);
+            appendMessage(fromToInTableMessage(tableName, fromTableName, toTableName),
+                memoryManager);
             return;
         }
-        appendMessage(stringFormat("{}->{} added to table {}.", fromTableName, toTableName, tableName), memoryManager);
+        appendMessage(
+            stringFormat("{}->{} added to table {}.", fromTableName, toTableName, tableName),
+            memoryManager);
     } break;
     case AlterType::DROP_FROM_TO_CONNECTION: {
         auto& extraInfo = info.extraInfo->constCast<BoundExtraAlterFromToConnection>();
-        auto fromTableName = catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
-        auto toTableName = catalog->getTableCatalogEntry(transaction, extraInfo.toTableID)->getName();
+        auto fromTableName =
+            catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
+        auto toTableName =
+            catalog->getTableCatalogEntry(transaction, extraInfo.toTableID)->getName();
         if (checkDropFromToConflicts(entry, info, *clientContext)) {
-            appendMessage(fromToNotInTableMessage(tableName, fromTableName, toTableName), memoryManager);
+            appendMessage(fromToNotInTableMessage(tableName, fromTableName, toTableName),
+                memoryManager);
             return;
         }
-        appendMessage(stringFormat("{}->{} has been dropped from table {}.", fromTableName, toTableName, tableName), memoryManager);
+        appendMessage(stringFormat("{}->{} has been dropped from table {}.", fromTableName,
+                          toTableName, tableName),
+            memoryManager);
     } break;
     case AlterType::COMMENT: {
         appendMessage(stringFormat("Comment added to table {}.", tableName), memoryManager);

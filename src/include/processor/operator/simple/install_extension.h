@@ -22,9 +22,11 @@ class InstallExtension final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INSTALL_EXTENSION;
 
 public:
-    InstallExtension(extension::InstallExtensionInfo info, std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
+    InstallExtension(extension::InstallExtensionInfo info,
+        std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)}, info{std::move(info)} {}
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          info{std::move(info)} {}
 
     void executeInternal(ExecutionContext* context) override;
 
