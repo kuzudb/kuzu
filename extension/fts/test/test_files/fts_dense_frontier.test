@@ -3,8 +3,7 @@
 --
 
 -CASE fts_dense_frontier
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content'])
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') RETURN node.content,score LIMIT 10

@@ -45,6 +45,7 @@ enum class TokenType {
     CREATE_DATASET_SCHEMA,
     INSERT_DATASET_BY_ROW,
     MULTI_COPY_RANDOM,
+    LOAD_DYNAMIC_EXTENSION,
     SEED,
 
     CHECKPOINT_WAIT_TIMEOUT,
@@ -67,6 +68,7 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenT
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-SKIP", TokenType::SKIP},
     {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::DEFINE},
     {"-SKIP_32BIT", TokenType::SKIP_32BIT}, {"-SKIP_WASM", TokenType::SKIP_WASM},
+    {"-LOAD_DYNAMIC_EXTENSION", TokenType::LOAD_DYNAMIC_EXTENSION},
     {"-SKIP_STATIC_LINK", TokenType::SKIP_STATIC_LINK}, {"-WASM_ONLY", TokenType::WASM_ONLY},
     {"-SKIP_IN_MEM", TokenType::SKIP_IN_MEM},
     {"-SKIP_VECTOR_CAPACITY_TESTS", TokenType::SKIP_VECTOR_CAPACITY_TESTS},

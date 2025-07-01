@@ -12,6 +12,8 @@ std::string LoadedExtension::toCypher() {
             extensionName);
     case ExtensionSource::USER:
         return common::stringFormat("LOAD EXTENSION '{}';\n", fullPath);
+    case ExtensionSource::STATIC_LINKED:
+        return "";
     default:
         KU_UNREACHABLE;
     }

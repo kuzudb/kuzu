@@ -64,6 +64,8 @@ std::string ExtensionSourceUtils::toString(ExtensionSource source) {
         return "OFFICIAL";
     case ExtensionSource::USER:
         return "USER";
+    case ExtensionSource::STATIC_LINKED:
+        return "STATIC LINK";
     default:
         KU_UNREACHABLE;
     }

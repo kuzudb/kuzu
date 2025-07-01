@@ -3,12 +3,7 @@
 --
 
 -CASE ErrorCases
-
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- extension_load_result
-Extension: .*libfts\.kuzu_extension has been loaded.
-Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
-
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('person1', 'contentIdx', ['content'])
 ---- error
 Binder exception: Table person1 does not exist.
@@ -89,11 +84,7 @@ Binder exception: DROP_FTS_INDEX is only supported in auto transaction mode.
 
 
 -CASE DuplicateIndexes
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- extension_load_result
-Extension: .*libfts\.kuzu_extension has been loaded.
-Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
-
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('movies', 'moviesIdx', ['name'])
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('movies', 'moviesIdx', 'movie') RETURN node.name
@@ -111,10 +102,7 @@ Roma
 
 
 -CASE DropTableWithIndexes
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- extension_load_result
-Extension: .*libfts\.kuzu_extension has been loaded.
-Binder exception: Extension: FTS is already loaded. You can check loaded extensions by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx1', ['name'])
@@ -151,18 +139,14 @@ Binder exception: Table STUDENT doesn't have an index with name sIdx1.
 -STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx', ['name'])
----- extension_load_result
+---- error
 Catalog exception: function CREATE_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
-Index sIdx has been created.
-
 -STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx', 'test') RETURN *
----- extension_load_result
+---- error
 Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
-
 -STATEMENT CALL DROP_FTS_INDEX('STUDENT', 'sIdx')
----- extension_load_result
+---- error
 Catalog exception: function DROP_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
-
 
 -CASE CreateFTSSingleStatement
 -SKIP_STATIC_LINK

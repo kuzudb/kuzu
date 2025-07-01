@@ -101,20 +101,6 @@ void TestRunner::checkLogicalPlan(Connection& conn, QueryResult* queryResult,
             << "Expected error to match regex: " << testAnswer.expectedResult[0]
             << " actual error: " << actualError;
     } break;
-    case ResultType::EXTENSION_LOAD_RESULT: {
-        if (queryResult->isSuccess()) {
-            auto result = convertResultToString(*queryResult, statement->checkOutputOrder,
-                statement->checkColumnNames);
-            ASSERT_TRUE(std::regex_match(result[0], std::regex(testAnswer.expectedResult[0])))
-                << "Expected result to match regex: " << testAnswer.expectedResult[0]
-                << " actual result: " << result[0];
-        } else {
-            const std::string expectedError = StringUtils::rtrim(testAnswer.expectedResult[1]);
-            EXPECT_FALSE(queryResult->isSuccess());
-            actualError = StringUtils::rtrim(queryResult->getErrorMessage());
-            ASSERT_EQ(actualError, expectedError);
-        }
-    } break;
     default: {
         ASSERT_TRUE(queryResult->isSuccess())
             << "Unexpected error for query: " << queryResult->getErrorMessage();
