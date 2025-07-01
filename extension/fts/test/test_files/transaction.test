@@ -1,31 +1,189 @@
--DATASET CSV fts-small
+-DATASET CSV fts-basic
 
 --
 
 -CASE CreateFTSAutoCommitRecovery
 -SKIP_IN_MEM
 -LOAD_DYNAMIC_EXTENSION fts
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
 ---- 2
-0|0.271133
-3|0.209476
+The Quantum World
+Learning Machines
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CALL force_checkpoint_on_close=false;
 ---- ok
 -RELOADDB
 -LOAD_DYNAMIC_EXTENSION fts
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
 ---- 2
-0|0.271133
-3|0.209476
+The Quantum World
+Learning Machines
 
 -CASE CreateFTSComit
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- error
 Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
+
+-CASE DropFTSCommitRecovery
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-RELOADDB
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT CALL DROP_FTS_INDEX('Book', 'book_index')
+---- ok
+-RELOADDB
+-STATEMENT CALL show_indexes() RETURN *
+---- 0
+
+-CASE InsertRecover
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-RELOADDB
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CREATE (b:Book {title: 'Alice wonderland', author: 'newton', abstract: 'machine'})
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title,score;
+---- 3
+Alice wonderland|0.549301
+Learning Machines|0.599514
+The Quantum World|0.931796
+-RELOADDB
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title,score;
+---- 3
+Alice wonderland|0.549301
+Learning Machines|0.599514
+The Quantum World|0.931796
+-STATEMENT CREATE (b:Book {title: 'Alice w', author: 'newton', abstract: 'not exist'})
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title,score;
+---- 3
+Alice wonderland|0.605243
+Learning Machines|0.659085
+The Quantum World|0.987801
+-RELOADDB
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title,score;
+---- 3
+Alice wonderland|0.605243
+Learning Machines|0.659085
+The Quantum World|0.987801
+
+-CASE MultiInsertRecover
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-RELOADDB
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Shadows of Tomorrow', author: 'Lena Frost', abstract: 'A sci-fi exploration of a dystopian future.'})
+---- ok
+-STATEMENT CREATE (b:Book {title: 'The Mind Machine', author: 'Carlos Vega', abstract: 'A psychological thriller about AI and control.'})
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Whispers in Code', author: 'Dana S.', abstract: 'Mystery novel involving encrypted secrets and espionage.'})
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Beyond the Rift', author: 'Terry Nolan', abstract: 'Humanity’s first journey into an alien dimension.'})
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Gardens of Mars', author: 'Aisha Karim', abstract: 'Terraforming efforts and survival on the red planet.'})
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Fractal Dreams', author: 'Nathan Cross', abstract: 'A philosophical dive into simulated realities.'})
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Storm Weaver', author: 'Isla Moon', abstract: 'An elemental mage struggles to control the storm within.'})
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Digital Shadows', author: 'Reid Thompson', abstract: 'Cybercrime and identity theft in the digital age.'})
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'shadow') RETURN node.title,score;
+---- 2
+Digital Shadows|0.720636
+Shadows of Tomorrow|0.720636
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'digital') RETURN node.title,score;
+---- 1
+Digital Shadows|1.299639
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'machine mage') RETURN node.title,score;
+---- 3
+Learning Machines|1.036935
+Storm Weaver|0.934315
+The Mind Machine|0.756869
+-RELOADDB
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'shadow') RETURN node.title,score;
+---- 2
+Digital Shadows|0.720636
+Shadows of Tomorrow|0.720636
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'digital') RETURN node.title,score;
+---- 1
+Digital Shadows|1.299639
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'machine mage') RETURN node.title,score;
+---- 3
+Learning Machines|1.036935
+Storm Weaver|0.934315
+The Mind Machine|0.756869
+
+-CASE DeleteRecover
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY doc FROM '${KUZU_ROOT_DIRECTORY}/dataset/ms-passage/vDoc.csv'
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'contentIdx', ['content'])
+---- ok
+-RELOADDB
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT match (d:doc) where d.ID = 437 delete d
+---- ok
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
+---- 8
+109|2.011124
+134|1.976951
+199|1.865470
+202|1.927272
+389|1.822145
+390|3.018760
+429|1.943921
+432|1.822145
+-RELOADDB
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
+---- 8
+109|2.011124
+134|1.976951
+199|1.865470
+202|1.927272
+389|1.822145
+390|3.018760
+429|1.943921
+432|1.822145
+-STATEMENT match (d:doc) where d.ID >= 390 delete d
+---- ok
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
+---- 5
+109|2.103948
+134|2.068176
+199|1.951345
+202|2.016027
+389|1.906131
+-RELOADDB
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
+---- 5
+109|2.103948
+134|2.068176
+199|1.951345
+202|2.016027
+389|1.906131

@@ -26,13 +26,13 @@ public:
     BufferedSerializer(std::unique_ptr<uint8_t[]> data, uint64_t size);
 
     // Retrieves the data after the writing has been completed.
-    inline BinaryData getData() { return std::move(blob); }
+    BinaryData getData() { return std::move(blob); }
 
-    inline uint64_t getSize() const { return blob.size; }
+    uint64_t getSize() const { return blob.size; }
 
-    inline uint8_t* getBlobData() const { return blob.data.get(); }
+    uint8_t* getBlobData() const { return blob.data.get(); }
 
-    inline void reset() { blob.size = 0; }
+    void reset() { blob.size = 0; }
 
     template<class T>
     void write(T element) {
@@ -43,11 +43,11 @@ public:
 
     void write(const uint8_t* buffer, uint64_t len) final;
 
-    inline void writeBufferData(const std::string& str) {
+    void writeBufferData(const std::string& str) {
         write(reinterpret_cast<const uint8_t*>(str.c_str()), str.size());
     }
 
-    inline void writeBufferData(const char& ch) {
+    void writeBufferData(const char& ch) {
         write(reinterpret_cast<const uint8_t*>(&ch), sizeof(char));
     }
 

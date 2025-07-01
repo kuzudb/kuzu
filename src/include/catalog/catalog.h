@@ -138,7 +138,7 @@ public:
 
     // Create index entry.
     void createIndex(transaction::Transaction* transaction,
-        std::unique_ptr<IndexCatalogEntry> indexCatalogEntry);
+        std::unique_ptr<CatalogEntry> indexCatalogEntry);
     // Drop all index entries within a table.
     void dropAllIndexes(transaction::Transaction* transaction, common::table_id_t tableID);
     // Drop index entry with name.

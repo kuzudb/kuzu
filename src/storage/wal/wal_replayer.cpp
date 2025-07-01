@@ -76,7 +76,7 @@ void WALReplayer::replay() const {
     }
 }
 
-void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
+void WALReplayer::replayWALRecord(WALRecord& walRecord) const {
     switch (walRecord.type) {
     case WALRecordType::BEGIN_TRANSACTION_RECORD: {
         clientContext.getTransactionContext()->beginRecoveryTransaction();
@@ -133,11 +133,11 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     }
 }
 
-void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) const {
+void WALReplayer::replayCreateCatalogEntryRecord(WALRecord& walRecord) const {
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
     auto storageManager = clientContext.getStorageManager();
-    auto& record = walRecord.constCast<CreateCatalogEntryRecord>();
+    auto& record = walRecord.cast<CreateCatalogEntryRecord>();
     switch (record.ownedCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY: {
@@ -161,8 +161,7 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
         catalog->createType(transaction, typeEntry.getName(), typeEntry.getLogicalType().copy());
     } break;
     case CatalogEntryType::INDEX_ENTRY: {
-        // auto& indexEntry = record.ownedCatalogEntry->constCast<IndexCatalogEntry>();
-        // catalog->createIndex(transaction, std::move(record.ownedCatalogEntry));
+        catalog->createIndex(transaction, std::move(record.ownedCatalogEntry));
     } break;
     default: {
         KU_UNREACHABLE;

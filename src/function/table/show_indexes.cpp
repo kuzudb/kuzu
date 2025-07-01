@@ -64,17 +64,17 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
 static binder::expression_vector bindColumns(const TableFuncBindInput& input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    columnNames.emplace_back("table name");
+    columnNames.emplace_back("table_name");
     columnTypes.emplace_back(LogicalType::STRING());
-    columnNames.emplace_back("index name");
+    columnNames.emplace_back("index_name");
     columnTypes.emplace_back(LogicalType::STRING());
-    columnNames.emplace_back("index type");
+    columnNames.emplace_back("index_type");
     columnTypes.emplace_back(LogicalType::STRING());
-    columnNames.emplace_back("property names");
+    columnNames.emplace_back("property_names");
     columnTypes.emplace_back(LogicalType::LIST(LogicalType::STRING()));
-    columnNames.emplace_back("extension loaded");
+    columnNames.emplace_back("extension_loaded");
     columnTypes.emplace_back(LogicalType::BOOL());
-    columnNames.emplace_back("index definition");
+    columnNames.emplace_back("index_definition");
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames = TableFunction::extractYieldVariables(columnNames, input.yieldVariables);
     return input.binder->createVariables(columnNames, columnTypes);

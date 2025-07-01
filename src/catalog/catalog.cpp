@@ -289,7 +289,8 @@ bool Catalog::containsType(const Transaction* transaction, const std::string& ty
 }
 
 void Catalog::createIndex(Transaction* transaction,
-    std::unique_ptr<IndexCatalogEntry> indexCatalogEntry) {
+    std::unique_ptr<CatalogEntry> indexCatalogEntry) {
+    KU_ASSERT(indexCatalogEntry->getType() == CatalogEntryType::INDEX_ENTRY);
     indexes->createEntry(transaction, std::move(indexCatalogEntry));
 }
 

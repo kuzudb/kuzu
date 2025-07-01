@@ -149,7 +149,7 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
         case CatalogEntryType::TABLE_FUNCTION_ENTRY:
         case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY: {
-            // DO NOTHING. We don't persist index/function entries.
+            // DO NOTHING. We don't persist function entries.
         } break;
         case CatalogEntryType::SCALAR_MACRO_ENTRY:
         case CatalogEntryType::TYPE_ENTRY:
@@ -163,7 +163,7 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
     case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
     case CatalogEntryType::TABLE_FUNCTION_ENTRY:
     case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY: {
-        // DO NOTHING. We don't persist function/index entries.
+        // DO NOTHING. We don't persist function entries.
     } break;
     default: {
         throw common::RuntimeException(

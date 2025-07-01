@@ -57,6 +57,10 @@ struct WALRecord {
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const TARGET&>(*this);
     }
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<TARGET&>(*this);
+    }
 };
 
 struct BeginTransactionRecord final : WALRecord {
@@ -89,9 +93,7 @@ struct CheckpointRecord final : WALRecord {
 
 struct CreateCatalogEntryRecord final : WALRecord {
     catalog::CatalogEntry* catalogEntry;
-    std::vector<catalog::CatalogEntry*> childrenEntries;
     std::unique_ptr<catalog::CatalogEntry> ownedCatalogEntry;
-    std::vector<std::unique_ptr<catalog::CatalogEntry>> ownedChildrenEntries;
     bool isInternal = false;
 
     CreateCatalogEntryRecord()

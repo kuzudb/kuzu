@@ -72,14 +72,6 @@ void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry, bool isInterna
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry,
-    const std::vector<CatalogEntry*>& childrenEntries, bool isInternal) {
-    std::unique_lock lck{mtx};
-    CreateCatalogEntryRecord walRecord(catalogEntry, isInternal);
-    walRecord.childrenEntries = childrenEntries;
-    addNewWALRecordNoLock(walRecord);
-}
-
 void WAL::logDropCatalogEntryRecord(table_id_t tableID, CatalogEntryType type) {
     std::unique_lock lck{mtx};
     DropCatalogEntryRecord walRecord(tableID, type);
