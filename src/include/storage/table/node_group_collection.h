@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/local_storage/local_table.h"
 #include "storage/stats/table_stats.h"
 #include "storage/table/group_collection.h"
 #include "storage/table/node_group.h"
@@ -29,7 +30,7 @@ public:
     // The returned values are the startOffset and numValuesAppended.
     // NOTE: This is specially coded to only be used by NodeBatchInsert for now.
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroupAndFlushWhenFull(
-        MemoryManager& mm, transaction::Transaction* transaction,
+        MemoryManager& mm, transaction::Transaction* transaction, LocalTable* localTable,
         const std::vector<common::column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup);
 
     common::row_idx_t getNumTotalRows() const;

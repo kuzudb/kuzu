@@ -2,6 +2,7 @@
 
 #include "common/copy_constructors.h"
 #include "storage/local_storage/local_hash_index.h"
+#include "storage/local_storage/local_optimistic_writer.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/table/node_group_collection.h"
 
@@ -56,6 +57,7 @@ private:
     OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<LocalHashIndex> hashIndex;
     NodeGroupCollection nodeGroups;
+    std::unique_ptr<LocalOptimisticWriter> optimisticWriter;
 };
 
 } // namespace storage

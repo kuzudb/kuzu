@@ -1,6 +1,7 @@
 #include "storage/table/node_group_collection.h"
 
 #include "common/vector/value_vector.h"
+#include "storage/local_storage/local_node_table.h"
 #include "storage/table/csr_node_group.h"
 #include "storage/table/table.h"
 #include "transaction/transaction.h"
@@ -102,18 +103,21 @@ void NodeGroupCollection::append(const Transaction* transaction,
 }
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
-    MemoryManager& mm, Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    ChunkedNodeGroup& chunkedGroup) {
+    MemoryManager& mm, Transaction* transaction, LocalTable* localTable,
+    const std::vector<column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup) {
     NodeGroup* lastNodeGroup = nullptr;
     offset_t startOffset = 0;
     offset_t numToAppend = 0;
     bool directFlushWhenAppend = false;
+    auto& localNodeTable = localTable->cast<LocalNodeTable>();
     {
         const auto lock = nodeGroups.lock();
         startOffset = numTotalRows;
         if (nodeGroups.isEmpty(lock)) {
-            nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
-                                             enableCompression, LogicalType::copy(types)));
+            directFlushWhenAppend = true;
+            // nodeGroups.appendGroup(lock,
+            // std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock), enableCompression,
+            // LogicalType::copy(types)));
         }
         lastNodeGroup = nodeGroups.getLastGroup(lock);
         auto numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
@@ -140,7 +144,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         chunkedGroup.finalize();
         auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *dataFH);
 
-        // If there are deleted columns that haven't been vaccumed yet
+        // If there are deleted columns that haven't been vacuumed yet,
         // we need to add extra columns to the chunked group
         // to ensure that the number of columns is consistent with the rest of the node group
         auto groupToMerge = std::make_unique<ChunkedNodeGroup>(mm, *flushedGroup,
