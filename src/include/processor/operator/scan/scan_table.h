@@ -1,7 +1,7 @@
 #pragma once
 
-#include "processor/operator/physical_operator.h"
 #include "binder/expression/expression.h"
+#include "processor/operator/physical_operator.h"
 #include "storage/table/table.h"
 
 namespace kuzu {
@@ -29,22 +29,19 @@ public:
     explicit ColumnCaster(common::LogicalType columnType) : columnType{std::move(columnType)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ColumnCaster);
 
-    void setCastExpr(std::shared_ptr<binder::Expression> expr) {
-        castExpr = std::move(expr);
-    }
+    void setCastExpr(std::shared_ptr<binder::Expression> expr) { castExpr = std::move(expr); }
     bool hasCast() const { return castExpr != nullptr; }
 
     // Generate temporary vectors for scanning
     void init(common::ValueVector* vectorAfterCasting, storage::MemoryManager* memoryManager);
     // Get temporary vector for scanning. This vector has the same data type as column.
-    common::ValueVector* getVectorBeforeCasting() const {
-        return vectorBeforeCasting.get();
-    }
+    common::ValueVector* getVectorBeforeCasting() const { return vectorBeforeCasting.get(); }
 
     void cast();
 
 private:
-    ColumnCaster(const ColumnCaster& other) : columnType{other.columnType.copy()}, castExpr{other.castExpr} {}
+    ColumnCaster(const ColumnCaster& other)
+        : columnType{other.columnType.copy()}, castExpr{other.castExpr} {}
 
     common::LogicalType columnType;
     std::shared_ptr<binder::Expression> castExpr;
@@ -63,21 +60,24 @@ struct ScanTableInfo {
     storage::Table* table;
 
     ScanTableInfo(storage::Table* table, std::vector<storage::ColumnPredicateSet> columnPredicates)
-       : table{table}, columnPredicates{std::move(columnPredicates)} {}
+        : table{table}, columnPredicates{std::move(columnPredicates)} {}
     virtual ~ScanTableInfo() = default;
 
     void addColumnInfo(common::column_id_t columnID, ColumnCaster caster);
 
-    virtual void initScanState(storage::TableScanState& scanState, const std::vector<common::ValueVector*>& outVectors, main::ClientContext* context) = 0;
+    virtual void initScanState(storage::TableScanState& scanState,
+        const std::vector<common::ValueVector*>& outVectors, main::ClientContext* context) = 0;
 
     void castColumns();
 
 protected:
     ScanTableInfo(const ScanTableInfo& other)
         : table{other.table}, columnIDs{other.columnIDs},
-          columnPredicates{copyVector(other.columnPredicates)}, columnCasters{copyVector(other.columnCasters)}, hasColumnCaster{other.hasColumnCaster} {}
+          columnPredicates{copyVector(other.columnPredicates)},
+          columnCasters{copyVector(other.columnCasters)}, hasColumnCaster{other.hasColumnCaster} {}
 
-    void initScanStateVectors(storage::TableScanState& scanState, const std::vector<common::ValueVector*>& outVectors, storage::MemoryManager* memoryManager);
+    void initScanStateVectors(storage::TableScanState& scanState,
+        const std::vector<common::ValueVector*>& outVectors, storage::MemoryManager* memoryManager);
 
     // Column ids to scan
     std::vector<common::column_id_t> columnIDs;
@@ -101,7 +101,7 @@ public:
         : PhysicalOperator{operatorType, id, std::move(printInfo)}, opInfo{std::move(info)} {}
 
 protected:
-    void initLocalStateInternal(ResultSet *, ExecutionContext *) override;
+    void initLocalStateInternal(ResultSet*, ExecutionContext*) override;
 
 protected:
     ScanOpInfo opInfo;

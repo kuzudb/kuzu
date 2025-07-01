@@ -62,13 +62,16 @@ private:
 };
 
 struct ScanNodeTableInfo : ScanTableInfo {
-    ScanNodeTableInfo(storage::Table* table, std::vector<storage::ColumnPredicateSet> columnPredicates) : ScanTableInfo{table, std::move(columnPredicates)} {}
+    ScanNodeTableInfo(storage::Table* table,
+        std::vector<storage::ColumnPredicateSet> columnPredicates)
+        : ScanTableInfo{table, std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanNodeTableInfo);
 
-    void initScanState(storage::TableScanState &scanState, const std::vector<common::ValueVector *> &outVectors, main::ClientContext *context) override;
+    void initScanState(storage::TableScanState& scanState,
+        const std::vector<common::ValueVector*>& outVectors, main::ClientContext* context) override;
 
 private:
-    ScanNodeTableInfo(const ScanNodeTableInfo& other) : ScanTableInfo {other} {}
+    ScanNodeTableInfo(const ScanNodeTableInfo& other) : ScanTableInfo{other} {}
 };
 
 class ScanNodeTable final : public ScanTable {
@@ -100,8 +103,8 @@ public:
     }
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<ScanNodeTable>(opInfo.copy(), copyVector(tableInfos), sharedStates, id,
-            printInfo->copy(), progressSharedState);
+        return std::make_unique<ScanNodeTable>(opInfo.copy(), copyVector(tableInfos), sharedStates,
+            id, printInfo->copy(), progressSharedState);
     }
 
     double getProgress(ExecutionContext* context) const override;

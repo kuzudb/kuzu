@@ -1877,11 +1877,12 @@ LogicalType LogicalTypeUtils::combineTypes(const LogicalType& lft,
 }
 
 LogicalType LogicalTypeUtils::combineTypes(const std::vector<LogicalType>& types) {
-   if (types.empty()) {
-       // LCOV_EXCL_START
-       throw RuntimeException(stringFormat("Trying to combine empty types. This should never happen."));
-       // LCOV_EXCL_STOP
-   }
+    if (types.empty()) {
+        // LCOV_EXCL_START
+        throw RuntimeException(
+            stringFormat("Trying to combine empty types. This should never happen."));
+        // LCOV_EXCL_STOP
+    }
     if (types.size() == 1) {
         return types[0].copy();
     }
@@ -1891,7 +1892,6 @@ LogicalType LogicalTypeUtils::combineTypes(const std::vector<LogicalType>& types
     }
     return result;
 }
-
 
 LogicalType LogicalTypeUtils::purgeAny(const LogicalType& type, const LogicalType& replacement) {
     switch (type.getLogicalTypeID()) {

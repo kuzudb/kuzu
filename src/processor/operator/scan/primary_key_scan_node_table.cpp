@@ -29,10 +29,12 @@ idx_t PrimaryKeyScanSharedState::getTableIdx() {
     return numTables;
 }
 
-void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
+    ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
     auto nodeIDVector = resultSet->getValueVector(opInfo.nodeIDPos).get();
-    scanState = std::make_unique<NodeTableScanState>(nodeIDVector, std::vector<ValueVector*>{}, nodeIDVector->state);
+    scanState = std::make_unique<NodeTableScanState>(nodeIDVector, std::vector<ValueVector*>{},
+        nodeIDVector->state);
     indexEvaluator->init(*resultSet, context->clientContext);
 }
 

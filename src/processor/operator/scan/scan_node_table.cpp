@@ -75,7 +75,7 @@ table_id_map_t<SemiMask*> ScanNodeTable::getSemiMasks() const {
 void ScanNodeTableInfo::initScanState(TableScanState& scanState,
     const std::vector<ValueVector*>& outVectors, main::ClientContext* context) {
     auto transaction = context->getTransaction();
-    scanState.setToTable(transaction, table, columnIDs,copyVector(columnPredicates));
+    scanState.setToTable(transaction, table, columnIDs, copyVector(columnPredicates));
     initScanStateVectors(scanState, outVectors, context->getMemoryManager());
 }
 

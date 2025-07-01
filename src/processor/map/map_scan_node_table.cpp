@@ -1,4 +1,6 @@
+#include "binder/binder.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression_binder.h"
 #include "common/mask.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "processor/expression_mapper.h"
@@ -6,8 +8,6 @@
 #include "processor/operator/scan/scan_node_table.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
-#include "binder/binder.h"
-#include "binder/expression_binder.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -48,9 +48,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(
                 if (property.getDataType() != columnType) {
                     auto columnExpr = std::make_shared<PropertyExpression>(property);
                     columnExpr->dataType = columnType.copy();
-                    columnCaster.setCastExpr(expressionBinder.forceCast(columnExpr, property.getDataType()));
+                    columnCaster.setCastExpr(
+                        expressionBinder.forceCast(columnExpr, property.getDataType()));
                 }
-                tableInfo.addColumnInfo(tableEntry->getColumnID(propertyName), std::move(columnCaster));
+                tableInfo.addColumnInfo(tableEntry->getColumnID(propertyName),
+                    std::move(columnCaster));
             } else {
                 tableInfo.addColumnInfo(INVALID_COLUMN_ID, ColumnCaster(LogicalType::ANY()));
             }

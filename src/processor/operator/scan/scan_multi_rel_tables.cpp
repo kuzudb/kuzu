@@ -20,7 +20,8 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
     return false;
 }
 
-bool RelTableCollectionScanner::scan(main::ClientContext* context, RelTableScanState& scanState, const std::vector<ValueVector*>& outVectors) {
+bool RelTableCollectionScanner::scan(main::ClientContext* context, RelTableScanState& scanState,
+    const std::vector<ValueVector*>& outVectors) {
     auto transaction = context->getTransaction();
     while (true) {
         auto& relInfo = relInfos[currentTableIdx];
@@ -69,7 +70,8 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
 
 bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (currentScanner != nullptr && currentScanner->scan(context->clientContext, *scanState, outVectors)) {
+        if (currentScanner != nullptr &&
+            currentScanner->scan(context->clientContext, *scanState, outVectors)) {
             metrics->numOutputTuple.increase(scanState->outState->getSelVector().getSelSize());
             return true;
         }

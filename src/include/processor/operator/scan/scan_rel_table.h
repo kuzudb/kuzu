@@ -15,11 +15,14 @@ namespace processor {
 struct ScanRelTableInfo : ScanTableInfo {
     common::RelDataDirection direction;
 
-    ScanRelTableInfo(storage::Table* table, std::vector<storage::ColumnPredicateSet> columnPredicates, common::RelDataDirection direction)
+    ScanRelTableInfo(storage::Table* table,
+        std::vector<storage::ColumnPredicateSet> columnPredicates,
+        common::RelDataDirection direction)
         : ScanTableInfo{table, std::move(columnPredicates)}, direction{direction} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
 
-    void initScanState(storage::TableScanState &scanState, const std::vector<common::ValueVector *> &outVectors, main::ClientContext *context) override;
+    void initScanState(storage::TableScanState& scanState,
+        const std::vector<common::ValueVector*>& outVectors, main::ClientContext* context) override;
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)
@@ -71,8 +74,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<ScanRelTable>(opInfo.copy(), tableInfo.copy(), children[0]->copy(), id,
-            printInfo->copy());
+        return std::make_unique<ScanRelTable>(opInfo.copy(), tableInfo.copy(), children[0]->copy(),
+            id, printInfo->copy());
     }
 
 protected:

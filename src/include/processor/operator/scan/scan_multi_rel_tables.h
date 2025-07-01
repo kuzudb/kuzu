@@ -40,7 +40,8 @@ public:
         }
     }
 
-    bool scan(main::ClientContext* context, storage::RelTableScanState& scanState, const std::vector<common::ValueVector*>& outVectors);
+    bool scan(main::ClientContext* context, storage::RelTableScanState& scanState,
+        const std::vector<common::ValueVector*>& outVectors);
 
 private:
     RelTableCollectionScanner(const RelTableCollectionScanner& other)

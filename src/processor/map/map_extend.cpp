@@ -1,12 +1,12 @@
+#include "binder/binder.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression_binder.h"
 #include "common/enums/extend_direction_util.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
-#include "binder/binder.h"
-#include "binder/expression_binder.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -42,7 +42,8 @@ static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableEntry,
             if (property.getDataType() != columnType) {
                 auto columnExpr = std::make_shared<PropertyExpression>(property);
                 columnExpr->dataType = columnType.copy();
-                columnCaster.setCastExpr(expressionBinder.forceCast(columnExpr, property.getDataType()));
+                columnCaster.setCastExpr(
+                    expressionBinder.forceCast(columnExpr, property.getDataType()));
             }
             tableInfo.addColumnInfo(tableEntry.getColumnID(propertyName), std::move(columnCaster));
         } else {
@@ -69,8 +70,7 @@ static bool isRelTableQualifies(ExtendDirection direction, table_id_t srcTableID
 static std::vector<ScanRelTableInfo> populateRelTableCollectionScanner(table_id_t boundNodeTableID,
     const table_id_set_t& nbrTableISet, const RelGroupCatalogEntry& entry,
     ExtendDirection extendDirection, bool shouldScanNbrID, const expression_vector& properties,
-    const std::vector<ColumnPredicateSet>& columnPredicates,
-    main::ClientContext* clientContext) {
+    const std::vector<ColumnPredicateSet>& columnPredicates, main::ClientContext* clientContext) {
     std::vector<ScanRelTableInfo> scanInfos;
     const auto storageManager = clientContext->getStorageManager();
     for (auto& info : entry.getRelEntryInfos()) {
@@ -147,8 +147,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
         auto relDataDirection = ExtendDirectionUtil::getRelDataDirection(extendDirection);
         auto entryInfo = entry->getSingleRelEntryInfo();
         auto relTable = storageManager->getTable(entryInfo.oid)->ptrCast<RelTable>();
-        auto scanRelInfo = getRelTableScanInfo(*entry, relDataDirection, relTable,
-            extend->shouldScanNbrID(), extend->getProperties(), extend->getPropertyPredicates(), clientContext);
+        auto scanRelInfo =
+            getRelTableScanInfo(*entry, relDataDirection, relTable, extend->shouldScanNbrID(),
+                extend->getProperties(), extend->getPropertyPredicates(), clientContext);
         return std::make_unique<ScanRelTable>(std::move(scanInfo), std::move(scanRelInfo),
             std::move(prevOperator), getOperatorID(), printInfo->copy());
     }

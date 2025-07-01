@@ -18,7 +18,8 @@ void ColumnCaster::init(ValueVector* vectorAfterCasting, storage::MemoryManager*
 
 void ColumnCaster::cast() {
     auto& funcExpr = castExpr->constCast<binder::ScalarFunctionExpression>();
-    funcExpr.getFunction().execFunc(funcInputVectors, funcInputSelVectors, *vectorAfterCasting, &vectorAfterCasting->state->getSelVectorUnsafe(), funcExpr.getBindData());
+    funcExpr.getFunction().execFunc(funcInputVectors, funcInputSelVectors, *vectorAfterCasting,
+        &vectorAfterCasting->state->getSelVectorUnsafe(), funcExpr.getBindData());
 }
 
 void ScanTableInfo::castColumns() {
@@ -64,5 +65,5 @@ void ScanTable::initLocalStateInternal(ResultSet*, ExecutionContext*) {
     }
 }
 
-}
-}
+} // namespace processor
+} // namespace kuzu

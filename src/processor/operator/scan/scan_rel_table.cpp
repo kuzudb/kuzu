@@ -57,7 +57,7 @@ std::string ScanRelTablePrintInfo::toString() const {
 void ScanRelTableInfo::initScanState(TableScanState& scanState,
     const std::vector<ValueVector*>& outVectors, main::ClientContext* context) {
     auto transaction = context->getTransaction();
-    scanState.setToTable(transaction, table,columnIDs, copyVector(columnPredicates), direction);
+    scanState.setToTable(transaction, table, columnIDs, copyVector(columnPredicates), direction);
     initScanStateVectors(scanState, outVectors, context->getMemoryManager());
 }
 
