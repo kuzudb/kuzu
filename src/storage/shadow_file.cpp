@@ -82,6 +82,7 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context,
     fileInfo->readFromFile(headerBuffer.get(), KUZU_PAGE_SIZE, 0);
     std::vector<ShadowPageRecord> shadowPageRecords;
     shadowPageRecords.reserve(header.numShadowPages);
+    auto fileInfoPtr = fileInfo.get();
     auto reader = std::make_unique<BufferedFileReader>(std::move(fileInfo));
     reader->resetReadOffset(header.numShadowPages * KUZU_PAGE_SIZE);
     Deserializer deSer(std::move(reader));
@@ -90,8 +91,7 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context,
     const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     page_idx_t shadowPageIdx = 1;
     for (const auto& record : shadowPageRecords) {
-        reader->getFileInfo()->readFromFile(pageBuffer.get(), KUZU_PAGE_SIZE,
-            shadowPageIdx * KUZU_PAGE_SIZE);
+        fileInfoPtr->readFromFile(pageBuffer.get(), KUZU_PAGE_SIZE, shadowPageIdx * KUZU_PAGE_SIZE);
         dataFileInfo->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
             record.originalPageIdx * KUZU_PAGE_SIZE);
         shadowPageIdx++;

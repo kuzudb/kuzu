@@ -45,12 +45,13 @@ public:
     void logCommit();
 
     void clear();
-    uint64_t getSize() const;
+    uint64_t getSize();
 
 private:
     void addNewWALRecord(const WALRecord& walRecord);
 
 private:
+    std::mutex mtx;
     std::shared_ptr<common::InMemFileWriter> writer;
 };
 

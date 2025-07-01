@@ -18,7 +18,7 @@ WAL::WAL(std::string directory, bool readOnly, VirtualFileSystem* vfs)
 
 WAL::~WAL() {}
 
-void WAL::logCommittedWAL(const LocalWAL& localWAL, main::ClientContext* context) {
+void WAL::logCommittedWAL(LocalWAL& localWAL, main::ClientContext* context) {
     KU_ASSERT(!readOnly);
     if (main::DBConfig::isDBPathInMemory(directory) || localWAL.getSize() == 0) {
         return; // No need to log empty WAL.

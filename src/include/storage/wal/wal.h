@@ -15,7 +15,7 @@ public:
     WAL(std::string directory, bool readOnly, common::VirtualFileSystem* vfs);
     ~WAL();
 
-    void logCommittedWAL(const LocalWAL& localWAL, main::ClientContext* context);
+    void logCommittedWAL(LocalWAL& localWAL, main::ClientContext* context);
     void logAndFlushCheckpoint(main::ClientContext* context);
 
     void clear();

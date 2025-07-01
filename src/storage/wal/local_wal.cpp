@@ -87,15 +87,18 @@ void LocalWAL::logUpdateSequenceRecord(sequence_id_t sequenceID, uint64_t kCount
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void LocalWAL::clear() {
+    std::unique_lock lck{mtx};
     writer->clear();
 }
 
-uint64_t LocalWAL::getSize() const {
+uint64_t LocalWAL::getSize() {
+    std::unique_lock lck{mtx};
     return writer->getSize();
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void LocalWAL::addNewWALRecord(const WALRecord& walRecord) {
+    std::unique_lock lck{mtx};
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
     Serializer serializer(writer);
     walRecord.serialize(serializer);
