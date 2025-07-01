@@ -12,10 +12,9 @@ class LogicalExportDatabase final : public LogicalSimple {
 
 public:
     LogicalExportDatabase(common::FileScanInfo boundFileInfo,
-        std::shared_ptr<binder::Expression> outputExpression,
         const std::vector<std::shared_ptr<LogicalOperator>>& plans, bool exportSchemaOnly)
-        : LogicalSimple{type_, plans, std::move(outputExpression)},
-          boundFileInfo{std::move(boundFileInfo)}, schemaOnly{exportSchemaOnly} {}
+        : LogicalSimple{type_, plans}, boundFileInfo{std::move(boundFileInfo)},
+          schemaOnly{exportSchemaOnly} {}
 
     std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
     common::FileType getFileType() const { return boundFileInfo.fileTypeInfo.fileType; }
@@ -26,11 +25,11 @@ public:
     const common::FileScanInfo* getBoundFileInfo() const { return &boundFileInfo; }
     std::string getExpressionsForPrinting() const override { return std::string{}; }
 
-    bool exportSchemaOnly() const { return schemaOnly; }
+    bool isSchemaOnly() const { return schemaOnly; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalExportDatabase>(std::move(boundFileInfo),
-            std::move(outputExpression), std::move(children), schemaOnly);
+        return make_unique<LogicalExportDatabase>(boundFileInfo.copy(), copyVector(children),
+            schemaOnly);
     }
 
 private:

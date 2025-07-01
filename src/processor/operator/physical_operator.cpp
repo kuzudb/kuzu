@@ -44,6 +44,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "DROP";
     case PhysicalOperatorType::DUMMY_SINK:
         return "DUMMY_SINK";
+    case PhysicalOperatorType::DUMMY_SIMPLE_SINK:
+        return "DUMMY_SIMPLE_SINK";
     case PhysicalOperatorType::EMPTY_RESULT:
         return "EMPTY_RESULT";
     case PhysicalOperatorType::EXPORT_DATABASE:

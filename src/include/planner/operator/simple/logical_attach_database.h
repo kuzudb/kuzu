@@ -24,18 +24,18 @@ private:
 };
 
 class LogicalAttachDatabase final : public LogicalSimple {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::ATTACH_DATABASE;
+
 public:
-    explicit LogicalAttachDatabase(binder::AttachInfo attachInfo,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalSimple{LogicalOperatorType::ATTACH_DATABASE, std::move(outputExpression)},
-          attachInfo{std::move(attachInfo)} {}
+    explicit LogicalAttachDatabase(binder::AttachInfo attachInfo)
+        : LogicalSimple{type_}, attachInfo{std::move(attachInfo)} {}
 
     binder::AttachInfo getAttachInfo() const { return attachInfo; }
 
     std::string getExpressionsForPrinting() const override { return attachInfo.dbPath; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalAttachDatabase>(attachInfo, outputExpression);
+        return std::make_unique<LogicalAttachDatabase>(attachInfo);
     }
 
 private:

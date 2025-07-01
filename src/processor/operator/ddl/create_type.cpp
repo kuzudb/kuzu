@@ -14,12 +14,10 @@ std::string CreateTypePrintInfo::toString() const {
 }
 
 void CreateType::executeInternal(ExecutionContext* context) {
-    auto catalog = context->clientContext->getCatalog();
-    catalog->createType(context->clientContext->getTransaction(), name, type.copy());
-}
-
-std::string CreateType::getOutputMsg() {
-    return stringFormat("Type {}({}) has been created.", name, type.toString());
+    auto clientContext = context->clientContext;
+    clientContext->getCatalog()->createType(clientContext->getTransaction(), name, type.copy());
+    appendMessage(stringFormat("Type {}({}) has been created.", name, type.toString()),
+        clientContext->getMemoryManager());
 }
 
 } // namespace processor

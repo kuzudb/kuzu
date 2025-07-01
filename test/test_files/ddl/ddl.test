@@ -60,12 +60,12 @@ Table nearTo has been dropped.
 Table university has been dropped.
 -STATEMENT ALTER TABLE person DROP fName
 ---- 1
-Table person altered.
+Property fName has been dropped from table person.
 -STATEMENT ALTER TABLE person DROP if exists fName
 ---- ok
 -STATEMENT ALTER TABLE knows DROP date
 ---- 1
-Table knows altered.
+Property date has been dropped from table knows.
 -STATEMENT ALTER TABLE knows DROP if exists date
 ---- ok
 
@@ -540,7 +540,7 @@ Binder exception: Duplicated column name: name, column name must be unique.
 Runtime exception: A table already has property name.
 -STATEMENT ALTER TABLE A DROP name;
 ---- 1
-Table A altered.
+Property name has been dropped from table A.
 -STATEMENT ALTER TABLE A ADD name STRING;
 ---- ok
 -STATEMENT MATCH (a:A) RETURN a.ID, a.NAME;

@@ -2,7 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "function/scalar_macro_function.h"
-#include "processor/operator/physical_operator.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
@@ -10,17 +10,14 @@ namespace processor {
 struct CreateMacroInfo {
     std::string macroName;
     std::unique_ptr<function::ScalarMacroFunction> macro;
-    DataPos outputPos;
-    catalog::Catalog* catalog;
 
-    CreateMacroInfo(std::string macroName, std::unique_ptr<function::ScalarMacroFunction> macro,
-        DataPos outputPos, catalog::Catalog* catalog)
-        : macroName{std::move(macroName)}, macro{std::move(macro)}, outputPos{outputPos},
-          catalog{catalog} {}
+    CreateMacroInfo(std::string macroName, std::unique_ptr<function::ScalarMacroFunction> macro)
+        : macroName{std::move(macroName)}, macro{std::move(macro)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(CreateMacroInfo);
 
-    std::unique_ptr<CreateMacroInfo> copy() {
-        return std::make_unique<CreateMacroInfo>(macroName, macro->copy(), outputPos, catalog);
-    }
+private:
+    CreateMacroInfo(const CreateMacroInfo& other)
+        : macroName{other.macroName}, macro{other.macro->copy()} {}
 };
 
 struct CreateMacroPrintInfo final : OPPrintInfo {
@@ -39,32 +36,23 @@ private:
         : OPPrintInfo{other}, macroName{other.macroName} {}
 };
 
-class CreateMacro final : public PhysicalOperator {
+class CreateMacro final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_MACRO;
 
 public:
-    CreateMacro(std::unique_ptr<CreateMacroInfo> createMacroInfo, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, id, std::move(printInfo)},
-          createMacroInfo{std::move(createMacroInfo)}, outputVector(nullptr) {}
+    CreateMacro(CreateMacroInfo info, std::shared_ptr<FactorizedTable> messageTable,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          info{std::move(info)} {}
 
-    bool isSource() const override { return true; }
-    bool isParallel() const final { return false; }
-
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) override {
-        outputVector = resultSet->getValueVector(createMacroInfo->outputPos).get();
-    }
-
-    bool getNextTuplesInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<CreateMacro>(createMacroInfo->copy(), id, printInfo->copy());
+        return std::make_unique<CreateMacro>(info.copy(), messageTable, id, printInfo->copy());
     }
 
 private:
-    std::unique_ptr<CreateMacroInfo> createMacroInfo;
-    bool hasExecuted = false;
-    common::ValueVector* outputVector;
+    CreateMacroInfo info;
 };
 
 } // namespace processor

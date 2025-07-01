@@ -15,28 +15,12 @@ namespace processor {
 
 void Drop::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
     switch (dropInfo.dropType) {
     case DropType::SEQUENCE: {
         dropSequence(clientContext);
     } break;
     case DropType::TABLE: {
-        if (catalog->containsTable(transaction, dropInfo.name,
-                clientContext->useInternalCatalogEntry())) {
-            dropTable(clientContext);
-            return;
-        }
-        switch (dropInfo.conflictAction) {
-        case ConflictAction::ON_CONFLICT_DO_NOTHING: {
-            return;
-        }
-        case ConflictAction::ON_CONFLICT_THROW: {
-            throw BinderException("Table " + dropInfo.name + " does not exist.");
-        }
-        default:
-            KU_UNREACHABLE;
-        }
+        dropTable(clientContext);
     } break;
     default:
         KU_UNREACHABLE;
@@ -46,26 +30,43 @@ void Drop::executeInternal(ExecutionContext* context) {
 void Drop::dropSequence(const main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
+    auto memoryManager = context->getMemoryManager();
     if (!catalog->containsSequence(transaction, dropInfo.name)) {
+        auto message = stringFormat("Sequence {} does not exist.", dropInfo.name);
         switch (dropInfo.conflictAction) {
         case ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            appendMessage(message, memoryManager);
             return;
         }
         case ConflictAction::ON_CONFLICT_THROW: {
-            throw BinderException(
-                common::stringFormat("Sequence {} does not exist.", dropInfo.name));
+            throw BinderException(message);
         }
         default:
             KU_UNREACHABLE;
         }
     }
     catalog->dropSequence(transaction, dropInfo.name);
-    entryDropped = true;
+    appendMessage(stringFormat("Sequence {} has been dropped.", dropInfo.name), memoryManager);
 }
 
 void Drop::dropTable(const main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
+    auto memoryManager = context->getMemoryManager();
+    if (!catalog->containsTable(transaction, dropInfo.name, context->useInternalCatalogEntry())) {
+        auto message = stringFormat("Table {} does not exist.", dropInfo.name);
+        switch (dropInfo.conflictAction) {
+        case ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            appendMessage(message, memoryManager);
+            return;
+        }
+        case ConflictAction::ON_CONFLICT_THROW: {
+            throw BinderException(message);
+        }
+        default:
+            KU_UNREACHABLE;
+        }
+    }
     auto entry = catalog->getTableCatalogEntry(transaction, dropInfo.name);
     switch (entry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
@@ -91,17 +92,7 @@ void Drop::dropTable(const main::ClientContext* context) {
         KU_UNREACHABLE;
     }
     catalog->dropTableEntryAndIndex(transaction, dropInfo.name);
-    entryDropped = true;
-}
-
-std::string Drop::getOutputMsg() {
-    if (entryDropped) {
-        return stringFormat("{} {} has been dropped.", DropTypeUtils::toString(dropInfo.dropType),
-            dropInfo.name);
-    } else {
-        return stringFormat("{} {} does not exist.", DropTypeUtils::toString(dropInfo.dropType),
-            dropInfo.name);
-    }
+    appendMessage(stringFormat("Table {} has been dropped.", dropInfo.name), memoryManager);
 }
 
 } // namespace processor

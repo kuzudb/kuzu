@@ -7,12 +7,10 @@ namespace kuzu {
 namespace processor {
 
 void UseDatabase::executeInternal(ExecutionContext* context) {
-    auto dbManager = context->clientContext->getDatabaseManager();
+    auto clientContext = context->clientContext;
+    auto dbManager = clientContext->getDatabaseManager();
     dbManager->setDefaultDatabase(dbName);
-}
-
-std::string UseDatabase::getOutputMsg() {
-    return "Used database successfully.";
+    appendMessage("Used database successfully.", clientContext->getMemoryManager());
 }
 
 std::string UseDatabasePrintInfo::toString() const {

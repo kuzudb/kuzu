@@ -1,7 +1,7 @@
 #pragma once
 
 #include "parser/ddl/drop_info.h"
-#include "processor/operator/simple/simple.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
@@ -21,21 +21,19 @@ private:
     DropPrintInfo(const DropPrintInfo& other) : OPPrintInfo{other}, name{other.name} {}
 };
 
-class Drop final : public Simple {
+class Drop final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DROP;
 
 public:
-    Drop(parser::DropInfo dropInfo, const DataPos& outputPos, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)}, dropInfo{std::move(dropInfo)},
-          entryDropped{false} {}
+    Drop(parser::DropInfo dropInfo, std::shared_ptr<FactorizedTable> messageTable,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          dropInfo{std::move(dropInfo)} {}
 
     void executeInternal(ExecutionContext* context) override;
 
-    std::string getOutputMsg() override;
-
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<Drop>(dropInfo, outputPos, id, printInfo->copy());
+        return make_unique<Drop>(dropInfo, messageTable, id, printInfo->copy());
     }
 
 private:
@@ -45,7 +43,6 @@ private:
 
 private:
     parser::DropInfo dropInfo;
-    bool entryDropped;
 };
 
 } // namespace processor

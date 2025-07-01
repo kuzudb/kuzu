@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/simple/simple.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {
@@ -22,19 +22,19 @@ private:
         : OPPrintInfo{other}, extensionName{other.extensionName} {}
 };
 
-class LoadExtension final : public Simple {
+class LoadExtension final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::LOAD_EXTENSION;
 
 public:
-    LoadExtension(std::string path, const DataPos& outputPos, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)}, path{std::move(path)} {}
+    LoadExtension(std::string path, std::shared_ptr<FactorizedTable> messageTable,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
+          path{std::move(path)} {}
 
     void executeInternal(ExecutionContext* context) override;
-    std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<LoadExtension>(path, outputPos, id, printInfo->copy());
+        return std::make_unique<LoadExtension>(path, messageTable, id, printInfo->copy());
     }
 
 private:

@@ -5,6 +5,7 @@
 #include "processor/operator/physical_operator.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/result_set_descriptor.h"
+#include <processor/execution_context.h>
 
 namespace kuzu {
 namespace processor {
@@ -90,6 +91,22 @@ protected:
 
 protected:
     std::shared_ptr<FactorizedTable> messageTable;
+};
+
+// For cases like Export. We need a parent for ExportDB and multiple CopyTo. This parent does not
+// have any logic other than propagating the result fTable.
+class DummySimpleSink final : public SimpleSink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DUMMY_SIMPLE_SINK;
+
+public:
+    DummySimpleSink(std::shared_ptr<FactorizedTable> messageTable, physical_op_id id)
+        : SimpleSink{type_, std::move(messageTable), id, OPPrintInfo::EmptyInfo()} {}
+
+    void executeInternal(ExecutionContext*) override {}
+
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<DummySimpleSink>(messageTable, id);
+    }
 };
 
 } // namespace processor

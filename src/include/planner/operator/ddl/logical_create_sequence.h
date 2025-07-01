@@ -28,9 +28,8 @@ class LogicalCreateSequence : public LogicalSimple {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CREATE_SEQUENCE;
 
 public:
-    LogicalCreateSequence(binder::BoundCreateSequenceInfo info,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalSimple{type_, std::move(outputExpression)}, info{std::move(info)} {}
+    explicit LogicalCreateSequence(binder::BoundCreateSequenceInfo info)
+        : LogicalSimple{type_}, info{std::move(info)} {}
 
     std::string getExpressionsForPrinting() const override { return info.sequenceName; }
 
@@ -40,8 +39,8 @@ public:
         return std::make_unique<LogicalCreateSequencePrintInfo>(info.sequenceName);
     }
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateSequence>(info.copy(), outputExpression);
+    std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalCreateSequence>(info.copy());
     }
 
 private:
