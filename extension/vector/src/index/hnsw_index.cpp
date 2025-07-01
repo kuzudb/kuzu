@@ -370,8 +370,10 @@ bool InMemHNSWIndex::insert(common::offset_t offset, CreateInMemHNSWLocalState* 
 void InMemHNSWIndex::finalizeNodeGroup(common::node_group_idx_t nodeGroupIdx) {
     const auto numNodesInTable = lowerLayer->getNumNodes();
     auto scanState = embeddings->constructScanState();
-    upperLayer->finalizeNodeGroup(nodeGroupIdx, numNodesInTable, *upperGraphSelectionMap, *scanState);
-    lowerLayer->finalizeNodeGroup(nodeGroupIdx, numNodesInTable, *lowerGraphSelectionMap, *scanState);
+    upperLayer->finalizeNodeGroup(nodeGroupIdx, numNodesInTable, *upperGraphSelectionMap,
+        *scanState);
+    lowerLayer->finalizeNodeGroup(nodeGroupIdx, numNodesInTable, *lowerGraphSelectionMap,
+        *scanState);
 }
 
 std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {
