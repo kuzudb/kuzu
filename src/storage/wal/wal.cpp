@@ -26,6 +26,7 @@ void WAL::logCommittedWAL(const LocalWAL& localWAL, main::ClientContext* context
     std::unique_lock lck{mtx};
     initWriter(context);
     localWAL.writer->flush(*writer);
+    flushAndSyncNoLock();
 }
 
 void WAL::logAndFlushCheckpoint(main::ClientContext* context) {
