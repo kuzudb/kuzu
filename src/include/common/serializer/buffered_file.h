@@ -53,6 +53,7 @@ public:
     bool finished() override;
 
     uint64_t getReadOffset() const { return fileOffset - bufferSize + bufferOffset; }
+    FileInfo* getFileInfo() const { return fileInfo.get(); }
 
 private:
     void readNextPage();
