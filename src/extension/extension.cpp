@@ -234,6 +234,11 @@ void* dlsym(void* handle, const char* name) {
     KU_ASSERT(handle);
     return (void*)GetProcAddress((HINSTANCE)handle, name);
 }
+
+void dlclose(void* handle) {
+    KU_ASSERT(handle);
+    FreeLibrary((HINSTANCE)handle);
+}
 #endif
 
 } // namespace extension
