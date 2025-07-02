@@ -107,6 +107,7 @@ bool HashIndex<T>::checkpointInMemory() {
     }
     pSlots->checkpointInMemoryIfNecessary();
     oSlots->checkpointInMemoryIfNecessary();
+    // We don't actually store anything in the inMemOverflowFile so don't bother clearing it
     localStorage->clear();
     if constexpr (std::same_as<ku_string_t, T>) {
         overflowFileHandle->checkpointInMemory();

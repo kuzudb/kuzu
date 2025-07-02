@@ -35,6 +35,9 @@ void InMemHashIndex<T>::clear() {
     pSlots = std::make_unique<BlockVector<Slot<T>>>(memoryManager);
     oSlots = std::make_unique<BlockVector<Slot<T>>>(memoryManager);
     allocateSlots(KUZU_PAGE_SIZE / pSlots->getAlignedElementSize());
+    if (overflowFileHandle) {
+        overflowFileHandle->checkpointInMemory(); // clear the page write cache
+    }
 }
 
 template<typename T>
