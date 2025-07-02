@@ -645,6 +645,7 @@ struct KUZU_API LogicalTypeUtils {
     // Also combines structs by the union of their fields. As such, currently, it is not guaranteed
     // for casting to work from input types to resulting types. Ideally this changes
     static LogicalType combineTypes(const LogicalType& left, const LogicalType& right);
+    static LogicalType combineTypes(const std::vector<LogicalType>& types);
 
     // makes a copy of the type with any occurences of ANY replaced with replacement
     static LogicalType purgeAny(const LogicalType& type, const LogicalType& replacement);

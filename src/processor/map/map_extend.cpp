@@ -1,4 +1,6 @@
+#include "binder/binder.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression_binder.h"
 #include "common/enums/extend_direction_util.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
@@ -17,33 +19,38 @@ namespace processor {
 
 static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableEntry,
     RelDataDirection direction, RelTable* relTable, bool shouldScanNbrID,
-    const expression_vector& properties, const std::vector<ColumnPredicateSet>& columnPredicates) {
-    std::vector<column_id_t> columnIDs;
+    const expression_vector& properties, const std::vector<ColumnPredicateSet>& columnPredicates,
+    main::ClientContext* clientContext) {
     std::vector<ColumnPredicateSet> columnPredicateSets = copyVector(columnPredicates);
-    // We always should scan nbrID from relTable. This is not a property in the schema label, so
-    // cannot be bound to a column in the front-end.
-    columnIDs.push_back(shouldScanNbrID ? NBR_ID_COLUMN_ID : INVALID_COLUMN_ID);
     if (!columnPredicateSets.empty()) {
         // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
         columnPredicateSets.insert(columnPredicateSets.begin(), ColumnPredicateSet());
     }
+    auto tableInfo = ScanRelTableInfo(relTable, std::move(columnPredicateSets), direction);
+    // We always should scan nbrID from relTable. This is not a property in the schema label, so
+    // cannot be bound to a column in the front-end.
+    auto nbrColumnID = shouldScanNbrID ? NBR_ID_COLUMN_ID : INVALID_COLUMN_ID;
+    tableInfo.addColumnInfo(nbrColumnID, ColumnCaster(LogicalType::INTERNAL_ID()));
+    auto binder = Binder(clientContext);
+    auto expressionBinder = ExpressionBinder(&binder, clientContext);
     for (auto& expr : properties) {
         auto& property = expr->constCast<PropertyExpression>();
         if (property.hasProperty(tableEntry.getTableID())) {
             auto propertyName = property.getPropertyName();
-            columnIDs.push_back(tableEntry.getColumnID(propertyName));
             auto& columnType = tableEntry.getProperty(propertyName).getType();
+            auto columnCaster = ColumnCaster(columnType.copy());
             if (property.getDataType() != columnType) {
-                throw RuntimeException(stringFormat("Trying to cast property {} from {} to {} in "
-                                                    "ScanRelTable. This is not supported yet.",
-                    expr->toString(), columnType.toString(), expr->getDataType().toString()));
+                auto columnExpr = std::make_shared<PropertyExpression>(property);
+                columnExpr->dataType = columnType.copy();
+                columnCaster.setCastExpr(
+                    expressionBinder.forceCast(columnExpr, property.getDataType()));
             }
+            tableInfo.addColumnInfo(tableEntry.getColumnID(propertyName), std::move(columnCaster));
         } else {
-            columnIDs.push_back(INVALID_COLUMN_ID);
+            tableInfo.addColumnInfo(INVALID_COLUMN_ID, ColumnCaster(LogicalType::ANY()));
         }
     }
-    return ScanRelTableInfo(relTable, direction, std::move(columnIDs),
-        std::move(columnPredicateSets));
+    return tableInfo;
 }
 
 static bool isRelTableQualifies(ExtendDirection direction, table_id_t srcTableID,
@@ -63,10 +70,9 @@ static bool isRelTableQualifies(ExtendDirection direction, table_id_t srcTableID
 static std::vector<ScanRelTableInfo> populateRelTableCollectionScanner(table_id_t boundNodeTableID,
     const table_id_set_t& nbrTableISet, const RelGroupCatalogEntry& entry,
     ExtendDirection extendDirection, bool shouldScanNbrID, const expression_vector& properties,
-    const std::vector<ColumnPredicateSet>& columnPredicates,
-    const main::ClientContext& clientContext) {
+    const std::vector<ColumnPredicateSet>& columnPredicates, main::ClientContext* clientContext) {
     std::vector<ScanRelTableInfo> scanInfos;
-    const auto storageManager = clientContext.getStorageManager();
+    const auto storageManager = clientContext->getStorageManager();
     for (auto& info : entry.getRelEntryInfos()) {
         auto srcTableID = info.nodePair.srcTableID;
         auto dstTableID = info.nodePair.dstTableID;
@@ -76,26 +82,26 @@ static std::vector<ScanRelTableInfo> populateRelTableCollectionScanner(table_id_
             if (isRelTableQualifies(ExtendDirection::FWD, srcTableID, dstTableID, boundNodeTableID,
                     nbrTableISet)) {
                 scanInfos.push_back(getRelTableScanInfo(entry, RelDataDirection::FWD, relTable,
-                    shouldScanNbrID, properties, columnPredicates));
+                    shouldScanNbrID, properties, columnPredicates, clientContext));
             }
         } break;
         case ExtendDirection::BWD: {
             if (isRelTableQualifies(ExtendDirection::BWD, srcTableID, dstTableID, boundNodeTableID,
                     nbrTableISet)) {
                 scanInfos.push_back(getRelTableScanInfo(entry, RelDataDirection::BWD, relTable,
-                    shouldScanNbrID, properties, columnPredicates));
+                    shouldScanNbrID, properties, columnPredicates, clientContext));
             }
         } break;
         case ExtendDirection::BOTH: {
             if (isRelTableQualifies(ExtendDirection::FWD, srcTableID, dstTableID, boundNodeTableID,
                     nbrTableISet)) {
                 scanInfos.push_back(getRelTableScanInfo(entry, RelDataDirection::FWD, relTable,
-                    shouldScanNbrID, properties, columnPredicates));
+                    shouldScanNbrID, properties, columnPredicates, clientContext));
             }
             if (isRelTableQualifies(ExtendDirection::BWD, srcTableID, dstTableID, boundNodeTableID,
                     nbrTableISet)) {
                 scanInfos.push_back(getRelTableScanInfo(entry, RelDataDirection::BWD, relTable,
-                    shouldScanNbrID, properties, columnPredicates));
+                    shouldScanNbrID, properties, columnPredicates, clientContext));
             }
         } break;
         default:
@@ -127,7 +133,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
     for (auto& expression : extend->getProperties()) {
         outVectorsPos.push_back(getDataPos(*expression, *outFSchema));
     }
-    auto scanInfo = ScanTableInfo(inNodeIDPos, outVectorsPos);
+    auto scanInfo = ScanOpInfo(inNodeIDPos, outVectorsPos);
     std::vector<std::string> tableNames;
     auto storageManager = clientContext->getStorageManager();
     for (auto entry : rel->getEntries()) {
@@ -141,8 +147,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
         auto relDataDirection = ExtendDirectionUtil::getRelDataDirection(extendDirection);
         auto entryInfo = entry->getSingleRelEntryInfo();
         auto relTable = storageManager->getTable(entryInfo.oid)->ptrCast<RelTable>();
-        auto scanRelInfo = getRelTableScanInfo(*entry, relDataDirection, relTable,
-            extend->shouldScanNbrID(), extend->getProperties(), extend->getPropertyPredicates());
+        auto scanRelInfo =
+            getRelTableScanInfo(*entry, relDataDirection, relTable, extend->shouldScanNbrID(),
+                extend->getProperties(), extend->getPropertyPredicates(), clientContext);
         return std::make_unique<ScanRelTable>(std::move(scanInfo), std::move(scanRelInfo),
             std::move(prevOperator), getOperatorID(), printInfo->copy());
     }
@@ -159,7 +166,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
             auto scanInfos =
                 populateRelTableCollectionScanner(boundNodeTableID, nbrNode->getTableIDsSet(),
                     relGroupEntry, extendDirection, extend->shouldScanNbrID(),
-                    extend->getProperties(), extend->getPropertyPredicates(), *clientContext);
+                    extend->getProperties(), extend->getPropertyPredicates(), clientContext);
             if (scanInfos.empty()) {
                 continue;
             }

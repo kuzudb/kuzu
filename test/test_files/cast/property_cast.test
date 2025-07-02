@@ -1,0 +1,66 @@
+-DATASET CSV EMPTY
+
+--
+
+-CASE x
+
+-STATEMENT CREATE NODE TABLE N1(ID INT64 PRIMARY KEY, p INT64);
+---- ok
+-STATEMENT CREATE NODE TABLE N2(ID INT64 PRIMARY KEY, p STRING);
+---- ok
+-STATEMENT CREATE NODE TABLE N3(ID STRING PRIMARY KEY, p INT64[]);
+---- ok
+-STATEMENT CREATE NODE TABLE N4(ID STRING PRIMARY KEY, p DOUBLE);
+---- ok
+-STATEMENT CREATE NODE TABLE N5(ID SERIAL PRIMARY KEY, p DATE);
+---- ok
+-STATEMENT CREATE (:N1 {id:0, p:0}), (:N2 {id:0, p:'a'}),
+    (:N3 {id:'a', p:[1,2,3]}), (:N4 {id:'a', p:1.2}),
+    (:N5 {p:date('2025-01-01')})
+---- ok
+-STATEMENT MATCH (a:N1:N3) WHERE a.id='0' RETURN a.*;
+---- 1
+0|0
+-STATEMENT MATCH (a:N1:N4) RETURN a.p;
+---- 2
+0.000000
+1.200000
+-STATEMENT MATCH (a) RETURN a.ID, a.p;
+---- 5
+0|0
+0|2025-01-01
+0|a
+a|1.200000
+a|[1,2,3]
+
+-STATEMENT CREATE REL TABLE R1 (FROM N1 TO N1, p INT64);
+---- ok
+-STATEMENT CREATE REL TABLE R2 (FROM N1 TO N1, p STRING);
+---- ok
+-STATEMENT CREATE REL TABLE R3 (FROM N1 TO N1, p INT64[]);
+---- ok
+-STATEMENT CREATE REL TABLE R4 (FROM N1 TO N1, p DOUBLE);
+---- ok
+-STATEMENT CREATE REL TABLE R5 (FROM N1 TO N1, p DATE);
+---- ok
+-STATEMENT MATCH (a:N1), (b:N1)
+    CREATE (a)-[:R1 {p:1}]->(b),
+           (a)-[:R2 {p:'hh'}]->(b),
+           (a)-[:R3 {p:[1,2,3]}]->(b),
+           (a)-[:R4 {p:3.14}]->(b),
+           (a)-[:R5 {p:date('2024-10-10')}]->(b)
+---- ok
+-STATEMENT MATCH (a:N1)-[e:R1|:R3]->(b:N1) WHERE e.p='1' RETURN e.p;
+---- 1
+1
+-STATEMENT MATCH (a:N1)-[e:R1|:R4]->(b:N1) RETURN e.p;
+---- 2
+1.000000
+3.140000
+-STATEMENT MATCH (a:N1)-[e]->(b:N1) RETURN e.p;
+---- 5
+1
+2024-10-10
+3.140000
+[1,2,3]
+hh

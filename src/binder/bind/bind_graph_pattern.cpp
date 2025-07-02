@@ -149,10 +149,7 @@ static std::shared_ptr<PropertyExpression> createPropertyExpression(const std::s
         auto info = SingleLabelPropertyInfo(exists, isPrimaryKey);
         infos.insert({entry->getTableID(), std::move(info)});
     }
-    LogicalType maxType;
-    if (!LogicalTypeUtils::tryGetMaxLogicalType(dataTypes, maxType)) {
-        maxType = LogicalType::STRING();
-    }
+    LogicalType maxType = LogicalTypeUtils::combineTypes(dataTypes);
     return std::make_shared<PropertyExpression>(std::move(maxType), propertyName,
         uniqueVariableName, rawVariableName, std::move(infos));
 }

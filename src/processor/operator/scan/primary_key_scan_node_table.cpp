@@ -18,7 +18,6 @@ std::string PrimaryKeyScanPrintInfo::toString() const {
     }
     result += ", Expressions: ";
     result += binder::ExpressionUtil::toString(expressions);
-
     return result;
 }
 
@@ -32,24 +31,22 @@ idx_t PrimaryKeyScanSharedState::getTableIdx() {
 
 void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     ExecutionContext* context) {
-    std::vector<ValueVector*> outVectors;
-    for (auto& pos : info.outVectorsPos) {
-        outVectors.push_back(resultSet->getValueVector(pos).get());
-    }
-    scanState = std::make_unique<NodeTableScanState>(
-        resultSet->getValueVector(info.nodeIDPos).get(), outVectors, outVectors[0]->state);
+    ScanTable::initLocalStateInternal(resultSet, context);
+    auto nodeIDVector = resultSet->getValueVector(opInfo.nodeIDPos).get();
+    scanState = std::make_unique<NodeTableScanState>(nodeIDVector, std::vector<ValueVector*>{},
+        nodeIDVector->state);
     indexEvaluator->init(*resultSet, context->clientContext);
 }
 
 bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     auto transaction = context->clientContext->getTransaction();
     auto tableIdx = sharedState->getTableIdx();
-    if (tableIdx >= nodeInfos.size()) {
+    if (tableIdx >= tableInfos.size()) {
         return false;
     }
-    KU_ASSERT(tableIdx < nodeInfos.size());
-    auto& nodeInfo = nodeInfos[tableIdx];
-
+    KU_ASSERT(tableIdx < tableInfos.size());
+    auto& tableInfo = tableInfos[tableIdx];
+    // Look up index
     indexEvaluator->evaluate();
     auto indexVector = indexEvaluator->resultVector.get();
     auto& selVector = indexVector->state->getSelVector();
@@ -58,19 +55,20 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     if (indexVector->isNull(pos)) {
         return false;
     }
-
     offset_t nodeOffset = 0;
-    const bool lookupSucceed = nodeInfo.table->lookupPK(transaction, indexVector, pos, nodeOffset);
-    if (!lookupSucceed) {
+    auto& table = tableInfo.table->cast<NodeTable>();
+    if (!table.lookupPK(transaction, indexVector, pos, nodeOffset)) {
         return false;
     }
-    auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
-    scanState->setToTable(transaction, nodeInfo.table, nodeInfo.columnIDs,
-        copyVector(nodeInfo.columnPredicates));
+    auto nodeID = nodeID_t{nodeOffset, table.getTableID()};
     scanState->nodeIDVector->setValue<nodeID_t>(pos, nodeID);
-    nodeInfo.table->initScanState(transaction, *scanState, nodeID.tableID, nodeOffset);
+    // Look up properties
+    tableInfo.initScanState(*scanState, outVectors, context->clientContext);
+    table.initScanState(transaction, *scanState, nodeID.tableID, nodeOffset);
+    auto succeeded = table.lookup(transaction, *scanState);
+    tableInfo.castColumns();
     metrics->numOutputTuple.incrementByOne();
-    return nodeInfo.table->lookup(transaction, *scanState);
+    return succeeded;
 }
 
 } // namespace processor

@@ -12,23 +12,21 @@ class MemoryManager;
 }
 namespace processor {
 
-struct ScanRelTableInfo {
-    storage::RelTable* table;
+struct ScanRelTableInfo : ScanTableInfo {
     common::RelDataDirection direction;
-    std::vector<common::column_id_t> columnIDs;
-    std::vector<storage::ColumnPredicateSet> columnPredicates;
 
-    ScanRelTableInfo(storage::RelTable* table, common::RelDataDirection direction,
-        std::vector<common::column_id_t> columnIDs,
-        std::vector<storage::ColumnPredicateSet> columnPredicates)
-        : table{table}, direction{direction}, columnIDs{std::move(columnIDs)},
-          columnPredicates{std::move(columnPredicates)} {}
+    ScanRelTableInfo(storage::Table* table,
+        std::vector<storage::ColumnPredicateSet> columnPredicates,
+        common::RelDataDirection direction)
+        : ScanTableInfo{table, std::move(columnPredicates)}, direction{direction} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
+
+    void initScanState(storage::TableScanState& scanState,
+        const std::vector<common::ValueVector*>& outVectors, main::ClientContext* context) override;
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)
-        : table{other.table}, direction{other.direction}, columnIDs{other.columnIDs},
-          columnPredicates{copyVector(other.columnPredicates)} {}
+        : ScanTableInfo{other}, direction{other.direction} {}
 };
 
 struct ScanRelTablePrintInfo final : OPPrintInfo {
@@ -65,23 +63,23 @@ class ScanRelTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
 
 public:
-    ScanRelTable(ScanTableInfo info, ScanRelTableInfo relInfo,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+    ScanRelTable(ScanOpInfo info, ScanRelTableInfo tableInfo,
+        std::unique_ptr<PhysicalOperator> child, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : ScanTable{type_, std::move(info), std::move(child), id, std::move(printInfo)},
-          relInfo{std::move(relInfo)} {}
+          tableInfo{std::move(tableInfo)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<ScanRelTable>(info.copy(), relInfo.copy(), children[0]->copy(), id,
-            printInfo->copy());
+        return std::make_unique<ScanRelTable>(opInfo.copy(), tableInfo.copy(), children[0]->copy(),
+            id, printInfo->copy());
     }
 
 protected:
-    ScanRelTableInfo relInfo;
+    ScanRelTableInfo tableInfo;
     std::unique_ptr<storage::RelTableScanState> scanState;
 };
 
