@@ -94,7 +94,7 @@
 20|0.210752|name_stopwords
 
 -CASE FTSWithParams
--LOAD_DYNAMIC_EXTENSION FTS
+-LOAD_DYNAMIC_EXTENSION fts
 -LOG StemmerOption
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'german1')
 ---- error
