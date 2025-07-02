@@ -15,7 +15,7 @@ struct CastToUnionBindData : public FunctionBindData {
     CastToUnionBindData(common::union_field_idx_t minCostTag,
         std::shared_ptr<ScalarFunction> innerCast, common::LogicalType innerType,
         common::LogicalType dataType)
-        : FunctionBindData{std::move(dataType)}, minCostTag{std::move(minCostTag)},
+        : FunctionBindData{std::move(dataType)}, minCostTag{minCostTag},
           innerCast{std::move(innerCast)}, innerType{std::move(innerType)} {}
 
     std::unique_ptr<FunctionBindData> copy() const override {

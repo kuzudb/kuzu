@@ -7,7 +7,7 @@
 #include "function/cast/cast_function_bind_data.h"
 #include "function/cast/cast_union_bind_data.h"
 #include "function/cast/functions/numeric_cast.h"
-#include "function/scalar_function.h"
+#include "function/unary_function_executor.h"
 
 namespace kuzu {
 namespace function {
