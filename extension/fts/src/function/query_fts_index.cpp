@@ -48,12 +48,29 @@ struct QFTSSharedState : public GDSFuncSharedState {
         KU_ASSERT(vectors[0]->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
         KU_ASSERT(vectors[1]->dataType.getLogicalTypeID() == LogicalTypeID::DOUBLE);
         vectors[0]->setValue(0, docScore.offset);
-        vectors[1]->setValue(1, docScore.score);
+        vectors[1]->setValue(0, docScore.score);
         localTable.append(vectors);
     }
 
     virtual void finalizeResult() { factorizedTablePool.mergeLocalTables(); }
 };
+
+struct ScoreFTInsertState {
+    ValueVector docsVector;
+    ValueVector scoreVector;
+    std::vector<ValueVector*> vectors;
+
+    ScoreFTInsertState();
+};
+
+ScoreFTInsertState::ScoreFTInsertState()
+    : docsVector{LogicalType::INTERNAL_ID()}, scoreVector{LogicalType::DOUBLE()} {
+    auto state = DataChunkState::getSingleValueDataChunkState();
+    docsVector.state = state;
+    scoreVector.state = state;
+    vectors.push_back(&docsVector);
+    vectors.push_back(&scoreVector);
+}
 
 // This sharedState is only used when the user sets the top parameter.
 struct QFTSTopKSharedState : public QFTSSharedState {
@@ -65,20 +82,10 @@ struct QFTSTopKSharedState : public QFTSSharedState {
     std::priority_queue<DocScore, std::vector<DocScore>, PriorityQueueComp> minHeap;
     std::mutex mtx;
     uint64_t topK;
-    ValueVector docsVector;
-    ValueVector scoreVector;
-    std::vector<ValueVector*> vectors;
 
     QFTSTopKSharedState(std::shared_ptr<processor::FactorizedTable> fTable,
         std::unique_ptr<graph::Graph> graph, uint64_t topK, common::table_id_t outputTableID)
-        : QFTSSharedState{std::move(fTable), std::move(graph), outputTableID}, topK{topK},
-          docsVector{LogicalType::INTERNAL_ID()}, scoreVector{LogicalType::DOUBLE()} {
-        auto state = DataChunkState::getSingleValueDataChunkState();
-        docsVector.state = state;
-        scoreVector.state = state;
-        vectors.push_back(&docsVector);
-        vectors.push_back(&scoreVector);
-    }
+        : QFTSSharedState{std::move(fTable), std::move(graph), outputTableID}, topK{topK} {}
 
     void addDocScore(std::vector<ValueVector*> /*vectors*/,
         processor::FactorizedTable& /*localTable*/, DocScore docScore) override {
@@ -92,12 +99,13 @@ struct QFTSTopKSharedState : public QFTSSharedState {
     }
 
     void finalizeResult() override {
+        ScoreFTInsertState insertState;
         auto globalTable = factorizedTablePool.getGlobalTable();
         while (!minHeap.empty()) {
             auto& docScore = minHeap.top();
-            docsVector.setValue(0, nodeID_t{(offset_t)docScore.offset, outputTableID});
-            scoreVector.setValue(0, docScore.score);
-            globalTable->append(vectors);
+            insertState.docsVector.setValue(0, nodeID_t{(offset_t)docScore.offset, outputTableID});
+            insertState.scoreVector.setValue(0, docScore.score);
+            globalTable->append(insertState.vectors);
             minHeap.pop();
         }
     }
@@ -161,36 +169,20 @@ public:
     }
 
 private:
-    std::unique_ptr<ValueVector> createVector(const LogicalType& type);
-
-private:
     const node_id_map_t<ScoreInfo>& scores;
     MemoryManager* mm;
     QueryFTSConfig config;
     const QueryFTSBindData& bindData;
-
-    std::unique_ptr<ValueVector> docsVector;
-    std::unique_ptr<ValueVector> scoreVector;
-    std::vector<ValueVector*> vectors;
     uint64_t numUniqueTerms;
     QFTSSharedState& sharedState;
+    ScoreFTInsertState scoreFtInsertState;
 };
 
 QFTSOutputWriter::QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
     QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms,
     QFTSSharedState& sharedState)
     : scores{scores}, mm{mm}, config{config}, bindData{bindData}, numUniqueTerms{numUniqueTerms},
-      sharedState{sharedState} {
-    docsVector = createVector(LogicalType::INTERNAL_ID());
-    scoreVector = createVector(LogicalType::UINT64());
-}
-
-std::unique_ptr<ValueVector> QFTSOutputWriter::createVector(const LogicalType& type) {
-    auto vector = std::make_unique<ValueVector>(type.copy(), mm);
-    vector->state = DataChunkState::getSingleValueDataChunkState();
-    vectors.push_back(vector.get());
-    return vector;
-}
+      sharedState{sharedState}, scoreFtInsertState{} {}
 
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
     int64_t docsID) {
@@ -216,7 +208,7 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
         score += log10((numDocs - df + 0.5) / (df + 0.5) + 1) *
                  ((tf * (k + 1) / (tf + k * (1 - b + b * (len / avgDocLen)))));
     }
-    sharedState.addDocScore(vectors, scoreFT, {(uint64_t)docsID, score});
+    sharedState.addDocScore(scoreFtInsertState.vectors, scoreFT, {(uint64_t)docsID, score});
 }
 
 class QFTSVertexCompute final : public VertexCompute {
@@ -240,8 +232,6 @@ public:
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<QFTSVertexCompute>(mm, sharedState, writer->copy());
     }
-
-    QFTSOutputWriter* getWriter() { return writer.get(); }
 
 private:
     MemoryManager* mm;

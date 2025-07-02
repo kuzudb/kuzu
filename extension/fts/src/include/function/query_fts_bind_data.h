@@ -12,13 +12,11 @@ struct QueryFTSOptionalParams {
     std::shared_ptr<binder::Expression> k;
     std::shared_ptr<binder::Expression> b;
     std::shared_ptr<binder::Expression> conjunctive;
-    std::shared_ptr<binder::Expression> top;
+    std::shared_ptr<binder::Expression> topK;
 
     explicit QueryFTSOptionalParams(const binder::expression_vector& optionalParams);
 
     QueryFTSConfig getConfig() const;
-
-    bool isTopSet() const { return top != nullptr; }
 };
 
 struct QueryFTSBindData final : function::GDSBindData {
