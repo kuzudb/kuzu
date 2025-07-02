@@ -45,6 +45,7 @@ src/include/common/vector/auxiliary_buffer.h
 src/include/common/vector/value_vector.h
 src/include/function/binary_function_executor.h
 src/include/function/cast/cast_function_bind_data.h
+src/include/function/cast/cast_union_bind_data.h
 src/include/function/const_function_executor.h
 src/include/function/function.h
 src/include/function/pointer_function_executor.h

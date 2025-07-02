@@ -4,8 +4,8 @@
 #include "common/string_format.h"
 #include "common/type_utils.h"
 #include "common/vector/value_vector.h"
-#include "function/built_in_function_utils.h"
 #include "function/cast/cast_function_bind_data.h"
+#include "function/cast/cast_union_bind_data.h"
 #include "function/cast/functions/numeric_cast.h"
 #include "function/cast/vector_cast_functions.h"
 
@@ -40,28 +40,14 @@ struct CastRelToString {
 struct CastToUnion {
     template<typename T>
     static inline void operation(T&, common::union_entry_t&, common::ValueVector& inputVector,
-        common::ValueVector& resultVector) {
-        auto* selVector = inputVector.getSelVectorPtr();
+        common::ValueVector& resultVector, union_field_idx_t minCostTag) {
         const auto& sourceType = inputVector.dataType;
-        const auto& targetType = resultVector.dataType;
-        uint32_t minCastCost = common::UNDEFINED_CAST_COST;
-        common::union_field_idx_t minCostField = 0;
-        for (uint64_t i = 0; i < common::UnionType::getNumFields(targetType); ++i) {
-            const auto& fieldType = common::UnionType::getFieldType(targetType, i);
-            if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
-                uint32_t castCost = BuiltInFunctionsUtils::getCastCost(
-                    sourceType.getLogicalTypeID(), fieldType.getLogicalTypeID());
-                if (castCost < minCastCost) {
-                    minCastCost = castCost;
-                    minCostField = i;
-                }
-            }
-        }
+        const auto& innerType = common::UnionType::getFieldType(resultVector.dataType, minCostTag);
+        auto* selVector = inputVector.getSelVectorPtr();
         auto* tagVector = common::UnionVector::getTagVector(&resultVector);
-        auto* valVector = common::UnionVector::getValVector(&resultVector, minCostField);
-        const auto& innerType = common::UnionType::getFieldType(targetType, minCostField);
+        auto* valVector = common::UnionVector::getValVector(&resultVector, minCostTag);
         for (auto& pos : selVector->getSelectedPositions()) {
-            tagVector->setValue<common::union_field_idx_t>(pos, minCostField);
+            tagVector->setValue<common::union_field_idx_t>(pos, minCostTag);
         }
         if (sourceType != innerType) {
             auto innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",

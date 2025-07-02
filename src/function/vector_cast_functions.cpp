@@ -10,6 +10,7 @@
 #include "function/cast/functions/cast_decimal.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
+#include "function/cast/cast_union_bind_data.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -616,17 +617,31 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     const LogicalType& sourceType, const LogicalType& targetType) {
     // source type is not nested, targetType is a union
     auto numFields = UnionType::getNumFields(targetType);
+    uint32_t minCastCost = UNDEFINED_CAST_COST;
+    union_field_idx_t minCostTag = 0;
     for (uint64_t i = 0; i < numFields; ++i) {
         const auto& fieldType = UnionType::getFieldType(targetType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
-            scalar_func_exec_t execFunc;
-            TypeUtils::visit(sourceType, [&execFunc]<typename T>(T) {
-                execFunc = ScalarFunction::UnaryCastExecFunction<T, union_entry_t, CastToUnion>;
-            });
-            return std::make_unique<ScalarFunction>(functionName,
-                std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()},
-                targetType.getLogicalTypeID(), execFunc);
+            uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(), fieldType.getLogicalTypeID());
+            if (castCost < minCastCost) {
+                minCastCost = castCost;
+                minCostTag = i;
+            }
         }
+    }
+    if (minCastCost < UNDEFINED_CAST_COST) {
+        scalar_bind_func bindFunc = [minCostTag, &targetType](const ScalarBindFuncInput&) {
+            return std::make_unique<CastToUnionBindData>(minCostTag, targetType.copy());
+        };
+        scalar_func_exec_t execFunc;
+        TypeUtils::visit(sourceType, [&execFunc]<typename T>(T) {
+            execFunc = ScalarFunction::UnaryCastUnionExecFunction<T, union_entry_t, CastToUnion>;
+        });
+        auto func = std::make_unique<ScalarFunction>(functionName,
+            std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()},
+            targetType.getLogicalTypeID(), execFunc);
+        func->bindFunc = bindFunc;
+        return func;
     }
     throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
         LogicalTypeUtils::toString(sourceType.getLogicalTypeID()),

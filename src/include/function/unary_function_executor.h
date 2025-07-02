@@ -2,6 +2,7 @@
 
 #include "common/vector/value_vector.h"
 #include "function/cast/cast_function_bind_data.h"
+#include "function/cast/cast_union_bind_data.h"
 
 namespace kuzu {
 namespace function {
@@ -85,6 +86,17 @@ struct UnaryCastFunctionWrapper {
         auto& resultVector_ = *(common::ValueVector*)resultVector;
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_.getValue<RESULT_TYPE>(resultPos), inputVector_, resultVector_);
+    }
+};
+
+struct UnaryCastUnionFunctionWrapper {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void operation(void* inputVector, uint64_t inputPos, void* resultVector, uint64_t resultPos, void* dataPtr) {
+        auto& inputVector_ = *(common::ValueVector*)inputVector;
+        auto& resultVector_ = *(common::ValueVector*)resultVector;
+        FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
+            resultVector_.getValue<RESULT_TYPE>(resultPos), inputVector_, resultVector_,
+            reinterpret_cast<CastToUnionBindData*>(dataPtr)->minCostTag);
     }
 };
 
