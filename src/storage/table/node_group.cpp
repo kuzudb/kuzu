@@ -385,7 +385,6 @@ void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointStat
     if (checkpointedVersionInfo->getNumDeletions(&DUMMY_CHECKPOINT_TRANSACTION, 0, numRows) ==
         numRows - firstGroup->getStartRowIdx()) {
         reclaimStorage(state.pageAllocator, lock);
-        // TODO(Royi) figure out how to make this rollback-friendly
         checkpointedChunkedGroup =
             std::make_unique<ChunkedNodeGroup>(memoryManager, dataTypes, enableCompression,
                 StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, numRows, ResidencyState::IN_MEMORY);

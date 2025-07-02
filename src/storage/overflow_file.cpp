@@ -177,8 +177,8 @@ void OverflowFileHandle::read(TransactionType trxType, page_idx_t pageIdx,
     overflowFile.readFromDisk(trxType, pageIdx, func);
 }
 
-OverflowFile::OverflowFile(PageAllocator& pageAllocator, FileHandle* fileHandle,
-    MemoryManager& memoryManager, ShadowFile* shadowFile, page_idx_t headerPageIdx)
+OverflowFile::OverflowFile(FileHandle* fileHandle, MemoryManager& memoryManager,
+    ShadowFile* shadowFile, page_idx_t headerPageIdx)
     : numPagesOnDisk{0}, fileHandle{fileHandle}, shadowFile{shadowFile},
       memoryManager{memoryManager}, headerChanged{false}, headerPageIdx{headerPageIdx} {
     KU_ASSERT(shadowFile);
@@ -186,8 +186,6 @@ OverflowFile::OverflowFile(PageAllocator& pageAllocator, FileHandle* fileHandle,
         readFromDisk(TransactionType::READ_ONLY, headerPageIdx,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });
     } else {
-        // Reserve a page for the header
-        this->headerPageIdx = getNewPageIdx(&pageAllocator);
         header = StringOverflowFileHeader();
     }
 }
@@ -230,8 +228,13 @@ void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
     }
 }
 
-void OverflowFile::checkpoint(bool forceUpdateHeader) {
+void OverflowFile::checkpoint(PageAllocator& pageAllocator, bool forceUpdateHeader) {
     KU_ASSERT(fileHandle);
+    if (headerPageIdx == INVALID_PAGE_IDX) {
+        // Reserve a page for the header
+        this->headerPageIdx = getNewPageIdx(&pageAllocator);
+        headerChanged = true;
+    }
     // TODO(bmwinger): Ideally this could be done separately and in parallel by each HashIndex
     // However fileHandle->addNewPages needs to be called beforehand,
     // but after each HashIndex::prepareCommit has written to the in-memory pages
@@ -252,6 +255,7 @@ void OverflowFile::checkpointInMemory() {
 }
 
 void OverflowFile::rollbackInMemory() {
+    KU_ASSERT(getFileHandle()->getNumPages() <= INVALID_PAGE_IDX);
     if (getFileHandle()->getNumPages() > headerPageIdx) {
         readFromDisk(TransactionType::READ_ONLY, headerPageIdx,
             [&](auto* frame) { memcpy(&header, frame, sizeof(header)); });

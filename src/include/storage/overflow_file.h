@@ -87,8 +87,8 @@ class OverflowFile {
 
 public:
     // For reading an existing overflow file
-    OverflowFile(PageAllocator& pageAllocator, FileHandle* fileHandle, MemoryManager& memoryManager,
-        ShadowFile* shadowFile, common::page_idx_t headerPageIdx);
+    OverflowFile(FileHandle* fileHandle, MemoryManager& memoryManager, ShadowFile* shadowFile,
+        common::page_idx_t headerPageIdx);
 
     virtual ~OverflowFile() = default;
 
@@ -96,7 +96,7 @@ public:
     OverflowFile(OverflowFile&& other) = delete;
 
     void rollbackInMemory();
-    void checkpoint(bool forceUpdateHeader);
+    void checkpoint(PageAllocator& pageAllocator, bool forceUpdateHeader);
     void checkpointInMemory();
 
     void reclaimStorage(PageAllocator& pageAllocator) const;
@@ -112,6 +112,8 @@ public:
         KU_ASSERT(fileHandle);
         return fileHandle;
     }
+
+    common::page_idx_t getHeaderPageIdx() const { return headerPageIdx; }
 
 protected:
     explicit OverflowFile(MemoryManager& memoryManager);

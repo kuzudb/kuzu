@@ -498,8 +498,8 @@ void PrimaryKeyIndex::initOverflowAndSubIndices(bool inMemMode, MemoryManager& m
         if (inMemMode) {
             overflowFile = std::make_unique<InMemOverflowFile>(mm);
         } else {
-            overflowFile = std::make_unique<OverflowFile>(pageAllocator, pageAllocator.getDataFH(),
-                mm, &shadowFile, storageInfo.overflowHeaderPage);
+            overflowFile = std::make_unique<OverflowFile>(pageAllocator.getDataFH(), mm,
+                &shadowFile, storageInfo.overflowHeaderPage);
         }
     }
     hashIndices.reserve(NUM_HASH_INDEXES);
@@ -612,6 +612,11 @@ void PrimaryKeyIndex::writeHeaders(PageAllocator& pageAllocator) const {
             NUM_HEADER_PAGES + 1 /*first DiskArrayCollection header page*/);
         hashIndexStorageInfo.firstHeaderPage = allocatedPages.startPageIdx;
         hashIndexDiskArrays->populateNextHeaderPages(pageAllocator);
+
+        if (overflowFile) {
+            KU_ASSERT(hashIndexStorageInfo.overflowHeaderPage == INVALID_PAGE_IDX);
+            hashIndexStorageInfo.overflowHeaderPage = overflowFile->getHeaderPageIdx();
+        }
     }
     for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
         ShadowUtils::updatePage(*pageAllocator.getDataFH(),
@@ -648,12 +653,12 @@ void PrimaryKeyIndex::checkpoint(main::ClientContext*, PageAllocator& pageAlloca
             indexChanged = true;
         }
     }
+    if (overflowFile) {
+        overflowFile->checkpoint(pageAllocator, forceCheckpointAll);
+    }
     if (indexChanged || forceCheckpointAll) {
         writeHeaders(pageAllocator);
         hashIndexDiskArrays->checkpoint(getDiskArrayFirstHeaderPage(), pageAllocator);
-    }
-    if (overflowFile) {
-        overflowFile->checkpoint(forceCheckpointAll);
     }
     // Make sure that changes which bypassed the WAL are written.
     // There is no other mechanism for enforcing that they are flushed
