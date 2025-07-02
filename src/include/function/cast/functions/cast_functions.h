@@ -41,14 +41,13 @@ struct CastToUnion {
     template<typename T>
     static inline void operation(T&, common::union_entry_t&, common::ValueVector& inputVector,
         common::ValueVector& resultVector) {
-        using namespace common;
-        SelectionVector* selVector = inputVector.getSelVectorPtr();
+        auto* selVector = inputVector.getSelVectorPtr();
         const auto& sourceType = inputVector.dataType;
         const auto& targetType = resultVector.dataType;
         uint32_t minCastCost = UNDEFINED_CAST_COST;
         union_field_idx_t minCostField = 0;
         for (uint64_t i = 0; i < UnionType::getNumFields(targetType); ++i) {
-            const LogicalType& fieldType = UnionType::getFieldType(targetType, i);
+            const auto& fieldType = UnionType::getFieldType(targetType, i);
             if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
                 uint32_t castCost = BuiltInFunctionsUtils::getCastCost(
                     sourceType.getLogicalTypeID(), fieldType.getLogicalTypeID());
@@ -58,14 +57,14 @@ struct CastToUnion {
                 }
             }
         }
-        ValueVector* tagVector = UnionVector::getTagVector(&resultVector);
-        ValueVector* valVector = UnionVector::getValVector(&resultVector, minCostField);
-        const LogicalType& innerType = UnionType::getFieldType(targetType, minCostField);
+        auto* tagVector = UnionVector::getTagVector(&resultVector);
+        auto* valVector = UnionVector::getValVector(&resultVector, minCostField);
+        const auto& innerType = UnionType::getFieldType(targetType, minCostField);
         for (auto& pos : selVector->getSelectedPositions()) {
             tagVector->setValue<union_field_idx_t>(pos, minCostField);
         }
         if (sourceType != innerType) {
-            std::shared_ptr<ScalarFunction> innerCast =
+            auto innerCast =
                 CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType,
                     innerType);
             std::vector<std::shared_ptr<ValueVector>> innerParams{

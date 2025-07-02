@@ -615,9 +615,9 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(const std::stri
 static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     // source type is not nested, targetType is a union
-    uint64_t numFields = UnionType::getNumFields(targetType);
+    auto numFields = UnionType::getNumFields(targetType);
     for (uint64_t i = 0; i < numFields; ++i) {
-        const LogicalType& fieldType = UnionType::getFieldType(targetType, i);
+        const auto& fieldType = UnionType::getFieldType(targetType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
             scalar_func_exec_t execFunc;
             TypeUtils::visit(sourceType, [&execFunc]<typename T>(T) {
