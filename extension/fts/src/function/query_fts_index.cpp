@@ -14,6 +14,10 @@
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "utils/fts_utils.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
+#include "planner/operator/logical_table_function_call.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/planner.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -22,6 +26,7 @@ using namespace storage;
 using namespace function;
 using namespace binder;
 using namespace common;
+using namespace planner;
 
 struct ScoreData {
     uint64_t df;
@@ -384,6 +389,28 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     return bindData;
 }
 
+static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingClause,
+    const expression_vector& predicates, LogicalPlan& plan) {
+    auto& call = readingClause.constCast<BoundTableFunctionCall>();
+    auto bindData = call.getBindData()->constPtrCast<GDSBindData>();
+    auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
+    op->computeFactorizedSchema();
+    planner->planReadOp(std::move(op), predicates, plan);
+
+    auto nodeOutput = bindData->nodeOutput->ptrCast<NodeExpression>();
+    KU_ASSERT(nodeOutput != nullptr);
+    planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
+    auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
+    if (scanPlan.isEmpty()) {
+        return;
+    }
+    expression_vector joinConditions;
+    joinConditions.push_back(nodeOutput->getInternalID());
+    planner->appendHashJoin(joinConditions, JoinType::INNER, scanPlan, plan, plan);
+    plan.getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
+        SIPDirection::FORCE_BUILD_TO_PROBE;
+}
+
 function_set QueryFTSFunction::getFunctionSet() {
     function_set result;
     // inputs are tableName, indexName, query
@@ -395,7 +422,7 @@ function_set QueryFTSFunction::getFunctionSet() {
     func->initSharedStateFunc = GDSFunction::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = [] { return false; };
-    func->getLogicalPlanFunc = GDSFunction::getLogicalPlan;
+    func->getLogicalPlanFunc = getLogicalPlan;
     func->getPhysicalPlanFunc = GDSFunction::getPhysicalPlan;
     result.push_back(std::move(func));
     return result;
