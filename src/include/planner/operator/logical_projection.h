@@ -11,8 +11,7 @@ class KUZU_API LogicalProjection : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::PROJECTION;
 
 public:
-    LogicalProjection(binder::expression_vector expressions,
-        std::shared_ptr<LogicalOperator> child)
+    LogicalProjection(binder::expression_vector expressions, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{type_, std::move(child)}, expressions{std::move(expressions)} {}
 
     void computeFactorizedSchema() override;

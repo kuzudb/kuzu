@@ -15,6 +15,7 @@
 #include "index/hnsw_index_utils.h"
 #include "parser/parser.h"
 #include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_projection.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
@@ -22,7 +23,6 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
-#include "planner/operator/logical_projection.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
