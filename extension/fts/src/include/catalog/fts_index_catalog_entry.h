@@ -16,7 +16,7 @@ struct FTSIndexAuxInfo final : catalog::IndexAuxInfo {
 
     FTSIndexAuxInfo(const FTSIndexAuxInfo& other) : config{other.config} {}
 
-    std::shared_ptr<common::BufferedSerializer> serialize() const override;
+    std::shared_ptr<common::BufferWriter> serialize() const override;
     static std::unique_ptr<FTSIndexAuxInfo> deserialize(
         std::unique_ptr<common::BufferReader> reader);
 

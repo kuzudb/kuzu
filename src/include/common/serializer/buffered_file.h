@@ -17,8 +17,9 @@ public:
 
     void write(const uint8_t* data, uint64_t size) override;
 
-    void flush();
-    void sync();
+    void clear() override;
+    void flush() override;
+    void sync() override;
 
     // Note: this function resets the next file offset to be written. Make sure the buffer is empty.
     void setFileOffset(uint64_t fileOffset) { this->fileOffset = fileOffset; }
@@ -28,8 +29,7 @@ public:
         bufferOffset = 0;
     }
 
-    uint64_t getFileSize() const;
-    FileInfo& getFileInfo() const { return fileInfo; }
+    uint64_t getSize() const override;
 
 protected:
     std::unique_ptr<uint8_t[]> buffer;
@@ -52,15 +52,18 @@ public:
 
     bool finished() override;
 
+    uint64_t getReadOffset() const { return fileOffset - bufferSize + bufferOffset; }
+    FileInfo* getFileInfo() const { return fileInfo.get(); }
+
+private:
+    void readNextPage();
+
 private:
     std::unique_ptr<uint8_t[]> buffer;
     uint64_t fileOffset, bufferOffset;
     std::unique_ptr<FileInfo> fileInfo;
     uint64_t fileSize;
     uint64_t bufferSize;
-
-private:
-    void readNextPage();
 };
 
 } // namespace common

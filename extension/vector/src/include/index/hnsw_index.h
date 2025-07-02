@@ -75,7 +75,7 @@ struct HNSWStorageInfo final : storage::IndexStorageInfo {
           upperEntryPoint{upperEntryPoint}, lowerEntryPoint{lowerEntryPoint},
           numCheckpointedNodes{numCheckpointedNodes} {}
 
-    std::shared_ptr<common::BufferedSerializer> serialize() const override;
+    std::shared_ptr<common::BufferWriter> serialize() const override;
 
     static std::unique_ptr<IndexStorageInfo> deserialize(
         std::unique_ptr<common::BufferReader> reader);

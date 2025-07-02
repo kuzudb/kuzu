@@ -91,13 +91,21 @@ public:
         return std::make_pair(nodeGroupIdx, offsetInChunk);
     }
 
-    static std::string getDataFName(common::VirtualFileSystem* vfs, const std::string& directory) {
+    static std::string getDataFilePath(const common::VirtualFileSystem* vfs,
+        const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
     }
-
-    static std::string getLockFilePath(common::VirtualFileSystem* vfs,
+    static std::string getLockFilePath(const common::VirtualFileSystem* vfs,
         const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
+    }
+    static std::string getWALFilePath(const common::VirtualFileSystem* vfs,
+        const std::string& directory) {
+        return vfs->joinPath(directory, common::StorageConstants::WAL_FILE_SUFFIX);
+    }
+    static std::string getShadowFilePath(const common::VirtualFileSystem* vfs,
+        const std::string& directory) {
+        return vfs->joinPath(directory, common::StorageConstants::SHADOWING_SUFFIX);
     }
 
     static std::string expandPath(main::ClientContext* context, const std::string& path) {

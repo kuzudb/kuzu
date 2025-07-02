@@ -2,7 +2,7 @@
 
 #include "catalog_entry.h"
 #include "common/copier_config/file_scan_info.h"
-#include "common/serializer/buffered_reader.h"
+#include "common/serializer/buffer_reader.h"
 #include "common/serializer/deserializer.h"
 #include "table_catalog_entry.h"
 
@@ -10,7 +10,7 @@ namespace kuzu::common {
 struct BufferReader;
 }
 namespace kuzu::common {
-class BufferedSerializer;
+class BufferWriter;
 }
 namespace kuzu {
 namespace catalog {
@@ -27,7 +27,7 @@ struct KUZU_API IndexToCypherInfo : ToCypherInfo {
 class IndexCatalogEntry;
 struct KUZU_API IndexAuxInfo {
     virtual ~IndexAuxInfo() = default;
-    virtual std::shared_ptr<common::BufferedSerializer> serialize() const;
+    virtual std::shared_ptr<common::BufferWriter> serialize() const;
 
     virtual std::unique_ptr<IndexAuxInfo> copy() = 0;
 

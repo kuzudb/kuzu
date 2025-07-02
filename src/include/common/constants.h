@@ -65,15 +65,9 @@ struct BufferPoolConstants {
 
 struct StorageConstants {
     static constexpr page_idx_t DB_HEADER_PAGE_IDX = 0;
-    static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     static constexpr char SHADOWING_SUFFIX[] = ".shadow";
-    static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
-    static constexpr char CATALOG_FILE_NAME[] = "catalog.kz";
-    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.shadow";
     static constexpr char DATA_FILE_NAME[] = "data.kz";
-    static constexpr char METADATA_FILE_NAME[] = "metadata.kz";
-    static constexpr char METADATA_FILE_NAME_FOR_WAL[] = "metadata.shadow";
     static constexpr char LOCK_FILE_NAME[] = ".lock";
 
     // The number of pages that we add at one time when we need to grow a file.

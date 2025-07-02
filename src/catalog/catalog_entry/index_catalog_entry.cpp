@@ -1,13 +1,13 @@
 #include "catalog/catalog_entry/index_catalog_entry.h"
 
 #include "common/exception/runtime.h"
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_writer.h"
 
 namespace kuzu {
 namespace catalog {
 
-std::shared_ptr<common::BufferedSerializer> IndexAuxInfo::serialize() const {
-    return std::make_shared<common::BufferedSerializer>(0 /*maximumSize*/);
+std::shared_ptr<common::BufferWriter> IndexAuxInfo::serialize() const {
+    return std::make_shared<common::BufferWriter>(0 /*maximumSize*/);
 }
 
 void IndexCatalogEntry::setAuxInfo(std::unique_ptr<IndexAuxInfo> auxInfo_) {
