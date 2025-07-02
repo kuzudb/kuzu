@@ -64,9 +64,8 @@ struct CastToUnion {
             tagVector->setValue<union_field_idx_t>(pos, minCostField);
         }
         if (sourceType != innerType) {
-            auto innerCast =
-                CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType,
-                    innerType);
+            auto innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
+                sourceType, innerType);
             std::vector<std::shared_ptr<ValueVector>> innerParams{
                 std::shared_ptr<ValueVector>(&inputVector, [](ValueVector*) {})};
             CastFunctionBindData innerBindData(innerType.copy());
