@@ -40,19 +40,20 @@ struct CastRelToString {
 struct CastToUnion {
     template<typename T>
     static inline void operation(T&, common::union_entry_t&, common::ValueVector& inputVector,
-        common::ValueVector& resultVector, CastToUnionBindData* bindData) {
+        common::ValueVector& resultVector, void* pBindData) {
+        const auto& bindData = *reinterpret_cast<CastToUnionBindData*>(pBindData);
         auto* selVector = inputVector.getSelVectorPtr();
         auto* tagVector = common::UnionVector::getTagVector(&resultVector);
-        auto* valVector = common::UnionVector::getValVector(&resultVector, bindData->minCostTag);
+        auto* valVector = common::UnionVector::getValVector(&resultVector, bindData.minCostTag);
         for (auto& pos : selVector->getSelectedPositions()) {
-            tagVector->setValue<common::union_field_idx_t>(pos, bindData->minCostTag);
+            tagVector->setValue<common::union_field_idx_t>(pos, bindData.minCostTag);
         }
-        if (bindData->innerCast) {
+        if (bindData.innerCast) {
             std::vector<std::shared_ptr<common::ValueVector>> innerParams{
                 std::shared_ptr<common::ValueVector>(&inputVector, [](common::ValueVector*) {})};
-            CastFunctionBindData innerBindData(bindData->innerType.copy());
+            CastFunctionBindData innerBindData(bindData.innerType.copy());
             innerBindData.numOfEntries = (*selVector)[selVector->getSelSize() - 1] + 1;
-            bindData->innerCast->execFunc(innerParams,
+            bindData.innerCast->execFunc(innerParams,
                 common::SelectionVector::fromValueVectors(innerParams), *valVector,
                 valVector->getSelVectorPtr(), &innerBindData);
         } else {

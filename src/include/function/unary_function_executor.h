@@ -2,7 +2,6 @@
 
 #include "common/vector/value_vector.h"
 #include "function/cast/cast_function_bind_data.h"
-#include "function/cast/cast_union_bind_data.h"
 
 namespace kuzu {
 namespace function {
@@ -97,7 +96,7 @@ struct UnaryCastUnionFunctionWrapper {
         auto& resultVector_ = *(common::ValueVector*)resultVector;
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_.getValue<RESULT_TYPE>(resultPos), inputVector_, resultVector_,
-            reinterpret_cast<CastToUnionBindData*>(dataPtr));
+            dataPtr);
     }
 };
 
