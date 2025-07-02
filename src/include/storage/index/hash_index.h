@@ -15,6 +15,7 @@
 #include "index.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/disk_array_collection.h"
+#include "storage/enums/residency_state.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/index/in_mem_hash_index.h"
 #include "storage/local_storage/local_hash_index.h"
@@ -245,7 +246,7 @@ private:
     }
 
     inline common::hash_t hashStored(const transaction::Transaction* /*transaction*/,
-        const T& key) const {
+        ResidencyState, const T& key) const {
         return HashIndexUtils::hash(key);
     }
 
@@ -283,6 +284,7 @@ private:
     // During checkpoint the contents will be merged into the persistent overflow file
     // TODO(Royi) clear this on checkpoint
     std::unique_ptr<InMemOverflowFile> inMemOverflowFile;
+    OverflowFileHandle* inMemOverflowFileHandle;
     // Handle for persistent overflow file
     OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<HashIndexLocalStorage<T>> localStorage;
@@ -293,7 +295,8 @@ private:
 
 template<>
 common::hash_t HashIndex<common::ku_string_t>::hashStored(
-    const transaction::Transaction* transaction, const common::ku_string_t& key) const;
+    const transaction::Transaction* transaction, ResidencyState residency,
+    const common::ku_string_t& key) const;
 
 template<>
 inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transaction* transaction,

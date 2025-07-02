@@ -31,12 +31,11 @@ template<typename T>
 HashIndex<T>::HashIndex(MemoryManager& memoryManager, OverflowFileHandle* overflowFileHandle,
     DiskArrayCollection& diskArrays, uint64_t indexPos, ShadowFile* shadowFile,
     const HashIndexHeader& indexHeaderForReadTrx, HashIndexHeader& indexHeaderForWriteTrx)
-    : shadowFile{shadowFile}, headerPageIdx{0}, overflowFileHandle{overflowFileHandle},
-      indexHeaderForReadTrx{indexHeaderForReadTrx}, indexHeaderForWriteTrx{indexHeaderForWriteTrx},
-      memoryManager{memoryManager} {
+    : shadowFile{shadowFile}, headerPageIdx{0}, inMemOverflowFileHandle{nullptr},
+      overflowFileHandle{overflowFileHandle}, indexHeaderForReadTrx{indexHeaderForReadTrx},
+      indexHeaderForWriteTrx{indexHeaderForWriteTrx}, memoryManager{memoryManager} {
     pSlots = diskArrays.getDiskArray<Slot<T>>(indexPos);
     oSlots = diskArrays.getDiskArray<Slot<T>>(NUM_HASH_INDEXES + indexPos);
-    OverflowFileHandle* inMemOverflowFileHandle = nullptr;
     if constexpr (std::is_same_v<T, ku_string_t>) {
         inMemOverflowFile = std::make_unique<InMemOverflowFile>(memoryManager);
         inMemOverflowFileHandle = inMemOverflowFile->addHandle();
@@ -68,9 +67,11 @@ void HashIndex<T>::deleteFromPersistentIndex(const Transaction* transaction, Key
 
 template<>
 inline hash_t HashIndex<ku_string_t>::hashStored(const Transaction* transaction,
-    const ku_string_t& key) const {
+    ResidencyState residency, const ku_string_t& key) const {
     hash_t hash = 0;
-    const auto str = overflowFileHandle->readString(transaction->getType(), key);
+    const auto* handle =
+        (residency == ResidencyState::ON_DISK) ? overflowFileHandle : inMemOverflowFileHandle;
+    const auto str = handle->readString(transaction->getType(), key);
     function::Hash::operation(str, hash);
     return hash;
 }
@@ -175,7 +176,7 @@ void HashIndex<T>::splitSlots(PageAllocator& pageAllocator, const Transaction* t
                 }
                 // Copy entry from old slot to new slot
                 const auto& key = originalSlot->entries[originalEntryPos].key;
-                const hash_t hash = this->hashStored(transaction, key);
+                const hash_t hash = this->hashStored(transaction, ResidencyState::ON_DISK, key);
                 const auto newSlotId = hash & header.higherLevelHashMask;
                 if (newSlotId != header.nextSplitSlotId) {
                     KU_ASSERT(newSlotId == newSlotIterator.idx());
@@ -252,7 +253,7 @@ void HashIndex<T>::sortEntries(const Transaction* transaction,
         auto numEntries = slotToMerge.slot->header.numEntries();
         for (auto entryPos = 0u; entryPos < numEntries; entryPos++) {
             const auto* entry = &slotToMerge.slot->entries[entryPos];
-            const auto hash = hashStored(transaction, entry->key);
+            const auto hash = hashStored(transaction, ResidencyState::IN_MEMORY, entry->key);
             const auto primarySlot =
                 HashIndexUtils::getPrimarySlotIdForHash(indexHeaderForWriteTrx, hash);
             entries.push_back(HashIndexEntryView{primarySlot,
@@ -394,11 +395,19 @@ size_t HashIndex<T>::mergeSlot(PageAllocator& pageAllocator, const Transaction* 
             }
         }
         KU_ASSERT(diskEntryPos < getSlotCapacity<T>());
-        diskSlot->entries[diskEntryPos] = *it->entry;
+        if constexpr (std::is_same_v<T, ku_string_t>) {
+            // Rewrite the string as the cursor in the persistent overflow file is different
+            auto* inMemEntry = it->entry;
+            auto kuString = overflowFileHandle->writeString(&pageAllocator,
+                inMemOverflowFileHandle->readString(transaction->getType(), inMemEntry->key));
+            diskSlot->entries[diskEntryPos] = SlotEntry<T>{kuString, inMemEntry->value};
+        } else {
+            diskSlot->entries[diskEntryPos] = *it->entry;
+        }
         diskSlot->header.setEntryValid(diskEntryPos, it->fingerprint);
         KU_ASSERT([&]() {
             const auto& key = it->entry->key;
-            const auto hash = hashStored(transaction, key);
+            const auto hash = hashStored(transaction, ResidencyState::IN_MEMORY, key);
             const auto primarySlot =
                 HashIndexUtils::getPrimarySlotIdForHash(indexHeaderForWriteTrx, hash);
             KU_ASSERT(it->fingerprint == HashIndexUtils::getFingerprintForHash(hash));
