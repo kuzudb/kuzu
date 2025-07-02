@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 #include "common/types/types.h"
 #include "function/function.h"
 
@@ -15,8 +13,8 @@ struct CastToUnionBindData : public FunctionBindData {
     common::LogicalType innerType;
 
     CastToUnionBindData(common::union_field_idx_t minCostTag,
-        std::shared_ptr<ScalarFunction> innerCast, common::LogicalType innerType,
-        common::LogicalType dataType)
+        std::shared_ptr<ScalarFunction> innerCast, common::LogicalType&& innerType,
+        common::LogicalType&& dataType)
         : FunctionBindData{std::move(dataType)}, minCostTag{minCostTag}, innerCast{innerCast},
           innerType{std::move(innerType)} {}
 
