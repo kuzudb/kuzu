@@ -5,8 +5,6 @@
 -CASE ScanDuckDBTable
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
 ---- ok
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
----- ok
 # Duckdb and httpfs share a set of same options, check whether they collide with each other.
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok

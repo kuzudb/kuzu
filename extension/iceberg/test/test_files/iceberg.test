@@ -10,9 +10,6 @@ Binder exception: Cannot load from file type iceberg. If this file type is part 
 -CASE IcebergFunctions
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/iceberg/build/libiceberg.kuzu_extension"
 ---- ok
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/iceberg/build/libiceberg.kuzu_extension"
----- ok
-
 -LOG NOT_allow_moved_paths
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=false) RETURN *
 ---- error(regex)

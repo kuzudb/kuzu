@@ -4,8 +4,7 @@
 
 -CASE Basic
 
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
 -STATEMENT CREATE (b:Book {title: 'Alice wonderland', author: 'newton', abstract: 'machine'})
@@ -24,8 +23,7 @@ Learning Machines|0.659085
 The Quantum World|0.987801
 
 -CASE consecutiveInsertions
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
 -STATEMENT CREATE (b:Book {title: 'Shadows of Tomorrow', author: 'Lena Frost', abstract: 'A sci-fi exploration of a dystopian future.'})

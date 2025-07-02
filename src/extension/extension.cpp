@@ -64,6 +64,8 @@ std::string ExtensionSourceUtils::toString(ExtensionSource source) {
         return "OFFICIAL";
     case ExtensionSource::USER:
         return "USER";
+    case ExtensionSource::STATIC_LINKED:
+        return "STATIC LINK";
     default:
         KU_UNREACHABLE;
     }
@@ -189,7 +191,14 @@ ext_install_func_t ExtensionLibLoader::getInstallFunc() {
     return (ext_install_func_t)getDynamicLibFunc(EXTENSION_INSTALL_FUNC_NAME);
 }
 
+void ExtensionLibLoader::unload() {
+    KU_ASSERT(libHdl != nullptr);
+    dlclose(libHdl);
+    libHdl = nullptr;
+}
+
 void* ExtensionLibLoader::getDynamicLibFunc(const std::string& funcName) {
+    KU_ASSERT(libHdl != nullptr);
     auto sym = dlsym(libHdl, funcName.c_str());
     if (sym == nullptr) {
         throw common::IOException(
@@ -224,6 +233,11 @@ void* dlopen(const char* file, int /*mode*/) {
 void* dlsym(void* handle, const char* name) {
     KU_ASSERT(handle);
     return (void*)GetProcAddress((HINSTANCE)handle, name);
+}
+
+void dlclose(void* handle) {
+    KU_ASSERT(handle);
+    FreeLibrary((HINSTANCE)handle);
 }
 #endif
 

@@ -124,6 +124,12 @@ void TestParser::parseHeader() {
 #endif
             break;
         }
+        case TokenType::SKIP_STATIC_LINK: {
+#ifdef __STATIC_LINK_TEST__
+            testGroup->group = "DISABLED_" + testGroup->group;
+#endif
+            break;
+        }
         case TokenType::WASM_ONLY: {
 #ifndef __WASM__
             testGroup->group = "DISABLED_" + testGroup->group;
@@ -468,6 +474,24 @@ void TestParser::parseBody() {
             addStatementBlock(currentToken.params[1], testCaseName);
             break;
         }
+        case TokenType::LOAD_DYNAMIC_EXTENSION: {
+            checkMinimumParams(1);
+#ifndef __STATIC_LINK_EXTENSION_TEST__
+            auto loadExtensionStatement = std::make_unique<TestStatement>();
+            auto extensionName = currentToken.params[1];
+            loadExtensionStatement->connName = TestHelper::DEFAULT_CONN_NAME;
+            loadExtensionStatement->query =
+                common::stringFormat("LOAD EXTENSION '{}/extension/{}/build/lib{}.kuzu_extension'",
+                    KUZU_ROOT_DIRECTORY, extensionName, extensionName);
+            loadExtensionStatement->logMessage = "Dynamic load extension: " + extensionName;
+            loadExtensionStatement->testResultType = ResultType::OK;
+            loadExtensionStatement->result.emplace_back(ResultType::OK, 0,
+                std::vector<std::string>{});
+            testGroup->testCases[testCaseName].push_back(std::move(loadExtensionStatement));
+            testGroup->testCasesConnNames[testCaseName].insert(TestHelper::DEFAULT_CONN_NAME);
+#endif
+            break;
+        }
         case TokenType::SKIP: {
             testCaseName = "DISABLED_" + testCaseName;
             break;
@@ -486,6 +510,12 @@ void TestParser::parseBody() {
         }
         case TokenType::SKIP_WASM: {
 #ifdef __WASM__
+            testCaseName = "DISABLED_" + testCaseName;
+#endif
+            break;
+        }
+        case TokenType::SKIP_STATIC_LINK: {
+#ifdef __STATIC_LINK_EXTENSION_TEST__
             testCaseName = "DISABLED_" + testCaseName;
 #endif
             break;

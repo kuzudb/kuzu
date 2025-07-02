@@ -3,8 +3,8 @@
 --
 
 -CASE show_loaded_extensions
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- ok
+-SKIP_STATIC_LINK
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL SHOW_LOADED_EXTENSIONS() RETURN *
 ---- 1
 FTS|USER|${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension

@@ -4,8 +4,7 @@
 --
 
 -CASE InsertToNonEmpty
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;
@@ -38,8 +37,7 @@
 444
 
 -CASE BulkInsertToEmpty
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
@@ -72,8 +70,7 @@
 40
 
 -CASE BulkInsertToNonEmpty
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
@@ -108,8 +105,7 @@
 -CASE SerialInsertionsToNonEmpty
 -STATEMENT CALL threads=1;
 ---- ok
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT load from '${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv' with column0 as c0, column1 as c1 limit 990 CREATE (:embeddings {id: c0, vec: c1});
@@ -152,8 +148,7 @@
 133
 
 -CASE CopyToEmpty
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
@@ -170,8 +165,7 @@
 133
 
 -CASE MultipleInsertions
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');

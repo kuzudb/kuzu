@@ -5,8 +5,6 @@
 -CASE ScanSqliteTable
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sqlite/build/libsqlite.kuzu_extension"
 ---- ok
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sqlite/build/libsqlite.kuzu_extension"
----- ok
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/tinysnb' as tinysnb (dbtype sqlite);
 ---- 1
 Attached database successfully.

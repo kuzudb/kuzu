@@ -3,10 +3,7 @@
 --
 
 -CASE ErrorCases
-
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- ok
-
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('person1', 'contentIdx', ['content'])
 ---- error
 Binder exception: Table person1 does not exist.
@@ -87,10 +84,7 @@ Binder exception: DROP_FTS_INDEX is only supported in auto transaction mode.
 
 
 -CASE DuplicateIndexes
-
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- ok
-
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('movies', 'moviesIdx', ['name'])
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('movies', 'moviesIdx', 'movie') RETURN node.name
@@ -108,8 +102,7 @@ Roma
 
 
 -CASE DropTableWithIndexes
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx1', ['name'])
@@ -142,28 +135,27 @@ Binder exception: Table STUDENT doesn't have an index with name sIdx1.
 ---- ok
 
 -CASE ExtensionNotLoaded
-
+-SKIP_STATIC_LINK
 -STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
 ---- ok
-
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx', ['name'])
 ---- error
 Catalog exception: function CREATE_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
-
 -STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx', 'test') RETURN *
 ---- error
 Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
-
 -STATEMENT CALL DROP_FTS_INDEX('STUDENT', 'sIdx')
 ---- error
 Catalog exception: function DROP_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
 
 -CASE CreateFTSSingleStatement
+-SKIP_STATIC_LINK
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension";CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName']);
 ---- error
 Parser exception: CREATE_FTS_INDEX must be called in a query which doesn't have other statements.
 
--CASE CreateFTSSingleStatement
+-CASE DropFTSSingleStatement
+-SKIP_STATIC_LINK
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension";CALL DROP_FTS_INDEX('STUDENT', 'sIdx');
 ---- error
 Parser exception: DROP_FTS_INDEX must be called in a query which doesn't have other statements.

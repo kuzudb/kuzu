@@ -4,8 +4,7 @@
 --
 
 -CASE Filtered8DimDotProduct
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;
@@ -142,8 +141,7 @@ Binder exception: Node n in the return clause of the filter query should have on
 Binder exception: In vector filtered search, projected graph G9 must contain exactly one node table.
 
 -CASE Filtered8DimDotProduct2
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;
@@ -173,8 +171,7 @@ Binder exception: In vector filtered search, projected graph G9 must contain exa
 30
 
 -CASE Filtered8DimDotProduct3
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;
@@ -205,8 +202,7 @@ Binder exception: In vector filtered search, projected graph G9 must contain exa
 58
 
 -CASE Filtered8DimL2
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;
@@ -237,8 +233,7 @@ Binder exception: In vector filtered search, projected graph G9 must contain exa
 52
 
 -CASE Filtered8DimL22
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;
@@ -269,8 +264,7 @@ Binder exception: In vector filtered search, projected graph G9 must contain exa
 43
 
 -CASE Filtered8DimL23
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;
@@ -300,8 +294,7 @@ Binder exception: In vector filtered search, projected graph G9 must contain exa
 133
 
 -CASE Filtered8DimCos
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;
@@ -331,8 +324,7 @@ Binder exception: In vector filtered search, projected graph G9 must contain exa
 40
 
 -CASE Filtered8DimCos2
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;
@@ -362,8 +354,7 @@ Binder exception: In vector filtered search, projected graph G9 must contain exa
 43
 
 -CASE Filtered8DimCos3
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL threads=1;

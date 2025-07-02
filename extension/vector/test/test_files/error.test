@@ -3,8 +3,7 @@
 --
 
 -CASE Error
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE test(id int64 primary key, vec int64[90]);
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('test2', 'e_hnsw_index', 'vec');
@@ -36,8 +35,7 @@ Binder exception: Table embeddings doesn't have an index with name e_hnsw_index2
 Binder exception: Table embeddingssss does not exist.
 
 -CASE ParamError
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -79,8 +77,7 @@ Binder exception: Unrecognized optional parameter unknown_param in QUERY_VECTOR_
 Binder exception: Efs must be a positive integer.
 
 -CASE CastingError
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -96,8 +93,7 @@ Binder exception: Cannot match a built-in function for given function QUERY_VECT
 (STRING,STRING,ARRAY,INT64)
 
 -CASE ProjectedGraphError
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -113,8 +109,7 @@ Binder exception: Cannot match a built-in function for given function QUERY_VECT
 Binder exception: Cannot find table or graph named as emb-graph3.
 
 -CASE InCorrectSearchThreshold
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -132,8 +127,7 @@ Binder exception: Directed search upper selectivity threshold must be a double b
 Binder exception: Blind search upper selectivity threshold is set to 0.800000, but the directed search upper selectivity threshold is set to 0.100000. The blind search upper selectivity threshold must be less than the directed search upper selectivity threshold.
 
 -CASE DropTableWithIndex
--STATEMENT LOAD '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
@@ -150,8 +144,7 @@ Binder exception: Cannot delete node table embeddings because it is referenced b
 ---- ok
 
 -CASE DropColumnWithIndex
--STATEMENT LOAD '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
@@ -164,8 +157,7 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', '
 Binder exception: Cannot drop property vec in table embeddings because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
 
 -CASE NgativeK
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -177,6 +169,7 @@ Binder exception: Cannot drop property vec in table embeddings because it is use
 Binder exception: The value of k must be greater than 0.
 
 -CASE RunFunctionWithoutExtension
+-SKIP_STATIC_LINK
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
 ---- error
 Catalog exception: function CREATE_VECTOR_INDEX is not defined. This function exists in the VECTOR extension. You can install and load the extension by running 'INSTALL VECTOR; LOAD EXTENSION VECTOR;'.

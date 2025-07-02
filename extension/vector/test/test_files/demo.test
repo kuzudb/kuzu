@@ -3,8 +3,7 @@
 --
 
 -CASE demo
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 -STATEMENT CREATE NODE TABLE Book (
                ID SERIAL,
                title STRING,

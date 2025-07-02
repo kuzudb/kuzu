@@ -3,8 +3,7 @@
 --
 
 -CASE FTSDeletion
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE (b:Book {title: 'Alice wonderland', author: 'newton', abstract: 'machine'})
 ---- ok
 -STATEMENT CREATE (b:Book {title: 'Alice w', author: 'newton', abstract: 'not exist'})
@@ -34,8 +33,7 @@ The Quantum World|0.857996
 The Quantum World|0.634506
 
 -CASE consecutiveDeletions
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT COPY doc FROM '${KUZU_ROOT_DIRECTORY}/dataset/ms-passage/vDoc.csv'
@@ -67,8 +65,7 @@ The Quantum World|0.634506
 389|1.906131
 
 -CASE FTSDeletionEmptyDoc
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));
 ---- ok
 -STATEMENT create (d:doc {ID: 100, content: 'alice is brother of bob'})

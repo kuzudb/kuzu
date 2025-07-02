@@ -14,7 +14,7 @@ namespace llm_extension {
 // table (static EmbeddingProvider& getInstance(const std::string& provider)) to include the new
 // provider.
 
-void LLMExtension::load(main::ClientContext* context) {
+void LlmExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
 
     extension::ExtensionUtils::addScalarFunc<CreateEmbedding>(context->getTransaction(), db);
@@ -33,11 +33,11 @@ extern "C" {
 #define INIT_EXPORT __attribute__((visibility("default")))
 #endif
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
-    kuzu::llm_extension::LLMExtension::load(context);
+    kuzu::llm_extension::LlmExtension::load(context);
 }
 
 INIT_EXPORT const char* name() {
-    return kuzu::llm_extension::LLMExtension::EXTENSION_NAME;
+    return kuzu::llm_extension::LlmExtension::EXTENSION_NAME;
 }
 }
 #endif

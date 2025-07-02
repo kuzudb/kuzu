@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace llm_extension {
 
-class LLMExtension final : public extension::Extension {
+class LlmExtension final : public extension::Extension {
 public:
     static constexpr char EXTENSION_NAME[] = "LLM";
 

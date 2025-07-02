@@ -46,7 +46,7 @@ struct ExtensionRepoInfo {
     std::string repoURL;
 };
 
-enum class ExtensionSource : uint8_t { OFFICIAL, USER };
+enum class ExtensionSource : uint8_t { OFFICIAL, USER, STATIC_LINKED };
 
 struct ExtensionSourceUtils {
     static std::string toString(ExtensionSource source);
@@ -176,6 +176,8 @@ public:
 
     ext_install_func_t getInstallFunc();
 
+    void unload();
+
 private:
     void* getDynamicLibFunc(const std::string& funcName);
 
@@ -190,6 +192,8 @@ std::wstring utf8ToUnicode(const char* input);
 void* dlopen(const char* file, int /*mode*/);
 
 void* dlsym(void* handle, const char* name);
+
+void dlclose(void* handle);
 #endif
 
 } // namespace extension

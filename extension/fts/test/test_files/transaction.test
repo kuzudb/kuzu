@@ -4,8 +4,7 @@
 
 -CASE CreateFTSAutoCommitRecovery
 -SKIP_IN_MEM
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
@@ -17,16 +16,14 @@
 -STATEMENT CALL force_checkpoint_on_close=false;
 ---- ok
 -RELOADDB
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
 
 -CASE CreateFTSComit
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])

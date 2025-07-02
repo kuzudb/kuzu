@@ -1181,6 +1181,11 @@ jobs:
           flags: extension
           name: extension-coverage
 
+      - name: Static link extension test
+        run: |
+          python3 scripts/setup-extension-repo.py &
+          make extension-static-link-test
+
   macos-extension-test:
     name: macos extension test
     needs: [ macos-build-test ]
@@ -1255,6 +1260,11 @@ jobs:
           CHECKPOINT_ON_CLOSE: false
         run: |
           make extension-test && make clean
+
+      - name: Static link extension test
+        run: |
+          python3 scripts/setup-extension-repo.py &
+          make extension-static-link-test
 
   windows-extension-test:
     name: windows extension test
@@ -1360,3 +1370,11 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make clean
+
+      - name: Static link extension test
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          start /b python scripts/setup-extension-repo.py
+          make extension-static-link-test
