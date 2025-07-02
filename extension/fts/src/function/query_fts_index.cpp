@@ -1,5 +1,7 @@
 #include "function/query_fts_index.h"
 
+#include <queue>
+
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
@@ -93,7 +95,7 @@ struct QFTSTopKSharedState : public QFTSSharedState {
         auto globalTable = factorizedTablePool.getGlobalTable();
         while (!minHeap.empty()) {
             auto& docScore = minHeap.top();
-            docsVector.setValue(0, nodeID_t{docScore.offset, outputTableID});
+            docsVector.setValue(0, nodeID_t{(offset_t)docScore.offset, outputTableID});
             scoreVector.setValue(0, docScore.score);
             globalTable->append(vectors);
             minHeap.pop();
