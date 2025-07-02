@@ -3,6 +3,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/internal_id_util.h"
@@ -10,14 +11,13 @@
 #include "function/gds/gds_utils.h"
 #include "function/query_fts_bind_data.h"
 #include "index/fts_index.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_table_function_call.h"
+#include "planner/planner.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "utils/fts_utils.h"
-#include "binder/query/reading_clause/bound_table_function_call.h"
-#include "planner/operator/logical_table_function_call.h"
-#include "planner/operator/logical_hash_join.h"
-#include "planner/planner.h"
 
 namespace kuzu {
 namespace fts_extension {
