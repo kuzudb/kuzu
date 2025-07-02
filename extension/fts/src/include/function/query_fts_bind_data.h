@@ -17,6 +17,8 @@ struct QueryFTSOptionalParams {
     explicit QueryFTSOptionalParams(const binder::expression_vector& optionalParams);
 
     QueryFTSConfig getConfig() const;
+
+    bool isTopSet() const { return top != nullptr; }
 };
 
 struct QueryFTSBindData final : function::GDSBindData {
