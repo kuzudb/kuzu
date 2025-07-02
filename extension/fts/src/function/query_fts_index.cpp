@@ -66,20 +66,53 @@ struct QFTSEdgeCompute final : EdgeCompute {
     }
 };
 
+struct QFTSOutputSharedState {
+    std::vector<std::pair<common::offset_t, double>>& outputScores;
+    std::mutex mtx;
+
+    QFTSOutputSharedState(std::vector<std::pair<common::offset_t, double>>& outputScores)
+        : outputScores{outputScores} {}
+
+    void addScore(offset_t docID, double score) {
+        std::lock_guard guard{mtx};
+        outputScores.emplace_back(docID, score);
+    }
+};
+
 class QFTSOutputWriter {
 public:
     QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
-        QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms);
+        QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms,
+        std::shared_ptr<QFTSOutputSharedState> sharedState);
 
     void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
         int64_t docsID);
 
+    void output(processor::FactorizedTable& table, int64_t top) {
+        auto& outputScores = sharedState->outputScores;
+        if ((uint64_t)top > outputScores.size()) {
+            top = outputScores.size();
+        }
+        std::partial_sort(outputScores.begin(), outputScores.begin() + top, outputScores.end(),
+            [](const auto& a, const auto& b) { return a.second > b.second; });
+        outputScores.resize(top);
+        for (auto& [offset, score] : sharedState->outputScores) {
+            docsVector->setValue(0, nodeID_t{offset, bindData.outputTableID});
+            scoreVector->setValue(0, score);
+            table.append(vectors);
+        }
+    }
+
     std::unique_ptr<QFTSOutputWriter> copy() {
-        return std::make_unique<QFTSOutputWriter>(scores, mm, config, bindData, numUniqueTerms);
+        return std::make_unique<QFTSOutputWriter>(scores, mm, config, bindData, numUniqueTerms,
+            sharedState);
     }
 
 private:
     std::unique_ptr<ValueVector> createVector(const LogicalType& type);
+
+public:
+    std::shared_ptr<QFTSOutputSharedState> sharedState;
 
 private:
     const node_id_map_t<ScoreInfo>& scores;
@@ -94,8 +127,10 @@ private:
 };
 
 QFTSOutputWriter::QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
-    QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms)
-    : scores{scores}, mm{mm}, config{config}, bindData{bindData}, numUniqueTerms{numUniqueTerms} {
+    QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms,
+    std::shared_ptr<QFTSOutputSharedState> sharedState)
+    : sharedState{std::move(sharedState)}, scores{scores}, mm{mm}, config{config},
+      bindData{bindData}, numUniqueTerms{numUniqueTerms} {
     docsVector = createVector(LogicalType::INTERNAL_ID());
     scoreVector = createVector(LogicalType::UINT64());
 }
@@ -131,9 +166,7 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
         score += log10((numDocs - df + 0.5) / (df + 0.5) + 1) *
                  ((tf * (k + 1) / (tf + k * (1 - b + b * (len / avgDocLen)))));
     }
-    docsVector->setValue(0, nodeID_t{static_cast<offset_t>(docsID), bindData.outputTableID});
-    scoreVector->setValue(0, score);
-    scoreFT.append(vectors);
+    sharedState->addScore(docsID, score);
 }
 
 class QFTSVertexCompute final : public VertexCompute {
@@ -157,6 +190,10 @@ public:
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<QFTSVertexCompute>(mm, sharedState, writer->copy());
     }
+
+    QFTSOutputWriter* getWriter() { return writer.get(); }
+
+    processor::FactorizedTable* getLocalFT() { return localFT; };
 
 private:
     MemoryManager* mm;
@@ -264,8 +301,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     // Do vertex compute to calculate the score for doc with the length property.
     auto mm = clientContext->getMemoryManager();
     auto numUniqueTerms = getNumUniqueTerms(terms);
+    std::vector<std::pair<common::offset_t, double>> finalScores;
+    std::shared_ptr<QFTSOutputSharedState> sState =
+        std::make_shared<QFTSOutputSharedState>(finalScores);
     auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData->getConfig(),
-        *qFTSBindData, numUniqueTerms);
+        *qFTSBindData, numUniqueTerms, sState);
     auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState, std::move(writer));
     auto vertexPropertiesToScan = std::vector<std::string>{DOC_LEN_PROP_NAME, DOC_ID_PROP_NAME};
     auto docsEntry = graphEntry->nodeInfos[1].entry;
@@ -282,7 +322,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vc, docsEntry,
             vertexPropertiesToScan);
     }
-    sharedState->factorizedTablePool.mergeLocalTables();
+    vc->getWriter()->output(*sharedState->factorizedTablePool.getGlobalTable(),
+        qFTSBindData->getConfig().top);
+    // sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
 

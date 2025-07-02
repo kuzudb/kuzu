@@ -91,6 +91,12 @@ struct Conjunctive {
     static constexpr bool DEFAULT_VALUE = false;
 };
 
+struct Top {
+    static constexpr const char* NAME = "top";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::INT64;
+    static constexpr uint64_t DEFAULT_VALUE = INT64_MAX;
+};
+
 struct QueryFTSConfig {
     // k: parameter controls the influence of term frequency saturation. It limits the effect of
     // additional occurrences of a term within a document.
@@ -99,6 +105,7 @@ struct QueryFTSConfig {
     // document length.
     double b = B::DEFAULT_VALUE;
     bool isConjunctive = Conjunctive::DEFAULT_VALUE;
+    uint64_t top = Top::DEFAULT_VALUE;
 
     QueryFTSConfig() = default;
     explicit QueryFTSConfig(const function::optional_params_t& optionalParams);

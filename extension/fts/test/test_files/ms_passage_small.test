@@ -22,6 +22,15 @@
 134|1.923814
 109|1.957072
 390|2.937742
+-LOG QueryKeywordsWithTOP5
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning', top:=5) RETURN node.id, score;
+-CHECK_ORDER
+---- 5
+390|2.937742
+109|1.957072
+134|1.923814
+429|1.891667
+202|1.875433
 -LOG QuerySingleKeyWord
 -STATEMENT CALL query_fts_index('doc', 'contentIdx', 'normality') RETURN node.id, score order by score, node.id;
 -CHECK_ORDER
@@ -74,5 +83,18 @@
 176|2.261988
 4|2.519607
 456|2.618953
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'how long does it take to recover from top wisdom teeth removal', top:=10) RETURN node.id, score
+-CHECK_ORDER
+---- 10
+456|2.618953
+4|2.519607
+176|2.261988
+438|2.211869
+207|2.181402
+435|2.163641
+410|2.063448
+240|2.051795
+87|1.973758
+249|1.973758
 -STATEMENT CALL DROP_FTS_INDEX('doc', 'contentIdx')
 ---- ok
