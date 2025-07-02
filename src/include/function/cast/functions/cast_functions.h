@@ -44,10 +44,10 @@ struct CastToUnion {
         auto* selVector = inputVector.getSelVectorPtr();
         const auto& sourceType = inputVector.dataType;
         const auto& targetType = resultVector.dataType;
-        uint32_t minCastCost = UNDEFINED_CAST_COST;
-        union_field_idx_t minCostField = 0;
-        for (uint64_t i = 0; i < UnionType::getNumFields(targetType); ++i) {
-            const auto& fieldType = UnionType::getFieldType(targetType, i);
+        uint32_t minCastCost = common::UNDEFINED_CAST_COST;
+        common::union_field_idx_t minCostField = 0;
+        for (uint64_t i = 0; i < common::UnionType::getNumFields(targetType); ++i) {
+            const auto& fieldType = common::UnionType::getFieldType(targetType, i);
             if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
                 uint32_t castCost = BuiltInFunctionsUtils::getCastCost(
                     sourceType.getLogicalTypeID(), fieldType.getLogicalTypeID());
@@ -57,23 +57,23 @@ struct CastToUnion {
                 }
             }
         }
-        auto* tagVector = UnionVector::getTagVector(&resultVector);
-        auto* valVector = UnionVector::getValVector(&resultVector, minCostField);
-        const auto& innerType = UnionType::getFieldType(targetType, minCostField);
+        auto* tagVector = common::UnionVector::getTagVector(&resultVector);
+        auto* valVector = common::UnionVector::getValVector(&resultVector, minCostField);
+        const auto& innerType = common::UnionType::getFieldType(targetType, minCostField);
         for (auto& pos : selVector->getSelectedPositions()) {
-            tagVector->setValue<union_field_idx_t>(pos, minCostField);
+            tagVector->setValue<common::union_field_idx_t>(pos, minCostField);
         }
         if (sourceType != innerType) {
             auto innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
                 sourceType, innerType);
-            std::vector<std::shared_ptr<ValueVector>> innerParams{
-                std::shared_ptr<ValueVector>(&inputVector, [](ValueVector*) {})};
+            std::vector<std::shared_ptr<common::ValueVector>> innerParams{
+                std::shared_ptr<common::ValueVector>(&inputVector, [](common::ValueVector*) {})};
             CastFunctionBindData innerBindData(innerType.copy());
             innerBindData.numOfEntries = (*selVector)[selVector->getSelSize() - 1] + 1;
-            innerCast->execFunc(innerParams, SelectionVector::fromValueVectors(innerParams),
+            innerCast->execFunc(innerParams, common::SelectionVector::fromValueVectors(innerParams),
                 *valVector, valVector->getSelVectorPtr(), &innerBindData);
         } else {
-            for (auto& pos : inputVector.getSelVectorPtr()->getSelectedPositions()) {
+            for (auto& pos : selVector->getSelectedPositions()) {
                 valVector->copyFromVectorData(pos, &inputVector, pos);
             }
         }

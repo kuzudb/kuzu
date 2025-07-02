@@ -178,7 +178,7 @@ static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& 
     // srcType is either non-nested or a union
     if (srcType.getLogicalTypeID() == LogicalTypeID::UNION) {
         // todo
-        return false;
+        throw ConversionException{"Casting from UNION to UNION is not supported right now."};
     } else {
         for (uint64_t i = 0; i < UnionType::getNumFields(dstType); ++i) {
             const LogicalType& fieldType = UnionType::getFieldType(dstType, i);
