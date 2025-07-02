@@ -27,6 +27,8 @@ QueryFTSOptionalParams::QueryFTSOptionalParams(const binder::expression_vector& 
             b = optionalParam;
         } else if (paramName == Conjunctive::NAME) {
             conjunctive = optionalParam;
+        } else if (paramName == Top::NAME) {
+            top = optionalParam;
         } else {
             throw common::BinderException{"Unknown optional parameter: " + paramName};
         }
@@ -44,6 +46,9 @@ QueryFTSConfig QueryFTSOptionalParams::getConfig() const {
     if (conjunctive != nullptr) {
         config.isConjunctive =
             ExpressionUtil::evaluateLiteral<bool>(*conjunctive, LogicalType::BOOL());
+    }
+    if (top != nullptr) {
+        config.top = ExpressionUtil::evaluateLiteral<int64_t>(*top, LogicalType::INT64());
     }
     return config;
 }
