@@ -52,8 +52,9 @@ struct CastToUnion {
                 std::shared_ptr<common::ValueVector>(&inputVector, [](common::ValueVector*) {})};
             CastFunctionBindData innerBindData(bindData->innerType.copy());
             innerBindData.numOfEntries = (*selVector)[selVector->getSelSize() - 1] + 1;
-            bindData->innerCast->execFunc(innerParams, common::SelectionVector::fromValueVectors(innerParams),
-                *valVector, valVector->getSelVectorPtr(), &innerBindData);
+            bindData->innerCast->execFunc(innerParams,
+                common::SelectionVector::fromValueVectors(innerParams), *valVector,
+                valVector->getSelVectorPtr(), &innerBindData);
         } else {
             for (auto& pos : selVector->getSelectedPositions()) {
                 valVector->copyFromVectorData(pos, &inputVector, pos);

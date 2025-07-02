@@ -641,11 +641,12 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     });
     std::shared_ptr<ScalarFunction> innerCast;
     if (sourceType != innerType) {
-        innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType, innerType.copy());
+        innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType,
+            innerType.copy());
     }
     auto func = std::make_unique<ScalarFunction>(functionName,
-        std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()},
-        targetType.getLogicalTypeID(), execFunc);
+        std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, targetType.getLogicalTypeID(),
+        execFunc);
     auto as = std::make_shared<LogicalType>(innerType.copy());
     auto rs = std::make_shared<LogicalType>(targetType.copy());
     scalar_bind_func bindFunc = [minCostTag, innerCast, as, rs](const ScalarBindFuncInput&) {
@@ -1097,7 +1098,7 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         return nullptr;
     }
     // TODO(Xiyang): Can we unify the binding of casting function with other scalar functions?
-    auto res = 
+    auto res =
         CastFunction::bindCastFunction(func->name, input.arguments[0]->getDataType(), targetType);
     func->execFunc = res->execFunc;
     if (res->bindFunc) {
