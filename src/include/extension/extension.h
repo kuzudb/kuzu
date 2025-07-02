@@ -192,6 +192,8 @@ std::wstring utf8ToUnicode(const char* input);
 void* dlopen(const char* file, int /*mode*/);
 
 void* dlsym(void* handle, const char* name);
+
+void dlclose(void* handle);
 #endif
 
 } // namespace extension

@@ -288,7 +288,7 @@ Binder exception: a.fName has type PROPERTY but LITERAL,PARAMETER,PATTERN was ex
 1073741824
 
 -LOG ShowLoadedExtension
--STATEMENT CALL SHOW_LOADED_EXTENSIONS() RETURN *
+-STATEMENT CALL SHOW_LOADED_EXTENSIONS() WHERE `extension source` <> 'STATIC LINK' RETURN *
 ---- 0
 
 -LOG ShowOfficialExtensions

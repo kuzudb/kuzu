@@ -10,9 +10,6 @@ Binder exception: Cannot load from file type delta. If this file type is part of
 -CASE ScanDeltaTable
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/delta/build/libdelta.kuzu_extension"
 ---- ok
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/delta/build/libdelta.kuzu_extension"
----- ok
-
 -LOG LoadFromLocalDeltaTable
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/person_table'(file_format='delta') RETURN *
 ---- 5

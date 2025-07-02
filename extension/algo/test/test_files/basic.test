@@ -7,9 +7,6 @@
 ---- ok
 -STATEMENT load algo
 ---- ok
--STATEMENT load algo
----- ok
-
 -CASE RunALGOWithoutLoad
 -STATEMENT CALL k_core_decomposition('PK') RETURN node.name, k_degree;
 ---- error

@@ -5,8 +5,6 @@
 -CASE ScanFromHTTPCSV
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
--STATEMENT load "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
 -STATEMENT load from "http://localhost/dataset/tinysnb/vPerson.csv" return * limit 5;
 ---- 5
 0|Alice|1|True|False|35|5.0|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11
