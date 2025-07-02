@@ -23,7 +23,6 @@
 390|2.937742
 -LOG QueryKeywordsWithTOP5
 -STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning', top:=5) RETURN node.id, score;
--CHECK_ORDER
 ---- 5
 390|2.937742
 109|1.957072
@@ -83,7 +82,6 @@
 4|2.519607
 456|2.618953
 -STATEMENT CALL query_fts_index('doc', 'contentIdx', 'how long does it take to recover from top wisdom teeth removal', top:=10) RETURN node.id, score
--CHECK_ORDER
 ---- 10
 456|2.618953
 4|2.519607

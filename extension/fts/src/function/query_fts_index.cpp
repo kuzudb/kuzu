@@ -95,12 +95,11 @@ public:
 
     void output(processor::FactorizedTable& table, int64_t top) {
         auto& outputScores = sharedState->outputScores;
-        if ((uint64_t)top > outputScores.size()) {
-            top = outputScores.size();
+        if ((uint64_t)top < outputScores.size()) {
+            std::partial_sort(outputScores.begin(), outputScores.begin() + top, outputScores.end(),
+                [](const auto& left, const auto& right) { return left.second > right.second; });
+            outputScores.resize(top);
         }
-        std::partial_sort(outputScores.begin(), outputScores.begin() + top, outputScores.end(),
-            [](const auto& a, const auto& b) { return a.second > b.second; });
-        outputScores.resize(top);
         for (auto& [offset, score] : sharedState->outputScores) {
             docsVector->setValue(0, nodeID_t{offset, bindData.outputTableID});
             scoreVector->setValue(0, score);
