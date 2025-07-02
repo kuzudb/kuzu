@@ -22,6 +22,7 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
+#include "planner/operator/logical_projection.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -313,9 +314,14 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     if (bindData->filterStatement != nullptr) {
         auto& node = bindData->filterStatement->getSingleColumnExpr()->constCast<NodeExpression>();
         auto filterPlan = planner->planStatement(*bindData->filterStatement);
-        KU_ASSERT(
-            filterPlan.getLastOperator()->getOperatorType() == LogicalOperatorType::PROJECTION);
-        auto projection = filterPlan.getLastOperator();
+        auto root = filterPlan.getLastOperator();
+        KU_ASSERT(root->getOperatorType() == LogicalOperatorType::PROJECTION);
+        auto projection = root->ptrCast<LogicalProjection>();
+        KU_ASSERT(projection->getExpressionsToProject().size() == 1);
+        auto expr = projection->getExpressionsToProject()[0];
+        KU_ASSERT(expr->getDataType().getLogicalTypeID() == LogicalTypeID::NODE);
+        auto nodeID = expr->constCast<NodeExpression>().getInternalID();
+        projection->setExpressionsToProject({nodeID});
         // Pre-append semi mask before projection
         filterPlan.setLastOperator(projection->getChild(0));
         planner->appendNodeSemiMask(SemiMaskTargetType::SCAN_NODE, node, filterPlan);
@@ -323,7 +329,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
         semiMasker.addTarget(op.get());
         projection->setChild(0, filterPlan.getLastOperator());
         projection->computeFactorizedSchema();
-        filterPlan.setLastOperator(projection);
+        filterPlan.setLastOperator(root);
         planner->appendDummySink(filterPlan);
         op->addChild(filterPlan.getLastOperator());
     }
