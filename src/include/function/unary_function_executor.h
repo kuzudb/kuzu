@@ -97,7 +97,7 @@ struct UnaryCastUnionFunctionWrapper {
         auto& resultVector_ = *(common::ValueVector*)resultVector;
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_.getValue<RESULT_TYPE>(resultPos), inputVector_, resultVector_,
-            reinterpret_cast<CastToUnionBindData*>(dataPtr)->minCostTag);
+            reinterpret_cast<CastToUnionBindData*>(dataPtr));
     }
 };
 

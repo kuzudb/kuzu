@@ -40,23 +40,19 @@ struct CastRelToString {
 struct CastToUnion {
     template<typename T>
     static inline void operation(T&, common::union_entry_t&, common::ValueVector& inputVector,
-        common::ValueVector& resultVector, union_field_idx_t minCostTag) {
-        const auto& sourceType = inputVector.dataType;
-        const auto& innerType = common::UnionType::getFieldType(resultVector.dataType, minCostTag);
+        common::ValueVector& resultVector, CastToUnionBindData* bindData) {
         auto* selVector = inputVector.getSelVectorPtr();
         auto* tagVector = common::UnionVector::getTagVector(&resultVector);
-        auto* valVector = common::UnionVector::getValVector(&resultVector, minCostTag);
+        auto* valVector = common::UnionVector::getValVector(&resultVector, bindData->minCostTag);
         for (auto& pos : selVector->getSelectedPositions()) {
-            tagVector->setValue<common::union_field_idx_t>(pos, minCostTag);
+            tagVector->setValue<common::union_field_idx_t>(pos, bindData->minCostTag);
         }
-        if (sourceType != innerType) {
-            auto innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST",
-                sourceType, innerType);
+        if (bindData->innerCast) {
             std::vector<std::shared_ptr<common::ValueVector>> innerParams{
                 std::shared_ptr<common::ValueVector>(&inputVector, [](common::ValueVector*) {})};
-            CastFunctionBindData innerBindData(innerType.copy());
+            CastFunctionBindData innerBindData(bindData->innerType.copy());
             innerBindData.numOfEntries = (*selVector)[selVector->getSelSize() - 1] + 1;
-            innerCast->execFunc(innerParams, common::SelectionVector::fromValueVectors(innerParams),
+            bindData->innerCast->execFunc(innerParams, common::SelectionVector::fromValueVectors(innerParams),
                 *valVector, valVector->getSelVectorPtr(), &innerBindData);
         } else {
             for (auto& pos : selVector->getSelectedPositions()) {

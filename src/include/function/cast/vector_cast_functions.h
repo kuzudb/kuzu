@@ -184,5 +184,13 @@ struct CastAnyFunction {
     static function_set getFunctionSet();
 };
 
+/*
+struct CastToUnionFunction {
+    static constexpr const char* name = "TO_UNION";
+
+    static function_set getFunctionSet();
+};
+*/
+
 } // namespace function
 } // namespace kuzu

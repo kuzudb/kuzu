@@ -616,10 +616,9 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(const std::stri
 static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     // source type is not nested, targetType is a union
-    auto numFields = UnionType::getNumFields(targetType);
     uint32_t minCastCost = UNDEFINED_CAST_COST;
     union_field_idx_t minCostTag = 0;
-    for (uint64_t i = 0; i < numFields; ++i) {
+    for (uint64_t i = 0; i < UnionType::getNumFields(targetType); ++i) {
         const auto& fieldType = UnionType::getFieldType(targetType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
             uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(),
@@ -630,23 +629,30 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
             }
         }
     }
-    if (minCastCost < UNDEFINED_CAST_COST) {
-        scalar_bind_func bindFunc = [minCostTag, &targetType](const ScalarBindFuncInput&) {
-            return std::make_unique<CastToUnionBindData>(minCostTag, targetType.copy());
-        };
-        scalar_func_exec_t execFunc;
-        TypeUtils::visit(sourceType, [&execFunc]<typename T>(T) {
-            execFunc = ScalarFunction::UnaryCastUnionExecFunction<T, union_entry_t, CastToUnion>;
-        });
-        auto func = std::make_unique<ScalarFunction>(functionName,
-            std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()},
-            targetType.getLogicalTypeID(), execFunc);
-        func->bindFunc = bindFunc;
-        return func;
+    if (minCastCost == UNDEFINED_CAST_COST) {
+        throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
+            LogicalTypeUtils::toString(sourceType.getLogicalTypeID()),
+            LogicalTypeUtils::toString(targetType.getLogicalTypeID()))};
     }
-    throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
-        LogicalTypeUtils::toString(sourceType.getLogicalTypeID()),
-        LogicalTypeUtils::toString(targetType.getLogicalTypeID()))};
+    const auto& innerType = common::UnionType::getFieldType(targetType, minCostTag);
+    scalar_func_exec_t execFunc;
+    TypeUtils::visit(sourceType, [&execFunc]<typename T>(T) {
+        execFunc = ScalarFunction::UnaryCastUnionExecFunction<T, union_entry_t, CastToUnion>;
+    });
+    std::shared_ptr<ScalarFunction> innerCast;
+    if (sourceType != innerType) {
+        innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType, innerType.copy());
+    }
+    auto func = std::make_unique<ScalarFunction>(functionName,
+        std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()},
+        targetType.getLogicalTypeID(), execFunc);
+    auto as = std::make_shared<LogicalType>(innerType.copy());
+    auto rs = std::make_shared<LogicalType>(targetType.copy());
+    scalar_bind_func bindFunc = [minCostTag, innerCast, as, rs](const ScalarBindFuncInput&) {
+        return std::make_unique<CastToUnionBindData>(minCostTag, innerCast, as->copy(), rs->copy());
+    };
+    func->bindFunc = std::move(bindFunc);
+    return func;
 }
 
 static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& functionName,
@@ -1091,9 +1097,12 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         return nullptr;
     }
     // TODO(Xiyang): Can we unify the binding of casting function with other scalar functions?
-    func->execFunc =
-        CastFunction::bindCastFunction(func->name, input.arguments[0]->getDataType(), targetType)
-            ->execFunc;
+    auto res = 
+        CastFunction::bindCastFunction(func->name, input.arguments[0]->getDataType(), targetType);
+    func->execFunc = res->execFunc;
+    if (res->bindFunc) {
+        return res->bindFunc(input);
+    }
     return std::make_unique<function::CastFunctionBindData>(targetType.copy());
 }
 
