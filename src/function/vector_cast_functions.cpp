@@ -6,11 +6,11 @@
 #include "common/exception/binder.h"
 #include "common/exception/conversion.h"
 #include "function/built_in_function_utils.h"
+#include "function/cast/cast_union_bind_data.h"
 #include "function/cast/functions/cast_array.h"
 #include "function/cast/functions/cast_decimal.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
-#include "function/cast/cast_union_bind_data.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -622,7 +622,8 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     for (uint64_t i = 0; i < numFields; ++i) {
         const auto& fieldType = UnionType::getFieldType(targetType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
-            uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(), fieldType.getLogicalTypeID());
+            uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(),
+                fieldType.getLogicalTypeID());
             if (castCost < minCastCost) {
                 minCastCost = castCost;
                 minCostTag = i;

@@ -205,8 +205,9 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
         const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
         common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
-        EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryCastUnionFunctionWrapper>(
-            *params[0], paramSelVectors[0], result, resultSelVector, dataPtr);
+        EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+            UnaryCastUnionFunctionWrapper>(*params[0], paramSelVectors[0], result, resultSelVector,
+            dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
