@@ -7,7 +7,6 @@
 IO exception: Cannot open file az://kuzu-test/vPerson.csv: No such file or directory
 
 -CASE AzureScan
--SKIP
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/azure/build/libazure.kuzu_extension';
 ---- ok
 -STATEMENT LOAD FROM "az://kuzu-test/vPerson.csv" RETURN *;
