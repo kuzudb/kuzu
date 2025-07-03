@@ -109,6 +109,7 @@ def main():
         exportPath = os.path.join(argDatasetPath, "tmp", version, datasetName)
         exportCommand = f"EXPORT DATABASE '{exportPath}' (format=\"csv\", header=true);"
         combinedCommands.append(exportCommand)
+        combinedCommands.insert(0, "CALL threads=1;")
         print(f"Exporting {datasetPath} to {exportPath}")
 
         process = subprocess.Popen(
