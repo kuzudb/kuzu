@@ -532,5 +532,8 @@ template KUZU_API int64_t ExpressionUtil::evaluateLiteral<int64_t>(const Express
 template KUZU_API bool ExpressionUtil::evaluateLiteral<bool>(const Expression& expression,
     const LogicalType& type, validate_param_func<bool> validateParamFunc);
 
+template KUZU_API uint64_t ExpressionUtil::evaluateLiteral<uint64_t>(const Expression& expression,
+    const LogicalType& type, validate_param_func<uint64_t> validateParamFunc);
+
 } // namespace binder
 } // namespace kuzu
