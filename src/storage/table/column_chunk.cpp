@@ -185,7 +185,7 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
 
 void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const ValueVector& values) {
-    if (transaction->getID() == Transaction::DUMMY_TRANSACTION_ID) {
+    if (transaction->getType() == TransactionType::DUMMY) {
         data->write(&values, values.state->getSelVector().getSelectedPositions()[0], offsetInChunk);
         return;
     }

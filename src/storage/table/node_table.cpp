@@ -238,8 +238,8 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         {pkColumnID}, {pkDefinition.getType().getPhysicalType()},
         hashIndexType.constraintType == IndexConstraintType::PRIMARY,
         hashIndexType.definitionType == IndexDefinitionType::BUILTIN};
-    indexes.push_back(IndexHolder{
-        PrimaryKeyIndex::createNewIndex(indexInfo, inMemory, *memoryManager, dataFH, shadowFile)});
+    indexes.push_back(IndexHolder{PrimaryKeyIndex::createNewIndex(indexInfo,
+        storageManager->isInMemory(), *memoryManager, dataFH, shadowFile)});
     nodeGroups = std::make_unique<NodeGroupCollection>(
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
         storageManager->getDataFH(), &versionRecordHandler);
@@ -281,7 +281,8 @@ void NodeTable::initScanState(Transaction* transaction, TableScanState& scanStat
 
 void NodeTable::initScanState(Transaction* transaction, TableScanState& scanState,
     table_id_t tableID, offset_t startOffset) const {
-    if (transaction->isUnCommitted(tableID, startOffset)) {
+    if (transaction->isUnCommitted(tableID, startOffset) &&
+        transaction->getLocalStorage()->getLocalTable(tableID)) {
         scanState.source = TableScanSource::UNCOMMITTED;
         scanState.nodeGroupIdx =
             StorageUtils::getNodeGroupIdx(transaction->getLocalRowIdx(tableID, startOffset));
@@ -306,7 +307,8 @@ bool NodeTable::lookup(const Transaction* transaction, const TableScanState& sca
     }
     const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
     const offset_t rowIdxInGroup =
-        transaction->isUnCommitted(tableID, nodeOffset) ?
+        transaction->isUnCommitted(tableID, nodeOffset) &&
+                transaction->getLocalStorage()->getLocalTable(tableID) ?
             transaction->getLocalRowIdx(tableID, nodeOffset) -
                 StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) :
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
@@ -639,8 +641,8 @@ bool NodeTable::checkpoint(main::ClientContext* context, TableCatalogEntry* tabl
         for (auto& index : indexes) {
             index.checkpoint(context);
         }
-        hasChanges = false;
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
+        hasChanges = false;
     }
     return ret;
 }
@@ -739,17 +741,41 @@ void NodeTable::addIndex(std::unique_ptr<Index> index) {
         throw RuntimeException("Index with name " + index->getName() + " already exists.");
     }
     indexes.push_back(IndexHolder{std::move(index)});
+    hasChanges = true;
 }
 
 void NodeTable::dropIndex(const std::string& name) {
     KU_ASSERT(getIndex(name) != nullptr);
     for (auto it = indexes.begin(); it != indexes.end(); ++it) {
-        if (common::StringUtils::caseInsensitiveEquals(it->getName(), name)) {
+        if (StringUtils::caseInsensitiveEquals(it->getName(), name)) {
             KU_ASSERT(it->isLoaded());
             indexes.erase(it);
             return;
         }
     }
+}
+
+std::optional<std::reference_wrapper<IndexHolder>> NodeTable::getIndexHolder(
+    const std::string& name) {
+    for (auto& index : indexes) {
+        if (StringUtils::caseInsensitiveEquals(index.getName(), name)) {
+            return index;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<Index*> NodeTable::getIndex(const std::string& name) const {
+    for (auto& index : indexes) {
+        if (StringUtils::caseInsensitiveEquals(index.getName(), name)) {
+            if (index.isLoaded()) {
+                return index.getIndex();
+            }
+            throw RuntimeException(stringFormat(
+                "Index {} is not loaded yet. Please load the index before accessing it.", name));
+        }
+    }
+    return std::nullopt;
 }
 
 void NodeTable::serialize(Serializer& serializer) const {

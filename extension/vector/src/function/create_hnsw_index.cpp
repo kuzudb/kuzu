@@ -2,7 +2,6 @@
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/hnsw_index_catalog_entry.h"
-#include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
@@ -246,7 +245,7 @@ static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutp
         return 0;
     }
     for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
-        hnswIndex->finalize(i);
+        hnswIndex->finalizeNodeGroup(i);
     }
     sharedState->numNodeGroupsFinalized.fetch_add(morsel.endOffset - morsel.startOffset);
     return morsel.endOffset - morsel.startOffset;
@@ -261,10 +260,16 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
     const auto catalog = clientContext->getCatalog();
     const auto nodeTableID = bindData->tableEntry->getTableID();
-    const auto upperTable = catalog->getTableCatalogEntry(transaction,
-        HNSWIndexUtils::getUpperGraphTableName(nodeTableID, bindData->indexName));
-    const auto lowerTable = catalog->getTableCatalogEntry(transaction,
-        HNSWIndexUtils::getLowerGraphTableName(nodeTableID, bindData->indexName));
+    auto& upperTableEntry =
+        catalog
+            ->getTableCatalogEntry(transaction,
+                HNSWIndexUtils::getUpperGraphTableName(nodeTableID, bindData->indexName))
+            ->cast<catalog::RelGroupCatalogEntry>();
+    auto& lowerTableEntry =
+        catalog
+            ->getTableCatalogEntry(transaction,
+                HNSWIndexUtils::getLowerGraphTableName(nodeTableID, bindData->indexName))
+            ->cast<catalog::RelGroupCatalogEntry>();
     auto auxInfo = std::make_unique<HNSWIndexAuxInfo>(bindData->config.copy());
     auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(HNSWIndexCatalogEntry::TYPE_NAME,
         bindData->tableEntry->getTableID(), bindData->indexName, std::vector{bindData->propertyID},
@@ -276,19 +281,17 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
         {columnID}, {PhysicalTypeID::ARRAY},
         hnswIndexType.constraintType == storage::IndexConstraintType::PRIMARY,
         hnswIndexType.definitionType == storage::IndexDefinitionType::BUILTIN};
-    auto storageInfo = std::make_unique<HNSWStorageInfo>(
-        upperTable->cast<catalog::RelGroupCatalogEntry>().getSingleRelEntryInfo().oid,
-        lowerTable->cast<catalog::RelGroupCatalogEntry>().getSingleRelEntryInfo().oid,
+    auto upperTableID = upperTableEntry.getSingleRelEntryInfo().oid;
+    auto lowerTableID = lowerTableEntry.getSingleRelEntryInfo().oid;
+    auto storageInfo = std::make_unique<HNSWStorageInfo>(upperTableID, lowerTableID,
         index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->numRows);
     auto onDiskIndex = std::make_unique<OnDiskHNSWIndex>(context->clientContext, indexInfo,
         std::move(storageInfo), bindData->config.copy());
-    auto nodeTable =
-        clientContext->getStorageManager()->getTable(nodeTableID)->ptrCast<storage::NodeTable>();
+    auto storageManager = clientContext->getStorageManager();
+    auto nodeTable = storageManager->getTable(nodeTableID)->ptrCast<storage::NodeTable>();
     nodeTable->addIndex(std::move(onDiskIndex));
-    // Force checkpoint is needed to ensure that the index is persisted before we can support the
-    // replay of index creation.
-    transaction->setForceCheckpoint();
     index->moveToPartitionState(*hnswSharedState->partitionerSharedState);
+    transaction->setForceCheckpoint();
 }
 
 static double finalizeHNSWProgressFunc(TableFuncSharedState* sharedState) {

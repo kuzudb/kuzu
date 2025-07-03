@@ -91,7 +91,6 @@ public:
     // storage.
     bool lookupInternal(const transaction::Transaction* transaction, Key key,
         common::offset_t& result, visible_func isVisible) {
-        KU_ASSERT(transaction->getType() != transaction::TransactionType::CHECKPOINT);
         auto localLookupState = localStorage->lookup(key, result, isVisible);
         if (localLookupState == HashIndexLocalLookupState::KEY_DELETED) {
             return false;

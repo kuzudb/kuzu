@@ -170,7 +170,7 @@ public:
         GetEmbeddingsScanState& scanState);
     common::offset_t searchNN(const EmbeddingHandle& queryVector, common::offset_t entryNode,
         GetEmbeddingsScanState& scanState) const;
-    void finalize(common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
+    void finalizeNodeGroup(common::node_group_idx_t nodeGroupIdx, common::offset_t numNodesInTable,
         const NodeToHNSWGraphOffsetMap& selectedNodesMap, GetEmbeddingsScanState& scanState) const;
 
     std::unique_ptr<InMemHNSWGraph> moveGraph() { return std::move(graph); }
@@ -220,7 +220,7 @@ public:
     }
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
     bool insert(common::offset_t offset, CreateInMemHNSWLocalState* localState);
-    void finalize(common::node_group_idx_t nodeGroupIdx);
+    void finalizeNodeGroup(common::node_group_idx_t nodeGroupIdx);
 
     void moveToPartitionState(HNSWIndexPartitionerSharedState& partitionState);
 

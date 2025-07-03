@@ -41,6 +41,7 @@ std::shared_ptr<BufferedSerializer> FTSStorageInfo::serialize() const {
     auto serializer = Serializer(bufferWriter);
     serializer.write<idx_t>(numDocs);
     serializer.write<double>(avgDocLen);
+    serializer.write<offset_t>(numCheckpointedNodes);
     return bufferWriter;
 }
 
@@ -48,10 +49,12 @@ std::unique_ptr<IndexStorageInfo> FTSStorageInfo::deserialize(
     std::unique_ptr<BufferReader> reader) {
     idx_t numDocs = 0;
     double avgDocLen = 0.0;
+    offset_t numCheckpointedNodes = 0;
     Deserializer deSer{std::move(reader)};
     deSer.deserializeValue<idx_t>(numDocs);
     deSer.deserializeValue<double>(avgDocLen);
-    return std::make_unique<FTSStorageInfo>(numDocs, avgDocLen);
+    deSer.deserializeValue<offset_t>(numCheckpointedNodes);
+    return std::make_unique<FTSStorageInfo>(numDocs, avgDocLen, numCheckpointedNodes);
 }
 
 std::unique_ptr<Index::InsertState> FTSIndex::initInsertState(Transaction* transaction,
@@ -124,6 +127,8 @@ void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
         (ftsStorageInfo.avgDocLen * ftsStorageInfo.numDocs + totalInsertedDocLen) /
         (ftsStorageInfo.numDocs + numInsertedDocs);
     ftsStorageInfo.numDocs += numInsertedDocs;
+    ftsStorageInfo.numCheckpointedNodes =
+        nodeIDVector.getValue<nodeID_t>(nodeIDVector.state->getSelVector()[0]).offset + 1;
 }
 
 std::unique_ptr<Index::DeleteState> FTSIndex::initDeleteState(const Transaction* transaction,
@@ -133,7 +138,7 @@ std::unique_ptr<Index::DeleteState> FTSIndex::initDeleteState(const Transaction*
 }
 
 void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector,
-    Index::DeleteState& deleteState) {
+    DeleteState& deleteState) {
     auto& ftsDeleteState = deleteState.cast<FTSDeleteState>();
     auto& ftsStorageInfo = storageInfo->cast<FTSStorageInfo>();
     double totalDocLen = ftsStorageInfo.avgDocLen * ftsStorageInfo.numDocs;
@@ -157,6 +162,48 @@ void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector
     auto numDeletedDocs = nodeIDVector.state->getSelSize();
     ftsStorageInfo.avgDocLen = totalDocLen / (ftsStorageInfo.numDocs - numDeletedDocs);
     ftsStorageInfo.numDocs -= numDeletedDocs;
+}
+
+void FTSIndex::checkpoint(main::ClientContext* context, bool) {
+    KU_ASSERT(!context->isInMemory());
+    auto catalog = context->getCatalog();
+    internalTableInfo.docTable->checkpoint(context,
+        catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
+            internalTableInfo.docTable->getTableID()));
+    internalTableInfo.termsTable->checkpoint(context,
+        catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
+            internalTableInfo.termsTable->getTableID()));
+    auto appearsInTableName =
+        FTSUtils::getAppearsInTableName(internalTableInfo.table->getTableID(), indexInfo.name);
+    auto appearsInTableEntry =
+        catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION, appearsInTableName);
+    internalTableInfo.appearsInfoTable->checkpoint(context, appearsInTableEntry);
+}
+
+void FTSIndex::finalize(main::ClientContext* context) {
+    auto& ftsStorageInfo = storageInfo->cast<FTSStorageInfo>();
+    const auto numTotalRows =
+        internalTableInfo.table->getNumTotalRows(&DUMMY_CHECKPOINT_TRANSACTION);
+    if (numTotalRows == ftsStorageInfo.numCheckpointedNodes) {
+        return;
+    }
+    auto transaction = context->getTransaction();
+    auto dataChunk = DataChunkState::getSingleValueDataChunkState();
+    ValueVector idVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunk};
+    IndexTableState indexTableState{context->getMemoryManager(), transaction, internalTableInfo,
+        indexInfo.columnIDs, idVector, dataChunk};
+    internalID_t insertedNodeID = {INVALID_OFFSET, internalTableInfo.table->getTableID()};
+    while (ftsStorageInfo.numCheckpointedNodes < numTotalRows) {
+        insertedNodeID.offset = ftsStorageInfo.numCheckpointedNodes++;
+        idVector.setValue(0, insertedNodeID);
+        internalTableInfo.table->initScanState(transaction, *indexTableState.scanState,
+            insertedNodeID.tableID, insertedNodeID.offset);
+        bool result = internalTableInfo.table->lookup(transaction, *indexTableState.scanState);
+        KU_ASSERT(result);
+        auto insertState = initInsertState(transaction, context->getMemoryManager(),
+            [](offset_t) { return true; });
+        insert(transaction, idVector, indexTableState.indexVectors, *insertState);
+    }
 }
 
 nodeID_t FTSIndex::insertToDocTable(Transaction* transaction, FTSInsertState& insertState,

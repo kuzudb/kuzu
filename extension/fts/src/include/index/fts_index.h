@@ -14,9 +14,10 @@ struct TermInfo;
 struct FTSStorageInfo final : storage::IndexStorageInfo {
     common::idx_t numDocs = 0;
     double avgDocLen = 0;
+    common::offset_t numCheckpointedNodes;
 
-    FTSStorageInfo(common::idx_t numDocs, double avgDocLen)
-        : numDocs{numDocs}, avgDocLen{avgDocLen} {}
+    FTSStorageInfo(common::idx_t numDocs, double avgDocLen, common::offset_t numCheckpointedNodes)
+        : numDocs{numDocs}, avgDocLen{avgDocLen}, numCheckpointedNodes{numCheckpointedNodes} {}
 
     std::shared_ptr<common::BufferedSerializer> serialize() const override;
 
@@ -51,12 +52,16 @@ public:
         // table being indexed.
     }
 
+    void checkpoint(main::ClientContext*, bool forceCheckpointAll) override;
+    void finalize(main::ClientContext* context) override;
+
     static storage::IndexType getIndexType() {
         static const storage::IndexType FTS_INDEX_TYPE{"FTS",
             storage::IndexConstraintType::SECONDARY_NON_UNIQUE,
             storage::IndexDefinitionType::EXTENSION, load};
         return FTS_INDEX_TYPE;
     }
+    FTSInternalTableInfo& getInternalTableInfo() { return internalTableInfo; }
 
 private:
     common::nodeID_t insertToDocTable(transaction::Transaction* transaction,

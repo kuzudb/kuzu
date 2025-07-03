@@ -220,8 +220,6 @@ protected:
     MemoryManager* memoryManager;
     ShadowFile* shadowFile;
     std::atomic<bool> hasChanges;
-    bool inMemory;
-    bool readOnly;
 };
 
 } // namespace storage

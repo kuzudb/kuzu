@@ -234,7 +234,7 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     graph->setCSRLength(nodeOffset, newSize);
 }
 
-void InMemHNSWLayer::finalize(common::node_group_idx_t nodeGroupIdx,
+void InMemHNSWLayer::finalizeNodeGroup(common::node_group_idx_t nodeGroupIdx,
     common::offset_t numNodesInTable, const NodeToHNSWGraphOffsetMap& selectedNodesMap,
     GetEmbeddingsScanState& scanState) const {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
@@ -367,11 +367,13 @@ bool InMemHNSWIndex::insert(common::offset_t offset, CreateInMemHNSWLocalState* 
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void InMemHNSWIndex::finalize(common::node_group_idx_t nodeGroupIdx) {
+void InMemHNSWIndex::finalizeNodeGroup(common::node_group_idx_t nodeGroupIdx) {
     const auto numNodesInTable = lowerLayer->getNumNodes();
     auto scanState = embeddings->constructScanState();
-    upperLayer->finalize(nodeGroupIdx, numNodesInTable, *upperGraphSelectionMap, *scanState);
-    lowerLayer->finalize(nodeGroupIdx, numNodesInTable, *lowerGraphSelectionMap, *scanState);
+    upperLayer->finalizeNodeGroup(nodeGroupIdx, numNodesInTable, *upperGraphSelectionMap,
+        *scanState);
+    lowerLayer->finalizeNodeGroup(nodeGroupIdx, numNodesInTable, *lowerGraphSelectionMap,
+        *scanState);
 }
 
 std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {
@@ -555,15 +557,17 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
             HNSWIndexUtils::getUpperGraphTableName(nodeTableEntry->getTableID(), indexInfo.name);
         const auto lowerRelTableName =
             HNSWIndexUtils::getLowerGraphTableName(nodeTableEntry->getTableID(), indexInfo.name);
-        auto upperRelTableEntry =
-            catalog->getTableCatalogEntry(context->getTransaction(), upperRelTableName, true);
-        auto lowerRelTableEntry =
-            catalog->getTableCatalogEntry(context->getTransaction(), lowerRelTableName, true);
+        auto& upperRelTableEntry =
+            catalog->getTableCatalogEntry(context->getTransaction(), upperRelTableName, true)
+                ->cast<catalog::RelGroupCatalogEntry>();
+        auto& lowerRelTableEntry =
+            catalog->getTableCatalogEntry(context->getTransaction(), lowerRelTableName, true)
+                ->cast<catalog::RelGroupCatalogEntry>();
         const auto embeddingDim = typeInfo.constPtrCast<common::ArrayTypeInfo>()->getNumElements();
         const auto scanState = std::make_unique<OnDiskEmbeddingScanState>(context->getTransaction(),
             mm, nodeTable, indexInfo.columnIDs[0], embeddingDim);
         const auto insertState = std::make_unique<CheckpointInsertionState>(context, nodeTableEntry,
-            upperRelTableEntry, lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
+            &upperRelTableEntry, &lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
         // TODO(Guodong): Perhaps should switch to scan instead of lookup here.
         for (auto offset = hnswStorageInfo.numCheckpointedNodes; offset < numTotalRows; offset++) {
             const auto vector =
@@ -580,6 +584,15 @@ void OnDiskHNSWIndex::checkpoint(main::ClientContext* context, bool) {
             shrinkForNode(context->getTransaction(), offset, false, config.ml, *insertState);
         }
         context->getTransaction()->commit(nullptr /* wal */);
+        if (!context->isInMemory()) {
+            auto storageManager = context->getStorageManager();
+            auto upperRelTable =
+                storageManager->getTable(upperRelTableEntry.getSingleRelEntryInfo().oid);
+            auto lowerRelTable =
+                storageManager->getTable(lowerRelTableEntry.getSingleRelEntryInfo().oid);
+            upperRelTable->checkpoint(context, &upperRelTableEntry);
+            lowerRelTable->checkpoint(context, &lowerRelTableEntry);
+        }
         hnswStorageInfo.numCheckpointedNodes = numTotalRows;
     } catch ([[maybe_unused]] std::exception& e) {
         context->getTransaction()->rollback(nullptr /* wal */);
