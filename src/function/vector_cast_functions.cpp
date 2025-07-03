@@ -181,8 +181,9 @@ static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& 
         // todo
         throw ConversionException{"Casting from UNION to UNION is not supported right now."};
     } else {
-        for (uint64_t i = 0; i < UnionType::getNumFields(dstType); ++i) {
-            const LogicalType& fieldType = UnionType::getFieldType(dstType, i);
+        auto numFields = UnionType::getNumFields(dstType);
+        for (auto i = 0u; i < numFields; ++i) {
+            const auto& fieldType = UnionType::getFieldType(dstType, i);
             if (CastFunction::hasImplicitCast(srcType, fieldType)) {
                 return true;
             }
@@ -618,7 +619,8 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     // source type is not nested, targetType is a union
     uint32_t minCastCost = UNDEFINED_CAST_COST;
     union_field_idx_t minCostTag = 0;
-    for (uint64_t i = 0; i < UnionType::getNumFields(targetType); ++i) {
+    auto numFields = UnionType::getNumFields(targetType);
+    for (auto i = 0u; i < numFields; ++i) {
         const auto& fieldType = UnionType::getFieldType(targetType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
             uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(),
