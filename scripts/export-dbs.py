@@ -12,11 +12,10 @@ def getVersion(executablePath):
             [executablePath, "--version"],
             capture_output=True, text=True, check=True)
         output = result.stdout.strip()
-        match = re.search(r"\b(\d+\.\d+\.\d+\.\d+)\b", output)
-        if match:
-            return match.group(1)
+        if output.startswith("Kuzu "):
+            return output.split(" ", 1)[1]
         else:
-            print("Version number not found in output.")
+            print("Unexpected version format.")
             return None
     except subprocess.CalledProcessError as e:
         print(f"Error running executable: {e}")
