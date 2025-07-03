@@ -1876,37 +1876,37 @@ Ad
 Binder exception: Unsupported inner data type for LIST_PRODUCT: STRING
 
 -LOG ListToStringInt128
--STATEMENT RETURN LIST_TO_STRING([CAST(5, 'INT128'), CAST(7, 'INT128'), CAST(10, 'INT128')], '--')
+-STATEMENT RETURN LIST_TO_STRING('--', [CAST(5, 'INT128'), CAST(7, 'INT128'), CAST(10, 'INT128')])
 ---- 1
 5--7--10
 
 -LOG ListToStringInt64
--STATEMENT RETURN LIST_TO_STRING([CAST(255, 'INT64'), CAST(-51, 'INT64'), CAST(3132, 'INT64')], '--')
+-STATEMENT RETURN LIST_TO_STRING('--', [CAST(255, 'INT64'), CAST(-51, 'INT64'), CAST(3132, 'INT64')])
 ---- 1
 255---51--3132
 
 -LOG ListToStringBOOL
--STATEMENT RETURN LIST_TO_STRING([true, false, false, true], '/')
+-STATEMENT RETURN LIST_TO_STRING('/', [true, false, false, true])
 ---- 1
 True/False/False/True
 
 -LOG ListToStringUUID
--STATEMENT MATCH (p:person) return list_to_string(collect(p.u), '*')
+-STATEMENT MATCH (p:person) return list_to_string('*', collect(p.u))
 ---- 1
 a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18
 
 -LOG ListToStringDate
--STATEMENT MATCH (p:person) return list_to_string(collect(p.birthdate), '+')
+-STATEMENT MATCH (p:person) return list_to_string('+', collect(p.birthdate))
 ---- 1
 1900-01-01+1900-01-01+1940-06-22+1950-07-23+1980-10-26+1980-10-26+1980-10-26+1990-11-27
 
 -LOG ListToStringTimestamp
--STATEMENT MATCH (p:person) return list_to_string(collect(p.registerTime), '==')
+-STATEMENT MATCH (p:person) return list_to_string('==', collect(p.registerTime))
 ---- 1
 2011-08-20 11:25:30==2008-11-03 15:25:30.000526==1911-08-20 02:32:21==2031-11-30 12:25:30==1976-12-23 11:21:42==1972-07-31 13:22:30.678559==1976-12-23 04:41:42==2023-02-21 13:25:30
 
 -LOG ListToStringList
--STATEMENT MATCH (p:person) return list_to_string(p.workedHours, ',')
+-STATEMENT MATCH (p:person) return list_to_string(',', p.workedHours)
 ---- 8
 10,5
 12,8
@@ -1918,12 +1918,12 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12*a0eebc
 10,11,12,3,4,5,6,7
 
 -LOG ListToStringStruct
--STATEMENT MATCH (o:organisation) return list_to_string(collect(o.state), '|')
+-STATEMENT MATCH (o:organisation) return list_to_string('|', collect(o.state))
 ---- 1
 {revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}|{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}|{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}
 
 -LOG ListToStringArray
--STATEMENT MATCH (p:person) return list_to_string(collect(p.grades), '/')
+-STATEMENT MATCH (p:person) return list_to_string('/', collect(p.grades))
 ---- 1
 [96,54,86,92]/[98,42,93,88]/[91,75,21,95]/[76,88,99,89]/[96,59,65,88]/[80,78,34,83]/[43,83,67,43]/[77,64,100,54]
 

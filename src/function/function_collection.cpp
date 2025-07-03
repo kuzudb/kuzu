@@ -97,7 +97,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(RegexpSplitToArrayFunction), SCALAR_FUNCTION(InitCapFunction),
         SCALAR_FUNCTION(StringSplitFunction), SCALAR_FUNCTION_ALIAS(StrSplitFunction),
         SCALAR_FUNCTION_ALIAS(StringToArrayFunction), SCALAR_FUNCTION(SplitPartFunction),
-        SCALAR_FUNCTION(InternalIDCreationFunction),
+        SCALAR_FUNCTION(InternalIDCreationFunction), SCALAR_FUNCTION(ConcatWSFunction),
 
         // Array Functions
         SCALAR_FUNCTION(ArrayValueFunction), SCALAR_FUNCTION(ArrayCrossProductFunction),

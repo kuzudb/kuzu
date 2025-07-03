@@ -1,5 +1,6 @@
 add_library(kuzu_string_function
         OBJECT
+        concat_ws.cpp
         string_split_function.cpp
         init_cap_function.cpp
         levenshtein_function.cpp

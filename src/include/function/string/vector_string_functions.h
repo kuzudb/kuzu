@@ -245,5 +245,11 @@ struct SplitPartFunction {
     static function_set getFunctionSet();
 };
 
+struct ConcatWSFunction {
+    static constexpr const char* name = "CONCAT_WS";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
