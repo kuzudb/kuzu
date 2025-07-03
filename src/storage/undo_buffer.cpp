@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
+#include "main/client_context.h"
 #include "storage/table/chunked_node_group.h"
 #include "storage/table/update_info.h"
 #include "storage/table/version_record_handler.h"
@@ -167,10 +168,10 @@ void UndoBuffer::commit(transaction_t commitTS) const {
     });
 }
 
-void UndoBuffer::rollback(transaction::Transaction* transaction) const {
+void UndoBuffer::rollback(ClientContext* context) const {
     UndoBufferIterator iterator{*this};
     iterator.reverseIterate([&](UndoRecordType entryType, uint8_t const* entry) {
-        rollbackRecord(transaction, entryType, entry);
+        rollbackRecord(context, entryType, entry);
     });
 }
 
@@ -233,8 +234,8 @@ void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t com
     undoRecord.vectorUpdateInfo->version = commitTS;
 }
 
-void UndoBuffer::rollbackRecord(transaction::Transaction* transaction,
-    const UndoRecordType recordType, const uint8_t* record) {
+void UndoBuffer::rollbackRecord(ClientContext* context, const UndoRecordType recordType,
+    const uint8_t* record) {
     switch (recordType) {
     case UndoRecordType::CATALOG_ENTRY: {
         rollbackCatalogEntryRecord(record);
@@ -244,10 +245,10 @@ void UndoBuffer::rollbackRecord(transaction::Transaction* transaction,
     } break;
     case UndoRecordType::INSERT_INFO:
     case UndoRecordType::DELETE_INFO: {
-        rollbackVersionInfo(transaction, recordType, record);
+        rollbackVersionInfo(context, recordType, record);
     } break;
     case UndoRecordType::UPDATE_INFO: {
-        rollbackVectorUpdateInfo(transaction, record);
+        rollbackVectorUpdateInfo(context->getTransaction(), record);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -285,19 +286,18 @@ void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
     sequenceEntry->rollbackVal(data.usageCount, data.currVal);
 }
 
-void UndoBuffer::rollbackVersionInfo(transaction::Transaction* transaction,
-    UndoRecordType recordType, const uint8_t* record) {
+void UndoBuffer::rollbackVersionInfo(ClientContext* context, UndoRecordType recordType,
+    const uint8_t* record) {
     auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        undoRecord.versionRecordHandler->applyFuncToChunkedGroups(&ChunkedNodeGroup::rollbackInsert,
-            undoRecord.nodeGroupIdx, undoRecord.startRow, undoRecord.numRows,
-            transaction->getCommitTS());
+        undoRecord.versionRecordHandler->rollbackInsert(context, undoRecord.nodeGroupIdx,
+            undoRecord.startRow, undoRecord.numRows);
     } break;
     case UndoRecordType::DELETE_INFO: {
         undoRecord.versionRecordHandler->applyFuncToChunkedGroups(&ChunkedNodeGroup::rollbackDelete,
             undoRecord.nodeGroupIdx, undoRecord.startRow, undoRecord.numRows,
-            transaction->getCommitTS());
+            context->getTransaction()->getCommitTS());
     } break;
     default: {
         KU_UNREACHABLE;

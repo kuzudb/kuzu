@@ -78,7 +78,7 @@ void Transaction::commit(storage::WAL* wal) {
 
 void Transaction::rollback(storage::WAL* wal) {
     localStorage->rollback();
-    undoBuffer->rollback(this);
+    undoBuffer->rollback(clientContext);
     if (shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logRollback();
