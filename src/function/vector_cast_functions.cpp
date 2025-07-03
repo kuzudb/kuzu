@@ -639,22 +639,36 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
         execFunc = ScalarFunction::UnaryCastUnionExecFunction<T, union_entry_t, CastToUnion>;
     });
     std::shared_ptr<ScalarFunction> innerCast;
+    CastToUnionBindData::inner_func_t innerFunc;
     if (sourceType != innerType) {
         innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType,
             innerType.copy());
+        innerFunc = [innerCast](common::ValueVector& inputVector, common::ValueVector& valVector, common::SelectionVector& selVector, CastToUnionBindData& bindData) {
+            std::vector<std::shared_ptr<common::ValueVector>> innerParams{
+                std::shared_ptr<common::ValueVector>(&inputVector, [](common::ValueVector*) {})};
+            bindData.innerBindData.numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
+            innerCast->execFunc(innerParams,
+                common::SelectionVector::fromValueVectors(innerParams), valVector,
+                valVector.getSelVectorPtr(), &bindData.innerBindData);
+        };
+    } else {
+        innerFunc = [](common::ValueVector& inputVector, common::ValueVector& valVector, common::SelectionVector& selVector, CastToUnionBindData&) {
+            for (auto& pos : selVector.getSelectedPositions()) {
+                valVector.copyFromVectorData(pos, &inputVector, pos);
+            }
+        };
     }
-    auto func = std::make_unique<ScalarFunction>(functionName,
+    auto castFunc = std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, targetType.getLogicalTypeID(),
         execFunc);
     auto pInnerType = std::make_shared<LogicalType>(innerType.copy());
     auto pTargetType = std::make_shared<LogicalType>(targetType.copy());
-    scalar_bind_func bindFunc = [minCostTag, innerCast, pInnerType, pTargetType](
-                                    const ScalarBindFuncInput&) {
-        return std::make_unique<CastToUnionBindData>(minCostTag, innerCast, pInnerType->copy(),
+    scalar_bind_func bindFunc = [minCostTag, innerFunc, pInnerType, pTargetType](const ScalarBindFuncInput&) {
+        return std::make_unique<CastToUnionBindData>(minCostTag, innerFunc, pInnerType->copy(),
             pTargetType->copy());
     };
-    func->bindFunc = std::move(bindFunc);
-    return func;
+    castFunc->bindFunc = std::move(bindFunc);
+    return castFunc;
 }
 
 static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& functionName,

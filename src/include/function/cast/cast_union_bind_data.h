@@ -8,18 +8,19 @@ namespace kuzu {
 namespace function {
 
 struct CastToUnionBindData : public FunctionBindData {
-    common::union_field_idx_t minCostTag;
-    std::shared_ptr<ScalarFunction> innerCast;
-    common::LogicalType innerType;
+    using inner_func_t = std::function<void(common::ValueVector&, common::ValueVector&, common::SelectionVector&, CastToUnionBindData&)>;
 
-    CastToUnionBindData(common::union_field_idx_t minCostTag,
-        std::shared_ptr<ScalarFunction> innerCast, common::LogicalType innerType,
+    common::union_field_idx_t minCostTag;
+    inner_func_t innerFunc;
+    CastFunctionBindData innerBindData;
+
+    CastToUnionBindData(common::union_field_idx_t minCostTag, inner_func_t innerFunc, common::LogicalType innerType,
         common::LogicalType dataType)
         : FunctionBindData{std::move(dataType)}, minCostTag{minCostTag},
-          innerCast{std::move(innerCast)}, innerType{std::move(innerType)} {}
+          innerFunc{std::move(innerFunc)}, innerBindData{CastFunctionBindData(std::move(innerType))} {}
 
     std::unique_ptr<FunctionBindData> copy() const override {
-        return std::make_unique<CastToUnionBindData>(minCostTag, innerCast, innerType.copy(),
+        return std::make_unique<CastToUnionBindData>(minCostTag, innerFunc, innerBindData.resultType.copy(),
             resultType.copy());
     }
 };
