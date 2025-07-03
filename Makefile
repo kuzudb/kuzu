@@ -27,7 +27,7 @@ EXTRA_CMAKE_FLAGS ?=
 CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 PREFIX ?= install
 TEST_JOBS ?= 10
-EXTENSION_LIST ?= httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;azure;unity_catalog;vector;neo4j;algo;llm
+EXTENSION_LIST ?= httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;azure;unity_catalog;vector;neo4j;algo;embedding
 EXTENSION_TEST_EXCLUDE_FILTER ?= ""
 
 ifeq ($(shell uname -s 2>/dev/null),Linux)

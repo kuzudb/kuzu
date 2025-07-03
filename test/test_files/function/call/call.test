@@ -302,7 +302,7 @@ FTS|Adds support for full-text search indexes
 HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 ICEBERG|Adds support for reading from iceberg tables
 JSON|Adds support for JSON operations
-LLM|Adds support for LLM operations
+EMBEDDING|Adds support for EMBEDDING operations
 NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
@@ -320,7 +320,7 @@ FTS|Adds support for full-text search indexes
 HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 ICEBERG|Adds support for reading from iceberg tables
 JSON|Adds support for JSON operations
-LLM|Adds support for LLM operations
+EMBEDDING|Adds support for EMBEDDING operations
 NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
@@ -336,7 +336,7 @@ FTS|Adds support for full-text search indexes
 HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 ICEBERG|Adds support for reading from iceberg tables
 JSON|Adds support for JSON operations
-LLM|Adds support for LLM operations
+EMBEDDING|Adds support for EMBEDDING operations
 NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
@@ -357,7 +357,7 @@ SQLITE|Adds support for reading from SQLITE tables|FTS|Adds support for full-tex
 SQLITE|Adds support for reading from SQLITE tables|HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 SQLITE|Adds support for reading from SQLITE tables|ICEBERG|Adds support for reading from iceberg tables
 SQLITE|Adds support for reading from SQLITE tables|JSON|Adds support for JSON operations
-SQLITE|Adds support for reading from SQLITE tables|LLM|Adds support for LLM operations
+SQLITE|Adds support for reading from SQLITE tables|EMBEDDING|Adds support for EMBEDDING operations
 SQLITE|Adds support for reading from SQLITE tables|NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 SQLITE|Adds support for reading from SQLITE tables|POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables|SQLITE|Adds support for reading from SQLITE tables
@@ -373,7 +373,7 @@ FTS|Adds support for full-text search indexes
 HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
 ICEBERG|Adds support for reading from iceberg tables
 JSON|Adds support for JSON operations
-LLM|Adds support for LLM operations
+EMBEDDING|Adds support for EMBEDDING operations
 NEO4J|Adds support for migrating nodes and rels from neo4j to kuzu
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables

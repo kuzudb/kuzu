@@ -8,6 +8,6 @@ add_library(kuzu_embedding_providers
         amazon-bedrock.cpp
 )
 
-set(embedding_EXTENSION_OBJECT_FILES
-        ${embedding_EXTENSION_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_embedding_providers>
+set(EMBEDDING_EXTENSION_OBJECT_FILES
+        ${EMBEDDING_EXTENSION_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_embedding_providers>
         PARENT_SCOPE)
