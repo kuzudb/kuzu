@@ -1,11 +1,11 @@
 -SKIP
--DATASET CSV llm/embeddings/ollama/
+-DATASET CSV embedding/embeddings/ollama/
 
 --
 
 -CASE CreateEmbeddingFromNomicEmbedText
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/embedding/build/libembedding.kuzu_extension"
 ---- ok
 
 -STATEMENT MATCH (e:embedding) RETURN array_cosine_similarity(e.embedding, create_embedding(e.text, 'ollama', 'nomic-embed-text')) >= 0.9 AS similarity;
@@ -19,7 +19,7 @@ True
 
 -CASE SemanticDistanceCheck
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/embedding/build/libembedding.kuzu_extension"
 ---- ok
 
 -LOG Similar Text 1
@@ -44,7 +44,7 @@ False
 
 -CASE UseWithVectorExtension
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/embedding/build/libembedding.kuzu_extension"
 ---- ok
 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension"

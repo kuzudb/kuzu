@@ -1,11 +1,11 @@
 -SKIP
--DATASET CSV llm/embeddings/openai/
+-DATASET CSV embedding/embeddings/openai/
 
 --
 
--CASE CreateEmbeddingOpenAITextEmbeddingSmallModel
+-CASE CreateEmbeddingOpenAITextEmbeddingSmaembeddingodel
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/embedding/build/libembedding.kuzu_extension"
 ---- ok
 
 -STATEMENT MATCH (e:embedding) RETURN array_cosine_similarity(e.embedding, create_embedding(e.text, 'open-ai', 'text-embedding-3-small')) >= 0.9 AS similarity;
@@ -19,7 +19,7 @@ True
 
 -CASE TryConfiguration
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/embedding/build/libembedding.kuzu_extension"
 ---- ok
 
 -STATEMENT return create_embedding('Hello World', 'open-ai', 'text-embedding-3-small', 10);
@@ -33,7 +33,7 @@ True
 
 -CASE SemanticDistanceCheck
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/embedding/build/libembedding.kuzu_extension"
 ---- ok
 
 -LOG Similar Text 1
@@ -58,7 +58,7 @@ False
 
 -CASE UseWithVectorExtension
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/embedding/build/libembedding.kuzu_extension"
 ---- ok
 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension"
