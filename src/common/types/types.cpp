@@ -1,5 +1,7 @@
 #include "common/types/types.h"
 
+#include <set>
+
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/cast.h"
@@ -660,7 +662,7 @@ static LogicalType parseListType(const std::string& trimmedStr,
 static LogicalType parseArrayType(const std::string& trimmedStr,
     main::ClientContext* context = nullptr);
 static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr,
-    main::ClientContext* context);
+    main::ClientContext* context, std::string defType);
 static LogicalType parseStructType(const std::string& trimmedStr,
     main::ClientContext* context = nullptr);
 static LogicalType parseMapType(const std::string& trimmedStr,
@@ -1320,7 +1322,7 @@ LogicalType parseArrayType(const std::string& trimmedStr, main::ClientContext* c
 }
 
 std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr,
-    main::ClientContext* context) {
+    main::ClientContext* context, std::string defType) {
     auto leftBracketPos = structTypeStr.find('(');
     auto rightBracketPos = structTypeStr.find_last_of(')');
     if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
@@ -1331,9 +1333,19 @@ std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr,
         structTypeStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
     std::vector<StructField> structFields;
     auto structFieldStrs = parseStructFields(structFieldsStr);
+    auto numFields = structFieldStrs.size();
+    if (numFields > INVALID_STRUCT_FIELD_IDX + 1) {
+        throw BinderException(stringFormat("Too many fields in {} definition (max {}, got {})",
+            defType, INVALID_STRUCT_FIELD_IDX + 1, numFields));
+    }
+    std::set<std::string> fieldNames;
     for (auto& structFieldStr : structFieldStrs) {
         auto pos = structFieldStr.find(' ');
         auto fieldName = structFieldStr.substr(0, pos);
+        if (!fieldNames.insert(fieldName).second) {
+            throw BinderException(
+                stringFormat("Duplicate field '{}' in {} definition", fieldName, defType));
+        }
         auto fieldTypeString = structFieldStr.substr(pos + 1);
         LogicalType fieldType = LogicalType::convertFromString(fieldTypeString, context);
         structFields.emplace_back(fieldName, std::move(fieldType));
@@ -1342,7 +1354,7 @@ std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr,
 }
 
 LogicalType parseStructType(const std::string& trimmedStr, main::ClientContext* context) {
-    return LogicalType::STRUCT(parseStructTypeInfo(trimmedStr, context));
+    return LogicalType::STRUCT(parseStructTypeInfo(trimmedStr, context, "STRUCT"));
 }
 
 LogicalType parseMapType(const std::string& trimmedStr, main::ClientContext* context) {
@@ -1358,7 +1370,7 @@ LogicalType parseMapType(const std::string& trimmedStr, main::ClientContext* con
 }
 
 LogicalType parseUnionType(const std::string& trimmedStr, main::ClientContext* context) {
-    return LogicalType::UNION(parseStructTypeInfo(trimmedStr, context));
+    return LogicalType::UNION(parseStructTypeInfo(trimmedStr, context, "UNION"));
 }
 
 LogicalType parseDecimalType(const std::string& trimmedStr) {

@@ -304,7 +304,7 @@ Binder exception: No file found that matches the pattern: wrong_path.parquet.
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (pk=",")
 ---- error
 Binder exception: Unrecognized csv parsing option: PK.
--STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_END=")") RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, strct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_END=")") RETURN * ;
 ---- error
 Binder exception: Unrecognized csv parsing option: LIST_END.
 -STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" (LIST_BEGIN="(") RETURN *;

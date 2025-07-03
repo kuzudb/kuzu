@@ -1,5 +1,6 @@
 #include "function/scalar_function.h"
 #include "function/struct/vector_struct_functions.h"
+#include "common/exception/binder.h"
 
 using namespace kuzu::common;
 
@@ -8,12 +9,27 @@ namespace function {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<StructField> fields;
+    if (input.arguments.size() > INVALID_STRUCT_FIELD_IDX - 1) {
+        throw BinderException(stringFormat("Too many fields in STRUCT literal (max {}, got {})",
+               INVALID_STRUCT_FIELD_IDX - 1, input.arguments.size()));
+    }
+    std::unordered_set<std::string> fieldNameSet;
     for (auto i = 0u; i < input.arguments.size(); i++) {
         auto& argument = input.arguments[i];
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             argument->cast(LogicalType::STRING());
         }
-        fields.emplace_back(input.optionalArguments[i], argument->getDataType().copy());
+        if (i >= input.optionalArguments.size()) {
+            throw BinderException(stringFormat("Cannot infer field name for {}.", argument->toString()));
+        }
+        auto fieldName = input.optionalArguments[i];
+        if (fieldNameSet.contains(fieldName)) {
+            throw BinderException(
+                   stringFormat("Found duplicate field {} in STRUCT.", fieldName));
+        } else {
+            fieldNameSet.insert(fieldName);
+        }
+        fields.emplace_back(fieldName, argument->getDataType().copy());
     }
     const auto resultType = LogicalType::STRUCT(std::move(fields));
     return FunctionBindData::getSimpleBindData(input.arguments, resultType);

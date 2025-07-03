@@ -15,7 +15,7 @@
 []||[111,0,0]
 ||[0,111,12]
 |{num: , str: }|[0,0,0]
--STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (ESCAPE="~",NULL_STRINGS=['NULL']) RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, strct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (ESCAPE="~",NULL_STRINGS=['NULL']) RETURN * ;
 ---- 3
 [escape,is escape success? ~]| ' [ ] do not need to escape sepeical | []|{a: {b: }}
 [this,is a word,normal not escape,' [ ] | , ~ ']|try escape ~|{a: {b: {c: [3432423,-43423,31231,]}}}
@@ -228,7 +228,7 @@ Conversion exception: Map does not allow null as key.
 ||||
 
 -LOG CastNestedStructToStruct
--STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (ESCAPE="~") RETURN cast(struct, "STRUCT(a STRUCT(b STRUCT(c INT128[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c DOUBLE[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c STRING)))"), cast(struct, "STRUCT(a STRUCT(b STRING))"), cast(struct, "STRUCT(a STRING)");
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, strct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (ESCAPE="~") RETURN cast(strct, "STRUCT(a STRUCT(b STRUCT(c INT128[])))"), cast(strct, "STRUCT(a STRUCT(b STRUCT(c DOUBLE[])))"), cast(strct, "STRUCT(a STRUCT(b STRUCT(c STRING)))"), cast(strct, "STRUCT(a STRUCT(b STRING))"), cast(strct, "STRUCT(a STRING)");
 ---- 3
 {a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423.000000,-43423.000000,31231.000000,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}
 {a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}
@@ -298,7 +298,7 @@ Conversion exception: Map does not allow null as key.
 -STATEMENT RETURN cast([NULL, [1]], "INT64[1][]"), cast([NULL], "INT64[1][]") AS x, cast([[1], NULL], "INT64[1][]"), cast([NULL], "INT64[1][][]"), cast([[NULL]], "INT64[1][][]"), cast([[[2], NULL], [NULL, [1]]], "INT64[1][][]"), cast([NULL, [NULL, [1]]], "INT64[1][][]");
 ---- 1
 [,[1]]|[]|[[1],]|[]|[[]]|[[[2],],[,[1]]]|[,[,[1]]]
--STATEMENT LOAD WITH HEADERS (struct STRUCT(a INT64, b MAP(INT64[][][], STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_with_array.csv" where struct_extract(struct, 'a') > 0 RETURN cast(struct, "STRUCT(a INT64,b MAP(INT64[1][][], STRING))");
+-STATEMENT LOAD WITH HEADERS (strct STRUCT(a INT64, b MAP(INT64[][][], STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_with_array.csv" where struct_extract(strct, 'a') > 0 RETURN cast(strct, "STRUCT(a INT64,b MAP(INT64[1][][], STRING))");
 ---- 4
 {a: 1999, b: {[[[1],[2],[3]]]=true}}
 {a: 1999, b: {[[]]=true}}
@@ -312,7 +312,7 @@ Conversion exception: Map does not allow null as key.
 -STATEMENT Return cast(cast(cast(cast(Cast([0,-1,1], "INT32[3]"), "INT64[3]"), "INT16[3]"), "DOUBLE[3]"), "FLOAT[3]");
 ---- 1
 [0.000000,-1.000000,1.000000]
--STATEMENT LOAD WITH HEADERS (struct STRUCT(a INT64, b MAP(INT64[][][], STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_with_array.csv" where struct_extract(struct, 'a') > 0 RETURN cast(cast(struct, "STRUCT(a INT64,b MAP(DOUBLE[1][][], STRING))"), "STRUCT(a INT64,b MAP(INT16[1][][], STRING))");
+-STATEMENT LOAD WITH HEADERS (strct STRUCT(a INT64, b MAP(INT64[][][], STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_with_array.csv" where struct_extract(strct, 'a') > 0 RETURN cast(cast(strct, "STRUCT(a INT64,b MAP(DOUBLE[1][][], STRING))"), "STRUCT(a INT64,b MAP(INT16[1][][], STRING))");
 ---- 4
 {a: 1999, b: {[[[1],[2],[3]]]=true}}
 {a: 1999, b: {[[]]=true}}

@@ -14,6 +14,10 @@
 ---- 1
 {a: 1, b: {c: C, d: D}}
 
+-STATEMENT RETURN STRUCT_PACK("a", "b")
+---- error
+Binder exception: Cannot infer field name for a.
+
 -STATEMENT RETURN {"foo": "bar"};
 ---- 1
 {foo: bar}

@@ -188,6 +188,7 @@ kU_DataType
     : oC_SymbolicName
         | kU_DataType kU_ListIdentifiers
         | UNION SP? '(' SP? kU_ColumnDefinitions SP? ')'
+        | STRUCT SP? '(' SP? kU_ColumnDefinitions SP? ')'
         | oC_SymbolicName SP? '(' SP? kU_ColumnDefinitions SP? ')'
         | oC_SymbolicName SP? '(' SP? kU_DataType SP? ',' SP? kU_DataType SP? ')'
         | DECIMAL SP? '(' SP? oC_IntegerLiteral SP? ',' SP? oC_IntegerLiteral SP? ')' ;
@@ -745,6 +746,7 @@ kU_NonReservedKeywords
         | SEQUENCE
         | SET
         | START
+        | STRUCT
         | L_SKIP
         | LIMIT
         | TRANSACTION

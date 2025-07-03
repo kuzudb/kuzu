@@ -194,6 +194,8 @@ START : ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'T' | 't' ) ;
 
 STARTS : ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
 
+STRUCT : ( 'S' | 's' ) ( 'T' | 't' ) ( 'R' | 'r' ) ( 'U' | 'u' ) ( 'C' | 'c' ) ( 'T' | 't' ) ;
+
 TABLE : ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 THEN : ( 'T' | 't' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ;
@@ -425,6 +427,7 @@ kU_DataType
     : oC_SymbolicName
         | kU_DataType kU_ListIdentifiers
         | UNION SP? '(' SP? kU_ColumnDefinitions SP? ')'
+        | STRUCT SP? '(' SP? kU_ColumnDefinitions SP? ')'
         | oC_SymbolicName SP? '(' SP? kU_ColumnDefinitions SP? ')'
         | oC_SymbolicName SP? '(' SP? kU_DataType SP? ',' SP? kU_DataType SP? ')'
         | DECIMAL SP? '(' SP? oC_IntegerLiteral SP? ',' SP? oC_IntegerLiteral SP? ')' ;
@@ -982,6 +985,7 @@ kU_NonReservedKeywords
         | SEQUENCE
         | SET
         | START
+        | STRUCT
         | L_SKIP
         | LIMIT
         | TRANSACTION

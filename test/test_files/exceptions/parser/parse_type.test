@@ -11,7 +11,7 @@ Catalog exception: INT35 is neither an internal type nor a user defined type.
 -STATEMENT create node table test1(ID INT64, description STRUCT, PRIMARY KEY(ID))
 ---- error
 Cannot parse struct type: STRUCT
-
+                                                     
 -CASE CreateNodeTableInvalidDataType
 -STATEMENT CREATE NODE TABLE PERSON(NAME BIGINT, PRIMARY KEY(NAME))
 ---- error
