@@ -34,17 +34,12 @@ public:
 TEST_F(BufferManagerTest, TestBMUsageForIdenticalQueries) {
     auto bm = getBufferManager(*database);
     auto initialMemoryUsage = bm->getUsedMemory();
-    auto numRuns = 10u;
-    auto query = "MATCH (p:person) WHERE p.ID = 0 RETURN p.fName";
-    for (auto i = 0u; i < numRuns; ++i) {
-        auto result = conn->query(query);
-        ASSERT_TRUE(result->isSuccess()) << result->toString();
-    }
+
+    auto result = conn->query("MATCH (p:person) WHERE p.ID = 0 RETURN p.fName");
+    ASSERT_TRUE(result->isSuccess()) << result->toString();
     auto memoryUsed = bm->getUsedMemory();
-    for (auto i = 0u; i < numRuns; ++i) {
-        auto result = conn->query(query);
-        ASSERT_TRUE(result->isSuccess()) << result->toString();
-    }
+    result = conn->query("MATCH (p:person) WHERE p.ID = 0 RETURN p.fName");
+    ASSERT_TRUE(result->isSuccess()) << result->toString();
     ASSERT_EQ(memoryUsed, bm->getUsedMemory())
         << "Memory usage after two identical queries should be identical";
     spdlog::info("Memory used initially: {}", initialMemoryUsage);

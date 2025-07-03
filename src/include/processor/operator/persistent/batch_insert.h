@@ -72,6 +72,12 @@ struct KUZU_API BatchInsertSharedState {
 
     virtual ~BatchInsertSharedState() = default;
 
+    std::unique_ptr<BatchInsertSharedState> copy() const {
+        auto result = std::make_unique<BatchInsertSharedState>(table, fTable, wal, mm);
+        result->numRows.store(numRows.load());
+        return result;
+    }
+
     void incrementNumRows(common::row_idx_t numRowsToIncrement) {
         numRows.fetch_add(numRowsToIncrement);
     }
@@ -110,11 +116,9 @@ public:
 
     ~BatchInsert() override = default;
 
-    std::shared_ptr<FactorizedTable> getResultFTable() const override {
-        return sharedState->fTable;
-    }
-
     std::unique_ptr<PhysicalOperator> copy() override = 0;
+
+    std::shared_ptr<BatchInsertSharedState> getSharedState() const { return sharedState; }
 
 protected:
     std::string tableName;

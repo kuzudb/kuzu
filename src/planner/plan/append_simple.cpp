@@ -12,6 +12,7 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop.h"
+#include "binder/expression/literal_expression.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"
@@ -48,13 +49,19 @@ LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
 
     // If it is a CREATE NODE TABLE AS, then copy as well
     if (createTable.hasCopyInfo()) {
+        // TODO(Xiyang): we should get rid of this dummyStr if CREATE TABLE AS has actual output.
+        // Currently, we need dummyStr as placeholder for the createTable & copy pipeline output
+        // messages. even though we do NOT actually output them
+        auto dummyStr = std::make_shared<LiteralExpression>(Value("dummy"), "dummy");
         std::vector<std::shared_ptr<LogicalOperator>> children;
         switch (info.type) {
         case catalog::CatalogEntryType::NODE_TABLE_ENTRY: {
-            children.push_back(planCopyNodeFrom(&createTable.getCopyInfo()).getLastOperator());
+            children.push_back(
+                planCopyNodeFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
         } break;
         case catalog::CatalogEntryType::REL_GROUP_ENTRY: {
-            children.push_back(planCopyRelFrom(&createTable.getCopyInfo()).getLastOperator());
+            children.push_back(
+                planCopyRelFrom(&createTable.getCopyInfo(), {dummyStr}).getLastOperator());
         } break;
         default: {
             KU_UNREACHABLE;
@@ -115,7 +122,8 @@ LogicalPlan Planner::planExplain(const BoundStatement& statement) {
     auto statementToExplain = explain.getStatementToExplain();
     auto planToExplain = planStatement(*statementToExplain);
     auto op = std::make_shared<LogicalExplain>(planToExplain.getLastOperator(),
-        explain.getExplainType(), statementToExplain->getStatementResult()->getColumns());
+        statement.getSingleColumnExpr(), explain.getExplainType(),
+        statementToExplain->getStatementResult()->getColumns());
     return getSimplePlan(std::move(op));
 }
 
