@@ -1,8 +1,6 @@
 #include "function/built_in_function_utils.h"
 
 #include "catalog/catalog_entry/function_catalog_entry.h"
-#include "common/exception/binder.h"
-#include "common/string_format.h"
 #include "common/types/types.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
