@@ -13,12 +13,7 @@ namespace transaction {
 TransactionContext::TransactionContext(main::ClientContext& clientContext)
     : clientContext{clientContext}, mode{TransactionMode::AUTO} {}
 
-TransactionContext::~TransactionContext() {
-    if (activeTransaction) {
-        clientContext.getDatabase()->transactionManager->rollback(clientContext,
-            activeTransaction.get());
-    }
-}
+TransactionContext::~TransactionContext() = default;
 
 void TransactionContext::beginReadTransaction() {
     std::unique_lock lck{mtx};
