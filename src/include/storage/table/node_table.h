@@ -56,13 +56,10 @@ struct KUZU_API NodeTableInsertState : public TableInsertState {
 
 struct KUZU_API NodeTableUpdateState : TableUpdateState {
     common::ValueVector& nodeIDVector;
-    // pkVector is nullptr if we are not updating the primary key column.
-    common::ValueVector* pkVector;
 
     NodeTableUpdateState(common::column_id_t columnID, common::ValueVector& nodeIDVector,
         common::ValueVector& propertyVector)
-        : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector},
-          pkVector{nullptr} {}
+        : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector} {}
 };
 
 struct KUZU_API NodeTableDeleteState : TableDeleteState {

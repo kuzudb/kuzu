@@ -22,7 +22,7 @@ Binder exception: Create rel e bound by multiple node labels is not supported.
 
 -STATEMENT ALTER TABLE Knows_PersonA_PersonB DROP data;
 ---- error
-Catalog exception: Knows_PersonA_PersonB does not exist in catalog.
+Binder exception: Table Knows_PersonA_PersonB does not exist.
 -STATEMENT ALTER TABLE Knows DROP data;
 ---- ok
 -STATEMENT CALL table_info("Knows") RETURN *;

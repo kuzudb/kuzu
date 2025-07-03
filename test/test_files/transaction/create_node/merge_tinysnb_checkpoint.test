@@ -160,9 +160,9 @@ h
 ---- ok
 -STATEMENT CREATE (p:person {ID: 13})
 ---- ok
--STATEMENT UNWIND [14,24,24,14,54,54,17] as x merge (a:person {ID: x}) on match set a.ID = x+20
+-STATEMENT UNWIND [14,24,24,14,54,54,17] as x merge (a:person {gender: x}) on match set a.age = x+20
 ---- ok
--STATEMENT MATCH (p:person) return p.ID;
+-STATEMENT MATCH (p:person) return p.ID, p.age;
 ---- 13
 0
 2

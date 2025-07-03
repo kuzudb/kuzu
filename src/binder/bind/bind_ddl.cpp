@@ -121,28 +121,6 @@ static void validatePrimaryKey(const std::string& pkColName,
     }
 }
 
-void Binder::validateNoIndexOnProperty(const std::string& tableName,
-    const std::string& propertyName) const {
-    auto transaction = clientContext->getTransaction();
-    auto catalog = clientContext->getCatalog();
-    auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
-    if (!tableEntry->containsProperty(propertyName)) {
-        return;
-    }
-    auto propertyID = tableEntry->getPropertyID(propertyName);
-    for (auto indexCatalogEntry : catalog->getIndexEntries(transaction)) {
-        auto propertiesWithIndex = indexCatalogEntry->getPropertyIDs();
-        if (indexCatalogEntry->getTableID() == tableEntry->getTableID() &&
-            std::find(propertiesWithIndex.begin(), propertiesWithIndex.end(), propertyID) !=
-                propertiesWithIndex.end()) {
-            throw BinderException{stringFormat(
-                "Cannot drop property {} in table {} because it is used in one or more indexes. "
-                "Please remove the associated indexes before attempting to drop this property.",
-                propertyName, tableName)};
-        }
-    }
-}
-
 BoundCreateTableInfo Binder::bindCreateTableInfo(const CreateTableInfo* info) {
     switch (info->type) {
     case TableType::NODE: {
@@ -459,7 +437,6 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     auto extraInfo = info->extraInfo->constPtrCast<ExtraDropPropertyInfo>();
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
-    validateNoIndexOnProperty(tableName, propertyName);
     auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyName);
     auto boundInfo = BoundAlterInfo(AlterType::DROP_PROPERTY, tableName, std::move(boundExtraInfo),
         info->onConflict);

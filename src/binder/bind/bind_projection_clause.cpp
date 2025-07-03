@@ -1,3 +1,5 @@
+#include <sys/stat.h>
+
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/lambda_expression.h"
@@ -36,6 +38,13 @@ std::vector<std::string> getColumnNames(const expression_vector& exprs,
         }
     }
     return columnNames;
+}
+
+static void validateOrderByFollowedBySkipOrLimitInWithClause(const BoundProjectionBody& boundProjectionBody) {
+    auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
+    if (boundProjectionBody.hasOrderByExpressions() && !hasSkipOrLimit) {
+        throw BinderException("In WITH clause, ORDER BY must be followed by SKIP or LIMIT.");
+    }
 }
 
 BoundWithClause Binder::bindWithClause(const WithClause& withClause) {
@@ -255,6 +264,24 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
     return boundProjectionBody;
 }
 
+static bool isOrderByKeyTypeSupported(const LogicalType& dataType) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::INTERNAL_ID:
+    case LogicalTypeID::LIST:
+    case LogicalTypeID::ARRAY:
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::UNION:
+    case LogicalTypeID::POINTER:
+        return false;
+    default:
+        return true;
+    }
+}
+
 expression_vector Binder::bindOrderByExpressions(
     const std::vector<std::unique_ptr<ParsedExpression>>& parsedExprs) {
     expression_vector exprs;
@@ -267,19 +294,6 @@ expression_vector Binder::bindOrderByExpressions(
         exprs.push_back(std::move(expr));
     }
     return exprs;
-}
-
-bool Binder::isOrderByKeyTypeSupported(const LogicalType& dataType) {
-    static std::vector unsupportedKeyTypes{LogicalTypeID::NODE, LogicalTypeID::REL,
-        LogicalTypeID::RECURSIVE_REL, LogicalTypeID::INTERNAL_ID, LogicalTypeID::LIST,
-        LogicalTypeID::ARRAY, LogicalTypeID::STRUCT, LogicalTypeID::MAP, LogicalTypeID::UNION,
-        LogicalTypeID::POINTER};
-    for (const auto typeID : unsupportedKeyTypes) {
-        if (dataType.getLogicalTypeID() == typeID) {
-            return false;
-        }
-    }
-    return true;
 }
 
 std::shared_ptr<Expression> Binder::bindSkipLimitExpression(const ParsedExpression& expression) {

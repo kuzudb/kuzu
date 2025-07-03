@@ -16,6 +16,15 @@ void IndexCatalogEntry::setAuxInfo(std::unique_ptr<IndexAuxInfo> auxInfo_) {
     auxBufferSize = 0;
 }
 
+bool IndexCatalogEntry::containsPropertyID(common::property_id_t propertyID) const {
+    for (auto id : propertyIDs) {
+        if (id == propertyID) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void IndexCatalogEntry::serialize(common::Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
     serializer.write(type);

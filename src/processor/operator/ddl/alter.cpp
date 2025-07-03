@@ -9,6 +9,7 @@
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/table.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -110,16 +111,30 @@ static bool checkAddPropertyConflicts(const TableCatalogEntry& tableEntry,
 }
 
 static bool checkDropPropertyConflicts(const TableCatalogEntry& tableEntry,
-    const BoundAlterInfo& info) {
+    const BoundAlterInfo& info, main::ClientContext& context) {
     const auto& extraInfo = info.extraInfo->constCast<BoundExtraDropPropertyInfo>();
     auto propertyName = extraInfo.propertyName;
     validatePropertyExist(info.onConflict, tableEntry, propertyName);
-
-    if (tableEntry.getTableType() == TableType::NODE &&
-        tableEntry.constCast<NodeTableCatalogEntry>().getPrimaryKeyName() == propertyName) {
-        throw RuntimeException("Cannot drop primary key of a node table.");
+    if (tableEntry.containsProperty(propertyName)) {
+        // Check constrains if we are going to drop a property that exists.
+        auto propertyID = tableEntry.getPropertyID(propertyName);
+        // Check primary key constraint
+        if (tableEntry.getTableType() == TableType::NODE &&
+            tableEntry.constCast<NodeTableCatalogEntry>().getPrimaryKeyID() == propertyID) {
+            throw BinderException(stringFormat(
+                    "Cannot drop property {} in table {} because it is used as primary key.",
+                    propertyName, tableEntry.getName()));
+            }
+        // Check secondary index constraints
+        auto catalog = context.getCatalog();
+        auto transaction = context.getTransaction();
+        if (catalog->containsIndex(transaction, tableEntry.getTableID(), propertyID)) {
+            throw BinderException(stringFormat(
+                    "Cannot drop property {} in table {} because it is used in one or more indexes. "
+                    "Please remove the associated indexes before attempting to drop this property.",
+                    propertyName, tableEntry.getName()));
+        }
     }
-
     return skipAlter(info.onConflict,
         [&tableEntry, &propertyName]() { return !tableEntry.containsProperty(propertyName); });
 }
@@ -216,7 +231,7 @@ void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEnt
     case AlterType::DROP_PROPERTY: {
         auto& extraInfo = info.extraInfo->constCast<BoundExtraDropPropertyInfo>();
         auto propertyName = extraInfo.propertyName;
-        if (checkDropPropertyConflicts(entry, info)) {
+        if (checkDropPropertyConflicts(entry, info, *clientContext)) {
             appendMessage(propertyNotInTableMessage(tableName, propertyName), memoryManager);
             return;
         }

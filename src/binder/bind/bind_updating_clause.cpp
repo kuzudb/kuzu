@@ -277,19 +277,32 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(const ParsedExpression* column,
             stringFormat("Cannot set expression {} with type {}. Expect node or rel pattern.",
                 expr->toString(), ExpressionTypeUtil::toString(expr->expressionType)));
     }
-    auto& nodeOrRel = expr->constCast<NodeOrRelExpression>();
     auto boundSetItem = bindSetItem(column, columnData);
     auto boundColumn = boundSetItem.first;
     auto boundColumnData = boundSetItem.second;
+    auto& nodeOrRel = expr->constCast<NodeOrRelExpression>();
+    auto& property = boundSetItem.first->constCast<PropertyExpression>();
+    // Check secondary index constraint
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
+    for (auto entry : nodeOrRel.getEntries()) {
+        // When setting multi labeled node, skip checking if property is not in current table.
+        if (!property.hasProperty(entry->getTableID())) {
+            continue;
+        }
+        auto propertyID = entry->getPropertyID(property.getPropertyName());
+        if (catalog->containsIndex(transaction, entry->getTableID(), propertyID)) {
+            throw BinderException(stringFormat("Cannot set property {} in table {} because it is used in one or more indexes. Try delete and then insert.", property.getPropertyName(), entry->getName()));
+        }
+    }
+    // Check primary key constraint
     if (isNode) {
-        auto info = BoundSetPropertyInfo(TableType::NODE, expr, boundColumn, boundColumnData);
-        auto& property = boundSetItem.first->constCast<PropertyExpression>();
         for (auto entry : nodeOrRel.getEntries()) {
             if (property.isPrimaryKey(entry->getTableID())) {
-                info.updatePk = true;
+                throw BinderException(stringFormat("Cannot set property {} in table {} because it is used as primary key. Try delete and then insert.", property.getPropertyName(), entry->getName()));
             }
         }
-        return info;
+        return BoundSetPropertyInfo(TableType::NODE, expr, boundColumn, boundColumnData);
     }
     return BoundSetPropertyInfo(TableType::REL, expr, boundColumn, boundColumnData);
 }

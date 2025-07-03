@@ -12,18 +12,16 @@ namespace processor {
 struct NodeSetInfo {
     DataPos nodeIDPos;
     DataPos columnVectorPos;
-    DataPos pkVectorPos;
 
     std::unique_ptr<evaluator::ExpressionEvaluator> evaluator;
 
     common::ValueVector* nodeIDVector = nullptr;
     common::ValueVector* columnVector = nullptr;
-    common::ValueVector* pkVector = nullptr;
     common::ValueVector* columnDataVector = nullptr;
 
-    NodeSetInfo(DataPos nodeIDPos, DataPos columnVectorPos, DataPos pkVectorPos,
+    NodeSetInfo(DataPos nodeIDPos, DataPos columnVectorPos,
         std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
-        : nodeIDPos{nodeIDPos}, columnVectorPos{columnVectorPos}, pkVectorPos{pkVectorPos},
+        : nodeIDPos{nodeIDPos}, columnVectorPos{columnVectorPos},
           evaluator{std::move(evaluator)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeSetInfo);
 
@@ -32,7 +30,7 @@ struct NodeSetInfo {
 private:
     NodeSetInfo(const NodeSetInfo& other)
         : nodeIDPos{other.nodeIDPos}, columnVectorPos{other.columnVectorPos},
-          pkVectorPos{other.pkVectorPos}, evaluator{other.evaluator->copy()} {}
+           evaluator{other.evaluator->copy()} {}
 };
 
 struct NodeTableSetInfo {
