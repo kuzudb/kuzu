@@ -1,1 +1,1 @@
-COPY embedding FROM "dataset/llm/embeddings/ollama/embeddings.csv";
+COPY embedding FROM "dataset/embedding/embeddings/ollama/embeddings.csv";
