@@ -118,24 +118,27 @@ public:
     std::string getName() const { return indexInfo.name; }
     IndexInfo getIndexInfo() const { return indexInfo; }
 
-    virtual std::unique_ptr<InsertState> initInsertState(transaction::Transaction* transaction,
-        MemoryManager* mm, visible_func isVisible) = 0;
-    virtual void insert(transaction::Transaction* transaction,
-        const common::ValueVector& nodeIDVector,
-        const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
+    virtual std::unique_ptr<InsertState> initInsertState(main::ClientContext* context,
+        visible_func isVisible) = 0;
+    virtual void insert(transaction::Transaction*, const common::ValueVector&,
+        const std::vector<common::ValueVector*>&, InsertState&) {
+        // DO NOTHING.
+    }
     virtual std::unique_ptr<DeleteState> initDeleteState(
         const transaction::Transaction* transaction, MemoryManager* mm, visible_func isVisible) = 0;
     virtual void delete_(transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector, DeleteState& deleteState) = 0;
-    virtual void commitInsert(transaction::Transaction* transaction,
-        const common::ValueVector& nodeIDVector,
-        const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) = 0;
+    virtual bool needCommitInsert() const { return false; }
+    virtual void commitInsert(transaction::Transaction*, const common::ValueVector&,
+        const std::vector<common::ValueVector*>&, InsertState&) {
+        // DO NOTHING.
+    }
 
     virtual void checkpointInMemory() {
         // DO NOTHING.
     };
-    virtual void checkpoint(main::ClientContext*, bool forceCheckpointAll = false) {
-        KU_UNUSED(forceCheckpointAll);
+    virtual void checkpoint(main::ClientContext*) {
+        // DO NOTHING.
     }
     virtual void rollbackCheckpoint() {
         // DO NOTHING.
@@ -175,6 +178,7 @@ public:
 
     void serialize(common::Serializer& ser) const;
     KUZU_API void load(main::ClientContext* context, StorageManager* storageManager);
+    bool needCommitInsert() const { return index->needCommitInsert(); }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     void checkpoint(main::ClientContext* context) {
         if (loaded) {

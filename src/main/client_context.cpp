@@ -76,7 +76,11 @@ ClientContext::ClientContext(Database* database)
     progressBar = std::make_unique<ProgressBar>(clientConfig.enableProgressBar);
 }
 
-ClientContext::~ClientContext() = default;
+ClientContext::~ClientContext() {
+    if (getTransaction()) {
+        getDatabase()->transactionManager->rollback(*this, getTransaction());
+    }
+}
 
 uint64_t ClientContext::getTimeoutRemainingInMS() const {
     KU_ASSERT(hasTimeout());

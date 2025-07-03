@@ -629,19 +629,19 @@ void PrimaryKeyIndex::rollbackCheckpoint() {
     }
 }
 
-void PrimaryKeyIndex::checkpoint(main::ClientContext*, bool forceCheckpointAll) {
+void PrimaryKeyIndex::checkpoint(main::ClientContext*) {
     bool indexChanged = false;
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
         if (hashIndices[i]->checkpoint()) {
             indexChanged = true;
         }
     }
-    if (indexChanged || forceCheckpointAll) {
+    if (indexChanged) {
         writeHeaders();
         hashIndexDiskArrays->checkpoint(getDiskArrayFirstHeaderPage());
     }
     if (overflowFile) {
-        overflowFile->checkpoint(forceCheckpointAll);
+        overflowFile->checkpoint();
     }
     // Make sure that changes which bypassed the WAL are written.
     // There is no other mechanism for enforcing that they are flushed

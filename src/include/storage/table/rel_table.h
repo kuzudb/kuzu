@@ -153,7 +153,7 @@ public:
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
-    void initInsertState(transaction::Transaction*, TableInsertState&) override {
+    void initInsertState(main::ClientContext*, TableInsertState&) override {
         // DO NOTHING.
     }
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
@@ -194,7 +194,7 @@ public:
     NodeGroup* getOrCreateNodeGroup(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) const;
 
-    void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
+    void commit(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
     bool checkpoint(main::ClientContext*, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override {};

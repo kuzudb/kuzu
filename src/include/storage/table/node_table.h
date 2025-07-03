@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
 #include "storage/table/node_group_collection.h"
@@ -21,7 +19,6 @@ class Transaction;
 } // namespace transaction
 
 namespace storage {
-class NodeTable;
 
 struct KUZU_API NodeTableScanState : TableScanState {
     NodeTableScanState(common::ValueVector* nodeIDVector,
@@ -68,7 +65,7 @@ struct KUZU_API NodeTableUpdateState : TableUpdateState {
           pkVector{nullptr} {}
 };
 
-struct KUZU_API NodeTableDeleteState : public TableDeleteState {
+struct KUZU_API NodeTableDeleteState : TableDeleteState {
     common::ValueVector& nodeIDVector;
     common::ValueVector& pkVector;
 
@@ -76,14 +73,14 @@ struct KUZU_API NodeTableDeleteState : public TableDeleteState {
         : TableDeleteState{}, nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
+class NodeTable;
 struct IndexScanHelper {
     explicit IndexScanHelper(NodeTable* table, Index* index) : table{table}, index(index) {}
     virtual ~IndexScanHelper() = default;
 
     virtual std::unique_ptr<NodeTableScanState> initScanState(
         const transaction::Transaction* transaction, common::DataChunk& dataChunk);
-    virtual bool processScanOutput(transaction::Transaction* transaction, MemoryManager* mm,
-        NodeGroupScanResult scanResult,
+    virtual bool processScanOutput(main::ClientContext* context, NodeGroupScanResult scanResult,
         const std::vector<common::ValueVector*>& scannedVectors) = 0;
 
     NodeTable* table;
@@ -97,9 +94,8 @@ public:
     void applyFuncToChunkedGroups(version_record_handler_op_t func,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const override;
-    void rollbackInsert(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-        common::row_idx_t numRows) const override;
+    void rollbackInsert(main::ClientContext* context, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows) const override;
 
 private:
     NodeTable* table;
@@ -130,8 +126,7 @@ public:
     common::offset_t validateUniquenessConstraint(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& propertyVectors) const;
 
-    void initInsertState(transaction::Transaction* transaction,
-        TableInsertState& insertState) override;
+    void initInsertState(main::ClientContext* context, TableInsertState& insertState) override;
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
@@ -178,13 +173,13 @@ public:
         transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
         ChunkedNodeGroup& chunkedGroup);
 
-    void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
+    void commit(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
     bool checkpoint(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override;
     void reclaimStorage(PageManager& pageManager) const override;
 
-    void rollbackPKIndexInsert(transaction::Transaction* transaction, common::row_idx_t startRow,
+    void rollbackPKIndexInsert(main::ClientContext* context, common::row_idx_t startRow,
         common::row_idx_t numRows_, common::node_group_idx_t nodeGroupIdx_);
     void rollbackGroupCollectionInsert(common::row_idx_t numRows_);
 
@@ -220,7 +215,7 @@ private:
     visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
     common::DataChunk constructDataChunkForColumns(
         const std::vector<common::column_id_t>& columnIDs) const;
-    void scanIndexColumns(transaction::Transaction* transaction, IndexScanHelper& scanHelper,
+    void scanIndexColumns(main::ClientContext* context, IndexScanHelper& scanHelper,
         const NodeGroupCollection& nodeGroups_) const;
 
 private:

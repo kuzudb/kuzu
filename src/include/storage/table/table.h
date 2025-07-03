@@ -165,8 +165,7 @@ public:
         bool resetCachedBoundNodeSelVec = true) const = 0;
     bool scan(transaction::Transaction* transaction, TableScanState& scanState);
 
-    virtual void initInsertState(transaction::Transaction* transaction,
-        TableInsertState& insertState) = 0;
+    virtual void initInsertState(main::ClientContext* context, TableInsertState& insertState) = 0;
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
     virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
@@ -175,8 +174,8 @@ public:
         TableAddColumnState& addColumnState) = 0;
     void dropColumn() { setHasChanges(); }
 
-    virtual void commit(transaction::Transaction* transaction,
-        catalog::TableCatalogEntry* tableEntry, LocalTable* localTable) = 0;
+    virtual void commit(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+        LocalTable* localTable) = 0;
     virtual bool checkpoint(main::ClientContext* context,
         catalog::TableCatalogEntry* tableEntry) = 0;
     virtual void rollbackCheckpoint() = 0;

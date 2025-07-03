@@ -96,7 +96,7 @@ private:
     storage::CachedColumn* data;
 };
 
-class OnDiskEmbeddingScanState : public GetEmbeddingsScanState {
+class OnDiskEmbeddingScanState final : public GetEmbeddingsScanState {
 public:
     OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
         storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID,

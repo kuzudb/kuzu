@@ -16,8 +16,8 @@ FTSUpdateVectors::FTSUpdateVectors(MemoryManager* mm)
       stringPKVector{LogicalType::STRING(), mm, dataChunkState},
       uint64PropVector{LogicalType::UINT64(), mm, dataChunkState} {}
 
-TermsTableState::TermsTableState(const transaction::Transaction* transaction,
-    FTSUpdateVectors& updateVectors, FTSInternalTableInfo& tableInfo)
+TermsTableState::TermsTableState(const Transaction* transaction, FTSUpdateVectors& updateVectors,
+    FTSInternalTableInfo& tableInfo)
     : termsTableScanState{&updateVectors.idVector, std::vector{&updateVectors.uint64PropVector},
           updateVectors.dataChunkState},
       termsTableUpdateState{tableInfo.dfColumnID, updateVectors.idVector,
@@ -26,31 +26,30 @@ TermsTableState::TermsTableState(const transaction::Transaction* transaction,
     termsTableUpdateState.logToWAL = false;
 }
 
-FTSInsertState::FTSInsertState(MemoryManager* mm, Transaction* transaction,
-    FTSInternalTableInfo& tableInfo)
-    : updateVectors{mm},
+FTSInsertState::FTSInsertState(main::ClientContext* context, FTSInternalTableInfo& tableInfo)
+    : updateVectors{context->getMemoryManager()},
       docTableInsertState{updateVectors.idVector, updateVectors.int64PKVector,
           std::vector<ValueVector*>{&updateVectors.int64PKVector, &updateVectors.uint64PropVector}},
-      termsTableState{transaction, updateVectors, tableInfo},
+      termsTableState{context->getTransaction(), updateVectors, tableInfo},
       termsTableInsertState{updateVectors.idVector, updateVectors.stringPKVector,
           std::vector<ValueVector*>{&updateVectors.stringPKVector,
               &updateVectors.uint64PropVector}},
       appearsInTableInsertState{updateVectors.srcIDVector, updateVectors.dstIDVector,
           {&updateVectors.idVector, &updateVectors.uint64PropVector}} {
-    tableInfo.docTable->initInsertState(transaction, docTableInsertState);
-    tableInfo.termsTable->initInsertState(transaction, termsTableInsertState);
-    tableInfo.appearsInfoTable->initInsertState(transaction, appearsInTableInsertState);
+    tableInfo.docTable->initInsertState(context, docTableInsertState);
+    tableInfo.termsTable->initInsertState(context, termsTableInsertState);
+    tableInfo.appearsInfoTable->initInsertState(context, appearsInTableInsertState);
     docTableInsertState.logToWAL = false;
     termsTableInsertState.logToWAL = false;
     appearsInTableInsertState.logToWAL = false;
 }
 
-IndexTableState::IndexTableState(MemoryManager* mm, const transaction::Transaction* transaction,
-    FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs,
-    common::ValueVector& idVector, std::shared_ptr<common::DataChunkState> dataChunkState) {
+IndexTableState::IndexTableState(MemoryManager* mm, const Transaction* transaction,
+    FTSInternalTableInfo& tableInfo, std::vector<column_id_t> columnIDs, ValueVector& idVector,
+    std::shared_ptr<DataChunkState> dataChunkState) {
     for (auto i = 0u; i < columnIDs.size(); i++) {
         stringVectors.push_back(
-            std::make_unique<common::ValueVector>(LogicalType::STRING(), mm, dataChunkState));
+            std::make_unique<ValueVector>(LogicalType::STRING(), mm, dataChunkState));
         indexVectors.push_back(stringVectors.back().get());
     }
     scanState = std::make_unique<NodeTableScanState>(&idVector, indexVectors, dataChunkState);
@@ -58,7 +57,7 @@ IndexTableState::IndexTableState(MemoryManager* mm, const transaction::Transacti
 }
 
 FTSDeleteState::FTSDeleteState(MemoryManager* mm, const Transaction* transaction,
-    FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs)
+    FTSInternalTableInfo& tableInfo, std::vector<column_id_t> columnIDs)
     : updateVectors{mm}, docTableDeleteState{updateVectors.idVector, updateVectors.int64PKVector},
       docTableScanState{&updateVectors.idVector, std::vector{&updateVectors.uint64PropVector},
           updateVectors.dataChunkState},

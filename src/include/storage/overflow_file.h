@@ -96,7 +96,7 @@ public:
     OverflowFile(OverflowFile&& other) = delete;
 
     void rollbackInMemory();
-    void checkpoint(bool forceUpdateHeader);
+    void checkpoint();
     void checkpointInMemory();
 
     void reclaimStorage(PageManager& pageManager) const;

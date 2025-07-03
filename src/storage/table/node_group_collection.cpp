@@ -140,7 +140,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         chunkedGroup.finalize();
         auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *dataFH);
 
-        // If there are deleted columns that haven't been vaccumed yet
+        // If there are deleted columns that haven't been vacuumed yet,
         // we need to add extra columns to the chunked group
         // to ensure that the number of columns is consistent with the rest of the node group
         auto groupToMerge = std::make_unique<ChunkedNodeGroup>(mm, *flushedGroup,

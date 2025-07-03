@@ -34,8 +34,8 @@ public:
         storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
         std::span<uint8_t> storageInfoBuffer);
 
-    std::unique_ptr<InsertState> initInsertState(transaction::Transaction* transaction,
-        storage::MemoryManager* mm, storage::visible_func isVisible) override;
+    std::unique_ptr<InsertState> initInsertState(main::ClientContext*,
+        storage::visible_func isVisible) override;
 
     void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) override;
@@ -45,15 +45,9 @@ public:
 
     void delete_(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
         DeleteState& deleteState) override;
-    void commitInsert(transaction::Transaction*, const common::ValueVector&,
-        const std::vector<common::ValueVector*>&, InsertState&) override {
-        // DO NOTHING.
-        // For FTS index, insertions are handled when the new tuples are inserted into the base
-        // table being indexed.
-    }
 
-    void checkpoint(main::ClientContext*, bool forceCheckpointAll) override;
     void finalize(main::ClientContext* context) override;
+    void checkpoint(main::ClientContext*) override;
 
     static storage::IndexType getIndexType() {
         static const storage::IndexType FTS_INDEX_TYPE{"FTS",

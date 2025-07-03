@@ -52,7 +52,7 @@ void LocalStorage::commit() {
         if (localTable->getTableType() == TableType::NODE) {
             const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
             const auto table = storageManager->getTable(tableID);
-            table->commit(transaction, tableEntry, localTable.get());
+            table->commit(&clientContext, tableEntry, localTable.get());
         }
     }
     for (auto& [tableID, localTable] : tables) {
@@ -60,7 +60,7 @@ void LocalStorage::commit() {
             const auto table = storageManager->getTable(tableID);
             const auto tableEntry =
                 catalog->getTableCatalogEntry(transaction, table->cast<RelTable>().getRelGroupID());
-            table->commit(transaction, tableEntry, localTable.get());
+            table->commit(&clientContext, tableEntry, localTable.get());
         }
     }
 }
