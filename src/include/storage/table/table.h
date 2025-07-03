@@ -174,8 +174,8 @@ public:
         TableAddColumnState& addColumnState) = 0;
     void dropColumn() { setHasChanges(); }
 
-    virtual void commit(main::ClientContext* context,
-        catalog::TableCatalogEntry* tableEntry, LocalTable* localTable) = 0;
+    virtual void commit(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+        LocalTable* localTable) = 0;
     virtual bool checkpoint(main::ClientContext* context,
         catalog::TableCatalogEntry* tableEntry) = 0;
     virtual void rollbackCheckpoint() = 0;
