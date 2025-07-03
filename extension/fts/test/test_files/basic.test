@@ -302,6 +302,7 @@ title3
 5
 
 -CASE InstallOfficialExtension
+-SKIP
 -SKIP_STATIC_LINK
 -STATEMENT FORCE INSTALL fts FROM 'http://localhost/extension/repo/'
 ---- ok

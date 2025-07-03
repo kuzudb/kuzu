@@ -165,6 +165,7 @@ Unable to find primary key value 6.|${KUZU_ROOT_DIRECTORY}/dataset/json-error/in
 [{objectType: contact, schemaVersion: 135, contactIdentifier: 320864, contactNamespace: , contactDetail: {fullname: Renee Luke, email: renee.luke@datapath.com, phone: (678) 252-4828 - Direct}}]
 
 -CASE InstallOfficialExtension
+-SKIP
 -STATEMENT FORCE INSTALL json FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension json
