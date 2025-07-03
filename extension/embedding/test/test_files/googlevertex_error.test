@@ -1,0 +1,28 @@
+-SKIP
+-DATASET CSV empty
+
+--
+
+-CASE BadParams
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/embedding/build/libembedding.kuzu_extension"
+---- ok
+
+#When using an invalid region this provider seems to silently ignore the issue
+#and resort to a default. The same is not true for the empty string
+-STATEMENT return create_embedding('this better fail', 'google-vertex', 'gemini-embedding-001', '')
+---- error(regex)
+^Connection exception: Request failed with status \d{3} Body: ([\s\S]+)
+
+-STATEMENT return create_embedding('this better fail', 'google-vertex', 'gemini-embedding-001', 50, 'badRegion')
+---- ok
+
+-STATEMENT return create_embedding('this better fail', 'google-vertex', 'gemini-embedding-001', -50, 'badRegion')
+---- error
+Binder exception: Dimensions should be greater than 0, but found: NEGATE(50)
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/embedding/
+
+-STATEMENT return create_embedding('this better fail', 'google-vertex', 'gemini-embedding-001')
+---- error
+Binder exception: Google Vertex requires a region argument, but recieved none
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/embedding/
