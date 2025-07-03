@@ -202,7 +202,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 -STATEMENT MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);
 ---- error
 Binder exception: Function DATE did not receive correct arguments:
-Actual: 
+Actual: No arguments.
 Expected: (STRING) -> DATE
 
 -LOG BindFunctionWithWrongParamType

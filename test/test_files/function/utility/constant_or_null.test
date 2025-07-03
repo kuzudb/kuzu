@@ -42,7 +42,7 @@ Expected: (ANY,ANY) -> ANY
 -STATEMENT RETURN constant_or_null();
 ---- error
 Binder exception: Function CONSTANT_OR_NULL did not receive correct arguments:
-Actual: 
+Actual: No arguments.
 Expected: (ANY,ANY) -> ANY
 
 -CASE PredicateTests
