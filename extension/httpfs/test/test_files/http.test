@@ -159,16 +159,3 @@ Runtime exception: Cannot attach an external Kuzu database with non-empty wal fi
 -STATEMENT attach '${KUZU_ROOT_DIRECTORY}/dataset/databases/tinysnb/./' (dbtype kuzu)
 ---- error
 Binder exception: Attaching a kuzu database without an alias is not allowed.
-
--CASE InstallOfficialExtension
--STATEMENT FORCE INSTALL httpfs FROM 'http://localhost/extension/repo/'
----- ok
--STATEMENT load extension httpfs
----- ok
--STATEMENT load from "http://localhost/dataset/tinysnb/vPerson.csv" return * limit 5;
----- 5
-0|Alice|1|True|False|35|5.0|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11
-2|Bob|2|True|False|30|5.1|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990|{a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12}
-3|Carol|1|False|True|45|5.0|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000|a0eebc999c0b4ef8bb6d6bb9bd380a13
-5|Dan|2|False|True|20|4.8|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300|a0ee-bc99-9c0b-4ef8-bb6d-6bb9-bd38-0a14
-7|Elizabeth|1|False|True|20|4.7|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463|{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}

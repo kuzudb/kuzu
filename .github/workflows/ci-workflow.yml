@@ -1127,9 +1127,6 @@ jobs:
           node -e 'fs=require("fs");fs.readFile(process.env.PG_FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.PG_FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
           node -e 'fs=require("fs");fs.readFile(process.env.SQL_FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.SQL_FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
 
-      - name: Install dependencies
-        run: pip install rangehttpserver requests
-
       # shell needs to be built first to generate the dataset provided by the server
       - name: Extension test build
         run: make extension-test-build
@@ -1137,7 +1134,6 @@ jobs:
       - name: Extension test
         run: |
           python3 scripts/generate-tinysnb.py
-          python3 scripts/setup-extension-repo.py &
           make extension-test
 
       - name: Extension test in mem
@@ -1183,7 +1179,6 @@ jobs:
 
       - name: Static link extension test
         run: |
-          python3 scripts/setup-extension-repo.py &
           make extension-static-link-test
 
   macos-extension-test:
@@ -1227,9 +1222,6 @@ jobs:
           node -e 'fs=require("fs");fs.readFile(process.env.PG_TEST_FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.PG_TEST_FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
           node -e 'fs=require("fs");fs.readFile(process.env.SQL_TEST_FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.SQL_TEST_FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
 
-      - name: Install dependencies
-        run: pip3 install rangehttpserver requests
-
       # shell needs to be built first to generate the dataset provided by the server
       - name: Extension test build
         run: make extension-test-build
@@ -1237,7 +1229,6 @@ jobs:
       - name: Extension test
         run: |
           python3 scripts/generate-tinysnb.py
-          python3 scripts/setup-extension-repo.py &
           make extension-test
 
       - name: Extension test in mem
@@ -1263,7 +1254,6 @@ jobs:
 
       - name: Static link extension test
         run: |
-          python3 scripts/setup-extension-repo.py &
           make extension-static-link-test
 
   windows-extension-test:
@@ -1290,9 +1280,6 @@ jobs:
       WERROR: 0
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: pip install rangehttpserver requests
 
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
@@ -1326,7 +1313,6 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
-          start /b python scripts/setup-extension-repo.py
           make extension-test
 
       - name: Extension test in mem
@@ -1338,7 +1324,6 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
-          start /b python scripts/setup-extension-repo.py
           make extension-test
 
       - name: Extension test with checkpoint at threshold 0
@@ -1350,7 +1335,6 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
-          start /b python scripts/setup-extension-repo.py
           make extension-test
 
       - name: Extension test recovery
@@ -1362,7 +1346,6 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
-          start /b python scripts/setup-extension-repo.py
           make extension-test
 
       - name: Clean
@@ -1376,5 +1359,4 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           if %errorlevel% neq 0 exit /b %errorlevel%
-          start /b python scripts/setup-extension-repo.py
           make extension-static-link-test

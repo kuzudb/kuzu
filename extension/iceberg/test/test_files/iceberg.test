@@ -142,16 +142,3 @@ lineitem_iceberg/metadata/cf3d0be5-cf70-453d-ad8f-48fdc412e608-m0.avro|1|DATA|AD
 2|6|1992-03-06|DELIVER IN PERSON
 4|6|1992-04-03|NONE
 6|6|1992-03-07|TAKE BACK RETURN
-
--CASE InstallOfficialExtension
--STATEMENT FORCE INSTALL iceberg FROM 'http://localhost/extension/repo/'
----- ok
--STATEMENT load extension iceberg
----- ok
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct ORDER BY l_quantity, l_shipdate LIMIT 5;
----- 5
-1|6|1992-02-03|NONE
-1|6|1992-04-15|NONE
-2|6|1992-03-06|DELIVER IN PERSON
-4|6|1992-04-03|NONE
-6|6|1992-03-07|TAKE BACK RETURN

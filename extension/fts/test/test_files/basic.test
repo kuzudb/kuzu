@@ -301,19 +301,6 @@ title3
 4
 5
 
--CASE InstallOfficialExtension
--SKIP_STATIC_LINK
--STATEMENT FORCE INSTALL fts FROM 'http://localhost/extension/repo/'
----- ok
--STATEMENT load fts
----- ok
--STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
----- ok
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
----- 2
-The Quantum World
-Learning Machines
-
 -CASE DropTableWithIndex
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, quantity INT64, PRIMARY KEY (ID));

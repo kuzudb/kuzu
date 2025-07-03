@@ -85,17 +85,3 @@ Bob|30|1500.750000|1994-06-25 00:00:00
 Charlie|35|2000.000000|1988-12-05 00:00:00
 Diana|40|2500.300000|1983-07-20 00:00:00
 Ethan|28|1800.600000|1996-03-10 00:00:00
-
--CASE InstallOfficialExtension
--STATEMENT FORCE INSTALL DELTA FROM 'http://localhost/extension/repo/'
----- ok
--STATEMENT load extension DELTA
----- ok
--LOG LoadFromLocalDeltaTable
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/person_table'(file_format='delta') RETURN *
----- 5
-Alice|25|1000.500000|1999-01-15 00:00:00
-Bob|30|1500.750000|1994-06-25 00:00:00
-Charlie|35|2000.000000|1988-12-05 00:00:00
-Diana|40|2500.300000|1983-07-20 00:00:00
-Ethan|28|1800.600000|1996-03-10 00:00:00

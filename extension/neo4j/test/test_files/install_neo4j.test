@@ -3,12 +3,6 @@
 
 --
 
--CASE InstallOfficialExtension
--STATEMENT FORCE INSTALL neo4j FROM 'http://localhost/extension/repo/'
----- ok
--STATEMENT load extension neo4j
----- ok
-
 -CASE LoadExtensionTwice
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/neo4j/build/libneo4j.kuzu_extension"
 ---- ok

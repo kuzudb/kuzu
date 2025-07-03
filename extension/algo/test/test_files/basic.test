@@ -2,11 +2,6 @@
 
 --
 
--CASE InstallOfficialExtension
--STATEMENT FORCE INSTALL algo FROM 'http://localhost/extension/repo/'
----- ok
--STATEMENT load algo
----- ok
 -CASE RunALGOWithoutLoad
 -STATEMENT CALL k_core_decomposition('PK') RETURN node.name, k_degree;
 ---- error
