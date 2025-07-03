@@ -20,6 +20,29 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::STRING());
 }
 
+using handle_separator_func_t = std::function<void()>;
+using handle_element_func_t = std::function<void(const ku_string_t&)>;
+
+static void iterateParams(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, sel_t pos,
+    handle_separator_func_t handleSeparatorFunc, handle_element_func_t handleElementFunc) {
+    bool isPrevNull = false;
+    for (auto i = 1u; i < parameters.size(); i++) {
+        const auto& parameter = parameters[i];
+        const auto& parameterSelVector = *parameterSelVectors[i];
+        auto paramPos = parameter->state->isFlat() ? parameterSelVector[0] : pos;
+        if (parameter->isNull(paramPos)) {
+            isPrevNull = true;
+            continue;
+        }
+        if (i != 1u && !isPrevNull) {
+            handleSeparatorFunc();
+        }
+        handleElementFunc(parameter->getValue<ku_string_t>(paramPos));
+        isPrevNull = false;
+    }
+}
+
 void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
     common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
@@ -34,6 +57,9 @@ void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameter
         auto separator = parameters[0]->getValue<ku_string_t>(separatorPos);
         auto len = 0u;
         bool isPrevNull = false;
+        iterateParams(
+            parameters, parameterSelVectors, pos, [&]() { len += separator.len; },
+            [&](const ku_string_t& str) { len += str.len; });
         for (auto i = 1u; i < parameters.size(); i++) {
             const auto& parameter = parameters[i];
             const auto& parameterSelVector = *parameterSelVectors[i];
@@ -42,33 +68,23 @@ void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameter
                 isPrevNull = true;
                 continue;
             }
-            if (i != 1u && !isPrevNull) {
-                len += separator.len;
-            }
-            len += parameter->getValue<common::ku_string_t>(paramPos).len;
+            if (i != 1u && !isPrevNull) {}
+
             isPrevNull = false;
         }
         common::ku_string_t resultStr;
         StringVector::reserveString(&result, resultStr, len);
         auto resultBuffer = resultStr.getData();
-        isPrevNull = false;
-        for (auto i = 1u; i < parameters.size(); i++) {
-            const auto& parameter = parameters[i];
-            const auto& parameterSelVector = *parameterSelVectors[i];
-            auto paramPos = parameter->state->isFlat() ? parameterSelVector[0] : pos;
-            if (parameter->isNull(paramPos)) {
-                isPrevNull = true;
-                continue;
-            }
-            auto& str = parameter->getValue<common::ku_string_t>(paramPos);
-            if (i != 1u && !isPrevNull) {
+        iterateParams(
+            parameters, parameterSelVectors, pos,
+            [&]() {
                 memcpy((void*)resultBuffer, (void*)separator.getData(), separator.len);
                 resultBuffer += separator.len;
-            }
-            memcpy((void*)resultBuffer, (void*)str.getData(), str.len);
-            resultBuffer += str.len;
-            isPrevNull = false;
-        }
+            },
+            [&](const ku_string_t& str) {
+                memcpy((void*)resultBuffer, (void*)str.getData(), str.len);
+                resultBuffer += str.len;
+            });
         memcpy(resultStr.prefix, resultStr.getData(),
             std::min<uint64_t>(resultStr.len, ku_string_t::PREFIX_LENGTH));
         KU_ASSERT(resultBuffer - resultStr.getData() == len);
