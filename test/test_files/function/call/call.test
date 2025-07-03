@@ -267,8 +267,8 @@ Binder exception: Show connection can only be called on a rel table!
 -STATEMENT CALL table_info('person', 'knows') RETURN *
 ---- error
 Binder exception: Function table_info did not receive correct arguments:
-Actual (STRING,STRING)
-Expected (STRING)
+Actual: (STRING,STRING)
+Expected: (STRING)
 
 -LOG WrongParameterType
 -STATEMENT CALL show_connection(123) RETURN *

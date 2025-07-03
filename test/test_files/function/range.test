@@ -54,8 +54,8 @@ Runtime exception: Step of range cannot be 0.
 -STATEMENT MATCH (a) RETURN range(a.NAME, 4, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual (STRING,INT64,INT64)
-Expected (INT128,INT128) -> LIST
+Actual: (STRING,INT64,INT64)
+Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
 (INT64,INT64,INT64) -> LIST

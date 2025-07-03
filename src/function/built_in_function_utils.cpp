@@ -1,7 +1,7 @@
 #include "function/built_in_function_utils.h"
 
 #include "catalog/catalog_entry/function_catalog_entry.h"
-#include "common/types/types.h"
+#include "common/exception/binder.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 
@@ -490,8 +490,8 @@ static std::string getFunctionMatchFailureMsg(const std::string name,
     const std::vector<LogicalType>& inputTypes, const std::string& supportedInputs,
     bool isDistinct = false) {
     std::string result = stringFormat("Function {} did not receive correct arguments:\n", name);
-    result += stringFormat("Actual {}{}\n", isDistinct ? "DISTINCT " : "", LogicalTypeUtils::toString(inputTypes));
-    result += stringFormat("Expected {}", supportedInputs);
+    result += stringFormat("Actual: {}{}\n", isDistinct ? "DISTINCT " : "", LogicalTypeUtils::toString(inputTypes));
+    result += stringFormat("Expected: {}", supportedInputs);
     return result;
 }
 

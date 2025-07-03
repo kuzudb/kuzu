@@ -103,8 +103,8 @@ Binder exception: Cannot match a built-in function for given function LIST_EXTRA
            RETURN list[idx];
 ---- error
 Binder exception: Function LIST_EXTRACT did not receive correct arguments:
-Actual (INT64[],BOOL)
-Expected (LIST,INT64) -> ANY
+Actual: (INT64[],BOOL)
+Expected: (LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
 (ARRAY,INT64) -> ANY
 
@@ -112,8 +112,8 @@ Expected (LIST,INT64) -> ANY
            RETURN list[idx];
 ---- error
 Binder exception: Function LIST_EXTRACT did not receive correct arguments:
-Actual (INT64[],DOUBLE)
-Expected (LIST,INT64) -> ANY
+Actual: (INT64[],DOUBLE)
+Expected: (LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
 (ARRAY,INT64) -> ANY
 
@@ -121,8 +121,8 @@ Expected (LIST,INT64) -> ANY
            RETURN list[idx];
 ---- error
 Binder exception: Function LIST_EXTRACT did not receive correct arguments:
-Actual (INT64[],STRING)
-Expected (LIST,INT64) -> ANY
+Actual: (INT64[],STRING)
+Expected: (LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
 (ARRAY,INT64) -> ANY
 
@@ -130,8 +130,8 @@ Expected (LIST,INT64) -> ANY
            RETURN list[idx];
 ---- error
 Binder exception: Function LIST_EXTRACT did not receive correct arguments:
-Actual (INT64[],INT64[])
-Expected (LIST,INT64) -> ANY
+Actual: (INT64[],INT64[])
+Expected: (LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
 (ARRAY,INT64) -> ANY
 
@@ -139,7 +139,7 @@ Expected (LIST,INT64) -> ANY
            RETURN list[idx];
 ---- error
 Binder exception: Function LIST_EXTRACT did not receive correct arguments:
-Actual (INT64[],STRUCT(x INT64))
-Expected (LIST,INT64) -> ANY
+Actual: (INT64[],STRUCT(x INT64))
+Expected: (LIST,INT64) -> ANY
 (STRING,INT64) -> STRING
 (ARRAY,INT64) -> ANY

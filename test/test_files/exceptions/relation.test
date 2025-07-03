@@ -12,8 +12,8 @@ Binder exception: e has data type RECURSIVE_REL but (NODE,REL,STRUCT,ANY) was ex
 -STATEMENT MATCH (a:person)-[e:knows*1..3]->(b:person) WHERE ID(e) = 0 RETURN COUNT(*)
 ---- error
 Binder exception: Function ID did not receive correct arguments:
-Actual (RECURSIVE_REL)
-Expected (NODE)
+Actual: (RECURSIVE_REL)
+Expected: (NODE)
 (REL)
 (STRUCT)
 

@@ -22,8 +22,8 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 -STATEMENT RETURN sha256();
 ---- error
 Binder exception: Function SHA256 did not receive correct arguments:
-Actual 
-Expected (STRING) -> STRING
+Actual: 
+Expected: (STRING) -> STRING
 
 -STATEMENT create (p:person {ID: 12, fName: sha256('Alice')})
 ---- ok
