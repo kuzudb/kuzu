@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/types/types.h"
+#include "function/cast/cast_function_bind_data.h"
 #include "function/function.h"
-#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {

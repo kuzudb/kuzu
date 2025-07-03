@@ -4,7 +4,6 @@
 #include "common/string_format.h"
 #include "common/type_utils.h"
 #include "common/vector/value_vector.h"
-#include "function/cast/cast_function_bind_data.h"
 #include "function/cast/cast_union_bind_data.h"
 #include "function/cast/functions/numeric_cast.h"
 
