@@ -1,4 +1,5 @@
 #include "function/built_in_function_utils.h"
+#include <sstream>
 
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "common/exception/binder.h"
@@ -486,14 +487,34 @@ void BuiltInFunctionsUtils::validateSpecialCases(std::vector<Function*>& candida
     }
 }
 
+static std::string alignedString(const std::string& input)
+{
+    std::istringstream stream(input);
+    std::ostringstream result;
+
+    std::string line;
+    std::string prefix = "Expected: ";
+    std::string padding(prefix.length(), ' ');
+
+    bool firstLine = true;
+    while (std::getline(stream, line)) {
+        if (firstLine) {
+            result << line << '\n';
+            firstLine = false;
+        } else {
+            result << padding << line << '\n';
+        }
+    }
+
+    return result.str();
+}
+
 static std::string getFunctionMatchFailureMsg(const std::string name,
     const std::vector<LogicalType>& inputTypes, const std::string& supportedInputs,
     bool isDistinct = false) {
     std::string result = stringFormat("Function {} did not receive correct arguments:\n", name);
-    result += stringFormat("Actual:   {}{}\n", isDistinct ? "DISTINCT " : "",
-        inputTypes.empty() ? "No arguments." : LogicalTypeUtils::toString(inputTypes));
-    result +=
-        stringFormat("Expected: {}\n", supportedInputs.empty() ? "No arguments." : supportedInputs);
+    result += stringFormat("Actual:   {}{}\n", isDistinct ? "DISTINCT " : "", inputTypes.empty() ? "No arguments." : LogicalTypeUtils::toString(inputTypes));
+    result += stringFormat("Expected: {}\n", supportedInputs.empty() ? "No arguments." : alignedString(supportedInputs));
     return result;
 }
 
