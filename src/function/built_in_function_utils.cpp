@@ -490,7 +490,8 @@ static std::string getFunctionMatchFailureMsg(const std::string name,
     const std::vector<LogicalType>& inputTypes, const std::string& supportedInputs,
     bool isDistinct = false) {
     std::string result = stringFormat("Function {} did not receive correct arguments:\n", name);
-    result += stringFormat("Actual: {}{}\n", isDistinct ? "DISTINCT " : "", LogicalTypeUtils::toString(inputTypes));
+    result += stringFormat("Actual: {}{}\n", isDistinct ? "DISTINCT " : "",
+        LogicalTypeUtils::toString(inputTypes));
     result += stringFormat("Expected: {}", supportedInputs);
     return result;
 }
