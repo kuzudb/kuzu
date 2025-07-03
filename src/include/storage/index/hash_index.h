@@ -442,7 +442,6 @@ public:
 
     void checkpointInMemory() override;
     void checkpoint(main::ClientContext*, storage::PageAllocator& pageAllocator) override;
-    FileHandle* getFileHandle() const { return fileHandle; }
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
     void rollbackCheckpoint() override;
