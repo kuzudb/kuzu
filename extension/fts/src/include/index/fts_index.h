@@ -49,9 +49,6 @@ public:
     void finalize(main::ClientContext* context) override;
     void checkpoint(main::ClientContext*) override;
 
-    void checkpoint(main::ClientContext*, bool forceCheckpointAll) override;
-    void finalize(main::ClientContext* context) override;
-
     static storage::IndexType getIndexType() {
         static const storage::IndexType FTS_INDEX_TYPE{"FTS",
             storage::IndexConstraintType::SECONDARY_NON_UNIQUE,
