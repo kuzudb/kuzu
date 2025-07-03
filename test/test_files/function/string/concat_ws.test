@@ -1,0 +1,76 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE ConcatWSTest
+-STATEMENT RETURN CONCAT_WS(',', '1', '3', '5', '7')
+---- 1
+1,3,5,7
+-STATEMENT RETURN CONCAT_WS('--', 'alice', 'bob', 'carol', 'dan')
+---- 1
+alice--bob--carol--dan
+-STATEMENT RETURN CONCAT_WS('-follows-', 'toronto', 'waterloo', 'kitchener', 'ca')
+---- 1
+toronto-follows-waterloo-follows-kitchener-follows-ca
+-STATEMENT RETURN CONCAT_WS(',', '1', '3', '5', '7')
+---- 1
+1,3,5,7
+-STATEMENT MATCH (p:person) RETURN CONCAT_WS(' with used name: ', p.fName, p.usedNames[1])
+---- 8
+Alice with used name: Aida
+Bob with used name: Bobby
+Carol with used name: Carmen
+Dan with used name: Wolfeschlegelstein
+Elizabeth with used name: Ein
+Farooq with used name: Fesdwe
+Greg with used name: Grad
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff with used name: Ad
+-STATEMENT MATCH (o:organisation) RETURN CONCAT_WS(' name', 'org: ', o.name)
+---- 3
+org:  nameABFsUni
+org:  nameCsWork
+org:  nameDEsWork
+
+-CASE ConcatWSNullTest
+-STATEMENT RETURN CONCAT_WS(NULL, 'test1', 'test2')
+---- 1
+
+-STATEMENT RETURN CONCAT_WS('--', Null, 'test2', 'test3')
+---- 1
+test2--test3
+-STATEMENT RETURN CONCAT_WS('--', Null, 'test2', NULL)
+---- 1
+test2
+-STATEMENT RETURN CONCAT_WS('--', Null, null, NULL)
+---- 1
+
+-STATEMENT RETURN CONCAT_WS('--', Null)
+---- 1
+
+-STATEMENT RETURN CONCAT_WS(null, Null)
+---- 1
+
+-STATEMENT CREATE (p:person {ID: 12})
+---- ok
+-STATEMENT CREATE (p:person {ID: 14, fName: 'cooper'})
+---- ok
+-STATEMENT MATCH (p:person) RETURN CONCAT_WS(' with fname: ', cast(p.ID as string), p.fName)
+---- 10
+0 with fname: Alice
+2 with fname: Bob
+3 with fname: Carol
+5 with fname: Dan
+7 with fname: Elizabeth
+8 with fname: Farooq
+9 with fname: Greg
+10 with fname: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+12
+14 with fname: cooper
+
+-CASE ConcatWSNonStringError
+-STATEMENT RETURN CONCAT_WS(5, 'test1', 'test2')
+---- error
+Binder exception: concat_ws expects all string parameters. Got: INT64.
+-STATEMENT RETURN CONCAT_WS('ac', 'test1', 55)
+---- error
+Binder exception: concat_ws expects all string parameters. Got: INT64.
