@@ -221,6 +221,8 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     : Table{nodeTableEntry, storageManager, memoryManager},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyName())},
       versionRecordHandler(this) {
+    auto* dataFH = storageManager->getDataFH();
+    auto& pageAllocator = *dataFH->getPageManager();
     const auto maxColumnID = nodeTableEntry->getMaxColumnID();
     columns.resize(maxColumnID + 1);
     for (auto& property : nodeTableEntry->getProperties()) {
@@ -239,10 +241,11 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         hashIndexType.constraintType == IndexConstraintType::PRIMARY,
         hashIndexType.definitionType == IndexDefinitionType::BUILTIN};
     indexes.push_back(IndexHolder{PrimaryKeyIndex::createNewIndex(indexInfo,
-        storageManager->isInMemory(), *memoryManager, dataFH, shadowFile)});
+        storageManager->isInMemory(), *memoryManager, pageAllocator, shadowFile)});
     nodeGroups = std::make_unique<NodeGroupCollection>(
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
-        storageManager->getDataFH(), &versionRecordHandler);
+        storageManager->getDataFH() ? ResidencyState::ON_DISK : ResidencyState::IN_MEMORY,
+        &versionRecordHandler);
 }
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
@@ -518,10 +521,11 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     return isDeleted;
 }
 
-void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
+    PageAllocator& pageAllocator) {
     auto& definition = addColumnState.propertyDefinition;
     columns.push_back(ColumnFactory::createColumn(definition.getName(), definition.getType().copy(),
-        dataFH, memoryManager, shadowFile, enableCompression));
+        pageAllocator.getDataFH(), memoryManager, shadowFile, enableCompression));
     LocalTable* localTable = nullptr;
     if (transaction->getLocalStorage()) {
         localTable = transaction->getLocalStorage()->getLocalTable(tableID);
@@ -529,16 +533,16 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
     if (localTable) {
         localTable->addColumn(transaction, addColumnState);
     }
-    nodeGroups->addColumn(transaction, addColumnState);
+    nodeGroups->addColumn(transaction, addColumnState, &pageAllocator);
     hasChanges = true;
 }
 
 std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(MemoryManager& mm,
     Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    ChunkedNodeGroup& chunkedGroup) {
+    ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
     hasChanges = true;
     return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(mm, transaction, columnIDs,
-        chunkedGroup);
+        chunkedGroup, pageAllocator);
 }
 
 DataChunk NodeTable::constructDataChunkForColumns(const std::vector<column_id_t>& columnIDs) const {
@@ -620,7 +624,8 @@ visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {
         [this, transaction](offset_t offset_) -> bool { return isVisible(transaction, offset_); };
 }
 
-bool NodeTable::checkpoint(main::ClientContext* context, TableCatalogEntry* tableEntry) {
+bool NodeTable::checkpoint(main::ClientContext* context, TableCatalogEntry* tableEntry,
+    PageAllocator& pageAllocator) {
     const bool ret = hasChanges;
     if (hasChanges) {
         // Deleted columns are vacuumed and not checkpointed.
@@ -638,11 +643,11 @@ bool NodeTable::checkpoint(main::ClientContext* context, TableCatalogEntry* tabl
             checkpointColumnPtrs.push_back(column.get());
         }
 
-        NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), *dataFH,
+        NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), pageAllocator,
             memoryManager};
         nodeGroups->checkpoint(*memoryManager, state);
         for (auto& index : indexes) {
-            index.checkpoint(context);
+            index.checkpoint(context, pageAllocator);
         }
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
         hasChanges = false;
@@ -670,9 +675,9 @@ void NodeTable::rollbackCheckpoint() {
     }
 }
 
-void NodeTable::reclaimStorage(PageManager& pageManager) const {
-    nodeGroups->reclaimStorage(pageManager);
-    getPKIndex()->reclaimStorage(pageManager);
+void NodeTable::reclaimStorage(PageAllocator& pageAllocator) const {
+    nodeGroups->reclaimStorage(pageAllocator);
+    getPKIndex()->reclaimStorage(pageAllocator);
 }
 
 TableStats NodeTable::getStats(const Transaction* transaction) const {

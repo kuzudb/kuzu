@@ -318,7 +318,7 @@ public:
     }
 
     void finalize(main::ClientContext*) override;
-    void checkpoint(main::ClientContext* context) override;
+    void checkpoint(main::ClientContext* context, storage::PageAllocator& pageAllocator) override;
 
 private:
     common::offset_t searchNNInUpperLayer(const EmbeddingHandle& queryVector,

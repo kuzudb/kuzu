@@ -29,25 +29,37 @@ void MetaWriter::write(const uint8_t* data, uint64_t size) {
     }
 }
 
-storage::PageRange MetaWriter::flush(storage::FileHandle* fileHandle,
+storage::PageRange MetaWriter::flush(storage::PageAllocator& pageAllocator,
     storage::ShadowFile& shadowFile) const {
     auto numPagesToFlush = getNumPagesToFlush();
-    auto pageManager = fileHandle->getPageManager();
-    auto pageRange = pageManager->allocatePageRange(numPagesToFlush);
-    flush(pageRange, fileHandle, shadowFile);
+    auto pageRange = pageAllocator.allocatePageRange(numPagesToFlush);
+    flush(pageRange, pageAllocator.getDataFH(), shadowFile);
     return pageRange;
 }
 
 void MetaWriter::flush(storage::PageRange allocatedPageRange, storage::FileHandle* fileHandle,
     storage::ShadowFile& shadowFile) const {
-    KU_ASSERT(allocatedPageRange.numPages >= getNumPagesToFlush());
+    auto numPagesToWrite = getNumPagesToFlush();
+    KU_ASSERT(allocatedPageRange.numPages >= numPagesToWrite);
     auto numPagesBeforeAllocate = allocatedPageRange.startPageIdx;
-    for (auto i = 0u; i < getNumPagesToFlush(); i++) {
+    for (auto i = 0u; i < numPagesToWrite; i++) {
         auto pageIdx = allocatedPageRange.startPageIdx + i;
         auto insertingNewPage = pageIdx >= numPagesBeforeAllocate;
         auto shadowPageAndFrame = storage::ShadowUtils::createShadowVersionIfNecessaryAndPinPage(
             pageIdx, insertingNewPage, *fileHandle, shadowFile);
         memcpy(shadowPageAndFrame.frame, pages[i]->getData(), KUZU_PAGE_SIZE);
+        shadowFile.getShadowingFH().unpinPage(shadowPageAndFrame.shadowPage);
+    }
+
+    // Write zeroes to any extra pages
+    // This ensures that the size of the data file matches the size expected from allocations
+    // even if we reload the database immediately after this
+    for (auto i = numPagesToWrite; i < allocatedPageRange.numPages; i++) {
+        auto pageIdx = allocatedPageRange.startPageIdx + i;
+        auto insertingNewPage = pageIdx >= numPagesBeforeAllocate;
+        auto shadowPageAndFrame = storage::ShadowUtils::createShadowVersionIfNecessaryAndPinPage(
+            pageIdx, insertingNewPage, *fileHandle, shadowFile);
+        memset(shadowPageAndFrame.frame, 0u, KUZU_PAGE_SIZE);
         shadowFile.getShadowingFH().unpinPage(shadowPageAndFrame.shadowPage);
     }
 }

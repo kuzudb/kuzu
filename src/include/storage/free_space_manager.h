@@ -12,6 +12,7 @@
 #include "common/types/types.h"
 namespace kuzu::storage {
 
+class BufferManager;
 struct PageRange;
 struct FreeEntryIterator;
 class FileHandle;
@@ -25,6 +26,7 @@ public:
     FreeSpaceManager();
 
     void addFreePages(PageRange entry);
+    void evictAndAddFreePages(FileHandle* fileHandle, PageRange entry);
     std::optional<PageRange> popFreePages(common::page_idx_t numPages);
 
     // These pages are not reusable until the end of the next checkpoint
@@ -40,20 +42,27 @@ public:
     std::vector<PageRange> getEntries(common::row_idx_t startOffset,
         common::row_idx_t endOffset) const;
 
+    // When a page is freed by the FSM, it evicts it from the BM. However, if the page is freed,
+    // then reused over and over, it can be appended to the eviction queue multiple times. To
+    // prevent multiple entries of the same page from existing in the eviction queue, at the end of
+    // each checkpoint we remove any already-evicted pages.
+    void clearEvictedBufferManagerEntriesIfNeeded(BufferManager* bufferManager);
+
 private:
     PageRange splitPageRange(PageRange chunk, common::page_idx_t numRequiredPages);
     void mergePageRanges(free_list_t newInitialEntries, FileHandle* fileHandle);
     void handleLastPageRange(PageRange pageRange, FileHandle* fileHandle);
     void resetFreeLists();
     static common::idx_t getLevel(common::page_idx_t numPages);
+    void evictPages(FileHandle* fileHandle, const PageRange& entry);
 
     template<typename ValueProcessor>
     void serializeInternal(ValueProcessor& serializer) const;
-    common::page_idx_t estimateNumPagesForSerialization();
 
     std::vector<sorted_free_list_t> freeLists;
     free_list_t uncheckpointedFreePageRanges;
     common::row_idx_t numEntries;
+    bool needClearEvictedEntries;
 };
 
 /**

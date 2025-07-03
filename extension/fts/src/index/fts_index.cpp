@@ -190,20 +190,22 @@ void FTSIndex::finalize(main::ClientContext* context) {
     ftsStorageInfo.numCheckpointedNodes = numTotalRows;
 }
 
-void FTSIndex::checkpoint(main::ClientContext* context) {
+void FTSIndex::checkpoint(main::ClientContext* context, storage::PageAllocator& pageAllocator) {
     KU_ASSERT(!context->isInMemory());
     auto catalog = context->getCatalog();
     internalTableInfo.docTable->checkpoint(context,
         catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
-            internalTableInfo.docTable->getTableID()));
+            internalTableInfo.docTable->getTableID()),
+        pageAllocator);
     internalTableInfo.termsTable->checkpoint(context,
         catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
-            internalTableInfo.termsTable->getTableID()));
+            internalTableInfo.termsTable->getTableID()),
+        pageAllocator);
     auto appearsInTableName =
         FTSUtils::getAppearsInTableName(internalTableInfo.table->getTableID(), indexInfo.name);
     auto appearsInTableEntry =
         catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION, appearsInTableName);
-    internalTableInfo.appearsInfoTable->checkpoint(context, appearsInTableEntry);
+    internalTableInfo.appearsInfoTable->checkpoint(context, appearsInTableEntry, pageAllocator);
 }
 
 nodeID_t FTSIndex::insertToDocTable(Transaction* transaction, FTSInsertState& insertState,

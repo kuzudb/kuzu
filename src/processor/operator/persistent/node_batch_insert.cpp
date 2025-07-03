@@ -67,6 +67,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     KU_ASSERT(nodeSharedState->globalIndexBuilder);
     nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder->clone();
     nodeLocalState->errorHandler = createErrorHandler(context);
+    nodeLocalState->optimisticAllocator =
+        context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
 
     nodeLocalState->columnVectors.resize(numColumns);
 
@@ -144,7 +146,7 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction,
         numAppendedTuples += numAppendedTuplesInNodeGroup;
         if (nodeLocalState->chunkedGroup->isFullOrOnDisk()) {
             writeAndResetNodeGroup(transaction, nodeLocalState->chunkedGroup,
-                nodeLocalState->localIndexBuilder, mm);
+                nodeLocalState->localIndexBuilder, mm, *nodeLocalState->optimisticAllocator);
         }
     }
     const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
@@ -174,16 +176,17 @@ void NodeBatchInsert::clearToIndex(MemoryManager* mm, std::unique_ptr<ChunkedNod
 
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
     std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder,
-    MemoryManager* mm) const {
+    MemoryManager* mm, PageAllocator& pageAllocator) const {
     const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
     KU_ASSERT(nodeLocalState->errorHandler.has_value());
     writeAndResetNodeGroup(transaction, nodeGroup, indexBuilder, mm,
-        nodeLocalState->errorHandler.value());
+        nodeLocalState->errorHandler.value(), pageAllocator);
 }
 
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
     std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder,
-    MemoryManager* mm, NodeBatchInsertErrorHandler& errorHandler) const {
+    MemoryManager* mm, NodeBatchInsertErrorHandler& errorHandler,
+    PageAllocator& pageAllocator) const {
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
 
@@ -199,7 +202,7 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
         FinallyWrapper sliceRestorer{
             [&]() { nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns); }};
         std::tie(nodeOffset, numRowsWritten) = nodeTable->appendToLastNodeGroup(*mm, transaction,
-            info->insertColumnIDs, sliceToWriteToDisk);
+            info->insertColumnIDs, sliceToWriteToDisk, pageAllocator);
     }
 
     if (indexBuilder) {
@@ -221,6 +224,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
     std::unique_ptr<ChunkedNodeGroup> localNodeGroup, std::optional<IndexBuilder>& indexBuilder,
     MemoryManager* mm) const {
     std::unique_lock xLck{sharedState->mtx};
+    const auto nodeLocalState = ku_dynamic_cast<NodeBatchInsertLocalState*>(localState.get());
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     if (!nodeSharedState->sharedNodeGroup) {
         nodeSharedState->sharedNodeGroup = std::move(localNodeGroup);
@@ -230,7 +234,8 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
         nodeSharedState->sharedNodeGroup->append(&transaction::DUMMY_TRANSACTION, *localNodeGroup,
             0 /* offsetInNodeGroup */, localNodeGroup->getNumRows());
     while (nodeSharedState->sharedNodeGroup->isFullOrOnDisk()) {
-        writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup, indexBuilder, mm);
+        writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup, indexBuilder, mm,
+            *nodeLocalState->optimisticAllocator);
         if (numNodesAppended < localNodeGroup->getNumRows()) {
             numNodesAppended += nodeSharedState->sharedNodeGroup->append(
                 &transaction::DUMMY_TRANSACTION, *localNodeGroup, numNodesAppended,
@@ -244,11 +249,13 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     KU_ASSERT(localState == nullptr);
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     auto errorHandler = createErrorHandler(context);
+    auto& pageAllocator =
+        *context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
             writeAndResetNodeGroup(context->clientContext->getTransaction(),
                 nodeSharedState->sharedNodeGroup, nodeSharedState->globalIndexBuilder,
-                context->clientContext->getMemoryManager(), errorHandler);
+                context->clientContext->getMemoryManager(), errorHandler, pageAllocator);
         }
     }
     if (nodeSharedState->globalIndexBuilder) {

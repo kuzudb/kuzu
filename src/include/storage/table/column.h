@@ -10,6 +10,8 @@ class NullColumn;
 class StructColumn;
 class RelTableData;
 struct ColumnCheckpointState;
+class PageAllocator;
+
 class Column {
     friend class StringColumn;
     friend class StructColumn;
@@ -28,10 +30,11 @@ public:
     void populateExtraChunkState(ChunkState& state) const;
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
-        FileHandle& dataFH);
+        PageAllocator& pageAllocator);
     static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(
-        const ColumnChunkData& chunkData, FileHandle& dataFH);
-    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData, FileHandle& dataFH);
+        const ColumnChunkData& chunkData, PageAllocator& pageAllocator);
+    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData,
+        PageAllocator& pageAllocator);
 
     virtual void scan(const ChunkState& state, common::offset_t startOffsetInChunk,
         common::row_idx_t numValuesToScan, common::ValueVector* resultVector) const;
@@ -66,7 +69,8 @@ public:
     common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t numValues);
 
-    virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
+    virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+        PageAllocator& pageAllocator);
 
     template<class TARGET>
     TARGET& cast() {
@@ -99,11 +103,12 @@ protected:
         const ColumnCheckpointState& checkpointState);
 
     void checkpointColumnChunkInPlace(ChunkState& state,
-        const ColumnCheckpointState& checkpointState);
-    void checkpointNullData(const ColumnCheckpointState& checkpointState) const;
+        const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator);
+    void checkpointNullData(const ColumnCheckpointState& checkpointState,
+        PageAllocator& pageAllocator) const;
 
     void checkpointColumnChunkOutOfPlace(const ChunkState& state,
-        const ColumnCheckpointState& checkpointState);
+        const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const;
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
@@ -113,8 +118,8 @@ protected:
 protected:
     std::string name;
     common::LogicalType dataType;
-    FileHandle* dataFH;
     MemoryManager* mm;
+    FileHandle* dataFH;
     ShadowFile* shadowFile;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;

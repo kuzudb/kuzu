@@ -17,7 +17,6 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
-#include "storage/page_manager.h"
 #include "storage/stats/column_stats.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk_metadata.h"
@@ -33,16 +32,16 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void ChunkState::reclaimAllocatedPages(FileHandle& dataFH) const {
+void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
     const auto& entry = metadata.pageRange;
     if (entry.startPageIdx != INVALID_PAGE_IDX) {
-        dataFH.getPageManager()->freePageRange(entry);
+        pageAllocator.freePageRange(entry);
     }
     if (nullState) {
-        nullState->reclaimAllocatedPages(dataFH);
+        nullState->reclaimAllocatedPages(pageAllocator);
     }
     for (const auto& child : childrenStates) {
-        child.reclaimAllocatedPages(dataFH);
+        child.reclaimAllocatedPages(pageAllocator);
     }
 }
 
@@ -301,13 +300,13 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     updateInMemoryStats(inMemoryStats, other, startPosInOtherChunk, numValuesToAppend);
 }
 
-void ColumnChunkData::flush(FileHandle& dataFH) {
+void ColumnChunkData::flush(PageAllocator& pageAllocator) {
     const auto preScanMetadata = getMetadataToFlush();
-    auto allocatedEntry = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
-    const auto flushedMetadata = flushBuffer(&dataFH, allocatedEntry, preScanMetadata);
+    auto allocatedEntry = pageAllocator.allocatePageRange(preScanMetadata.getNumPages());
+    const auto flushedMetadata = flushBuffer(pageAllocator, allocatedEntry, preScanMetadata);
     setToOnDisk(flushedMetadata);
     if (nullData) {
-        nullData->flush(dataFH);
+        nullData->flush(pageAllocator);
     }
 }
 
@@ -322,11 +321,12 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
     resetInMemoryStats();
 }
 
-ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, const PageRange& entry,
-    const ColumnChunkMetadata& otherMetadata) const {
+ColumnChunkMetadata ColumnChunkData::flushBuffer(PageAllocator& pageAllocator,
+    const PageRange& entry, const ColumnChunkMetadata& otherMetadata) const {
     if (!otherMetadata.compMeta.isConstant() && getBufferSize() != 0) {
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
-        return flushBufferFunction(buffer->getBuffer(), dataFH, entry, otherMetadata);
+        return flushBufferFunction(buffer->getBuffer(), pageAllocator.getDataFH(), entry,
+            otherMetadata);
     }
     KU_ASSERT(otherMetadata.getNumPages() == 0);
     return otherMetadata;
@@ -1005,13 +1005,13 @@ uint64_t ColumnChunkData::spillToDisk() {
     return spilledBytes;
 }
 
-void ColumnChunkData::reclaimStorage(PageManager& pageManager) {
+void ColumnChunkData::reclaimStorage(PageAllocator& pageAllocator) {
     if (nullData) {
-        nullData->reclaimStorage(pageManager);
+        nullData->reclaimStorage(pageAllocator);
     }
     if (residencyState == ResidencyState::ON_DISK) {
         if (metadata.getStartPageIdx() != INVALID_PAGE_IDX) {
-            pageManager.freePageRange(metadata.pageRange);
+            pageAllocator.freePageRange(metadata.pageRange);
         }
     }
 }

@@ -171,8 +171,8 @@ public:
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector,
         const rel_multiplicity_constraint_throw_func_t& throwFunc) const;
 
-    void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState) override;
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
+        PageAllocator& pageAllocator) override;
     Column* getCSROffsetColumn(common::RelDataDirection direction) const {
         return getDirectedTableData(direction)->getCSROffsetColumn();
     }
@@ -196,9 +196,10 @@ public:
 
     void commit(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
-    bool checkpoint(main::ClientContext*, catalog::TableCatalogEntry* tableEntry) override;
+    bool checkpoint(main::ClientContext*, catalog::TableCatalogEntry* tableEntry,
+        PageAllocator& pageAllocator) override;
     void rollbackCheckpoint() override {};
-    void reclaimStorage(PageManager& pageManager) const override;
+    void reclaimStorage(PageAllocator& pageAllocator) const override;
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 

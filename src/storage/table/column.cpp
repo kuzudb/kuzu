@@ -103,7 +103,7 @@ void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) co
 
 Column::Column(std::string name, LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
     ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
-    : name{std::move(name)}, dataType{std::move(dataType)}, dataFH{dataFH}, mm{mm},
+    : name{std::move(name)}, dataType{std::move(dataType)}, mm{mm}, dataFH(dataFH),
       shadowFile(shadowFile), enableCompression{enableCompression},
       columnReadWriter(ColumnReadWriterFactory::createColumnReadWriter(
           this->dataType.getPhysicalType(), dataFH, shadowFile)) {
@@ -142,32 +142,32 @@ void Column::populateExtraChunkState(ChunkState& state) const {
 }
 
 std::unique_ptr<ColumnChunkData> Column::flushChunkData(const ColumnChunkData& chunkData,
-    FileHandle& dataFH) {
+    PageAllocator& pageAllocator) {
     switch (chunkData.getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        return StructColumn::flushChunkData(chunkData, dataFH);
+        return StructColumn::flushChunkData(chunkData, pageAllocator);
     }
     case PhysicalTypeID::STRING: {
-        return StringColumn::flushChunkData(chunkData, dataFH);
+        return StringColumn::flushChunkData(chunkData, pageAllocator);
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        return ListColumn::flushChunkData(chunkData, dataFH);
+        return ListColumn::flushChunkData(chunkData, pageAllocator);
     }
     default: {
-        return flushNonNestedChunkData(chunkData, dataFH);
+        return flushNonNestedChunkData(chunkData, pageAllocator);
     }
     }
 }
 
 std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChunkData& chunkData,
-    FileHandle& dataFH) {
-    auto chunkMeta = flushData(chunkData, dataFH);
+    PageAllocator& pageAllocator) {
+    auto chunkMeta = flushData(chunkData, pageAllocator);
     auto flushedChunk = ColumnChunkFactory::createColumnChunkData(chunkData.getMemoryManager(),
         chunkData.getDataType().copy(), chunkData.isCompressionEnabled(), chunkMeta,
         chunkData.hasNullData(), true);
     if (chunkData.hasNullData()) {
-        auto nullChunkMeta = flushData(chunkData.getNullData(), dataFH);
+        auto nullChunkMeta = flushData(chunkData.getNullData(), pageAllocator);
         auto nullData = std::make_unique<NullChunkData>(chunkData.getMemoryManager(),
             chunkData.isCompressionEnabled(), nullChunkMeta);
         flushedChunk->setNullData(std::move(nullData));
@@ -175,11 +175,12 @@ std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChu
     return flushedChunk;
 }
 
-ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData, FileHandle& dataFH) {
+ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData,
+    PageAllocator& pageAllocator) {
     KU_ASSERT(chunkData.sanityCheck());
     const auto preScanMetadata = chunkData.getMetadataToFlush();
-    auto allocatedBlock = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
-    return chunkData.flushBuffer(&dataFH, allocatedBlock, preScanMetadata);
+    auto allocatedBlock = pageAllocator.allocatePageRange(preScanMetadata.getNumPages());
+    return chunkData.flushBuffer(pageAllocator, allocatedBlock, preScanMetadata);
 }
 
 void Column::scan(const ChunkState& state, offset_t startOffsetInChunk, row_idx_t numValuesToScan,
@@ -364,7 +365,7 @@ bool Column::isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
 }
 
 void Column::checkpointColumnChunkInPlace(ChunkState& state,
-    const ColumnCheckpointState& checkpointState) {
+    const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) {
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         KU_ASSERT(chunkCheckpointState.numRows > 0);
         write(checkpointState.persistentData, state, chunkCheckpointState.startRow,
@@ -372,11 +373,12 @@ void Column::checkpointColumnChunkInPlace(ChunkState& state,
     }
     checkpointState.persistentData.resetNumValuesFromMetadata();
     if (nullColumn) {
-        checkpointNullData(checkpointState);
+        checkpointNullData(checkpointState, pageAllocator);
     }
 }
 
-void Column::checkpointNullData(const ColumnCheckpointState& checkpointState) const {
+void Column::checkpointNullData(const ColumnCheckpointState& checkpointState,
+    PageAllocator& pageAllocator) const {
     std::vector<ChunkCheckpointState> nullChunkCheckpointStates;
     for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         KU_ASSERT(chunkCheckpointState.chunkData->hasNullData());
@@ -388,22 +390,22 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState) co
     KU_ASSERT(checkpointState.persistentData.hasNullData());
     ColumnCheckpointState nullColumnCheckpointState(*checkpointState.persistentData.getNullData(),
         std::move(nullChunkCheckpointStates));
-    nullColumn->checkpointColumnChunk(nullColumnCheckpointState);
+    nullColumn->checkpointColumnChunk(nullColumnCheckpointState, pageAllocator);
 }
 
 void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
-    const ColumnCheckpointState& checkpointState) {
+    const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const {
     const auto numRows = std::max(checkpointState.endRowIdxToWrite, state.metadata.numValues);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     scan(state, &checkpointState.persistentData);
-    state.reclaimAllocatedPages(*dataFH);
+    state.reclaimAllocatedPages(pageAllocator);
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         checkpointState.persistentData.write(chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/,
             chunkCheckpointState.startRow, chunkCheckpointState.numRows);
     }
     checkpointState.persistentData.finalize();
-    checkpointState.persistentData.flush(*dataFH);
+    checkpointState.persistentData.flush(pageAllocator);
 }
 
 bool Column::canCheckpointInPlace(const ChunkState& state,
@@ -430,11 +432,12 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
     return true;
 }
 
-void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+    PageAllocator& pageAllocator) {
     ChunkState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     if (canCheckpointInPlace(chunkState, checkpointState)) {
-        checkpointColumnChunkInPlace(chunkState, checkpointState);
+        checkpointColumnChunkInPlace(chunkState, checkpointState, pageAllocator);
 
         if (chunkState.metadata.compMeta.compression == CompressionType::ALP) {
             if (dataType.getPhysicalType() == PhysicalTypeID::DOUBLE) {
@@ -448,7 +451,7 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
                 chunkState.metadata.compMeta.floatMetadata()->exceptionCount;
         }
     } else {
-        checkpointColumnChunkOutOfPlace(chunkState, checkpointState);
+        checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator);
     }
 }
 

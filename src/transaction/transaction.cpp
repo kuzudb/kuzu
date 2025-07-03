@@ -77,8 +77,11 @@ void Transaction::commit(storage::WAL* wal) {
 }
 
 void Transaction::rollback(storage::WAL* wal) {
-    localStorage->rollback();
+    // Rolling back the local storage will free + evict all optimistically-allocated pages
+    // Since the undo buffer may do some scanning (e.g. to delete inserted keys from the hash index)
+    // this must be rolled back first
     undoBuffer->rollback(clientContext);
+    localStorage->rollback();
     if (shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logRollback();

@@ -305,20 +305,23 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto onDiskIndex = std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
         std::move(ftsConfig), context.clientContext);
     if (!context.clientContext->isInMemory()) {
+        // We currently can't support FSM reclaiming when rolling back checkpoint
+        // so we don't use the optimistic allocator here
+        auto& pageAllocator = *storageManager->getDataFH()->getPageManager();
         // Checkpoint internal tables.
         onDiskIndex->getInternalTableInfo().docTable->checkpoint(context.clientContext,
-            docTableEntry);
+            docTableEntry, pageAllocator);
         auto termsTableName = FTSUtils::getTermsTableName(bindData.tableID, bindData.indexName);
         auto termsTableEntry =
             context.clientContext->getCatalog()->getTableCatalogEntry(transaction, termsTableName);
         onDiskIndex->getInternalTableInfo().termsTable->checkpoint(context.clientContext,
-            termsTableEntry);
+            termsTableEntry, pageAllocator);
         auto appearsInTableName =
             FTSUtils::getAppearsInTableName(bindData.tableID, bindData.indexName);
         auto appearsInTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
             transaction, appearsInTableName);
         onDiskIndex->getInternalTableInfo().appearsInfoTable->checkpoint(context.clientContext,
-            appearsInTableEntry);
+            appearsInTableEntry, pageAllocator);
     }
     nodeTable->addIndex(std::move(onDiskIndex));
     transaction->setForceCheckpoint();

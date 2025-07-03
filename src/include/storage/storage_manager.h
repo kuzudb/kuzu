@@ -39,7 +39,7 @@ public:
     void addRelTable(catalog::RelGroupCatalogEntry* entry,
         const catalog::RelTableCatalogInfo& info);
 
-    bool checkpoint(main::ClientContext* context);
+    bool checkpoint(main::ClientContext* context, PageAllocator& pageAllocator);
     void finalizeCheckpoint();
     void rollbackCheckpoint(const catalog::Catalog& catalog);
 

@@ -131,8 +131,8 @@ public:
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
-    void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState) override;
+    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
+        PageAllocator& pageAllocator) override;
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
     bool isVisibleNoLock(const transaction::Transaction* transaction,
         common::offset_t offset) const;
@@ -171,13 +171,14 @@ public:
 
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(MemoryManager& mm,
         transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
-        ChunkedNodeGroup& chunkedGroup);
+        ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator);
 
     void commit(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
-    bool checkpoint(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry) override;
+    bool checkpoint(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+        PageAllocator& pageAllocator) override;
     void rollbackCheckpoint() override;
-    void reclaimStorage(PageManager& pageManager) const override;
+    void reclaimStorage(PageAllocator& pageAllocator) const override;
 
     void rollbackPKIndexInsert(main::ClientContext* context, common::row_idx_t startRow,
         common::row_idx_t numRows_, common::node_group_idx_t nodeGroupIdx_);

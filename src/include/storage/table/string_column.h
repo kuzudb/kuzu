@@ -15,7 +15,7 @@ public:
         MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
-        FileHandle& dataFH);
+        PageAllocator& pageAllocator);
 
     void scan(const ChunkState& state, common::offset_t startOffsetInGroup,
         common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
@@ -27,7 +27,8 @@ public:
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
         ColumnChunkData* data, common::offset_t srcOffset, common::length_t numValues) override;
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointColumnChunk(ColumnCheckpointState& checkpointState,
+        PageAllocator& pageAllocator) override;
 
     const DictionaryColumn& getDictionary() const { return dictionary; }
     const Column* getIndexColumn() const { return indexColumn.get(); }

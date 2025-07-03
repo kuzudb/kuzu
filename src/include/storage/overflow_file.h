@@ -60,7 +60,7 @@ public:
         pageWriteCache.clear();
         this->nextPosToWriteTo = nextPosToWriteTo_;
     }
-    void reclaimStorage(PageManager& pageManager);
+    void reclaimStorage(PageAllocator& pageAllocator);
 
 private:
     uint8_t* addANewPage();
@@ -87,7 +87,7 @@ class OverflowFile {
 
 public:
     // For reading an existing overflow file
-    OverflowFile(FileHandle* dataFH, MemoryManager& memoryManager, ShadowFile* shadowFile,
+    OverflowFile(PageAllocator* pageAllocator, MemoryManager& memoryManager, ShadowFile* shadowFile,
         common::page_idx_t headerPageIdx);
 
     virtual ~OverflowFile() = default;
@@ -99,7 +99,7 @@ public:
     void checkpoint();
     void checkpointInMemory();
 
-    void reclaimStorage(PageManager& pageManager) const;
+    void reclaimStorage(PageAllocator& pageAllocator) const;
 
     OverflowFileHandle* addHandle() {
         KU_ASSERT(handles.size() < NUM_HASH_INDEXES);
@@ -109,8 +109,8 @@ public:
     }
 
     FileHandle* getFileHandle() const {
-        KU_ASSERT(fileHandle);
-        return fileHandle;
+        KU_ASSERT(pageAllocator);
+        return pageAllocator->getDataFH();
     }
 
 protected:
@@ -119,8 +119,8 @@ protected:
     common::page_idx_t getNewPageIdx() {
         // If this isn't the first call reserving the page header, then the header flag must be set
         // prior to this
-        if (fileHandle) {
-            return fileHandle->getPageManager()->allocatePage();
+        if (pageAllocator) {
+            return pageAllocator->allocatePage();
         } else {
             return pageCounter.fetch_add(1);
         }
@@ -139,7 +139,7 @@ protected:
     std::vector<std::unique_ptr<OverflowFileHandle>> handles;
     StringOverflowFileHeader header;
     common::page_idx_t numPagesOnDisk;
-    FileHandle* fileHandle;
+    PageAllocator* pageAllocator;
     ShadowFile* shadowFile;
     MemoryManager& memoryManager;
     std::atomic<common::page_idx_t> pageCounter;

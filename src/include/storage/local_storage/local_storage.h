@@ -4,6 +4,7 @@
 
 #include "common/copy_constructors.h"
 #include "storage/local_storage/local_table.h"
+#include "storage/optimistic_allocator.h"
 
 namespace kuzu {
 namespace main {
@@ -24,6 +25,8 @@ public:
     // Return nullptr if no local table exists.
     LocalTable* getLocalTable(common::table_id_t tableID) const;
 
+    PageAllocator* addOptimisticAllocator();
+
     void commit();
     void rollback();
 
@@ -32,6 +35,10 @@ public:
 private:
     main::ClientContext& clientContext;
     std::unordered_map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
+
+    // The mutex is only needed when working with the optimistic allocators
+    std::mutex mtx;
+    std::vector<std::unique_ptr<OptimisticAllocator>> optimisticAllocators;
 };
 
 } // namespace storage
