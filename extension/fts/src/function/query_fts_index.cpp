@@ -47,7 +47,7 @@ struct QFTSSharedState : public GDSFuncSharedState {
         processor::FactorizedTable& localTable, DocScore docScore) {
         KU_ASSERT(vectors[0]->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
         KU_ASSERT(vectors[1]->dataType.getLogicalTypeID() == LogicalTypeID::DOUBLE);
-        vectors[0]->setValue(0, docScore.offset);
+        vectors[0]->setValue(0, internalID_t{(common::offset_t)docScore.offset, outputTableID});
         vectors[1]->setValue(0, docScore.score);
         localTable.append(vectors);
     }
