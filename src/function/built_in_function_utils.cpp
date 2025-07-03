@@ -2,6 +2,8 @@
 
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "common/exception/binder.h"
+#include "common/string_format.h"
+#include "common/types/types.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 
@@ -489,13 +491,9 @@ void BuiltInFunctionsUtils::validateSpecialCases(std::vector<Function*>& candida
 static std::string getFunctionMatchFailureMsg(const std::string name,
     const std::vector<LogicalType>& inputTypes, const std::string& supportedInputs,
     bool isDistinct = false) {
-    auto result = stringFormat("Cannot match a built-in function for given function {}{}{}.", name,
-        isDistinct ? "DISTINCT " : "", LogicalTypeUtils::toString(inputTypes));
-    if (supportedInputs.empty()) {
-        result += " Expect empty inputs.";
-    } else {
-        result += " Supported inputs are\n" + supportedInputs;
-    }
+    std::string result = stringFormat("Function {} did not receive correct arguments:\n", name);
+    result += stringFormat("Actual {}{}\n", isDistinct ? "DISTINCT " : "", LogicalTypeUtils::toString(inputTypes));
+    result += stringFormat("Expected {}", supportedInputs);
     return result;
 }
 

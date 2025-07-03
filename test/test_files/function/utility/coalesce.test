@@ -95,8 +95,9 @@ default_string
 -LOG IfNullError
 -STATEMENT RETURN ifnull(NULL, 1, 2);
 ---- error
-Binder exception: Cannot match a built-in function for given function IFNULL(ANY,INT64,INT64). Supported inputs are
-(ANY,ANY) -> ANY
+Binder exception: Function IFNULL did not receive correct arguments:
+Actual (ANY,INT64,INT64)
+Expected (ANY,ANY) -> ANY
 
 -STATEMENT RETURN ifNULL;
 ---- error

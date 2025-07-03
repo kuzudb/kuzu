@@ -10,8 +10,9 @@ Binder exception: Expression LIST_CREATION(A,B) has data type STRING[] but expec
 
 -STATEMENT MATCH (a:person) RETURN array_concat(a.workedHours, a.age)
 ---- error
-Binder exception: Cannot match a built-in function for given function ARRAY_CONCAT(INT64[],INT64). Supported inputs are
-(LIST,LIST) -> LIST
+Binder exception: Function ARRAY_CONCAT did not receive correct arguments:
+Actual (INT64[],INT64)
+Expected (LIST,LIST) -> LIST
 
 -STATEMENT MATCH (a:person) RETURN array_concat(a.workedHours, ['A'])
 ---- error

@@ -92,8 +92,9 @@ Binder exception: Cannot bind s.* as a single property expression.
 -LOG BindIDArithmetic
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *
 ---- error
-Binder exception: Cannot match a built-in function for given function +(INTERNAL_ID,INT64). Supported inputs are
-(INT128,INT128) -> INT128
+Binder exception: Function + did not receive correct arguments:
+Actual (INTERNAL_ID,INT64)
+Expected (INT128,INT128) -> INT128
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
@@ -200,8 +201,9 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 -LOG BindFunctionWithWrongNumParams
 -STATEMENT MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);
 ---- error
-Binder exception: Cannot match a built-in function for given function DATE. Supported inputs are
-(STRING) -> DATE
+Binder exception: Function DATE did not receive correct arguments:
+Actual 
+Expected (STRING) -> DATE
 
 -LOG BindFunctionWithWrongParamType
 -STATEMENT MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);
@@ -384,8 +386,9 @@ Binder exception: Variable a already exists.
 -LOG MinNodeID
 -STATEMENT MATCH (a:person) RETURN MIN(a)
 ---- error
-Binder exception: Cannot match a built-in function for given function MIN(NODE). Supported inputs are
-DISTINCT (BOOL) -> BOOL
+Binder exception: Function MIN did not receive correct arguments:
+Actual (NODE)
+Expected DISTINCT (BOOL) -> BOOL
 (BOOL) -> BOOL
 DISTINCT (INT64) -> INT64
 (INT64) -> INT64
