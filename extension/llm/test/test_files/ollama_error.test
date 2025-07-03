@@ -11,19 +11,21 @@
 
 -STATEMENT return create_embedding('hello')
 ---- error
-Binder exception: Cannot match a built-in function for given function CREATE_EMBEDDING(STRING). Supported inputs are
-(STRING,STRING,STRING) -> LIST
-(STRING,STRING,STRING,STRING) -> LIST
-(STRING,STRING,STRING,INT64) -> LIST
-(STRING,STRING,STRING,INT64,STRING) -> LIST
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
 
 -STATEMENT return create_embedding('hello', 'olama')
 ---- error
-Binder exception: Cannot match a built-in function for given function CREATE_EMBEDDING(STRING,STRING). Supported inputs are
-(STRING,STRING,STRING) -> LIST
-(STRING,STRING,STRING,STRING) -> LIST
-(STRING,STRING,STRING,INT64) -> LIST
-(STRING,STRING,STRING,INT64,STRING) -> LIST
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
 
 -STATEMENT return create_embedding('hello', 'olama', 'nomic-text-embed')
 ---- error
