@@ -35,8 +35,8 @@ HashIndex<T>::HashIndex(MemoryManager& memoryManager, OverflowFileHandle* overfl
       localStorage{std::make_unique<HashIndexLocalStorage<T>>(memoryManager, overflowFileHandle)},
       indexHeaderForReadTrx{indexHeaderForReadTrx}, indexHeaderForWriteTrx{indexHeaderForWriteTrx},
       memoryManager{memoryManager} {
-    pSlots = diskArrays.getDiskArray<Slot<T>>(indexPos);
-    oSlots = diskArrays.getDiskArray<Slot<T>>(NUM_HASH_INDEXES + indexPos);
+    pSlots = diskArrays.getDiskArray<OnDiskSlotType>(indexPos);
+    oSlots = diskArrays.getDiskArray<OnDiskSlotType>(NUM_HASH_INDEXES + indexPos);
 }
 
 template<typename T>
@@ -139,7 +139,7 @@ void HashIndex<T>::splitSlots(PageAllocator& pageAllocator, const Transaction* t
     auto overflowSlotIterator = oSlots->iter_mut();
     // The overflow slot iterators will hang if they access the same page
     // So instead buffer new overflow slots here and append them at the end
-    std::vector<Slot<T>> newOverflowSlots;
+    std::vector<OnDiskSlotType> newOverflowSlots;
 
     auto getNextOvfSlot = [&](slot_id_t nextOvfSlotId) {
         if (nextOvfSlotId >= oSlots->getNumElements()) {
@@ -150,17 +150,16 @@ void HashIndex<T>::splitSlots(PageAllocator& pageAllocator, const Transaction* t
     };
 
     for (slot_id_t i = 0; i < numSlotsToSplit; i++) {
-        auto* newSlot = &*newSlotIterator.pushBack(pageAllocator, transaction, Slot<T>());
+        auto* newSlot = &*newSlotIterator.pushBack(pageAllocator, transaction, OnDiskSlotType());
         entry_pos_t newEntryPos = 0;
-        Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
+        OnDiskSlotType* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
         do {
-            for (entry_pos_t originalEntryPos = 0;
-                originalEntryPos < getSlotCapacity<typename InMemHashIndex<T>::OwnedType>();
+            for (entry_pos_t originalEntryPos = 0; originalEntryPos < PERSISTENT_SLOT_CAPACITY;
                 originalEntryPos++) {
                 if (!originalSlot->header.isEntryValid(originalEntryPos)) {
                     continue; // Skip invalid entries.
                 }
-                if (newEntryPos >= getSlotCapacity<typename InMemHashIndex<T>::OwnedType>()) {
+                if (newEntryPos >= PERSISTENT_SLOT_CAPACITY) {
                     newSlot->header.nextOvfSlotId =
                         newOverflowSlots.size() + oSlots->getNumElements();
                     newOverflowSlots.emplace_back();
@@ -190,9 +189,9 @@ void HashIndex<T>::splitSlots(PageAllocator& pageAllocator, const Transaction* t
 }
 
 template<typename T>
-std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(
-    const Transaction* transaction, slot_id_t pSlotId) {
-    std::vector<std::pair<SlotInfo, Slot<T>>> slots;
+std::vector<std::pair<SlotInfo, typename HashIndex<T>::OnDiskSlotType>>
+HashIndex<T>::getChainedSlots(const Transaction* transaction, slot_id_t pSlotId) {
+    std::vector<std::pair<SlotInfo, OnDiskSlotType>> slots;
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
     while (slotInfo.slotType == SlotType::PRIMARY ||
            slotInfo.slotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
@@ -210,10 +209,9 @@ void HashIndex<T>::reserve(PageAllocator& pageAllocator, const Transaction* tran
     slot_id_t numRequiredEntries =
         HashIndexUtils::getNumRequiredEntries(this->indexHeaderForWriteTrx.numEntries + newEntries);
     // Can be no fewer slots than the current level requires
-    auto numRequiredSlots = std::max(
-        (numRequiredEntries + getSlotCapacity<typename InMemHashIndex<T>::OwnedType>() - 1) /
-            getSlotCapacity<typename InMemHashIndex<T>::OwnedType>(),
-        static_cast<slot_id_t>(1ul << this->indexHeaderForWriteTrx.currentLevel));
+    auto numRequiredSlots =
+        std::max((numRequiredEntries + PERSISTENT_SLOT_CAPACITY - 1) / PERSISTENT_SLOT_CAPACITY,
+            static_cast<slot_id_t>(1ul << this->indexHeaderForWriteTrx.currentLevel));
     // Always start with at least one page worth of slots.
     // This guarantees that when splitting the source and destination slot are never on the same
     // page, which allows safe use of multiple disk array iterators.
@@ -297,7 +295,7 @@ void HashIndex<T>::mergeBulkInserts(PageAllocator& pageAllocator, const Transact
     // Store sorted slot positions. Re-use to avoid re-allocating memory
     // TODO: Unify implementations to make sure this matches the size used by the disk array
     constexpr size_t NUM_SLOTS_PER_PAGE =
-        KUZU_PAGE_SIZE / DiskArray<Slot<T>>::getAlignedElementSize();
+        KUZU_PAGE_SIZE / DiskArray<OnDiskSlotType>::getAlignedElementSize();
     std::array<std::vector<HashIndexEntryView>, NUM_SLOTS_PER_PAGE> partitionedEntries;
     // Sort entries for a page of slots at a time, then move vertically and process all entries
     // which map to a given page on disk, then horizontally to the next page in the set. These pages
@@ -349,12 +347,13 @@ void HashIndex<T>::mergeBulkInserts(PageAllocator& pageAllocator, const Transact
 template<typename T>
 size_t HashIndex<T>::mergeSlot(PageAllocator& pageAllocator, const Transaction* transaction,
     const std::vector<HashIndexEntryView>& slotToMerge,
-    typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
-    typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t diskSlotId) {
+    typename DiskArray<OnDiskSlotType>::WriteIterator& diskSlotIterator,
+    typename DiskArray<OnDiskSlotType>::WriteIterator& diskOverflowSlotIterator,
+    slot_id_t diskSlotId) {
     slot_id_t diskEntryPos = 0u;
     // mergeSlot should only be called when there is at least one entry for the given disk slot id
     // in the slot to merge
-    Slot<T>* diskSlot = &*diskSlotIterator.seek(diskSlotId);
+    OnDiskSlotType* diskSlot = &*diskSlotIterator.seek(diskSlotId);
     KU_ASSERT(diskSlot->header.nextOvfSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID ||
               diskOverflowSlotIterator.size() > diskSlot->header.nextOvfSlotId);
     // Merge slot from local storage to an existing slot.
@@ -365,14 +364,14 @@ size_t HashIndex<T>::mergeSlot(PageAllocator& pageAllocator, const Transaction* 
         }
         // Find the next empty entry or add a new slot if there are no more entries
         while (diskSlot->header.isEntryValid(diskEntryPos) ||
-               diskEntryPos >= getSlotCapacity<typename InMemHashIndex<T>::OwnedType>()) {
+               diskEntryPos >= PERSISTENT_SLOT_CAPACITY) {
             diskEntryPos++;
-            if (diskEntryPos >= getSlotCapacity<typename InMemHashIndex<T>::OwnedType>()) {
+            if (diskEntryPos >= PERSISTENT_SLOT_CAPACITY) {
                 if (diskSlot->header.nextOvfSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
                     // If there are no more disk slots in this chain, we need to add one
                     diskSlot->header.nextOvfSlotId = diskOverflowSlotIterator.size();
                     // This may invalidate diskSlot
-                    diskOverflowSlotIterator.pushBack(pageAllocator, transaction, Slot<T>());
+                    diskOverflowSlotIterator.pushBack(pageAllocator, transaction, OnDiskSlotType());
                     KU_ASSERT(
                         diskSlot->header.nextOvfSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID ||
                         diskOverflowSlotIterator.size() > diskSlot->header.nextOvfSlotId);
@@ -388,7 +387,7 @@ size_t HashIndex<T>::mergeSlot(PageAllocator& pageAllocator, const Transaction* 
                 diskEntryPos = 0;
             }
         }
-        KU_ASSERT(diskEntryPos < getSlotCapacity<typename InMemHashIndex<T>::OwnedType>());
+        KU_ASSERT(diskEntryPos < PERSISTENT_SLOT_CAPACITY);
         if constexpr (std::is_same_v<T, ku_string_t>) {
             auto* inMemEntry = it->entry;
             auto kuString = overflowFileHandle->writeString(&pageAllocator, inMemEntry->key);

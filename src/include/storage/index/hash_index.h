@@ -78,6 +78,11 @@ public:
     ~HashIndex() override;
 
 public:
+    using OnDiskSlotType = Slot<T>;
+    using InMemSlotType = InMemHashIndex<T>::InMemSlotType;
+    static constexpr auto PERSISTENT_SLOT_CAPACITY = getSlotCapacity<T>();
+    static constexpr auto IN_MEM_SLOT_CAPACITY = InMemHashIndex<T>::SLOT_CAPACITY;
+
     using Key =
         typename std::conditional<std::same_as<T, common::ku_string_t>, std::string_view, T>::type;
     // For read transactions, local storage is skipped, lookups are performed on the persistent
@@ -186,8 +191,9 @@ private:
         visible_func isVisible);
 
     entry_pos_t findMatchedEntryInSlot(const transaction::Transaction* transaction,
-        const Slot<T>& slot, Key key, uint8_t fingerprint, const visible_func& isVisible) const {
-        for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
+        const OnDiskSlotType& slot, Key key, uint8_t fingerprint,
+        const visible_func& isVisible) const {
+        for (auto entryPos = 0u; entryPos < PERSISTENT_SLOT_CAPACITY; entryPos++) {
             if (slot.header.isEntryValid(entryPos) &&
                 slot.header.fingerprints[entryPos] == fingerprint &&
                 equals(transaction, key, slot.entries[entryPos].key) &&
@@ -199,13 +205,13 @@ private:
     }
 
     inline void updateSlot(const transaction::Transaction* transaction, const SlotInfo& slotInfo,
-        const Slot<T>& slot) {
+        const OnDiskSlotType& slot) {
         slotInfo.slotType == SlotType::PRIMARY ?
             pSlots->update(transaction, slotInfo.slotId, slot) :
             oSlots->update(transaction, slotInfo.slotId, slot);
     }
 
-    inline Slot<T> getSlot(const transaction::Transaction* transaction,
+    inline OnDiskSlotType getSlot(const transaction::Transaction* transaction,
         const SlotInfo& slotInfo) const {
         return slotInfo.slotType == SlotType::PRIMARY ? pSlots->get(slotInfo.slotId, transaction) :
                                                         oSlots->get(slotInfo.slotId, transaction);
@@ -235,8 +241,9 @@ private:
     // Returns the number of elements merged which matched the given slot id
     size_t mergeSlot(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
         const std::vector<HashIndexEntryView>& slotToMerge,
-        typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
-        typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t diskSlotId);
+        typename DiskArray<OnDiskSlotType>::WriteIterator& diskSlotIterator,
+        typename DiskArray<OnDiskSlotType>::WriteIterator& diskOverflowSlotIterator,
+        slot_id_t diskSlotId);
 
     inline bool equals(const transaction::Transaction* /*transaction*/, Key keyToLookup,
         const T& keyInEntry) const {
@@ -255,7 +262,7 @@ private:
 
     struct SlotIterator {
         SlotInfo slotInfo;
-        Slot<T> slot;
+        OnDiskSlotType slot;
     };
 
     SlotIterator getSlotIterator(slot_id_t slotId, const transaction::Transaction* transaction) {
@@ -275,14 +282,14 @@ private:
         return false;
     }
 
-    std::vector<std::pair<SlotInfo, Slot<T>>> getChainedSlots(
+    std::vector<std::pair<SlotInfo, OnDiskSlotType>> getChainedSlots(
         const transaction::Transaction* transaction, slot_id_t pSlotId);
 
 private:
     ShadowFile* shadowFile;
     uint64_t headerPageIdx;
-    std::unique_ptr<DiskArray<Slot<T>>> pSlots;
-    std::unique_ptr<DiskArray<Slot<T>>> oSlots;
+    std::unique_ptr<DiskArray<OnDiskSlotType>> pSlots;
+    std::unique_ptr<DiskArray<OnDiskSlotType>> oSlots;
     OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<HashIndexLocalStorage<T>> localStorage;
     const HashIndexHeader& indexHeaderForReadTrx;

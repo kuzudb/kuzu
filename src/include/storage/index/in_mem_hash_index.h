@@ -62,14 +62,17 @@ public:
     using KeyType = std::conditional_t<std::is_same_v<T, common::ku_string_t>, std::string_view, T>;
     static_assert(std::is_constructible_v<OwnedType, KeyType>);
 
-    static_assert(getSlotCapacity<OwnedType>() <= SlotHeader::FINGERPRINT_CAPACITY);
+    static constexpr auto SLOT_CAPACITY = getSlotCapacity<OwnedType>();
+    using InMemSlotType = Slot<OwnedType>;
+
+    static_assert(SLOT_CAPACITY <= SlotHeader::FINGERPRINT_CAPACITY);
     // Size of the validity mask
-    static_assert(getSlotCapacity<OwnedType>() <= sizeof(SlotHeader().validityMask) * 8);
-    static_assert(getSlotCapacity<OwnedType>() <= std::numeric_limits<entry_pos_t>::max() + 1);
-    static_assert(DiskArray<Slot<T>>::getAlignedElementSize() <=
+    static_assert(SLOT_CAPACITY <= sizeof(SlotHeader().validityMask) * 8);
+    static_assert(SLOT_CAPACITY <= std::numeric_limits<entry_pos_t>::max() + 1);
+    static_assert(DiskArray<InMemSlotType>::getAlignedElementSize() <=
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES);
-    static_assert(DiskArray<Slot<T>>::getAlignedElementSize() >= sizeof(Slot<T>));
-    static_assert(DiskArray<Slot<T>>::getAlignedElementSize() >
+    static_assert(DiskArray<InMemSlotType>::getAlignedElementSize() >= sizeof(InMemSlotType));
+    static_assert(DiskArray<InMemSlotType>::getAlignedElementSize() >
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES / 2);
 
 public:
@@ -85,12 +88,9 @@ public:
         reserve(indexHeader.numEntries + numNewEntries);
     }
 
-    using BufferKeyType = OwnedType;
-    // TODO(Ben): Ideally, `Key` should reuse `HashIndexType`.
-    using Key = KeyType;
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
-    size_t append(const IndexBuffer<BufferKeyType>& buffer, uint64_t bufferOffset,
+    size_t append(const IndexBuffer<OwnedType>& buffer, uint64_t bufferOffset,
         visible_func isVisible) {
         reserve(indexHeader.numEntries + buffer.size() - bufferOffset);
         common::hash_t hashes[INDEX_BUFFER_SIZE];
@@ -104,11 +104,11 @@ public:
         return buffer.size() - bufferOffset;
     }
 
-    bool append(Key key, common::offset_t value, visible_func isVisible) {
+    bool append(KeyType key, common::offset_t value, visible_func isVisible) {
         reserve(indexHeader.numEntries + 1);
         return appendInternal(key, value, HashIndexUtils::hash(key), isVisible);
     }
-    bool lookup(Key key, common::offset_t& result, visible_func isVisible) {
+    bool lookup(KeyType key, common::offset_t& result, visible_func isVisible) {
         // This needs to be fast if the builder is empty since this function is always tried
         // when looking up in the persistent hash index
         if (this->indexHeader.numEntries == 0) {
@@ -137,7 +137,7 @@ public:
         explicit SlotIterator(SlotInfo slotInfo, const InMemHashIndex* builder)
             : slotInfo{slotInfo}, slot(builder->getSlot(slotInfo)) {}
         SlotInfo slotInfo;
-        Slot<OwnedType>* slot;
+        InMemSlotType* slot;
     };
 
     // Leaves the slot pointer pointing at the last slot to make it easier to add a new one
@@ -161,7 +161,7 @@ public:
 
     // Deletes key, maintaining gapless structure by replacing it with the last entry in the
     // slot
-    bool deleteKey(Key key) {
+    bool deleteKey(KeyType key) {
         if (this->indexHeader.numEntries == 0) {
             return false;
         }
@@ -171,7 +171,7 @@ public:
         SlotIterator iter(slotId, this);
         std::optional<entry_pos_t> deletedPos;
         do {
-            for (auto entryPos = 0u; entryPos < getSlotCapacity<OwnedType>(); entryPos++) {
+            for (auto entryPos = 0u; entryPos < SLOT_CAPACITY; entryPos++) {
                 if (iter.slot->header.isEntryValid(entryPos) &&
                     iter.slot->header.fingerprints[entryPos] == fingerprint &&
                     equals(key, iter.slot->entries[entryPos].key)) {
@@ -211,7 +211,7 @@ public:
 
 private:
     // Assumes that space has already been allocated for the entry
-    bool appendInternal(Key key, common::offset_t value, common::hash_t hash,
+    bool appendInternal(KeyType key, common::offset_t value, common::hash_t hash,
         visible_func isVisible) {
         auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
         auto slotID = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hash);
@@ -223,7 +223,7 @@ private:
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
             // The key already exists
             return false;
-        } else if (numEntries < getSlotCapacity<OwnedType>()) [[likely]] {
+        } else if (numEntries < SLOT_CAPACITY) [[likely]] {
             // The key does not exist and the last slot has free space
             insert(key, iter.slot, numEntries, value, fingerprint);
             this->indexHeader.numEntries++;
@@ -234,7 +234,7 @@ private:
         this->indexHeader.numEntries++;
         return true;
     }
-    Slot<OwnedType>* getSlot(const SlotInfo& slotInfo) const;
+    InMemSlotType* getSlot(const SlotInfo& slotInfo) const;
 
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
@@ -247,16 +247,16 @@ private:
     void splitSlot();
     // Reclaims empty overflow slots to be re-used, starting from the given slot iterator
     void reclaimOverflowSlots(SlotIterator iter);
-    void addFreeOverflowSlot(Slot<OwnedType>& overflowSlot, SlotInfo slotInfo);
+    void addFreeOverflowSlot(InMemSlotType& overflowSlot, SlotInfo slotInfo);
     uint64_t countSlots(SlotIterator iter) const;
     // Make sure that the free overflow slot chain is at least as long as the totalSlotsRequired
     void reserveOverflowSlots(uint64_t totalSlotsRequired);
 
-    bool equals(Key keyToLookup, const OwnedType& keyInEntry) const {
+    bool equals(KeyType keyToLookup, const OwnedType& keyInEntry) const {
         return keyToLookup == keyInEntry;
     }
 
-    void insert(Key key, Slot<OwnedType>* slot, uint8_t entryPos, common::offset_t value,
+    void insert(KeyType key, InMemSlotType* slot, uint8_t entryPos, common::offset_t value,
         uint8_t fingerprint) {
         KU_ASSERT(HashIndexUtils::getFingerprintForHash(HashIndexUtils::hash(key)) == fingerprint);
         auto& entry = slot->entries[entryPos];
@@ -264,7 +264,7 @@ private:
         slot->header.setEntryValid(entryPos, fingerprint);
     }
 
-    void insertToNewOvfSlot(Key key, Slot<OwnedType>* previousSlot, common::offset_t offset,
+    void insertToNewOvfSlot(KeyType key, InMemSlotType* previousSlot, common::offset_t offset,
         uint8_t fingerprint) {
         auto newSlotId = allocateAOSlot();
         previousSlot->header.nextOvfSlotId = newSlotId;
@@ -274,11 +274,11 @@ private:
     }
 
     common::hash_t hashStored(const OwnedType& key) const;
-    Slot<OwnedType>* clearNextOverflowAndAdvanceIter(SlotIterator& iter);
+    InMemSlotType* clearNextOverflowAndAdvanceIter(SlotIterator& iter);
 
     // Finds the entry matching the given key. The iterator will be advanced and will either point
     // to the slot containing the matching entry, or the last slot available
-    entry_pos_t findEntry(SlotIterator& iter, Key key, uint8_t fingerprint,
+    entry_pos_t findEntry(SlotIterator& iter, KeyType key, uint8_t fingerprint,
         visible_func isVisible) {
         do {
             auto numEntries = iter.slot->header.numEntries();
@@ -291,7 +291,7 @@ private:
                     return entryPos;
                 }
             }
-            if (numEntries < getSlotCapacity<OwnedType>()) {
+            if (numEntries < SLOT_CAPACITY) {
                 return SlotHeader::INVALID_ENTRY_POS;
             }
         } while (nextChainedSlot(iter));
@@ -302,8 +302,8 @@ private:
     // TODO: might be more efficient to use a vector for each slot since this is now only needed
     // in-memory and it would remove the need to handle overflow slots.
     OverflowFileHandle* overflowFileHandle;
-    std::unique_ptr<BlockVector<Slot<OwnedType>>> pSlots;
-    std::unique_ptr<BlockVector<Slot<OwnedType>>> oSlots;
+    std::unique_ptr<BlockVector<InMemSlotType>> pSlots;
+    std::unique_ptr<BlockVector<InMemSlotType>> oSlots;
     HashIndexHeader indexHeader;
     MemoryManager& memoryManager;
     uint64_t numFreeSlots;
