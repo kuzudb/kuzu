@@ -514,7 +514,7 @@ static std::string getFunctionMatchFailureMsg(const std::string name,
     bool isDistinct = false) {
     std::string result = stringFormat("Function {} did not receive correct arguments:\n", name);
     result += stringFormat("Actual:   {}{}\n", isDistinct ? "DISTINCT " : "",
-        inputTypes.empty() ? "No arguments." : LogicalTypeUtils::toString(inputTypes));
+        inputTypes.empty() ? "()" : LogicalTypeUtils::toString(inputTypes));
     result += stringFormat("Expected: {}\n",
         supportedInputs.empty() ? "No arguments." : alignedString(supportedInputs));
     return result;
