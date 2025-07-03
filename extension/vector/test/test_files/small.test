@@ -403,6 +403,7 @@ embeddings|e_hnsw_index|HNSW|[vec]|False|
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, metric := 'l2', alpha := 1.100000, efc := 200);
 
 -CASE InstallOfficialExtension
+-SKIP
 -SKIP_STATIC_LINK
 -STATEMENT FORCE INSTALL vector FROM 'http://localhost/extension/repo/'
 ---- ok

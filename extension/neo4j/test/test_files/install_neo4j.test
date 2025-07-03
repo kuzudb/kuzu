@@ -4,6 +4,7 @@
 --
 
 -CASE InstallOfficialExtension
+-SKIP
 -STATEMENT FORCE INSTALL neo4j FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension neo4j

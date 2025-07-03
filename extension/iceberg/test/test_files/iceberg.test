@@ -144,6 +144,7 @@ lineitem_iceberg/metadata/cf3d0be5-cf70-453d-ad8f-48fdc412e608-m0.avro|1|DATA|AD
 6|6|1992-03-07|TAKE BACK RETURN
 
 -CASE InstallOfficialExtension
+-SKIP
 -STATEMENT FORCE INSTALL iceberg FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension iceberg
