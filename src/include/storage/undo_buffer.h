@@ -115,8 +115,8 @@ private:
 
     static void commitVersionInfo(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS);
-    static void rollbackVersionInfo(main::ClientContext* context,
-        UndoRecordType recordType, const uint8_t* record);
+    static void rollbackVersionInfo(main::ClientContext* context, UndoRecordType recordType,
+        const uint8_t* record);
 
     static void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS);
     static void rollbackVectorUpdateInfo(const transaction::Transaction* transaction,
