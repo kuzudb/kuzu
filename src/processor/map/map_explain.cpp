@@ -22,18 +22,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(const LogicalOperator* 
             logicalExplain.getInnerResultColumns(), inSchema, std::move(root));
     }
     auto memoryManager = clientContext->getMemoryManager();
-    auto messageTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(memoryManager);
+    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(memoryManager);
     if (logicalExplain.getExplainType() == ExplainType::PROFILE) {
-        auto profile = std::make_unique<Profile>(ProfileInfo{}, std::move(messageTable), getOperatorID(), OPPrintInfo::EmptyInfo());
+        auto profile = std::make_unique<Profile>(ProfileInfo{}, std::move(messageTable),
+            getOperatorID(), OPPrintInfo::EmptyInfo());
         profile->addChild(std::move(root));
         return profile;
     }
     if (logicalExplain.getExplainType() == ExplainType::PHYSICAL_PLAN) {
         auto plan = std::make_unique<PhysicalPlan>(std::move(root));
         auto profiler = std::make_unique<Profiler>();
-        auto explainStr =
-            main::PlanPrinter::printPlanToOstream(plan.get(), profiler.get()).str();
+        auto explainStr = main::PlanPrinter::printPlanToOstream(plan.get(), profiler.get()).str();
         FactorizedTableUtils::appendStringToTable(messageTable.get(), explainStr, memoryManager);
         return std::make_unique<DummySimpleSink>(std::move(messageTable), getOperatorID());
     }

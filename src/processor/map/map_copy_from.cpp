@@ -58,10 +58,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(const LogicalOperator*
         copyFrom.getInfo()->getIgnoreErrorsOption());
     switch (copyFrom.getInfo()->tableType) {
     case TableType::NODE: {
-        return  mapCopyNodeFrom(logicalOperator);
+        return mapCopyNodeFrom(logicalOperator);
     }
     case TableType::REL: {
-        return  mapCopyRelFrom(logicalOperator);
+        return mapCopyRelFrom(logicalOperator);
     }
     default:
         KU_UNREACHABLE;
@@ -148,7 +148,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
     return partitioner;
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
+    const LogicalOperator* logicalOperator) {
     auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
     const auto copyFromInfo = copyFrom.getInfo();
     auto partitioner = mapOperator(copyFrom.getChild(0).get());

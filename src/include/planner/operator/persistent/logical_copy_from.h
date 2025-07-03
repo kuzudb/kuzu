@@ -28,7 +28,7 @@ class LogicalCopyFrom final : public LogicalOperator {
 public:
     LogicalCopyFrom(binder::BoundCopyFromInfo info, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{type_, std::move(child), std::optional<common::cardinality_t>(0)},
-          info{std::move(info)}  {}
+          info{std::move(info)} {}
     LogicalCopyFrom(binder::BoundCopyFromInfo info, const logical_op_vector_t& children)
         : LogicalOperator{type_, children}, info{std::move(info)} {}
 

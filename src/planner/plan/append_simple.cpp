@@ -114,8 +114,8 @@ LogicalPlan Planner::planExplain(const BoundStatement& statement) {
     auto& explain = statement.constCast<BoundExplain>();
     auto statementToExplain = explain.getStatementToExplain();
     auto planToExplain = planStatement(*statementToExplain);
-    auto op = std::make_shared<LogicalExplain>(planToExplain.getLastOperator(), explain.getExplainType(),
-        statementToExplain->getStatementResult()->getColumns());
+    auto op = std::make_shared<LogicalExplain>(planToExplain.getLastOperator(),
+        explain.getExplainType(), statementToExplain->getStatementResult()->getColumns());
     return getSimplePlan(std::move(op));
 }
 

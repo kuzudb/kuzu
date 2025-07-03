@@ -25,9 +25,7 @@ public:
 
     common::ExplainType getExplainType() const { return explainType; }
 
-    binder::expression_vector getInnerResultColumns() const {
-        return innerResultColumns;
-    }
+    binder::expression_vector getInnerResultColumns() const { return innerResultColumns; }
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalExplain>(children[0], explainType, innerResultColumns);

@@ -20,7 +20,7 @@ public:
 
     void setPhysicalPlan(PhysicalPlan* physicalPlan) { info.physicalPlan = physicalPlan; }
 
-    void executeInternal(ExecutionContext *context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<Profile>(info, messageTable, id, printInfo->copy());
