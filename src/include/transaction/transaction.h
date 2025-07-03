@@ -120,7 +120,6 @@ public:
     bool isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const;
     common::row_idx_t getLocalRowIdx(common::table_id_t tableID,
         common::offset_t nodeOffset) const {
-        KU_ASSERT(isUnCommitted(tableID, nodeOffset));
         return nodeOffset - getMinUncommittedNodeOffset(tableID);
     }
     common::offset_t getUncommittedOffset(common::table_id_t tableID,

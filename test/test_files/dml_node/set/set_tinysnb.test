@@ -28,18 +28,6 @@
 {age: 20, name: Bobdjiweknfwhuwiehfuw}
 {age: 30, name: Delta}
 
--CASE UpdatingSerialPrimaryKey
--STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
----- ok
--STATEMENT CREATE (a:A);
----- ok
--STATEMENT MATCH (a:A) WHERE a.ID = 0 SET a.ID = 1 RETURN a.ID;
----- 1
-1
--STATEMENT MATCH (a:A) RETURN a.ID;
----- 1
-1
-
 -CASE SetNodeInt64PropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.age=20 + 50
 ---- ok

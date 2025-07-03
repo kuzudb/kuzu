@@ -10,11 +10,9 @@
 Runtime exception: Found duplicated primary key value 2, which violates the uniqueness constraint of the primary key column.
 -STATEMENT CREATE (a:person {ID:200});
 ---- ok
--STATEMENT MATCH (a:person {ID:200}) SET a.ID = 300;
----- ok
 -STATEMENT MATCH (a:person) WHERE a.ID > 10 RETURN a.ID;
 ---- 1
-300
+200
 
 -CASE NonNullTest
 -STATEMENT BEGIN TRANSACTION

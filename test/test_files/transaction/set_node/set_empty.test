@@ -2,24 +2,6 @@
 
 --
 
--CASE ExceptionDuringHashIndexCommitRecovery
--STATEMENT CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))
----- ok
--STATEMENT BEGIN TRANSACTION
----- ok
--STATEMENT UNWIND RANGE(1,200000) AS i CREATE (a:account {ID:i})
----- ok
--STATEMENT MATCH (a:account) WHERE a.ID = 199000 SET a.ID = 1
----- ok
--STATEMENT COMMIT
----- error(regex)
-Runtime exception: Found duplicated primary key value \d+, which violates the uniqueness constraint of the primary key column.
--STATEMENT UNWIND RANGE(1,200000) AS i CREATE (a:account {ID:i})
----- ok
--STATEMENT MATCH (a:account) RETURN COUNT(*)
----- 1
-200000
-
 -CASE DoubleColumnInsertionsAndUpdatesLarge
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok

@@ -91,7 +91,7 @@ uint64_t Transaction::getEstimatedMemUsage() const {
 }
 
 bool Transaction::isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const {
-    return localStorage->getLocalTable(tableID) &&
+    return localStorage && localStorage->getLocalTable(tableID) &&
            nodeOffset >= getMinUncommittedNodeOffset(tableID);
 }
 
