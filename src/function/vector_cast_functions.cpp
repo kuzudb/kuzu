@@ -631,8 +631,7 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     }
     if (minCastCost == UNDEFINED_CAST_COST) {
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
-            sourceType.toString(),
-            targetType.toString())};
+            sourceType.toString(), targetType.toString())};
     }
     const auto& innerType = common::UnionType::getFieldType(targetType, minCostTag);
     scalar_func_exec_t execFunc;
