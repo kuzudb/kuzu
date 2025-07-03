@@ -605,7 +605,6 @@ void PrimaryKeyIndex::writeHeaders(PageAllocator& pageAllocator) const {
         const auto allocatedPages = pageAllocator.allocatePageRange(
             NUM_HEADER_PAGES + 1 /*first DiskArrayCollection header page*/);
         hashIndexStorageInfo.firstHeaderPage = allocatedPages.startPageIdx;
-        hashIndexDiskArrays->populateNextHeaderPages(pageAllocator);
     }
     for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
         ShadowUtils::updatePage(*pageAllocator.getDataFH(),

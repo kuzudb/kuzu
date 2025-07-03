@@ -41,6 +41,13 @@ void DiskArrayCollection::checkpoint(page_idx_t firstHeaderPage, PageAllocator& 
     // Write headers to disk
     page_idx_t headerPage = firstHeaderPage;
     for (page_idx_t indexInMemory = 0; indexInMemory < headersForWriteTrx.size(); indexInMemory++) {
+        if (headersForWriteTrx[indexInMemory]->nextHeaderPage == INVALID_PAGE_IDX &&
+            indexInMemory < headersForWriteTrx.size() - 1) {
+            // This is the first time checkpointing the next disk array, allocate a page for its
+            // header
+            populateNextHeaderPage(pageAllocator, indexInMemory);
+        }
+
         // Only update if the headers for the given page have changed
         // Or if the page has not yet been written
         if (indexInMemory >= headerPagesOnDisk ||
@@ -59,17 +66,15 @@ void DiskArrayCollection::checkpoint(page_idx_t firstHeaderPage, PageAllocator& 
     headerPagesOnDisk = headersForWriteTrx.size();
 }
 
-void DiskArrayCollection::populateNextHeaderPages(PageAllocator& pageAllocator) {
-    KU_ASSERT(headersForReadTrx.size() == headersForWriteTrx.size());
-    for (size_t i = 0; i < headersForReadTrx.size() - 1; ++i) {
-        auto nextHeaderPage = pageAllocator.allocatePage();
-        headersForWriteTrx[i]->nextHeaderPage = nextHeaderPage;
-        // We can't really roll back the structural changes in the PKIndex (the disk arrays are
-        // created in the destructor and there are a fixed number which does not change after that
-        // point), so we apply those to the version that would otherwise be identical to the one on
-        // disk
-        headersForReadTrx[i]->nextHeaderPage = nextHeaderPage;
-    }
+void DiskArrayCollection::populateNextHeaderPage(PageAllocator& pageAllocator,
+    common::page_idx_t indexInMemory) {
+    auto nextHeaderPage = pageAllocator.allocatePage();
+    headersForWriteTrx[indexInMemory]->nextHeaderPage = nextHeaderPage;
+    // We can't really roll back the structural changes in the PKIndex (the disk arrays are
+    // created in the destructor and there are a fixed number which does not change after that
+    // point), so we apply those to the version that would otherwise be identical to the one on
+    // disk
+    headersForReadTrx[indexInMemory]->nextHeaderPage = nextHeaderPage;
 }
 
 size_t DiskArrayCollection::addDiskArray() {
