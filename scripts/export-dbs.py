@@ -56,20 +56,6 @@ def findValidDatasetDirs(datasetRoot):
     return validDirs
 
 
-# We must update all relative paths in copy.cypher to use full paths.
-# This expands all matches of a relative path beginning with dataset to a
-# full path.
-def replaceDatasetPaths(command, datasetRoot):
-    def replace_match(match):
-        quote = match.group(1)
-        folder = match.group(2)  # 'dataset' or 'extension'
-        relative_path = match.group(3)
-        full_path = os.path.join(datasetRoot, folder, relative_path)
-        return f'{quote}{full_path}{quote}'
-
-    return re.sub(r'(["\'])(dataset|extension)/([^"\']+)\1', replace_match, command)
-
-
 # Example scripts/export-dbs.py build/debug/tools/shell/kuzu dataset.
 def main():
     parser = argparse.ArgumentParser(description="""Export DBS with
@@ -102,8 +88,6 @@ def main():
     for datasetPath in validDatasets:
         schemaCommands = createCypherQueries(os.path.join(datasetPath, "schema.cypher"))
         copyCommands = createCypherQueries(os.path.join(datasetPath, "copy.cypher"))
-        rawCopyCommands = createCypherQueries(os.path.join(datasetPath, "copy.cypher"))
-        copyCommands = [replaceDatasetPaths(cmd, rootDir) for cmd in rawCopyCommands]
         combinedCommands = schemaCommands + copyCommands
         datasetName = os.path.relpath(datasetPath, argDatasetPath)
         exportPath = os.path.join(argDatasetPath, "tmp", version, datasetName)
@@ -115,7 +99,8 @@ def main():
         process = subprocess.Popen(
             [argExecutablePath],
             stdin=subprocess.PIPE,
-            text=True
+            text=True,
+            cwd=rootDir
         )
 
         for cmd in combinedCommands:
