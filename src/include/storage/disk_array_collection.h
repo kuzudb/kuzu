@@ -62,7 +62,7 @@ public:
 
     size_t addDiskArray();
 
-    void populateNextHeaderPages(PageAllocator& pageAllocator);
+    void populateNextHeaderPage(PageAllocator& pageAllocator, common::page_idx_t indexInMemory);
 
 private:
     FileHandle& fileHandle;
