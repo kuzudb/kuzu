@@ -101,7 +101,7 @@
 -STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) RETURN size(a)
 ---- error
 Binder exception: Function SIZE did not receive correct arguments:
-Actual: (NODE)
+Actual:   (NODE)
 Expected: (LIST) -> INT64
 (ARRAY) -> INT64
 (MAP) -> INT64
@@ -109,7 +109,7 @@ Expected: (LIST) -> INT64
 -STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) RETURN size(p)
 ---- error
 Binder exception: Function SIZE did not receive correct arguments:
-Actual: (RECURSIVE_REL)
+Actual:   (RECURSIVE_REL)
 Expected: (LIST) -> INT64
 (ARRAY) -> INT64
 (MAP) -> INT64
@@ -117,7 +117,7 @@ Expected: (LIST) -> INT64
 -STATEMENT MATCH p = (a:person)-[e:knows]->(b:person) RETURN size(e)
 ---- error
 Binder exception: Function SIZE did not receive correct arguments:
-Actual: (REL)
+Actual:   (REL)
 Expected: (LIST) -> INT64
 (ARRAY) -> INT64
 (MAP) -> INT64

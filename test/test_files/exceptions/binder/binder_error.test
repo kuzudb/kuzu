@@ -93,7 +93,7 @@ Binder exception: Cannot bind s.* as a single property expression.
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *
 ---- error
 Binder exception: Function + did not receive correct arguments:
-Actual: (INTERNAL_ID,INT64)
+Actual:   (INTERNAL_ID,INT64)
 Expected: (INT128,INT128) -> INT128
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
@@ -202,7 +202,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 -STATEMENT MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);
 ---- error
 Binder exception: Function DATE did not receive correct arguments:
-Actual: No arguments.
+Actual:   No arguments.
 Expected: (STRING) -> DATE
 
 -LOG BindFunctionWithWrongParamType
@@ -387,7 +387,7 @@ Binder exception: Variable a already exists.
 -STATEMENT MATCH (a:person) RETURN MIN(a)
 ---- error
 Binder exception: Function MIN did not receive correct arguments:
-Actual: (NODE)
+Actual:   (NODE)
 Expected: DISTINCT (BOOL) -> BOOL
 (BOOL) -> BOOL
 DISTINCT (INT64) -> INT64

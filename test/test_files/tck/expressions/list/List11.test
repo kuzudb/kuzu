@@ -199,7 +199,7 @@ Runtime exception: Step of range cannot be 0.
 ## Outcome: an Error should be raised at runtime: InvalidArgumentType
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (BOOL,INT64,INT64)
+Actual:   (BOOL,INT64,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -224,7 +224,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, true, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,BOOL,INT64)
+Actual:   (INT64,BOOL,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -249,7 +249,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, 1, true);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,INT64,BOOL)
+Actual:   (INT64,INT64,BOOL)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -274,7 +274,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(-1.1, 1, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (DOUBLE,INT64,INT64)
+Actual:   (DOUBLE,INT64,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -299,7 +299,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(-0.0, 1, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (DOUBLE,INT64,INT64)
+Actual:   (DOUBLE,INT64,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -324,7 +324,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0.0, 1, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (DOUBLE,INT64,INT64)
+Actual:   (DOUBLE,INT64,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -349,7 +349,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(1.1, 1, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (DOUBLE,INT64,INT64)
+Actual:   (DOUBLE,INT64,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -374,7 +374,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, -1.1, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,DOUBLE,INT64)
+Actual:   (INT64,DOUBLE,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -399,7 +399,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, -0.0, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,DOUBLE,INT64)
+Actual:   (INT64,DOUBLE,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -424,7 +424,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, 0.0, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,DOUBLE,INT64)
+Actual:   (INT64,DOUBLE,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -449,7 +449,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, 1.1, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,DOUBLE,INT64)
+Actual:   (INT64,DOUBLE,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -474,7 +474,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, 1, -1.1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,INT64,DOUBLE)
+Actual:   (INT64,INT64,DOUBLE)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -499,7 +499,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, 1, 1.1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,INT64,DOUBLE)
+Actual:   (INT64,INT64,DOUBLE)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -524,7 +524,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range('xyz', 1, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (STRING,INT64,INT64)
+Actual:   (STRING,INT64,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -549,7 +549,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, 'xyz', 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,STRING,INT64)
+Actual:   (INT64,STRING,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -574,7 +574,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, 1, 'xyz');
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,INT64,STRING)
+Actual:   (INT64,INT64,STRING)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -599,7 +599,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range([0], 1, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64[],INT64,INT64)
+Actual:   (INT64[],INT64,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -624,7 +624,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, [1], 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,INT64[],INT64)
+Actual:   (INT64,INT64[],INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -649,7 +649,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, 1, [1]);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,INT64,INT64[])
+Actual:   (INT64,INT64,INT64[])
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -674,7 +674,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range({start: 0}, 1, 1);
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (STRUCT(start INT64),INT64,INT64)
+Actual:   (STRUCT(start INT64),INT64,INT64)
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST
@@ -700,7 +700,7 @@ Expected: (INT128,INT128) -> LIST
 -STATEMENT RETURN range(0, 1, {step: 1});
 ---- error
 Binder exception: Function RANGE did not receive correct arguments:
-Actual: (INT64,INT64,STRUCT(step INT64))
+Actual:   (INT64,INT64,STRUCT(step INT64))
 Expected: (INT128,INT128) -> LIST
 (INT128,INT128,INT128) -> LIST
 (INT64,INT64) -> LIST

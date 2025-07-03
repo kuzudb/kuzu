@@ -56,7 +56,7 @@
 -STATEMENT MATCH (:person { fName: "Alice" })-[r:knows *1..2]->(friend:person) RETURN START_NODE(r)
 ---- error
 Binder exception: Function START_NODE did not receive correct arguments:
-Actual: (RECURSIVE_REL)
+Actual:   (RECURSIVE_REL)
 Expected: (REL)
 
 
@@ -114,5 +114,5 @@ Expected: (REL)
 -STATEMENT MATCH (:person { fName: "Alice" })-[r:knows *1..2]->(friend:person) RETURN END_NODE(r)
 ---- error
 Binder exception: Function END_NODE did not receive correct arguments:
-Actual: (RECURSIVE_REL)
+Actual:   (RECURSIVE_REL)
 Expected: (REL)
