@@ -9,39 +9,31 @@ namespace kuzu {
 namespace planner {
 
 class LogicalExplain final : public LogicalOperator {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::EXPLAIN;
+
 public:
-    LogicalExplain(std::shared_ptr<LogicalOperator> child,
-        std::shared_ptr<binder::Expression> outputExpression, common::ExplainType explainType,
-        binder::expression_vector outputExpressionsToExplain)
-        : LogicalOperator{LogicalOperatorType::EXPLAIN, std::move(child)},
-          outputExpression{std::move(outputExpression)}, explainType{explainType},
-          outputExpressionsToExplain{std::move(outputExpressionsToExplain)} {}
+    LogicalExplain(std::shared_ptr<LogicalOperator> child, common::ExplainType explainType,
+        binder::expression_vector innerResultColumns)
+        : LogicalOperator{type_, std::move(child)}, explainType{explainType},
+          innerResultColumns{std::move(innerResultColumns)} {}
 
     void computeSchema();
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::shared_ptr<binder::Expression> getOutputExpression() const {
-        return outputExpression;
-    }
+    std::string getExpressionsForPrinting() const override { return ""; }
 
-    inline std::string getExpressionsForPrinting() const override { return "Explain"; }
+    common::ExplainType getExplainType() const { return explainType; }
 
-    inline common::ExplainType getExplainType() const { return explainType; }
+    binder::expression_vector getInnerResultColumns() const { return innerResultColumns; }
 
-    inline binder::expression_vector getOutputExpressionsToExplain() const {
-        return outputExpressionsToExplain;
-    }
-
-    inline std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalExplain>(children[0], outputExpression, explainType,
-            outputExpressionsToExplain);
+    std::unique_ptr<LogicalOperator> copy() override {
+        return std::make_unique<LogicalExplain>(children[0], explainType, innerResultColumns);
     }
 
 private:
-    std::shared_ptr<binder::Expression> outputExpression;
     common::ExplainType explainType;
-    binder::expression_vector outputExpressionsToExplain;
+    binder::expression_vector innerResultColumns;
 };
 
 } // namespace planner

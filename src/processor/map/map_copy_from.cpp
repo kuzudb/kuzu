@@ -56,25 +56,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(const LogicalOperator*
     const auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
     clientContext->getWarningContextUnsafe().setIgnoreErrorsForCurrentQuery(
         copyFrom.getInfo()->getIgnoreErrorsOption());
-    physical_op_vector_t children;
-    std::shared_ptr<FactorizedTable> fTable;
     switch (copyFrom.getInfo()->tableType) {
     case TableType::NODE: {
-        auto op = mapCopyNodeFrom(logicalOperator);
-        const auto copy = op->ptrCast<NodeBatchInsert>();
-        fTable = copy->getSharedState()->fTable;
-        children.push_back(std::move(op));
-    } break;
+        return mapCopyNodeFrom(logicalOperator);
+    }
     case TableType::REL: {
-        children = mapCopyRelFrom(logicalOperator);
-        const auto relBatchInsert = children[0]->ptrCast<RelBatchInsert>();
-        fTable = relBatchInsert->getSharedState()->fTable;
-    } break;
+        return mapCopyRelFrom(logicalOperator);
+    }
     default:
         KU_UNREACHABLE;
     }
-    return createFTableScanAligned(copyFrom.getOutExprs(), copyFrom.getSchema(), fTable,
-        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
@@ -157,7 +148,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
     return partitioner;
 }
 
-physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
+    const LogicalOperator* logicalOperator) {
     auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
     const auto copyFromInfo = copyFrom.getInfo();
     auto partitioner = mapOperator(copyFrom.getChild(0).get());
@@ -183,15 +175,18 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
                 ->constCast<RelGroupCatalogEntry>();
         directions = relGroupEntry.getRelDataDirections();
     }
-    physical_op_vector_t result;
+    auto sink = std::make_unique<DummySimpleSink>(fTable, getOperatorID());
+    // physical_op_vector_t result;
     for (auto direction : directions) {
         auto copyRel = createRelBatchInsertOp(clientContext, sharedState, batchInsertSharedState,
             *copyFrom.getInfo(), copyFrom.getSchema(), direction, fromTableID, toTableID, {}, {},
             getOperatorID(), std::make_unique<CopyRelBatchInsert>());
-        result.push_back(std::move(copyRel));
+        sink->addChild(std::move(copyRel));
+        // result.push_back(std::move(copyRel));
     }
-    result.push_back(std::move(partitioner));
-    return result;
+    sink->addChild(std::move(partitioner));
+    // result.push_back(std::move(partitioner));
+    return sink;
 }
 
 } // namespace processor

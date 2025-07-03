@@ -26,13 +26,11 @@ class LogicalCopyFrom final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::COPY_FROM;
 
 public:
-    LogicalCopyFrom(binder::BoundCopyFromInfo info, binder::expression_vector outExprs,
-        std::shared_ptr<LogicalOperator> child)
+    LogicalCopyFrom(binder::BoundCopyFromInfo info, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{type_, std::move(child), std::optional<common::cardinality_t>(0)},
-          info{std::move(info)}, outExprs{std::move(outExprs)} {}
-    LogicalCopyFrom(binder::BoundCopyFromInfo info, binder::expression_vector outExprs,
-        const logical_op_vector_t& children)
-        : LogicalOperator{type_, children}, info{std::move(info)}, outExprs{std::move(outExprs)} {}
+          info{std::move(info)} {}
+    LogicalCopyFrom(binder::BoundCopyFromInfo info, const logical_op_vector_t& children)
+        : LogicalOperator{type_, children}, info{std::move(info)} {}
 
     std::string getExpressionsForPrinting() const override { return info.tableName; }
 
@@ -40,19 +38,17 @@ public:
     void computeFlatSchema() override;
 
     const binder::BoundCopyFromInfo* getInfo() const { return &info; }
-    binder::expression_vector getOutExprs() const { return outExprs; }
 
     std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
         return std::make_unique<LogicalCopyFromPrintInfo>(info.tableName);
     }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyFrom>(info.copy(), outExprs, LogicalOperator::copy(children));
+        return make_unique<LogicalCopyFrom>(info.copy(), LogicalOperator::copy(children));
     }
 
 private:
     binder::BoundCopyFromInfo info;
-    binder::expression_vector outExprs;
 };
 
 } // namespace planner

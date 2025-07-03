@@ -1,5 +1,4 @@
 #include "common/profiler.h"
-#include "common/system_config.h"
 #include "main/client_context.h"
 #include "main/plan_printer.h"
 #include "planner/operator/logical_explain.h"
@@ -16,40 +15,32 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(const LogicalOperator* logicalOperator) {
     auto& logicalExplain = logicalOperator->constCast<LogicalExplain>();
-    auto outSchema = logicalExplain.getSchema();
-    auto inSchema = logicalExplain.getChild(0)->getSchema();
     auto root = mapOperator(logicalExplain.getChild(0).get());
     if (!root->isSink()) {
+        auto inSchema = logicalExplain.getChild(0)->getSchema();
         root = createResultCollector(AccumulateType::REGULAR,
-            logicalExplain.getOutputExpressionsToExplain(), inSchema, std::move(root));
+            logicalExplain.getInnerResultColumns(), inSchema, std::move(root));
     }
-
-    auto outputExpression = logicalExplain.getOutputExpression();
+    auto memoryManager = clientContext->getMemoryManager();
+    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(memoryManager);
     if (logicalExplain.getExplainType() == ExplainType::PROFILE) {
-        auto outputPosition = getDataPos(*outputExpression, *outSchema);
-        auto profile = std::make_unique<Profile>(outputPosition, ProfileInfo{}, ProfileLocalState{},
+        auto profile = std::make_unique<Profile>(ProfileInfo{}, std::move(messageTable),
             getOperatorID(), OPPrintInfo::EmptyInfo());
         profile->addChild(std::move(root));
         return profile;
     }
     if (logicalExplain.getExplainType() == ExplainType::PHYSICAL_PLAN) {
-        auto physicalPlanToExplain = std::make_unique<PhysicalPlan>(std::move(root));
+        auto plan = std::make_unique<PhysicalPlan>(std::move(root));
         auto profiler = std::make_unique<Profiler>();
-        auto explainStr =
-            main::PlanPrinter::printPlanToOstream(physicalPlanToExplain.get(), profiler.get())
-                .str();
-        auto factorizedTable = FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr,
-            clientContext->getMemoryManager());
-        return createFTableScanAligned(expression_vector{outputExpression}, outSchema,
-            factorizedTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
+        auto explainStr = main::PlanPrinter::printPlanToOstream(plan.get(), profiler.get()).str();
+        FactorizedTableUtils::appendStringToTable(messageTable.get(), explainStr, memoryManager);
+        return std::make_unique<DummySimpleSink>(std::move(messageTable), getOperatorID());
     }
-    auto planToPrint = LogicalPlan();
-    planToPrint.setLastOperator(logicalExplain.getChild(0));
-    auto explainStr = main::PlanPrinter::printPlanToOstream(&planToPrint).str();
-    auto factorizedTable = FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr,
-        clientContext->getMemoryManager());
-    return createFTableScanAligned(expression_vector{outputExpression}, outSchema, factorizedTable,
-        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
+    auto plan = LogicalPlan();
+    plan.setLastOperator(logicalExplain.getChild(0));
+    auto explainStr = main::PlanPrinter::printPlanToOstream(&plan).str();
+    FactorizedTableUtils::appendStringToTable(messageTable.get(), explainStr, memoryManager);
+    return std::make_unique<DummySimpleSink>(std::move(messageTable), getOperatorID());
 }
 
 } // namespace processor

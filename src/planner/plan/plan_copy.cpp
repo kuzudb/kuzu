@@ -38,31 +38,28 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     plan.setLastOperator(std::move(partitioner));
 }
 
-static void appendCopyFrom(const BoundCopyFromInfo& info, expression_vector outExprs,
-    LogicalPlan& plan) {
-    auto op =
-        make_shared<LogicalCopyFrom>(info.copy(), std::move(outExprs), plan.getLastOperator());
+static void appendCopyFrom(const BoundCopyFromInfo& info, LogicalPlan& plan) {
+    auto op = make_shared<LogicalCopyFrom>(info.copy(), plan.getLastOperator());
     op->computeFactorizedSchema();
     plan.setLastOperator(std::move(op));
 }
 
 LogicalPlan Planner::planCopyFrom(const BoundStatement& statement) {
     auto& copyFrom = statement.constCast<BoundCopyFrom>();
-    auto outExprs = statement.getStatementResult()->getColumns();
     auto copyFromInfo = copyFrom.getInfo();
     switch (copyFromInfo->tableType) {
     case TableType::NODE: {
-        return planCopyNodeFrom(copyFromInfo, outExprs);
+        return planCopyNodeFrom(copyFromInfo);
     }
     case TableType::REL: {
-        return planCopyRelFrom(copyFromInfo, outExprs);
+        return planCopyRelFrom(copyFromInfo);
     }
     default:
         KU_UNREACHABLE;
     }
 }
 
-LogicalPlan Planner::planCopyNodeFrom(const BoundCopyFromInfo* info, expression_vector results) {
+LogicalPlan Planner::planCopyNodeFrom(const BoundCopyFromInfo* info) {
     auto plan = LogicalPlan();
     switch (info->source->type) {
     case ScanSourceType::FILE:
@@ -83,11 +80,11 @@ LogicalPlan Planner::planCopyNodeFrom(const BoundCopyFromInfo* info, expression_
     default:
         KU_UNREACHABLE;
     }
-    appendCopyFrom(*info, results, plan);
+    appendCopyFrom(*info, plan);
     return plan;
 }
 
-LogicalPlan Planner::planCopyRelFrom(const BoundCopyFromInfo* info, expression_vector results) {
+LogicalPlan Planner::planCopyRelFrom(const BoundCopyFromInfo* info) {
     auto plan = LogicalPlan();
     switch (info->source->type) {
     case ScanSourceType::FILE:
@@ -121,7 +118,7 @@ LogicalPlan Planner::planCopyRelFrom(const BoundCopyFromInfo* info, expression_v
     }
     appendIndexScan(extraInfo, plan);
     appendPartitioner(*info, plan, directions);
-    appendCopyFrom(*info, results, plan);
+    appendCopyFrom(*info, plan);
     return plan;
 }
 
