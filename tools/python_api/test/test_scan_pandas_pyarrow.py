@@ -100,9 +100,8 @@ def pyarrow_test_helper(establish_connection, n, k):
         pytest.fail("tables are not equal")
 
 
-def test_pyarrow_primitive(tmp_path: Path) -> None:
-    db = kuzu.Database(tmp_path)
-    conn = kuzu.Connection(db)
+def test_pyarrow_primitive(conn_db_empty: ConnDB) -> None:
+    conn, db = conn_db_empty
     establish_connection = (conn, db)
     # stress tests primitive reading
     sfs = [100, 2048, 4000, 9000, 16000]

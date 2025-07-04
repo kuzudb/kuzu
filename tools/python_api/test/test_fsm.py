@@ -3,6 +3,7 @@ from pathlib import Path
 import kuzu
 import pytest
 from test_helper import KUZU_ROOT
+from conftest import get_db_file_path
 
 
 def get_used_page_ranges(conn, table, column=None):
@@ -67,7 +68,7 @@ def prevent_data_file_truncation(conn):
 
 @pytest.fixture
 def fsm_node_table_setup(tmp_path: Path):
-    db = kuzu.Database(tmp_path)
+    db = kuzu.Database(get_db_file_path(tmp_path))
     conn = kuzu.Connection(db)
     conn.execute("call threads=1")
     conn.execute("call auto_checkpoint=false")
@@ -94,7 +95,7 @@ def fsm_rel_table_setup(fsm_node_table_setup):
 
 @pytest.fixture
 def fsm_rel_group_setup(tmp_path: Path):
-    db = kuzu.Database(tmp_path)
+    db = kuzu.Database(get_db_file_path(tmp_path))
     conn = kuzu.Connection(db)
     conn.execute("call threads=1")
     conn.execute("call auto_checkpoint=false")

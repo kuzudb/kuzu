@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 import kuzu
 import pytest
 
+from conftest import get_db_file_path
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -120,7 +122,7 @@ def test_in_mem_database_no_db_path() -> None:
 
 
 def test_database_auto_checkpoint_config(tmp_path: Path) -> None:
-    with kuzu.Database(database_path=tmp_path, auto_checkpoint=False) as db:
+    with kuzu.Database(database_path=get_db_file_path(tmp_path), auto_checkpoint=False) as db:
         assert not db.is_closed
         assert db._database is not None
 
@@ -131,7 +133,7 @@ def test_database_auto_checkpoint_config(tmp_path: Path) -> None:
 
 
 def test_database_checkpoint_threshold_config(tmp_path: Path) -> None:
-    with kuzu.Database(database_path=tmp_path, checkpoint_threshold=1234) as db:
+    with kuzu.Database(database_path=get_db_file_path(tmp_path), checkpoint_threshold=1234) as db:
         assert not db.is_closed
         assert db._database is not None
 

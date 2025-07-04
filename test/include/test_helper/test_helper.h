@@ -22,6 +22,8 @@ struct TestQueryConfig {
     bool compareResult = true;
 };
 
+static const std::string TESTING_DB_FILE_NAME = "db.kz";
+
 class TestHelper {
 public:
     inline static std::string E2E_TEST_FILES_DIRECTORY = "test/test_files";
@@ -123,7 +125,7 @@ public:
     static std::string getTempDBPathStr(const std::string& name) {
         auto path = getRootTempDir() / (name + getTempSuffix());
         std::filesystem::create_directories(path);
-        path = path / "db.kz";
+        path = path / TESTING_DB_FILE_NAME;
         auto pathStr = path.string();
 #ifdef _WIN32
         // kuzu still doesn't support backslashes in paths on windows

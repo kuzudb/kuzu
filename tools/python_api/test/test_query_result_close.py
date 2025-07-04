@@ -4,15 +4,17 @@ from pathlib import Path
 from textwrap import dedent
 
 from test_helper import KUZU_ROOT
+from conftest import get_db_file_path
 
 
 def test_query_result_close(tmp_path: Path, build_dir: Path) -> None:
+    db_path = get_db_file_path(tmp_path)
     code = dedent(f"""
         import sys
         sys.path.append(r"{build_dir!s}")
 
         import kuzu
-        db = kuzu.Database(r"{tmp_path!s}")
+        db = kuzu.Database(r"{db_path!s}")
         conn = kuzu.Connection(db)
         conn.execute('''
           CREATE NODE TABLE person (
