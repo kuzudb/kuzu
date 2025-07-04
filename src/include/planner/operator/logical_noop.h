@@ -11,7 +11,8 @@ class LogicalNoop : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::NOOP;
 
 public:
-    explicit LogicalNoop(common::idx_t messageChildIdx, std::vector<std::shared_ptr<LogicalOperator>> children)
+    explicit LogicalNoop(common::idx_t messageChildIdx,
+        std::vector<std::shared_ptr<LogicalOperator>> children)
         : LogicalOperator{type_, {std::move(children)}}, messageChildIdx{messageChildIdx} {}
 
     void computeFactorizedSchema() override { createEmptySchema(); }
