@@ -409,10 +409,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     KU_ASSERT(index.has_value());
     auto& ftsIndex = index.value()->cast<FTSIndex>();
     auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
-    auto bindData =
-        std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
-            std::move(query), *ftsIndexEntry, QueryFTSOptionalParams{input->optionalParamsLegacy},
-            ftsStorageInfo.numDocs, ftsStorageInfo.avgDocLen);
+    auto bindData = std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry),
+        nodeOutput, std::move(query), *ftsIndexEntry,
+        QueryFTSOptionalParams{context, input->optionalParamsLegacy}, ftsStorageInfo.numDocs,
+        ftsStorageInfo.avgDocLen);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
 }
