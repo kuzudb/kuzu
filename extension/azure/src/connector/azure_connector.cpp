@@ -28,7 +28,9 @@ void AzureConnector::initRemoteAzureSecrets(main::ClientContext* context) const 
         }
     }
     if (query.empty()) {
-        throw common::RuntimeException("Azure authentication requires one of AZURE_CONNECTION_STRING or AZURE_ACCOUNT_NAME to be non-empty");
+        throw common::RuntimeException(
+            "Azure authentication requires one of AZURE_CONNECTION_STRING or AZURE_ACCOUNT_NAME to "
+            "be non-empty");
     }
     executeQuery("CREATE SECRET azure_secret (TYPE azure, PROVIDER config" + query + ");");
 }
