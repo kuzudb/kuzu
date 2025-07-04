@@ -1,5 +1,3 @@
-#include <sys/stat.h>
-
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/lambda_expression.h"

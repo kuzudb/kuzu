@@ -9,7 +9,6 @@
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/table.h"
-#include "catalog/catalog_entry/index_catalog_entry.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

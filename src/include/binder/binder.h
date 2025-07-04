@@ -304,9 +304,6 @@ public:
     KUZU_API static void validateColumnExistence(const catalog::TableCatalogEntry* entry,
         const std::string& columnName);
 
-    // void validateNoIndexOnProperty(const std::string& tableName,
-    //     const std::string& propertyName) const;
-
     void validateAllInputParametersParsed() const;
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);

@@ -6,7 +6,6 @@
 #include "binder/ddl/bound_drop.h"
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/extend_direction_util.h"
