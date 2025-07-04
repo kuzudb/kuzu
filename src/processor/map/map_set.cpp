@@ -1,6 +1,5 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
-#include "common/exception/binder.h"
 #include "planner/operator/persistent/logical_set.h"
 #include "processor/expression_mapper.h"
 #include "processor/operator/persistent/set.h"
@@ -52,22 +51,13 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
     if (schema.isExpressionInScope(property)) {
         columnVectorPos = getDataPos(property, schema);
     }
-    auto pkVectorPos = DataPos::getInvalidPos();
-    if (boundInfo.updatePk) {
-        pkVectorPos = getDataPos(*boundInfo.column, schema);
-    }
     auto exprMapper = ExpressionMapper(&schema);
     auto evaluator = exprMapper.getEvaluator(boundInfo.columnData);
-    auto setInfo = NodeSetInfo(nodeIDPos, columnVectorPos, pkVectorPos, std::move(evaluator));
+    auto setInfo = NodeSetInfo(nodeIDPos, columnVectorPos, std::move(evaluator));
     if (node.isMultiLabeled()) {
-        common::table_id_map_t<NodeTableSetInfo> tableInfos;
+        table_id_map_t<NodeTableSetInfo> tableInfos;
         for (auto entry : node.getEntries()) {
             auto tableID = entry->getTableID();
-            if (boundInfo.updatePk && !property.isPrimaryKey(tableID)) {
-                throw BinderException(stringFormat(
-                    "Update primary key column {} for multiple tables is not supported.",
-                    property.toString()));
-            }
             auto tableInfo =
                 getNodeTableSetInfo(*entry, property, clientContext->getStorageManager());
             if (tableInfo.columnID == INVALID_COLUMN_ID) {

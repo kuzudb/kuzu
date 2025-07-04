@@ -172,56 +172,57 @@ h
 ---- 1
 3
 
-# TODO(Guodong): Fix this test case with no update on pk values.
 -CASE MergeNodeWithOnMatch
--SKIP
 -STATEMENT CREATE (p:person {ID: 13})
 ---- ok
 -STATEMENT UNWIND [14,24,24,14,54,54,17] as x merge (a:person {ID: x}) on match set a.ID = x+20
+---- error
+Binder exception: Cannot set property ID in table person because it is used as primary key. Try delete and then insert.
+-STATEMENT UNWIND [14,24,24,14,54,54,17] as x merge (a:person {ID: x}) on match set a.age = x+20
 ---- ok
--STATEMENT MATCH (p:person) return p.ID;
+-STATEMENT MATCH (p:person) return p.ID, p.age;
 ---- 13
-0
-2
-3
-5
-7
-8
-9
-10
-13
-34
-44
-74
-17
+0|35
+2|30
+3|45
+5|20
+7|20
+8|25
+9|40
+10|83
+13|
+14|34
+17|
+24|44
+54|74
 -STATEMENT CREATE NODE TABLE person1 (id int64, primary key(id))
 ---- ok
--STATEMENT UNWIND [11,20,20,11,32,41,32] as x merge (a:person {ID: x}), (b:person1 {id: x}) on match set b.id = x + 20, a.ID = x+100;
+-STATEMENT UNWIND [11,20,20,11,32,41,32] as x merge (a:person {ID: x}), (b:person1 {id: x}) on match set a.age = x+100;
 ---- ok
--STATEMENT MATCH (p:person) RETURN p.ID;
+-STATEMENT MATCH (p:person) RETURN p.ID, p.age;
 ---- 17
-0
-2
-3
-5
-7
-8
-9
-10
-13
-34
-44
-74
-17
-111
-120
-132
-41
+0|35
+2|30
+3|45
+5|20
+7|20
+8|25
+9|40
+10|83
+11|111
+13|
+14|34
+17|
+20|120
+24|44
+32|132
+41|
+54|74
 -STATEMENT MATCH (p:person1) RETURN p.id;
 ---- 4
-31
-40
-52
+11
+20
+32
 41
 
 -CASE MergeRelWithOnMatch

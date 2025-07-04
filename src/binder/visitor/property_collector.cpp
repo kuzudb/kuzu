@@ -78,9 +78,6 @@ void PropertyCollector::visitTableFunctionCall(const BoundReadingClause& reading
 void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
     auto& boundSetClause = updatingClause.constCast<BoundSetClause>();
     for (auto& info : boundSetClause.getInfos()) {
-        if (info.updatePk) {
-            collectProperties(info.column);
-        }
         collectProperties(info.columnData);
     }
     for (const auto& info : boundSetClause.getRelInfos()) {

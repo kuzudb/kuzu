@@ -72,6 +72,65 @@
 {age: 20, name: Bobdjiweknfwhuwiehfuw}
 {age: 30, name: Delta}
 
+-CASE SetWithSerialPK
+-STATEMENT CREATE NODE TABLE test(id SERIAL, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {name:'Alice'})
+---- ok
+-STATEMENT MATCH (t:test) SET t.id=NULL
+---- error
+Binder exception: Cannot set property id in table test because it is used as primary key. Try delete and then insert.
+
+-CASE SetLongString
+-STATEMENT create node table person0 (ID STRING, p STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE (:person0 {ID: "Foo"})
+---- ok
+-STATEMENT match (p:person0) return p.ID;
+---- 1
+Foo
+-DEFINE STRING_EXCEEDS_PAGE ARANGE 0 5990
+-DEFINE STRING_LARGE_BUT_FITS ARANGE 0 40000
+-DEFINE STRING_EXCEEDS_LARGE_PAGE ARANGE 0 50000
+-STATEMENT match (p:person0) SET p.p=${STRING_EXCEEDS_PAGE}
+---- ok
+-STATEMENT match (p:person0) return p.p;
+---- 1
+${STRING_EXCEEDS_PAGE}
+-STATEMENT match (p:person0) SET p.p=${STRING_LARGE_BUT_FITS}
+---- ok
+-STATEMENT match (p:person0) return p.p;
+---- 1
+${STRING_LARGE_BUT_FITS}
+
+-CASE MultipleSet
+-STATEMENT CREATE NODE TABLE person(id INT64, name STRING, primary key(id));
+---- ok
+-STATEMENT CREATE (p:person {id:1, name:'Alice'})
+---- ok
+-STATEMENT CREATE (p:person {id:2, name:'Bob'})
+---- ok
+-STATEMENT CREATE (p:person {id:3, name:'Charlie'})
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.name
+---- 3
+Alice
+Bob
+Charlie
+-STATEMENT MATCH (p:person) WHERE p.id=1 SET p.name='Alicenew'
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.id=1 SET p.name='Alicenewnew'
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.id=2 SET p.name='Bobnew'
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.id=3 SET p.name='Charlienew'
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.name
+---- 3
+Alicenewnew
+Bobnew
+Charlienew
+
 -CASE MixedCreateAndSet
 -STATEMENT CREATE NODE TABLE person(id SERIAL, prop INT64, primary key(id));
 ---- ok

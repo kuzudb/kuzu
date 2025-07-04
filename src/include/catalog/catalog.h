@@ -126,9 +126,12 @@ public:
 
     // ----------------------------- Indexes ----------------------------
 
-    // Check if index entry exists.
+    // Check if index exists for given table and name
     bool containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
         const std::string& indexName) const;
+    // Check if index exists for given table and property
+    bool containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
+        common::property_id_t propertyID) const;
     // Get index entry with name.
     IndexCatalogEntry* getIndex(const transaction::Transaction* transaction,
         common::table_id_t tableID, const std::string& indexName) const;

@@ -79,12 +79,7 @@ bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateSt
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
     const auto offset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
-    if (nodeUpdateState.columnID == table.cast<NodeTable>().getPKColumnID()) {
-        KU_ASSERT(nodeUpdateState.pkVector);
-        hashIndex->delete_(*nodeUpdateState.pkVector);
-        hashIndex->insert(*nodeUpdateState.pkVector, offset,
-            [&](offset_t offset_) { return isVisible(transaction, offset_); });
-    }
+    KU_ASSERT(nodeUpdateState.columnID != table.cast<NodeTable>().getPKColumnID());
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
         transaction->getLocalRowIdx(table.getTableID(), offset), StorageConfig::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);

@@ -54,3 +54,13 @@ Digital Shadows|1.299639
 Learning Machines|1.036935
 Storm Weaver|0.934315
 The Mind Machine|0.756869
+-LOG UpdateFTSTable
+-STATEMENT MATCH (b:Book) WHERE b.title = 'Digital Shadows' SET b.title = 'Xiyang'
+---- error
+Binder exception: Cannot set property title in table Book because it is used in one or more indexes. Try delete and then insert.
+-STATEMENT MATCH (b:Book) WHERE b.title = 'Digital Shadows' SET b.author = 'Xiyang'
+---- error
+Binder exception: Cannot set property author in table Book because it is used in one or more indexes. Try delete and then insert.
+-STATEMENT ALTER TABLE Book DROP abstract
+---- error
+Binder exception: Cannot drop property abstract in table Book because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.

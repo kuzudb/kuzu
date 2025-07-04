@@ -271,9 +271,6 @@ void ProjectionPushDownOptimizer::visitSetInfo(const binder::BoundSetPropertyInf
     case TableType::NODE: {
         auto& node = info.pattern->constCast<NodeExpression>();
         collectExpressionsInUse(node.getInternalID());
-        if (info.updatePk) {
-            collectExpressionsInUse(info.column);
-        }
     } break;
     case TableType::REL: {
         auto& rel = info.pattern->constCast<RelExpression>();

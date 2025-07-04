@@ -176,16 +176,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
         directions = relGroupEntry.getRelDataDirections();
     }
     auto sink = std::make_unique<DummySimpleSink>(fTable, getOperatorID());
-    // physical_op_vector_t result;
     for (auto direction : directions) {
         auto copyRel = createRelBatchInsertOp(clientContext, sharedState, batchInsertSharedState,
             *copyFrom.getInfo(), copyFrom.getSchema(), direction, fromTableID, toTableID, {}, {},
             getOperatorID(), std::make_unique<CopyRelBatchInsert>());
         sink->addChild(std::move(copyRel));
-        // result.push_back(std::move(copyRel));
     }
     sink->addChild(std::move(partitioner));
-    // result.push_back(std::move(partitioner));
     return sink;
 }
 

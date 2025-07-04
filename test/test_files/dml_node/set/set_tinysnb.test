@@ -28,6 +28,15 @@
 {age: 20, name: Bobdjiweknfwhuwiehfuw}
 {age: 30, name: Delta}
 
+-CASE UpdatingSerialPrimaryKey
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (a:A);
+---- ok
+-STATEMENT MATCH (a:A) WHERE a.ID = 0 SET a.ID = 1 RETURN a.ID;
+---- error
+Binder exception: Cannot set property ID in table A because it is used as primary key. Try delete and then insert.
+
 -CASE SetNodeInt64PropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.age=20 + 50
 ---- ok
@@ -310,7 +319,7 @@ ${test_long_string}
 
 
 -CASE SETMultiLabelWithPruning
--STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b.name = "a", b.fName = "XX" RETURN b.name, b.fName;
+-STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b.orgCode = 123, b.fName = "XX" RETURN b.name, b.fName;
 ---- 3
 |XX
 |XX

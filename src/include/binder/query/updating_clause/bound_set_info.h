@@ -11,7 +11,6 @@ struct BoundSetPropertyInfo {
     std::shared_ptr<Expression> pattern;
     std::shared_ptr<Expression> column;
     std::shared_ptr<Expression> columnData;
-    bool updatePk = false;
 
     BoundSetPropertyInfo(common::TableType tableType, std::shared_ptr<Expression> pattern,
         std::shared_ptr<Expression> column, std::shared_ptr<Expression> columnData)
@@ -22,7 +21,7 @@ struct BoundSetPropertyInfo {
 private:
     BoundSetPropertyInfo(const BoundSetPropertyInfo& other)
         : tableType{other.tableType}, pattern{other.pattern}, column{other.column},
-          columnData{other.columnData}, updatePk{other.updatePk} {}
+          columnData{other.columnData} {}
 };
 
 } // namespace binder

@@ -441,7 +441,7 @@ DISTINCT (SERIAL) -> SERIAL
 -LOG DropColumnFromNonExistedTable
 -STATEMENT alter table person1 drop k
 ---- error
-Catalog exception: person1 does not exist in catalog.
+Binder exception: Table person1 does not exist.
 
 -LOG DropNonExistedColumn
 -STATEMENT alter table person drop random
@@ -451,7 +451,7 @@ Runtime exception: person table does not have property random.
 -LOG DropPrimaryKeyColumn
 -STATEMENT alter table person drop ID
 ---- error
-Runtime exception: Cannot drop primary key of a node table.
+Binder exception: Cannot drop property ID in table person because it is used as primary key.
 
 -LOG AddPropertyDuplicateName
 -STATEMENT alter table person add fName STRING
