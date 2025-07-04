@@ -7,6 +7,7 @@
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/assert.h"
@@ -16,7 +17,6 @@
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
-#include "catalog/catalog_entry/index_catalog_entry.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -190,7 +190,9 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     auto transaction = clientContext->getTransaction();
     for (auto indexEntry : catalog->getIndexEntries(transaction, nodeEntry->getTableID())) {
         if (!indexEntry->isLoaded()) {
-            throw BinderException(stringFormat("Trying to insert into an index on table {} but its extension is not loaded.", nodeEntry->getName()));
+            throw BinderException(stringFormat(
+                "Trying to insert into an index on table {} but its extension is not loaded.",
+                nodeEntry->getName()));
         }
     }
     infos.push_back(std::move(insertInfo));
@@ -346,7 +348,10 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
             for (auto entry : node.getEntries()) {
                 for (auto index : catalog->getIndexEntries(transaction, entry->getTableID())) {
                     if (!index->isLoaded()) {
-                        throw BinderException(stringFormat("Trying to delete from an index on table {} but its extension is not loaded.", entry->getName()));
+                        throw BinderException(
+                            stringFormat("Trying to delete from an index on table {} but its "
+                                         "extension is not loaded.",
+                                entry->getName()));
                     }
                 }
             }

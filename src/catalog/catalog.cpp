@@ -307,8 +307,8 @@ std::vector<IndexCatalogEntry*> Catalog::getIndexEntries(const Transaction* tran
     return result;
 }
 
-std::vector<IndexCatalogEntry*> Catalog::getIndexEntries(
-    const Transaction* transaction, table_id_t tableID) const {
+std::vector<IndexCatalogEntry*> Catalog::getIndexEntries(const Transaction* transaction,
+    table_id_t tableID) const {
     std::vector<IndexCatalogEntry*> result;
     for (auto& [_, entry] : indexes->getEntries(transaction)) {
         auto indexEntry = entry->ptrCast<IndexCatalogEntry>();
