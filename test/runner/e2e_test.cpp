@@ -3,6 +3,7 @@
 #include <string_view>
 #include <utility>
 
+#include "../include/test_helper/test_helper.h"
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "spdlog/spdlog.h"
@@ -34,7 +35,7 @@ public:
             !std::getenv("USE_EXISTING_BINARY_DATASET") && dataset.ends_with("binary-demo");
         if (datasetType == TestGroup::DatasetType::KUZU && dataset != "empty" &&
             !generateBinaryDemo) {
-            std::filesystem::copy(dataset + "/db.kz", databasePath);
+            std::filesystem::copy(dataset + "/" + TESTING_DB_FILE_NAME, databasePath);
         }
         createDB(checkpointWaitTimeout);
         createConns(connNames);

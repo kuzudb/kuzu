@@ -1,6 +1,7 @@
 const { assert } = require("chai");
 const tmp = require("tmp");
 const process = require("process");
+const path = require("path");
 
 const spwan = require("child_process").spawn;
 
@@ -40,7 +41,8 @@ describe("Database constructor", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
     assert.exists(testDb);
     assert.equal(testDb.constructor.name, "Database");
     await testDb.init();
@@ -58,7 +60,8 @@ describe("Database constructor", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath);
     assert.exists(testDb);
     assert.equal(testDb.constructor.name, "Database");
     await testDb.init();
@@ -82,7 +85,8 @@ describe("Database constructor", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath,
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath,
       1 << 28 /* 256MB */,
       true /* compression */,
       false /* readOnly */,
@@ -108,7 +112,8 @@ describe("Database constructor", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath,
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath,
       1 << 28 /* 256MB */,
       true /* compression */,
       false /* readOnly */,
@@ -135,7 +140,8 @@ describe("Database constructor", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
     assert.exists(testDb);
     assert.equal(testDb.constructor.name, "Database");
     await testDb.init();
@@ -144,7 +150,7 @@ describe("Database constructor", function () {
     assert.notExists(testDb._initPromise);
     await testDb.close();
     const testDbReadOnly = new kuzu.Database(
-      tmpDbPath,
+      dbPath,
       1 << 28 /* 256MB */,
       true /* compression */,
       true /* readOnly */
@@ -186,8 +192,9 @@ describe("Database constructor", function () {
         return resolve(path);
       });
     });
+    const dbPath = path.join(tmpDbPath, "db.kz");
     const testDb = new kuzu.Database(
-      tmpDbPath,
+      dbPath,
       1 << 28 /* 256MB */,
       true /* compression */,
       false /* readOnly */,
@@ -300,17 +307,18 @@ describe("Database close", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
     await testDb.init();
     // FIXME: doesn't work properly on windows
-    let subProcessResult = await openDatabaseOnSubprocess(tmpDbPath);
+    let subProcessResult = await openDatabaseOnSubprocess(dbPath);
     assert.notEqual(subProcessResult.code, 0);
     assert.include(
       subProcessResult.stderr,
       "Error: IO exception: Could not set lock on file"
     );
     await testDb.close();
-    subProcessResult = await openDatabaseOnSubprocess(tmpDbPath);
+    subProcessResult = await openDatabaseOnSubprocess(dbPath);
     assert.equal(subProcessResult.code, 0);
     assert.isEmpty(subProcessResult.stderr);
     assert.include(subProcessResult.stdout, "Database initialized.");
@@ -325,7 +333,8 @@ describe("Database close", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
     await testDb.init();
     await testDb.close();
     try {
@@ -345,7 +354,8 @@ describe("Database close", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
     await testDb.init();
     assert.isTrue(testDb._isInitialized);
     assert.exists(testDb._database);
@@ -363,7 +373,8 @@ describe("Database close", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
     assert.isFalse(testDb._isInitialized);
     await testDb.close();
     assert.notExists(testDb._database);
@@ -380,7 +391,8 @@ describe("Database close", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
     await Promise.all([testDb.init(), testDb.close()]);
     assert.notExists(testDb._database);
     assert.isTrue(testDb._isClosed);
@@ -396,7 +408,8 @@ describe("Database close", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
     await testDb.init();
     await Promise.all([testDb.close(), testDb.close(), testDb.close()]);
     assert.notExists(testDb._database);

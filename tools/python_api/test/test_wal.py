@@ -6,8 +6,11 @@ from textwrap import dedent
 
 import kuzu
 
+from conftest import get_db_file_path
+
 
 def run_query_in_new_process(tmp_path: Path, build_dir: Path, queries: str):
+    db_path = get_db_file_path(tmp_path)
     code = (
         dedent(
             f"""
@@ -15,7 +18,7 @@ def run_query_in_new_process(tmp_path: Path, build_dir: Path, queries: str):
         sys.path.append(r"{build_dir!s}")
 
         import kuzu
-        db = kuzu.Database(r"{tmp_path!s}")
+        db = kuzu.Database(r"{db_path!s}")
         """
         )
         + queries
@@ -28,8 +31,9 @@ def run_query_then_kill(tmp_path: Path, build_dir: Path, queries: str):
     time.sleep(5)
     proc.kill()
     proc.wait(5)
+    db_path = get_db_file_path(tmp_path)
     # Force remove the lock file. Safe since proc.wait() ensures the process has terminated.
-    Path(f"{tmp_path!s}/.lock").unlink(missing_ok=True)
+    Path(f"{db_path!s}.lock").unlink(missing_ok=True)
 
 
 # Kill the database while it's in the middle of executing a long persistent query
@@ -41,7 +45,8 @@ def test_replay_after_kill(tmp_path: Path, build_dir: Path) -> None:
     conn.execute("UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y CREATE (:tab {id: x * 100000 + y});")
     """)
     run_query_then_kill(tmp_path, build_dir, queries)
-    with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
+    db_path = get_db_file_path(tmp_path)
+    with kuzu.Database(db_path) as db, kuzu.Connection(db) as conn:
         # previously committed queries should be valid after replaying WAL
         result = conn.execute("CALL show_tables() RETURN *")
         assert result.has_next()
@@ -64,7 +69,8 @@ def test_replay_with_exception(tmp_path: Path, build_dir: Path) -> None:
     conn.execute("UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y CREATE (:tab {id: x * 100000 + y});")
     """)
     run_query_then_kill(tmp_path, build_dir, queries)
-    with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
+    db_path = get_db_file_path(tmp_path)
+    with kuzu.Database(db_path) as db, kuzu.Connection(db) as conn:
         # previously committed queries should be valid after replaying WAL
         result = conn.execute("match (t:tab) where t.id <= 5 return t.id")
         assert result.get_num_tuples() == 5
