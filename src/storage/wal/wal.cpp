@@ -72,14 +72,6 @@ void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry, bool isInterna
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry,
-    std::vector<CatalogEntry*> childrenEntries, bool isInternal) {
-    std::unique_lock lck{mtx};
-    CreateCatalogEntryRecord walRecord(catalogEntry, isInternal);
-    walRecord.childrenEntries = childrenEntries;
-    addNewWALRecordNoLock(walRecord);
-}
-
 void WAL::logDropCatalogEntryRecord(table_id_t tableID, CatalogEntryType type) {
     std::unique_lock lck{mtx};
     DropCatalogEntryRecord walRecord(tableID, type);
@@ -144,6 +136,12 @@ void WAL::logCopyTableRecord(table_id_t tableID) {
 void WAL::logUpdateSequenceRecord(sequence_id_t sequenceID, uint64_t kCount) {
     std::unique_lock lck{mtx};
     UpdateSequenceRecord walRecord(sequenceID, kCount);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logLoadExtension(std::string path) {
+    std::unique_lock lck{mtx};
+    LoadExtensionRecord walRecord(std::move(path));
     addNewWALRecordNoLock(walRecord);
 }
 

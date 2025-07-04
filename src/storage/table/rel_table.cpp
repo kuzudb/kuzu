@@ -227,7 +227,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
                 relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
         }
     }
-    if (transaction->shouldLogToWAL()) {
+    if (updateState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -260,7 +260,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     }
     if (isDeleted) {
         hasChanges = true;
-        if (transaction->shouldLogToWAL()) {
+        if (deleteState.logToWAL && transaction->shouldLogToWAL()) {
             KU_ASSERT(transaction->isWriteTransaction());
             KU_ASSERT(transaction->getClientContext());
             auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
@@ -293,7 +293,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     initScanState(transaction, *relReadState);
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),
         deleteState);
-    if (transaction->shouldLogToWAL()) {
+    if (deleteState->logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();

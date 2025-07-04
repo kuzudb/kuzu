@@ -38,8 +38,6 @@ public:
     // we want to log minimal info into the WAL, so each entry type should have its
     // own WAL record
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry, bool isInternal);
-    void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry,
-        std::vector<catalog::CatalogEntry*> childrenEntries, bool isInternal);
     void logDropCatalogEntryRecord(uint64_t tableID, catalog::CatalogEntryType type);
     void logAlterCatalogEntryRecord(const binder::BoundAlterInfo* alterInfo);
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID, uint64_t kCount);
@@ -63,6 +61,8 @@ public:
     void logAndFlushCommit();
     void logRollback();
     void logAndFlushCheckpoint();
+
+    void logLoadExtension(std::string path);
 
     // Removes the contents of WAL file.
     void clearWAL();

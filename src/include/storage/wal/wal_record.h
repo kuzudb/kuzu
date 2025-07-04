@@ -23,6 +23,7 @@ enum class WALRecordType : uint8_t {
     BEGIN_TRANSACTION_RECORD = 1,
     COMMIT_RECORD = 2,
     ROLLBACK_RECORD = 3,
+
     COPY_TABLE_RECORD = 13,
     CREATE_CATALOG_ENTRY_RECORD = 14,
     DROP_CATALOG_ENTRY_RECORD = 16,
@@ -30,11 +31,14 @@ enum class WALRecordType : uint8_t {
     UPDATE_SEQUENCE_RECORD = 18,
     TABLE_INSERTION_RECORD = 30,
     NODE_DELETION_RECORD = 31,
-    NODE_UDPATE_RECORD = 32,
+    NODE_UPDATE_RECORD = 32,
     REL_DELETION_RECORD = 33,
     REL_DETACH_DELETE_RECORD = 34,
     REL_UPDATE_RECORD = 35,
-    CHECKPOINT_RECORD = 50,
+
+    LOAD_EXTENSION_RECORD = 100,
+
+    CHECKPOINT_RECORD = 254,
 };
 
 struct WALRecord {
@@ -52,6 +56,10 @@ struct WALRecord {
     template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const TARGET&>(*this);
+    }
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
 };
 
@@ -85,9 +93,7 @@ struct CheckpointRecord final : WALRecord {
 
 struct CreateCatalogEntryRecord final : WALRecord {
     catalog::CatalogEntry* catalogEntry;
-    std::vector<catalog::CatalogEntry*> childrenEntries;
     std::unique_ptr<catalog::CatalogEntry> ownedCatalogEntry;
-    std::vector<std::unique_ptr<catalog::CatalogEntry>> ownedChildrenEntries;
     bool isInternal = false;
 
     CreateCatalogEntryRecord()
@@ -210,16 +216,16 @@ struct NodeUpdateRecord final : WALRecord {
     std::unique_ptr<common::ValueVector> ownedPropertyVector;
 
     NodeUpdateRecord()
-        : WALRecord{WALRecordType::NODE_UDPATE_RECORD}, tableID{common::INVALID_TABLE_ID},
+        : WALRecord{WALRecordType::NODE_UPDATE_RECORD}, tableID{common::INVALID_TABLE_ID},
           columnID{common::INVALID_COLUMN_ID}, nodeOffset{common::INVALID_OFFSET},
           propertyVector{nullptr} {}
     NodeUpdateRecord(common::table_id_t tableID, common::column_id_t columnID,
         common::offset_t nodeOffset, common::ValueVector* propertyVector)
-        : WALRecord{WALRecordType::NODE_UDPATE_RECORD}, tableID{tableID}, columnID{columnID},
+        : WALRecord{WALRecordType::NODE_UPDATE_RECORD}, tableID{tableID}, columnID{columnID},
           nodeOffset{nodeOffset}, propertyVector{propertyVector} {}
     NodeUpdateRecord(common::table_id_t tableID, common::column_id_t columnID,
         common::offset_t nodeOffset, std::unique_ptr<common::ValueVector> propertyVector)
-        : WALRecord{WALRecordType::NODE_UDPATE_RECORD}, tableID{tableID}, columnID{columnID},
+        : WALRecord{WALRecordType::NODE_UPDATE_RECORD}, tableID{tableID}, columnID{columnID},
           nodeOffset{nodeOffset}, propertyVector{nullptr},
           ownedPropertyVector{std::move(propertyVector)} {}
 
@@ -321,6 +327,16 @@ struct RelUpdateRecord final : WALRecord {
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelUpdateRecord> deserialize(common::Deserializer& deserializer,
         const main::ClientContext& clientContext);
+};
+
+struct LoadExtensionRecord final : WALRecord {
+    std::string path;
+
+    explicit LoadExtensionRecord(std::string path)
+        : WALRecord{WALRecordType::LOAD_EXTENSION_RECORD}, path{std::move(path)} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<LoadExtensionRecord> deserialize(common::Deserializer& deserializer);
 };
 
 } // namespace storage

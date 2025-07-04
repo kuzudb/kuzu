@@ -859,8 +859,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
                 if (row == INVALID_ROW_IDX) {
                     continue;
                 }
-                numRowsToAppend++;
-                scanState->rowIdxVector->setValue<row_idx_t>(i, row);
+                scanState->rowIdxVector->setValue<row_idx_t>(numRowsToAppend++, row);
             }
             scanChunk.state->getSelVectorUnsafe().setSelSize(numRowsToAppend);
             if (numRowsToAppend > 0) {

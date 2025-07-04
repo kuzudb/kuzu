@@ -289,7 +289,8 @@ bool Catalog::containsType(const Transaction* transaction, const std::string& ty
 }
 
 void Catalog::createIndex(Transaction* transaction,
-    std::unique_ptr<IndexCatalogEntry> indexCatalogEntry) {
+    std::unique_ptr<CatalogEntry> indexCatalogEntry) {
+    KU_ASSERT(indexCatalogEntry->getType() == CatalogEntryType::INDEX_ENTRY);
     indexes->createEntry(transaction, std::move(indexCatalogEntry));
 }
 
@@ -353,6 +354,14 @@ void Catalog::dropIndex(Transaction* transaction, table_id_t tableID,
     auto uniqueName = IndexCatalogEntry::getInternalIndexName(tableID, indexName);
     const auto entry = indexes->getEntry(transaction, uniqueName);
     indexes->dropEntry(transaction, uniqueName, entry->getOID());
+}
+
+void Catalog::dropIndex(Transaction* transaction, oid_t indexOID) {
+    const auto entry = indexes->getEntryOfOID(transaction, indexOID);
+    if (entry == nullptr) {
+        throw CatalogException{stringFormat("Index with OID {} does not exist.", indexOID)};
+    }
+    indexes->dropEntry(transaction, entry->getName(), indexOID);
 }
 
 bool Catalog::containsFunction(const Transaction* transaction, const std::string& name,

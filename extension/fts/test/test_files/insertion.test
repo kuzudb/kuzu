@@ -3,7 +3,6 @@
 --
 
 -CASE Basic
-
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok

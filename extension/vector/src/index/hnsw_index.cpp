@@ -446,6 +446,8 @@ OnDiskHNSWIndex::HNSWInsertState::HNSWInsertState(main::ClientContext* context,
         insertChunk.getValueVectorMutable(0), std::move(dataVectors));
     relDeleteState = std::make_unique<RelTableDeleteState>(srcNodeIDChunk.getValueVectorMutable(0),
         insertChunk.getValueVectorMutable(0), insertChunk.getValueVectorMutable(1));
+    relInsertState->logToWAL = false;
+    relDeleteState->logToWAL = false;
 }
 
 OnDiskHNSWIndex::OnDiskHNSWIndex(const main::ClientContext* context, IndexInfo indexInfo,

@@ -511,7 +511,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     }
     if (isDeleted) {
         hasChanges = true;
-        if (transaction->shouldLogToWAL()) {
+        if (deleteState.logToWAL && transaction->shouldLogToWAL()) {
             KU_ASSERT(transaction->isWriteTransaction());
             KU_ASSERT(transaction->getClientContext());
             auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
