@@ -76,7 +76,7 @@ Elizabeth|Greg
 ---- ok
 -STATEMENT CALL AZURE_CONNECTION_STRING = "";
 ---- ok
--STATEMENT LOAD FROM 'az://${AZURE_ACCOUNT_NAME}/${AZURE_PUBLIC_CONTAINER}/vPerson.csv' RETURN fname, Gender, isWorker;
+-STATEMENT LOAD FROM 'az://${AZURE_PUBLIC_CONTAINER}/vPerson.csv' RETURN fname, Gender, isWorker;
 ---- 5
 Alice|1|False
 Bob|2|False
