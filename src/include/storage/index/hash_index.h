@@ -290,14 +290,8 @@ common::hash_t HashIndex<common::ku_string_t>::hashStored(
     const transaction::Transaction* transaction, const common::ku_string_t& key) const;
 
 template<>
-inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transaction* transaction,
-    std::string_view keyToLookup, const common::ku_string_t& keyInEntry) const {
-    if (HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
-        auto entryKeyString = overflowFileHandle->readString(transaction->getType(), keyInEntry);
-        return memcmp(keyToLookup.data(), entryKeyString.c_str(), entryKeyString.length()) == 0;
-    }
-    return false;
-}
+bool HashIndex<common::ku_string_t>::equals(const transaction::Transaction* transaction,
+    std::string_view keyToLookup, const common::ku_string_t& keyInEntry) const;
 
 struct PrimaryKeyIndexStorageInfo final : IndexStorageInfo {
     common::page_idx_t firstHeaderPage;
