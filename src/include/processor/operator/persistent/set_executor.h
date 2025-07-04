@@ -21,8 +21,7 @@ struct NodeSetInfo {
 
     NodeSetInfo(DataPos nodeIDPos, DataPos columnVectorPos,
         std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
-        : nodeIDPos{nodeIDPos}, columnVectorPos{columnVectorPos},
-          evaluator{std::move(evaluator)} {}
+        : nodeIDPos{nodeIDPos}, columnVectorPos{columnVectorPos}, evaluator{std::move(evaluator)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeSetInfo);
 
     void init(const ResultSet& resultSet, main::ClientContext* context);
@@ -30,7 +29,7 @@ struct NodeSetInfo {
 private:
     NodeSetInfo(const NodeSetInfo& other)
         : nodeIDPos{other.nodeIDPos}, columnVectorPos{other.columnVectorPos},
-           evaluator{other.evaluator->copy()} {}
+          evaluator{other.evaluator->copy()} {}
 };
 
 struct NodeTableSetInfo {

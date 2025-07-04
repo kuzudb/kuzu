@@ -139,7 +139,6 @@ public:
     std::vector<IndexCatalogEntry*> getIndexEntries(
         const transaction::Transaction* transaction) const;
 
-
     // Create index entry.
     void createIndex(transaction::Transaction* transaction,
         std::unique_ptr<IndexCatalogEntry> indexCatalogEntry);

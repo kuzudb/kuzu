@@ -38,7 +38,8 @@ std::vector<std::string> getColumnNames(const expression_vector& exprs,
     return columnNames;
 }
 
-static void validateOrderByFollowedBySkipOrLimitInWithClause(const BoundProjectionBody& boundProjectionBody) {
+static void validateOrderByFollowedBySkipOrLimitInWithClause(
+    const BoundProjectionBody& boundProjectionBody) {
     auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
     if (boundProjectionBody.hasOrderByExpressions() && !hasSkipOrLimit) {
         throw BinderException("In WITH clause, ORDER BY must be followed by SKIP or LIMIT.");

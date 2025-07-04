@@ -121,17 +121,17 @@ static bool checkDropPropertyConflicts(const TableCatalogEntry& tableEntry,
         if (tableEntry.getTableType() == TableType::NODE &&
             tableEntry.constCast<NodeTableCatalogEntry>().getPrimaryKeyID() == propertyID) {
             throw BinderException(stringFormat(
-                    "Cannot drop property {} in table {} because it is used as primary key.",
-                    propertyName, tableEntry.getName()));
-            }
+                "Cannot drop property {} in table {} because it is used as primary key.",
+                propertyName, tableEntry.getName()));
+        }
         // Check secondary index constraints
         auto catalog = context.getCatalog();
         auto transaction = context.getTransaction();
         if (catalog->containsIndex(transaction, tableEntry.getTableID(), propertyID)) {
             throw BinderException(stringFormat(
-                    "Cannot drop property {} in table {} because it is used in one or more indexes. "
-                    "Please remove the associated indexes before attempting to drop this property.",
-                    propertyName, tableEntry.getName()));
+                "Cannot drop property {} in table {} because it is used in one or more indexes. "
+                "Please remove the associated indexes before attempting to drop this property.",
+                propertyName, tableEntry.getName()));
         }
     }
     return skipAlter(info.onConflict,

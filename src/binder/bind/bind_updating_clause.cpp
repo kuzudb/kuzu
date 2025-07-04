@@ -292,14 +292,20 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(const ParsedExpression* column,
         }
         auto propertyID = entry->getPropertyID(property.getPropertyName());
         if (catalog->containsIndex(transaction, entry->getTableID(), propertyID)) {
-            throw BinderException(stringFormat("Cannot set property {} in table {} because it is used in one or more indexes. Try delete and then insert.", property.getPropertyName(), entry->getName()));
+            throw BinderException(
+                stringFormat("Cannot set property {} in table {} because it is used in one or more "
+                             "indexes. Try delete and then insert.",
+                    property.getPropertyName(), entry->getName()));
         }
     }
     // Check primary key constraint
     if (isNode) {
         for (auto entry : nodeOrRel.getEntries()) {
             if (property.isPrimaryKey(entry->getTableID())) {
-                throw BinderException(stringFormat("Cannot set property {} in table {} because it is used as primary key. Try delete and then insert.", property.getPropertyName(), entry->getName()));
+                throw BinderException(
+                    stringFormat("Cannot set property {} in table {} because it is used as primary "
+                                 "key. Try delete and then insert.",
+                        property.getPropertyName(), entry->getName()));
             }
         }
         return BoundSetPropertyInfo(TableType::NODE, expr, boundColumn, boundColumnData);
