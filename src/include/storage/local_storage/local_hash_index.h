@@ -49,24 +49,23 @@ public:
 
     bool discard(KeyType key) { return localInsertions.deleteKey(key); }
 
-    bool insert(KeyType key, common::offset_t value, visible_func isVisible) {
+    bool insert(OwnedType&& key, common::offset_t value, visible_func isVisible) {
         auto iter = localDeletions.find(key);
         if (iter != localDeletions.end()) {
             localDeletions.erase(iter);
         }
-        return localInsertions.append(key, value, isVisible);
+        return localInsertions.append(std::move(key), value, isVisible);
     }
 
     void reserveSpaceForAppend(uint32_t numNewEntries) {
         localInsertions.reserveSpaceForAppend(numNewEntries);
     }
 
-    bool append(KeyType key, common::offset_t value, visible_func isVisible) {
-        return localInsertions.append(key, value, isVisible);
+    bool append(OwnedType&& key, common::offset_t value, visible_func isVisible) {
+        return localInsertions.append(std::move(key), value, isVisible);
     }
 
-    size_t append(const IndexBuffer<OwnedType>& buffer, uint64_t bufferOffset,
-        visible_func isVisible) {
+    size_t append(IndexBuffer<OwnedType>& buffer, uint64_t bufferOffset, visible_func isVisible) {
         return localInsertions.append(buffer, bufferOffset, isVisible);
     }
 
@@ -168,13 +167,13 @@ public:
     }
 
     bool insert(const common::ku_string_t key, common::offset_t value, visible_func isVisible) {
-        return insert(key.getAsStringView(), value, isVisible);
+        return insert(key.getAsString(), value, isVisible);
     }
     template<common::IndexHashable T>
     bool insert(T key, common::offset_t value, visible_func isVisible) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return common::ku_dynamic_cast<HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
-            ->insert(key, value, isVisible);
+            ->insert(std::move(key), value, isVisible);
     }
 
     void delete_(const common::ValueVector& keyVector) {

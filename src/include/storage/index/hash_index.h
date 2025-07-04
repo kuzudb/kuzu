@@ -121,7 +121,8 @@ public:
     // - the key doesn't exist in the local storage, check if the key exists in the persistent
     // index, if
     //   so, return false, else insert the key to the local storage.
-    bool insertInternal(const transaction::Transaction* transaction, Key key,
+    using InsertType = InMemHashIndex<T>::OwnedType;
+    bool insertInternal(const transaction::Transaction* transaction, InsertType&& key,
         common::offset_t value, visible_func isVisible) {
         common::offset_t tmpResult = 0;
         auto localLookupState = localStorage->lookup(key, tmpResult, isVisible);
@@ -133,25 +134,25 @@ public:
                 return false;
             }
         }
-        return localStorage->insert(key, value, isVisible);
+        return localStorage->insert(std::move(key), value, isVisible);
     }
 
     using BufferKeyType =
         typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
     // Appends the buffer to the index. Returns the number of values successfully inserted
-    size_t append(const transaction::Transaction* transaction,
-        const IndexBuffer<BufferKeyType>& buffer, uint64_t bufferOffset, visible_func isVisible) {
+    size_t append(const transaction::Transaction* transaction, IndexBuffer<BufferKeyType>& buffer,
+        uint64_t bufferOffset, visible_func isVisible) {
         // Check if values already exist in persistent storage
         if (indexHeaderForWriteTrx.numEntries > 0) {
             localStorage->reserveSpaceForAppend(buffer.size() - bufferOffset);
             size_t numValuesInserted = 0;
             common::offset_t result = 0;
             for (size_t i = bufferOffset; i < buffer.size(); i++) {
-                const auto& [key, value] = buffer[i];
+                auto& [key, value] = buffer[i];
                 if (lookupInPersistentIndex(transaction, key, result, isVisible)) {
                     return i - bufferOffset;
                 } else {
-                    numValuesInserted += localStorage->append(key, value, isVisible);
+                    numValuesInserted += localStorage->append(std::move(key), value, isVisible);
                 }
             }
             return numValuesInserted;
@@ -393,13 +394,14 @@ public:
     }
     bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
         common::offset_t value, visible_func isVisible) {
-        return insert(transaction, key.getAsStringView(), value, isVisible);
+        return insert(transaction, key.getAsString(), value, isVisible);
     }
     template<common::IndexHashable T>
     inline bool insert(const transaction::Transaction* transaction, T key, common::offset_t value,
         visible_func isVisible) {
         KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
-        return getTypedHashIndex(key)->insertInternal(transaction, key, value, isVisible);
+        return getTypedHashIndex(key)->insertInternal(transaction, std::move(key), value,
+            isVisible);
     }
     bool insert(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t value, visible_func isVisible);
@@ -413,9 +415,8 @@ public:
     // If a key fails to insert, it immediately returns without inserting any more values,
     // and the returned value is also the index of the key which failed to insert.
     template<common::IndexHashable T>
-    size_t appendWithIndexPos(const transaction::Transaction* transaction,
-        const IndexBuffer<T>& buffer, uint64_t bufferOffset, uint64_t indexPos,
-        visible_func isVisible) {
+    size_t appendWithIndexPos(const transaction::Transaction* transaction, IndexBuffer<T>& buffer,
+        uint64_t bufferOffset, uint64_t indexPos, visible_func isVisible) {
         KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         KU_ASSERT(std::all_of(buffer.begin(), buffer.end(), [&](auto& elem) {
             return HashIndexUtils::getHashIndexPosition(elem.first) == indexPos;

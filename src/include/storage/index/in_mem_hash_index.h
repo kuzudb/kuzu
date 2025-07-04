@@ -61,6 +61,7 @@ public:
     using OwnedType = std::conditional_t<std::is_same_v<T, common::ku_string_t>, std::string, T>;
     using KeyType = std::conditional_t<std::is_same_v<T, common::ku_string_t>, std::string_view, T>;
     static_assert(std::is_constructible_v<OwnedType, KeyType>);
+    static_assert(std::is_constructible_v<KeyType, OwnedType>);
 
     static constexpr auto SLOT_CAPACITY = getSlotCapacity<OwnedType>();
     using InMemSlotType = Slot<OwnedType>;
@@ -94,23 +95,22 @@ public:
 
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
-    size_t append(const IndexBuffer<OwnedType>& buffer, uint64_t bufferOffset,
-        visible_func isVisible) {
+    size_t append(IndexBuffer<OwnedType>& buffer, uint64_t bufferOffset, visible_func isVisible) {
         reserve(indexHeader.numEntries + buffer.size() - bufferOffset);
         common::hash_t hashes[INDEX_BUFFER_SIZE];
         for (size_t i = bufferOffset; i < buffer.size(); i++) {
             hashes[i] = HashIndexUtils::hash(buffer[i].first);
             auto& [key, value] = buffer[i];
-            if (!appendInternal(key, value, hashes[i], isVisible)) {
+            if (!appendInternal(std::move(key), value, hashes[i], isVisible)) {
                 return i - bufferOffset;
             }
         }
         return buffer.size() - bufferOffset;
     }
 
-    bool append(KeyType key, common::offset_t value, visible_func isVisible) {
+    bool append(OwnedType&& key, common::offset_t value, visible_func isVisible) {
         reserve(indexHeader.numEntries + 1);
-        return appendInternal(key, value, HashIndexUtils::hash(key), isVisible);
+        return appendInternal(std::move(key), value, HashIndexUtils::hash(key), isVisible);
     }
     bool lookup(KeyType key, common::offset_t& result, visible_func isVisible) {
         // This needs to be fast if the builder is empty since this function is always tried
@@ -215,7 +215,7 @@ public:
 
 private:
     // Assumes that space has already been allocated for the entry
-    bool appendInternal(KeyType key, common::offset_t value, common::hash_t hash,
+    bool appendInternal(OwnedType&& key, common::offset_t value, common::hash_t hash,
         visible_func isVisible) {
         auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
         auto slotID = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hash);
@@ -229,12 +229,12 @@ private:
             return false;
         } else if (numEntries < SLOT_CAPACITY) [[likely]] {
             // The key does not exist and the last slot has free space
-            insert(key, iter.slot, numEntries, value, fingerprint);
+            insert(std::move(key), iter.slot, numEntries, value, fingerprint);
             this->indexHeader.numEntries++;
             return true;
         }
         // The last slot is full. Insert a new one
-        insertToNewOvfSlot(key, iter.slot, value, fingerprint);
+        insertToNewOvfSlot(std::move(key), iter.slot, value, fingerprint);
         this->indexHeader.numEntries++;
         return true;
     }
@@ -260,21 +260,21 @@ private:
         return keyToLookup == keyInEntry;
     }
 
-    void insert(KeyType key, InMemSlotType* slot, uint8_t entryPos, common::offset_t value,
+    void insert(OwnedType&& key, InMemSlotType* slot, uint8_t entryPos, common::offset_t value,
         uint8_t fingerprint) {
         KU_ASSERT(HashIndexUtils::getFingerprintForHash(HashIndexUtils::hash(key)) == fingerprint);
         auto& entry = slot->entries[entryPos];
-        entry = SlotEntry<OwnedType>(OwnedType{key}, value);
+        entry = SlotEntry<OwnedType>(std::move(key), value);
         slot->header.setEntryValid(entryPos, fingerprint);
     }
 
-    void insertToNewOvfSlot(KeyType key, InMemSlotType* previousSlot, common::offset_t offset,
+    void insertToNewOvfSlot(OwnedType&& key, InMemSlotType* previousSlot, common::offset_t offset,
         uint8_t fingerprint) {
         auto newSlotId = allocateAOSlot();
         previousSlot->header.nextOvfSlotId = newSlotId;
         auto newSlot = getSlot(SlotInfo{newSlotId, SlotType::OVF});
         auto entryPos = 0u; // Always insert to the first entry when there is a new slot.
-        insert(key, newSlot, entryPos, offset, fingerprint);
+        insert(std::move(key), newSlot, entryPos, offset, fingerprint);
     }
 
     common::hash_t hashStored(const OwnedType& key) const;
