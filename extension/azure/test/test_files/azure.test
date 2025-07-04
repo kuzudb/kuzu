@@ -72,6 +72,8 @@ Elizabeth|Farooq
 Elizabeth|Greg
 
 -CASE AzurePublicScan
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/azure/build/libazure.kuzu_extension';
+---- ok
 -STATEMENT CALL AZURE_CONNECTION_STRING = "";
 ---- ok
 -STATEMENT LOAD FROM 'az://${AZURE_ACCOUNT_NAME}/${AZURE_PUBLIC_CONTAINER}/vPerson.csv' RETURN fname, Gender, isWorker;
@@ -83,6 +85,8 @@ Dan|2|True
 Elizabeth|1|True
 
 -CASE AzureInvalidAuth
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/azure/build/libazure.kuzu_extension';
+---- ok
 -STATEMENT CALL AZURE_CONNECTION_STRING = "";
 ---- ok
 -STATEMENT CALL AZURE_ACCOUNT_NAME = "";
