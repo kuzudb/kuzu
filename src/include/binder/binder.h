@@ -141,6 +141,7 @@ public:
     std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
         catalog::RelGroupCatalogEntry& relGroupEntry, const std::string& fromTableName,
         const std::string& toTableName);
+    std::unique_ptr<BoundStatement> bindLegacyCopyRelGroupFrom(const parser::Statement& copyFrom);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
