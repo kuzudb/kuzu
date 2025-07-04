@@ -14,7 +14,8 @@ struct QueryFTSOptionalParams {
     std::shared_ptr<binder::Expression> conjunctive;
     std::shared_ptr<binder::Expression> topK;
 
-    explicit QueryFTSOptionalParams(const binder::expression_vector& optionalParams);
+    QueryFTSOptionalParams(main::ClientContext* context,
+        const binder::expression_vector& optionalParams);
 
     QueryFTSConfig getConfig() const;
 };

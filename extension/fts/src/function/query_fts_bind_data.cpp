@@ -1,10 +1,10 @@
 #include "function/query_fts_bind_data.h"
 
+#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
-#include "function/stem.h"
 #include "libstemmer.h"
 #include "re2.h"
 #include "storage/storage_manager.h"
@@ -18,17 +18,29 @@ using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::storage;
 
-QueryFTSOptionalParams::QueryFTSOptionalParams(const binder::expression_vector& optionalParams) {
+static std::shared_ptr<Expression> applyImplicitCastingIfNecessary(main::ClientContext* context,
+    std::shared_ptr<Expression> expr, LogicalType targetType) {
+    if (expr->getDataType() != targetType) {
+        Binder binder{context};
+        expr = binder.getExpressionBinder()->implicitCastIfNecessary(expr, targetType);
+        expr = binder.getExpressionBinder()->foldExpression(expr);
+    }
+    return expr;
+}
+
+QueryFTSOptionalParams::QueryFTSOptionalParams(main::ClientContext* context,
+    const binder::expression_vector& optionalParams) {
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == K::NAME) {
-            k = optionalParam;
+            k = applyImplicitCastingIfNecessary(context, optionalParam, LogicalType{K::TYPE});
         } else if (paramName == B::NAME) {
-            b = optionalParam;
+            b = applyImplicitCastingIfNecessary(context, optionalParam, LogicalType{B::TYPE});
         } else if (paramName == Conjunctive::NAME) {
-            conjunctive = optionalParam;
+            conjunctive = applyImplicitCastingIfNecessary(context, optionalParam,
+                LogicalType{Conjunctive::TYPE});
         } else if (paramName == TopK::NAME) {
-            topK = optionalParam;
+            topK = applyImplicitCastingIfNecessary(context, optionalParam, LogicalType{TopK::TYPE});
         } else {
             throw common::BinderException{"Unknown optional parameter: " + paramName};
         }
