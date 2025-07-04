@@ -151,15 +151,16 @@ def test_scan_from_parameterized_df_docs_example_2(conn_db_empty: ConnDB):
     conn.execute("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name))")
 
     def get_df():
-        df = pl.DataFrame({"name": ["Adam", "Karissa", "Zhang"], "age": [30, 40, 50]})
+        return pl.DataFrame({"name": ["Adam", "Karissa", "Zhang"], "age": [30, 40, 50]})
 
-    # get_df() is not the name of a variable
-    conn.execute("COPY Person FROM $df", {"df", get_df()})
+    conn.execute("COPY Person FROM $dataframe", {"dataframe": get_df()})
 
 
 def test_scan_from_df_docs_example(conn_db_empty: ConnDB):
     conn, _ = conn_db_empty
 
     conn.execute("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name))")
+
+    df = pl.DataFrame({"name": ["Adam", "Karissa", "Zhang"], "age": [30, 40, 50]})
 
     conn.execute("COPY Person FROM df")
