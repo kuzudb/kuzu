@@ -1,9 +1,10 @@
 # Description
 
-Please include a summary of the changes and the related issue (if applicable). Please also include
-relevant motivation and context.
+Please include a summary of the changes and the related issue (if applicable).
+Please also include relevant motivation and context.
 
-Fixes # (issue)
+Fixes #(issue)
+Associated docs (issue or PR):
 
 # Contributor agreement
 
