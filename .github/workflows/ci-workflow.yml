@@ -99,8 +99,8 @@ jobs:
           version_current="$(python3 benchmark/version.py)"
           echo "0" > version_s3.txt
           echo "0" > version_gcs.txt
-          s3cmd get --no-check-certificate --force s3://kuzu-test/tinysnb/version.txt version_s3.txt || true
-          s3cmd --no-check-certificate --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" get --force s3://kuzudb-test/tinysnb/version.txt version_gcs.txt || true
+          s3cmd get --force s3://kuzu-test/tinysnb/version.txt version_s3.txt || true
+          s3cmd --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" get --force s3://kuzudb-test/tinysnb/version.txt version_gcs.txt || true
           if [[ "$version_current" == "$(cat version_s3.txt)" ]] && [[ "$version_current" == "$(cat version_gcs.txt)" ]]; then
             echo "TinySNB dataset is up to date, skipping upload"
             rm -rf tinysnb version_s3.txt version_gcs.txt
@@ -108,21 +108,21 @@ jobs:
           fi
           echo "TinySNB dataset is outdated, uploading..."
           bash scripts/generate_binary_tinysnb.sh
-          s3cmd del --no-check-certificate -r s3://kuzu-test/tinysnb/
-          s3cmd sync --no-check-certificate ./tinysnb s3://kuzu-test/
+          s3cmd del -r s3://kuzu-test/tinysnb/
+          s3cmd sync ./tinysnb s3://kuzu-test/
           # s3cmd del -r doesn't work on GCS so we individually delete each object in the directory
-          for gcs_file in $(s3cmd --no-check-certificate --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" ls s3://kuzudb-test/tinysnb/ | awk '{ print $4 }');
+          for gcs_file in $(s3cmd --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" ls s3://kuzudb-test/tinysnb/ | awk '{ print $4 }');
           do
-              s3cmd --no-check-certificate --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" del ${gcs_file}
+              s3cmd --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" del ${gcs_file}
           done
-          s3cmd --no-check-certificate --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" sync ./tinysnb s3://kuzudb-test/
+          s3cmd --access_key=${GCS_ACCESS_KEY_ID} --secret_key=${GCS_SECRET_ACCESS_KEY} --host=storage.googleapis.com --host-bucket="%(bucket)s.storage.googleapis.com" sync ./tinysnb s3://kuzudb-test/
           rm -rf tinysnb version_s3.txt version_gcs.txt
 
       - name: Generate and upload ldbc-sf01
         run: |
           version_current="$(python3 benchmark/version.py)"
           echo "0" > version_s3.txt
-          s3cmd get --no-check-certificate --force s3://kuzu-test/ldbc01/version.txt version_s3.txt || true
+          s3cmd get --force s3://kuzu-test/ldbc01/version.txt version_s3.txt || true
           if [[ "$version_current" == "$(cat version_s3.txt)" ]]; then
             echo "LDBC-SF01 dataset is up to date, skipping upload"
             rm -rf ldbc01 version_s3.txt
@@ -130,8 +130,8 @@ jobs:
           fi
           echo "LDBC-SF01 dataset is outdated, uploading..."
           bash scripts/generate_binary_ldbc-sf01.sh
-          s3cmd del --no-check-certificate -r s3://kuzu-test/ldbc01/
-          s3cmd sync --no-check-certificate ./ldbc01 s3://kuzu-test/
+          s3cmd del -r s3://kuzu-test/ldbc01/
+          s3cmd sync ./ldbc01 s3://kuzu-test/
           rm -rf ldbc01 version_s3.txt
 
   gcc-build-test:
