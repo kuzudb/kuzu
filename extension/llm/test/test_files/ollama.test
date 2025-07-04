@@ -33,12 +33,12 @@ True
 True
 
 -LOG Dissimilar Text 1
--STATEMENT WITH create_embedding('How to train a dog', 'ollama', 'nomic-embed-text') AS t1, create_embedding('What is the capital of France', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
+-STATEMENT WITH create_embedding('How to train a dog', 'ollama', 'nomic-embed-text', 'http://localhost:11434') AS t1, create_embedding('What is the capital of France', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
 
 -LOG Dissimilar Text 2
--STATEMENT WITH create_embedding('How do Unix file permissions work?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('History of the Roman Empire', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
+-STATEMENT WITH create_embedding('How do Unix file permissions work?', 'ollama', 'nomic-embed-text', 'http://localhost:11434') AS t1, create_embedding('History of the Roman Empire', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
 
