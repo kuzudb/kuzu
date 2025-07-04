@@ -60,6 +60,11 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
             auto fullPath = appendKuzuRootPath(csvFilePath);
             line.replace(line.find(csvFilePath), csvFilePath.length(), fullPath);
         }
+#ifdef __STATIC_LINK_EXTENSION_TEST__
+        if (line.starts_with("load extension")) {
+            continue;
+        }
+#endif
         std::cout << "Starting to execute query: " << line << std::endl;
         auto result = conn.query(line);
         std::cout << "Executed query: " << line << std::endl;

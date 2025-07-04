@@ -3,8 +3,7 @@
 --
 
 -CASE JsonArrayTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT MATCH (p:person) RETURN json_array(p.fName, p.ID, p.usedNames)
 ---- 8
 ["Alice",0,["Aida"]]

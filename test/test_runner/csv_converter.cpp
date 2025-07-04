@@ -135,8 +135,10 @@ void CSVConverter::createCopyFile() {
             stringFormat("Error opening file: {}, errno: {}.", outputCopyFile, errno));
     }
     if (fileExtension == ".json") {
+#ifndef __STATIC_LINK_EXTENSION_TEST__
         outfile << "load extension \"" + TestHelper::appendKuzuRootPath(
                                              "extension/json/build/libjson.kuzu_extension\"\n");
+#endif
     }
     for (auto table : tables) {
         auto cmd = stringFormat("COPY {} FROM \"{}\";", table->name, table->outputFilePath);

@@ -5,8 +5,7 @@
 
 -CASE CreateEmbeddingAmazonBedrockTitanV1
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION llm
 
 -STATEMENT MATCH (e:embedding) RETURN array_cosine_similarity(e.embedding, create_embedding(e.text, 'amazon-bedrock', 'amazon.titan-embed-text-v1', 'us-east-1')) >= 0.9 AS similarity;
 ---- 6
@@ -19,8 +18,7 @@ True
 
 -CASE SemanticDistanceCheck
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION llm
 
 -LOG Similar Text 1
 -STATEMENT WITH create_embedding('Who is the author of 1984?', 'amazon-bedrock', 'amazon.titan-embed-text-v1', 'us-east-1') AS t1, create_embedding('Who wrote the novel 1984?', 'amazon-bedrock', 'amazon.titan-embed-text-v1', 'us-east-1') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
@@ -44,11 +42,9 @@ False
 
 -CASE UseWithVectorExtension
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION llm
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION vector
 
 -STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING, title_embedding FLOAT[1536], published_year INT64);
 ---- ok

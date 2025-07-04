@@ -5,8 +5,7 @@
 
 -CASE ReleasePostExample
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CALL project_graph(
                'KnowsGraph',
                ['person'],

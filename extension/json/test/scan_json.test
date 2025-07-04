@@ -5,8 +5,7 @@
 
 -CASE TinySNBSubset
 
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json" RETURN *;
 ---- 3
@@ -96,8 +95,7 @@ Cannot read from JSON Object to FLOAT
 2|False|0.100000
 
 -CASE JsonNull
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-misc/null-test.json" RETURN *;
 ---- 4
 
@@ -105,8 +103,7 @@ Cannot read from JSON Object to FLOAT
 {a: , b: 2000-01-01}
 
 -CASE CopyFromJsonIgnorePKErrorsArrayFormat
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT CREATE NODE TABLE person(ID UINT64, PRIMARY KEY (ID))
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-error/pk_constraint_violation.json" (IGNORE_ERRORS=true);
@@ -122,8 +119,7 @@ Found duplicated primary key value 2, which violates the uniqueness constraint o
 3
 
 -CASE CopyFromJsonIgnoreIndexLookupErrorsNewlineDelimitedFormat
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT CREATE NODE TABLE person(ID UINT64, PRIMARY KEY (ID))
 ---- ok
 -STATEMENT CREATE REL TABLE knows(FROM person TO person)
@@ -144,8 +140,7 @@ Unable to find primary key value 6.|${KUZU_ROOT_DIRECTORY}/dataset/json-error/in
 3|4
 
 -CASE ScanFromNewLineDelimitedJson
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-misc/newline-delimited.json' RETURN *;
 ---- 9
 4947802324993|2011-08-17 14:26:59.961|103.246.108.57|Safari|yes|3
@@ -165,6 +160,7 @@ Unable to find primary key value 6.|${KUZU_ROOT_DIRECTORY}/dataset/json-error/in
 [{objectType: contact, schemaVersion: 135, contactIdentifier: 320864, contactNamespace: , contactDetail: {fullname: Renee Luke, email: renee.luke@datapath.com, phone: (678) 252-4828 - Direct}}]
 
 -CASE InstallOfficialExtension
+-SKIP_STATIC_LINK
 -STATEMENT FORCE INSTALL json FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension json
@@ -176,8 +172,7 @@ Sóló cón tu párejâ|126|this is a very very good movie|{rating: 5.300000, st
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544|the movie is very very good|{rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, release_ns: 2018-11-13 13:33:11.123456, release_ms: 2018-11-13 13:33:11.123456, release_sec: 2018-11-13 13:33:11.123456, release_tz: 2018-11-13 13:33:11.123456, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: 1919810}||{audience1= 33}|8.989000
 
 -CASE ScanFromHttpfsJson
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
 -STATEMENT LOAD FROM "http://localhost/dataset/json-misc/prim-test.json" return *;

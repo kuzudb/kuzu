@@ -4,8 +4,7 @@
 
 -CASE Epinions
 
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 
 -STATEMENT CALL PROJECT_GRAPH('G', ['N'], ['R'])
 ---- ok
@@ -94,8 +93,7 @@
 
 -CASE high_selectivity
 
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 
 -STATEMENT CALL PROJECT_GRAPH('G', {'N': 'n.id >= 1000' }, ['R'])
 ---- ok
@@ -188,8 +186,7 @@
 
 -CASE low_selectivity
 
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension'
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 
 -STATEMENT CALL PROJECT_GRAPH('G', {'N': 'n.id < 1000' }, ['R'])
 ---- ok
