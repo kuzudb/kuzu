@@ -30,9 +30,8 @@ public:
 
     explicit HashIndexLocalStorage(MemoryManager& memoryManager, OverflowFileHandle* handle)
         : localDeletions{}, localInsertions{memoryManager, handle} {}
-    using OwnedKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;
-    using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
-    HashIndexLocalLookupState lookup(Key key, common::offset_t& result, visible_func isVisible) {
+    HashIndexLocalLookupState lookup(KeyType key, common::offset_t& result,
+        visible_func isVisible) {
         if (localDeletions.contains(key)) {
             return HashIndexLocalLookupState::KEY_DELETED;
         }
@@ -42,15 +41,15 @@ public:
         return HashIndexLocalLookupState::KEY_NOT_EXIST;
     }
 
-    void deleteKey(Key key) {
+    void deleteKey(KeyType key) {
         if (!localInsertions.deleteKey(key)) {
-            localDeletions.insert(static_cast<OwnedKeyType>(key));
+            localDeletions.insert(static_cast<OwnedType>(key));
         }
     }
 
-    bool discard(Key key) { return localInsertions.deleteKey(key); }
+    bool discard(KeyType key) { return localInsertions.deleteKey(key); }
 
-    bool insert(Key key, common::offset_t value, visible_func isVisible) {
+    bool insert(KeyType key, common::offset_t value, visible_func isVisible) {
         auto iter = localDeletions.find(key);
         if (iter != localDeletions.end()) {
             localDeletions.erase(iter);
@@ -62,11 +61,11 @@ public:
         localInsertions.reserveSpaceForAppend(numNewEntries);
     }
 
-    bool append(Key key, common::offset_t value, visible_func isVisible) {
+    bool append(KeyType key, common::offset_t value, visible_func isVisible) {
         return localInsertions.append(key, value, isVisible);
     }
 
-    size_t append(const IndexBuffer<OwnedKeyType>& buffer, uint64_t bufferOffset,
+    size_t append(const IndexBuffer<OwnedType>& buffer, uint64_t bufferOffset,
         visible_func isVisible) {
         return localInsertions.append(buffer, bufferOffset, isVisible);
     }
@@ -82,7 +81,7 @@ public:
         localDeletions.clear();
     }
 
-    void applyLocalChanges(const std::function<void(Key)>& deleteOp,
+    void applyLocalChanges(const std::function<void(KeyType)>& deleteOp,
         const std::function<void(const InMemHashIndex<T>&)>& insertOp) {
         for (auto& key : localDeletions) {
             deleteOp(key);
@@ -95,16 +94,15 @@ public:
     const InMemHashIndex<T>& getInsertions() { return localInsertions; }
 
     uint64_t getEstimatedMemUsage() override {
-        return localInsertions.getEstimatedMemUsage() +
-               localDeletions.size() * sizeof(OwnedKeyType);
+        return localInsertions.getEstimatedMemUsage() + localDeletions.size() * sizeof(OwnedType);
     }
 
 private:
     // When the storage type is string, allow the key type to be string_view with a custom hash
     // function
-    using hash_function = std::conditional_t<std::is_same_v<OwnedKeyType, std::string>,
+    using hash_function = std::conditional_t<std::is_same_v<OwnedType, std::string>,
         common::StringUtils::string_hash, std::hash<T>>;
-    std::unordered_set<OwnedKeyType, hash_function, std::equal_to<>> localDeletions;
+    std::unordered_set<OwnedType, hash_function, std::equal_to<>> localDeletions;
     InMemHashIndex<T> localInsertions;
 };
 

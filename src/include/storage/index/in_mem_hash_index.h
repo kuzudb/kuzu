@@ -65,13 +65,17 @@ public:
     static constexpr auto SLOT_CAPACITY = getSlotCapacity<OwnedType>();
     using InMemSlotType = Slot<OwnedType>;
 
-    static_assert(SLOT_CAPACITY <= SlotHeader::FINGERPRINT_CAPACITY);
     // Size of the validity mask
     static_assert(SLOT_CAPACITY <= sizeof(SlotHeader().validityMask) * 8);
     static_assert(SLOT_CAPACITY <= std::numeric_limits<entry_pos_t>::max() + 1);
+
+    // sanity check to make sure we aren't accidentally making slots for some types larger than 256
+    // bytes.
     static_assert(DiskArray<InMemSlotType>::getAlignedElementSize() <=
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES);
-    static_assert(DiskArray<InMemSlotType>::getAlignedElementSize() >= sizeof(InMemSlotType));
+
+    // the size of Slot depends on the size of T and should always be close to the
+    // SLOT_CAPACITY_BYTES
     static_assert(DiskArray<InMemSlotType>::getAlignedElementSize() >
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES / 2);
 

@@ -79,9 +79,12 @@ public:
 
 public:
     using OnDiskSlotType = Slot<T>;
-    using InMemSlotType = InMemHashIndex<T>::InMemSlotType;
     static constexpr auto PERSISTENT_SLOT_CAPACITY = getSlotCapacity<T>();
-    static constexpr auto IN_MEM_SLOT_CAPACITY = InMemHashIndex<T>::SLOT_CAPACITY;
+
+    static_assert(DiskArray<OnDiskSlotType>::getAlignedElementSize() <=
+                  common::HashIndexConstants::SLOT_CAPACITY_BYTES);
+    static_assert(DiskArray<OnDiskSlotType>::getAlignedElementSize() >
+                  common::HashIndexConstants::SLOT_CAPACITY_BYTES / 2);
 
     using Key =
         typename std::conditional<std::same_as<T, common::ku_string_t>, std::string_view, T>::type;
