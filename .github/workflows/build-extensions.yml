@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build precompiled extensions
-        run: env OPENSSL_ROOT_DIR=/opt/homebrew/Cellar/openssl@3/3.3.0 make extension-release NUM_THREADS=$(sysctl -n hw.logicalcpu)
+        run: make extension-release NUM_THREADS=$(sysctl -n hw.logicalcpu)
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           CMAKE_OSX_ARCHITECTURES: "arm64"
