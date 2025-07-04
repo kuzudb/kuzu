@@ -170,6 +170,11 @@ def create_conn_db(path: Path, *, read_only: bool) -> ConnDB:
 
 
 @pytest.fixture
+def conn_db_empty(tmp_path: Path) -> ConnDB:
+    return create_conn_db(tmp_path, read_only=False)
+
+
+@pytest.fixture
 def conn_db_readonly(tmp_path: Path) -> ConnDB:
     """Return a cached read-only connection and database."""
     global _READONLY_CONN_DB_

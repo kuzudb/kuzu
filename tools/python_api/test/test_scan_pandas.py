@@ -530,7 +530,7 @@ def test_pandas_scan_ignore_errors(tmp_path: Path) -> None:
     conn = kuzu.Connection(db)
     df = pd.DataFrame({"id": [1, 2, 3, 1]})
     conn.execute("CREATE NODE TABLE person(id INT64, PRIMARY KEY(id))")
-    conn.execute("COPY person FROM df(IGNORE_ERRORS=true)")
+    conn.execute("COPY person FROM $dataframe(IGNORE_ERRORS=true)", {"dataframe": df})
 
     people = conn.execute("MATCH (p:person) RETURN p.id")
     assert people.get_next() == [1]
@@ -541,6 +541,22 @@ def test_pandas_scan_ignore_errors(tmp_path: Path) -> None:
     warnings = conn.execute("CALL show_warnings() RETURN *")
     assert warnings.get_next()[1].startswith("Found duplicated primary key value 1")
     assert not warnings.has_next()
+
+
+def test_pandas_scan_ignore_errors_docs_example(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    persons = ["Rhea", "Alice", "Rhea", None]
+    age = [25, 23, 25, 24]
+
+    df = pd.DataFrame({"name": persons, "age": age})
+    conn.execute("CREATE NODE TABLE Person(name STRING PRIMARY KEY, age INT64)")
+    conn.execute("COPY Person FROM $dataframe (ignore_errors=true)", {"dataframe": df})
+
+    people = conn.execute("MATCH (p:Person) RETURN p.name, p.age")
+    assert people.get_next() == ["Rhea", 25]
+    assert people.get_next() == ["Alice", 23]
+    assert not people.has_next()
 
 
 def test_copy_from_pandas_multi_pairs(tmp_path: Path) -> None:
