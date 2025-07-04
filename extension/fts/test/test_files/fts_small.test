@@ -340,17 +340,17 @@ doc|docIdx|FTS|[detail,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', 
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'])
 ---- ok
--STATEMENT CALL SHOW_INDEXES() WHERE `table name` = 'student' RETURN *
+-STATEMENT CALL SHOW_INDEXES() WHERE table_name = 'student' RETURN *
 ---- 1
 student|studentIdx|FTS|[name]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'], stemmer := 'english', stopWords := 'default');
 -STATEMENT ALTER TABLE student drop age
 ---- ok
--STATEMENT CALL SHOW_INDEXES() WHERE `table name` = 'student' RETURN *
+-STATEMENT CALL SHOW_INDEXES() WHERE table_name = 'student' RETURN *
 ---- 1
 student|studentIdx|FTS|[name]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'], stemmer := 'english', stopWords := 'default');
 -STATEMENT ALTER TABLE student rename name to firstName
 ---- ok
--STATEMENT CALL SHOW_INDEXES() WHERE `table name` = 'student' RETURN *
+-STATEMENT CALL SHOW_INDEXES() WHERE table_name = 'student' RETURN *
 ---- 1
 student|studentIdx|FTS|[firstName]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['firstName'], stemmer := 'english', stopWords := 'default');
 
