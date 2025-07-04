@@ -15,6 +15,8 @@ Learning Machines
 ---- ok
 -STATEMENT CALL force_checkpoint_on_close=false;
 ---- ok
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -RELOADDB
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
@@ -36,9 +38,11 @@ Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
 -RELOADDB
--LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL force_checkpoint_on_close=false;
 ---- ok
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL DROP_FTS_INDEX('Book', 'book_index')
 ---- ok
 -RELOADDB
@@ -53,6 +57,8 @@ Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
 -RELOADDB
 -STATEMENT CALL force_checkpoint_on_close=false;
 ---- ok
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE (b:Book {title: 'Alice wonderland', author: 'newton', abstract: 'machine'})
 ---- ok
@@ -63,6 +69,8 @@ Learning Machines|0.599514
 The Quantum World|0.931796
 -RELOADDB
 -STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title,score;
 ---- 3
@@ -89,9 +97,11 @@ The Quantum World|0.987801
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
 -RELOADDB
--LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL force_checkpoint_on_close=false;
 ---- ok
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE (b:Book {title: 'Shadows of Tomorrow', author: 'Lena Frost', abstract: 'A sci-fi exploration of a dystopian future.'})
 ---- ok
 -STATEMENT CREATE (b:Book {title: 'The Mind Machine', author: 'Carlos Vega', abstract: 'A psychological thriller about AI and control.'})
@@ -144,9 +154,11 @@ The Mind Machine|0.756869
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'contentIdx', ['content'])
 ---- ok
 -RELOADDB
--LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL force_checkpoint_on_close=false;
 ---- ok
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT match (d:doc) where d.ID = 437 delete d
 ---- ok
 -STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
@@ -161,6 +173,8 @@ The Mind Machine|0.756869
 432|1.822145
 -RELOADDB
 -STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
 ---- 8
@@ -182,8 +196,6 @@ The Mind Machine|0.756869
 202|2.016027
 389|1.906131
 -RELOADDB
--STATEMENT CALL force_checkpoint_on_close=false;
----- ok
 -STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
 ---- 5
 109|2.103948
