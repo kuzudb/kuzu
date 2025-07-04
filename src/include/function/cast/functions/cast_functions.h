@@ -4,6 +4,7 @@
 #include "common/string_format.h"
 #include "common/type_utils.h"
 #include "common/vector/value_vector.h"
+#include "function/cast/cast_union_bind_data.h"
 #include "function/cast/functions/numeric_cast.h"
 
 namespace kuzu {
@@ -31,6 +32,21 @@ struct CastRelToString {
         common::ValueVector& inputVector, common::ValueVector& resultVector) {
         auto str = common::TypeUtils::relToString(input, &inputVector);
         common::StringVector::addString(&resultVector, result, str);
+    }
+};
+
+struct CastToUnion {
+    template<typename T>
+    static inline void operation(T&, common::union_entry_t&, common::ValueVector& inputVector,
+        common::ValueVector& resultVector, void* pBindData) {
+        auto& bindData = *reinterpret_cast<CastToUnionBindData*>(pBindData);
+        auto* selVector = inputVector.getSelVectorPtr();
+        auto* tagVector = common::UnionVector::getTagVector(&resultVector);
+        auto* valVector = common::UnionVector::getValVector(&resultVector, bindData.minCostTag);
+        for (auto& pos : selVector->getSelectedPositions()) {
+            tagVector->setValue<common::union_field_idx_t>(pos, bindData.minCostTag);
+        }
+        bindData.innerFunc(inputVector, *valVector, *selVector, bindData);
     }
 };
 
