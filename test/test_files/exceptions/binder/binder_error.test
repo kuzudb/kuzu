@@ -92,29 +92,30 @@ Binder exception: Cannot bind s.* as a single property expression.
 -LOG BindIDArithmetic
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *
 ---- error
-Binder exception: Cannot match a built-in function for given function +(INTERNAL_ID,INT64). Supported inputs are
-(INT128,INT128) -> INT128
-(INT64,INT64) -> INT64
-(INT32,INT32) -> INT32
-(INT16,INT16) -> INT16
-(INT8,INT8) -> INT8
-(SERIAL,SERIAL) -> SERIAL
-(UINT64,UINT64) -> UINT64
-(UINT32,UINT32) -> UINT32
-(UINT16,UINT16) -> UINT16
-(UINT8,UINT8) -> UINT8
-(DOUBLE,DOUBLE) -> DOUBLE
-(FLOAT,FLOAT) -> FLOAT
-(DECIMAL,DECIMAL) -> DECIMAL
-(LIST,LIST) -> LIST
-(STRING,STRING) -> STRING
-(INTERVAL,INTERVAL) -> INTERVAL
-(DATE,INT64) -> DATE
-(INT64,DATE) -> DATE
-(DATE,INTERVAL) -> DATE
-(INTERVAL,DATE) -> DATE
-(TIMESTAMP,INTERVAL) -> TIMESTAMP
-(INTERVAL,TIMESTAMP) -> TIMESTAMP
+Binder exception: Function + did not receive correct arguments:
+Actual:   (INTERNAL_ID,INT64)
+Expected: (INT128,INT128) -> INT128
+          (INT64,INT64) -> INT64
+          (INT32,INT32) -> INT32
+          (INT16,INT16) -> INT16
+          (INT8,INT8) -> INT8
+          (SERIAL,SERIAL) -> SERIAL
+          (UINT64,UINT64) -> UINT64
+          (UINT32,UINT32) -> UINT32
+          (UINT16,UINT16) -> UINT16
+          (UINT8,UINT8) -> UINT8
+          (DOUBLE,DOUBLE) -> DOUBLE
+          (FLOAT,FLOAT) -> FLOAT
+          (DECIMAL,DECIMAL) -> DECIMAL
+          (LIST,LIST) -> LIST
+          (STRING,STRING) -> STRING
+          (INTERVAL,INTERVAL) -> INTERVAL
+          (DATE,INT64) -> DATE
+          (INT64,DATE) -> DATE
+          (DATE,INTERVAL) -> DATE
+          (INTERVAL,DATE) -> DATE
+          (TIMESTAMP,INTERVAL) -> TIMESTAMP
+          (INTERVAL,TIMESTAMP) -> TIMESTAMP
 
 -LOG BindDateAddDate
 -STATEMENT MATCH (a:person) RETURN a.birthdate + date('2031-02-01')
@@ -200,8 +201,9 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 -LOG BindFunctionWithWrongNumParams
 -STATEMENT MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);
 ---- error
-Binder exception: Cannot match a built-in function for given function DATE. Supported inputs are
-(STRING) -> DATE
+Binder exception: Function DATE did not receive correct arguments:
+Actual:   ()
+Expected: (STRING) -> DATE
 
 -LOG BindFunctionWithWrongParamType
 -STATEMENT MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);
@@ -384,53 +386,54 @@ Binder exception: Variable a already exists.
 -LOG MinNodeID
 -STATEMENT MATCH (a:person) RETURN MIN(a)
 ---- error
-Binder exception: Cannot match a built-in function for given function MIN(NODE). Supported inputs are
-DISTINCT (BOOL) -> BOOL
-(BOOL) -> BOOL
-DISTINCT (INT64) -> INT64
-(INT64) -> INT64
-DISTINCT (INT32) -> INT32
-(INT32) -> INT32
-DISTINCT (INT16) -> INT16
-(INT16) -> INT16
-DISTINCT (INT8) -> INT8
-(INT8) -> INT8
-DISTINCT (UINT64) -> UINT64
-(UINT64) -> UINT64
-DISTINCT (UINT32) -> UINT32
-(UINT32) -> UINT32
-DISTINCT (UINT16) -> UINT16
-(UINT16) -> UINT16
-DISTINCT (UINT8) -> UINT8
-(UINT8) -> UINT8
-DISTINCT (INT128) -> INT128
-(INT128) -> INT128
-DISTINCT (DOUBLE) -> DOUBLE
-(DOUBLE) -> DOUBLE
-DISTINCT (FLOAT) -> FLOAT
-(FLOAT) -> FLOAT
-DISTINCT (DATE) -> DATE
-(DATE) -> DATE
-DISTINCT (TIMESTAMP) -> TIMESTAMP
-(TIMESTAMP) -> TIMESTAMP
-DISTINCT (TIMESTAMP_NS) -> TIMESTAMP_NS
-(TIMESTAMP_NS) -> TIMESTAMP_NS
-DISTINCT (TIMESTAMP_MS) -> TIMESTAMP_MS
-(TIMESTAMP_MS) -> TIMESTAMP_MS
-DISTINCT (TIMESTAMP_SEC) -> TIMESTAMP_SEC
-(TIMESTAMP_SEC) -> TIMESTAMP_SEC
-DISTINCT (TIMESTAMP_TZ) -> TIMESTAMP_TZ
-(TIMESTAMP_TZ) -> TIMESTAMP_TZ
-DISTINCT (INTERVAL) -> INTERVAL
-(INTERVAL) -> INTERVAL
-DISTINCT (BLOB) -> BLOB
-(BLOB) -> BLOB
-DISTINCT (UUID) -> UUID
-(UUID) -> UUID
-DISTINCT (STRING) -> STRING
-(STRING) -> STRING
-DISTINCT (SERIAL) -> SERIAL
-(SERIAL) -> SERIAL
+Binder exception: Function MIN did not receive correct arguments:
+Actual:   (NODE)
+Expected: DISTINCT (BOOL) -> BOOL
+          (BOOL) -> BOOL
+          DISTINCT (INT64) -> INT64
+          (INT64) -> INT64
+          DISTINCT (INT32) -> INT32
+          (INT32) -> INT32
+          DISTINCT (INT16) -> INT16
+          (INT16) -> INT16
+          DISTINCT (INT8) -> INT8
+          (INT8) -> INT8
+          DISTINCT (UINT64) -> UINT64
+          (UINT64) -> UINT64
+          DISTINCT (UINT32) -> UINT32
+          (UINT32) -> UINT32
+          DISTINCT (UINT16) -> UINT16
+          (UINT16) -> UINT16
+          DISTINCT (UINT8) -> UINT8
+          (UINT8) -> UINT8
+          DISTINCT (INT128) -> INT128
+          (INT128) -> INT128
+          DISTINCT (DOUBLE) -> DOUBLE
+          (DOUBLE) -> DOUBLE
+          DISTINCT (FLOAT) -> FLOAT
+          (FLOAT) -> FLOAT
+          DISTINCT (DATE) -> DATE
+          (DATE) -> DATE
+          DISTINCT (TIMESTAMP) -> TIMESTAMP
+          (TIMESTAMP) -> TIMESTAMP
+          DISTINCT (TIMESTAMP_NS) -> TIMESTAMP_NS
+          (TIMESTAMP_NS) -> TIMESTAMP_NS
+          DISTINCT (TIMESTAMP_MS) -> TIMESTAMP_MS
+          (TIMESTAMP_MS) -> TIMESTAMP_MS
+          DISTINCT (TIMESTAMP_SEC) -> TIMESTAMP_SEC
+          (TIMESTAMP_SEC) -> TIMESTAMP_SEC
+          DISTINCT (TIMESTAMP_TZ) -> TIMESTAMP_TZ
+          (TIMESTAMP_TZ) -> TIMESTAMP_TZ
+          DISTINCT (INTERVAL) -> INTERVAL
+          (INTERVAL) -> INTERVAL
+          DISTINCT (BLOB) -> BLOB
+          (BLOB) -> BLOB
+          DISTINCT (UUID) -> UUID
+          (UUID) -> UUID
+          DISTINCT (STRING) -> STRING
+          (STRING) -> STRING
+          DISTINCT (SERIAL) -> SERIAL
+          (SERIAL) -> SERIAL
 
 #TODO(Xiyang): Fix me
 #-LOG OrderByNodeID

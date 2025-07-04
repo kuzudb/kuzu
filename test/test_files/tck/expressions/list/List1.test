@@ -102,39 +102,44 @@ Binder exception: Cannot match a built-in function for given function LIST_EXTRA
 -STATEMENT WITH [1, 2, 3, 4, 5] AS list, true AS idx
            RETURN list[idx];
 ---- error
-Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],BOOL). Supported inputs are
-(LIST,INT64) -> ANY
-(STRING,INT64) -> STRING
-(ARRAY,INT64) -> ANY
+Binder exception: Function LIST_EXTRACT did not receive correct arguments:
+Actual:   (INT64[],BOOL)
+Expected: (LIST,INT64) -> ANY
+          (STRING,INT64) -> STRING
+          (ARRAY,INT64) -> ANY
 
 -STATEMENT WITH [1, 2, 3, 4, 5] AS list, 4.7 AS idx
            RETURN list[idx];
 ---- error
-Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],DOUBLE). Supported inputs are
-(LIST,INT64) -> ANY
-(STRING,INT64) -> STRING
-(ARRAY,INT64) -> ANY
+Binder exception: Function LIST_EXTRACT did not receive correct arguments:
+Actual:   (INT64[],DOUBLE)
+Expected: (LIST,INT64) -> ANY
+          (STRING,INT64) -> STRING
+          (ARRAY,INT64) -> ANY
 
 -STATEMENT WITH [1, 2, 3, 4, 5] AS list, '1' AS idx
            RETURN list[idx];
 ---- error
-Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],STRING). Supported inputs are
-(LIST,INT64) -> ANY
-(STRING,INT64) -> STRING
-(ARRAY,INT64) -> ANY
+Binder exception: Function LIST_EXTRACT did not receive correct arguments:
+Actual:   (INT64[],STRING)
+Expected: (LIST,INT64) -> ANY
+          (STRING,INT64) -> STRING
+          (ARRAY,INT64) -> ANY
 
 -STATEMENT WITH [1, 2, 3, 4, 5] AS list, [1] AS idx
            RETURN list[idx];
 ---- error
-Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],INT64[]). Supported inputs are
-(LIST,INT64) -> ANY
-(STRING,INT64) -> STRING
-(ARRAY,INT64) -> ANY
+Binder exception: Function LIST_EXTRACT did not receive correct arguments:
+Actual:   (INT64[],INT64[])
+Expected: (LIST,INT64) -> ANY
+          (STRING,INT64) -> STRING
+          (ARRAY,INT64) -> ANY
 
 -STATEMENT WITH [1, 2, 3, 4, 5] AS list, {x: 3} AS idx
            RETURN list[idx];
 ---- error
-Binder exception: Cannot match a built-in function for given function LIST_EXTRACT(INT64[],STRUCT(x INT64)). Supported inputs are
-(LIST,INT64) -> ANY
-(STRING,INT64) -> STRING
-(ARRAY,INT64) -> ANY
+Binder exception: Function LIST_EXTRACT did not receive correct arguments:
+Actual:   (INT64[],STRUCT(x INT64))
+Expected: (LIST,INT64) -> ANY
+          (STRING,INT64) -> STRING
+          (ARRAY,INT64) -> ANY
