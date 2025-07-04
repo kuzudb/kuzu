@@ -1,5 +1,6 @@
 #include "connector/azure_connector.h"
 
+#include "common/exception/runtime.h"
 #include "connector/azure_config.h"
 #include "main/client_context.h"
 
@@ -18,13 +19,18 @@ void AzureConnector::connect(const std::string& /*dbPath*/, const std::string& /
 }
 
 void AzureConnector::initRemoteAzureSecrets(main::ClientContext* context) const {
-    std::string query = "CREATE SECRET azure_secret (TYPE azure";
+    std::string query;
     for (auto [fieldName, _] : AzureConfig::getDefault().getFields()) {
-        std::string duckdbFieldName = fieldName.substr(6); // strip "AZURE_" prefix
-        query += common::stringFormat(", {} '{}'", duckdbFieldName,
-            context->getCurrentSetting(fieldName).toString());
+        std::string setting = context->getCurrentSetting(fieldName).toString();
+        if (!setting.empty()) {
+            std::string duckdbFieldName = fieldName.substr(6); // strip "AZURE_" prefix
+            query += common::stringFormat(", {} '{}'", duckdbFieldName, setting);
+        }
     }
-    executeQuery(query + ");");
+    if (query.empty()) {
+        throw common::RuntimeException("Azure authentication requires one of AZURE_CONNECTION_STRING or AZURE_ACCOUNT_NAME to be non-empty");
+    }
+    executeQuery("CREATE SECRET azure_secret (TYPE azure, PROVIDER config" + query + ");");
 }
 
 } // namespace azure_extension

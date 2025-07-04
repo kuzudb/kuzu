@@ -70,3 +70,23 @@ Dan|Bob
 Dan|Carol
 Elizabeth|Farooq
 Elizabeth|Greg
+
+-CASE AzurePublicScan
+-STATEMENT CALL AZURE_CONNECTION_STRING = "";
+---- ok
+-STATEMENT LOAD FROM 'az://${AZURE_ACCOUNT_NAME}/${AZURE_PUBLIC_CONTAINER}/vPerson.csv' RETURN fname, Gender, isWorker;
+---- 5
+Alice|1|False
+Bob|2|False
+Carol|1|True
+Dan|2|True
+Elizabeth|1|True
+
+-CASE AzureInvalidAuth
+-STATEMENT CALL AZURE_CONNECTION_STRING = "";
+---- ok
+-STATEMENT CALL AZURE_ACCOUNT_NAME = "";
+---- ok
+-STATEMENT LOAD FROM "az://kuzu-test/vPerson.csv" RETURN *;
+---- error
+Runtime exception: Azure authentication requires one of AZURE_CONNECTION_STRING or AZURE_ACCOUNT_NAME to be non-empty
