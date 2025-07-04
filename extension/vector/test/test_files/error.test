@@ -170,6 +170,10 @@ Binder exception: The value of k must be greater than 0.
 
 -CASE RunFunctionWithoutExtension
 -SKIP_STATIC_LINK
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE (:embeddings {id:1, vec:[0,1,2,3,4,5,6,7]});
+---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
 ---- error
 Catalog exception: function CREATE_VECTOR_INDEX is not defined. This function exists in the VECTOR extension. You can install and load the extension by running 'INSTALL VECTOR; LOAD EXTENSION VECTOR;'.
@@ -179,3 +183,22 @@ Catalog exception: function QUERY_VECTOR_INDEX is not defined. This function exi
 -STATEMENT CALL DROP_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], -1) RETURN node.id ORDER BY distance;
 ---- error
 Catalog exception: function DROP_VECTOR_INDEX is not defined. This function exists in the VECTOR extension. You can install and load the extension by running 'INSTALL VECTOR; LOAD EXTENSION VECTOR;'.
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
+---- ok
+-RELOADDB
+-STATEMENT MATCH (a:embeddings) SET a.vec = [0,1,2,3,4,5,6,7];
+---- error
+Binder exception: Cannot set property vec in table embeddings because it is used in one or more indexes. Try delete and then insert.
+-STATEMENT CREATE (:embeddings {id:0, vec:[0,1,2,3,4,5,6,7]});
+---- error
+Binder exception: Trying to insert into an index on table embeddings but its extension is not loaded.
+-STATEMENT MERGE (:embeddings {id:0, vec:[0,1,2,3,4,5,6,7]});
+---- error
+Binder exception: Trying to insert into an index on table embeddings but its extension is not loaded.
+-STATEMENT MATCH (a:embeddings) DELETE a;
+---- error
+Binder exception: Trying to delete from an index on table embeddings but its extension is not loaded.
+-STATEMENT ALTER TABLE embeddings DROP vec;
+---- error
+Binder exception: Cannot drop property vec in table embeddings because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.

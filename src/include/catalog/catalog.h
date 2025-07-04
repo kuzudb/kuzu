@@ -138,6 +138,9 @@ public:
     // Get all index entries.
     std::vector<IndexCatalogEntry*> getIndexEntries(
         const transaction::Transaction* transaction) const;
+    // Get all index entries for given table
+    std::vector<IndexCatalogEntry*> getIndexEntries(const transaction::Transaction* transaction,
+        common::table_id_t tableID) const;
 
     // Create index entry.
     void createIndex(transaction::Transaction* transaction,

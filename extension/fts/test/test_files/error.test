@@ -138,6 +138,8 @@ Binder exception: Table STUDENT doesn't have an index with name sIdx1.
 -SKIP_STATIC_LINK
 -STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
 ---- ok
+-STATEMENT CREATE (:Student {id:1, name:'Bob'});
+---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx', ['name'])
 ---- error
 Catalog exception: function CREATE_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
@@ -147,6 +149,25 @@ Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists
 -STATEMENT CALL DROP_FTS_INDEX('STUDENT', 'sIdx')
 ---- error
 Catalog exception: function DROP_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx', ['name'])
+---- ok
+-RELOADDB
+-STATEMENT MATCH (a:Student) SET a.name = 'X';
+---- error
+Binder exception: Cannot set property name in table STUDENT because it is used in one or more indexes. Try delete and then insert.
+-STATEMENT CREATE (:Student {id:0, name:'Alice'});
+---- error
+Binder exception: Trying to insert into an index on table STUDENT but its extension is not loaded.
+-STATEMENT MERGE (:Student {id:0, name:'Alice'});
+---- error
+Binder exception: Trying to insert into an index on table STUDENT but its extension is not loaded.
+-STATEMENT MATCH (a:Student) DELETE a;
+---- error
+Binder exception: Trying to delete from an index on table STUDENT but its extension is not loaded.
+-STATEMENT ALTER TABLE STUDENT DROP name;
+---- error
+Binder exception: Cannot drop property name in table STUDENT because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
 
 -CASE CreateFTSSingleStatement
 -SKIP_STATIC_LINK

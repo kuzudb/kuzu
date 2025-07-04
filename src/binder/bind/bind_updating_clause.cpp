@@ -7,6 +7,7 @@
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/assert.h"
@@ -184,6 +185,16 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
         bindInsertColumnDataExprs(node->getPropertyDataExprRef(), entry->getProperties());
     auto nodeEntry = entry->ptrCast<NodeTableCatalogEntry>();
     validatePrimaryKeyExistence(nodeEntry, *node, insertInfo.columnDataExprs);
+    // Check extension secondary index loaded
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
+    for (auto indexEntry : catalog->getIndexEntries(transaction, nodeEntry->getTableID())) {
+        if (!indexEntry->isLoaded()) {
+            throw BinderException(stringFormat(
+                "Trying to insert into an index on table {} but its extension is not loaded.",
+                nodeEntry->getName()));
+        }
+    }
     infos.push_back(std::move(insertInfo));
 }
 
@@ -331,6 +342,19 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
         auto pattern = expressionBinder.bindExpression(*deleteClause.getExpression(i));
         if (ExpressionUtil::isNodePattern(*pattern)) {
             auto deleteNodeInfo = BoundDeleteInfo(deleteType, TableType::NODE, pattern);
+            auto& node = pattern->constCast<NodeExpression>();
+            auto catalog = clientContext->getCatalog();
+            auto transaction = clientContext->getTransaction();
+            for (auto entry : node.getEntries()) {
+                for (auto index : catalog->getIndexEntries(transaction, entry->getTableID())) {
+                    if (!index->isLoaded()) {
+                        throw BinderException(
+                            stringFormat("Trying to delete from an index on table {} but its "
+                                         "extension is not loaded.",
+                                entry->getName()));
+                    }
+                }
+            }
             boundDeleteClause->addInfo(std::move(deleteNodeInfo));
         } else if (ExpressionUtil::isRelPattern(*pattern)) {
             // LCOV_EXCL_START
