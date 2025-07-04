@@ -431,8 +431,8 @@ KUZU_C_API bool kuzu_prepared_statement_is_success(kuzu_prepared_statement* prep
  * @brief Returns the error message if the prepared statement is not prepared successfully.
  * The caller is responsible for freeing the returned string with `kuzu_destroy_string`.
  * @param prepared_statement The prepared statement instance.
- * @return the error message if the statement is not prepared successfully or null 
- * if the statement is prepared successfully. 
+ * @return the error message if the statement is not prepared successfully or null
+ * if the statement is prepared successfully.
  */
 KUZU_C_API char* kuzu_prepared_statement_get_error_message(
     kuzu_prepared_statement* prepared_statement);
