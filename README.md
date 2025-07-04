@@ -1,5 +1,8 @@
 <div align="center">
-  <img src="https://kuzudb.com/img/kuzu-logo.png" height="100">
+  <picture>
+    <source srcset="https://kuzudb.com/img/kuzu-logo-dark.png" media="(prefers-color-scheme: dark)">
+    <img src="https://kuzudb.com/img/kuzu-logo.png" height="100" alt="Kuzu Logo">
+  </picture>
 </div>
 
 <br>
