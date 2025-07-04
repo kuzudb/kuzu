@@ -307,6 +307,18 @@ std::vector<IndexCatalogEntry*> Catalog::getIndexEntries(const Transaction* tran
     return result;
 }
 
+std::vector<IndexCatalogEntry*> Catalog::getIndexEntries(
+    const Transaction* transaction, table_id_t tableID) const {
+    std::vector<IndexCatalogEntry*> result;
+    for (auto& [_, entry] : indexes->getEntries(transaction)) {
+        auto indexEntry = entry->ptrCast<IndexCatalogEntry>();
+        if (indexEntry->getTableID() == tableID) {
+            result.push_back(indexEntry);
+        }
+    }
+    return result;
+}
+
 bool Catalog::containsIndex(const Transaction* transaction, table_id_t tableID,
     const std::string& indexName) const {
     return indexes->containsEntry(transaction,
