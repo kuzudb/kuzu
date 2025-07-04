@@ -251,7 +251,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
             createInfo->tableName, createInfo->onConflict, std::move(boundExtraInfo),
             clientContext->useInternalCatalogEntry());
         auto boundCreateTable = std::make_unique<BoundCreateTable>(std::move(boundCreateInfo),
-            BoundStatementResult::createEmptyResult());
+            BoundStatementResult::createSingleStringColumnResult());
         boundCreateTable->setCopyInfo(std::move(boundCopyFromInfo));
         return boundCreateTable;
     }
@@ -278,7 +278,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
         boundCreateInfo.extraInfo->ptrCast<BoundExtraCreateTableInfo>()->propertyDefinitions =
             std::move(propertyDefinitions);
         auto boundCreateTable = std::make_unique<BoundCreateTable>(std::move(boundCreateInfo),
-            BoundStatementResult::createEmptyResult());
+            BoundStatementResult::createSingleStringColumnResult());
         boundCreateTable->setCopyInfo(std::move(boundCopyFromInfo));
         return boundCreateTable;
     }

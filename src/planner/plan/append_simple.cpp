@@ -45,7 +45,6 @@ static LogicalPlan getSimplePlan(std::shared_ptr<LogicalOperator> op) {
 LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
     auto& createTable = statement.constCast<BoundCreateTable>();
     auto& info = createTable.getInfo();
-
     // If it is a CREATE NODE TABLE AS, then copy as well
     if (createTable.hasCopyInfo()) {
         std::vector<std::shared_ptr<LogicalOperator>> children;
@@ -62,7 +61,7 @@ LogicalPlan Planner::planCreateTable(const BoundStatement& statement) {
         }
         auto create = std::make_shared<LogicalCreateTable>(info.copy());
         children.push_back(std::move(create));
-        auto noop = std::make_shared<LogicalNoop>(children);
+        auto noop = std::make_shared<LogicalNoop>(children.size() - 1, children);
         return getSimplePlan(std::move(noop));
     }
     auto op = std::make_shared<LogicalCreateTable>(info.copy());

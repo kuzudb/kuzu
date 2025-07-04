@@ -596,7 +596,8 @@ Binder exception: Expression ABC has data type STRING but expected INT64[3]. Imp
 
 -CASE CreateNodeTableAs
 -STATEMENT CREATE NODE TABLE Test AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" WHERE ISStudent = True RETURN id, Gender, fname;
----- ok
+---- 1
+Table Test has been created.
 -STATEMENT MATCH (a:Test) RETURN a.*;
 ---- 2
 0|1|Alice
@@ -625,7 +626,8 @@ Binder exception: RETURN or WITH * is not allowed when there are no variables in
 
 -CASE CreateRelTableAs
 -STATEMENT CREATE NODE TABLE Person2 AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" RETURN *;
----- ok
+---- 1
+Table Person2 has been created.
 -STATEMENT COPY Person2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
 ---- ok
 -STATEMENT CREATE REL TABLE Knows2 (FROM Person2 TO Person2) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
