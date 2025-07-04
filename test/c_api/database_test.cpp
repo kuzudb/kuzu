@@ -113,9 +113,8 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFiles) {
     std::string homeDir = "/tmp/dbHome";
     kuzu::common::VirtualFileSystem vfs(homeDir);
     std::filesystem::create_directories("/tmp/test1");
-    std::filesystem::create_directories("/tmp/dbHome/test1");
 
-    // Attempt to delete files outside the home directory (should error)
+    // Attempt to delete files not within the list of db files (should error)
     try {
         vfs.removeFileIfExists("/tmp/test1");
     } catch (const kuzu::common::IOException& e) {
@@ -123,19 +122,23 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFiles) {
         EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/test1 is not within the allowed "
                                "list of files to be removed.");
     }
+    try {
+        vfs.removeFileIfExists("/tmp/dbHome");
+    } catch (const kuzu::common::IOException& e) {
+        // Expected behavior
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/dbHome is not within the allowed "
+                               "list of files to be removed.");
+    }
 
-    ASSERT_NO_THROW(vfs.removeFileIfExists("/tmp/dbHome"));
     ASSERT_NO_THROW(vfs.removeFileIfExists("/tmp/dbHome.lock"));
     ASSERT_NO_THROW(vfs.removeFileIfExists("/tmp/dbHome.shadow"));
     ASSERT_NO_THROW(vfs.removeFileIfExists("/tmp/dbHome.wal"));
     ASSERT_NO_THROW(vfs.removeFileIfExists("/tmp/dbHome.tmp"));
 
     ASSERT_TRUE(std::filesystem::exists("/tmp/test1"));
-    ASSERT_FALSE(std::filesystem::exists("/tmp/dbHome/test1"));
 
     // Cleanup: Remove directories after the test
     std::filesystem::remove_all("/tmp/test1");
-    std::filesystem::remove_all("/tmp/dbHome/test1");
 }
 
 #ifndef __WASM__ // home directory is not available in WASM
@@ -143,7 +146,6 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWithHome) {
     std::string homeDir = "~/tmp/dbHome";
     kuzu::common::VirtualFileSystem vfs(homeDir);
     std::filesystem::create_directories("~/tmp/test1");
-    std::filesystem::create_directories("~/tmp/dbHome/test1");
 
     // Attempt to delete files outside the home directory (should error)
     try {
@@ -151,6 +153,13 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWithHome) {
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
         EXPECT_STREQ(e.what(), "IO exception: Error: Path ~/tmp/test1 is not within the allowed "
+                               "list of files to be removed.");
+    }
+    try {
+        vfs.removeFileIfExists("~/tmp/dbHome");
+    } catch (const kuzu::common::IOException& e) {
+        // Expected behavior
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path ~/tmp/dbHome is not within the allowed "
                                "list of files to be removed.");
     }
 
@@ -163,18 +172,15 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWithHome) {
             "IO exception: Error: Path ~ is not within the allowed list of files to be removed.");
     }
 
-    ASSERT_NO_THROW(vfs.removeFileIfExists("~/tmp/dbHome"));
     ASSERT_NO_THROW(vfs.removeFileIfExists("~/tmp/dbHome.lock"));
     ASSERT_NO_THROW(vfs.removeFileIfExists("~/tmp/dbHome.wal"));
     ASSERT_NO_THROW(vfs.removeFileIfExists("~/tmp/dbHome.shadow"));
     ASSERT_NO_THROW(vfs.removeFileIfExists("~/tmp/dbHome.tmp"));
 
     ASSERT_TRUE(std::filesystem::exists("~/tmp/test1"));
-    ASSERT_FALSE(std::filesystem::exists("~/tmp/dbHome/test1"));
 
     // Cleanup: Remove directories after the test
     std::filesystem::remove_all("~/tmp/test1");
-    std::filesystem::remove_all("~/tmp/dbHome/test1");
 }
 #endif
 

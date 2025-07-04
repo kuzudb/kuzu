@@ -97,10 +97,9 @@ public:
         systemConfig->bufferPoolSize = main::SystemConfig{}.bufferPoolSize;
         auto constructBMFunc = [&](const main::Database& db) {
             auto bm = std::unique_ptr<FlakyBufferManager>(new FlakyBufferManager(databasePath,
-                getFileSystem(db)->joinPath(databasePath, "copy.tmp"), systemConfig->bufferPoolSize,
-                systemConfig->maxDBSize, getFileSystem(db), systemConfig->readOnly,
-                failureFrequency, canFailDuringExecute, canFailDuringCheckpoint,
-                canFailDuringCommit));
+                databasePath + ".copy.tmp", systemConfig->bufferPoolSize, systemConfig->maxDBSize,
+                getFileSystem(db), systemConfig->readOnly, failureFrequency, canFailDuringExecute,
+                canFailDuringCheckpoint, canFailDuringCommit));
             currentBM = bm.get();
             return bm;
         };
