@@ -31,6 +31,7 @@ Learning Machines
 Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
 
 -CASE DropFTSCommitRecovery
+-SKIP_IN_MEM
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
@@ -45,6 +46,7 @@ Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
 ---- 0
 
 -CASE InsertRecover
+-SKIP_IN_MEM
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
@@ -82,6 +84,7 @@ Learning Machines|0.659085
 The Quantum World|0.987801
 
 -CASE MultiInsertRecover
+-SKIP_IN_MEM
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
@@ -132,6 +135,7 @@ Storm Weaver|0.934315
 The Mind Machine|0.756869
 
 -CASE DeleteRecover
+-SKIP_IN_MEM
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE NODE TABLE doc (ID UINT64, content STRING, PRIMARY KEY (ID));
 ---- ok
