@@ -4,8 +4,7 @@
 --
 
 -CASE ExtractNotExistField
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT create node table person (id INT64, description json, primary key(id));
 ---- ok
 -STATEMENT CREATE (p:person {id: 5, description: 6})
@@ -18,8 +17,7 @@
 "anatidae"
 
 -CASE ExampleDoc
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT create node table person (id INT64, description json, primary key(id));
 ---- ok
 -STATEMENT CREATE (p:person {id: 20, description: to_json({height: 52, age: 32, scores: [1,2,5]})});
@@ -41,8 +39,7 @@
 
 -CASE JsonFunctionsSample
 -SKIP
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT return cast('alice' as json)
 ---- 1
 "alice"

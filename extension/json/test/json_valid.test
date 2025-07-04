@@ -4,8 +4,7 @@
 
 -CASE JsonValidTestFromDuckDB
 
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 
 -STATEMENT RETURN json_valid('{"a":55,"b":72,}');
 ---- 1

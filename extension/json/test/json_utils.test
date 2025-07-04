@@ -3,8 +3,7 @@
 --
 
 -CASE JsonMergeTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD RETURN json_merge_patch(to_json(MP), to_json(NSTD))
 ---- 9
 {"1":"a","2":"b","3":"c","a":1,"b":{"x":"a"}}
@@ -18,8 +17,7 @@
 {"0":"","a":3,"b":{"x":"c"}}
 
 -CASE JsonExtractTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT CREATE NODE TABLE jsontab(uid serial, id JSON, primary key(uid))
 ---- ok
 -STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD CREATE (:jsontab {id:json_merge_patch(to_json(MP), to_json(NSTD))})
@@ -42,16 +40,14 @@
 "a"
 
 -CASE JsonArrayLengthTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT UNWIND ['[1, 2, {"x": [5, ["a"], "y"]}, 3]', '[]'] AS ARR RETURN json_array_length(ARR)
 ---- 2
 4
 0
 
 -CASE JsonStructureTest1
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT UNWIND ['{"a": 1, "b": [1, 2, 3], "c": {"a": "2"}}', '[-1, 0, 1, 2, -10]', '[{"1": [1, 2, 3]}, {"2": [1, 2, 3]}, {"1": ["-1"]}]'] AS ARR RETURN JSON_STRUCTURE(ARR);
 ---- 3
 STRUCT(a UINT8, b UINT8[], c STRUCT(a STRING))
@@ -59,8 +55,7 @@ INT16[]
 STRUCT(1 STRING[], 2 UINT8[])[]
 
 -CASE JsonValidTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT UNWIND ['', '{}', '[]', '11', '[11]', '{"a"}', '{"a": 1}'] AS ARR RETURN JSON_VALID(ARR);
 ---- 7
 False
@@ -72,8 +67,7 @@ True
 True
 
 -CASE MinifyJsonTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT UNWIND ['[        {"a":  [1],     "b": 2,"c": 1}, 1,    5, 9]', '[1, 2, 3]', '"ab"'] AS ARR RETURN json(ARR);
 ---- 3
 [{"a":[1],"b":2,"c":1},1,5,9]
@@ -92,8 +86,7 @@ json
 
 
 -CASE JsonStructureTest2
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT return json_structure(
           '{
             "name": "Sóló cón tu párejâ",
@@ -110,8 +103,7 @@ STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE,
 -CASE JsonDataType
 
 #TODO(sterling): the INF may be need to be supported by database.
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 
 -STATEMENT return json_structure(
 '{

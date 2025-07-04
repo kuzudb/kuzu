@@ -4,6 +4,7 @@
 --
 
 -CASE DidNotLoadExtension
+-SKIP_STATIC_LINK
 -STATEMENT create node table person (id INT64, description json, primary key(id));
 ---- error
 Catalog exception: JSON is neither an internal type nor a user defined type. This type exists in the JSON extension. You can install and load the extension by running 'INSTALL JSON; LOAD EXTENSION JSON;'.
@@ -14,8 +15,7 @@ Catalog exception: JSON is neither an internal type nor a user defined type. Thi
 Catalog exception: function TO_JSON is not defined. This function exists in the JSON extension. You can install and load the extension by running 'INSTALL JSON; LOAD EXTENSION JSON;'.
 
 -CASE LoadFromError
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured.json' RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured.json on line 3: Malformed JSON: unexpected character, expected a valid JSON value. Line/record containing the error: '{"c":}...'
@@ -47,8 +47,7 @@ Expected top-level JSON array with format='array', but first character is '{' in
 Try setting format='auto' or format='newline_delimited'.
 
 -CASE JsonTypeInvalidUsage
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT CREATE NODE TABLE PERSON (ID INT64, NAME JSON, PRIMARY KEY(NAME));
 ---- error
 Binder exception: Invalid primary key column type json. Primary keys must be either STRING or a numeric type.

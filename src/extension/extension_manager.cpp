@@ -33,7 +33,7 @@ void ExtensionManager::loadExtension(const std::string& path, main::ClientContex
 
     auto libLoader = ExtensionLibLoader(path, fullPath);
     auto name = libLoader.getNameFunc();
-    auto extensionName = (*name)();
+    std::string extensionName = (*name)();
     if (std::any_of(loadedExtensions.begin(), loadedExtensions.end(),
             [&](const LoadedExtension& ext) { return ext.getExtensionName() == extensionName; })) {
         libLoader.unload();

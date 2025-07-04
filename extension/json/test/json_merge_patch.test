@@ -4,8 +4,7 @@
 
 -CASE JsonMergePathTestFromDuckDB
 
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 
 -STATEMENT RETURN typeof(json_merge_patch('{"name": "Alicia"}', '{"age": 28}'));
 ---- 1

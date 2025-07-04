@@ -4,10 +4,7 @@
 
 -CASE JsonContainsTestFromDuckDB
 
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
-
-
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT RETURN JSON_CONTAINS('{"a": 1, "b": 2, "c": {"d": 3}}', '{"c": {"d": 3}}') AS Result;
 ---- 1
 True
@@ -91,8 +88,7 @@ False
 False
 
 -CASE JsonContainsTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT UNWIND ['{"a": 1, "b": [1, 2, 3], "c": {"a": "2"}}', '[-1, 0, 1, 2, [-10]]'] AS HAYSTACK UNWIND ['1', '[1, 2]', '"1"', '"a"', '[-10]', '{"a": 1}', '{"a": "2"}'] AS NEEDLE RETURN JSON_CONTAINS(HAYSTACK, NEEDLE)
 ---- 14
 True

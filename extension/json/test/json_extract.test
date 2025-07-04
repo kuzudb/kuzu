@@ -4,9 +4,7 @@
 
 -CASE JsonExtractTestFromDuckDB
 
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
-
+-LOAD_DYNAMIC_EXTENSION json
 # should go to our NULL
 
 -STATEMENT RETURN json_extract('{"foo": null}', '$.foo')

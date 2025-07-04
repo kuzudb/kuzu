@@ -4,8 +4,7 @@
 
 -CASE ProjectGraph
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node, id INT64);
@@ -59,8 +58,7 @@
 
 
 -CASE DemoWCC
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
@@ -93,8 +91,7 @@
 5|[G,F,H,E]
 
 -CASE DemoSCC
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
@@ -138,8 +135,7 @@
 8|[C]
 
 -CASE DemoPageRank
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
@@ -168,8 +164,7 @@ A|0.030000
 
 
 -CASE DemoKCore
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
@@ -205,8 +200,7 @@ Bridget|1
 Alice|1
 
 -CASE DemoLouvain
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id STRING PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
