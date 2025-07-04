@@ -1,0 +1,19 @@
+-DATASET CSV empty
+
+--
+
+-CASE ImportDBWithLegacyRelGroup
+-STATEMENT IMPORT DATABASE "${KUZU_ROOT_DIRECTORY}/dataset/import_db_legacy_relgroup"
+---- ok
+-STATEMENT call show_connection('knows') return *;
+---- 2
+person|organisation|id|id
+person|person|id|id
+-STATEMENT match (a:person)-[:knows]->(b:person) return a.id,b.id
+---- 3
+0|1
+1|0
+1|1
+-STATEMENT match (a:person)-[:knows]->(b:organisation) return a.id,b.id
+---- 1
+2|2

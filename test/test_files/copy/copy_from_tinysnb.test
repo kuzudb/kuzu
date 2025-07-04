@@ -96,3 +96,26 @@ Binder exception: LOAD FROM subquery is not supported.
 8h
 9h
 10h
+
+-CASE CopyFromLegacyRelGroup
+-STATEMENT CREATE REL TABLE A(from person to person, from person to organisation,  date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-STATEMENT COPY A_person_person from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv'
+---- ok
+-STATEMENT MATCH (a:person)-[:A]->(b:person) RETURN a.ID,b.ID
+---- 6
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+-STATEMENT COPY A_person_code from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv'
+---- error
+Binder exception: Table A_person_code does not exist.
+-STATEMENT COPY A_person_ from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv'
+---- error
+Binder exception: Table A_person_ does not exist.
+-STATEMENT COPY A_ from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv'
+---- error
+Binder exception: Table A_ does not exist.
