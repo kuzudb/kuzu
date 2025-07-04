@@ -1,3 +1,5 @@
+#include "binder/expression/expression_util.h"
+
 #include <algorithm>
 
 #include "binder/expression/literal_expression.h"
@@ -7,7 +9,6 @@
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/value/nested.h"
-#include "expression_evaluator/expression_evaluator_utils.h"
 
 using namespace kuzu::common;
 
