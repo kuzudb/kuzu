@@ -1,5 +1,3 @@
-#include "binder/expression/expression_util.h"
-
 #include <algorithm>
 
 #include "binder/expression/literal_expression.h"
