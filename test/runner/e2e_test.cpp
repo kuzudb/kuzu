@@ -14,22 +14,6 @@ using ::testing::Test;
 using namespace kuzu::testing;
 using namespace kuzu::common;
 
-static void copyDir(const std::string& from, const std::string& to) {
-    if (!std::filesystem::exists(from)) {
-        throw TestException(stringFormat("Error copying nonexistent directory {}.", from));
-    }
-    if (std::filesystem::exists(to)) {
-        throw TestException(
-            stringFormat("Error copying directory {} to {}. {} already exists.", from, to, to));
-    }
-    std::error_code copyErrorCode;
-    std::filesystem::copy(from, to, std::filesystem::copy_options::recursive, copyErrorCode);
-    if (copyErrorCode) {
-        throw TestException(stringFormat("Error copying directory {} to {}.  Error Message: {}",
-            from, to, copyErrorCode.message()));
-    }
-}
-
 class EndToEndTest : public DBTest {
 public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
@@ -50,7 +34,7 @@ public:
             !std::getenv("USE_EXISTING_BINARY_DATASET") && dataset.ends_with("binary-demo");
         if (datasetType == TestGroup::DatasetType::KUZU && dataset != "empty" &&
             !generateBinaryDemo) {
-            copyDir(dataset, databasePath);
+            std::filesystem::copy(dataset + "/db.kz", databasePath);
         }
         createDB(checkpointWaitTimeout);
         createConns(connNames);
