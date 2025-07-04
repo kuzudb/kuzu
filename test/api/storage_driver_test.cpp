@@ -1,5 +1,5 @@
+#include "api_test/api_test.h"
 #include "main/storage_driver.h"
-#include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::main;
 using namespace kuzu::testing;

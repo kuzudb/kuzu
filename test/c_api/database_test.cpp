@@ -3,11 +3,16 @@
 #include "c_api/kuzu.h"
 #include "common/exception/io.h"
 #include "common/file_system/virtual_file_system.h"
-#include "graph_test/api_graph_test.h"
+#include "graph_test/base_graph_test.h"
 #include "gtest/gtest.h"
 
 using namespace kuzu::main;
 using namespace kuzu::testing;
+
+// This class starts database without initializing graph.
+class APIEmptyDBTest : public BaseGraphTest {
+    std::string getInputDir() override { KU_UNREACHABLE; }
+};
 
 class CApiDatabaseTest : public APIEmptyDBTest {
 public:

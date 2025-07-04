@@ -1,11 +1,9 @@
-
 #include <filesystem>
 #include <fstream>
 
 #include "c_api/kuzu.h"
 #include "c_api_test/c_api_test.h"
 #include "gtest/gtest.h"
-#include "main/version.h"
 
 using namespace kuzu::main;
 using namespace kuzu::testing;

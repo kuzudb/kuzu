@@ -3,10 +3,10 @@
 #include <string_view>
 #include <utility>
 
+#include "../include/test_helper/test_helper.h"
 #include "common/string_utils.h"
-#include "graph_test/graph_test.h"
+#include "graph_test/private_graph_test.h"
 #include "spdlog/spdlog.h"
-#include "test_helper/test_helper.h"
 #include "test_runner/csv_converter.h"
 #include "test_runner/test_parser.h"
 

@@ -1,6 +1,6 @@
 #include "binder/binder.h"
 #include "binder/visitor/confidential_statement_analyzer.h"
-#include "graph_test/graph_test.h"
+#include "graph_test/private_graph_test.h"
 #include "parser/parser.h"
 
 namespace kuzu {

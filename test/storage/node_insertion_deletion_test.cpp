@@ -1,6 +1,6 @@
 #include "common/constants.h"
 #include "common/system_config.h"
-#include "graph_test/graph_test.h"
+#include "graph_test/private_graph_test.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;

@@ -1,7 +1,7 @@
 #include "alp/decode.hpp"
 #include "alp/encode.hpp"
 #include "gmock/gmock-matchers.h"
-#include "graph_test/graph_test.h"
+#include "graph_test/private_graph_test.h"
 #include "gtest/gtest.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_manager.h"

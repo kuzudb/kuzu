@@ -16,7 +16,6 @@ class Connection {
     friend class testing::PrivateGraphTest;
     friend class testing::TestHelper;
     friend class benchmark::Benchmark;
-    friend class testing::TinySnbDDLTest;
     friend class ConnectionExecuteAsyncWorker;
     friend class ConnectionQueryAsyncWorker;
 

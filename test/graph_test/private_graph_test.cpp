@@ -1,7 +1,6 @@
-#include "graph_test/graph_test.h"
-
 #include "binder/binder.h"
 #include "graph_test/base_graph_test.h"
+#include "graph_test/private_graph_test.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
 #include "test_runner/insert_by_row.h"

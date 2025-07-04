@@ -1,4 +1,4 @@
-#include "main_test_helper/private_main_test_helper.h"
+#include "api_test/private_api_test.h"
 
 using namespace kuzu::common;
 using namespace kuzu::testing;
