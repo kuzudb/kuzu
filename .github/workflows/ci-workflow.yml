@@ -1109,6 +1109,7 @@ jobs:
       GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
+      AZURE_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
       AZURE_PUBLIC_CONTAINER: ${{ secrets.AZURE_PUBLIC_CONTAINER }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: FALSE
@@ -1202,6 +1203,7 @@ jobs:
       GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
+      AZURE_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
       AZURE_PUBLIC_CONTAINER: ${{ secrets.AZURE_PUBLIC_CONTAINER }}
       PG_HOST: ${{ secrets.PG_HOST }}
       OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
@@ -1285,6 +1287,7 @@ jobs:
       GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
+      AZURE_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
       AZURE_PUBLIC_CONTAINER: ${{ secrets.AZURE_PUBLIC_CONTAINER }}
       OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
       PG_HOST: ${{ secrets.PG_HOST }}
