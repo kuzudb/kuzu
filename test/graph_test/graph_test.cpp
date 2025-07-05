@@ -33,8 +33,23 @@ void DBTest::createDB(uint64_t checkpointWaitTimeout) {
 void DBTest::createNewDB() {
     database.reset();
     conn.reset();
-    removeDir(databasePath);
+    removeParentDirectoryOfDBPath(databasePath);
+    setDatabasePath();
     createDBAndConn();
+}
+
+static void removeFile(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        return;
+    }
+    std::error_code removeErrorCode;
+    if (std::filesystem::is_directory(path)) {
+        return;
+    }
+    if (!std::filesystem::remove(path, removeErrorCode)) {
+        throw Exception(stringFormat("Error removing directory {}.  Error Message: {}", path,
+            removeErrorCode.message()));
+    }
 }
 
 void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
@@ -47,14 +62,14 @@ void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statemen
         if (statement->removeFileFlag) {
             auto filePath = statement->removeFilePath;
             filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
-            removeDir(filePath);
+            removeFile(filePath);
             continue;
         }
         if (statement->importDBFlag) {
             auto filePath = statement->importFilePath;
             filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
             createNewDB();
-            BaseGraphTest::setIEDatabasePath(filePath);
+            setIEDatabasePath(filePath);
             continue;
         }
         if (statement->reloadDBFlag) {

@@ -172,9 +172,8 @@ def test_string_list_param(conn_db_readonly: ConnDB) -> None:
     result.close()
 
 
-def test_map_param(tmp_path: Path) -> None:
-    db = kuzu.Database(tmp_path)
-    conn = kuzu.Connection(db)
+def test_map_param(conn_db_empty: ConnDB) -> None:
+    conn, _ = conn_db_empty
     conn.execute(
         "CREATE NODE TABLE tab(id int64, mp MAP(double, int64), mp2 MAP(int64, double), mp3 MAP(string, string), mp4 MAP(string, string)[], primary key(id))"
     )
@@ -199,9 +198,8 @@ def test_map_param(tmp_path: Path) -> None:
     result.close()
 
 
-def test_general_list_param(tmp_path: Path) -> None:
-    db = kuzu.Database(tmp_path)
-    conn = kuzu.Connection(db)
+def test_general_list_param(conn_db_empty: ConnDB) -> None:
+    conn, _ = conn_db_empty
     conn.execute(
         "CREATE NODE TABLE tab(id int64, lst1 BOOL[], lst2 DOUBLE[], lst3 TIMESTAMP[], lst4 DATE[], lst5 INTERVAL[], lst6 STRING[], PRIMARY KEY(id))"
     )
@@ -222,9 +220,8 @@ def test_general_list_param(tmp_path: Path) -> None:
     result.close()
 
 
-def test_null_resolution(tmp_path: Path) -> None:
-    db = kuzu.Database(tmp_path)
-    conn = kuzu.Connection(db)
+def test_null_resolution(conn_db_empty: ConnDB) -> None:
+    conn, _ = conn_db_empty
     conn.execute(
         "CREATE NODE TABLE tab(id SERIAL, lst1 INT64[], mp1 MAP(STRING, STRING), "
         "nest MAP(STRING, MAP(STRING, INT64))[], PRIMARY KEY(id))"

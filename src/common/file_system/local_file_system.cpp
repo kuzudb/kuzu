@@ -23,6 +23,9 @@
 
 #include <cstring>
 
+#include "extension/extension.h"
+#include "storage/storage_utils.h"
+
 namespace kuzu {
 namespace common {
 
@@ -255,31 +258,26 @@ void LocalFileSystem::createDir(const std::string& dir) const {
     }
 }
 
-bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::path& sub) {
-    try {
-        // Resolve paths to their canonical form
-        auto canonicalBase = std::filesystem::canonical(base);
-        auto canonicalSub = std::filesystem::canonical(sub);
+static std::unordered_set<std::string> getDatabaseFileSet(const std::string& path) {
+    std::unordered_set<std::string> result;
+    result.insert(storage::StorageUtils::getWALFilePath(path));
+    result.insert(storage::StorageUtils::getLockFilePath(path));
+    result.insert(storage::StorageUtils::getShadowFilePath(path));
+    result.insert(storage::StorageUtils::getTmpFilePath(path));
+    return result;
+}
 
-        std::string relative = std::filesystem::relative(canonicalSub, canonicalBase).string();
-        // Size check for a "." result.
-        // If the path starts with "..", it's not a subdirectory.
-        return !relative.empty() && !(relative.starts_with(".."));
-
-    } catch (const std::filesystem::filesystem_error& e) {
-        // Handle errors, e.g., if paths don't exist
-        std::cerr << "Filesystem error: " << e.what() << std::endl;
-        return false;
-    }
+static bool isExtensionFile(const std::filesystem::path& path) {
+    return path.extension() == extension::ExtensionUtils::EXTENSION_FILE_SUFFIX;
 }
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path)) {
         return;
     }
-    if (!isSubdirectory(homeDir, path)) {
-        throw IOException(stringFormat("Error: Path {} is not within the allowed home directory {}",
-            path, homeDir));
+    if (!getDatabaseFileSet(dbPath).contains(path) && !isExtensionFile(path)) {
+        throw IOException(stringFormat(
+            "Error: Path {} is not within the allowed list of files to be removed.", path));
     }
     std::error_code errCode;
     bool success = false;

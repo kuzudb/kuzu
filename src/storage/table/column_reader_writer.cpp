@@ -438,9 +438,17 @@ void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
         [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
 }
 
+// This function returns the page pageIdx of the page where element will be found and the pos of
+// the element in the page as the offset.
+static PageCursor getPageCursorForPos(uint64_t elementPos, uint32_t numElementsPerPage) {
+    KU_ASSERT((elementPos / numElementsPerPage) < UINT32_MAX);
+    return PageCursor{static_cast<page_idx_t>(elementPos / numElementsPerPage),
+        static_cast<uint32_t>(elementPos % numElementsPerPage)};
+}
+
 PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInChunk,
     page_idx_t groupPageIdx, uint64_t numValuesPerPage) {
-    auto pageCursor = PageUtils::getPageCursorForPos(offsetInChunk, numValuesPerPage);
+    auto pageCursor = getPageCursorForPos(offsetInChunk, numValuesPerPage);
     pageCursor.pageIdx += groupPageIdx;
     return pageCursor;
 }

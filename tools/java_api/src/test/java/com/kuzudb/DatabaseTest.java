@@ -15,7 +15,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationAndDestroyWithArgs() {
         String dbPath = "";
         try {
-            dbPath = tmpDir.toFile().getAbsolutePath();
+            dbPath = tempDir.resolve("db.kz").toString();
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
         }
@@ -49,7 +49,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationWithInvalidMaxDBSize() {
         String dbPath = "";
         try {
-            dbPath = tmpDir.toFile().getAbsolutePath();
+            dbPath = tempDir.resolve("db.kz").toString();
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
         }
@@ -77,7 +77,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationAndDestroyWithPathOnly() {
         String dbPath = "";
         try {
-            dbPath = tmpDir.toFile().getAbsolutePath();
+            dbPath = tempDir.resolve("db.kz").toString();
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
         }

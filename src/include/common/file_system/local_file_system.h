@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace common {
 
-struct LocalFileInfo : public FileInfo {
+struct LocalFileInfo final : FileInfo {
 #ifdef _WIN32
     LocalFileInfo(std::string path, const void* handle, FileSystem* fileSystem)
         : FileInfo{std::move(path), fileSystem}, handle{handle} {}

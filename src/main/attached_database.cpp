@@ -1,6 +1,7 @@
 #include "main/attached_database.h"
 
 #include "common/exception/runtime.h"
+#include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/checkpointer.h"
@@ -19,9 +20,8 @@ void AttachedDatabase::invalidateCache() {
 }
 
 static void validateEmptyWAL(const std::string& path, ClientContext* context) {
-    auto walFile =
-        context->getVFSUnsafe()->openFile(path + "/" + common::StorageConstants::WAL_FILE_SUFFIX,
-            common::FileOpenFlags(common::FileFlags::READ_ONLY), context);
+    auto walFile = context->getVFSUnsafe()->openFile(storage::StorageUtils::getWALFilePath(path),
+        common::FileOpenFlags(common::FileFlags::READ_ONLY), context);
     if (walFile->getFileSize() > 0) {
         throw common::RuntimeException(common::stringFormat(
             "Cannot attach an external Kuzu database with non-empty wal file. Try manually "
@@ -42,8 +42,7 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
     if (path.ends_with('/')) {
         path = path.substr(0, path.size() - 1);
     }
-    auto dataFilePath = storage::StorageUtils::getDataFName(vfs, path);
-    if (!vfs->fileOrPathExists(dataFilePath, clientContext)) {
+    if (!vfs->fileOrPathExists(path, clientContext)) {
         throw common::RuntimeException(common::stringFormat(
             "Cannot attach a remote Kuzu database due to invalid path: {}.", path));
     }

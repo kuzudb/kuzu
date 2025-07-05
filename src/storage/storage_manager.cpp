@@ -5,6 +5,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/metadata_writer.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/checkpointer.h"
@@ -42,8 +43,7 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
     } else {
         const auto flag = readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                                      FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS;
-        const auto dataFilePath = StorageUtils::getDataFName(vfs, databasePath);
-        dataFH = memoryManager.getBufferManager()->getFileHandle(dataFilePath, flag, vfs, context);
+        dataFH = memoryManager.getBufferManager()->getFileHandle(databasePath, flag, vfs, context);
         if (dataFH->getNumPages() == 0) {
             if (!readOnly) {
                 // Reserve the first page for the database header.
@@ -72,8 +72,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
         return;
     }
     const auto vfs = clientContext.getVFSUnsafe();
-    const auto walFilePath =
-        vfs->joinPath(clientContext.getDatabasePath(), StorageConstants::WAL_FILE_SUFFIX);
+    const auto walFilePath = StorageUtils::getWALFilePath(clientContext.getDatabasePath());
     if (!vfs->fileOrPathExists(walFilePath, &clientContext)) {
         return;
     }

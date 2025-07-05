@@ -7,7 +7,6 @@
 #include "processor/operator/base_partitioner_shared_state.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_cached_column.h"
-#include "storage/table/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {

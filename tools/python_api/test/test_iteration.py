@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import kuzu
 
+from type_aliases import ConnDB
 
-def test_iteration_list() -> None:
-    db = kuzu.Database(database_path=":memory:")
-    assert not db.is_closed
-    assert db._database is not None
 
-    conn = kuzu.Connection(db)
+def test_iteration_list(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
     conn.execute("CREATE (:person {name: 'Alice', age: 30});")
     conn.execute("CREATE (:person {name: 'Bob', age: 40});")
@@ -20,12 +18,8 @@ def test_iteration_list() -> None:
     assert rows[1] == ["Bob", 40]
 
 
-def test_iteration_loop() -> None:
-    db = kuzu.Database(database_path=":memory:")
-    assert not db.is_closed
-    assert db._database is not None
-
-    conn = kuzu.Connection(db)
+def test_iteration_loop(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
     conn.execute("CREATE (:person {name: 'Alice', age: 30});")
     conn.execute("CREATE (:person {name: 'Bob', age: 40});")
@@ -40,7 +34,8 @@ def test_iteration_loop() -> None:
     assert rows[1] == ["Bob", 40]
 
 
-def test_get_all() -> None:
+def test_get_all(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     db = kuzu.Database(database_path=":memory:")
     assert not db.is_closed
     assert db._database is not None
@@ -58,7 +53,8 @@ def test_get_all() -> None:
     assert rows[1] == ["Bob", 40]
 
 
-def test_get_n() -> None:
+def test_get_n(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     db = kuzu.Database(database_path=":memory:")
     assert not db.is_closed
     assert db._database is not None

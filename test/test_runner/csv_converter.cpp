@@ -7,6 +7,7 @@
 #include "common/exception/test.h"
 #include "common/file_system/local_file_system.h"
 #include "common/string_utils.h"
+#include "graph_test/base_graph_test.h"
 #include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
 
@@ -187,12 +188,12 @@ void CSVConverter::convertCSVDataset() {
     if (bufferPoolSize) {
         systemConfig->bufferPoolSize = *bufferPoolSize;
     }
-    std::string tempDatabasePath = TestHelper::getTempDir("csv_converter");
+    std::string tempDatabasePath = TestHelper::getTempDBPathStr("csv_converter");
     tempDb = std::make_unique<main::Database>(tempDatabasePath, *systemConfig);
     tempConn = std::make_unique<main::Connection>(tempDb.get());
 
     convertCSVFiles();
-    std::filesystem::remove_all(tempDatabasePath);
+    removeParentDirectoryOfDBPath(tempDatabasePath);
 }
 
 static std::string getColumnAlias(main::ClientContext* context, const std::string& tableName) {

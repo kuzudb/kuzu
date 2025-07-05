@@ -17,8 +17,9 @@ if (TEST_INSTALLED) {
 
 const tmp = require("tmp");
 const fs = require("fs/promises");
+const path = require("path");
 const initTests = async () => {
-  const dbPath = await new Promise((resolve, reject) => {
+  const tmpPath = await new Promise((resolve, reject) => {
     tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
       if (err) {
         return reject(err);
@@ -27,6 +28,7 @@ const initTests = async () => {
     });
   });
 
+  const dbPath = path.join(tmpPath, "db.kz");
   const db = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
   const conn = new kuzu.Connection(db, 4);
 

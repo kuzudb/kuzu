@@ -1,14 +1,14 @@
 #include "storage/checkpointer.h"
 
 #include "catalog/catalog.h"
-#include "common/exception/runtime.h"
+#include "common/file_system/file_system.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/metadata_writer.h"
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_manager.h"
-#include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
 
 namespace kuzu {
@@ -244,7 +244,7 @@ DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
         return defaultHeader;
     }
     auto vfs = clientContext.getVFSUnsafe();
-    auto fileInfo = vfs->openFile(StorageUtils::getDataFName(vfs, clientContext.getDatabasePath()),
+    auto fileInfo = vfs->openFile(clientContext.getDatabasePath(),
         common::FileOpenFlags{common::FileFlags::READ_ONLY}, &clientContext);
     auto reader = std::make_unique<common::BufferedFileReader>(std::move(fileInfo));
     common::Deserializer deSer(std::move(reader));
@@ -272,8 +272,8 @@ void Checkpointer::readCheckpoint() {
 
 void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext* context,
     common::VirtualFileSystem* vfs, catalog::Catalog* catalog, StorageManager* storageManager) {
-    auto fileInfo = vfs->openFile(StorageUtils::getDataFName(vfs, dbPath),
-        common::FileOpenFlags{common::FileFlags::READ_ONLY}, context);
+    auto fileInfo =
+        vfs->openFile(dbPath, common::FileOpenFlags{common::FileFlags::READ_ONLY}, context);
     auto reader = std::make_unique<common::BufferedFileReader>(std::move(fileInfo));
     common::Deserializer deSer(std::move(reader));
     auto currentHeader = readDatabaseHeader(deSer);

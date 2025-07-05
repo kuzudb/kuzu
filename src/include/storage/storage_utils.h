@@ -2,15 +2,13 @@
 
 #include <cmath>
 #include <string>
+#include <type_traits>
 
 #include "common/constants.h"
-#include "common/file_system/virtual_file_system.h"
-#include "common/null_mask.h"
 #include "common/system_config.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
-#include "main/db_config.h"
-#include "main/settings.h"
+#include <concepts>
 
 namespace kuzu {
 namespace storage {
@@ -32,29 +30,8 @@ struct PageCursor {
 };
 static_assert(std::has_unique_object_representations_v<PageCursor>);
 
-struct PageUtils {
-    static constexpr uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
-        KU_ASSERT(elementSize > 0);
-        auto numBytesPerNullEntry = common::NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
-        auto numNullEntries =
-            hasNull ?
-                static_cast<uint32_t>(ceil(
-                    static_cast<double>(common::KUZU_PAGE_SIZE) /
-                    static_cast<double>((static_cast<uint64_t>(elementSize)
-                                            << common::NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
-                                        numBytesPerNullEntry))) :
-                0;
-        return (common::KUZU_PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
-    }
-
-    // This function returns the page pageIdx of the page where element will be found and the pos of
-    // the element in the page as the offset.
-    static PageCursor getPageCursorForPos(uint64_t elementPos, uint32_t numElementsPerPage) {
-        KU_ASSERT((elementPos / numElementsPerPage) < UINT32_MAX);
-        return PageCursor{static_cast<common::page_idx_t>(elementPos / numElementsPerPage),
-            static_cast<uint32_t>(elementPos % numElementsPerPage)};
-    }
-};
+template<typename T>
+concept NumericType = std::is_integral_v<T> || std::floating_point<T>;
 
 class StorageUtils {
 public:
@@ -69,8 +46,7 @@ public:
         NULL_MASK = 7,
     };
 
-    // TODO: Constrain T1 and T2 to numerics.
-    template<typename T1, typename T2>
+    template<NumericType T1, NumericType T2>
     static uint64_t divideAndRoundUpTo(T1 v1, T2 v2) {
         return std::ceil(static_cast<double>(v1) / static_cast<double>(v2));
     }
@@ -91,31 +67,20 @@ public:
         return std::make_pair(nodeGroupIdx, offsetInChunk);
     }
 
-    static std::string getDataFName(common::VirtualFileSystem* vfs, const std::string& directory) {
-        return vfs->joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
+    static std::string getLockFilePath(const std::string& path) {
+        return common::stringFormat("{}.{}", path, common::StorageConstants::LOCK_FILE_SUFFIX);
+    }
+    static std::string getWALFilePath(const std::string& path) {
+        return common::stringFormat("{}.{}", path, common::StorageConstants::WAL_FILE_SUFFIX);
+    }
+    static std::string getShadowFilePath(const std::string& path) {
+        return common::stringFormat("{}.{}", path, common::StorageConstants::SHADOWING_SUFFIX);
+    }
+    static std::string getTmpFilePath(const std::string& path) {
+        return common::stringFormat("{}.{}", path, common::StorageConstants::TEMP_FILE_SUFFIX);
     }
 
-    static std::string getLockFilePath(common::VirtualFileSystem* vfs,
-        const std::string& directory) {
-        return vfs->joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
-    }
-
-    static std::string expandPath(main::ClientContext* context, const std::string& path) {
-        if (main::DBConfig::isDBPathInMemory(path)) {
-            return path;
-        }
-        auto fullPath = path;
-        // Handle '~' for home directory expansion
-        if (path.starts_with('~')) {
-            fullPath = context->getCurrentSetting(main::HomeDirectorySetting::name)
-                           .getValue<std::string>() +
-                       fullPath.substr(1);
-        }
-        // Normalize the path to resolve '.' and '..'
-        std::filesystem::path normalizedPath =
-            std::filesystem::absolute(fullPath).lexically_normal();
-        return normalizedPath.string();
-    }
+    static std::string expandPath(const main::ClientContext* context, const std::string& path);
 
     // Note: This is a relatively slow function because of division and mod and making std::pair.
     // It is not meant to be used in performance critical code path.
