@@ -610,6 +610,9 @@ Table Test has been created.
 ---- 2
 0|Alice
 2|Bob
+-STATEMENT CREATE NODE TABLE Test3 AS MATCH (a:Test) RETURN a;
+---- error
+Binder exception: Invalid primary key column type NODE. Primary keys must be either STRING or a numeric type.
 
 -CASE CreateNodeTableAsDuplicateIntIDs
 -STATEMENT CREATE NODE TABLE Foo AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv" RETURN *;
