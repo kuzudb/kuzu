@@ -14,22 +14,6 @@ using ::testing::Test;
 using namespace kuzu::testing;
 using namespace kuzu::common;
 
-static void copyDir(const std::string& from, const std::string& to) {
-    if (!std::filesystem::exists(from)) {
-        throw TestException(stringFormat("Error copying nonexistent directory {}.", from));
-    }
-    if (std::filesystem::exists(to)) {
-        throw TestException(
-            stringFormat("Error copying directory {} to {}. {} already exists.", from, to, to));
-    }
-    std::error_code copyErrorCode;
-    std::filesystem::copy(from, to, std::filesystem::copy_options::recursive, copyErrorCode);
-    if (copyErrorCode) {
-        throw TestException(stringFormat("Error copying directory {} to {}.  Error Message: {}",
-            from, to, copyErrorCode.message()));
-    }
-}
-
 class EndToEndTest : public DBTest {
 public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
@@ -50,7 +34,7 @@ public:
             !std::getenv("USE_EXISTING_BINARY_DATASET") && dataset.ends_with("binary-demo");
         if (datasetType == TestGroup::DatasetType::KUZU && dataset != "empty" &&
             !generateBinaryDemo) {
-            copyDir(dataset, databasePath);
+            std::filesystem::copy(dataset + "/" + TESTING_DB_FILE_NAME, databasePath);
         }
         createDB(checkpointWaitTimeout);
         createConns(connNames);
@@ -117,7 +101,7 @@ private:
     std::set<std::string> connNames;
     std::string testPath;
 
-    std::string generateTempDatasetPath() {
+    std::string generateTempDatasetPath() const {
         std::string datasetName = dataset;
         std::replace(datasetName.begin(), datasetName.end(), '/', '_');
         return TestHelper::getTempDir(datasetName + "_parquet_" + getTestGroupAndName());
@@ -284,7 +268,7 @@ private:
 
     // This function removes all spaces from `s`. Used to normalize the search for a matching
     // STATEMENT when rewriting output results.
-    std::string removeAllSpaces(const std::string& s) {
+    static std::string removeAllSpaces(const std::string& s) {
         std::string result;
         for (char c : s) {
             if (!std::isspace(c)) {
@@ -295,7 +279,7 @@ private:
     }
 
     // Skip all lines in `file` until an empty line, start of statement/case, or comment is found.
-    std::string skipExistingOutput(std::fstream& file) {
+    static std::string skipExistingOutput(std::fstream& file) {
         std::streampos lastPos;
         std::string currLine;
         std::string skippedLines;

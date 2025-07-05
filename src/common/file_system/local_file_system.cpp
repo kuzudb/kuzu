@@ -258,9 +258,8 @@ void LocalFileSystem::createDir(const std::string& dir) const {
     }
 }
 
-static std::unordered_set<std::string> getDatabaseFileSet(const std::filesystem::path& path) {
+static std::unordered_set<std::string> getDatabaseFileSet(const std::string& path) {
     std::unordered_set<std::string> result;
-    result.insert(path);
     result.insert(storage::StorageUtils::getWALFilePath(path));
     result.insert(storage::StorageUtils::getLockFilePath(path));
     result.insert(storage::StorageUtils::getShadowFilePath(path));

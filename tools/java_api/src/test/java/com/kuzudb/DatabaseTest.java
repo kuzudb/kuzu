@@ -8,14 +8,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.nio.file.Path;
 
 public class DatabaseTest extends TestBase {
-    @TempDir
-    static Path tmpDir;
-
     @Test
     void DBCreationAndDestroyWithArgs() {
         String dbPath = "";
         try {
-            dbPath = tmpDir.toFile().getAbsolutePath();
+            dbPath = tempDir.resolve("db1.kz").toString();
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
         }
@@ -49,7 +46,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationWithInvalidMaxDBSize() {
         String dbPath = "";
         try {
-            dbPath = tmpDir.toFile().getAbsolutePath();
+            dbPath = tempDir.resolve("db2.kz").toString();
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
         }
@@ -77,7 +74,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationAndDestroyWithPathOnly() {
         String dbPath = "";
         try {
-            dbPath = tmpDir.toFile().getAbsolutePath();
+            dbPath = tempDir.resolve("db3.kz").toString();
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
         }

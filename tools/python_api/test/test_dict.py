@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import kuzu
 
+from type_aliases import ConnDB
 
-def test_get_next() -> None:
-    db = kuzu.Database(database_path=":memory:")
-    assert not db.is_closed
-    assert db._database is not None
 
-    conn = kuzu.Connection(db)
+def test_get_next(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
     conn.execute("CREATE (:person {name: 'Alice', age: 30});")
     conn.execute("CREATE (:person {name: 'Bob', age: 40});")
@@ -23,12 +21,8 @@ def test_get_next() -> None:
     assert row == {"p.name": "Bob", "p.age": 40}
 
 
-def test_get_all() -> None:
-    db = kuzu.Database(database_path=":memory:")
-    assert not db.is_closed
-    assert db._database is not None
-
-    conn = kuzu.Connection(db)
+def test_get_all(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
     conn.execute("CREATE (:person {name: 'Alice', age: 30});")
     conn.execute("CREATE (:person {name: 'Bob', age: 40});")
@@ -42,12 +36,8 @@ def test_get_all() -> None:
     assert rows[1] == {"p.name": "Bob", "p.age": 40}
 
 
-def test_get_n() -> None:
-    db = kuzu.Database(database_path=":memory:")
-    assert not db.is_closed
-    assert db._database is not None
-
-    conn = kuzu.Connection(db)
+def test_get_n(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
     conn.execute("CREATE (:person {name: 'Alice', age: 30});")
     conn.execute("CREATE (:person {name: 'Bob', age: 40});")
@@ -73,12 +63,8 @@ def test_get_n() -> None:
     assert len(rows) == 0
 
 
-def test_dict_iteration() -> None:
-    db = kuzu.Database(database_path=":memory:")
-    assert not db.is_closed
-    assert db._database is not None
-
-    conn = kuzu.Connection(db)
+def test_dict_iteration(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
     conn.execute("CREATE (:person {name: 'Alice', age: 30});")
     conn.execute("CREATE (:person {name: 'Bob', age: 40});")
@@ -91,12 +77,8 @@ def test_dict_iteration() -> None:
     assert rows[1] == {"p.name": "Bob", "p.age": 40}
 
 
-def test_dict_iteration_inline() -> None:
-    db = kuzu.Database(database_path=":memory:")
-    assert not db.is_closed
-    assert db._database is not None
-
-    conn = kuzu.Connection(db)
+def test_dict_iteration_inline(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
     conn.execute("CREATE (:person {name: 'Alice', age: 30});")
     conn.execute("CREATE (:person {name: 'Bob', age: 40});")
@@ -108,12 +90,8 @@ def test_dict_iteration_inline() -> None:
     assert rows[1] == {"p.name": "Bob", "p.age": 40}
 
 
-def test_on_off() -> None:
-    db = kuzu.Database(database_path=":memory:")
-    assert not db.is_closed
-    assert db._database is not None
-
-    conn = kuzu.Connection(db)
+def test_on_off(conn_db_in_mem: ConnDB) -> None:
+    conn, _ = conn_db_in_mem
     conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
     conn.execute("CREATE (:person {name: 'Alice', age: 30});")
     conn.execute("CREATE (:person {name: 'Bob', age: 40});")

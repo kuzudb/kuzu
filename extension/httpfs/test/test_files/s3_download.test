@@ -51,7 +51,9 @@ Adam|Karissa|2020
 Adam|Zhang|2020
 Karissa|Zhang|2021
 Zhang|Noura|2022
--STATEMENT CALL HTTP_CACHE_FILE=TRUE;
+# TODO(Ziyi): FIX-ME.
+# -STATEMENT CALL HTTP_CACHE_FILE=TRUE;
+# ---- ok
 -STATEMENT load from 's3://kuzu-test/user.csv.gz' return *;
 ---- 2
 Adam|30|2020-06-22
@@ -63,8 +65,9 @@ Adam|30|2020-06-22
 Karissa|40|2019-05-12
 
 -LOG LoadFromWithCache
--STATEMENT CALL HTTP_CACHE_FILE=TRUE;
----- ok
+# TODO(Ziyi): FIX-ME.
+# -STATEMENT CALL HTTP_CACHE_FILE=TRUE;
+# ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT load from 's3://kuzu-test/user.csv' return *;

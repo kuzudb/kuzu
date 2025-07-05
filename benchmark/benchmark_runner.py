@@ -244,7 +244,7 @@ def run_kuzu(serialized_graph_path):
         is_current_group_error = False
         benchmark_cmd = [
             kuzu_benchmark_tool,
-            '--dataset=' + serialized_graph_path,
+            '--dataset=' + serialized_graph_path + '/db.kz',
             '--benchmark=' + benchmark_files + '/' + group,
             '--warmup=' + str(num_warmup),
             '--run=' + str(num_run),

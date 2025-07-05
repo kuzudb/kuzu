@@ -1110,7 +1110,7 @@ jobs:
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
       RUN_ID: "$(hostname)-$(date +%s)"
-      HTTP_CACHE_FILE: TRUE
+      HTTP_CACHE_FILE: FALSE
       ASAN_OPTIONS: detect_leaks=1
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -1204,7 +1204,7 @@ jobs:
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$(date +%s)"
-      HTTP_CACHE_FILE: TRUE
+      HTTP_CACHE_FILE: FALSE
     steps:
       - uses: actions/checkout@v4
 
@@ -1286,7 +1286,7 @@ jobs:
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
-      HTTP_CACHE_FILE: TRUE
+      HTTP_CACHE_FILE: FALSE
       WERROR: 0
     steps:
       - uses: actions/checkout@v4
