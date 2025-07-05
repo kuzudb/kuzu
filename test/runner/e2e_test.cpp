@@ -3,7 +3,6 @@
 #include <string_view>
 #include <utility>
 
-#include "../include/test_helper/test_helper.h"
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "spdlog/spdlog.h"
@@ -35,6 +34,7 @@ public:
             !std::getenv("USE_EXISTING_BINARY_DATASET") && dataset.ends_with("binary-demo");
         if (datasetType == TestGroup::DatasetType::KUZU && dataset != "empty" &&
             !generateBinaryDemo) {
+            auto stringDBPath = (dataset, TESTING_DB_FILE_NAME);
             std::filesystem::copy(dataset + "/" + TESTING_DB_FILE_NAME, databasePath);
         }
         createDB(checkpointWaitTimeout);
@@ -102,7 +102,7 @@ private:
     std::set<std::string> connNames;
     std::string testPath;
 
-    std::string generateTempDatasetPath() {
+    std::string generateTempDatasetPath() const {
         std::string datasetName = dataset;
         std::replace(datasetName.begin(), datasetName.end(), '/', '_');
         return TestHelper::getTempDir(datasetName + "_parquet_" + getTestGroupAndName());
@@ -269,7 +269,7 @@ private:
 
     // This function removes all spaces from `s`. Used to normalize the search for a matching
     // STATEMENT when rewriting output results.
-    std::string removeAllSpaces(const std::string& s) {
+    static std::string removeAllSpaces(const std::string& s) {
         std::string result;
         for (char c : s) {
             if (!std::isspace(c)) {
@@ -280,7 +280,7 @@ private:
     }
 
     // Skip all lines in `file` until an empty line, start of statement/case, or comment is found.
-    std::string skipExistingOutput(std::fstream& file) {
+    static std::string skipExistingOutput(std::fstream& file) {
         std::streampos lastPos;
         std::string currLine;
         std::string skippedLines;

@@ -119,7 +119,12 @@ public:
     static std::string getTempDir(const std::string& name) {
         auto path = getRootTempDir() / (name + getTempSuffix());
         std::filesystem::create_directories(path);
-        return path.string();
+        auto pathStr = path.string();
+#ifdef _WIN32
+        // kuzu still doesn't support backslashes in paths on windows
+        std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
+#endif
+        return pathStr;
     }
 
     static std::string getTempDBPathStr(const std::string& name) {
