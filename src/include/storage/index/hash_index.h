@@ -78,6 +78,14 @@ public:
     ~HashIndex() override;
 
 public:
+    using OnDiskSlotType = Slot<T>;
+    static constexpr auto PERSISTENT_SLOT_CAPACITY = getSlotCapacity<T>();
+
+    static_assert(DiskArray<OnDiskSlotType>::getAlignedElementSize() <=
+                  common::HashIndexConstants::SLOT_CAPACITY_BYTES);
+    static_assert(DiskArray<OnDiskSlotType>::getAlignedElementSize() >
+                  common::HashIndexConstants::SLOT_CAPACITY_BYTES / 2);
+
     using Key =
         typename std::conditional<std::same_as<T, common::ku_string_t>, std::string_view, T>::type;
     // For read transactions, local storage is skipped, lookups are performed on the persistent
@@ -113,7 +121,8 @@ public:
     // - the key doesn't exist in the local storage, check if the key exists in the persistent
     // index, if
     //   so, return false, else insert the key to the local storage.
-    bool insertInternal(const transaction::Transaction* transaction, Key key,
+    using InsertType = InMemHashIndex<T>::OwnedType;
+    bool insertInternal(const transaction::Transaction* transaction, InsertType&& key,
         common::offset_t value, visible_func isVisible) {
         common::offset_t tmpResult = 0;
         auto localLookupState = localStorage->lookup(key, tmpResult, isVisible);
@@ -125,25 +134,25 @@ public:
                 return false;
             }
         }
-        return localStorage->insert(key, value, isVisible);
+        return localStorage->insert(std::move(key), value, isVisible);
     }
 
     using BufferKeyType =
         typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
     // Appends the buffer to the index. Returns the number of values successfully inserted
-    size_t append(const transaction::Transaction* transaction,
-        const IndexBuffer<BufferKeyType>& buffer, uint64_t bufferOffset, visible_func isVisible) {
+    size_t append(const transaction::Transaction* transaction, IndexBuffer<BufferKeyType>& buffer,
+        uint64_t bufferOffset, visible_func isVisible) {
         // Check if values already exist in persistent storage
         if (indexHeaderForWriteTrx.numEntries > 0) {
             localStorage->reserveSpaceForAppend(buffer.size() - bufferOffset);
             size_t numValuesInserted = 0;
             common::offset_t result = 0;
             for (size_t i = bufferOffset; i < buffer.size(); i++) {
-                const auto& [key, value] = buffer[i];
+                auto& [key, value] = buffer[i];
                 if (lookupInPersistentIndex(transaction, key, result, isVisible)) {
                     return i - bufferOffset;
                 } else {
-                    numValuesInserted += localStorage->append(key, value, isVisible);
+                    numValuesInserted += localStorage->append(std::move(key), value, isVisible);
                 }
             }
             return numValuesInserted;
@@ -186,8 +195,9 @@ private:
         visible_func isVisible);
 
     entry_pos_t findMatchedEntryInSlot(const transaction::Transaction* transaction,
-        const Slot<T>& slot, Key key, uint8_t fingerprint, const visible_func& isVisible) const {
-        for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
+        const OnDiskSlotType& slot, Key key, uint8_t fingerprint,
+        const visible_func& isVisible) const {
+        for (auto entryPos = 0u; entryPos < PERSISTENT_SLOT_CAPACITY; entryPos++) {
             if (slot.header.isEntryValid(entryPos) &&
                 slot.header.fingerprints[entryPos] == fingerprint &&
                 equals(transaction, key, slot.entries[entryPos].key) &&
@@ -199,13 +209,13 @@ private:
     }
 
     inline void updateSlot(const transaction::Transaction* transaction, const SlotInfo& slotInfo,
-        const Slot<T>& slot) {
+        const OnDiskSlotType& slot) {
         slotInfo.slotType == SlotType::PRIMARY ?
             pSlots->update(transaction, slotInfo.slotId, slot) :
             oSlots->update(transaction, slotInfo.slotId, slot);
     }
 
-    inline Slot<T> getSlot(const transaction::Transaction* transaction,
+    inline OnDiskSlotType getSlot(const transaction::Transaction* transaction,
         const SlotInfo& slotInfo) const {
         return slotInfo.slotType == SlotType::PRIMARY ? pSlots->get(slotInfo.slotId, transaction) :
                                                         oSlots->get(slotInfo.slotId, transaction);
@@ -223,7 +233,7 @@ private:
     struct HashIndexEntryView {
         slot_id_t diskSlotId;
         uint8_t fingerprint;
-        const SlotEntry<T>* entry;
+        const SlotEntry<typename InMemHashIndex<T>::OwnedType>* entry;
     };
 
     void sortEntries(const transaction::Transaction* transaction,
@@ -235,8 +245,9 @@ private:
     // Returns the number of elements merged which matched the given slot id
     size_t mergeSlot(PageAllocator& pageAllocator, const transaction::Transaction* transaction,
         const std::vector<HashIndexEntryView>& slotToMerge,
-        typename DiskArray<Slot<T>>::WriteIterator& diskSlotIterator,
-        typename DiskArray<Slot<T>>::WriteIterator& diskOverflowSlotIterator, slot_id_t diskSlotId);
+        typename DiskArray<OnDiskSlotType>::WriteIterator& diskSlotIterator,
+        typename DiskArray<OnDiskSlotType>::WriteIterator& diskOverflowSlotIterator,
+        slot_id_t diskSlotId);
 
     inline bool equals(const transaction::Transaction* /*transaction*/, Key keyToLookup,
         const T& keyInEntry) const {
@@ -248,9 +259,14 @@ private:
         return HashIndexUtils::hash(key);
     }
 
+    inline common::hash_t hashStored(const transaction::Transaction* /*transaction*/,
+        std::string_view key) const {
+        return HashIndexUtils::hash(key);
+    }
+
     struct SlotIterator {
         SlotInfo slotInfo;
-        Slot<T> slot;
+        OnDiskSlotType slot;
     };
 
     SlotIterator getSlotIterator(slot_id_t slotId, const transaction::Transaction* transaction) {
@@ -270,14 +286,14 @@ private:
         return false;
     }
 
-    std::vector<std::pair<SlotInfo, Slot<T>>> getChainedSlots(
+    std::vector<std::pair<SlotInfo, OnDiskSlotType>> getChainedSlots(
         const transaction::Transaction* transaction, slot_id_t pSlotId);
 
 private:
     ShadowFile* shadowFile;
     uint64_t headerPageIdx;
-    std::unique_ptr<DiskArray<Slot<T>>> pSlots;
-    std::unique_ptr<DiskArray<Slot<T>>> oSlots;
+    std::unique_ptr<DiskArray<OnDiskSlotType>> pSlots;
+    std::unique_ptr<DiskArray<OnDiskSlotType>> oSlots;
     OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<HashIndexLocalStorage<T>> localStorage;
     const HashIndexHeader& indexHeaderForReadTrx;
@@ -378,13 +394,14 @@ public:
     }
     bool insert(const transaction::Transaction* transaction, common::ku_string_t key,
         common::offset_t value, visible_func isVisible) {
-        return insert(transaction, key.getAsStringView(), value, isVisible);
+        return insert(transaction, key.getAsString(), value, isVisible);
     }
     template<common::IndexHashable T>
     inline bool insert(const transaction::Transaction* transaction, T key, common::offset_t value,
         visible_func isVisible) {
         KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
-        return getTypedHashIndex(key)->insertInternal(transaction, key, value, isVisible);
+        return getTypedHashIndex(key)->insertInternal(transaction, std::move(key), value,
+            isVisible);
     }
     bool insert(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t value, visible_func isVisible);
@@ -398,9 +415,8 @@ public:
     // If a key fails to insert, it immediately returns without inserting any more values,
     // and the returned value is also the index of the key which failed to insert.
     template<common::IndexHashable T>
-    size_t appendWithIndexPos(const transaction::Transaction* transaction,
-        const IndexBuffer<T>& buffer, uint64_t bufferOffset, uint64_t indexPos,
-        visible_func isVisible) {
+    size_t appendWithIndexPos(const transaction::Transaction* transaction, IndexBuffer<T>& buffer,
+        uint64_t bufferOffset, uint64_t indexPos, visible_func isVisible) {
         KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         KU_ASSERT(std::all_of(buffer.begin(), buffer.end(), [&](auto& elem) {
             return HashIndexUtils::getHashIndexPosition(elem.first) == indexPos;

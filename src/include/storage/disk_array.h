@@ -342,13 +342,15 @@ private:
 
 class BlockVectorInternal {
 public:
+    using element_construct_func_t = std::function<void(uint8_t*)>;
+
     explicit BlockVectorInternal(MemoryManager& memoryManager, size_t elementSize)
         : storageInfo{elementSize}, numElements{0}, memoryManager{memoryManager} {}
 
     // This function is designed to be used during building of a disk array, i.e., during loading.
     // In particular, it changes the needed capacity non-transactionally, i.e., without writing
     // anything to the wal.
-    void resize(uint64_t newNumElements, std::span<std::byte> defaultVal);
+    void resize(uint64_t newNumElements, const element_construct_func_t& defaultConstructor);
 
     inline uint64_t size() const { return numElements; }
 
@@ -380,11 +382,21 @@ public:
         resize(numElements);
     }
 
+    ~BlockVector() {
+        for (uint64_t i = 0; i < size(); ++i) {
+            operator[](i).~U();
+        }
+    }
+
     inline U& operator[](uint64_t idx) { return *(U*)vector[idx]; }
 
     inline void resize(uint64_t newNumElements) {
-        U defaultVal;
-        vector.resize(newNumElements, getSpan(defaultVal));
+        // NOLINTNEXTLINE(readability-non-const-parameter) placement-new requires non-const ptr
+        static constexpr auto defaultConstructor = [](uint8_t* data) {
+            [[maybe_unused]] auto* p = new (data) U();
+            KU_ASSERT(p);
+        };
+        vector.resize(newNumElements, defaultConstructor);
     }
 
     inline uint64_t size() const { return vector.size(); }

@@ -242,6 +242,32 @@ TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection) {
     BMExceptionRecoveryTest(cfg);
 }
 
+TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnectionStringKey) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = true,
+        .canFailDuringCheckpoint = false,
+        .canFailDuringCommit = false,
+        .initFunc =
+            [](main::Connection* conn) {
+                conn->query("CREATE NODE TABLE account(ID STRING, PRIMARY KEY(ID))");
+            },
+        .executeFunc =
+            [](main::Connection* conn, int) {
+                const auto queryString = common::stringFormat(
+                    "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
+                    KUZU_ROOT_DIRECTORY);
+
+                return conn->query(queryString);
+            },
+        .earlyExitOnFailureFunc = [](main::QueryResult*) { return false; },
+        .checkFunc =
+            [](main::Connection* conn) { return conn->query("MATCH (a:account) RETURN COUNT(*)"); },
+        .checkResult = 81306};
+    BMExceptionRecoveryTest(cfg);
+}
+
 TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
     if (inMemMode ||
         common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {

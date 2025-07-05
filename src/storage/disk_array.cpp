@@ -381,7 +381,8 @@ uint8_t* BlockVectorInternal::operator[](uint64_t idx) const {
     return inMemArrayPages[apCursor.pageIdx]->getData() + apCursor.elemPosInPage;
 }
 
-void BlockVectorInternal::resize(uint64_t newNumElements, std::span<std::byte> defaultVal) {
+void BlockVectorInternal::resize(uint64_t newNumElements,
+    const element_construct_func_t& defaultConstructor) {
     auto oldNumElements = numElements;
     KU_ASSERT(newNumElements >= oldNumElements);
     uint64_t oldNumArrayPages = inMemArrayPages.size();
@@ -391,10 +392,10 @@ void BlockVectorInternal::resize(uint64_t newNumElements, std::span<std::byte> d
             memoryManager.allocateBuffer(true /*initializeToZero*/, KUZU_PAGE_SIZE));
     }
     for (uint64_t i = 0; i < newNumElements - oldNumElements; i++) {
-        memcpy(operator[](oldNumElements + i), defaultVal.data(), defaultVal.size());
+        auto* dest = operator[](oldNumElements + i);
+        defaultConstructor(dest);
     }
     numElements = newNumElements;
 }
-
 } // namespace storage
 } // namespace kuzu

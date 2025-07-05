@@ -55,7 +55,7 @@ static_assert(std::has_unique_object_representations_v<SlotHeader>);
 
 template<typename T>
 struct SlotEntry {
-    SlotEntry(T _key, common::offset_t _value) : key{_key}, value{_value} {
+    SlotEntry(T _key, common::offset_t _value) : key{std::move(_key)}, value{_value} {
         // Zero padding, if any
         if constexpr (sizeof(T) + sizeof(common::offset_t) < sizeof(SlotEntry<T>)) {
             auto padding = sizeof(SlotEntry<T>) - sizeof(T) - sizeof(common::offset_t);

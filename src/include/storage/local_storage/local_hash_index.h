@@ -25,11 +25,13 @@ enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT
 template<typename T>
 class HashIndexLocalStorage final : public BaseHashIndexLocalStorage {
 public:
+    using OwnedType = InMemHashIndex<T>::OwnedType;
+    using KeyType = InMemHashIndex<T>::KeyType;
+
     explicit HashIndexLocalStorage(MemoryManager& memoryManager, OverflowFileHandle* handle)
         : localDeletions{}, localInsertions{memoryManager, handle} {}
-    using OwnedKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;
-    using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
-    HashIndexLocalLookupState lookup(Key key, common::offset_t& result, visible_func isVisible) {
+    HashIndexLocalLookupState lookup(KeyType key, common::offset_t& result,
+        visible_func isVisible) {
         if (localDeletions.contains(key)) {
             return HashIndexLocalLookupState::KEY_DELETED;
         }
@@ -39,32 +41,31 @@ public:
         return HashIndexLocalLookupState::KEY_NOT_EXIST;
     }
 
-    void deleteKey(Key key) {
+    void deleteKey(KeyType key) {
         if (!localInsertions.deleteKey(key)) {
-            localDeletions.insert(static_cast<OwnedKeyType>(key));
+            localDeletions.insert(static_cast<OwnedType>(key));
         }
     }
 
-    bool discard(Key key) { return localInsertions.deleteKey(key); }
+    bool discard(KeyType key) { return localInsertions.deleteKey(key); }
 
-    bool insert(Key key, common::offset_t value, visible_func isVisible) {
+    bool insert(OwnedType&& key, common::offset_t value, visible_func isVisible) {
         auto iter = localDeletions.find(key);
         if (iter != localDeletions.end()) {
             localDeletions.erase(iter);
         }
-        return localInsertions.append(key, value, isVisible);
+        return localInsertions.append(std::move(key), value, isVisible);
     }
 
     void reserveSpaceForAppend(uint32_t numNewEntries) {
         localInsertions.reserveSpaceForAppend(numNewEntries);
     }
 
-    bool append(Key key, common::offset_t value, visible_func isVisible) {
-        return localInsertions.append(key, value, isVisible);
+    bool append(OwnedType&& key, common::offset_t value, visible_func isVisible) {
+        return localInsertions.append(std::move(key), value, isVisible);
     }
 
-    size_t append(const IndexBuffer<OwnedKeyType>& buffer, uint64_t bufferOffset,
-        visible_func isVisible) {
+    size_t append(IndexBuffer<OwnedType>& buffer, uint64_t bufferOffset, visible_func isVisible) {
         return localInsertions.append(buffer, bufferOffset, isVisible);
     }
 
@@ -79,7 +80,7 @@ public:
         localDeletions.clear();
     }
 
-    void applyLocalChanges(const std::function<void(Key)>& deleteOp,
+    void applyLocalChanges(const std::function<void(KeyType)>& deleteOp,
         const std::function<void(const InMemHashIndex<T>&)>& insertOp) {
         for (auto& key : localDeletions) {
             deleteOp(key);
@@ -92,16 +93,15 @@ public:
     const InMemHashIndex<T>& getInsertions() { return localInsertions; }
 
     uint64_t getEstimatedMemUsage() override {
-        return localInsertions.getEstimatedMemUsage() +
-               localDeletions.size() * sizeof(OwnedKeyType);
+        return localInsertions.getEstimatedMemUsage() + localDeletions.size() * sizeof(OwnedType);
     }
 
 private:
     // When the storage type is string, allow the key type to be string_view with a custom hash
     // function
-    using hash_function = std::conditional_t<std::is_same_v<OwnedKeyType, std::string>,
+    using hash_function = std::conditional_t<std::is_same_v<OwnedType, std::string>,
         common::StringUtils::string_hash, std::hash<T>>;
-    std::unordered_set<OwnedKeyType, hash_function, std::equal_to<>> localDeletions;
+    std::unordered_set<OwnedType, hash_function, std::equal_to<>> localDeletions;
     InMemHashIndex<T> localInsertions;
 };
 
@@ -167,13 +167,13 @@ public:
     }
 
     bool insert(const common::ku_string_t key, common::offset_t value, visible_func isVisible) {
-        return insert(key.getAsStringView(), value, isVisible);
+        return insert(key.getAsString(), value, isVisible);
     }
     template<common::IndexHashable T>
     bool insert(T key, common::offset_t value, visible_func isVisible) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return common::ku_dynamic_cast<HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
-            ->insert(key, value, isVisible);
+            ->insert(std::move(key), value, isVisible);
     }
 
     void delete_(const common::ValueVector& keyVector) {
