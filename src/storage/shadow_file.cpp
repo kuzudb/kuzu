@@ -30,13 +30,12 @@ ShadowPageRecord ShadowPageRecord::deserialize(Deserializer& deserializer) {
     return ShadowPageRecord{originalFileIdx, originalPageIdx};
 }
 
-ShadowFile::ShadowFile(const std::string& directory, bool readOnly, BufferManager& bufferManager,
+ShadowFile::ShadowFile(const std::string& dbPath, bool readOnly, BufferManager& bufferManager,
     VirtualFileSystem* vfs, ClientContext* context) {
-    if (DBConfig::isDBPathInMemory(directory)) {
+    if (DBConfig::isDBPathInMemory(dbPath)) {
         return;
     }
-    shadowingFH = bufferManager.getFileHandle(
-        vfs->joinPath(directory, std::string(StorageConstants::SHADOWING_SUFFIX)),
+    shadowingFH = bufferManager.getFileHandle(StorageUtils::getShadowFilePath(dbPath),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         vfs, context);

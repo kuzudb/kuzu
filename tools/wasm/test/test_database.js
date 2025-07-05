@@ -1,6 +1,6 @@
 const { assert } = require("chai");
 const tmp = require("tmp");
-
+const path = require("path");
 
 describe("Database constructor", function () {
   it("should create a database with a valid path and buffer size", async function () {
@@ -12,7 +12,8 @@ describe("Database constructor", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
     assert.exists(testDb);
     assert.equal(testDb.constructor.name, "Database");
     await testDb.init();
@@ -30,7 +31,8 @@ describe("Database constructor", function () {
         return resolve(path);
       });
     });
-    const testDb = new kuzu.Database(tmpDbPath);
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const testDb = new kuzu.Database(dbPath);
     assert.exists(testDb);
     assert.equal(testDb.constructor.name, "Database");
     await testDb.init();

@@ -21,8 +21,9 @@
 -CASE UWS3RemoteDB
 -SKIP
 -INSERT_STATEMENT_BLOCK UW_S3_SETUP
--STATEMENT CALL HTTP_CACHE_FILE=TRUE
----- ok
+# TODO(Ziyi): FIX-ME.
+# -STATEMENT CALL HTTP_CACHE_FILE=TRUE
+# ---- ok
 -STATEMENT ATTACH 's3://kuzu-test/ldbc01' as ldbc (dbtype kuzu)
 ---- 1
 Attached database successfully.
@@ -37,7 +38,7 @@ Detached database successfully.
 -INSERT_STATEMENT_BLOCK UW_S3_SETUP
 -STATEMENT CALL HTTP_CACHE_FILE=FALSE
 ---- ok
--STATEMENT ATTACH 's3://kuzu-test/tinysnb/' as ldbc (dbtype kuzu)
+-STATEMENT ATTACH 's3://kuzu-test/tinysnb/db.kz' as ldbc (dbtype kuzu)
 ---- 1
 Attached database successfully.
 -STATEMENT match (p0:person) return p0.id

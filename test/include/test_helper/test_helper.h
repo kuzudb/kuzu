@@ -22,6 +22,8 @@ struct TestQueryConfig {
     bool compareResult = true;
 };
 
+static const std::string TESTING_DB_FILE_NAME = "db.kz";
+
 class TestHelper {
 public:
     inline static std::string E2E_TEST_FILES_DIRECTORY = "test/test_files";
@@ -105,7 +107,7 @@ public:
 
     static std::string getTempSuffix();
 
-    static std::filesystem::path getTempDir() {
+    static std::filesystem::path getRootTempDir() {
         auto tempDir = std::getenv("RUNNER_TEMP");
         if (tempDir != nullptr) {
             return std::filesystem::path(tempDir) / "kuzu";
@@ -115,7 +117,7 @@ public:
     }
 
     static std::string getTempDir(const std::string& name) {
-        const auto path = getTempDir() / (name + getTempSuffix());
+        auto path = getRootTempDir() / (name + getTempSuffix());
         std::filesystem::create_directories(path);
         auto pathStr = path.string();
 #ifdef _WIN32
@@ -125,7 +127,20 @@ public:
         return pathStr;
     }
 
+    static std::string getTempDBPathStr(const std::string& name) {
+        auto path = getRootTempDir() / (name + getTempSuffix());
+        std::filesystem::create_directories(path);
+        path = path / TESTING_DB_FILE_NAME;
+        auto pathStr = path.string();
+#ifdef _WIN32
+        // kuzu still doesn't support backslashes in paths on windows
+        std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
+#endif
+        return pathStr;
+    }
+
     static bool isSystemEnvValid(const char* env) { return env != nullptr && strlen(env) > 0; }
+
     static std::string getSystemEnv(const char* key) {
         const auto env = std::getenv(key);
         if (isSystemEnvValid(env)) {
@@ -136,7 +151,7 @@ public:
         return "";
     }
 
-    inline static std::string joinPath(const std::string& base, const std::string& part) {
+    static std::string joinPath(const std::string& base, const std::string& part) {
         auto pathStr = common::FileSystem::joinPath(base, part);
 #ifdef _WIN32
         // kuzu still doesn't support backslashes in paths on windows

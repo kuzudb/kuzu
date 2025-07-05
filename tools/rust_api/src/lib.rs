@@ -7,7 +7,7 @@
 //!
 //! # fn main() -> Result<(), Error> {
 //! # let temp_dir = tempfile::tempdir()?;
-//! # let path = temp_dir.path();
+//! # let path = temp_dir.path().join("testdb");
 //! let db = Database::new(path, SystemConfig::default())?;
 //! let conn = Connection::new(&db)?;
 //! conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;

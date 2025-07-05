@@ -52,7 +52,7 @@ Guelph|75000
 -LOG validateTableNotExists
 -STATEMENT CALL SHOW_TABLES() RETURN *
 ---- 0
--STATEMENT attach 'http://localhost/dataset/databases/tinysnb' as test (dbtype kuzu)
+-STATEMENT attach 'http://localhost/dataset/databases/tinysnb/db.kz' as test (dbtype kuzu)
 ---- ok
 -LOG validateTableExistsAfterAttach
 -STATEMENT CALL SHOW_TABLES() RETURN *
@@ -112,7 +112,7 @@ Binder exception: Table person does not exist.
 5
 -STATEMENT CALL HTTP_CACHE_FILE=FALSE
 -LOG AttachAgain
--STATEMENT attach 'http://localhost/dataset/databases/tinysnb' as tinysnb (dbtype kuzu)
+-STATEMENT attach 'http://localhost/dataset/databases/tinysnb/db.kz' as tinysnb (dbtype kuzu)
 ---- ok
 -LOG QueryRemoteNodeTable
 -STATEMENT match (p:person) return p.*
@@ -131,7 +131,7 @@ tinysnb|KUZU
 -STATEMENT detach tinysnb
 ---- ok
 -LOG AttachWithSlashStylePath
--STATEMENT attach 'http://localhost/dataset/databases/tinysnb/' as tinysnb1 (dbtype kuzu)
+-STATEMENT attach 'http://localhost/dataset/databases/tinysnb/db.kz' as tinysnb1 (dbtype kuzu)
 ---- ok
 -STATEMENT call SHOW_ATTACHED_DATABASES() return *;
 ---- 1

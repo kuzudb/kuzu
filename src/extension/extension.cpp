@@ -103,7 +103,8 @@ ExtensionRepoInfo ExtensionUtils::getSharedLibRepoInfo(const std::string& fileNa
 }
 
 std::string ExtensionUtils::getExtensionFileName(const std::string& name) {
-    return common::stringFormat(EXTENSION_FILE_NAME, common::StringUtils::getLower(name));
+    return common::stringFormat(EXTENSION_FILE_NAME, common::StringUtils::getLower(name),
+        EXTENSION_FILE_SUFFIX);
 }
 
 std::string ExtensionUtils::getLocalPathForExtensionLib(main::ClientContext* context,

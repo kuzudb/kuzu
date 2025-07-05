@@ -23,7 +23,7 @@ void VirtualFileSystem::registerFileSystem(std::unique_ptr<FileSystem> fileSyste
     subSystems.push_back(std::move(fileSystem));
 }
 
-FileCompressionType VirtualFileSystem::autoDetectCompressionType(const std::string& path) const {
+FileCompressionType VirtualFileSystem::autoDetectCompressionType(const std::string& path) {
     if (isGZIPCompressed(path)) {
         return FileCompressionType::GZIP;
     }
@@ -41,11 +41,10 @@ std::unique_ptr<FileInfo> VirtualFileSystem::openFile(const std::string& path, F
         return fileHandle;
     }
     if (flags.flags & FileFlags::WRITE) {
-        throw common::IOException{"Writing to compressed files is not supported yet."};
+        throw IOException{"Writing to compressed files is not supported yet."};
     }
-    if (common::StringUtils::getLower(getFileExtension(path)) != ".csv") {
-        throw common::IOException{
-            "Kuzu currently only supports reading from compressed csv files."};
+    if (StringUtils::getLower(getFileExtension(path)) != ".csv") {
+        throw IOException{"Kuzu currently only supports reading from compressed csv files."};
     }
     return compressedFileSystem.at(compressionType)->openCompressedFile(std::move(fileHandle));
 }

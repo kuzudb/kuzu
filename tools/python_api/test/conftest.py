@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -144,18 +145,25 @@ def init_movie_serial(conn: kuzu.Connection) -> None:
 _POOL_SIZE_: int = 256 * 1024 * 1024
 
 
+def get_db_file_path(tmp_path: Path) -> Path:
+    """Return the path to the database file."""
+    return tmp_path / "db.kz"
+
+
 def init_db(path: Path) -> Path:
     if Path(path).exists():
         shutil.rmtree(path)
+        Path.mkdir(path)
 
-    conn, _ = create_conn_db(path, read_only=False)
+    db_path = get_db_file_path(path)
+    conn, _ = create_conn_db(db_path, read_only=False)
     init_tinysnb(conn)
     init_demo(conn)
     init_npy(conn)
     init_tensor(conn)
     init_long_str(conn)
     init_movie_serial(conn)
-    return path
+    return db_path
 
 
 _READONLY_CONN_DB_: ConnDB | None = None
@@ -201,6 +209,20 @@ def async_connection_readwrite(tmp_path: Path) -> kuzu.AsyncConnection:
     conn, db = create_conn_db(init_db(tmp_path), read_only=False)
     conn.close()
     return kuzu.AsyncConnection(db, max_threads_per_query=4)
+
+
+@pytest.fixture
+def conn_db_empty(tmp_path: Path) -> ConnDB:
+    """Return a new empty connection and database."""
+    return create_conn_db(get_db_file_path(tmp_path), read_only=False)
+
+
+@pytest.fixture
+def conn_db_in_mem() -> ConnDB:
+    """Return a new in-memory connection and database."""
+    db = kuzu.Database(database_path=":memory:", buffer_pool_size=_POOL_SIZE_, read_only=False)
+    conn = kuzu.Connection(db, num_threads=4)
+    return conn, db
 
 
 @pytest.fixture
