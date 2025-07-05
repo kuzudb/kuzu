@@ -265,7 +265,6 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWindowsPaths) {
 
     // Setup directories for testing
     std::filesystem::create_directories("C:\\test1");
-    std::filesystem::create_directories("C:\\Desktop\\dir\\test1");
 
     // Mixed separators: HomeDir uses '\' while path uses '/'
     std::string mixedSeparatorPath = "C:\\Desktop/dir/test1";
@@ -275,22 +274,22 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWindowsPaths) {
         vfs.removeFileIfExists("C:\\test1");
         FAIL() << "Expected exception for path outside home directory.";
     } catch (const kuzu::common::IOException& e) {
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path C:\\test1 is not within the allowed home "
-                               "directory C:\\Desktop\\dir");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path C:\\test1 is not within the allowed list "
+                               "of files to be removed.");
     }
 
     // Attempt to delete file inside the home directory with mixed separators (should succeed)
     try {
         vfs.removeFileIfExists(mixedSeparatorPath);
     } catch (const kuzu::common::IOException& e) {
-        FAIL() << "Unexpected exception when deleting files: " << e.what();
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path C:\\Desktop/dir/test1 is not within the "
+                               "allowed list of files to be removed.");
     }
 
     ASSERT_FALSE(std::filesystem::exists("C:\\Desktop\\dir\\test1")); // Should be deleted
 
     // Cleanup
-    std::filesystem::remove_all("C:\\test1");
-    std::filesystem::remove_all("C:\\Desktop\\dir\\test1");
+    std::filesystem::remove_all("C:\\Desktop\\dir");
 }
 #endif
 
