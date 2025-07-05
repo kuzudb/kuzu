@@ -116,10 +116,10 @@ public:
         }
     }
 
-    static std::filesystem::path getTempDir(const std::string& name) {
+    static std::string getTempDir(const std::string& name) {
         auto path = getRootTempDir() / (name + getTempSuffix());
         std::filesystem::create_directories(path);
-        return path;
+        return path.string();
     }
 
     static std::string getTempDBPathStr(const std::string& name) {
