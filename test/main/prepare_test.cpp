@@ -240,7 +240,7 @@ TEST_F(ApiTest, PrepareExport) {
     if (databasePath == "" || databasePath == ":memory:") {
         return;
     }
-    auto newDBPath = TestHelper::getTempDir("export_db").string() + "/newdb";
+    auto newDBPath = TestHelper::getTempDir("export_db") + "/newdb";
     auto preparedStatement = conn->prepare("EXPORT DATABASE '" + newDBPath + '\'');
     auto result = conn->execute(preparedStatement.get());
     ASSERT_TRUE(result->isSuccess());
