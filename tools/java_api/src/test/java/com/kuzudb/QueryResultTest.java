@@ -1,6 +1,5 @@
 package com.kuzudb;
 
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,9 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class QueryResultTest extends TestBase {
-    @TempDir
-    static Path tempDir;
-
     List<Value> copyFlatTuple(FlatTuple tuple, long tupleLen) {
         List<Value> ret = new ArrayList<Value>();
         for (int i = 0; i < tupleLen; i++) {
