@@ -348,7 +348,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
     case TokenType::BATCH_STATEMENTS: {
         std::string query = paramsToString(1);
         extractConnName(query, statement);
-        statement->batchStatmentsCSVFile = TestHelper::appendKuzuRootPath(
+        statement->batchStatementsCSVFile = TestHelper::appendKuzuRootPath(
             (std::filesystem::path(TestHelper::TEST_STATEMENTS_PATH) / query.substr(7)).string());
         break;
     }

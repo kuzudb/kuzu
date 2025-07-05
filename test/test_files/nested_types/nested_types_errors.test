@@ -1,0 +1,20 @@
+-DATASET CSV empty
+--
+
+-CASE SizeError
+-BATCH_STATEMENTS <FILE:>create_too_large_union.cypher
+---- error
+Binder exception: Too many fields in UNION definition (max 65536, got 66084)
+-BATCH_STATEMENTS <FILE:>create_large_union.cypher
+---- ok
+
+-CASE DuplicateFields
+-STATEMENT CREATE NODE TABLE Test(k INT64 PRIMARY KEY, a UNION(x BOOL, x FLOAT))
+---- error
+Binder exception: Duplicate field 'x' in UNION definition
+-STATEMENT CREATE NODE TABLE Test(k INT64 PRIMARY KEY, a STRUCT(x BOOL, x FLOAT))
+---- error
+Binder exception: Duplicate field 'x' in STRUCT definition
+-STATEMENT RETURN {a: 22, a: 55};
+---- error
+Binder exception: Found duplicate field a in STRUCT.

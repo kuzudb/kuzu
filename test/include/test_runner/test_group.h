@@ -55,7 +55,7 @@ struct TestStatement {
     std::string multiCopySource;
     std::vector<uint64_t> seed;
     // for multiple conns
-    std::string batchStatmentsCSVFile;
+    std::string batchStatementsCSVFile;
     std::optional<std::string> connName;
     bool reloadDBFlag = false;
     bool importDBFlag = false;

@@ -31,19 +31,33 @@ static bool precisionEqual(T x, T y) {
     return std::fabs(x - y) <= std::ldexp(std::numeric_limits<T>::epsilon(), exp);
 }
 
+void TestRunner::runBatchStatements(TestStatement* statement, Connection& conn,
+    const std::string& databasePath) {
+    std::string& cypherScript = statement->batchStatementsCSVFile;
+    std::cout << "cypherScript: " << cypherScript << std::endl;
+    if (!std::filesystem::exists(cypherScript)) {
+        std::cout << "cypherScript: " << cypherScript << " doesn't exist. Skipping..." << std::endl;
+        return;
+    }
+    std::ifstream file(cypherScript);
+    if (!file.is_open()) {
+        throw Exception(stringFormat("Error opening file: {}, errno: {}.", cypherScript, errno));
+    }
+    std::string line;
+    while (getline(file, line)) {
+        statement->query = line;
+        testStatement(statement, conn, databasePath);
+    }
+}
+
 void TestRunner::runTest(TestStatement* statement, Connection& conn,
     const std::string& databasePath) {
     // for batch statements
-    if (!statement->batchStatmentsCSVFile.empty()) {
-        TestHelper::executeScript(statement->batchStatmentsCSVFile, conn);
+    if (!statement->batchStatementsCSVFile.empty()) {
+        TestRunner::runBatchStatements(statement, conn, databasePath);
         return;
     }
     // for normal statement
-    spdlog::info("DEBUG LOG: {}", statement->logMessage);
-    spdlog::info("QUERY: {}", statement->query);
-    if (statement->numThreads) {
-        conn.setMaxNumThreadForExec(*statement->numThreads);
-    }
     testStatement(statement, conn, databasePath);
 }
 
@@ -56,6 +70,11 @@ void replaceEnv(std::string& queryToReplace, const std::string& env) {
 
 void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     const std::string& databasePath) {
+    spdlog::info("DEBUG LOG: {}", statement->logMessage);
+    spdlog::info("QUERY: {}", statement->query);
+    if (statement->numThreads) {
+        conn.setMaxNumThreadForExec(*statement->numThreads);
+    }
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
     StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
     replaceEnv(statement->query, "UW_S3_ACCESS_KEY_ID");

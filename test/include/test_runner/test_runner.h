@@ -15,6 +15,8 @@ public:
         main::Connection& conn);
 
 private:
+    static void runBatchStatements(TestStatement* statement, main::Connection& conn,
+        const std::string& databasePath);
     static void testStatement(TestStatement* statement, main::Connection& conn,
         const std::string& databasePath);
     static void checkLogicalPlan(main::Connection& conn, main::QueryResult* queryResult,

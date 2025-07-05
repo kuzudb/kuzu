@@ -35,17 +35,17 @@ public:
     OPTIONAL = 119, OR = 120, ORDER = 121, PRIMARY = 122, PROFILE = 123, 
     PROJECT = 124, READ = 125, REL = 126, RENAME = 127, RETURN = 128, ROLLBACK = 129, 
     ROLLBACK_SKIP_CHECKPOINT = 130, SEQUENCE = 131, SET = 132, SHORTEST = 133, 
-    START = 134, STARTS = 135, TABLE = 136, THEN = 137, TO = 138, TRAIL = 139, 
-    TRANSACTION = 140, TRUE = 141, TYPE = 142, UNION = 143, UNWIND = 144, 
-    UNINSTALL = 145, UPDATE = 146, USE = 147, WHEN = 148, WHERE = 149, WITH = 150, 
-    WRITE = 151, WSHORTEST = 152, XOR = 153, SINGLE = 154, YIELD = 155, 
-    DECIMAL = 156, STAR = 157, L_SKIP = 158, INVALID_NOT_EQUAL = 159, COLON = 160, 
-    MINUS = 161, FACTORIAL = 162, StringLiteral = 163, EscapedChar = 164, 
-    DecimalInteger = 165, HexLetter = 166, HexDigit = 167, Digit = 168, 
-    NonZeroDigit = 169, NonZeroOctDigit = 170, ZeroDigit = 171, ExponentDecimalReal = 172, 
-    RegularDecimalReal = 173, UnescapedSymbolicName = 174, IdentifierStart = 175, 
-    IdentifierPart = 176, EscapedSymbolicName = 177, SP = 178, WHITESPACE = 179, 
-    CypherComment = 180, Unknown = 181
+    START = 134, STARTS = 135, STRUCT = 136, TABLE = 137, THEN = 138, TO = 139, 
+    TRAIL = 140, TRANSACTION = 141, TRUE = 142, TYPE = 143, UNION = 144, 
+    UNWIND = 145, UNINSTALL = 146, UPDATE = 147, USE = 148, WHEN = 149, 
+    WHERE = 150, WITH = 151, WRITE = 152, WSHORTEST = 153, XOR = 154, SINGLE = 155, 
+    YIELD = 156, DECIMAL = 157, STAR = 158, L_SKIP = 159, INVALID_NOT_EQUAL = 160, 
+    COLON = 161, MINUS = 162, FACTORIAL = 163, StringLiteral = 164, EscapedChar = 165, 
+    DecimalInteger = 166, HexLetter = 167, HexDigit = 168, Digit = 169, 
+    NonZeroDigit = 170, NonZeroOctDigit = 171, ZeroDigit = 172, ExponentDecimalReal = 173, 
+    RegularDecimalReal = 174, UnescapedSymbolicName = 175, IdentifierStart = 176, 
+    IdentifierPart = 177, EscapedSymbolicName = 178, SP = 179, WHITESPACE = 180, 
+    CypherComment = 181, Unknown = 182
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

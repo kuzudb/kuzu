@@ -52,7 +52,7 @@ public:
         children.push_back(std::move(child));
     }
 
-    std::vector<std::string> getOptionalArguments() const { return optionalArguments; }
+    const std::vector<std::string>& getOptionalArguments() const { return optionalArguments; }
 
     static std::unique_ptr<ParsedFunctionExpression> deserialize(
         common::Deserializer& deserializer);
