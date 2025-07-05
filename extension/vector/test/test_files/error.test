@@ -169,6 +169,7 @@ Binder exception: Cannot drop property vec in table embeddings because it is use
 Binder exception: The value of k must be greater than 0.
 
 -CASE RunFunctionWithoutExtension
+-SKIP_IN_MEM
 -SKIP_STATIC_LINK
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok

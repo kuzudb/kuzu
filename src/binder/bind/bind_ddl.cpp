@@ -243,6 +243,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
     case TableType::NODE: {
         // first column is primary key column temporarily for now
         auto pkName = columnNames[0];
+        validatePrimaryKey(pkName, propertyDefinitions);
         auto boundCopyFromInfo = bindCopyNodeFromInfo(createInfo->tableName, propertyDefinitions,
             createTable.getSource(), options_t{}, columnNames, columnTypes, false /* byColumn */);
         auto boundExtraInfo =

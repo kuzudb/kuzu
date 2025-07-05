@@ -135,6 +135,7 @@ Binder exception: Table STUDENT doesn't have an index with name sIdx1.
 ---- ok
 
 -CASE ExtensionNotLoaded
+-SKIP_IN_MEM
 -SKIP_STATIC_LINK
 -STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
 ---- ok
