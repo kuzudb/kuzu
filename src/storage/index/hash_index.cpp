@@ -421,6 +421,25 @@ void HashIndex<T>::bulkReserve(uint64_t newEntries) {
 template<typename T>
 HashIndex<T>::~HashIndex() = default;
 
+template<>
+bool HashIndex<common::ku_string_t>::equals(const transaction::Transaction* transaction,
+    std::string_view keyToLookup, const common::ku_string_t& keyInEntry) const {
+    if (!HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
+        return false;
+    }
+    if (keyInEntry.len <= common::ku_string_t::PREFIX_LENGTH) {
+        // For strings shorter than PREFIX_LENGTH, the result must be true.
+        return true;
+    } else if (keyInEntry.len <= common::ku_string_t::SHORT_STR_LENGTH) {
+        // For short strings, whose lengths are larger than PREFIX_LENGTH, check if their
+        // actual values are equal.
+        return memcmp(keyToLookup.data(), keyInEntry.prefix, keyInEntry.len) == 0;
+    } else {
+        // For long strings, compare with overflow data
+        return overflowFileHandle->equals(transaction->getType(), keyToLookup, keyInEntry);
+    }
+}
+
 template class HashIndex<int64_t>;
 template class HashIndex<int32_t>;
 template class HashIndex<int16_t>;
