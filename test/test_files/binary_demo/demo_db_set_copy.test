@@ -35,8 +35,6 @@ Kitchener|0
 Guelph|0
 
 -CASE SetSingleLabelRelTest
-# This fails on multi-platform tests
--SKIP
 -LOG SetRelSince
 -STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' SET f.since=2012
 ---- ok

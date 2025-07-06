@@ -2,29 +2,6 @@
 
 --
 
--CASE ExtensionTest
-
-# TODO: Extension on musl libc has not been supported yet due to no prebuilt binary.
--SKIP
--LOG InstallExtension
--STATEMENT INSTALL httpfs;
-           LOAD EXTENSION httpfs;
-           LOAD FROM 'http://extension.kuzudb.com/dataset/test/city.csv' return *;
----- ok
----- ok
----- 3
-Guelph|75000
-Kitchener|200000
-Waterloo|150000
-
--CASE ExtensionErrorTest
--SKIP
-# TODO: The error message is dependent on platform.
--LOG InstallInvalidExtension
--STATEMENT INSTALL http;
----- error
-IO exception: HTTP Returns: 404, Failed to download extension: "http" from extension.kuzudb.com/v0.1.0/osx_arm64/libhttp.kuzu_extension.
-
 -CASE InstallUnofficialExtensions
 -SKIP_WASM
 -STATEMENT INSTALL sqlitescanner;

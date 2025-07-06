@@ -75,7 +75,6 @@
 #TODO(Howe): After fixing, please update table_info to return default_expr aswell.
 
 -CASE ConcurrentMultiWriteAlter
--SKIP
 -STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -CREATE_CONNECTION conn2

@@ -43,8 +43,6 @@ Karissa
 Zhang
 
 -CASE CreateRelTest2
-# This fails on multi-platform tests
--SKIP
 -STATEMENT MATCH (a:User), (b:User) WHERE a.name='Zhang' AND b.name='Karissa' CREATE (a)-[:Follows {since:2022}]->(b)
 ---- ok
 -CHECK_ORDER

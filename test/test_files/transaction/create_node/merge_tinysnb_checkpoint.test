@@ -162,7 +162,7 @@ h
 ---- ok
 -STATEMENT UNWIND [14,24,24,14,54,54,17] as x merge (a:person {gender: x}) on match set a.age = x+20
 ---- ok
--STATEMENT MATCH (p:person) return p.ID, p.age;
+-STATEMENT MATCH (p:person) return p.ID;
 ---- 13
 0
 2

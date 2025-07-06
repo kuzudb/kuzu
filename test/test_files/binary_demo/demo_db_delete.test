@@ -16,9 +16,7 @@ Alice|35
 ---- 1
 4
 
-# This fails on multi-platform tests
 -CASE DeleteRelTest
--SKIP
 -STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' DELETE f RETURN f.*;
 ---- 1
 2020

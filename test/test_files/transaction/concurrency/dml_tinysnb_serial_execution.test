@@ -1,5 +1,4 @@
 -DATASET CSV tinysnb
--SKIP
 --
 
 -CASE ConcurrentSingleWriteCreate

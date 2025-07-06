@@ -120,9 +120,7 @@ True
 ---- 1
 True
 
-#TODO(Guodong): FIX-ME. Fix statistics after updates.
 -CASE UpdateIntegerStats
--SKIP
 -STATEMENT CREATE NODE TABLE N1(id INT64, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE NODE TABLE N2(id INT64, PRIMARY KEY(id));
@@ -147,9 +145,7 @@ True
 ---- 1
 True
 
-#TODO(Guodong): FIX-ME. Fix statistics after updates.
 -CASE UpdateDoubleStats
--SKIP
 -STATEMENT CREATE NODE TABLE N1(id INT64, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE NODE TABLE N2(id INT64, PRIMARY KEY(id));
