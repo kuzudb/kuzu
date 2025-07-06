@@ -23,7 +23,6 @@
 
 #include <cstring>
 
-#include "extension/extension.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {
