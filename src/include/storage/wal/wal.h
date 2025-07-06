@@ -18,7 +18,10 @@ public:
     void logCommittedWAL(LocalWAL& localWAL, main::ClientContext* context);
     void logAndFlushCheckpoint(main::ClientContext* context);
 
+    // Clear any buffer in the WAL writer. Also truncate the WAL file to 0 bytes.
     void clear();
+    // Reset the WAL writer to nullptr, and remove the WAL file if it exists.
+    void reset();
 
     uint64_t getFileSize();
 

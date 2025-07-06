@@ -137,8 +137,8 @@ void Checkpointer::writeCheckpoint() {
     wal->logAndFlushCheckpoint(&clientContext);
     shadowFile.replayShadowPageRecords(clientContext);
     // Clear the wal and also shadowing files.
-    wal->clear();
     auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    wal->clear();
     shadowFile.clear(*bufferManager);
 
     // This function will evict all pages that were freed during this checkpoint
@@ -153,6 +153,9 @@ void Checkpointer::writeCheckpoint() {
 
     catalog->resetVersion();
     dataFH->getPageManager()->resetVersion();
+
+    wal->reset();
+    // TODO: Should also remove the shadow file if we're closing the database.
 }
 
 void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {

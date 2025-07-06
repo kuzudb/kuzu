@@ -43,6 +43,13 @@ void WAL::clear() {
     writer->clear();
 }
 
+void WAL::reset() {
+    std::unique_lock lck{mtx};
+    vfs->removeFileIfExists(StorageUtils::getWALFilePath(dbPath));
+    fileInfo.reset();
+    writer.reset();
+}
+
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void WAL::flushAndSyncNoLock() {
     writer->flush();

@@ -5,7 +5,6 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "main/client_context.h"
-#include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"

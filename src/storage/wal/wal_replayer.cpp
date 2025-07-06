@@ -115,7 +115,7 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay() const {
         }
     } catch (...) { // NOLINT
         // If we hit an exception while deserializing, we assume that the WAL file is (partially)
-        // corrupted.
+        // corrupted. This should only happen for records of the last transaction recorded.
     }
     return {offsetDeserialized, isLastRecordCheckpoint};
 }
