@@ -38,7 +38,8 @@ public:
 
     void createDir(const std::string& dir) const override;
 
-    void removeFileIfExists(const std::string& path) override;
+    void removeFileIfExists(const std::string& path,
+        const main::ClientContext* context = nullptr) override;
 
     bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
 

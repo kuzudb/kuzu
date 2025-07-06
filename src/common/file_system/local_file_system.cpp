@@ -23,7 +23,6 @@
 
 #include <cstring>
 
-#include "extension/extension.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {
@@ -267,15 +266,26 @@ static std::unordered_set<std::string> getDatabaseFileSet(const std::string& pat
     return result;
 }
 
-static bool isExtensionFile(const std::filesystem::path& path) {
-    return path.extension() == extension::ExtensionUtils::EXTENSION_FILE_SUFFIX;
+static bool isExtensionFile(const main::ClientContext* context, const std::string& path) {
+    if (context == nullptr) {
+        return false;
+    }
+    auto extensionDir = context->getExtensionDir();
+    std::filesystem::path rel = std::filesystem::relative(path, extensionDir);
+    for (const auto& part : rel) {
+        if (part == "..") {
+            return false;
+        }
+    }
+    return true;
 }
 
-void LocalFileSystem::removeFileIfExists(const std::string& path) {
+void LocalFileSystem::removeFileIfExists(const std::string& path,
+    const main::ClientContext* context) {
     if (!fileOrPathExists(path)) {
         return;
     }
-    if (!getDatabaseFileSet(dbPath).contains(path) && !isExtensionFile(path)) {
+    if (!getDatabaseFileSet(dbPath).contains(path) && !isExtensionFile(context, path)) {
         throw IOException(stringFormat(
             "Error: Path {} is not within the allowed list of files to be removed.", path));
     }

@@ -68,7 +68,8 @@ public:
 
     virtual void createDir(const std::string& dir) const;
 
-    virtual void removeFileIfExists(const std::string& path);
+    virtual void removeFileIfExists(const std::string& path,
+        const main::ClientContext* context = nullptr);
 
     virtual bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr);
 

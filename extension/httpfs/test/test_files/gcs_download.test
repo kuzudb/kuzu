@@ -47,9 +47,8 @@ Adam|Zhang|2020
 Karissa|Zhang|2021
 Zhang|Noura|2022
 -LOG LoadFromWithCache
-# TODO(Ziyi): FIX-ME.
-# -STATEMENT CALL HTTP_CACHE_FILE=TRUE;
-# ---- ok
+-STATEMENT CALL HTTP_CACHE_FILE=TRUE;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT load from 'gs://kuzudb-test/user.csv' return *;

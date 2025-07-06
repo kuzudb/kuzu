@@ -62,8 +62,9 @@ void VirtualFileSystem::createDir(const std::string& dir) const {
     findFileSystem(dir)->createDir(dir);
 }
 
-void VirtualFileSystem::removeFileIfExists(const std::string& path) {
-    findFileSystem(path)->removeFileIfExists(path);
+void VirtualFileSystem::removeFileIfExists(const std::string& path,
+    const main::ClientContext* context) {
+    findFileSystem(path)->removeFileIfExists(path, context);
 }
 
 bool VirtualFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* context) {
