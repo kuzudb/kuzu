@@ -8,11 +8,19 @@
 #include <windows.h>
 #endif
 
-#include "main_test_helper/main_test_helper.h"
+#include "api_test/api_test.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
 using namespace kuzu::testing;
+
+static void assertMatchPersonCountStar(Connection* conn) {
+    auto result = conn->query("MATCH (a:person) RETURN COUNT(*)");
+    ASSERT_TRUE(result->hasNext());
+    auto tuple = result->getNext();
+    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 8);
+    ASSERT_FALSE(result->hasNext());
+}
 
 TEST_F(ApiTest, BasicConnect) {
     assertMatchPersonCountStar(conn.get());
@@ -23,7 +31,7 @@ TEST_F(ApiTest, BasicConnect) {
 // require multiple threads to run.
 static void parallel_query(Connection* conn) {
     for (auto i = 0u; i < 100; ++i) {
-        ApiTest::assertMatchPersonCountStar(conn);
+        assertMatchPersonCountStar(conn);
     }
 }
 
@@ -40,7 +48,7 @@ TEST_F(ApiTest, ParallelQuerySingleConnect) {
 
 static void parallel_connect(Database* database) {
     auto conn = std::make_unique<Connection>(database);
-    ApiTest::assertMatchPersonCountStar(conn.get());
+    assertMatchPersonCountStar(conn.get());
 }
 
 TEST_F(ApiTest, ParallelConnect) {
@@ -52,6 +60,13 @@ TEST_F(ApiTest, ParallelConnect) {
     for (auto i = 0u; i < numThreads; ++i) {
         threads[i].join();
     }
+}
+
+static void executeLongRunningQuery(Connection* conn) {
+    auto result = conn->query(
+        "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);");
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(), "Interrupted.");
 }
 
 TEST_F(ApiTest, Interrupt) {

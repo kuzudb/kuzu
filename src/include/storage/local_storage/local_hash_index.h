@@ -2,7 +2,6 @@
 
 #include "common/string_utils.h"
 #include "common/type_utils.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/index/in_mem_hash_index.h"
 
 namespace kuzu {

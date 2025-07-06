@@ -1,10 +1,20 @@
 #pragma once
 
 #include "c_api/kuzu.h"
-#include "graph_test/api_graph_test.h"
+#include "graph_test/base_graph_test.h"
 
 namespace kuzu {
 namespace testing {
+
+// This class starts database in on-disk mode.
+class APIDBTest : public BaseGraphTest {
+public:
+    void SetUp() override {
+        BaseGraphTest::SetUp();
+        createDBAndConn();
+        initGraph();
+    }
+};
 
 class CApiTest : public APIDBTest {
 public:

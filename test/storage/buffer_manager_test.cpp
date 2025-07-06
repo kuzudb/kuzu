@@ -2,7 +2,7 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
-#include "graph_test/graph_test.h"
+#include "graph_test/private_graph_test.h"
 #include "gtest/gtest.h"
 #include "spdlog/spdlog.h"
 #include "storage/buffer_manager/buffer_manager.h"

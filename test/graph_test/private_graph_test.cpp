@@ -1,4 +1,4 @@
-#include "graph_test/graph_test.h"
+#include "graph_test/private_graph_test.h"
 
 #include "binder/binder.h"
 #include "graph_test/base_graph_test.h"

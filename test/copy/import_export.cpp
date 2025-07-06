@@ -1,6 +1,6 @@
 #include "common/file_system/local_file_system.h"
 #include "graph_test/base_graph_test.h"
-#include "graph_test/graph_test.h"
+#include "graph_test/private_graph_test.h"
 
 namespace kuzu {
 namespace testing {

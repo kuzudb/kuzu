@@ -3,7 +3,6 @@
 #include <set>
 
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/cast.h"
 #include "common/constants.h"
 #include "common/exception/binder.h"

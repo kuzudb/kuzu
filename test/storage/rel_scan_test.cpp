@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "api_test/private_api_test.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/types/date_t.h"
@@ -9,7 +10,6 @@
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "main/client_context.h"
-#include "main_test_helper/private_main_test_helper.h"
 
 namespace kuzu {
 
