@@ -84,20 +84,28 @@ True
 2
 -STATEMENT MATCH (a:test) WHERE a.value = 2 SET a.value = 3
 ---- ok
+-STATEMENT CHECKPOINT;
+---- ok
 -STATEMENT CALL storage_info('test') WHERE column_name = "value" RETURN max;
 ---- 1
 3
 -STATEMENT MATCH (a:test) WHERE a.value = 1 SET a.value = 2
+---- ok
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT CALL storage_info('test') WHERE column_name = "value" RETURN to_int8(min) <= 2;
 ---- 1
 True
 -STATEMENT MATCH (a:test) WHERE a.value = 2 SET a.value = -2
 ---- ok
+-STATEMENT CHECKPOINT;
+---- ok
 -STATEMENT CALL storage_info('test') WHERE column_name = "value" RETURN min;
 ---- 1
 -2
 -STATEMENT MATCH (a:test) WHERE a.value = -2 SET a.value = -3
+---- ok
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT CALL storage_info('test') WHERE column_name = "value" RETURN min;
 ---- 1
@@ -115,10 +123,14 @@ True
 2.000000
 -STATEMENT MATCH (a:test) WHERE a.value = 2 SET a.value = 3.123456
 ---- ok
+-STATEMENT CHECKPOINT;
+---- ok
 -STATEMENT CALL storage_info('test') WHERE column_name = "value" RETURN max;
 ---- 1
 3.123456
 -STATEMENT MATCH (a:test) WHERE a.value = 1 SET a.value = 1.5
+---- ok
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT CALL storage_info('test') WHERE column_name = "value" RETURN to_double(min) <= 1.5;
 ---- 1

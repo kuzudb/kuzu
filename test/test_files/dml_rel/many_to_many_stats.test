@@ -136,10 +136,14 @@ True
 2
 -STATEMENT MATCH (n1)-[a:Rel1 {value: 2}]->(n2) SET a.value = 3;
 ---- ok
+-STATEMENT CHECKPOINT;
+---- ok
 -STATEMENT CALL storage_info('Rel1') WHERE column_name = "fwd_value" RETURN max;
 ---- 1
 3
 -STATEMENT MATCH (n1)-[a:Rel1 {value: 1}]->(n2) SET a.value = 2;
+---- ok
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT CALL storage_info('Rel1') WHERE column_name = "fwd_value" RETURN to_int8(min) <= 2;
 ---- 1
@@ -161,10 +165,14 @@ True
 2.000000
 -STATEMENT MATCH (n1)-[a:Rel1 {value: 2}]->(n2) SET a.value = 3.123456;
 ---- ok
+-STATEMENT CHECKPOINT;
+---- ok
 -STATEMENT CALL storage_info('Rel1') WHERE column_name = "fwd_value" RETURN max;
 ---- 1
 3.123456
 -STATEMENT MATCH (n1)-[a:Rel1 {value: 1}]->(n2) SET a.value = 2;
+---- ok
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT CALL storage_info('Rel1') WHERE column_name = "fwd_value" RETURN to_double(min) <= 2;
 ---- 1
