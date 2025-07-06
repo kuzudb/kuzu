@@ -73,6 +73,7 @@
 True
 
 -CASE UpdateIntegerStats
+-SKIP_IN_MEM
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value INT8, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (a:test {value:1})
@@ -112,6 +113,7 @@ True
 -3
 
 -CASE UpdateDoubleStats
+-SKIP_IN_MEM
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value DOUBLE, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (a:test {value:1})
