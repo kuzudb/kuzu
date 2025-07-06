@@ -21,9 +21,8 @@
 -CASE UWS3RemoteDB
 -SKIP
 -INSERT_STATEMENT_BLOCK UW_S3_SETUP
-# TODO(Ziyi): FIX-ME.
-# -STATEMENT CALL HTTP_CACHE_FILE=TRUE
-# ---- ok
+-STATEMENT CALL HTTP_CACHE_FILE=TRUE
+---- ok
 -STATEMENT ATTACH 's3://kuzu-test/ldbc01' as ldbc (dbtype kuzu)
 ---- 1
 Attached database successfully.

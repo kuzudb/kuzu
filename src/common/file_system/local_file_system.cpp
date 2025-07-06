@@ -134,7 +134,7 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, Fil
         throw IOException(stringFormat("Cannot open file {}: {}", fullPath, posixErrMessage()));
     }
     if (flags.lockType != FileLockType::NO_LOCK) {
-        struct flock fl {};
+        struct flock fl{};
         memset(&fl, 0, sizeof fl);
         fl.l_type = flags.lockType == FileLockType::READ_LOCK ? F_RDLCK : F_WRLCK;
         fl.l_whence = SEEK_SET;
@@ -267,15 +267,26 @@ static std::unordered_set<std::string> getDatabaseFileSet(const std::string& pat
     return result;
 }
 
-static bool isExtensionFile(const std::filesystem::path& path) {
-    return path.extension() == extension::ExtensionUtils::EXTENSION_FILE_SUFFIX;
+static bool isExtensionFile(const main::ClientContext* context, const std::string& path) {
+    if (context == nullptr) {
+        return false;
+    }
+    auto extensionDir = context->getExtensionDir();
+    std::filesystem::path rel = std::filesystem::relative(path, extensionDir);
+    for (const auto& part : rel) {
+        if (part == "..") {
+            return false;
+        }
+    }
+    return true;
 }
 
-void LocalFileSystem::removeFileIfExists(const std::string& path) {
+void LocalFileSystem::removeFileIfExists(const std::string& path,
+    const main::ClientContext* context) {
     if (!fileOrPathExists(path)) {
         return;
     }
-    if (!getDatabaseFileSet(dbPath).contains(path) && !isExtensionFile(path)) {
+    if (!getDatabaseFileSet(dbPath).contains(path) && !isExtensionFile(context, path)) {
         throw IOException(stringFormat(
             "Error: Path {} is not within the allowed list of files to be removed.", path));
     }
@@ -506,7 +517,7 @@ uint64_t LocalFileSystem::getFileSize(const FileInfo& fileInfo) const {
     }
     return size.QuadPart;
 #else
-    struct stat s {};
+    struct stat s{};
     if (fstat(localFileInfo->fd, &s) == -1) {
         throw IOException(stringFormat("Cannot read size of file. path: {} - Error {}: {}",
             fileInfo.path, errno, posixErrMessage()));

@@ -17,7 +17,7 @@ void FileSystem::createDir(const std::string& /*dir*/) const {
     KU_UNREACHABLE;
 }
 
-void FileSystem::removeFileIfExists(const std::string&) {
+void FileSystem::removeFileIfExists(const std::string&, const main::ClientContext* /*context*/) {
     KU_UNREACHABLE;
 }
 

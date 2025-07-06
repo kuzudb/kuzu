@@ -1,6 +1,8 @@
 #include "cached_file_manager.h"
 
+#include "common/string_utils.h"
 #include "httpfs.h"
+#include "httpfs_extension.h"
 
 namespace kuzu {
 namespace httpfs_extension {
@@ -8,7 +10,10 @@ namespace httpfs_extension {
 using namespace common;
 
 CachedFileManager::CachedFileManager(main::ClientContext* context) : vfs{context->getVFSUnsafe()} {
-    cacheDir = context->getDatabasePath() + "/.cached_files";
+    cacheDir = common::stringFormat("{}/{}",
+        extension::ExtensionUtils::getLocalDirForExtension(context,
+            StringUtils::getLower(HttpfsExtension::EXTENSION_NAME)),
+        ".cached_files");
     if (!vfs->fileOrPathExists(cacheDir, context)) {
         vfs->createDir(cacheDir);
     }
@@ -35,7 +40,7 @@ std::unique_ptr<FileInfo> CachedFileManager::getCachedFileInfo(HTTPFileInfo* htt
 
 void CachedFileManager::cleanUP(main::ClientContext* context) {
     auto cacheDirForTrx = getCachedDirForTrx(context->getTransaction()->getID());
-    vfs->removeFileIfExists(cacheDirForTrx);
+    vfs->removeFileIfExists(cacheDirForTrx, context);
 }
 
 std::string CachedFileManager::getCachedFilePath(const std::string& originalFileName,

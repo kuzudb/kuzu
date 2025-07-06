@@ -3,7 +3,7 @@
 #include "extension/extension.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 class HttpfsExtension : public extension::Extension {
 public:
@@ -13,5 +13,5 @@ public:
     static void load(main::ClientContext* context);
 };
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu
