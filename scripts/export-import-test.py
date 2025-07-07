@@ -81,6 +81,7 @@ def main():
             # JSON support to ensure the export works correctly.
             run_command("make extension-build EXTENSION_LIST=json", cwd=kuzu_root)
             inprogress_path = f"{export_path}_inprogress" + os.sep
+            run_command(f"git checkout {current_branch}", cwd=kuzu_root)
             run_command(
                 f"""python3 {export_script_path} \
                 --executable {exec_path} \
