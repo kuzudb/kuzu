@@ -104,9 +104,9 @@ FactorizedTable::~FactorizedTable() {
         return;
     }
     // Release all the unique_ptrs to avoid double free.
-    flatTupleBlockCollection.release();
-    inMemOverflowBuffer.release();
-    unFlatTupleBlockCollection.release();
+    auto* flatTupleBlockCollectionPtr = flatTupleBlockCollection.release();
+    auto* inMemOverflowBufferPtr = inMemOverflowBuffer.release();
+    auto* unFlatTupleBlockCollectionPtr = unFlatTupleBlockCollection.release();
 }
 
 void FactorizedTable::append(const std::vector<ValueVector*>& vectors) {
