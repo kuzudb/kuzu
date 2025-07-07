@@ -120,6 +120,7 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
             }
             if (fileTypeInfo.fileType == FileType::CSV) {
                 auto csvConfig = CSVReaderConfig::construct(parsingOptions);
+                csvConfig.option.autoDetection = false;
                 auto optionsMap = csvConfig.option.toOptionsMap();
                 if (!copyFromOptions.empty()) {
                     optionsMap.insert(copyFromOptions.begin(), copyFromOptions.end());
