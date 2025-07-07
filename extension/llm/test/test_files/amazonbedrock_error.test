@@ -10,8 +10,9 @@
 
 -STATEMENT return create_embedding('this better fail', 'amazon-bedrock', 'amazon.titan-embed-text-v1', 50)
 ---- error
-Binder exception: Bedrock does not support the dimensions argument, but received dimension: 50
-For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+Binder exception: Function CREATE_EMBEDDING for amazon-bedrock did not receive correct arguments:
+Actual:   (STRING,STRING,STRING,INT64)
+Expected: (STRING,STRING,STRING,STRING) -> LIST
 
 -STATEMENT return create_embedding('this better fail', 'amazon-bedrock', 'amazon.titan-embed-text-v1', 'badRegion')
 ---- error
@@ -20,8 +21,9 @@ For more information, please refer to the official Kuzu documentation: https://d
 
 -STATEMENT return create_embedding('this better fail', 'amazon-bedrock', 'amazon.titan-embed-text-v1', 50, 'badRegion')
 ---- error
-Binder exception: Bedrock does not support the dimensions argument, but received dimension: 50
-For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+Binder exception: Function CREATE_EMBEDDING for amazon-bedrock did not receive correct arguments:
+Actual:   (STRING,STRING,STRING,INT64,STRING)
+Expected: (STRING,STRING,STRING,STRING) -> LIST
 
 -STATEMENT return create_embedding('this better fail', 'amazon-bedrock', 'amazon.titan-embed-text-v1', -50, 'badRegion')
 ---- error
@@ -30,5 +32,6 @@ For more information, please refer to the official Kuzu documentation: https://d
 
 -STATEMENT return create_embedding('this better fail', 'amazon-bedrock', 'amazon.titan-embed-text-v1')
 ---- error
-Binder exception: Bedrock requires a region argument, but recieved none
-For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+Binder exception: Function CREATE_EMBEDDING for amazon-bedrock did not receive correct arguments:
+Actual:   (STRING,STRING,STRING)
+Expected: (STRING,STRING,STRING,STRING) -> LIST

@@ -10,20 +10,23 @@
 
 -STATEMENT return create_embedding('this better fail', 'google-gemini', 'gemini-embedding-exp-03-07', 50)
 ---- error
-Binder exception: Google-Gemini does not support the dimensions argument, but received dimension: 50
-For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+Binder exception: Function CREATE_EMBEDDING for google-gemini did not receive correct arguments:
+Actual:   (STRING,STRING,STRING,INT64)
+Expected: (STRING,STRING,STRING) -> LIST
 
 -STATEMENT return create_embedding('this better fail', 'google-gemini', 'gemini-embedding-exp-03-07', 'badRegion')
 ---- error
-Binder exception: Google-Gemini does not support the region argument, but received region: badregion
-For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+Binder exception: Function CREATE_EMBEDDING for google-gemini did not receive correct arguments:
+Actual:   (STRING,STRING,STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
 
 -STATEMENT return create_embedding('this better fail', 'google-gemini', 'gemini-embedding-exp-03-07', 50, 'badRegion')
 ---- error
-Binder exception: Google-Gemini does not support the dimensions argument, but received dimension: 50
-For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+Binder exception: Function CREATE_EMBEDDING for google-gemini did not receive correct arguments:
+Actual:   (STRING,STRING,STRING,INT64,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
 
 -STATEMENT return create_embedding('this better fail', 'google-gemini', 'gemini-embedding-exp-03-07', -50, 'badRegion')
 ---- error
-Binder exception: Failed to parse dimensions: NEGATE(50)
+Binder exception: Dimensions should be greater than 0, but found: NEGATE(50)
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/

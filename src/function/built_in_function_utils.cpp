@@ -506,9 +506,9 @@ static std::string alignedString(const std::string& input) {
     return result.str();
 }
 
-static std::string getFunctionMatchFailureMsg(const std::string name,
+std::string BuiltInFunctionsUtils::getFunctionMatchFailureMsg(const std::string name,
     const std::vector<LogicalType>& inputTypes, const std::string& supportedInputs,
-    bool isDistinct = false) {
+    bool isDistinct) {
     std::string result = stringFormat("Function {} did not receive correct arguments:\n", name);
     result += stringFormat("Actual:   {}{}\n", isDistinct ? "DISTINCT " : "",
         inputTypes.empty() ? "()" : LogicalTypeUtils::toString(inputTypes));
@@ -529,8 +529,8 @@ void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candida
             }
             supportedInputsString += aggregateFunction->signatureToString() + "\n";
         }
-        throw BinderException(
-            getFunctionMatchFailureMsg(name, inputTypes, supportedInputsString, isDistinct));
+        throw BinderException(BuiltInFunctionsUtils::getFunctionMatchFailureMsg(name, inputTypes,
+            supportedInputsString, isDistinct));
     }
 }
 
@@ -545,7 +545,8 @@ void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctio
             }
             supportedInputsString += function->signatureToString() + "\n";
         }
-        throw BinderException(getFunctionMatchFailureMsg(name, inputTypes, supportedInputsString));
+        throw BinderException(BuiltInFunctionsUtils::getFunctionMatchFailureMsg(name, inputTypes,
+            supportedInputsString));
     }
 }
 

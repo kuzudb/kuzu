@@ -1,7 +1,7 @@
 #include "providers/open-ai.h"
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "function/llm_functions.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -49,9 +49,9 @@ std::vector<float> OpenAIEmbedding::parseResponse(const httplib::Result& res) co
 void OpenAIEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (region.has_value()) {
-        throw(BinderException(
-            "OPEN-AI does not support the region argument, but received region: " + region.value() +
-            '\n' + std::string(referenceKuzuDocs)));
+        static const auto functionSignatures = CreateEmbedding::getFunctionSet();
+        throw(functionSignatures[0]->signatureToString() + '\n' +
+              functionSignatures[2]->signatureToString());
     }
     this->dimensions = dimensions;
 }
