@@ -50,8 +50,8 @@ public class DatabaseTest extends TestBase {
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
         }
-        try {
-            Database database = new Database(
+            try {
+                Database database = new Database(
                             dbPath,
                             1 << 28 /* 256 MB */,
                             true /* compression */,
@@ -95,5 +95,31 @@ public class DatabaseTest extends TestBase {
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithNoParam failed: " + e.getMessage());
         }
+    }
+
+    @Test
+    void DBDestroyBeforeConnectionAndQueryResult(){
+        Database database = new Database(":memory:", 1 << 28, true, false, 1 << 30, false, 0);
+        Connection conn = new Connection(database);
+        QueryResult result = conn.query("RETURN 1");
+        assertTrue(result.hasNext());
+        assertEquals(result.getNext().getValue(0).toString(), "1");
+        database.close();
+        try {
+            result.getNext();
+            fail("DBDestroyBeforeConnectionAndQueryResult failed: QueryResult should not be usable after database is closed.");
+        } catch (Exception e) {
+            assertEquals("Runtime exception: The current operation is not allowed because the parent database is closed.", e.getMessage());
+            return;
+        }
+        try {
+            conn.query("RETURN 1");
+            fail("DBDestroyBeforeConnectionAndQueryResult failed: Connection should not be usable after database is closed.");
+        } catch (Exception e) {
+            assertEquals("Runtime exception: The current operation is not allowed because the parent database is closed.", e.getMessage());
+            return;
+        }
+        result.close();
+        conn.close();
     }
 }

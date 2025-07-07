@@ -114,6 +114,45 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
 }
 #endif
 
+TEST_F(CApiDatabaseTest, CloseQueryResultAndConnectionAfterDatabaseDestroy) {
+    kuzu_database database;
+    auto databasePathCStr = (char*)":memory:";
+    auto systemConfig = kuzu_default_system_config();
+    kuzu_state state = kuzu_database_init(databasePathCStr, systemConfig, &database);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_NE(database._database, nullptr);
+    kuzu_connection conn;
+    kuzu_query_result queryResult;
+    state = kuzu_connection_init(&database, &conn);
+    ASSERT_EQ(state, KuzuSuccess);
+    state = kuzu_connection_query(&conn, "RETURN 1+1", &queryResult);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&queryResult));
+    kuzu_flat_tuple tuple;
+    kuzu_state resultState = kuzu_query_result_get_next(&queryResult, &tuple);
+    ASSERT_EQ(resultState, KuzuSuccess);
+    kuzu_value value;
+    kuzu_state valueState = kuzu_flat_tuple_get_value(&tuple, 0, &value);
+    ASSERT_EQ(valueState, KuzuSuccess);
+    int64_t valueInt = INT64_MAX;
+    kuzu_state valueIntState = kuzu_value_get_int64(&value, &valueInt);
+    ASSERT_EQ(valueIntState, KuzuSuccess);
+    ASSERT_EQ(valueInt, 2);
+    // Destroy database first, this should not crash
+    kuzu_database_destroy(&database);
+    // Call kuzu_connection_query should not crash, but return an error
+    state = kuzu_connection_query(&conn, "RETURN 1+1", &queryResult);
+    ASSERT_EQ(state, KuzuError);
+    // Call kuzu_query_result_get_next should not crash, but return an error
+    resultState = kuzu_query_result_get_next(&queryResult, &tuple);
+    ASSERT_EQ(resultState, KuzuError);
+    // Now destroy everything, this should not crash
+    kuzu_query_result_destroy(&queryResult);
+    kuzu_connection_destroy(&conn);
+    kuzu_value_destroy(&value);
+    kuzu_flat_tuple_destroy(&tuple);
+}
+
 TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFiles) {
     std::string homeDir = "/tmp/dbHome";
     kuzu::common::VirtualFileSystem vfs(homeDir);
