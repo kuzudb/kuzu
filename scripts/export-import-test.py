@@ -32,7 +32,6 @@ def runCommand(cmd, cwd=None, env=None, capture_output=False):
 
     if capture_output:
         result = subprocess.run(cmd, cwd=cwd, env=env, text=True, capture_output=True, check=True)
-        print(result.stdout)
         return result.stdout.strip()
     else:
         process = subprocess.Popen(
@@ -59,16 +58,18 @@ def runCommand(cmd, cwd=None, env=None, capture_output=False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Export DBs from datasetDir using commitA and test in commitB"
+        description="Export DBs from dataset-dir to output-dir using base-commit and test in test-commit"
     )
-    parser.add_argument("commitA", help="Git commit to export databases from")
-    parser.add_argument("commitB", help="Git commit to test against")
-    parser.add_argument("datasetDir", help="Path to the dataset directory")
+    parser.add_argument("--base-commit", required=True, help="Git commit to export databases from")
+    parser.add_argument("--test-commit", required=True, help="Git commit to test against")
+    parser.add_argument("--dataset-dir", required=True, help="Path to the dataset directory")
+    parser.add_argument("--output-dir", required=True, help="Path to output the exported databases")
     args = parser.parse_args()
 
-    commitA = args.commitA
-    commitB = args.commitB
-    datasetDir = args.datasetDir
+    baseCommit = args.base_commit
+    testCommit = args.test_commit
+    datasetDir = args.dataset_dir
+    outputDir = args.output_dir
 
     scriptDir = os.path.dirname(os.path.realpath(__file__))
     kuzuRoot = os.path.abspath(os.path.join(scriptDir, ".."))
@@ -76,7 +77,7 @@ def main():
 
     try:
         # Checkout commit A and build
-        runCommand(["git", "checkout", commitA], cwd=kuzuRoot)
+        runCommand(["git", "checkout", baseCommit], cwd=kuzuRoot)
         runCommand(["make", "extension-build", "EXTENSION_LIST=json"], cwd=kuzuRoot)
 
         # Switch back to working branch (to use the latest script)
@@ -85,7 +86,7 @@ def main():
         # Export databases
         exportScriptPath = os.path.join(kuzuRoot, "scripts", "export-dbs.py")
         execPath = os.path.join(kuzuRoot, "build", "relwithdebinfo", "tools", "shell", "kuzu")
-        runCommand(["python3", exportScriptPath, execPath, datasetDir], cwd=kuzuRoot)
+        runCommand(["python3", exportScriptPath, execPath, datasetDir, outputDir], cwd=kuzuRoot)
 
         # Determine export path based on version (taken from exportScript)
         version = getVersion(execPath)
@@ -95,7 +96,7 @@ def main():
         exportPath = os.path.join(datasetDir, "tmp", version) + os.sep
 
         # Checkout commit B and run tests
-        runCommand(["git", "checkout", commitB], cwd=kuzuRoot)
+        runCommand(["git", "checkout", testCommit], cwd=kuzuRoot)
         env = os.environ.copy()
         env["E2E_IMPORT_DB_DIR"] = exportPath
         runCommand(["make", "test"], cwd=kuzuRoot, env=env)

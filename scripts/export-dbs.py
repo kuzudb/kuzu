@@ -62,10 +62,12 @@ def main():
 
     parser.add_argument("executablePath", help="Path to the KUZU shell")
     parser.add_argument("datasetPath", help="Path to the dataset directory")
+    parser.add_argument("outputDir", help="Path to export the datasets")
     args = parser.parse_args()
 
     argExecutablePath = os.path.abspath(args.executablePath)
     argDatasetPath = os.path.abspath(args.datasetPath)
+    outputDir = os.path.abspath(args.outputDir)
 
     if not os.path.isfile(argExecutablePath):
         print(f"Error: Executable not found at {argExecutablePath}")
@@ -89,7 +91,7 @@ def main():
         copyCommands = createCypherQueries(os.path.join(datasetPath, "copy.cypher"))
         combinedCommands = schemaCommands + copyCommands
         datasetName = os.path.relpath(datasetPath, argDatasetPath)
-        exportPath = os.path.join(argDatasetPath, "tmp", version, datasetName)
+        exportPath = os.path.join(outputDir, datasetName)
         exportCommand = f"EXPORT DATABASE '{exportPath}' (format=\"csv\", header=true);"
         combinedCommands.append(exportCommand)
         combinedCommands.insert(0, "CALL threads=1;")
