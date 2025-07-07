@@ -2,7 +2,6 @@ import argparse
 import os
 import sys
 import subprocess
-import re
 
 
 # Get version number like 0.10.0.5.
