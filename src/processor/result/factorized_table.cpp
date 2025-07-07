@@ -37,6 +37,10 @@ void DataBlock::resetToZero() {
     memset(block->getBuffer().data(), 0, block->getBuffer().size());
 }
 
+void DataBlock::preventDestruction() {
+    block->preventDestruction();
+}
+
 void DataBlock::copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
     DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
     uint32_t numBytesPerTuple) {
@@ -103,14 +107,9 @@ FactorizedTable::~FactorizedTable() {
     if (!preventDestruction) {
         return;
     }
-    // Release all the unique_ptrs to avoid double free.
-    auto* flatTupleBlockCollectionPtr = flatTupleBlockCollection.release();
-    auto* inMemOverflowBufferPtr = inMemOverflowBuffer.release();
-    auto* unFlatTupleBlockCollectionPtr = unFlatTupleBlockCollection.release();
-    // Prevent unused variable warnings.
-    (void)flatTupleBlockCollectionPtr;
-    (void)inMemOverflowBufferPtr;
-    (void)unFlatTupleBlockCollectionPtr;
+    flatTupleBlockCollection->preventDestruction();
+    unFlatTupleBlockCollection->preventDestruction();
+    inMemOverflowBuffer->preventDestruction();
 }
 
 void FactorizedTable::append(const std::vector<ValueVector*>& vectors) {

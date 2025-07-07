@@ -34,6 +34,9 @@ public:
     void resetNumTuplesAndFreeSize();
     void resetToZero();
 
+    // Manually set the underlying memory buffer to evicted to avoid double free
+    void preventDestruction();
+
     static void copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
         DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
         uint32_t numBytesPerTuple);
@@ -67,6 +70,11 @@ public:
     DataBlock* getLastBlock() { return blocks.back().get(); }
 
     void merge(DataBlockCollection& other);
+    void preventDestruction() {
+        for (auto& block : blocks) {
+            block->preventDestruction();
+        }
+    }
 
 private:
     uint32_t numBytesPerTuple;

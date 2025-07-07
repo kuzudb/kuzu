@@ -41,6 +41,9 @@ public:
 
     MemoryManager* getMemoryManager() const { return mm; }
 
+    // Manually set the evicted state of the buffer to avoid double free.
+    void preventDestruction() {evicted = true; }
+
 private:
     // Can be called multiple times safely
     void prepareLoadFromDisk();

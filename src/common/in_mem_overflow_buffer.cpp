@@ -44,6 +44,12 @@ void InMemOverflowBuffer::resetBuffer() {
     }
 }
 
+void InMemOverflowBuffer::preventDestruction() {
+    for (auto& block : blocks) {
+        block->block->preventDestruction();
+    }
+}
+
 void InMemOverflowBuffer::allocateNewBlock(uint64_t size) {
     std::unique_ptr<BufferBlock> newBlock;
     if (blocks.empty()) {

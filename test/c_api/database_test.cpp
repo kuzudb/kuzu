@@ -118,6 +118,8 @@ TEST_F(CApiDatabaseTest, CloseQueryResultAndConnectionAfterDatabaseDestroy) {
     kuzu_database database;
     auto databasePathCStr = (char*)":memory:";
     auto systemConfig = kuzu_default_system_config();
+    systemConfig.buffer_pool_size = 10 * 1024 * 1024; // 10MB
+    systemConfig.max_num_threads = 2;
     kuzu_state state = kuzu_database_init(databasePathCStr, systemConfig, &database);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_NE(database._database, nullptr);
