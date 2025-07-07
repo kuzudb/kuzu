@@ -215,7 +215,7 @@ static void validateMagicBytes(common::Deserializer& deSer) {
     }
     if (memcmp(magicBytes, StorageVersionInfo::MAGIC_BYTES, numMagicBytes) != 0) {
         throw common::RuntimeException(
-            "This is not a valid Kuzu database directory for the current version of Kuzu.");
+            "Unable to open database. The file is not a valid Kuzu database file!");
     }
 }
 
@@ -262,7 +262,7 @@ void Checkpointer::readCheckpoint() {
         return;
     }
     auto storageManager = clientContext.getStorageManager();
-    if (storageManager->getDataFH()->getNumPages() <= 1) {
+    if (storageManager->getDataFH()->getNumPages() == 0) {
         return;
     }
     auto vfs = clientContext.getVFSUnsafe();
