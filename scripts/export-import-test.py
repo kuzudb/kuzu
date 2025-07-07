@@ -56,7 +56,7 @@ def main():
         action="store_false",
         help="Do not delete exported DBs after test",
     )
-    parser.set_defaults(cleanup=True)  # Default is cleanup enabled
+    parser.set_defaults(cleanup=True)
     args = parser.parse_args()
 
     base_commit = args.base_commit
@@ -100,16 +100,11 @@ def main():
             )
             os.rename(inprogress_path, export_path + os.sep)
 
-        # Checkout commit B and run tests
         run_command(f"git checkout {test_commit}", cwd=kuzu_root)
         # appends / so that datasets can be found correctly
         export_path += os.sep
         os.environ["E2E_IMPORT_DB_DIR"] = export_path
         run_command("make test", cwd=kuzu_root)
-
-        # Restore original branch
-        run_command(f"git checkout {current_branch}", cwd=kuzu_root)
-
         return 0
     finally:
         if cleanup:
