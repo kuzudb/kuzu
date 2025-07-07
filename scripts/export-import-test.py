@@ -83,6 +83,9 @@ def main():
     try:
         # Checkout commit A and build
         run_command(f"git checkout {base_commit}", cwd=kuzu_root)
+        # Some datasets, like tinysnb_json, have a dependency on the JSON
+        # extension in their copy.cypher files. Therefore, we must build with
+        # JSON support to ensure the export works correctly.
         run_command("make extension-build EXTENSION_LIST=json", cwd=kuzu_root)
 
         # Switch back to working branch (to use the latest script)
