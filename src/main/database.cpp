@@ -71,7 +71,7 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     this->maxDBSize = maxDBSize;
 }
 
-void DatabaseLifeCycleManager::checkDatabaseClosedOrThrow() {
+void DatabaseLifeCycleManager::checkDatabaseClosedOrThrow() const {
     if (isDatabaseClosed) {
         throw RuntimeException(
             "The current operation is not allowed because the parent database is closed.");
