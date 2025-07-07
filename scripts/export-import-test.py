@@ -86,7 +86,7 @@ def main():
         # Export databases
         exportScriptPath = os.path.join(kuzuRoot, "scripts", "export-dbs.py")
         execPath = os.path.join(kuzuRoot, "build", "relwithdebinfo", "tools", "shell", "kuzu")
-        runCommand(["python3", exportScriptPath, execPath, datasetDir, outputDir], cwd=kuzuRoot)
+        runCommand(["python3", exportScriptPath, "--executable", execPath, "--dataset-dir", datasetDir, "--output-dir", outputDir], cwd=kuzuRoot)
 
         # Determine export path based on version (taken from exportScript)
         version = getVersion(execPath)
