@@ -321,6 +321,7 @@ TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {
     auto systemConfig = kuzu::main::SystemConfig();
     systemConfig.bufferPoolSize = 10 * 1024 * 1024; // 10MB
     systemConfig.maxNumThreads = 2;
+    systemConfig.maxDBSize = 1 << 30; // 1GB
 
     auto inMemoryDatabase = std::make_unique<Database>(":memory:", systemConfig);
     auto conn = std::make_unique<Connection>(inMemoryDatabase.get());
