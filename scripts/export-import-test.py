@@ -89,7 +89,7 @@ def main():
     if version is None:
         print("Failed to determine version. Aborting.")
         return 1
-    exportPath = os.path.join(datasetDir, "tmp", version)
+    exportPath = os.path.join(datasetDir, "tmp", version) + os.sep
 
     # Checkout commit B and run tests
     runCommand(["git", "checkout", commitB], cwd=kuzuRoot)
