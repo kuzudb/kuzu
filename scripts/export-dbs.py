@@ -4,23 +4,6 @@ import sys
 import subprocess
 
 
-# Get version number like 0.10.0.5.
-def get_version(executable_path):
-    try:
-        result = subprocess.run(
-            [executable_path, "--version"],
-            capture_output=True, text=True, check=True)
-        output = result.stdout.strip()
-        if output.startswith("Kuzu "):
-            return output.split(" ", 1)[1]
-        else:
-            print("Unexpected version format.")
-            return None
-    except subprocess.CalledProcessError as e:
-        print(f"Error running executable: {e}")
-        return None
-
-
 # Parse schema.cypher and copy.cypher files.
 def create_cypher_queries(file_path):
     commands = []
@@ -57,11 +40,19 @@ def find_valid_dataset_dirs(dataset_root):
 
 # Example scripts/export-dbs.py build/debug/tools/shell/kuzu dataset.
 def main():
-    parser = argparse.ArgumentParser(description="Export DBs with KUZU shell and dataset paths")
+    parser = argparse.ArgumentParser(
+        description="Export DBs with KUZU shell and dataset paths"
+    )
 
-    parser.add_argument("--executable", required=True, help="Path to the KUZU shell executable")
-    parser.add_argument("--dataset-dir", required=True, help="Path to the dataset directory")
-    parser.add_argument("--output-dir", required=True, help="Path to export the datasets")
+    parser.add_argument(
+        "--executable", required=True, help="Path to the KUZU shell executable"
+    )
+    parser.add_argument(
+        "--dataset-dir", required=True, help="Path to the dataset directory"
+    )
+    parser.add_argument(
+        "--output-dir", required=True, help="Path to export the datasets"
+    )
     args = parser.parse_args()
 
     arg_executable_path = os.path.abspath(args.executable)
@@ -73,37 +64,37 @@ def main():
     if not os.path.exists(arg_dataset_path):
         raise Exception(f"Error: Dataset path not found at {arg_dataset_path}")
 
-    version = get_version(arg_executable_path)
-    if not version:
-        raise Exception(f"Could not pull version number from {arg_executable_path}")
-
     valid_datasets = find_valid_dataset_dirs(arg_dataset_path)
     # This is done to construct a full path to replace the relative paths found
     # in copy.cypher files.
     script_dir = os.path.dirname(os.path.realpath(__file__))
     root_dir = os.path.abspath(os.path.join(script_dir, ".."))
     for dataset_path in valid_datasets:
-        schema_commands = create_cypher_queries(os.path.join(dataset_path, "schema.cypher"))
+        schema_commands = create_cypher_queries(
+            os.path.join(dataset_path, "schema.cypher")
+        )
         copy_commands = create_cypher_queries(os.path.join(dataset_path, "copy.cypher"))
         combined_commands = schema_commands + copy_commands
         dataset_name = os.path.relpath(dataset_path, arg_dataset_path)
         export_path = os.path.join(output_dir, dataset_name)
-        export_command = f"EXPORT DATABASE '{export_path}' (format=\"csv\", header=true);"
+        export_command = (
+            f"EXPORT DATABASE '{export_path}' (format=\"csv\", header=true);"
+        )
         combined_commands.append(export_command)
         combined_commands.insert(0, "CALL threads=1;")
         print(f"Exporting {dataset_path} to {export_path}")
         joined_commands = "\n".join(cmd.strip() for cmd in combined_commands)
 
         subprocess.run(
-            [arg_executable_path],
+            arg_executable_path,
             input=joined_commands,
             text=True,
             cwd=root_dir,
-            check=True
+            check=True,
         )
 
         return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

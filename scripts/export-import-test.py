@@ -8,10 +8,7 @@ import shutil
 def get_version(executable_path):
     try:
         result = subprocess.run(
-            [executable_path, "--version"],
-            capture_output=True,
-            text=True,
-            check=True
+            executable_path, " --version", capture_output=True, text=True, check=True
         )
         output = result.stdout.strip()
         if output.startswith("Kuzu "):
@@ -31,7 +28,9 @@ def run_command(cmd, cwd=None, capture_output=False):
     print(f"> Running: {' '.join(cmd)} (cwd={cwd})")
 
     if capture_output:
-        result = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=True)
+        result = subprocess.run(
+            cmd, cwd=cwd, text=True, capture_output=True, check=True
+        )
         return result.stdout.strip()
     else:
         process = subprocess.Popen(
@@ -42,11 +41,11 @@ def run_command(cmd, cwd=None, capture_output=False):
             stderr=subprocess.STDOUT,
             bufsize=1,
             universal_newlines=True,
-            stdin=subprocess.DEVNULL
+            stdin=subprocess.DEVNULL,
         )
 
         for line in process.stdout:
-            print(line, end='')
+            print(line, end="")
 
         process.stdout.close()
         retcode = process.wait()
@@ -59,11 +58,24 @@ def main():
     parser = argparse.ArgumentParser(
         description="Export DBs from dataset-dir to output-dir using base-commit and test in test-commit"
     )
-    parser.add_argument("--base-commit", required=True, help="Git commit to export databases from")
-    parser.add_argument("--test-commit", required=True, help="Git commit to test against")
-    parser.add_argument("--dataset-dir", required=True, help="Path to the dataset directory")
-    parser.add_argument("--output-dir", required=True, help="Path to output the exported databases")
-    parser.add_argument("--cleanup", type=bool, default=True, help="Delete exported DBs after test (default: True)")
+    parser.add_argument(
+        "--base-commit", required=True, help="Git commit to export databases from"
+    )
+    parser.add_argument(
+        "--test-commit", required=True, help="Git commit to test against"
+    )
+    parser.add_argument(
+        "--dataset-dir", required=True, help="Path to the dataset directory"
+    )
+    parser.add_argument(
+        "--output-dir", required=True, help="Path to output the exported databases"
+    )
+    parser.add_argument(
+        "--cleanup",
+        type=bool,
+        default=True,
+        help="Delete exported DBs after test (default: True)",
+    )
     args = parser.parse_args()
 
     base_commit = args.base_commit
@@ -74,7 +86,9 @@ def main():
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
     kuzu_root = os.path.abspath(os.path.join(script_dir, ".."))
-    current_branch = run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=kuzu_root, capture_output=True)
+    current_branch = run_command(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=kuzu_root, capture_output=True
+    )
     try:
         # Checkout commit A and build
         run_command("git checkout " + base_commit, cwd=kuzu_root)
@@ -85,7 +99,9 @@ def main():
 
         # Export databases
         export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
-        exec_path = os.path.join(kuzu_root, "build", "relwithdebinfo", "tools", "shell", "kuzu")
+        exec_path = os.path.join(
+            kuzu_root, "build", "relwithdebinfo", "tools", "shell", "kuzu"
+        )
         # Determine export path based on version (taken from export_script)
         version = get_version(exec_path)
         if version is None:
@@ -95,7 +111,17 @@ def main():
         # Only run export if export_path DNE
         if not os.path.exists(export_path):
             inprogress_path = export_path + "_inprogress" + os.sep
-            run_command("python3 " + export_script_path + " --executable " + exec_path + " --dataset-dir " + dataset_dir + " --output-dir " + inprogress_path, cwd=kuzu_root)
+            run_command(
+                "python3 "
+                + export_script_path
+                + " --executable "
+                + exec_path
+                + " --dataset-dir "
+                + dataset_dir
+                + " --output-dir "
+                + inprogress_path,
+                cwd=kuzu_root,
+            )
             os.rename(inprogress_path, export_path)
 
         # Checkout commit B and run tests
@@ -122,5 +148,5 @@ def main():
             print(f"Warning: Failed to restore branch {current_branch}: {e}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
