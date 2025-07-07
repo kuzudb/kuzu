@@ -998,11 +998,11 @@ void ColumnChunkData::loadFromDisk() {
         [&](auto& spiller) { spiller.loadFromDisk(*this); });
 }
 
-uint64_t ColumnChunkData::spillToDisk() {
-    uint64_t spilledBytes = 0;
+SpillResult ColumnChunkData::spillToDisk() {
+    SpillResult spilled{};
     buffer->getMemoryManager()->getBufferManager()->getSpillerOrSkip(
-        [&](auto& spiller) { spilledBytes = spiller.spillToDisk(*this); });
-    return spilledBytes;
+        [&](auto& spiller) { spilled = spiller.spillToDisk(*this); });
+    return spilled;
 }
 
 void ColumnChunkData::reclaimStorage(PageAllocator& pageAllocator) {
