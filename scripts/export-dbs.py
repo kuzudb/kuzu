@@ -69,16 +69,13 @@ def main():
     output_dir = os.path.abspath(args.output_dir)
 
     if not os.path.isfile(arg_executable_path):
-        print(f"Error: Executable not found at {arg_executable_path}")
-        return 1
+        raise Exception(f"Error: Executable not found at {arg_executable_path}")
     if not os.path.exists(arg_dataset_path):
-        print(f"Error: Dataset path not found at {arg_dataset_path}")
-        return 1
+        raise Exception(f"Error: Dataset path not found at {arg_dataset_path}")
 
     version = get_version(arg_executable_path)
     if not version:
-        print(f"Could not pull version number from {arg_executable_path}")
-        return 1
+        raise Exception(f"Could not pull version number from {arg_executable_path}")
 
     valid_datasets = find_valid_dataset_dirs(arg_dataset_path)
     # This is done to construct a full path to replace the relative paths found
