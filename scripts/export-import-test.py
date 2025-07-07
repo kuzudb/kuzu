@@ -23,29 +23,36 @@ def getVersion(executablePath):
         return None
 
 
-def runCommand(cmd, cwd=None, env=None):
+def runCommand(cmd, cwd=None, env=None, capture_output=False):
     if isinstance(cmd, str):
         cmd = cmd.split()
 
     print(f"> Running: {' '.join(cmd)} (cwd={cwd})")
-    process = subprocess.Popen(
-        cmd,
-        cwd=cwd,
-        env=env,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        bufsize=1,
-        universal_newlines=True
-    )
 
-    for line in process.stdout:
-        print(line, end='')
+    if capture_output:
+        result = subprocess.run(cmd, cwd=cwd, env=env, text=True, capture_output=True, check=True)
+        print(result.stdout)
+        return result.stdout.strip()
+    else:
+        process = subprocess.Popen(
+            cmd,
+            cwd=cwd,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=1,
+            universal_newlines=True
+        )
 
-    process.stdout.close()
-    retcode = process.wait()
-    if retcode != 0:
-        raise subprocess.CalledProcessError(retcode, cmd)
+        for line in process.stdout:
+            print(line, end='')
+
+        process.stdout.close()
+        retcode = process.wait()
+        if retcode != 0:
+            raise subprocess.CalledProcessError(retcode, cmd)
+        return None
 
 
 def main():
@@ -63,7 +70,7 @@ def main():
 
     scriptDir = os.path.dirname(os.path.realpath(__file__))
     kuzuRoot = os.path.abspath(os.path.join(scriptDir, ".."))
-    currentBranch = runCommand(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=kuzuRoot)
+    currentBranch = runCommand(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=kuzuRoot, capture_output=True)
 
     # Checkout commit A and build
     runCommand(["git", "checkout", commitA], cwd=kuzuRoot)
