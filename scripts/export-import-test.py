@@ -111,7 +111,16 @@ def main():
                 + inprogress_path,
                 cwd=kuzu_root,
             )
-            os.rename(inprogress_path, export_path)
+            for item in os.listdir(inprogress_path):
+                src = os.path.join(inprogress_path, item)
+                dst = os.path.join(export_path, item)
+                if os.path.exists(dst):
+                    if os.path.isdir(dst):
+                        shutil.rmtree(dst)
+                    else:
+                        os.remove(dst)
+                shutil.move(src, dst)
+            os.rmdir(inprogress_path)
 
         # Checkout commit B and run tests
         run_command("git checkout " + test_commit, cwd=kuzu_root)
