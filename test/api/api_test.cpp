@@ -331,16 +331,123 @@ TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {
     result->resetIterator();
     // Close the database before the result and connection. It should not cause SEGFAULT.
     inMemoryDatabase.reset();
+    // All public Connection methods that check for closed DB
+    try {
+        conn->setMaxNumThreadForExec(1);
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        conn->getMaxNumThreadForExec();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        conn->prepare("RETURN 1");
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        std::unordered_map<std::string, std::unique_ptr<Value>> params;
+        conn->prepareWithParams("RETURN 1", std::move(params));
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
     try {
         conn->query("RETURN 2+2;");
     } catch (kuzu::common::Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
-                               "the parent database is closed.");
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
     }
     try {
-        auto next = result->getNext();
+        std::unordered_map<std::string, std::unique_ptr<Value>> params;
+        conn->executeWithParams(nullptr, std::move(params));
     } catch (kuzu::common::Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
-                               "the parent database is closed.");
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        conn->interrupt();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        conn->setQueryTimeOut(1000);
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    // All public QueryResult methods that check for closed DB
+    try {
+        result->isSuccess();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getErrorMessage();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getNumColumns();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getColumnNames();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getColumnDataTypes();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getNumTuples();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getQuerySummary();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->resetIterator();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->hasNext();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->hasNextQueryResult();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getNextQueryResult();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getNext();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->toString();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getArrowSchema();
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try {
+        result->getNextArrowChunk(1);
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
     }
 }
