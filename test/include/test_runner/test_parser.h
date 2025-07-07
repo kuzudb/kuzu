@@ -22,6 +22,7 @@ enum class TokenType {
     SKIP_IN_MEM,
     SKIP_VECTOR_CAPACITY_TESTS,
     SKIP_NODE_GROUP_SIZE_TESTS,
+    SKIP_PAGE_SIZE_TESTS,
     TEST_FWD_ONLY_REL,
     // body
     BUFFER_POOL_SIZE,
@@ -73,6 +74,7 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenT
     {"-SKIP_IN_MEM", TokenType::SKIP_IN_MEM},
     {"-SKIP_VECTOR_CAPACITY_TESTS", TokenType::SKIP_VECTOR_CAPACITY_TESTS},
     {"-SKIP_NODE_GROUP_SIZE_TESTS", TokenType::SKIP_NODE_GROUP_SIZE_TESTS},
+    {"-SKIP_PAGE_SIZE_TESTS", TokenType::SKIP_PAGE_SIZE_TESTS},
     {"-TEST_FWD_ONLY_REL", TokenType::TEST_FWD_ONLY_REL}, {"-DEFINE", TokenType::DEFINE},
     {"-STATEMENT", TokenType::STATEMENT},
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
@@ -100,6 +102,7 @@ class TestParser {
 public:
     static constexpr uint64_t STANDARD_VECTOR_CAPACITY_LOG_2 = 11;
     static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG_2 = 17;
+    static constexpr uint64_t STANDARD_PAGE_SIZE_LOG_2 = 12;
 
     explicit TestParser(const std::string& path)
         : path{path}, testGroup{std::make_unique<TestGroup>()}, currentToken{} {}

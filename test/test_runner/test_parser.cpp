@@ -156,8 +156,7 @@ void TestParser::parseHeader() {
             break;
         }
         case TokenType::SKIP_NODE_GROUP_SIZE_TESTS: {
-            if constexpr (common::StorageConfig::NODE_GROUP_SIZE_LOG2 !=
-                          STANDARD_NODE_GROUP_SIZE_LOG_2) {
+            if constexpr (StorageConfig::NODE_GROUP_SIZE_LOG2 != STANDARD_NODE_GROUP_SIZE_LOG_2) {
                 testGroup->group = "DISABLED_" + testGroup->group;
             }
             break;
@@ -533,8 +532,13 @@ void TestParser::parseBody() {
             break;
         }
         case TokenType::SKIP_NODE_GROUP_SIZE_TESTS: {
-            if constexpr (common::StorageConfig::NODE_GROUP_SIZE_LOG2 !=
-                          STANDARD_NODE_GROUP_SIZE_LOG_2) {
+            if constexpr (StorageConfig::NODE_GROUP_SIZE_LOG2 != STANDARD_NODE_GROUP_SIZE_LOG_2) {
+                testCaseName = "DISABLED_" + testCaseName;
+            }
+            break;
+        }
+        case TokenType::SKIP_PAGE_SIZE_TESTS: {
+            if constexpr (PAGE_SIZE_LOG2 != STANDARD_PAGE_SIZE_LOG_2) {
                 testCaseName = "DISABLED_" + testCaseName;
             }
             break;
