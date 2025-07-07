@@ -33,9 +33,7 @@ public:
     static KUZU_API uint32_t getCastCost(common::LogicalTypeID inputTypeID,
         common::LogicalTypeID targetTypeID);
 
-    static std::string getFunctionMatchFailureMsg(const std::string name,
-        const std::vector<common::LogicalType>& inputTypes, const std::string& supportedInputs,
-        bool isDistinct = false);
+    static KUZU_API std::string getFunctionMatchFailureMsg(const std::string name, const std::vector<common::LogicalType>& inputTypes, const std::string& supportedInputs, bool isDistinct = false);
 
 private:
     // TODO(Xiyang): move casting cost related functions to binder.
