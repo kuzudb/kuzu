@@ -164,7 +164,7 @@ private:
 private:
     Database* database;
     std::unique_ptr<ClientContext> clientContext;
-    std::shared_ptr<DatabaseLifeCycleManager> dbLifeCycleManager;
+    std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
 };
 
 } // namespace main

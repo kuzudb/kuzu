@@ -7,7 +7,7 @@
 #include "common/api.h"
 #include "kuzu_fwd.h"
 #include "main/db_config.h"
-
+#include "common/database_lifecycle_manager.h"
 namespace kuzu {
 namespace common {
 class FileSystem;
@@ -74,11 +74,6 @@ struct KUZU_API SystemConfig {
     bool autoCheckpoint;
     uint64_t checkpointThreshold;
     bool forceCheckpointOnClose;
-};
-
-struct DatabaseLifeCycleManager {
-    bool isDatabaseClosed = false;
-    void checkDatabaseClosedOrThrow() const;
 };
 
 /**
@@ -157,7 +152,7 @@ private:
     std::unique_ptr<DatabaseManager> databaseManager;
     std::unique_ptr<extension::ExtensionManager> extensionManager;
     QueryIDGenerator queryIDGenerator;
-    std::shared_ptr<DatabaseLifeCycleManager> dbLifeCycleManager;
+    std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
 };
 
 } // namespace main

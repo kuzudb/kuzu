@@ -71,13 +71,6 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     this->maxDBSize = maxDBSize;
 }
 
-void DatabaseLifeCycleManager::checkDatabaseClosedOrThrow() const {
-    if (isDatabaseClosed) {
-        throw RuntimeException(
-            "The current operation is not allowed because the parent database is closed.");
-    }
-}
-
 static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, FileLockType& lock) {
     flags = readOnly ? FileFlags::READ_ONLY : FileFlags::WRITE;
     if (createNew && !readOnly) {

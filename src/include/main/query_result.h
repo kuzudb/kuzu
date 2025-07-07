@@ -6,7 +6,7 @@
 #include "common/arrow/arrow.h"
 #include "common/types/types.h"
 #include "kuzu_fwd.h"
-#include "main/database.h"
+#include "common/database_lifecycle_manager.h"
 #include "processor/result/flat_tuple.h"
 #include "query_summary.h"
 namespace kuzu {
@@ -164,7 +164,7 @@ private:
     QueryResultIterator queryResultIterator;
 
     // database life cycle manager
-    std::shared_ptr<DatabaseLifeCycleManager> dbLifeCycleManager;
+    std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
 };
 
 } // namespace main
