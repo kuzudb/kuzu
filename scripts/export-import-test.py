@@ -66,7 +66,9 @@ def main():
     try:
         run_command(f"git checkout {base_commit}", cwd=kuzu_root)
 
-        version = run_command(f"python3 benchmark/version.py", cwd=kuzu_root, capture_output=True)
+        version = run_command(
+            f"python3 benchmark/version.py", cwd=kuzu_root, capture_output=True
+        )
         if version == "0":
             raise Exception("Failed to determine version. Aborting.")
         export_path = os.path.join(output_dir, version)
