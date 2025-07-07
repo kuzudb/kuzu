@@ -87,7 +87,7 @@ def main():
         copy_commands = create_cypher_queries(os.path.join(dataset_path, "copy.cypher"))
         combined_commands = schema_commands + copy_commands
         dataset_name = os.path.relpath(dataset_path, arg_dataset_path)
-        export_path = os.path.join(output_dir, version, dataset_name)
+        export_path = os.path.join(output_dir, dataset_name)
         export_command = f"EXPORT DATABASE '{export_path}' (format=\"csv\", header=true);"
         combined_commands.append(export_command)
         combined_commands.insert(0, "CALL threads=1;")

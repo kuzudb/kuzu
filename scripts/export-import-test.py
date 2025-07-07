@@ -87,14 +87,17 @@ def main():
         # Export databases
         export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
         exec_path = os.path.join(kuzu_root, "build", "relwithdebinfo", "tools", "shell", "kuzu")
-        run_command(["python3", export_script_path, "--executable", exec_path, "--dataset-dir", dataset_dir, "--output-dir", output_dir], cwd=kuzu_root)
-
         # Determine export path based on version (taken from export_script)
         version = get_version(exec_path)
         if version is None:
-            print("Failed to determine version. Aborting.")
-            return 1
-        export_path = os.path.join(dataset_dir, "tmp", version) + os.sep
+            raise Exception("Failed to determine version. Aborting.")
+        export_path = os.path.join(output_dir, version) + os.sep
+
+        # Only run export if export_path DNE
+        if not os.path.exists(export_path):
+            inprogress_path = export_path + "_inprogress" + os.sep
+            run_command(["python3", export_script_path, "--executable", exec_path, "--dataset-dir", dataset_dir, "--output-dir", inprogress_path], cwd=kuzu_root)
+            os.rename(inprogress_path, export_path)
 
         # Checkout commit B and run tests
         run_command(["git", "checkout", test_commit], cwd=kuzu_root)
