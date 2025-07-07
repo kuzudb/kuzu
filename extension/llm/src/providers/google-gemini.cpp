@@ -1,7 +1,7 @@
 #include "providers/google-gemini.h"
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "function/llm_functions.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -44,15 +44,9 @@ std::vector<float> GoogleGeminiEmbedding::parseResponse(const httplib::Result& r
 
 void GoogleGeminiEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
-    if (dimensions.has_value()) {
-        throw(BinderException(
-            "Google Gemini does not support the dimensions argument, but received dimension: " +
-            std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
-    }
-    if (region.has_value()) {
-        throw(BinderException(
-            "Google Gemini does not support the region argument, but received region: " +
-            region.value() + '\n' + std::string(referenceKuzuDocs)));
+    if (dimensions.has_value() || region.has_value()) {
+        static const auto functionSignatures = CreateEmbedding::getFunctionSet();
+        throw(functionSignatures[0]->signatureToString());
     }
 }
 

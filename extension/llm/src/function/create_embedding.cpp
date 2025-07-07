@@ -1,7 +1,9 @@
+#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
+#include "function/built_in_function_utils.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
 #include "httplib.h"
@@ -93,21 +95,27 @@ static uint64_t parseDimensions(std::shared_ptr<Expression> dimensionsExpr,
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
-    std::optional<uint64_t> dimensions = std::nullopt;
-    std::optional<std::string> regionOrEndpoint = std::nullopt;
-    auto& provider = getInstance(StringUtils::getLower(input.arguments[1]->toString()));
+    std::optional<uint64_t> numConfig = std::nullopt;
+    std::optional<std::string> stringConfig = std::nullopt;
+    const auto& providerName = StringUtils::getLower(input.arguments[1]->toString());
+    auto& provider = getInstance(providerName);
     if (input.arguments.size() == 5) {
-        dimensions = parseDimensions(input.arguments[3], input.context);
-        regionOrEndpoint = StringUtils::getLower(input.arguments[4]->toString());
+        numConfig = parseDimensions(input.arguments[3], input.context);
+        stringConfig = StringUtils::getLower(input.arguments[4]->toString());
     } else if (input.arguments.size() == 4) {
         if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
-            regionOrEndpoint = StringUtils::getLower(input.arguments[3]->toString());
+            stringConfig = StringUtils::getLower(input.arguments[3]->toString());
         } else {
-            dimensions = parseDimensions(input.arguments[3], input.context);
+            numConfig = parseDimensions(input.arguments[3], input.context);
         }
     }
 
-    provider.configure(dimensions, regionOrEndpoint);
+    try {
+        provider.configure(numConfig, stringConfig);
+    }
+    catch(const std::string& supportedInputs) {
+        throw(BuiltInFunctionsUtils::getFunctionMatchFailureMsg(std::string(CreateEmbedding::name) + "::" + providerName, ExpressionUtil::getDataTypes(input.arguments), supportedInputs));
+    }
     return FunctionBindData::getSimpleBindData(input.arguments,
         LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)));
 }
@@ -123,7 +131,7 @@ function_set CreateEmbedding::getFunctionSet() {
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
-    // Prompt, Provider, Model, Region -> Vector Embedding
+    // Prompt, Provider, Model, Region/Endpoint -> Vector Embedding
     function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING, LogicalTypeID::STRING},
@@ -139,7 +147,7 @@ function_set CreateEmbedding::getFunctionSet() {
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
 
-    // Prompt, Provider, Model, Dimensions, Region -> Vector Embedding
+    // Prompt, Provider, Model, Dimensions, Region/Endpoint -> Vector Embedding
     function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::STRING},

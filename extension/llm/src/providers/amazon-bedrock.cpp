@@ -1,9 +1,9 @@
 #include "providers/amazon-bedrock.h"
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/timestamp_t.h"
 #include "crypto.h"
+#include "function/llm_functions.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -127,14 +127,9 @@ std::vector<float> BedrockEmbedding::parseResponse(const httplib::Result& res) c
 
 void BedrockEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
-    if (dimensions.has_value()) {
-        throw(BinderException(
-            "Bedrock does not support the dimensions argument, but received dimension: " +
-            std::to_string(dimensions.value()) + '\n' + std::string(referenceKuzuDocs)));
-    }
-    if (!region.has_value()) {
-        throw(BinderException("Bedrock requires a region argument, but recieved none\n" +
-                              std::string(referenceKuzuDocs)));
+    if (dimensions.has_value() || !region.has_value()) {
+        static const auto functionSignatures = CreateEmbedding::getFunctionSet();
+        throw(functionSignatures[1]->signatureToString());
     }
     this->region = region;
 }

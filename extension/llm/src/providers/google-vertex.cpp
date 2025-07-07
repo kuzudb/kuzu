@@ -1,7 +1,7 @@
 #include "providers/google-vertex.h"
 
-#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "function/llm_functions.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -58,8 +58,8 @@ std::vector<float> GoogleVertexEmbedding::parseResponse(const httplib::Result& r
 void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (!region.has_value()) {
-        throw(BinderException("Google Vertex requires a region argument, but recieved none\n" +
-                              std::string(referenceKuzuDocs)));
+        static const auto functionSignatures = CreateEmbedding::getFunctionSet();
+        throw(functionSignatures[1]->signatureToString() + '\n' + functionSignatures[3]->signatureToString());
     }
     this->dimensions = dimensions;
     this->region = region;
