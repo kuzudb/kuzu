@@ -25,10 +25,7 @@ def get_version(executable_path):
 
 
 def run_command(cmd, cwd=None, capture_output=False):
-    if isinstance(cmd, str):
-        cmd = cmd.split()
-
-    print(f"> Running: {' '.join(cmd)} (cwd={cwd})")
+    print(f"> Running: {cmd} (cwd={cwd})")
 
     # We redirect stdin to devnull in an attempt
     # to stop the proccess from intefering with the terminal's input buffer.

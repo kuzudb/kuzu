@@ -91,6 +91,7 @@ def main():
             text=True,
             cwd=root_dir,
             check=True,
+            shell=True,
         )
 
     return 0
