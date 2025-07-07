@@ -96,19 +96,17 @@ def main():
         combinedCommands.append(exportCommand)
         combinedCommands.insert(0, "CALL threads=1;")
         print(f"Exporting {datasetPath} to {exportPath}")
+        joinedCommands = "\n".join(cmd.strip() for cmd in combinedCommands)
 
-        process = subprocess.Popen(
+        subprocess.run(
             [argExecutablePath],
-            stdin=subprocess.PIPE,
+            input=joinedCommands,
             text=True,
-            cwd=rootDir
+            cwd=rootDir,
+            check=True
         )
 
-        for cmd in combinedCommands:
-            process.stdin.write(cmd.strip() + "\n")
-        process.stdin.close()
-        process.wait()
-    return 0
+        return 0
 
 
 if __name__ == '__main__':
