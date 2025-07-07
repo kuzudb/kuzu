@@ -42,7 +42,8 @@ def runCommand(cmd, cwd=None, env=None, capture_output=False):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             bufsize=1,
-            universal_newlines=True
+            universal_newlines=True,
+            stdin=subprocess.DEVNULL
         )
 
         for line in process.stdout:
