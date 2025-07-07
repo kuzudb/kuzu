@@ -57,18 +57,14 @@ std::unique_ptr<QueryResult> Connection::queryWithID(std::string_view queryState
     uint64_t queryID) {
     dbLifeCycleManager->checkDatabaseClosedOrThrow();
     auto queryResult = clientContext->query(queryStatement, queryID);
-    if (queryResult) {
-        queryResult->dbLifeCycleManager = dbLifeCycleManager;
-    }
+    queryResult->dbLifeCycleManager = dbLifeCycleManager;
     return queryResult;
 }
 
 std::unique_ptr<QueryResult> Connection::queryResultWithError(std::string_view errMsg) {
     dbLifeCycleManager->checkDatabaseClosedOrThrow();
     auto queryResult = clientContext->queryResultWithError(errMsg);
-    if (queryResult) {
-        queryResult->dbLifeCycleManager = dbLifeCycleManager;
-    }
+    queryResult->dbLifeCycleManager = dbLifeCycleManager;
     return queryResult;
 }
 
@@ -101,9 +97,7 @@ std::unique_ptr<QueryResult> Connection::executeWithParamsWithID(
     dbLifeCycleManager->checkDatabaseClosedOrThrow();
     auto queryResult =
         clientContext->executeWithParams(preparedStatement, std::move(inputParams), queryID);
-    if (queryResult) {
-        queryResult->dbLifeCycleManager = dbLifeCycleManager;
-    }
+    queryResult->dbLifeCycleManager = dbLifeCycleManager;
     return queryResult;
 }
 
@@ -117,9 +111,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
     dbLifeCycleManager->checkDatabaseClosedOrThrow();
     auto queryResult = clientContext->executeNoLock(preparedStatement, planIdx);
-    if (queryResult) {
-        queryResult->dbLifeCycleManager = dbLifeCycleManager;
-    }
+    queryResult->dbLifeCycleManager = dbLifeCycleManager;
     return queryResult;
 }
 
