@@ -5,10 +5,10 @@ import os
 import shutil
 
 
-def getVersion(executablePath):
+def get_version(executable_path):
     try:
         result = subprocess.run(
-            [executablePath, "--version"],
+            [executable_path, "--version"],
             capture_output=True,
             text=True,
             check=True
@@ -20,11 +20,11 @@ def getVersion(executablePath):
             print("Unexpected version format:", output)
             return None
     except subprocess.CalledProcessError as e:
-        print(f"Error running '{executablePath} --version': {e}")
+        print(f"Error running '{executable_path} --version': {e}")
         return None
 
 
-def runCommand(cmd, cwd=None, env=None, capture_output=False):
+def run_command(cmd, cwd=None, env=None, capture_output=False):
     if isinstance(cmd, str):
         cmd = cmd.split()
 
@@ -64,58 +64,63 @@ def main():
     parser.add_argument("--test-commit", required=True, help="Git commit to test against")
     parser.add_argument("--dataset-dir", required=True, help="Path to the dataset directory")
     parser.add_argument("--output-dir", required=True, help="Path to output the exported databases")
+    parser.add_argument("--cleanup", type=bool, default=True, help="Delete exported DBs after test (default: True)")
     args = parser.parse_args()
 
-    baseCommit = args.base_commit
-    testCommit = args.test_commit
-    datasetDir = args.dataset_dir
-    outputDir = args.output_dir
+    base_commit = args.base_commit
+    test_commit = args.test_commit
+    dataset_dir = args.dataset_dir
+    output_dir = args.output_dir
+    cleanup = args.cleanup
 
-    scriptDir = os.path.dirname(os.path.realpath(__file__))
-    kuzuRoot = os.path.abspath(os.path.join(scriptDir, ".."))
-    currentBranch = runCommand(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=kuzuRoot, capture_output=True)
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    kuzu_root = os.path.abspath(os.path.join(script_dir, ".."))
+    current_branch = run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=kuzu_root, capture_output=True)
 
     try:
         # Checkout commit A and build
-        runCommand(["git", "checkout", baseCommit], cwd=kuzuRoot)
-        runCommand(["make", "extension-build", "EXTENSION_LIST=json"], cwd=kuzuRoot)
+        run_command(["git", "checkout", base_commit], cwd=kuzu_root)
+        run_command(["make", "extension-build", "EXTENSION_LIST=json"], cwd=kuzu_root)
 
         # Switch back to working branch (to use the latest script)
-        runCommand(["git", "checkout", currentBranch], cwd=kuzuRoot)
+        run_command(["git", "checkout", current_branch], cwd=kuzu_root)
 
         # Export databases
-        exportScriptPath = os.path.join(kuzuRoot, "scripts", "export-dbs.py")
-        execPath = os.path.join(kuzuRoot, "build", "relwithdebinfo", "tools", "shell", "kuzu")
-        runCommand(["python3", exportScriptPath, "--executable", execPath, "--dataset-dir", datasetDir, "--output-dir", outputDir], cwd=kuzuRoot)
+        export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
+        exec_path = os.path.join(kuzu_root, "build", "relwithdebinfo", "tools", "shell", "kuzu")
+        run_command(["python3", export_script_path, "--executable", exec_path, "--dataset-dir", dataset_dir, "--output-dir", output_dir], cwd=kuzu_root)
 
-        # Determine export path based on version (taken from exportScript)
-        version = getVersion(execPath)
+        # Determine export path based on version (taken from export_script)
+        version = get_version(exec_path)
         if version is None:
             print("Failed to determine version. Aborting.")
             return 1
-        exportPath = os.path.join(datasetDir, "tmp", version) + os.sep
+        export_path = os.path.join(dataset_dir, "tmp", version) + os.sep
 
         # Checkout commit B and run tests
-        runCommand(["git", "checkout", testCommit], cwd=kuzuRoot)
+        run_command(["git", "checkout", test_commit], cwd=kuzu_root)
         env = os.environ.copy()
-        env["E2E_IMPORT_DB_DIR"] = exportPath
-        runCommand(["make", "test"], cwd=kuzuRoot, env=env)
+        env["E2_e_IMPORT_DB_DIR"] = export_path
+        run_command(["make", "test"], cwd=kuzu_root, env=env)
 
         # Restore original branch
-        runCommand(["git", "checkout", currentBranch], cwd=kuzuRoot)
+        run_command(["git", "checkout", current_branch], cwd=kuzu_root)
 
         return 0
     finally:
-        tmpDir = os.path.join(datasetDir, "tmp")
-        if os.path.exists(tmpDir):
-            print(f"Cleaning up tmp directory: {tmpDir}")
-            shutil.rmtree(tmpDir)
+        if cleanup:
+            tmp_dir = os.path.join(dataset_dir, "tmp")
+            if os.path.exists(tmp_dir):
+                print(f"Cleaning up tmp directory: {tmp_dir}")
+                shutil.rmtree(tmp_dir)
+        else:
+            print(f"Skipping cleaning up tmp directory: {tmp_dir}")
 
-        print(f"Restoring original git branch: {currentBranch}")
+        print(f"Restoring original git branch: {current_branch}")
         try:
-            runCommand(["git", "checkout", currentBranch], cwd=kuzuRoot)
+            run_command(["git", "checkout", current_branch], cwd=kuzu_root)
         except Exception as e:
-            print(f"Warning: Failed to restore branch {currentBranch}: {e}")
+            print(f"Warning: Failed to restore branch {current_branch}: {e}")
 
 
 if __name__ == '__main__':
