@@ -91,7 +91,6 @@ def main():
         # Switch back to working branch (to use the latest script)
         run_command(f"git checkout {current_branch}", cwd=kuzu_root)
 
-        # Export databases
         export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
         exec_path = os.path.join(
             kuzu_root, "build", "relwithdebinfo", "tools", "shell", "kuzu"
@@ -104,6 +103,7 @@ def main():
 
         # Only run export if export_path does not exist
         if not os.path.exists(export_path + os.sep):
+            # Export databases
             inprogress_path = f"{export_path}_inprogress" + os.sep
             run_command(
                 f"""python3 {export_script_path} \
