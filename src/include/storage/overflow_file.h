@@ -78,8 +78,14 @@ private:
     // This is the index of the last free byte to which we can write.
     PageCursor& nextPosToWriteTo;
     OverflowFile& overflowFile;
+
+    struct CachedPage {
+        std::unique_ptr<MemoryBuffer> buffer;
+        bool newPage = false;
+    };
+
     // Cached pages which have been written in the current transaction
-    std::unordered_map<common::page_idx_t, std::unique_ptr<MemoryBuffer>> pageWriteCache;
+    std::unordered_map<common::page_idx_t, CachedPage> pageWriteCache;
 };
 
 class OverflowFile {
@@ -125,14 +131,13 @@ private:
         const std::function<void(uint8_t*)>& func) const;
 
     // Writes new pages directly to the file and existing pages to the WAL
-    void writePageToDisk(common::page_idx_t pageIdx, uint8_t* data) const;
+    void writePageToDisk(common::page_idx_t pageIdx, uint8_t* data, bool newPage) const;
 
 protected:
     static constexpr uint64_t HEADER_PAGE_IDX = 0;
 
     std::vector<std::unique_ptr<OverflowFileHandle>> handles;
     StringOverflowFileHeader header;
-    common::page_idx_t numPagesOnDisk;
     FileHandle* fileHandle;
     ShadowFile* shadowFile;
     MemoryManager& memoryManager;
