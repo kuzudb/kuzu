@@ -75,14 +75,13 @@ def main():
     script_dir = os.path.dirname(os.path.realpath(__file__))
     kuzu_root = os.path.abspath(os.path.join(script_dir, ".."))
     current_branch = run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=kuzu_root, capture_output=True)
-
     try:
         # Checkout commit A and build
-        run_command(["git", "checkout", base_commit], cwd=kuzu_root)
-        run_command(["make", "extension-build", "EXTENSION_LIST=json"], cwd=kuzu_root)
+        run_command("git checkout " + base_commit, cwd=kuzu_root)
+        run_command("make extension-build EXTENSION_LIST=json", cwd=kuzu_root)
 
         # Switch back to working branch (to use the latest script)
-        run_command(["git", "checkout", current_branch], cwd=kuzu_root)
+        run_command("git checkout " + current_branch, cwd=kuzu_root)
 
         # Export databases
         export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
@@ -96,30 +95,29 @@ def main():
         # Only run export if export_path DNE
         if not os.path.exists(export_path):
             inprogress_path = export_path + "_inprogress" + os.sep
-            run_command(["python3", export_script_path, "--executable", exec_path, "--dataset-dir", dataset_dir, "--output-dir", inprogress_path], cwd=kuzu_root)
+            run_command("python3 " + export_script_path + " --executable " + exec_path + " --dataset-dir " + dataset_dir + " --output-dir " + inprogress_path, cwd=kuzu_root)
             os.rename(inprogress_path, export_path)
 
         # Checkout commit B and run tests
-        run_command(["git", "checkout", test_commit], cwd=kuzu_root)
+        run_command("git checkout " + test_commit, cwd=kuzu_root)
         os.environ["E2E_IMPORT_DB_DIR"] = export_path
-        run_command(["make", "test"], cwd=kuzu_root)
+        run_command("make test", cwd=kuzu_root)
 
         # Restore original branch
-        run_command(["git", "checkout", current_branch], cwd=kuzu_root)
+        run_command("git checkout " + current_branch, cwd=kuzu_root)
 
         return 0
     finally:
         if cleanup:
-            tmp_dir = os.path.join(dataset_dir, "tmp")
-            if os.path.exists(tmp_dir):
-                print(f"Cleaning up tmp directory: {tmp_dir}")
-                shutil.rmtree(tmp_dir)
+            if os.path.exists(export_path):
+                print(f"Cleaning up export directory: {export_path}")
+                shutil.rmtree(export_path)
         else:
-            print(f"Skipping cleaning up tmp directory: {tmp_dir}")
+            print(f"Skipping cleaning up export directory: {export_path}")
 
         print(f"Restoring original git branch: {current_branch}")
         try:
-            run_command(["git", "checkout", current_branch], cwd=kuzu_root)
+            run_command("git checkout " + current_branch, cwd=kuzu_root)
         except Exception as e:
             print(f"Warning: Failed to restore branch {current_branch}: {e}")
 
