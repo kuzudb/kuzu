@@ -30,6 +30,11 @@ def run_command(cmd, cwd=None, capture_output=False):
 
     print(f"> Running: {' '.join(cmd)} (cwd={cwd})")
 
+    # We redirect stdin to devnull in an attempt
+    # to stop the proccess from intefering with the terminal's input buffer.
+    # This needs some work. After running the script I found that my buffer
+    # was filled with a sequence like 8;1R8;1R8;1R8;1R8;... This doesn't seem
+    # to affect the script but is annoying.
     result = subprocess.run(
         cmd,
         cwd=cwd,
