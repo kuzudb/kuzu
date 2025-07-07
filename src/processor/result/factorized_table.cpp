@@ -107,6 +107,10 @@ FactorizedTable::~FactorizedTable() {
     auto* flatTupleBlockCollectionPtr = flatTupleBlockCollection.release();
     auto* inMemOverflowBufferPtr = inMemOverflowBuffer.release();
     auto* unFlatTupleBlockCollectionPtr = unFlatTupleBlockCollection.release();
+    // Prevent unused variable warnings.
+    (void)flatTupleBlockCollectionPtr;
+    (void)inMemOverflowBufferPtr;
+    (void)unFlatTupleBlockCollectionPtr;
 }
 
 void FactorizedTable::append(const std::vector<ValueVector*>& vectors) {
