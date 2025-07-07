@@ -83,29 +83,22 @@ def main():
         "git rev-parse --abbrev-ref HEAD", cwd=kuzu_root, capture_output=True
     )
     try:
-        # Checkout commit A and build
         run_command(f"git checkout {base_commit}", cwd=kuzu_root)
-        # Some datasets, like tinysnb_json, have a dependency on the JSON
-        # extension in their copy.cypher files. Therefore, we must build with
-        # JSON support to ensure the export works correctly.
-        run_command("make extension-build EXTENSION_LIST=json", cwd=kuzu_root)
 
-        # Switch back to working branch (to use the latest script)
-        run_command(f"git checkout {current_branch}", cwd=kuzu_root)
-
-        export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
-        exec_path = os.path.join(
-            kuzu_root, "build", "relwithdebinfo", "tools", "shell", "kuzu"
-        )
-        # Determine export path based on version (taken from export_script)
-        version = get_version(exec_path)
-        if version is None:
+        version = run_command(f"python3 benchmark/version.py", cwd=kuzu_root, capture_output=True)
+        if version == "0":
             raise Exception("Failed to determine version. Aborting.")
         export_path = os.path.join(output_dir, version)
 
-        # Only run export if export_path does not exist
         if not os.path.exists(export_path + os.sep):
-            # Export databases
+            export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
+            exec_path = os.path.join(
+                kuzu_root, "build", "relwithdebinfo", "tools", "shell", "kuzu"
+            )
+            # Some datasets, like tinysnb_json, have a dependency on the JSON
+            # extension in their copy.cypher files. Therefore, we must build with
+            # JSON support to ensure the export works correctly.
+            run_command("make extension-build EXTENSION_LIST=json", cwd=kuzu_root)
             inprogress_path = f"{export_path}_inprogress" + os.sep
             run_command(
                 f"""python3 {export_script_path} \
@@ -115,8 +108,13 @@ def main():
                 cwd=kuzu_root,
             )
             os.rename(inprogress_path, export_path + os.sep)
+        # Switch back to working branch (to use the latest script)
+        run_command(f"git checkout {current_branch}", cwd=kuzu_root)
+
         # Checkout commit B and run tests
         run_command(f"git checkout {test_commit}", cwd=kuzu_root)
+        # appends / so that datasets can be found correctly
+        export_path += os.sep
         os.environ["E2E_IMPORT_DB_DIR"] = export_path
         run_command("make test", cwd=kuzu_root)
 
