@@ -24,20 +24,19 @@ def get_version(executable_path):
         return None
 
 
-def run_command(cmd, cwd=None, env=None, capture_output=False):
+def run_command(cmd, cwd=None, capture_output=False):
     if isinstance(cmd, str):
         cmd = cmd.split()
 
     print(f"> Running: {' '.join(cmd)} (cwd={cwd})")
 
     if capture_output:
-        result = subprocess.run(cmd, cwd=cwd, env=env, text=True, capture_output=True, check=True)
+        result = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=True)
         return result.stdout.strip()
     else:
         process = subprocess.Popen(
             cmd,
             cwd=cwd,
-            env=env,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -99,9 +98,8 @@ def main():
 
         # Checkout commit B and run tests
         run_command(["git", "checkout", test_commit], cwd=kuzu_root)
-        env = os.environ.copy()
-        env["E2_e_IMPORT_DB_DIR"] = export_path
-        run_command(["make", "test"], cwd=kuzu_root, env=env)
+        os.environ["E2E_IMPORT_DB_DIR"] = export_path
+        run_command(["make", "test"], cwd=kuzu_root)
 
         # Restore original branch
         run_command(["git", "checkout", current_branch], cwd=kuzu_root)
