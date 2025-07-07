@@ -94,3 +94,10 @@ Elizabeth|1|True
 -STATEMENT LOAD FROM "az://kuzu-test/vPerson.csv" RETURN *;
 ---- error
 Runtime exception: Azure authentication requires one of AZURE_CONNECTION_STRING or AZURE_ACCOUNT_NAME to be non-empty
+
+-CASE AttachAzureDB
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/azure/build/libazure.kuzu_extension'; 
+---- ok
+-STATEMENT ATTACH "az://random/path" as test (dbtype kuzu);
+---- error
+Runtime exception: This feature is not currently supported
