@@ -57,17 +57,17 @@ def findValidDatasetDirs(datasetRoot):
 
 # Example scripts/export-dbs.py build/debug/tools/shell/kuzu dataset.
 def main():
-    parser = argparse.ArgumentParser(description="""Export DBS with
-    KUZU shell and dataset paths""")
+    parser = argparse.ArgumentParser(description="Export DBs with KUZU shell and dataset paths")
 
-    parser.add_argument("executablePath", help="Path to the KUZU shell")
-    parser.add_argument("datasetPath", help="Path to the dataset directory")
-    parser.add_argument("outputDir", help="Path to export the datasets")
+    parser.add_argument("--executable", required=True, help="Path to the KUZU shell executable")
+    parser.add_argument("--dataset-dir", required=True, help="Path to the dataset directory")
+    parser.add_argument("--output-dir", required=True, help="Path to export the datasets")
     args = parser.parse_args()
 
-    argExecutablePath = os.path.abspath(args.executablePath)
-    argDatasetPath = os.path.abspath(args.datasetPath)
-    outputDir = os.path.abspath(args.outputDir)
+    argExecutablePath = os.path.abspath(args.executable)
+    argDatasetPath = os.path.abspath(args.dataset_dir)
+    outputDir = os.path.abspath(args.output_dir)
+
 
     if not os.path.isfile(argExecutablePath):
         print(f"Error: Executable not found at {argExecutablePath}")
