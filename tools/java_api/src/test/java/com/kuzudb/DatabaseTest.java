@@ -110,14 +110,12 @@ public class DatabaseTest extends TestBase {
             fail("DBDestroyBeforeConnectionAndQueryResult failed: QueryResult should not be usable after database is closed.");
         } catch (Exception e) {
             assertEquals("Runtime exception: The current operation is not allowed because the parent database is closed.", e.getMessage());
-            return;
         }
         try {
             conn.query("RETURN 1");
             fail("DBDestroyBeforeConnectionAndQueryResult failed: Connection should not be usable after database is closed.");
         } catch (Exception e) {
             assertEquals("Runtime exception: The current operation is not allowed because the parent database is closed.", e.getMessage());
-            return;
         }
         result.close();
         conn.close();
