@@ -1,4 +1,3 @@
-import sys
 import argparse
 import subprocess
 import os
@@ -8,7 +7,7 @@ import shutil
 def get_version(executable_path):
     try:
         result = subprocess.run(
-            executable_path + " --version",
+            f"{executable_path} --version",
             capture_output=True,
             text=True,
             check=True,
@@ -79,15 +78,15 @@ def main():
     script_dir = os.path.dirname(os.path.realpath(__file__))
     kuzu_root = os.path.abspath(os.path.join(script_dir, ".."))
     current_branch = run_command(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=kuzu_root, capture_output=True
+        "git rev-parse --abbrev-ref HEAD", cwd=kuzu_root, capture_output=True
     )
     try:
         # Checkout commit A and build
-        run_command("git checkout " + base_commit, cwd=kuzu_root)
+        run_command(f"git checkout {base_commit}", cwd=kuzu_root)
         run_command("make extension-build EXTENSION_LIST=json", cwd=kuzu_root)
 
         # Switch back to working branch (to use the latest script)
-        run_command("git checkout " + current_branch, cwd=kuzu_root)
+        run_command(f"git checkout {current_branch}", cwd=kuzu_root)
 
         # Export databases
         export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
@@ -98,40 +97,26 @@ def main():
         version = get_version(exec_path)
         if version is None:
             raise Exception("Failed to determine version. Aborting.")
-        export_path = os.path.join(output_dir, version) + os.sep
+        export_path = os.path.join(output_dir, version)
 
-        # Only run export if export_path DNE
-        if not os.path.exists(export_path):
-            inprogress_path = export_path + "_inprogress" + os.sep
+        # Only run export if export_path does not exist
+        if not os.path.exists(export_path + os.sep):
+            inprogress_path = f"{export_path}_inprogress" + os.sep
             run_command(
-                "python3 "
-                + export_script_path
-                + " --executable "
-                + exec_path
-                + " --dataset-dir "
-                + dataset_dir
-                + " --output-dir "
-                + inprogress_path,
+                f"""python3 {export_script_path} \
+                --executable {exec_path} \
+                --dataset-dir {dataset_dir} \
+                --output-dir {inprogress_path}""",
                 cwd=kuzu_root,
             )
-            for item in os.listdir(inprogress_path):
-                src = os.path.join(inprogress_path, item)
-                dst = os.path.join(export_path, item)
-                if os.path.exists(dst):
-                    if os.path.isdir(dst):
-                        shutil.rmtree(dst)
-                    else:
-                        os.remove(dst)
-                shutil.move(src, dst)
-            os.rmdir(inprogress_path)
-
+            os.rename(inprogress_path, export_path + os.sep)
         # Checkout commit B and run tests
-        run_command("git checkout " + test_commit, cwd=kuzu_root)
+        run_command(f"git checkout {test_commit}", cwd=kuzu_root)
         os.environ["E2E_IMPORT_DB_DIR"] = export_path
         run_command("make test", cwd=kuzu_root)
 
         # Restore original branch
-        run_command("git checkout " + current_branch, cwd=kuzu_root)
+        run_command(f"git checkout {current_branch}", cwd=kuzu_root)
 
         return 0
     finally:
@@ -144,10 +129,10 @@ def main():
 
         print(f"Restoring original git branch: {current_branch}")
         try:
-            run_command("git checkout " + current_branch, cwd=kuzu_root)
+            run_command(f"git checkout {current_branch}", cwd=kuzu_root)
         except Exception as e:
             print(f"Warning: Failed to restore branch {current_branch}: {e}")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
