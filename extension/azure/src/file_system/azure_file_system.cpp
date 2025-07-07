@@ -1,5 +1,7 @@
-#include "catalog/catalog.h"
 #include "file_system/azure_filesystem.h"
+
+#include "catalog/catalog.h"
+#include "common/exception/runtime.h"
 #include "function/azure_scan.h"
 
 namespace kuzu {
@@ -22,25 +24,25 @@ bool AzureFileSystem::canHandleFile(const std::string_view path) const {
 }
 
 void AzureFileSystem::syncFile(const FileInfo& /*fileInfo*/) const {
-    KU_UNREACHABLE;
+    throw RuntimeException("This feature is not currently supported");
 }
 
 void AzureFileSystem::readFromFile(FileInfo& /*fileInfo*/, void* /*buffer*/, uint64_t /*numBytes*/,
     uint64_t /*position*/) const {
-    KU_UNREACHABLE;
+    throw RuntimeException("This feature is not currently supported");
 }
 
 int64_t AzureFileSystem::readFile(FileInfo& /*fileInfo*/, void* /*buf*/,
     size_t /*numBytes*/) const {
-    KU_UNREACHABLE;
+    throw RuntimeException("This feature is not currently supported");
 }
 
 int64_t AzureFileSystem::seek(FileInfo& /*fileInfo*/, uint64_t /*offset*/, int /*whence*/) const {
-    KU_UNREACHABLE;
+    throw RuntimeException("This feature is not currently supported");
 }
 
 uint64_t AzureFileSystem::getFileSize(const FileInfo& /*fileInfo*/) const {
-    KU_UNREACHABLE;
+    throw RuntimeException("This feature is not currently supported");
 }
 
 bool AzureFileSystem::fileOrPathExists(const std::string& /*path*/,
