@@ -27,30 +27,18 @@ def run_command(cmd, cwd=None, capture_output=False):
 
     print(f"> Running: {' '.join(cmd)} (cwd={cwd})")
 
+    result = subprocess.run(
+        cmd,
+        cwd=cwd,
+        text=True,
+        capture_output=capture_output,
+        check=True,
+        stdin=subprocess.DEVNULL,
+    )
     if capture_output:
-        result = subprocess.run(
-            cmd, cwd=cwd, text=True, capture_output=True, check=True
-        )
         return result.stdout.strip()
     else:
-        process = subprocess.Popen(
-            cmd,
-            cwd=cwd,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            bufsize=1,
-            universal_newlines=True,
-            stdin=subprocess.DEVNULL,
-        )
-
-        for line in process.stdout:
-            print(line, end="")
-
-        process.stdout.close()
-        retcode = process.wait()
-        if retcode != 0:
-            raise subprocess.CalledProcessError(retcode, cmd)
+        print(result.stdout or "")
         return None
 
 
