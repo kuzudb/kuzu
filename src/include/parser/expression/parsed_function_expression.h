@@ -35,11 +35,6 @@ public:
         : ParsedExpression{expressionType_}, isDistinct{isDistinct},
           functionName{std::move(functionName)} {}
 
-    ParsedFunctionExpression(std::string functionName, std::vector<std::string> optionalArguments,
-        bool isDistinct)
-        : ParsedExpression{expressionType_}, isDistinct{isDistinct},
-          functionName{std::move(functionName)}, optionalArguments{std::move(optionalArguments)} {}
-
     bool getIsDistinct() const { return isDistinct; }
 
     std::string getFunctionName() const { return functionName; }
