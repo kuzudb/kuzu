@@ -1,6 +1,6 @@
 -DATASET CSV empty
 # TODO(Guoodng): This test currently needs more memory as the local wal consumes a large chunk of memory, which should be fixed.
--BUFFER_POOL_SIZE 83886080
+-BUFFER_POOL_SIZE 94371840
 
 --
 # Tests that buffer manager exceptions during aggregation do not leak memory (meant to be run with the leak sanitizer)
