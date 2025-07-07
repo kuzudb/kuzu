@@ -428,19 +428,9 @@ describe("Database close", function () {
     assert.deepEqual(tuple, { "+(1,1)": 2 });
     testDb.closeSync();
     assert.isTrue(testDb._isClosed);
-    try {
-      conn.querySync("RETURN 1+1");
-      assert.fail("Runtime exception: The current operation is not allowed because the parent database is closed.");
-    } catch (e) {
-      assert.equal(e.message, "Runtime exception: The current operation is not allowed because the parent database is closed.");
-    }
+    assert.throws(() => conn.querySync("RETURN 1+1"), Error, "Runtime exception: The current operation is not allowed because the parent database is closed.");
     conn.closeSync();
     assert.isTrue(conn._isClosed);
-    try {
-      res.resetIterator();
-      assert.fail("Runtime exception: The current operation is not allowed because the parent database is closed");
-    } catch (e) {
-      assert.equal(e.message, "Runtime exception: The current operation is not allowed because the parent database is closed.");
-    }
+    assert.throws(() => res.resetIterator(), Error, "Runtime exception: The current operation is not allowed because the parent database is closed.");
   });
 });
