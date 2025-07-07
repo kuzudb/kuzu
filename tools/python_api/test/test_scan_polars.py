@@ -1,6 +1,5 @@
 from datetime import datetime
 
-import kuzu
 import polars as pl
 import pytest
 from type_aliases import ConnDB
