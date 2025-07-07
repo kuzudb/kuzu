@@ -91,7 +91,7 @@ def main():
         copyCommands = createCypherQueries(os.path.join(datasetPath, "copy.cypher"))
         combinedCommands = schemaCommands + copyCommands
         datasetName = os.path.relpath(datasetPath, argDatasetPath)
-        exportPath = os.path.join(outputDir, datasetName)
+        exportPath = os.path.join(outputDir, version, datasetName)
         exportCommand = f"EXPORT DATABASE '{exportPath}' (format=\"csv\", header=true);"
         combinedCommands.append(exportCommand)
         combinedCommands.insert(0, "CALL threads=1;")
