@@ -1,10 +1,15 @@
 #pragma once
 
-#include "main/client_context.h"
 #include "storage/optimistic_allocator.h"
 #include "storage/page_range.h"
 
 namespace kuzu {
+namespace catalog {
+class Catalog;
+}
+namespace common {
+class VirtualFileSystem;
+}
 namespace testing {
 struct FSMLeakChecker;
 }
@@ -13,6 +18,7 @@ class AttachedKuzuDatabase;
 } // namespace main
 
 namespace storage {
+class StorageManager;
 
 class PageManager;
 
@@ -31,6 +37,7 @@ class Checkpointer {
 
 public:
     explicit Checkpointer(main::ClientContext& clientContext);
+    virtual ~Checkpointer();
 
     void writeCheckpoint();
     void rollback();
@@ -39,16 +46,22 @@ public:
 
     static bool canAutoCheckpoint(const main::ClientContext& clientContext);
 
+protected:
+    virtual bool checkpointStorage();
+    virtual void serializeCatalogAndMetadata(DatabaseHeader& databaseHeader,
+        bool hasStorageChanges);
+    virtual void writeDatabaseHeader(const DatabaseHeader& header);
+    virtual void logCheckpointAndApplyShadowPages();
+
 private:
     static void readCheckpoint(const std::string& dbPath, main::ClientContext* context,
         common::VirtualFileSystem* vfs, catalog::Catalog* catalog, StorageManager* storageManager);
 
-    void writeDatabaseHeader(const DatabaseHeader& header);
     DatabaseHeader getCurrentDatabaseHeader() const;
     PageRange serializeCatalog(const catalog::Catalog& catalog, StorageManager& storageManager);
     PageRange serializeMetadata(const catalog::Catalog& catalog, StorageManager& storageManager);
 
-private:
+protected:
     main::ClientContext& clientContext;
     bool isInMemory;
     OptimisticAllocator pageAllocator;

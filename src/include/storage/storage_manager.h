@@ -63,9 +63,9 @@ public:
     void deserialize(main::ClientContext* context, const catalog::Catalog* catalog,
         common::Deserializer& deSer);
 
-private:
     void initDataFileHandle(common::VirtualFileSystem* vfs, main::ClientContext* context);
 
+private:
     void createNodeTable(catalog::NodeTableCatalogEntry* entry);
 
     void createRelTableGroup(catalog::RelGroupCatalogEntry* entry);

@@ -15,6 +15,7 @@ namespace storage {
 
 LocalWAL::LocalWAL(MemoryManager& mm) {
     writer = std::make_shared<InMemFileWriter>(mm);
+    serializer = std::make_unique<Serializer>(writer);
 }
 
 void LocalWAL::logBeginTransaction() {
@@ -23,8 +24,6 @@ void LocalWAL::logBeginTransaction() {
 }
 
 void LocalWAL::logCommit() {
-    // Flush all pages before committing to make sure that commits only show up in the file when
-    // their data is also written.
     CommitRecord walRecord;
     addNewWALRecord(walRecord);
 }
@@ -105,8 +104,7 @@ uint64_t LocalWAL::getSize() {
 void LocalWAL::addNewWALRecord(const WALRecord& walRecord) {
     std::unique_lock lck{mtx};
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
-    Serializer serializer(writer);
-    walRecord.serialize(serializer);
+    walRecord.serialize(*serializer);
 }
 
 } // namespace storage

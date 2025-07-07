@@ -178,7 +178,7 @@ TEST_F(PrivateApiTest, CorruptedWALTailTruncated) {
     conn->query("COMMIT;");
     auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
     ASSERT_TRUE(std::filesystem::exists(walFilePath));
-    ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
+    ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 10);
     // Truncate the last 10 bytes of the WAL file.
     std::filesystem::resize_file(walFilePath, std::filesystem::file_size(walFilePath) - 10);
     createDBAndConn();
@@ -199,7 +199,7 @@ TEST_F(PrivateApiTest, CorruptedWALTailTruncated2) {
     conn->query("CREATE NODE TABLE test4(id INT64 PRIMARY KEY, name STRING);");
     auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
     ASSERT_TRUE(std::filesystem::exists(walFilePath));
-    ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
+    ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 10);
     // Truncate the last 10 bytes of the WAL file.
     std::filesystem::resize_file(walFilePath, std::filesystem::file_size(walFilePath) - 10);
     createDBAndConn();

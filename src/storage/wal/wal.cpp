@@ -48,6 +48,7 @@ void WAL::reset() {
     vfs->removeFileIfExists(StorageUtils::getWALFilePath(dbPath));
     fileInfo.reset();
     writer.reset();
+    serializer.reset();
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
@@ -73,14 +74,14 @@ void WAL::initWriter(main::ClientContext* context) {
     // contain records not replayed. This can happen if checkpoint is not triggered before the
     // Database is closed last time.
     writer->setFileOffset(fileInfo->getFileSize());
+    serializer = std::make_unique<Serializer>(writer);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void WAL::addNewWALRecordNoLock(const WALRecord& walRecord) {
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
     KU_ASSERT(!main::DBConfig::isDBPathInMemory(dbPath));
-    Serializer serializer(writer);
-    walRecord.serialize(serializer);
+    walRecord.serialize(*serializer);
 }
 
 } // namespace storage

@@ -55,6 +55,8 @@ Checkpointer::Checkpointer(main::ClientContext& clientContext)
       isInMemory{main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())},
       pageAllocator(*clientContext.getStorageManager()->getDataFH()->getPageManager()) {}
 
+Checkpointer::~Checkpointer() = default;
+
 PageRange Checkpointer::serializeCatalog(const catalog::Catalog& catalog,
     StorageManager& storageManager) {
     auto catalogWriter =
@@ -95,17 +97,43 @@ void Checkpointer::writeCheckpoint() {
     if (isInMemory) {
         return;
     }
-    const auto catalog = clientContext.getCatalog();
-    const auto storageManager = clientContext.getStorageManager();
-    auto wal = clientContext.getWAL();
 
     auto databaseHeader = getCurrentDatabaseHeader();
-
     // Checkpoint storage. Note that we first checkpoint storage before serializing the catalog, as
     // checkpointing storage may overwrite columnIDs in the catalog.
-    bool hasStorageChanges = storageManager->checkpoint(&clientContext, pageAllocator);
+    bool hasStorageChanges = checkpointStorage();
+    serializeCatalogAndMetadata(databaseHeader, hasStorageChanges);
+    writeDatabaseHeader(databaseHeader);
+    logCheckpointAndApplyShadowPages();
 
-    auto& shadowFile = storageManager->getShadowFile();
+    // This function will evict all pages that were freed during this checkpoint
+    // It must be called before we remove all evicted candidates from the BM
+    // Or else the evicted pages may end up appearing multiple times in the eviction queue
+    auto storageManager = clientContext.getStorageManager();
+    storageManager->finalizeCheckpoint();
+    // When a page is freed by the FSM, it evicts it from the BM. However, if the page is freed,
+    // then reused over and over, it can be appended to the eviction queue multiple times. To
+    // prevent multiple entries of the same page from existing in the eviction queue, at the end of
+    // each checkpoint we remove any already-evicted pages.
+    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    bufferManager->removeEvictedCandidates();
+
+    clientContext.getCatalog()->resetVersion();
+    auto* dataFH = storageManager->getDataFH();
+    dataFH->getPageManager()->resetVersion();
+    clientContext.getWAL()->reset();
+    // TODO: Should also remove the shadow file if we're closing the database.
+}
+
+bool Checkpointer::checkpointStorage() {
+    const auto storageManager = clientContext.getStorageManager();
+    return storageManager->checkpoint(&clientContext, pageAllocator);
+}
+
+void Checkpointer::serializeCatalogAndMetadata(DatabaseHeader& databaseHeader,
+    bool hasStorageChanges) {
+    const auto storageManager = clientContext.getStorageManager();
+    const auto catalog = clientContext.getCatalog();
     auto* dataFH = storageManager->getDataFH();
 
     // Serialize the catalog if there are changes
@@ -123,39 +151,6 @@ void Checkpointer::writeCheckpoint() {
         databaseHeader.freeMetadataPageRange(*dataFH->getPageManager());
         databaseHeader.metadataPageRange = serializeMetadata(*catalog, *storageManager);
     }
-
-    writeDatabaseHeader(databaseHeader);
-
-    // Flush the shadow file.
-    shadowFile.flushAll();
-
-    // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
-    // files (snapshots of catalog and metadata) have been written to disk. The part that is not
-    // done is to replace them with the original pages or catalog and metadata files. If the
-    // system crashes before this point, the WAL can still be used to recover the system to a
-    // state where the checkpoint can be redone.
-    wal->logAndFlushCheckpoint(&clientContext);
-    shadowFile.replayShadowPageRecords(clientContext);
-    // Clear the wal and also shadowing files.
-    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
-    wal->clear();
-    shadowFile.clear(*bufferManager);
-
-    // This function will evict all pages that were freed during this checkpoint
-    // It must be called before we remove all evicted candidates from the BM
-    // Or else the evicted pages may end up appearing multiple times in the eviction queue
-    storageManager->finalizeCheckpoint();
-    // When a page is freed by the FSM, it evicts it from the BM. However, if the page is freed,
-    // then reused over and over, it can be appended to the eviction queue multiple times. To
-    // prevent multiple entries of the same page from existing in the eviction queue, at the end of
-    // each checkpoint we remove any already-evicted pages.
-    bufferManager->removeEvictedCandidates();
-
-    catalog->resetVersion();
-    dataFH->getPageManager()->resetVersion();
-
-    wal->reset();
-    // TODO: Should also remove the shadow file if we're closing the database.
 }
 
 void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {
@@ -173,6 +168,25 @@ void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {
         shadowFile);
     memcpy(shadowHeader.frame, headerPage.data(), common::KUZU_PAGE_SIZE);
     shadowFile.getShadowingFH().unpinPage(shadowHeader.shadowPage);
+}
+
+void Checkpointer::logCheckpointAndApplyShadowPages() {
+    const auto storageManager = clientContext.getStorageManager();
+    auto& shadowFile = storageManager->getShadowFile();
+    // Flush the shadow file.
+    shadowFile.flushAll();
+    auto wal = clientContext.getWAL();
+    // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
+    // files (snapshots of catalog and metadata) have been written to disk. The part that is not
+    // done is to replace them with the original pages or catalog and metadata files. If the
+    // system crashes before this point, the WAL can still be used to recover the system to a
+    // state where the checkpoint can be redone.
+    wal->logAndFlushCheckpoint(&clientContext);
+    shadowFile.applyShadowPages(clientContext);
+    // Clear the wal and also shadowing files.
+    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    wal->clear();
+    shadowFile.clear(*bufferManager);
 }
 
 void Checkpointer::rollback() {
@@ -299,6 +313,7 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     catalog->deserialize(deSer);
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
+    storageManager->initDataFileHandle(vfs, context);
     storageManager->deserialize(context, catalog, deSer);
     storageManager->getDataFH()->getPageManager()->deserialize(deSer);
 }

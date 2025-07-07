@@ -55,6 +55,7 @@ private:
 private:
     std::mutex mtx;
     std::shared_ptr<common::InMemFileWriter> writer;
+    std::unique_ptr<common::Serializer> serializer;
 };
 
 } // namespace storage

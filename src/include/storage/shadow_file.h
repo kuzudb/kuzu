@@ -36,12 +36,15 @@ public:
 
     FileHandle& getShadowingFH() const { return *shadowingFH; }
 
-    void replayShadowPageRecords(main::ClientContext& context) const;
-    static void replayShadowPageRecords(main::ClientContext& context,
-        std::unique_ptr<common::FileInfo> fileInfo);
+    void applyShadowPages(main::ClientContext& context) const;
 
     void flushAll() const;
     void clear(BufferManager& bm);
+
+    // Replay shadow page records from the shadow file to the original data file. This is used
+    // during recovery.
+    static void replayShadowPageRecords(main::ClientContext& context,
+        std::unique_ptr<common::FileInfo> fileInfo);
 
 private:
     FileHandle* getOrCreateShadowingFH();

@@ -59,7 +59,7 @@ page_idx_t ShadowFile::getShadowPage(file_idx_t originalFile, page_idx_t origina
     return shadowPagesMap.at(originalFile).at(originalPage);
 }
 
-void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
+void ShadowFile::applyShadowPages(ClientContext& context) const {
     const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     page_idx_t shadowPageIdx = 1; // Skip header page.
     auto dataFileInfo = context.getStorageManager()->getDataFH()->getFileInfo();
@@ -79,11 +79,12 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context,
     ShadowFileHeader header;
     const auto headerBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     fileInfo->readFromFile(headerBuffer.get(), KUZU_PAGE_SIZE, 0);
+    memcpy(&header, headerBuffer.get(), sizeof(ShadowFileHeader));
     std::vector<ShadowPageRecord> shadowPageRecords;
     shadowPageRecords.reserve(header.numShadowPages);
     auto fileInfoPtr = fileInfo.get();
     auto reader = std::make_unique<BufferedFileReader>(std::move(fileInfo));
-    reader->resetReadOffset(header.numShadowPages * KUZU_PAGE_SIZE);
+    reader->resetReadOffset((header.numShadowPages + 1) * KUZU_PAGE_SIZE);
     Deserializer deSer(std::move(reader));
     deSer.deserializeVector(shadowPageRecords);
     auto dataFileInfo = context.getStorageManager()->getDataFH()->getFileInfo();

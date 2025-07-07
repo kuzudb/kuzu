@@ -118,8 +118,6 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
     databaseManager = std::make_unique<DatabaseManager>();
 
-    Checkpointer checkpointer(clientContext);
-    checkpointer.readCheckpoint();
     extensionManager = std::make_unique<extension::ExtensionManager>();
     extensionManager->autoLoadLinkedExtensions(&clientContext);
     StorageManager::recover(clientContext);

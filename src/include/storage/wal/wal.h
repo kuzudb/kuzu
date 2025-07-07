@@ -37,6 +37,7 @@ private:
     common::VirtualFileSystem* vfs;
     std::unique_ptr<common::FileInfo> fileInfo;
     std::shared_ptr<common::BufferedFileWriter> writer;
+    std::unique_ptr<common::Serializer> serializer;
 };
 
 } // namespace storage
