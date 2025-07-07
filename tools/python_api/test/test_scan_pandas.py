@@ -241,8 +241,9 @@ def test_replace_failure(conn_db_empty: ConnDB) -> None:
     with pytest.raises(
         RuntimeError,
         match=re.escape(
-            "Binder exception: Cannot match a built-in function for given function "
-            "READ_PANDAS(STRING). Supported inputs are\n(POINTER)\n"
+            "Binder exception: Function READ_PANDAS did not receive correct arguments:\n"
+            "Actual:   (STRING)\n"
+            "Expected: (POINTER)\n"
         ),
     ):
         conn.execute("CALL READ_PANDAS('df213') WHERE id > 20 RETURN id + 5, weight")
