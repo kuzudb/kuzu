@@ -114,7 +114,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         provider.configure(numConfig, stringConfig);
     } catch (const std::string& supportedInputs) {
         throw(BinderException(BuiltInFunctionsUtils::getFunctionMatchFailureMsg(
-            std::string(CreateEmbedding::name) + "::" + providerName,
+            std::string(CreateEmbedding::name) + " for " + providerName,
             ExpressionUtil::getDataTypes(input.arguments), supportedInputs)));
     }
     return FunctionBindData::getSimpleBindData(input.arguments,

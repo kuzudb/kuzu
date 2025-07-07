@@ -10,14 +10,14 @@
 
 -STATEMENT return create_embedding('this better fail', 'open-ai', 'text-embedding-3-small', 'badRegion')
 ---- error
-Binder exception: Function CREATE_EMBEDDING::open-ai did not receive correct arguments:
+Binder exception: Function CREATE_EMBEDDING for open-ai did not receive correct arguments:
 Actual:   (STRING,STRING,STRING,STRING)
 Expected: (STRING,STRING,STRING) -> LIST
           (STRING,STRING,STRING,INT64) -> LIST
 
 -STATEMENT return create_embedding('this better fail', 'open-ai', 'text-embedding-3-small', 50, 'badRegion')
 ---- error
-Binder exception: Function CREATE_EMBEDDING::open-ai did not receive correct arguments:
+Binder exception: Function CREATE_EMBEDDING for open-ai did not receive correct arguments:
 Actual:   (STRING,STRING,STRING,INT64,STRING)
 Expected: (STRING,STRING,STRING) -> LIST
           (STRING,STRING,STRING,INT64) -> LIST
