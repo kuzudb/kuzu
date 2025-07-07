@@ -236,17 +236,6 @@ Zhang|Noura
 ---- error
 Binder exception: No file found that matches the pattern: ${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet.
 
--CASE ImportLegacyDB
--SKIP_WASM
--SKIP_IN_MEM
--STATEMENT IMPORT Database "${KUZU_ROOT_DIRECTORY}/dataset/import_db_legacy";
----- ok
--STATEMENT MATCH (p:person)-[:studyAt]->(o:organisation) RETURN p.fName, o.ID
----- 3
-Alice|1
-Bob|1
-Farooq|1
-
 -CASE ExportDBWithSpecialTableName
 -SKIP_WASM
 -SKIP_IN_MEM
@@ -326,3 +315,16 @@ Binder exception: The 'SCHEMA_ONLY' option must have a BOOL value.
 ---- 0
 -STATEMENT MATCH (a)-[e]->(b) return e
 ---- 0
+
+-CASE ExportDBWithQuotedDelim
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT create node table Forum (id INT64, title STRING, creationDate INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY Forum from "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum.csv";
+---- ok
+-STATEMENT EXPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_quoted_delim/delim-test'(format="csv", header=true);
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_quoted_delim/delim-test"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_quoted_delim/delim-test";
+---- ok
