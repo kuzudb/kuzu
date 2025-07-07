@@ -70,7 +70,7 @@ public:
     DataBlock* getLastBlock() { return blocks.back().get(); }
 
     void merge(DataBlockCollection& other);
-    void preventDestruction() {
+    void preventDestruction() const {
         for (auto& block : blocks) {
             block->preventDestruction();
         }
