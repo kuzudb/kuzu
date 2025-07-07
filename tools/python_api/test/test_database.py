@@ -164,7 +164,7 @@ def test_database_close_order() -> None:
     # But calling methods on them should raise exceptions instead of crashing.
     with pytest.raises(Exception, match="Database is closed"):
         in_mem_conn.execute("RETURN 1+1")
-    
+
     with pytest.raises(Exception, match="the parent database is closed"):
         query_result.get_next()
 
