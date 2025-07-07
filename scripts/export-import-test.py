@@ -45,11 +45,18 @@ def main():
         "--output-dir", required=True, help="Path to output the exported databases"
     )
     parser.add_argument(
-        "--cleanup",
-        type=bool,
-        default=True,
-        help="Delete exported DBs after test (default: True)",
+    "--cleanup",
+    dest="cleanup",
+    action="store_true",
+    help="Delete exported DBs after test",
     )
+    parser.add_argument(
+        "--no-cleanup",
+        dest="cleanup",
+        action="store_false",
+        help="Do not delete exported DBs after test",
+    )
+    parser.set_defaults(cleanup=True)  # Default is cleanup enabled
     args = parser.parse_args()
 
     base_commit = args.base_commit
