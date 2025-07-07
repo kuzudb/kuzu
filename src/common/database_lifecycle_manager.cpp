@@ -1,4 +1,5 @@
 #include "common/database_lifecycle_manager.h"
+
 #include "common/exception/runtime.h"
 
 namespace kuzu {

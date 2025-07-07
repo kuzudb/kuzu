@@ -5,9 +5,9 @@
 #include <vector>
 
 #include "common/api.h"
+#include "common/database_lifecycle_manager.h"
 #include "kuzu_fwd.h"
 #include "main/db_config.h"
-#include "common/database_lifecycle_manager.h"
 namespace kuzu {
 namespace common {
 class FileSystem;

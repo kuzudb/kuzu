@@ -4,9 +4,9 @@
 
 #include "common/api.h"
 #include "common/arrow/arrow.h"
+#include "common/database_lifecycle_manager.h"
 #include "common/types/types.h"
 #include "kuzu_fwd.h"
-#include "common/database_lifecycle_manager.h"
 #include "processor/result/flat_tuple.h"
 #include "query_summary.h"
 namespace kuzu {
