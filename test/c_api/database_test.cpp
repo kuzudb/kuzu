@@ -1,4 +1,3 @@
-#include <filesystem>
 #include <fstream>
 
 #include "c_api/kuzu.h"
@@ -327,14 +326,4 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
 
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
-}
-
-TEST_F(CApiDatabaseTest, DASDA) {
-    createDBAndConn();
-    std::filesystem::remove_all("/tmp/test3");
-    conn->query("create node table person (id serial primary key)");
-    conn->query("create (p:person)");
-    printf("%s", conn->query("export DATABASE '/tmp/test3' (format=\"csv\")")->toString().c_str());
-    createDBAndConn();
-    printf("%s", conn->query("import DATABASE '/tmp/test3'")->toString().c_str());
 }
