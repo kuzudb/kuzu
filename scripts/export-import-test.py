@@ -2,6 +2,7 @@ import sys
 import argparse
 import subprocess
 import os
+import shutil
 
 
 def getVersion(executablePath):
@@ -107,7 +108,7 @@ def main():
         tmpDir = os.path.join(datasetDir, "tmp")
         if os.path.exists(tmpDir):
             print(f"Cleaning up tmp directory: {tmpDir}")
-            runCommand(["rm", "-rf", tmpDir])
+            shutil.rmtree(tmpDir)
 
         print(f"Restoring original git branch: {currentBranch}")
         try:
