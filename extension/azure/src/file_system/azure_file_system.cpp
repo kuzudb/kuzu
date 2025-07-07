@@ -1,7 +1,6 @@
-#include "file_system/azure_filesystem.h"
-
 #include "catalog/catalog.h"
 #include "common/exception/runtime.h"
+#include "file_system/azure_filesystem.h"
 #include "function/azure_scan.h"
 
 namespace kuzu {
