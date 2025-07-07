@@ -8,8 +8,11 @@ import shutil
 def get_version(executable_path):
     try:
         result = subprocess.run(
-            executable_path + " --version", capture_output=True, text=True,
-            check=True, shell=True
+            executable_path + " --version",
+            capture_output=True,
+            text=True,
+            check=True,
+            shell=True,
         )
         output = result.stdout.strip()
         if output.startswith("Kuzu "):
