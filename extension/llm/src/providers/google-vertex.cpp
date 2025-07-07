@@ -59,7 +59,8 @@ void GoogleVertexEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& region) {
     if (!region.has_value()) {
         static const auto functionSignatures = CreateEmbedding::getFunctionSet();
-        throw(functionSignatures[1]->signatureToString() + '\n' + functionSignatures[3]->signatureToString());
+        throw(functionSignatures[1]->signatureToString() + '\n' +
+              functionSignatures[3]->signatureToString());
     }
     this->dimensions = dimensions;
     this->region = region;

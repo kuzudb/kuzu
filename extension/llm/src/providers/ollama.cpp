@@ -37,7 +37,8 @@ void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& endpoint) {
     if (dimensions.has_value()) {
         static const auto functionSignatures = CreateEmbedding::getFunctionSet();
-        throw(functionSignatures[0]->signatureToString() + '\n' + functionSignatures[1]->signatureToString());
+        throw(functionSignatures[0]->signatureToString() + '\n' +
+              functionSignatures[1]->signatureToString());
     }
     this->endpoint = endpoint;
 }

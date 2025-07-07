@@ -529,8 +529,8 @@ void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candida
             }
             supportedInputsString += aggregateFunction->signatureToString() + "\n";
         }
-        throw BinderException(
-            BuiltInFunctionsUtils::getFunctionMatchFailureMsg(name, inputTypes, supportedInputsString, isDistinct));
+        throw BinderException(BuiltInFunctionsUtils::getFunctionMatchFailureMsg(name, inputTypes,
+            supportedInputsString, isDistinct));
     }
 }
 
@@ -545,7 +545,8 @@ void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidateFunctio
             }
             supportedInputsString += function->signatureToString() + "\n";
         }
-        throw BinderException(BuiltInFunctionsUtils::getFunctionMatchFailureMsg(name, inputTypes, supportedInputsString));
+        throw BinderException(BuiltInFunctionsUtils::getFunctionMatchFailureMsg(name, inputTypes,
+            supportedInputsString));
     }
 }
 
