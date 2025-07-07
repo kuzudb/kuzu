@@ -73,7 +73,8 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
 
 void DatabaseLifeCycleManager::checkDatabaseClosedOrThrow() {
     if (isDatabaseClosed) {
-        throw RuntimeException("The current operation is not allowed because the parent database is closed.");
+        throw RuntimeException(
+            "The current operation is not allowed because the parent database is closed.");
     }
 }
 

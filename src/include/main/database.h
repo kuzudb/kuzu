@@ -76,7 +76,7 @@ struct KUZU_API SystemConfig {
     bool forceCheckpointOnClose;
 };
 
-struct DatabaseLifeCycleManager{
+struct DatabaseLifeCycleManager {
     bool isDatabaseClosed = false;
     void checkDatabaseClosedOrThrow();
 };

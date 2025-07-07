@@ -142,6 +142,7 @@ def test_database_checkpoint_threshold_config(tmp_path: Path) -> None:
             assert result.get_num_tuples() == 1
             assert result.get_next()[0] == "1234"
 
+
 def test_database_close_order() -> None:
     in_mem_db = kuzu.Database(database_path=":memory:", buffer_pool_size=1024 * 1024 * 10)
     assert not in_mem_db.is_closed

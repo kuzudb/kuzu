@@ -326,19 +326,20 @@ TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {
     auto conn = std::make_unique<Connection>(inMemoryDatabase.get());
     auto result = conn->query("RETURN 1+1;");
     ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(),
-                2);
+    ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2);
     result->resetIterator();
     // Close the database before the result and connection. It should not cause SEGFAULT.
     inMemoryDatabase.reset();
-    try{
+    try {
         conn->query("RETURN 2+2;");
-    }catch(kuzu::common::Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
+                               "the parent database is closed.");
     }
-    try{
+    try {
         auto next = result->getNext();
-    }catch(kuzu::common::Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    } catch (kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
+                               "the parent database is closed.");
     }
 }

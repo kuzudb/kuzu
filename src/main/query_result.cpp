@@ -22,10 +22,10 @@ QueryResult::QueryResult(const PreparedSummary& preparedSummary)
     querySummary->setPreparedSummary(preparedSummary);
 }
 QueryResult::~QueryResult() {
-    if(!dbLifeCycleManager) {
-        return; 
+    if (!dbLifeCycleManager) {
+        return;
     }
-    if(!factorizedTable) {
+    if (!factorizedTable) {
         return;
     }
     factorizedTable->setPreventDestruction(dbLifeCycleManager->isDatabaseClosed);

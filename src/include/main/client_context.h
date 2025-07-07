@@ -248,8 +248,8 @@ private:
     std::mutex mtx;
     // Whether the query can access internal tables/sequences or not.
     bool useInternalCatalogEntry_ = false;
-    // Whether the transaction should be rolled back on destruction. If the parent database is closed,
-    // the rollback should be prevented or it will SEGFAULT.
+    // Whether the transaction should be rolled back on destruction. If the parent database is
+    // closed, the rollback should be prevented or it will SEGFAULT.
     bool preventTransactionRollbackOnDestruction = false;
 };
 

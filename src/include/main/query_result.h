@@ -6,9 +6,9 @@
 #include "common/arrow/arrow.h"
 #include "common/types/types.h"
 #include "kuzu_fwd.h"
+#include "main/database.h"
 #include "processor/result/flat_tuple.h"
 #include "query_summary.h"
-#include "main/database.h"
 namespace kuzu {
 namespace main {
 

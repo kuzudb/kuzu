@@ -1,6 +1,7 @@
 #include "main/connection.h"
 
 #include <utility>
+
 #include "common/random_engine.h"
 
 using namespace kuzu::parser;
@@ -98,7 +99,8 @@ std::unique_ptr<QueryResult> Connection::executeWithParamsWithID(
     PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::unique_ptr<Value>> inputParams, uint64_t queryID) {
     dbLifeCycleManager->checkDatabaseClosedOrThrow();
-    auto queryResult = clientContext->executeWithParams(preparedStatement, std::move(inputParams), queryID);
+    auto queryResult =
+        clientContext->executeWithParams(preparedStatement, std::move(inputParams), queryID);
     if (queryResult) {
         queryResult->dbLifeCycleManager = dbLifeCycleManager;
     }

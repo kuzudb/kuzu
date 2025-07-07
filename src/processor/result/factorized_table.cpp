@@ -101,7 +101,7 @@ FactorizedTable::FactorizedTable(MemoryManager* memoryManager, FactorizedTableSc
 
 FactorizedTable::~FactorizedTable() {
     if (!preventDestruction) {
-      return;
+        return;
     }
     // Release all the unique_ptrs to avoid double free.
     flatTupleBlockCollection.release();
