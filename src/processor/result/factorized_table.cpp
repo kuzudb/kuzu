@@ -99,6 +99,16 @@ FactorizedTable::FactorizedTable(MemoryManager* memoryManager, FactorizedTableSc
     }
 }
 
+FactorizedTable::~FactorizedTable() {
+    if (!preventDestruction) {
+      return;
+    }
+    // Release all the unique_ptrs to avoid double free.
+    flatTupleBlockCollection.release();
+    inMemOverflowBuffer.release();
+    unFlatTupleBlockCollection.release();
+}
+
 void FactorizedTable::append(const std::vector<ValueVector*>& vectors) {
     auto numTuplesToAppend = computeNumTuplesToAppend(vectors);
     auto appendInfos = allocateFlatTupleBlocks(numTuplesToAppend);

@@ -76,6 +76,11 @@ struct KUZU_API SystemConfig {
     bool forceCheckpointOnClose;
 };
 
+struct DatabaseLifeCycleManager{
+    bool isDatabaseClosed = false;
+    void checkDatabaseClosedOrThrow();
+};
+
 /**
  * @brief Database class is the main class of Kuzu. It manages all database components.
  */
@@ -152,6 +157,7 @@ private:
     std::unique_ptr<DatabaseManager> databaseManager;
     std::unique_ptr<extension::ExtensionManager> extensionManager;
     QueryIDGenerator queryIDGenerator;
+    std::shared_ptr<DatabaseLifeCycleManager> dbLifeCycleManager;
 };
 
 } // namespace main

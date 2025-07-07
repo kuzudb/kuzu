@@ -7,7 +7,6 @@
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "factorized_table_schema.h"
-
 namespace kuzu {
 namespace storage {
 class MemoryManager;
@@ -84,7 +83,7 @@ class KUZU_API FactorizedTable {
 
 public:
     FactorizedTable(storage::MemoryManager* memoryManager, FactorizedTableSchema tableSchema);
-
+    ~FactorizedTable();
     void append(const std::vector<common::ValueVector*>& vectors);
 
     //! This function appends an empty tuple to the factorizedTable and returns a pointer to that
@@ -185,6 +184,10 @@ public:
         return std::make_shared<FactorizedTable>(mm, FactorizedTableSchema());
     }
 
+    void setPreventDestruction(bool preventDestruction) {
+        this->preventDestruction = preventDestruction;
+    }
+
 private:
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
 
@@ -248,6 +251,10 @@ private:
     std::unique_ptr<DataBlockCollection> unFlatTupleBlockCollection;
     // Overflow buffer storing variable size part of an entry.
     std::unique_ptr<common::InMemOverflowBuffer> inMemOverflowBuffer;
+    // Prevent destruction of the underlying data structures when the factorized table is
+    // destructed. If the parent database is closed, the underlying data structures is already
+    // destructed, so destruction will cause double free.
+    bool preventDestruction = false;
 };
 
 class FlatTupleIterator {

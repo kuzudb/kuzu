@@ -316,3 +316,29 @@ TEST_F(ApiTest, MissingParam) {
     ASSERT_FALSE(prep->isSuccess());
     ASSERT_STREQ("Parameter val1 not found.", prep->getErrorMessage().c_str());
 }
+
+TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {
+    auto systemConfig = kuzu::main::SystemConfig();
+    systemConfig.bufferPoolSize = 100 * 1024 * 1024; // 100MB
+    systemConfig.maxNumThreads = 2;
+
+    auto inMemoryDatabase = std::make_unique<Database>(":memory:", systemConfig);
+    auto conn = std::make_unique<Connection>(inMemoryDatabase.get());
+    auto result = conn->query("RETURN 1+1;");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(),
+                2);
+    result->resetIterator();
+    // Close the database before the result and connection. It should not cause SEGFAULT.
+    inMemoryDatabase.reset();
+    try{
+        conn->query("RETURN 2+2;");
+    }catch(kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+    try{
+        auto next = result->getNext();
+    }catch(kuzu::common::Exception& e) {
+        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    }
+}

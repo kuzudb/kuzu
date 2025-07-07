@@ -71,6 +71,12 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     this->maxDBSize = maxDBSize;
 }
 
+void DatabaseLifeCycleManager::checkDatabaseClosedOrThrow() {
+    if (isDatabaseClosed) {
+        throw RuntimeException("The current operation is not allowed because the parent database is closed.");
+    }
+}
+
 static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, FileLockType& lock) {
     flags = readOnly ? FileFlags::READ_ONLY : FileFlags::WRITE;
     if (createNew && !readOnly) {
@@ -123,6 +129,7 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     extensionManager = std::make_unique<extension::ExtensionManager>();
     extensionManager->autoLoadLinkedExtensions(&clientContext);
     StorageManager::recover(clientContext);
+    dbLifeCycleManager = std::make_shared<DatabaseLifeCycleManager>();
 }
 
 Database::~Database() {
@@ -132,6 +139,7 @@ Database::~Database() {
             transactionManager->checkpoint(clientContext);
         } catch (...) {} // NOLINT
     }
+    dbLifeCycleManager->isDatabaseClosed = true;
 }
 
 void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {
