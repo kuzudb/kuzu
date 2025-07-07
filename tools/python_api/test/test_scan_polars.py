@@ -132,3 +132,34 @@ def test_scan_from_empty_lst(conn_db_empty: ConnDB) -> None:
     tp = result.get_next()
     assert tp[0] == 3
     assert tp[1] == []
+
+
+def test_scan_from_parameterized_df_docs_example_1(conn_db_empty: ConnDB):
+    conn, _ = conn_db_empty
+
+    conn.execute("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name))")
+
+    df = pl.DataFrame({"name": ["Adam", "Karissa", "Zhang"], "age": [30, 40, 50]})
+
+    conn.execute("COPY Person FROM $dataframe", {"dataframe": df})
+
+
+def test_scan_from_parameterized_df_docs_example_2(conn_db_empty: ConnDB):
+    conn, _ = conn_db_empty
+
+    conn.execute("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name))")
+
+    def get_df():
+        return pl.DataFrame({"name": ["Adam", "Karissa", "Zhang"], "age": [30, 40, 50]})
+
+    conn.execute("COPY Person FROM $dataframe", {"dataframe": get_df()})
+
+
+def test_scan_from_df_docs_example(conn_db_empty: ConnDB):
+    conn, _ = conn_db_empty
+
+    conn.execute("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name))")
+
+    df = pl.DataFrame({"name": ["Adam", "Karissa", "Zhang"], "age": [30, 40, 50]})
+
+    conn.execute("COPY Person FROM df")
