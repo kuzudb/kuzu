@@ -27,20 +27,25 @@ def runCommand(cmd, cwd=None, env=None):
     if isinstance(cmd, str):
         cmd = cmd.split()
 
-    try:
-        result = subprocess.run(
-            cmd,
-            cwd=cwd,
-            env=env,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        print(f"[ERROR] Command failed: {' '.join(cmd)}\n{e.stderr}")
-        raise
+    print(f"> Running: {' '.join(cmd)} (cwd={cwd})")
+    process = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        bufsize=1,
+        universal_newlines=True
+    )
+
+    for line in process.stdout:
+        print(line, end='')
+
+    process.stdout.close()
+    retcode = process.wait()
+    if retcode != 0:
+        raise subprocess.CalledProcessError(retcode, cmd)
 
 
 def main():
