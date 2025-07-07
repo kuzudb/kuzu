@@ -79,7 +79,7 @@ def main():
         runCommand(["git", "checkout", commitA], cwd=kuzuRoot)
         runCommand(["make", "extension-build", "EXTENSION_LIST=json"], cwd=kuzuRoot)
 
-        # Switch back to working branch (to use the following script)
+        # Switch back to working branch (to use the latest script)
         runCommand(["git", "checkout", currentBranch], cwd=kuzuRoot)
 
         # Export databases
