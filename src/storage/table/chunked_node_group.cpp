@@ -553,8 +553,9 @@ void ChunkedNodeGroup::loadFromDisk(const MemoryManager& mm) {
     });
 }
 
-uint64_t ChunkedNodeGroup::spillToDisk() {
+SpillResult ChunkedNodeGroup::spillToDisk() {
     uint64_t reclaimedSpace = 0;
+    uint64_t nowEvictableMemory = 0;
     std::unique_lock lock{spillToDiskMutex};
     // Its possible that the chunk may be loaded and marked as in-use between when it is selected to
     // be spilled to disk and actually spilled
@@ -564,10 +565,12 @@ uint64_t ChunkedNodeGroup::spillToDisk() {
         // good idea to make the interface more generic, which would open up the possibility of
         // spilling to disk during node table copies too.
         for (size_t i = 0; i < getNumColumns(); i++) {
-            reclaimedSpace += getColumnChunk(i).spillToDisk();
+            auto [reclaimed, nowEvictable] = getColumnChunk(i).spillToDisk();
+            reclaimedSpace += reclaimed;
+            nowEvictableMemory += nowEvictable;
         }
     }
-    return reclaimedSpace;
+    return SpillResult{reclaimedSpace, nowEvictableMemory};
 }
 
 void ChunkedNodeGroup::handleAppendException() {

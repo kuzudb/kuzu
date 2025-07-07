@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/update_info.h"
 
@@ -96,7 +97,7 @@ public:
     }
 
     void loadFromDisk() { data->loadFromDisk(); }
-    uint64_t spillToDisk() { return data->spillToDisk(); }
+    SpillResult spillToDisk() { return data->spillToDisk(); }
 
     MergedColumnChunkStats getMergedColumnChunkStats(
         const transaction::Transaction* transaction) const;

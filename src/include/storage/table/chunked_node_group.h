@@ -5,6 +5,7 @@
 #include <mutex>
 
 #include "common/enums/rel_multiplicity.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/enums/residency_state.h"
 #include "storage/table/column_chunk.h"
 #include "storage/table/column_chunk_data.h"
@@ -176,7 +177,7 @@ public:
     void loadFromDisk(const MemoryManager& mm);
 
     // returns the amount of space reclaimed in bytes
-    uint64_t spillToDisk();
+    SpillResult spillToDisk();
 
     void setUnused(const MemoryManager& mm);
 
