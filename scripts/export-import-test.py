@@ -4,26 +4,6 @@ import os
 import shutil
 
 
-def get_version(executable_path):
-    try:
-        result = subprocess.run(
-            f"{executable_path} --version",
-            capture_output=True,
-            text=True,
-            check=True,
-            shell=True,
-        )
-        output = result.stdout.strip()
-        if output.startswith("Kuzu "):
-            return output.split(" ", 1)[1]
-        else:
-            print("Unexpected version format:", output)
-            return None
-    except subprocess.CalledProcessError as e:
-        print(f"Error running '{executable_path} --version': {e}")
-        return None
-
-
 def run_command(cmd, cwd=None, capture_output=False):
     print(f"> Running: {cmd} (cwd={cwd})")
 
@@ -38,6 +18,7 @@ def run_command(cmd, cwd=None, capture_output=False):
         text=True,
         capture_output=capture_output,
         check=True,
+        shell=True,
         stdin=subprocess.DEVNULL,
     )
     if capture_output:
