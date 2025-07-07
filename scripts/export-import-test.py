@@ -72,35 +72,47 @@ def main():
     kuzuRoot = os.path.abspath(os.path.join(scriptDir, ".."))
     currentBranch = runCommand(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=kuzuRoot, capture_output=True)
 
-    # Checkout commit A and build
-    runCommand(["git", "checkout", commitA], cwd=kuzuRoot)
-    runCommand(["make", "extension-build", "EXTENSION_LIST=json"], cwd=kuzuRoot)
+    try:
+        # Checkout commit A and build
+        runCommand(["git", "checkout", commitA], cwd=kuzuRoot)
+        runCommand(["make", "extension-build", "EXTENSION_LIST=json"], cwd=kuzuRoot)
 
-    # Switch back to working branch (to use the following script)
-    runCommand(["git", "checkout", currentBranch], cwd=kuzuRoot)
+        # Switch back to working branch (to use the following script)
+        runCommand(["git", "checkout", currentBranch], cwd=kuzuRoot)
 
-    # Export databases
-    exportScriptPath = os.path.join(kuzuRoot, "scripts", "export-dbs.py")
-    execPath = os.path.join(kuzuRoot, "build", "relwithdebinfo", "tools", "shell", "kuzu")
-    runCommand(["python3", exportScriptPath, execPath, datasetDir], cwd=kuzuRoot)
+        # Export databases
+        exportScriptPath = os.path.join(kuzuRoot, "scripts", "export-dbs.py")
+        execPath = os.path.join(kuzuRoot, "build", "relwithdebinfo", "tools", "shell", "kuzu")
+        runCommand(["python3", exportScriptPath, execPath, datasetDir], cwd=kuzuRoot)
 
-    # Determine export path based on version (taken from exportScript)
-    version = getVersion(execPath)
-    if version is None:
-        print("Failed to determine version. Aborting.")
-        return 1
-    exportPath = os.path.join(datasetDir, "tmp", version) + os.sep
+        # Determine export path based on version (taken from exportScript)
+        version = getVersion(execPath)
+        if version is None:
+            print("Failed to determine version. Aborting.")
+            return 1
+        exportPath = os.path.join(datasetDir, "tmp", version) + os.sep
 
-    # Checkout commit B and run tests
-    runCommand(["git", "checkout", commitB], cwd=kuzuRoot)
-    env = os.environ.copy()
-    env["E2E_IMPORT_DB_DIR"] = exportPath
-    runCommand(["make", "test"], cwd=kuzuRoot, env=env)
+        # Checkout commit B and run tests
+        runCommand(["git", "checkout", commitB], cwd=kuzuRoot)
+        env = os.environ.copy()
+        env["E2E_IMPORT_DB_DIR"] = exportPath
+        runCommand(["make", "test"], cwd=kuzuRoot, env=env)
 
-    # Restore original branch
-    runCommand(["git", "checkout", currentBranch], cwd=kuzuRoot)
+        # Restore original branch
+        runCommand(["git", "checkout", currentBranch], cwd=kuzuRoot)
 
-    return 0
+        return 0
+    finally:
+        tmpDir = os.path.join(datasetDir, "tmp")
+        if os.path.exists(tmpDir):
+            print(f"Cleaning up tmp directory: {tmpDir}")
+            runCommand(["rm", "-rf", tmpDir])
+
+        print(f"Restoring original git branch: {currentBranch}")
+        try:
+            runCommand(["git", "checkout", currentBranch], cwd=kuzuRoot)
+        except Exception as e:
+            print(f"Warning: Failed to restore branch {currentBranch}: {e}")
 
 
 if __name__ == '__main__':
