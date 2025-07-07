@@ -90,8 +90,6 @@ def main():
                 cwd=kuzu_root,
             )
             os.rename(inprogress_path, export_path + os.sep)
-        # Switch back to working branch (to use the latest script)
-        run_command(f"git checkout {current_branch}", cwd=kuzu_root)
 
         # Checkout commit B and run tests
         run_command(f"git checkout {test_commit}", cwd=kuzu_root)
