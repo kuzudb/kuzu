@@ -157,6 +157,22 @@ def test_database_close_order() -> None:
     assert query_result._query_result is not None
 
     assert query_result.get_next()[0] == 2
-    in_mem_conn.close()
+    # Close the database first, it should not cause crashes or exceptions
     in_mem_db.close()
-    # query_result.close()
+
+    # The query result and connection will be unusable after the database is closed.
+    # But calling methods on them should raise exceptions instead of crashing.
+    try:
+        in_mem_conn.execute("RETURN 1+1")
+        pytest.fail("Expected an exception when executing a query after closing the database.")
+    except Exception as e:
+        assert "Database is closed" in str(e)
+    try:
+        query_result.get_next()
+        pytest.fail("Expected an exception when getting next result after closing the database.")
+    except Exception as e:
+        assert "the parent database is closed" in str(e)
+
+    # Close the connection and query result, they should not raise any exceptions.
+    in_mem_conn.close()
+    query_result.close()
