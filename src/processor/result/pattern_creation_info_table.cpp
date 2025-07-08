@@ -49,7 +49,7 @@ uint64_t PatternCreationInfoTable::matchFTEntries(std::span<const common::ValueV
     KU_ASSERT(numMayMatches <= 1);
     // If we found the entry for the target key, we set tuple to the key tuple. Otherwise, simply
     // set tuple to nullptr.
-    tuple = numMayMatches != 0 ? hashSlotsToUpdateAggState[mayMatchIdxes[0]]->entry : nullptr;
+    tuple = numMayMatches != 0 ? hashSlotsToUpdateAggState[mayMatchIdxes[0]]->getEntry() : nullptr;
     return numNoMatches;
 }
 
