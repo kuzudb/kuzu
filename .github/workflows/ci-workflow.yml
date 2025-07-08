@@ -1118,10 +1118,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check Ollama Server
         run: |
-          curl $OLLAMA_URL/api/embeddings -d '{ \
-            "model": "nomic-embed-text", \
-            "prompt": "The sky is blue because of Rayleigh scattering" \
-          }'
+          curl $OLLAMA_URL/api/embeddings -d '{"model": "nomic-embed-text", "prompt": "The sky is blue because of Rayleigh scattering"}'
+
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
@@ -1225,10 +1223,7 @@ jobs:
 
       - name: Check Ollama Server
         run: |
-          curl $OLLAMA_URL/api/embeddings -d '{ \
-            "model": "nomic-embed-text", \
-            "prompt": "The sky is blue because of Rayleigh scattering" \
-          }'
+          curl $OLLAMA_URL/api/embeddings -d '{"model": "nomic-embed-text", "prompt": "The sky is blue because of Rayleigh scattering"}'
           
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
@@ -1305,7 +1300,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check Ollama Server (PowerShell)
-        shell: pwsh
         run: |
           $headers = @{
               "Content-Type" = "application/json"
