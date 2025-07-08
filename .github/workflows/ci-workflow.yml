@@ -1090,7 +1090,7 @@ jobs:
 
   linux-extension-test:
     name: linux extension test
-    needs: [ gcc-build-test, clang-build-test ]
+    # needs: [ gcc-build-test, clang-build-test ]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -1116,7 +1116,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
+      - name: Check Ollama Server
+        run: |
+          curl $OLLAMA_URL/api/embeddings -d '{ \
+            "model": "nomic-embed-text", \
+            "prompt": "The sky is blue because of Rayleigh scattering" \
+          }'
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
@@ -1188,7 +1193,7 @@ jobs:
 
   macos-extension-test:
     name: macos extension test
-    needs: [ macos-build-test ]
+    # needs: [ macos-build-test ]
     runs-on: [ self-hosted, macOS ]
     env:
       TEST_JOBS: 16
@@ -1203,6 +1208,7 @@ jobs:
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
       PG_HOST: ${{ secrets.PG_HOST }}
+      OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: FALSE
     steps:
@@ -1217,6 +1223,13 @@ jobs:
           echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
           echo "NUM_THREADS=$NUM_THREADS"
 
+      - name: Check Ollama Server
+        run: |
+          curl $OLLAMA_URL/api/embeddings -d '{ \
+            "model": "nomic-embed-text", \
+            "prompt": "The sky is blue because of Rayleigh scattering" \
+          }'
+          
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
@@ -1268,7 +1281,7 @@ jobs:
 
   windows-extension-test:
     name: windows extension test
-    needs: [ msvc-build-test ]
+    # needs: [ msvc-build-test ]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
@@ -1284,13 +1297,28 @@ jobs:
       GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
+      OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: FALSE
       WERROR: 0
     steps:
       - uses: actions/checkout@v4
-
+      - name: Check Ollama Server (PowerShell)
+        shell: pwsh
+        run: |
+          $headers = @{
+              "Content-Type" = "application/json"
+          }
+      
+          $body = @{
+              model = "nomic-embed-text"
+              prompt = "The sky is blue because of Rayleigh scattering"
+          } | ConvertTo-Json -Depth 10
+      
+          $response = Invoke-RestMethod -Uri "$env:OLLAMA_URL/api/embeddings" -Method Post -Headers $headers -Body $body
+      
+          $response
       - name: Install dependencies
         run: pip install rangehttpserver requests
 
