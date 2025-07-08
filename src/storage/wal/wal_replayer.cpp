@@ -35,11 +35,11 @@ WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{cli
 
 void WALReplayer::replay() const {
     auto vfs = clientContext.getVFSUnsafe();
+    Checkpointer checkpointer(clientContext);
     // First, check if the WAL file exists. If it does not, we can safely remove the shadow file.
     if (!vfs->fileOrPathExists(walPath, &clientContext)) {
         removeFileIfExists(shadowFilePath);
         // Read the checkpointed data from the disk.
-        Checkpointer checkpointer(clientContext);
         checkpointer.readCheckpoint();
         return;
     }
@@ -50,7 +50,6 @@ void WALReplayer::replay() const {
     if (fileInfo->getFileSize() == 0) {
         removeWALAndShadowFiles();
         // Read the checkpointed data from the disk.
-        Checkpointer checkpointer(clientContext);
         checkpointer.readCheckpoint();
         return;
     }
@@ -66,13 +65,12 @@ void WALReplayer::replay() const {
             ShadowFile::replayShadowPageRecords(clientContext, std::move(shadowFileInfo));
             removeWALAndShadowFiles();
             // Re-read checkpointed data from disk again as now the shadow file is applied.
-            Checkpointer checkpointer(clientContext);
+            clientContext.getStorageManager()->initDataFileHandle(vfs, &clientContext);
             checkpointer.readCheckpoint();
         } else {
             // There is no checkpoint record, so we should remove the shadow file if it exists.
             removeFileIfExists(shadowFilePath);
             // Read the checkpointed data from the disk.
-            Checkpointer checkpointer(clientContext);
             checkpointer.readCheckpoint();
             // Resume by replaying the WAL file from the beginning until the last COMMIT record.
             Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));

@@ -313,7 +313,6 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     catalog->deserialize(deSer);
     deSer.getReader()->cast<common::BufferedFileReader>()->resetReadOffset(
         currentHeader.metadataPageRange.startPageIdx * common::KUZU_PAGE_SIZE);
-    storageManager->initDataFileHandle(vfs, context);
     storageManager->deserialize(context, catalog, deSer);
     storageManager->getDataFH()->getPageManager()->deserialize(deSer);
 }
