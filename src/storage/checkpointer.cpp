@@ -7,6 +7,7 @@
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/in_mem_file_writer.h"
+#include "extension/extension_manager.h"
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/shadow_utils.h"
@@ -284,16 +285,13 @@ DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
 }
 
 void Checkpointer::readCheckpoint() {
-    if (isInMemory) {
-        return;
-    }
     auto storageManager = clientContext.getStorageManager();
-    if (storageManager->getDataFH()->getNumPages() == 0) {
-        return;
+    if (!isInMemory && storageManager->getDataFH()->getNumPages() > 0) {
+        auto vfs = clientContext.getVFSUnsafe();
+        readCheckpoint(clientContext.getDatabasePath(), &clientContext, vfs,
+            clientContext.getCatalog(), clientContext.getStorageManager());
     }
-    auto vfs = clientContext.getVFSUnsafe();
-    readCheckpoint(clientContext.getDatabasePath(), &clientContext, vfs, clientContext.getCatalog(),
-        storageManager);
+    clientContext.getExtensionManager()->autoLoadLinkedExtensions(&clientContext);
 }
 
 void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext* context,
