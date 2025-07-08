@@ -188,4 +188,4 @@ Parser exception: DROP_FTS_INDEX must be called in a query which doesn't have ot
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('person', 'personIdx', 'Alice', top := 0) RETURN node.ID, score
 ---- error
-...
+Binder exception: QUERY_FTS_INDEX requires a positive non-zero value for the 'top' parameter.

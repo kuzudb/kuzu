@@ -95,6 +95,7 @@ struct TopK {
     static constexpr const char* NAME = "top";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::UINT64;
     static constexpr uint64_t DEFAULT_VALUE = UINT64_MAX;
+    static void validate(uint64_t value);
 };
 
 constexpr uint64_t INVALID_TOP_K = UINT64_MAX;
