@@ -20,7 +20,7 @@ std::string OllamaEmbedding::getPath(const std::string& /*model*/) const {
     return "/api/embeddings";
 }
 
-httplib::Headers OllamaEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
+httplib::Headers OllamaEmbedding::getHeaders(const std::string& /*model*/, const nlohmann::json& /*payload*/) const {
     return httplib::Headers{{"Content-Type", "application/json"}};
 }
 

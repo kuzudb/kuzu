@@ -22,7 +22,7 @@ std::string VoyageAIEmbedding::getPath(const std::string& /*model*/) const {
     return "/v1/embeddings";
 }
 
-httplib::Headers VoyageAIEmbedding::getHeaders(const nlohmann::json& /*payload*/) const {
+httplib::Headers VoyageAIEmbedding::getHeaders(const std::string& /*model*/, const nlohmann::json& /*payload*/) const {
     static const std::string envVar = "VOYAGE_API_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {

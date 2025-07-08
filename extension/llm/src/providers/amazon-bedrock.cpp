@@ -20,8 +20,8 @@ std::string BedrockEmbedding::getClient() const {
     return "https://bedrock-runtime." + region.value_or("") + ".amazonaws.com";
 }
 
-std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
-    return "/model/amazon.titan-embed-text-v1/invoke";
+std::string BedrockEmbedding::getPath(const std::string& model) const {
+    return "/model/" + model + "/invoke";
 }
 
 // AWS requests require an authorization signature in the header. This is part
@@ -29,7 +29,7 @@ std::string BedrockEmbedding::getPath(const std::string& /*model*/) const {
 // signature. This is one of the reasons the same header cannot be used across
 // different requests. Refer to
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
-httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) const {
+httplib::Headers BedrockEmbedding::getHeaders(const std::string& model, const nlohmann::json& payload) const {
     static const std::string envVarAWSAccessKey = "AWS_ACCESS_KEY";
     static const std::string envVarAWSSecretAccessKey = "AWS_SECRET_ACCESS_KEY";
     auto envAWSAccessKey = main::ClientContext::getEnvVariable(envVarAWSAccessKey);
@@ -52,7 +52,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const nlohmann::json& payload) con
     auto dateHeader = Timestamp::getDateHeader(timestamp);
     auto datetimeHeader = Timestamp::getDateTimeHeader(timestamp);
 
-    std::string canonicalUri = "/model/amazon.titan-embed-text-v1/invoke";
+    std::string canonicalUri = "/model/" + model + "/invoke";
     std::string canonicalQueryString = "";
 
     httplib::Headers headers{{"host", host}, {"x-amz-date", datetimeHeader}};

@@ -58,7 +58,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
         auto text = parameters[0]->getValue<ku_string_t>(selectedPos).getAsString();
         nlohmann::json payload = provider.getPayload(model, text);
-        httplib::Headers headers = provider.getHeaders(payload);
+        httplib::Headers headers = provider.getHeaders(model, payload);
         auto res = client.Post(path, headers, payload.dump(), "application/json");
         if (!res) {
             throw ConnectionException("Request failed: Could not connect to server <" +
