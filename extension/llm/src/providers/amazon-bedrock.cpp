@@ -28,8 +28,7 @@ static std::string encodeURL(const std::string& input) {
     static const char* hex_digit = "0123456789ABCDEF";
     std::string result;
     result.reserve(input.size());
-    for (auto i = 0u; i < input.length(); i++) {
-        char ch = input[i];
+    for (auto ch : input) {
         if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
             ch == '_' || ch == '-' || ch == '~' || ch == '.' || ch == '/') {
             result += ch;
