@@ -1,4 +1,3 @@
--SKIP
 -DATASET CSV llm/embeddings/ollama/
 
 --
@@ -8,7 +7,7 @@
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
 
--STATEMENT MATCH (e:embedding) RETURN array_cosine_similarity(e.embedding, create_embedding(e.text, 'ollama', 'nomic-embed-text')) >= 0.9 AS similarity;
+-STATEMENT MATCH (e:embedding) RETURN array_cosine_similarity(e.embedding, create_embedding(e.text, 'ollama', 'nomic-embed-text', '${OLLAMA_URL}')) >= 0.9 AS similarity;
 ---- 6
 True
 True
@@ -23,22 +22,22 @@ True
 ---- ok
 
 -LOG Similar Text 1
--STATEMENT WITH create_embedding('Who is the author of 1984?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Who wrote the novel 1984?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
+-STATEMENT WITH create_embedding('Who is the author of 1984?', 'ollama', 'nomic-embed-text', '${OLLAMA_URL}') AS t1, create_embedding('Who wrote the novel 1984?', 'ollama', 'nomic-embed-text', ${OLLAMA_URL}) AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 True
 
 -LOG Similar Text 2
--STATEMENT WITH create_embedding('What is the capital of France?', 'ollama', 'nomic-embed-text') AS t1, create_embedding('Which city is the capital of France?', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
+-STATEMENT WITH create_embedding('What is the capital of France?', 'ollama', 'nomic-embed-text', '${OLLAMA_URL}') AS t1, create_embedding('Which city is the capital of France?', 'ollama', 'nomic-embed-text', ${OLLAMA_URL}) AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 True
 
 -LOG Dissimilar Text 1
--STATEMENT WITH create_embedding('How to train a dog', 'ollama', 'nomic-embed-text', 'http://localhost:11434') AS t1, create_embedding('What is the capital of France', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
+-STATEMENT WITH create_embedding('How to train a dog', 'ollama', 'nomic-embed-text', '${OLLAMA_URL}') AS t1, create_embedding('What is the capital of France', 'ollama', 'nomic-embed-text', ${OLLAMA_URL}) AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
 
 -LOG Dissimilar Text 2
--STATEMENT WITH create_embedding('How do Unix file permissions work?', 'ollama', 'nomic-embed-text', 'http://localhost:11434') AS t1, create_embedding('History of the Roman Empire', 'ollama', 'nomic-embed-text') AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
+-STATEMENT WITH create_embedding('How do Unix file permissions work?', 'ollama', 'nomic-embed-text', '${OLLAMA_URL}') AS t1, create_embedding('History of the Roman Empire', 'ollama', 'nomic-embed-text', ${OLLAMA_URL}) AS t2 RETURN array_cosine_similarity(t1, t2) >= 0.8;
 ---- 1
 False
 
@@ -104,13 +103,13 @@ False
 -STATEMENT MATCH (b:Book {title: 'The Dragon Call'}) MATCH (p:Publisher {name: "O'Reilly"}) CREATE (b)-[:PublishedBy]->(p);
 ---- ok
 
--STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'ollama', 'nomic-embed-text') AS emb SET b.title_embedding = emb;
+-STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'ollama', 'nomic-embed-text', '${OLLAMA_URL}') AS emb SET b.title_embedding = emb;
 ---- ok
 
 -STATEMENT CALL CREATE_VECTOR_INDEX('Book', 'title_vec_index', 'title_embedding');
 ---- ok
 
--STATEMENT CALL QUERY_VECTOR_INDEX('Book', 'title_vec_index', create_embedding('quantum machine learning', 'ollama', 'nomic-embed-text'), 2) RETURN node.title ORDER BY distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('Book', 'title_vec_index', create_embedding('quantum machine learning', 'ollama', 'nomic-embed-text', '${OLLAMA_URL}'), 2) RETURN node.title ORDER BY distance;
 -CHECK_ORDER
 ---- 2
 Learning Machines

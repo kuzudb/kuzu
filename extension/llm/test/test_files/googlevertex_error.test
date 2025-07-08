@@ -12,7 +12,7 @@
 #and resort to a default. The same is not true for the empty string
 -STATEMENT return create_embedding('this better fail', 'google-vertex', 'gemini-embedding-001', '')
 ---- error(regex)
-^Connection exception: Request failed with status \d{3} Body: ([\s\S]+)
+^Connection exception: Request failed with status \d{3}\n Body: \{[\s\S]+\}[\s\S]*
 
 -STATEMENT return create_embedding('this better fail', 'google-vertex', 'gemini-embedding-001', 50, 'badRegion')
 ---- ok
