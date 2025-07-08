@@ -4,23 +4,36 @@
 
 -CASE InstallThenRemove
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+-STATEMENT install algo
+---- ok
+
+# cannot install load installed algo, get linker error
+-STATEMENT load extension "extension/algo/build/libalgo.kuzu_extension"
 ---- ok
 
 -STATEMENT call show_loaded_extensions() return *;
 ---- 1
-LLM|USER|/Users/tanvirgahunia/work/kuzu/extension/llm/build/libllm.kuzu_extension
+ALGO|USER|extension/algo/build/libalgo.kuzu_extension
 
--STATEMENT uninstall llm;
+-STATEMENT uninstall algo;
 ---- 1
-Extension: llm has been uninstalled
+Extension: algo has been uninstalled
 
 -STATEMENT call show_loaded_extensions() return *;
 ---- 1
-LLM|USER|/Users/tanvirgahunia/work/kuzu/extension/llm/build/libllm.kuzu_extension
+ALGO|USER|extension/algo/build/libalgo.kuzu_extension
 
--STATEMENT load llm;
+-STATEMENT load algo;
 ---- error
-Binder exception: Extension: llm is an official extension and has not been installed.
-You can install it by: install llm.
+Binder exception: Extension: algo is an official extension and has not been installed.
+You can install it by: install algo.
+
+-STATEMENT install algo;
+---- ok
+
+#Expected linker error
+-STATEMENT load algo;
+---- error
+IO exception: Failed to load library: /Users/tanvirgahunia/.kuzu/extension/0.10.0/osx_arm64/algo/libalgo.kuzu_extension which is needed by extension: algo.
+Error: dlopen(/Users/tanvirgahunia/.kuzu/extension/0.10.0/osx_arm64/algo/libalgo.kuzu_extension, 0x0006): symbol not found in flat namespace '__ZN4kuzu8function11GDSFunction14getLogicalPlanEPNS_7planner7PlannerERKNS_6binder18BoundReadingClauseENSt3__16vectorINS9_10shared_ptrINS5_10ExpressionEEENS9_9allocatorISD_EEEERNSA_INS9_10unique_ptrINS2_11LogicalPlanENS9_14default_deleteISI_EEEENSE_ISL_EEEE'.
 
