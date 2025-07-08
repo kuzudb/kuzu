@@ -28,7 +28,7 @@ Bob|True|30
 Carol|False|45
 Dan|False|20
 Elizabeth|False|20
--STATEMENT COPY Person FROM (LOAD FROM "az://kuzu-test/vPerson2.csv" RETURN *);
+-STATEMENT COPY Person FROM (LOAD FROM "az://${AZURE_ACCOUNT_NAME}.blob.core.windows.net/kuzu-test/vPerson2.csv" RETURN *);
 ---- ok
 -STATEMENT MATCH (a:Person) RETURN a.fname, a.Gender, a.isWorker;
 ---- 8
@@ -52,7 +52,7 @@ Alice|Bob
 Bob|Dan
 Bob|Carol
 Bob|Alice
--STATEMENT COPY Knows FROM (LOAD FROM "abfss://kuzu-test/dirA/dirB/eKnows_2.csv" RETURN *);
+-STATEMENT COPY Knows FROM (LOAD FROM "abfss://${AZURE_ACCOUNT_NAME}.dfs.core.windows.net/kuzu-test/dirA/dirB/eKnows_2.csv" RETURN *);
 ---- ok
 -STATEMENT MATCH (a:Person)-[e:Knows]->(b:Person) RETURN a.fname, b.fname;
 ---- 14
@@ -75,6 +75,15 @@ Elizabeth|Greg
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/azure/build/libazure.kuzu_extension';
 ---- ok
 -STATEMENT CALL AZURE_CONNECTION_STRING = "";
+---- ok
+-STATEMENT LOAD FROM 'az://${AZURE_PUBLIC_CONTAINER}/vPerson.csv' RETURN fname, Gender, isWorker;
+---- 5
+Alice|1|False
+Bob|2|False
+Carol|1|True
+Dan|2|True
+Elizabeth|1|True
+-STATEMENT CALL AZURE_ACCOUNT_NAME = "${AZURE_ACCOUNT_NAME}";
 ---- ok
 -STATEMENT LOAD FROM 'az://${AZURE_PUBLIC_CONTAINER}/vPerson.csv' RETURN fname, Gender, isWorker;
 ---- 5
