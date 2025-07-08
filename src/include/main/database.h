@@ -5,9 +5,9 @@
 #include <vector>
 
 #include "common/api.h"
+#include "common/database_lifecycle_manager.h"
 #include "kuzu_fwd.h"
 #include "main/db_config.h"
-
 namespace kuzu {
 namespace common {
 class FileSystem;
@@ -152,6 +152,7 @@ private:
     std::unique_ptr<DatabaseManager> databaseManager;
     std::unique_ptr<extension::ExtensionManager> extensionManager;
     QueryIDGenerator queryIDGenerator;
+    std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
 };
 
 } // namespace main

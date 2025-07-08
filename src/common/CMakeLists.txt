@@ -14,6 +14,7 @@ add_library(kuzu_common
         OBJECT
         case_insensitive_map.cpp
         constants.cpp
+        database_lifecycle_manager.cpp
         expression_type.cpp
         in_mem_overflow_buffer.cpp
         mask.cpp

@@ -10,6 +10,7 @@ src/include/common/constants.h
 src/include/common/copier_config/csv_reader_config.h
 src/include/common/copier_config/file_scan_info.h
 src/include/common/copy_constructors.h
+src/include/common/database_lifecycle_manager.h
 src/include/common/data_chunk/data_chunk.h
 src/include/common/data_chunk/data_chunk_state.h
 src/include/common/data_chunk/sel_vector.h

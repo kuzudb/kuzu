@@ -4,11 +4,11 @@
 
 #include "common/api.h"
 #include "common/arrow/arrow.h"
+#include "common/database_lifecycle_manager.h"
 #include "common/types/types.h"
 #include "kuzu_fwd.h"
 #include "processor/result/flat_tuple.h"
 #include "query_summary.h"
-
 namespace kuzu {
 namespace main {
 
@@ -142,6 +142,7 @@ private:
     void validateQuerySucceed() const;
     std::pair<std::unique_ptr<processor::FlatTuple>, std::unique_ptr<processor::FlatTupleIterator>>
     getIterator() const;
+    void checkDatabaseClosedOrThrow() const;
 
 private:
     // execution status
@@ -161,6 +162,9 @@ private:
 
     // query iterator
     QueryResultIterator queryResultIterator;
+
+    // database life cycle manager
+    std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
 };
 
 } // namespace main

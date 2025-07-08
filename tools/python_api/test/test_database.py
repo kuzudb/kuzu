@@ -141,3 +141,33 @@ def test_database_checkpoint_threshold_config(tmp_path: Path) -> None:
         with conn.execute("CALL current_setting('checkpoint_threshold') RETURN *") as result:
             assert result.get_num_tuples() == 1
             assert result.get_next()[0] == "1234"
+
+
+def test_database_close_order() -> None:
+    in_mem_db = kuzu.Database(database_path=":memory:", buffer_pool_size=1024 * 1024 * 10)
+    assert not in_mem_db.is_closed
+    assert in_mem_db._database is not None
+
+    in_mem_conn = kuzu.Connection(in_mem_db)
+    assert not in_mem_conn.is_closed
+    assert in_mem_conn._connection is not None
+
+    query_result = in_mem_conn.execute("RETURN 1+1")
+    assert not query_result.is_closed
+    assert query_result._query_result is not None
+
+    assert query_result.get_next()[0] == 2
+    # Close the database first, it should not cause crashes or exceptions
+    in_mem_db.close()
+
+    # The query result and connection will be unusable after the database is closed.
+    # But calling methods on them should raise exceptions instead of crashing.
+    with pytest.raises(Exception, match="Database is closed"):
+        in_mem_conn.execute("RETURN 1+1")
+
+    with pytest.raises(Exception, match="the parent database is closed"):
+        query_result.get_next()
+
+    # Close the connection and query result, they should not raise any exceptions.
+    in_mem_conn.close()
+    query_result.close()

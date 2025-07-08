@@ -77,6 +77,9 @@ ClientContext::ClientContext(Database* database)
 }
 
 ClientContext::~ClientContext() {
+    if (preventTransactionRollbackOnDestruction) {
+        return;
+    }
     if (getTransaction()) {
         getDatabase()->transactionManager->rollback(*this, getTransaction());
     }

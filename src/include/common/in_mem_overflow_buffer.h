@@ -54,6 +54,9 @@ public:
     // they will error.
     void resetBuffer();
 
+    // Manually set the underlying memory buffer to evicted to avoid double free
+    void preventDestruction();
+
     storage::MemoryManager* getMemoryManager() { return memoryManager; }
 
 private:

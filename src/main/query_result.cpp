@@ -13,45 +13,61 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
-QueryResult::QueryResult() : nextQueryResult{nullptr}, queryResultIterator{this} {}
+QueryResult::QueryResult()
+    : nextQueryResult{nullptr}, queryResultIterator{this}, dbLifeCycleManager{nullptr} {}
 
 QueryResult::QueryResult(const PreparedSummary& preparedSummary)
-    : nextQueryResult{nullptr}, queryResultIterator{this} {
+    : nextQueryResult{nullptr}, queryResultIterator{this}, dbLifeCycleManager{nullptr} {
     querySummary = std::make_unique<QuerySummary>();
     querySummary->setPreparedSummary(preparedSummary);
 }
-
-QueryResult::~QueryResult() = default;
+QueryResult::~QueryResult() {
+    if (!dbLifeCycleManager) {
+        return;
+    }
+    if (!factorizedTable) {
+        return;
+    }
+    factorizedTable->setPreventDestruction(dbLifeCycleManager->isDatabaseClosed);
+}
 
 bool QueryResult::isSuccess() const {
+    checkDatabaseClosedOrThrow();
     return success;
 }
 
 std::string QueryResult::getErrorMessage() const {
+    checkDatabaseClosedOrThrow();
     return errMsg;
 }
 
 size_t QueryResult::getNumColumns() const {
+    checkDatabaseClosedOrThrow();
     return columnDataTypes.size();
 }
 
 std::vector<std::string> QueryResult::getColumnNames() const {
+    checkDatabaseClosedOrThrow();
     return columnNames;
 }
 
 std::vector<LogicalType> QueryResult::getColumnDataTypes() const {
+    checkDatabaseClosedOrThrow();
     return LogicalType::copy(columnDataTypes);
 }
 
 uint64_t QueryResult::getNumTuples() const {
+    checkDatabaseClosedOrThrow();
     return factorizedTable->getTotalNumFlatTuples();
 }
 
 QuerySummary* QueryResult::getQuerySummary() const {
+    checkDatabaseClosedOrThrow();
     return querySummary.get();
 }
 
 void QueryResult::resetIterator() {
+    checkDatabaseClosedOrThrow();
     iterator->resetState();
 }
 
@@ -74,6 +90,13 @@ QueryResult::getIterator() const {
         std::make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect)));
 }
 
+void QueryResult::checkDatabaseClosedOrThrow() const {
+    if (!dbLifeCycleManager) {
+        return;
+    }
+    dbLifeCycleManager->checkDatabaseClosedOrThrow();
+}
+
 void QueryResult::initResultTableAndIterator(
     std::shared_ptr<processor::FactorizedTable> factorizedTable_) {
     factorizedTable = std::move(factorizedTable_);
@@ -83,15 +106,18 @@ void QueryResult::initResultTableAndIterator(
 }
 
 bool QueryResult::hasNext() const {
+    checkDatabaseClosedOrThrow();
     validateQuerySucceed();
     return iterator->hasNextFlatTuple();
 }
 
 bool QueryResult::hasNextQueryResult() const {
+    checkDatabaseClosedOrThrow();
     return queryResultIterator.hasNextQueryResult();
 }
 
 QueryResult* QueryResult::getNextQueryResult() {
+    checkDatabaseClosedOrThrow();
     if (hasNextQueryResult()) {
         ++queryResultIterator;
         return queryResultIterator.getCurrentResult();
@@ -100,6 +126,7 @@ QueryResult* QueryResult::getNextQueryResult() {
 }
 
 std::shared_ptr<FlatTuple> QueryResult::getNext() {
+    checkDatabaseClosedOrThrow();
     if (!hasNext()) {
         throw RuntimeException(
             "No more tuples in QueryResult, Please check hasNext() before calling getNext().");
@@ -110,6 +137,7 @@ std::shared_ptr<FlatTuple> QueryResult::getNext() {
 }
 
 std::string QueryResult::toString() const {
+    checkDatabaseClosedOrThrow();
     std::string result;
     if (isSuccess()) {
         // print header
@@ -138,10 +166,12 @@ void QueryResult::validateQuerySucceed() const {
 }
 
 std::unique_ptr<ArrowSchema> QueryResult::getArrowSchema() const {
+    checkDatabaseClosedOrThrow();
     return ArrowConverter::toArrowSchema(getColumnDataTypes(), getColumnNames());
 }
 
 std::unique_ptr<ArrowArray> QueryResult::getNextArrowChunk(int64_t chunkSize) {
+    checkDatabaseClosedOrThrow();
     auto data = std::make_unique<ArrowArray>();
     ArrowConverter::toArrowArray(*this, data.get(), chunkSize);
     return data;

@@ -37,6 +37,10 @@ void DataBlock::resetToZero() {
     memset(block->getBuffer().data(), 0, block->getBuffer().size());
 }
 
+void DataBlock::preventDestruction() {
+    block->preventDestruction();
+}
+
 void DataBlock::copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
     DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
     uint32_t numBytesPerTuple) {
@@ -97,6 +101,15 @@ FactorizedTable::FactorizedTable(MemoryManager* memoryManager, FactorizedTableSc
             std::make_unique<DataBlockCollection>(numBytesPerTuple, numFlatTuplesPerBlock);
         unFlatTupleBlockCollection = std::make_unique<DataBlockCollection>();
     }
+}
+
+FactorizedTable::~FactorizedTable() {
+    if (!preventDestruction) {
+        return;
+    }
+    flatTupleBlockCollection->preventDestruction();
+    unFlatTupleBlockCollection->preventDestruction();
+    inMemOverflowBuffer->preventDestruction();
 }
 
 void FactorizedTable::append(const std::vector<ValueVector*>& vectors) {

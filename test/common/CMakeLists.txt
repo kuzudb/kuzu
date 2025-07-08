@@ -6,4 +6,6 @@ add_kuzu_test(types_test
         string_format.cpp
         string_test.cpp
         time_test.cpp
-        timestamp_test.cpp)
+        timestamp_test.cpp
+        vfs_test.cpp
+)

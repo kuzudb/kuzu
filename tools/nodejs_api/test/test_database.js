@@ -416,4 +416,21 @@ describe("Database close", function () {
     assert.isTrue(testDb._isClosed);
     assert.isTrue(testDb._isInitialized);
   });
+
+  it("should allow closing a database before closing the connection and query result", async function () {
+    const testDb = new kuzu.Database(":memory:", 1 << 28 /* 256MB */);
+    await testDb.init();
+    const conn = new kuzu.Connection(testDb);
+    await conn.init();
+    const res = await conn.query("RETURN 1+1");
+    assert.equal(res.getNumTuples(), 1);
+    const tuple = await res.getNext();
+    assert.deepEqual(tuple, { "+(1,1)": 2 });
+    testDb.closeSync();
+    assert.isTrue(testDb._isClosed);
+    assert.throws(() => conn.querySync("RETURN 1+1"), Error, "Runtime exception: The current operation is not allowed because the parent database is closed.");
+    conn.closeSync();
+    assert.isTrue(conn._isClosed);
+    assert.throws(() => res.resetIterator(), Error, "Runtime exception: The current operation is not allowed because the parent database is closed.");
+  });
 });
