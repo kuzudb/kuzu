@@ -8,7 +8,11 @@
 #include <windows.h>
 #endif
 
+#include <fstream>
+
 #include "api_test/api_test.h"
+#include "common/exception/io.h"
+#include "common/exception/runtime.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -318,7 +322,7 @@ TEST_F(ApiTest, MissingParam) {
 }
 
 TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {
-    auto systemConfig = kuzu::main::SystemConfig();
+    auto systemConfig = SystemConfig();
     systemConfig.bufferPoolSize = 10 * 1024 * 1024; // 10MB
     systemConfig.maxNumThreads = 2;
     systemConfig.maxDBSize = 1 << 30; // 1GB
@@ -334,143 +338,202 @@ TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {
     // All public Connection methods that check for closed DB
     try {
         conn->setMaxNumThreadForExec(1);
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         conn->getMaxNumThreadForExec();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         conn->prepare("RETURN 1");
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         std::unordered_map<std::string, std::unique_ptr<Value>> params;
         conn->prepareWithParams("RETURN 1", std::move(params));
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         conn->query("RETURN 2+2;");
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         std::unordered_map<std::string, std::unique_ptr<Value>> params;
         conn->executeWithParams(nullptr, std::move(params));
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         conn->interrupt();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         conn->setQueryTimeOut(1000);
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     // All public QueryResult methods that check for closed DB
     try {
         result->isSuccess();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getErrorMessage();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getNumColumns();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getColumnNames();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getColumnDataTypes();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getNumTuples();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getQuerySummary();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->resetIterator();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->hasNext();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->hasNextQueryResult();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getNextQueryResult();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getNext();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->toString();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getArrowSchema();
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getNextArrowChunk(1);
-    } catch (kuzu::common::Exception& e) {
+    } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
+}
+
+TEST_F(ApiTest, EmptyDBFile) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    database.reset();
+    std::filesystem::remove(databasePath);
+    // Create a new database with an empty file.
+    std::ofstream file(databasePath);
+    file.close();
+    ASSERT_TRUE(std::filesystem::exists(databasePath));
+    ASSERT_TRUE(std::filesystem::file_size(databasePath) == 0);
+    // Attempt to open the database with the empty file.
+    ASSERT_NO_THROW(std::make_unique<Database>(databasePath, *systemConfig));
+}
+
+TEST_F(ApiTest, EmptyDBFileWithReadOnly) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    database.reset();
+    std::filesystem::remove(databasePath);
+    // Create a new database with an empty file.
+    std::ofstream file(databasePath);
+    file.close();
+    ASSERT_TRUE(std::filesystem::exists(databasePath));
+    ASSERT_TRUE(std::filesystem::file_size(databasePath) == 0);
+    systemConfig->readOnly = true;
+    // Attempt to open the database with the empty file in read-only mode.
+    ASSERT_NO_THROW(std::make_unique<Database>(databasePath, *systemConfig));
+}
+
+TEST_F(ApiTest, InvalidDBFile) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    database.reset();
+    std::filesystem::remove(databasePath);
+    // Create a new database with an empty file.
+    std::ofstream file(databasePath);
+    file << "This is not a valid Kuzu database file.";
+    file.close();
+    ASSERT_TRUE(std::filesystem::exists(databasePath));
+    ASSERT_FALSE(std::filesystem::file_size(databasePath) == 0);
+    // Attempt to open the database with the empty file.
+    ASSERT_THROW(std::make_unique<Database>(databasePath, *systemConfig), RuntimeException);
+}
+
+TEST_F(ApiTest, DBFileUnderNonExistingDir) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    database.reset();
+    std::filesystem::remove(databasePath);
+    databasePath = databasePath + "/non_existing_dir/database.kuzu";
+    ASSERT_FALSE(std::filesystem::exists(databasePath));
+    // Attempt to open the database with the empty file.
+    ASSERT_THROW(std::make_unique<Database>(databasePath, *systemConfig), IOException);
 }
