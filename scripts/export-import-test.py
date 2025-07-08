@@ -95,13 +95,18 @@ def main():
         version = get_version(base_worktree)
         if version == "0":
             raise Exception("Failed to determine version. Aborting.")
-        export_path = os.path.join(output_dir, version)
+        export_path = os.path.abspath(os.path.join(output_dir, version))
 
         if not os.path.exists(export_path + os.sep):
             # Some datasets, like tinysnb_json, have a dependency on the JSON
             # extension in their copy.cypher files. Therefore, we must build with
             # JSON support to ensure the export works correctly.
-            run_command("make extension-build EXTENSION_LIST=json", cwd=base_worktree)
+
+            # Older makefiles did not have the command specified under else
+            if (version == "0.10.0"):
+                run_command("make extension-test-build EXTENSION_LIST=json", cwd=base_worktree)
+            else:
+                run_command("make extension-build EXTENSION_LIST=json", cwd=base_worktree)
             inprogress_path = f"{export_path}_inprogress" + os.sep
             export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
             exec_path = os.path.join(
