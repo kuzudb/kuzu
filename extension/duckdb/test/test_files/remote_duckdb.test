@@ -60,6 +60,7 @@
 
 -CASE AttachPublicS3Duckdb
 -LOAD_DYNAMIC_EXTENSION duckdb
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT ATTACH 's3://duckdb-blobs/databases/stations.duckdb' as station (dbtype duckdb)
 ---- 1
 Attached database successfully.
@@ -69,6 +70,7 @@ Attached database successfully.
 
 -CASE AttachNotExistS3RemoteDB
 -LOAD_DYNAMIC_EXTENSION duckdb
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT ATTACH 's3://duckdb-blobs/databases/stations1.duckdb' as remoteTiny (dbtype duckdb, skip_unsupported_table=true);
 # Error type is determined by duckdb version.
 ---- error(regex)

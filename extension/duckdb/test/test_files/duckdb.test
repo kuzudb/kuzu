@@ -215,7 +215,7 @@ Attached database successfully.
 ---- ok
 
 -CASE TestingSupportedDBDataTypes
--LOAD_DYNAMIC_EXTENSION azure
+-LOAD_DYNAMIC_EXTENSION duckdb
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/datatypeTesting.db' as dataType (dbtype duckdb);
 ---- ok
 -STATEMENT CALL table_info('dataType.person') RETURN *;
