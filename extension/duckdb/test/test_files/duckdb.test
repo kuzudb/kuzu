@@ -3,11 +3,7 @@
 --
 
 -CASE ScanDuckDBTable
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
----- ok
-# Duckdb and httpfs share a set of same options, check whether they collide with each other.
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION duckdb
 -LOG AttachUnsupportedTableError
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/tinysnb.db' as tinysnb (dbtype duckdb);
 ---- error
@@ -219,8 +215,7 @@ Attached database successfully.
 ---- ok
 
 -CASE TestingSupportedDBDataTypes
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION azure
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/datatypeTesting.db' as dataType (dbtype duckdb);
 ---- ok
 -STATEMENT CALL table_info('dataType.person') RETURN *;
@@ -260,8 +255,7 @@ Binder exception: Variable tinysnb1_person is not in scope.
 Runtime exception: No database named NONEXIST.
 
 -CASE ScanDuckdbDatabaseWithoutExt
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION duckdb
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/dbfilewithoutext' (dbtype duckdb);
 ---- ok
 -STATEMENT LOAD FROM dbfilewithoutext.persons RETURN *
@@ -289,6 +283,7 @@ Runtime exception: Database: dbfilewithoutext doesn't exist.
 Runtime exception: Given duckdb database path not-exist.db does not exist.
 
 -CASE AttachDBWithoutLoadingExtension
+-SKIP_STATIC_LINK
 -STATEMENT ATTACH 'notexist.db' (dbtype duckdb);
 ---- error
 Runtime exception: No loaded extension can handle database type: duckdb.
@@ -305,6 +300,7 @@ Runtime exception: No loaded extension can handle database type: sqlite.
 
 -CASE InstallOfficialExtension
 -SKIP
+-SKIP_STATIC_LINK
 -STATEMENT FORCE INSTALL duckdb FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension duckdb

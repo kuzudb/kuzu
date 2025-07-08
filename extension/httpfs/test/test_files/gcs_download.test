@@ -3,8 +3,7 @@
 --
 
 -CASE GCSOption
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT CALL gcs_access_key_id='kuzuGCSkeyid'
 ---- ok
 -STATEMENT call current_setting('gcs_accesS_key_id') return *;
@@ -28,8 +27,7 @@ Binder exception: Invalid option name: gcs_region.
 -CASE ScanFromGCSFile
 # In-memory mode doesn't support file cache.
 -SKIP_IN_MEM
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT CALL gcs_access_key_id='${GCS_ACCESS_KEY_ID}'
 ---- ok
 -STATEMENT CALL gcs_secret_access_key='${GCS_SECRET_ACCESS_KEY}'
@@ -65,12 +63,3 @@ Noura|25
 Zhang|50
 -STATEMENT COMMIT
 ---- ok
-
--DEFINE_STATEMENT_BLOCK GCS_SETUP [
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
--STATEMENT CALL gcs_access_key_id='${GCS_ACCESS_KEY_ID}'
----- ok
--STATEMENT CALL gcs_secret_access_key='${GCS_SECRET_ACCESS_KEY}'
----- ok
-]

@@ -3,8 +3,7 @@
 --
 
 -CASE ScanFromHTTPCSV
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT load from "http://localhost/dataset/tinysnb/vPerson.csv" return * limit 5;
 ---- 5
 0|Alice|1|True|False|35|5.0|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11
@@ -14,8 +13,7 @@
 7|Elizabeth|1|False|True|20|4.7|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463|{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}
 
 -CASE ScanFromLargeFiles
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT load from "http://localhost/dataset/copy-test/node/parquet/types_50k_0.parquet" return count(*);
 ---- 1
 16666
@@ -24,8 +22,7 @@
 50000
 
 -CASE CopyFromHTTPCSV
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
 ---- ok
 -STATEMENT COPY User from "http://localhost/dataset/demo-db/csv/user.csv"
@@ -38,8 +35,7 @@ Zhang|50
 Noura|25
 
 -CASE ScanFromHTTPS
--STATEMENT load "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT load from "https://extension.kuzudb.com/dataset/test/city.csv" return *;
 ---- 3
 Waterloo|150000
@@ -47,8 +43,7 @@ Kitchener|200000
 Guelph|75000
 
 -CASE AttachHTTPDatabase
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -LOG validateTableNotExists
 -STATEMENT CALL SHOW_TABLES() RETURN *
 ---- 0
@@ -140,8 +135,7 @@ tinysnb1|KUZU
 ---- ok
 
 -CASE AttachNotExistPath
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT attach 'http://localhost/dataset/databases/tinysnb1' as test (dbtype kuzu)
 ---- error
 Runtime exception: Cannot attach a remote Kuzu database due to invalid path: http://localhost/dataset/databases/tinysnb1.
@@ -149,8 +143,7 @@ Runtime exception: Cannot attach a remote Kuzu database due to invalid path: htt
 #TODO(Ziyi): figure out a way to automate upload if storage has changed.
 -CASE AttachDBWithNonEmptyWAL
 -SKIP
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT attach 'http://localhost/dataset/databases/non-empty-wal' as test (dbtype kuzu)
 ---- error
 Runtime exception: Cannot attach an external Kuzu database with non-empty wal file. Try manually checkpointing the external database (i.e., run "CHECKPOINT;").
@@ -164,8 +157,7 @@ Binder exception: Attaching a kuzu database without an alias is not allowed.
 -SKIP
 -STATEMENT FORCE INSTALL httpfs FROM 'http://localhost/extension/repo/'
 ---- ok
--STATEMENT load extension httpfs
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT load from "http://localhost/dataset/tinysnb/vPerson.csv" return * limit 5;
 ---- 5
 0|Alice|1|True|False|35|5.0|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731|A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11

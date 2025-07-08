@@ -3,14 +3,14 @@
 --
 
 -CASE ScanDeltaForgotToLoadExtension
+-SKIP_STATIC_LINK
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/person_table'(file_format='delta') RETURN *
 ---- error
 Binder exception: Cannot load from file type delta. If this file type is part of a kuzu extension please load the extension then try again.
 
 -CASE ScanDeltaTable
 -SKIP
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/delta/build/libdelta.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION delta
 -LOG LoadFromLocalDeltaTable
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/person_table'(file_format='delta') RETURN *
 ---- 5
@@ -91,8 +91,7 @@ Ethan|28|1800.600000|1996-03-10 00:00:00
 -SKIP
 -STATEMENT FORCE INSTALL DELTA FROM 'http://localhost/extension/repo/'
 ---- ok
--STATEMENT load extension DELTA
----- ok
+-LOAD_DYNAMIC_EXTENSION delta
 -LOG LoadFromLocalDeltaTable
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/person_table'(file_format='delta') RETURN *
 ---- 5

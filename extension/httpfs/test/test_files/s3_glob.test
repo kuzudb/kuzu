@@ -4,8 +4,7 @@
 
 -CASE GlobS3Folder
 -SKIP
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT CALL s3_access_key_id='${AWS_S3_ACCESS_KEY_ID}'
 ---- ok
 -STATEMENT CALL s3_secret_access_key='${AWS_S3_SECRET_ACCESS_KEY}'

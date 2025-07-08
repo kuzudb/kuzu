@@ -3,8 +3,7 @@
 --
 
 -CASE ScanSqliteTable
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sqlite/build/libsqlite.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION sqlite
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/tinysnb' as tinysnb (dbtype sqlite);
 ---- 1
 Attached database successfully.
@@ -60,8 +59,7 @@ Catalog exception: person1 does not exist in catalog.
 Detached database successfully.
 
 -CASE ScanSqliteDynamicTable
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sqlite/build/libsqlite.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION sqlite
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/dynamic' as tinysnb (dbtype sqlite);
 ---- ok
 -STATEMENT LOAD FROM tinysnb.dynamic_person RETURN *
@@ -76,8 +74,7 @@ Detached database successfully.
 alice
 
 -CASE TestingDataTypesSqlite
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sqlite/build/libsqlite.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION sqlite
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/datatypeTestingSqlite' as datatype (dbtype sqlite);
 ---- ok
 -STATEMENT CALL table_info('datatype.person') RETURN *;
@@ -108,6 +105,7 @@ Conversion Error: timestamp field value out of range: "08:30:00", expected forma
 
 -CASE InstallOfficialExtension
 -SKIP
+-SKIP_STATIC_LINK
 -STATEMENT FORCE INSTALL sqlite FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension sqlite

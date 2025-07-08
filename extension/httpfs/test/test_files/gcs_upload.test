@@ -4,8 +4,7 @@
 
 -CASE UploadToGCS
 -SKIP
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT CALL gcs_access_key_id='${GCS_ACCESS_KEY_ID}'
 ---- ok
 -STATEMENT CALL gcs_secret_access_key='${GCS_SECRET_ACCESS_KEY}'
