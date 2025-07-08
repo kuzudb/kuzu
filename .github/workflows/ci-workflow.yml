@@ -1090,7 +1090,7 @@ jobs:
 
   linux-extension-test:
     name: linux extension test
-    # needs: [ gcc-build-test, clang-build-test ]
+    needs: [ gcc-build-test, clang-build-test ]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -1116,10 +1116,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Check Ollama Server
-        run: |
-          curl $OLLAMA_URL/api/embeddings -d '{"model": "nomic-embed-text", "prompt": "The sky is blue because of Rayleigh scattering"}'
-
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
@@ -1191,7 +1187,7 @@ jobs:
 
   macos-extension-test:
     name: macos extension test
-    # needs: [ macos-build-test ]
+    needs: [ macos-build-test ]
     runs-on: [ self-hosted, macOS ]
     env:
       TEST_JOBS: 16
@@ -1220,11 +1216,6 @@ jobs:
           fi
           echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
           echo "NUM_THREADS=$NUM_THREADS"
-
-      - name: Check Ollama Server
-        run: |
-          curl $OLLAMA_URL/api/embeddings -d '{"model": "nomic-embed-text", "prompt": "The sky is blue because of Rayleigh scattering"}'
-          
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
@@ -1276,7 +1267,7 @@ jobs:
 
   windows-extension-test:
     name: windows extension test
-    # needs: [ msvc-build-test ]
+    needs: [ msvc-build-test ]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
@@ -1299,20 +1290,6 @@ jobs:
       WERROR: 0
     steps:
       - uses: actions/checkout@v4
-      - name: Check Ollama Server (PowerShell)
-        run: |
-          $headers = @{
-              "Content-Type" = "application/json"
-          }
-      
-          $body = @{
-              model = "nomic-embed-text"
-              prompt = "The sky is blue because of Rayleigh scattering"
-          } | ConvertTo-Json -Depth 10
-      
-          $response = Invoke-RestMethod -Uri "$env:OLLAMA_URL/api/embeddings" -Method Post -Headers $headers -Body $body
-      
-          $response
       - name: Install dependencies
         run: pip install rangehttpserver requests
 
