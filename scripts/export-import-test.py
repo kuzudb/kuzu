@@ -15,6 +15,10 @@ def remove_worktree(path, repo_root):
         run_command(f"git worktree remove --force {path}", cwd=repo_root)
 
 
+# Duplicates code from benchmark/version.py.
+# Should be fine since the footprint is small, but any further extensions
+# to this tool should rework this if the footprint for duplicated code gets
+# bigger.
 def get_version(kuzu_root):
     cmake_file = os.path.join(kuzu_root, 'CMakeLists.txt')
     with open(cmake_file) as f:
