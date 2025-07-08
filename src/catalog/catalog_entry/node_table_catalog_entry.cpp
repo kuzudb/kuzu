@@ -2,11 +2,20 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "common/serializer/deserializer.h"
+#include "common/string_utils.h"
 
 using namespace kuzu::binder;
 
 namespace kuzu {
 namespace catalog {
+
+void NodeTableCatalogEntry::renameProperty(const std::string& propertyName,
+    const std::string& newName) {
+    TableCatalogEntry::renameProperty(propertyName, newName);
+    if (common::StringUtils::caseInsensitiveEquals(propertyName, primaryKeyName)) {
+        primaryKeyName = newName;
+    }
+}
 
 void NodeTableCatalogEntry::serialize(common::Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
