@@ -1116,7 +1116,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
@@ -1203,6 +1202,7 @@ jobs:
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
       PG_HOST: ${{ secrets.PG_HOST }}
+      OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: FALSE
     steps:
@@ -1216,7 +1216,6 @@ jobs:
           fi
           echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
           echo "NUM_THREADS=$NUM_THREADS"
-
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
@@ -1284,13 +1283,13 @@ jobs:
       GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
       GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       AZURE_CONNECTION_STRING: ${{ format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', secrets.AZURE_ACCOUNT_NAME, secrets.AZURE_ACCOUNT_KEY) }}
+      OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: FALSE
       WERROR: 0
     steps:
       - uses: actions/checkout@v4
-
       - name: Install dependencies
         run: pip install rangehttpserver requests
 
