@@ -2,6 +2,14 @@
 
 --
 
+-CASE CheckConnection
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT create_embedding('basic', 'ollama', 'nomic-embed-text', '${OLLAMA_URL}')
+---- ok
+
 -CASE CreateEmbeddingFromNomicEmbedText
 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
