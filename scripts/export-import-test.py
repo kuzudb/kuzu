@@ -4,8 +4,13 @@ import os
 import shutil
 
 
-def get_version():
-    pass
+def get_version(kuzu_root):
+    cmake_file = os.path.join(kuzu_root, 'CMakeLists.txt')
+    with open(cmake_file) as f:
+        for line in f:
+            if line.startswith('project(Kuzu VERSION'):
+                return line.split(' ')[2].strip()
+    return "0"
 
 
 def run_command(cmd, cwd=None, capture_output=False):
@@ -77,7 +82,7 @@ def main():
     try:
         run_command(f"git checkout {base_commit}", cwd=kuzu_root)
 
-        version = get_version()
+        version = get_version(kuzu_root)
         if version == "0":
             raise Exception("Failed to determine version. Aborting.")
         export_path = os.path.join(output_dir, version)
