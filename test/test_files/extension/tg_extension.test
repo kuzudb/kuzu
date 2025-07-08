@@ -1,0 +1,26 @@
+-DATASET CSV empty
+
+--
+
+-CASE InstallThenRemove
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT call show_loaded_extensions() return *;
+---- 1
+LLM|USER|/Users/tanvirgahunia/work/kuzu/extension/llm/build/libllm.kuzu_extension
+
+-STATEMENT uninstall llm;
+---- 1
+Extension: llm has been uninstalled
+
+-STATEMENT call show_loaded_extensions() return *;
+---- 1
+LLM|USER|/Users/tanvirgahunia/work/kuzu/extension/llm/build/libllm.kuzu_extension
+
+-STATEMENT load llm;
+---- error
+Binder exception: Extension: llm is an official extension and has not been installed.
+You can install it by: install llm.
+
