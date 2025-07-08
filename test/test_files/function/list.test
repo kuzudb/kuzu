@@ -2002,3 +2002,40 @@ True
 -STATEMENT RETURN LIST_CAT(null, null)
 ---- 1
 
+-CASE Testing
+-STATEMENT return list_to_string(" ❦ ", ["😃","😃","😃😃😃😃😃😃😃","😃😃","😃","😃",null,"😃",null,list_to_string("😃😃",["😃",null,"end"])]);
+---- 1
+😃 ❦ 😃 ❦ 😃😃😃😃😃😃😃 ❦ 😃😃 ❦ 😃 ❦ 😃 ❦  ❦ 😃 ❦  ❦ 😃😃😃😃😃end
+-STATEMENT return list_to_string("😃", [0, 2, null, null, 4]);
+---- 1
+0😃2😃0😃0😃4
+-STATEMENT return list_to_string("😃", [true, null, null, null, null, 0]);
+---- errror
+Binder exception: Expression True has data type BOOL but expected INT64. Implicit cast is not supported.
+-STATEMENT return list_to_string("❦  ❦", [timestamp('1234-01-23'), null]);
+---- 1
+1234-01-23 00:00:00❦  ❦1970-01-01 00:00:00
+-STATEMENT return list_to_string("😃", [{a: true}, {b: false}]);
+---- 1
+ {b: True}😃{b: False}
+-STATEMENT return list_to_string("😃", [{xyz: timestamp('1234-01-23')}, null]);
+---- 1
+{xyz: 1234-01-23 00:00:00}😃{xyz: 1970-01-01 00:00:00}
+-STATEMENT return list_to_string("😃", [null, null, union_value(a := 23)]);
+---- 1
+0😃0😃23
+-STATEMENT return list_to_string("😃😃😃", [null, {xyz: {a: {b: {c: {d: {e: {f: {g: union_value(qwe := {h: "a"})}}}}}}}}]);
+---- 1
+{xyz: {a: {b: {c: {d: {e: {f: {g: {h: }}}}}}}}}😃😃😃{xyz: {a: {b: {c: {d: {e: {f: {g: {h: a}}}}}}}}}
+-STATEMENT return list_to_string(" . ", [[[[2]]], null, [[[3]]]]);
+---- 1
+[[[2]]] . [] . [[[3]]]
+-STATEMENT return list_to_string(" . ", [[null], null, [[[null]]]]);
+---- error
+Binder exception: Expression LIST_CREATION(LIST_CREATION(LIST_CREATION())) has data type INT64[][][] but expected INT64[]. Implicit cast is not supported.
+-STATEMENT return list_to_string(" . ", [[null], null, [null]]);
+---- 1
+[] . [] . []
+-STATEMENT match (p:person) return list_to_string("---", list_concat(p.courseScoresPerTerm[1], p.courseScoresPerTerm[2]));
+---- error
+Runtime exception: list_extract(list, index): index=2 is out of range.

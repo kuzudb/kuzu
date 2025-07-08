@@ -74,3 +74,38 @@ Binder exception: concat_ws expects all string parameters. Got: INT64.
 -STATEMENT RETURN CONCAT_WS('ac', 'test1', 55)
 ---- error
 Binder exception: concat_ws expects all string parameters. Got: INT64.
+
+-CASE Testing
+-STATEMENT return concat_ws(" ❦ ","😃","😃","😃😃😃😃😃😃😃","😃😃","😃","😃",null,"😃",null,list_to_string("😃😃",["😃",null,"end"]));
+---- 1
+😃 ❦ 😃 ❦ 😃😃😃😃😃😃😃 ❦ 😃😃 ❦ 😃 ❦ 😃😃😃😃😃😃😃end
+-STATEMENT return concat_ws("😃", 0, 2);
+---- error
+-STATEMENT return concat_ws("😃");
+---- 1
+
+-STATEMENT return concat_ws("qwe", "a");
+---- 1
+a
+-STATEMENT return concat_ws("x", "", "", "");
+---- 1
+xx
+-STATEMENT return concat_ws("", "😃 ❦ ", "🚨");
+---- 1
+ 😃 ❦ 🚨
+-STATEMENT return concat_ws("。", "你好", "我很喜欢冰淇淋", "abc");
+---- 1
+你好。我很喜欢冰淇淋。abc
+-STATEMENT return concat_ws('!@#$%^&*()', '"', '\'');
+---- 1
+"!@#$%^&*()'
+
+-STATEMENT return concat_ws(null);
+---- 1
+
+-STATEMENT return concat_ws(null, null, null);
+---- 1
+
+-STATEMENT return concat_ws("", list_to_string("-", [1,2,3]));
+---- 1
+1-2-3

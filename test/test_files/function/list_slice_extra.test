@@ -127,4 +127,3 @@ ab
 abcd
 -STATEMENT RETURN "abc"[-1:2];
 ---- 1
-
