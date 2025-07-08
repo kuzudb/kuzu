@@ -29,7 +29,8 @@ std::string BedrockEmbedding::getPath(const std::string& model) const {
 // signature. This is one of the reasons the same header cannot be used across
 // different requests. Refer to
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html
-httplib::Headers BedrockEmbedding::getHeaders(const std::string& model, const nlohmann::json& payload) const {
+httplib::Headers BedrockEmbedding::getHeaders(const std::string& model,
+    const nlohmann::json& payload) const {
     static const std::string envVarAWSAccessKey = "AWS_ACCESS_KEY";
     static const std::string envVarAWSSecretAccessKey = "AWS_SECRET_ACCESS_KEY";
     auto envAWSAccessKey = main::ClientContext::getEnvVariable(envVarAWSAccessKey);

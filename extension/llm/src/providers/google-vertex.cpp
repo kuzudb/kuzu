@@ -29,7 +29,8 @@ std::string GoogleVertexEmbedding::getPath(const std::string& model) const {
            "/publishers/google/models/" + model + ":predict";
 }
 
-httplib::Headers GoogleVertexEmbedding::getHeaders(const std::string& /*model*/, const nlohmann::json& /*payload*/) const {
+httplib::Headers GoogleVertexEmbedding::getHeaders(const std::string& /*model*/,
+    const nlohmann::json& /*payload*/) const {
     static const std::string envVar = "GOOGLE_VERTEX_ACCESS_KEY";
     auto env_key = main::ClientContext::getEnvVariable(envVar);
     if (env_key.empty()) {
