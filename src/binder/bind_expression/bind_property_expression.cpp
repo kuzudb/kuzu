@@ -109,7 +109,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindNodeOrRelPropertyExpression(
         throw BinderException(
             "Cannot find property " + propertyName + " for " + child.toString() + ".");
     }
-    return nodeOrRel.getPropertyExpression(propertyName);
+    // We always create new object when binding expression except when referring to an existing
+    // alias when binding variables.
+    return nodeOrRel.getPropertyExpression(propertyName)->copy();
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindStructPropertyExpression(
