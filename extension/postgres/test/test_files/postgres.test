@@ -5,8 +5,6 @@
 -CASE ScanPostgresTable
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres/build/libpostgres.kuzu_extension"
 ---- ok
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres/build/libpostgres.kuzu_extension"
----- ok
 -STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' as tinysnb (dbtype POSTGRES);
 ---- ok
 -STATEMENT create node table person_copy (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], height double, u UUID, PRIMARY KEY (ID));
