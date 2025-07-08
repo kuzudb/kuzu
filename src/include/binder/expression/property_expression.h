@@ -58,6 +58,10 @@ public:
 
     std::string toStringInternal() const override { return rawVariableName + "." + propertyName; }
 
+    std::unique_ptr<Expression> copy() const override {
+        return std::make_unique<PropertyExpression>(*this);
+    }
+
 private:
     std::string propertyName;
     // unique identifier references to a node/rel table.
