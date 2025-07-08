@@ -36,7 +36,6 @@ Binder exception: Function CREATE_EMBEDDING for amazon-bedrock did not receive c
 Actual:   (STRING,STRING,STRING)
 Expected: (STRING,STRING,STRING,STRING) -> LIST
 
-
 -STATEMENT return create_embedding('this better fail', 'amazon-bedrock', 'dsadadsadasxxs', 'us-east-1')
 ---- error(regex)
 ^Connection exception: Request failed with status \d{3}\n Body: \{[\s\S]+\}[\s\S]*
