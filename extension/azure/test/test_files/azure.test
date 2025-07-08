@@ -83,7 +83,7 @@ Bob|2|False
 Carol|1|True
 Dan|2|True
 Elizabeth|1|True
--STATEMENT CALL AZURE_ACCOUNT_NAME = "${AZURE_ACCOUNT_NAME}";
+-STATEMENT CALL AZURE_ACCOUNT_NAME = '${AZURE_ACCOUNT_NAME}';
 ---- ok
 -STATEMENT LOAD FROM 'az://${AZURE_PUBLIC_CONTAINER}/vPerson.csv' RETURN fname, Gender, isWorker;
 ---- 5

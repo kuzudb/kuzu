@@ -2001,4 +2001,3 @@ True
 
 -STATEMENT RETURN LIST_CAT(null, null)
 ---- 1
-

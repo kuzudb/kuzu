@@ -83,6 +83,7 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", getParentPath(databasePath));
     StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
     replaceEnv(statement->query, "AZURE_PUBLIC_CONTAINER");
+    replaceEnv(statement->query, "AZURE_ACCOUNT_NAME");
     replaceEnv(statement->query, "UW_S3_ACCESS_KEY_ID");
     replaceEnv(statement->query, "UW_S3_SECRET_ACCESS_KEY");
     replaceEnv(statement->query, "AWS_S3_ACCESS_KEY_ID");
