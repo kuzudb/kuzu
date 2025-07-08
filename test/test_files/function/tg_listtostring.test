@@ -8,8 +8,9 @@
 ---- error
 Runtime exception: Trying to a create a vector with ANY type. This should not happen. Data type is expected to be resolved during binding.
 
--STATEMENT return list_to_string(NULL, [5, 6, 7, 8])
+-STATEMENT return list_to_string('', [5, 6, 7, 8])
 ---- 1
+5678
 
 -STATEMENT return list_to_string(NULL, ['5', '6', '7', '8'])
 ---- 1
@@ -20,4 +21,17 @@ helloworld
 
 -STATEMENT return list_to_string('', [])
 ---- 1
+
+-STATEMENT return list_to_string('', ['a','b','c',NULL,'e'])
+---- 1
+abce
+
+-STATEMENT return list_to_string(' ', [NULL, NULL, NULL, NULL])
+---- 1
+0 0 0 0
+
+-STATEMENT return list_to_string(' ', ['no', 'issues', 'here'])
+---- 1
+no issues here
+
 
