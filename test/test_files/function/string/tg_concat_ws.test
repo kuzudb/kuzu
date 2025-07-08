@@ -1,0 +1,34 @@
+-DATASET CSV EMPTY
+
+--
+
+-CASE VariousConcatWSTests
+-STATEMENT return concat_ws('', '')
+---- 1
+
+---- 1
+hello
+-STATEMENT return concat_ws('', 'hello', 'world')
+---- 1
+helloworld
+-STATEMENT return concat_ws('~', '')
+---- 1
+
+---- 1
+-STATEMENT return concat_ws('~', 5, 6, 7, 8)
+---- error
+Binder exception: concat_ws expects all string parameters. Got: INT64.
+-STATEMENT return concat_ws(NULL, 5, 6, 7, 8)
+---- error
+Binder exception: concat_ws expects all string parameters. Got: INT64.
+-STATEMENT return concat_ws(NULL, NULL)
+---- 1
+
+---- 1
+-STATEMENT return concat_ws('~', ['a', 'b', 'c'], ['1', '2', '3'])
+---- error
+Binder exception: concat_ws expects all string parameters. Got: STRING[].
+
+-STATEMENT return concat_ws('~', list_to_string('4', ['a', 'b', 'c']), list_to_string('d', ['1', '2', '3']))
+---- 1
+a4b4c~1d2d3
