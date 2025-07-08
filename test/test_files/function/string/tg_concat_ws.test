@@ -40,3 +40,6 @@ a4b4c~1d2d3
 -STATEMENT return concat_ws(NULL, NULL)
 ---- 1
 
+-STATEMENT return concat_ws('')
+---- 1
+
