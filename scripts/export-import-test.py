@@ -4,6 +4,10 @@ import os
 import shutil
 
 
+def get_version():
+    pass
+
+
 def run_command(cmd, cwd=None, capture_output=False):
     print(f"> Running: {cmd} (cwd={cwd})")
 
@@ -73,9 +77,7 @@ def main():
     try:
         run_command(f"git checkout {base_commit}", cwd=kuzu_root)
 
-        version = run_command(
-            f"python3 benchmark/version.py", cwd=kuzu_root, capture_output=True
-        )
+        version = get_version()
         if version == "0":
             raise Exception("Failed to determine version. Aborting.")
         export_path = os.path.join(output_dir, version)
