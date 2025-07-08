@@ -28,3 +28,7 @@ Binder exception: Function CREATE_EMBEDDING for google-vertex did not receive co
 Actual:   (STRING,STRING,STRING)
 Expected: (STRING,STRING,STRING,STRING) -> LIST
           (STRING,STRING,STRING,INT64,STRING) -> LIST
+
+-STATEMENT return create_embedding('this better fail', 'google-vertex', 'randomModel', 'us-central1')
+---- error(regex)
+^Connection exception: Request failed with status \d{3}\n Body: \{[\s\S]+\}[\s\S]*
