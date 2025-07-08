@@ -3,7 +3,6 @@
 --
 
 -CASE ScanPostgresTable
--SKIP
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres/build/libpostgres.kuzu_extension"
 ---- ok
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres/build/libpostgres.kuzu_extension"
