@@ -87,7 +87,7 @@ void StringColumn::lookupInternal(const ChunkState& state, offset_t nodeOffset,
     string_index_t index = 0;
     indexColumn->scan(getChildState(state, ChildStateIndex::INDEX), offsetInChunk,
         offsetInChunk + 1, reinterpret_cast<uint8_t*>(&index));
-    std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan(1);
+    std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     offsetsToScan.emplace_back(index, posInVector);
     dictionary.scan(getChildState(state, ChildStateIndex::OFFSET),
         getChildState(state, ChildStateIndex::DATA), offsetsToScan, resultVector,

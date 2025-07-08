@@ -1,5 +1,6 @@
 -DATASET CSV empty
-
+# TODO(Guoodng): This test currently needs more memory under different node group / page size setting, as the local wal consumes a large chunk of memory, which should be fixed.
+-BUFFER_POOL_SIZE 268435456
 --
 
 -CASE SetStructValueToNonNull
