@@ -24,6 +24,24 @@ std::string BedrockEmbedding::getPath(const std::string& model) const {
     return "/model/" + model + "/invoke";
 }
 
+static std::string encodeURL(const std::string& input) {
+    static const char* hex_digit = "0123456789ABCDEF";
+    std::string result;
+    result.reserve(input.size());
+    for (auto i = 0u; i < input.length(); i++) {
+        char ch = input[i];
+        if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
+            ch == '_' || ch == '-' || ch == '~' || ch == '.' || ch == '/') {
+            result += ch;
+        } else {
+            result += std::string("%");
+            result += hex_digit[static_cast<unsigned char>(ch) >> 4];
+            result += hex_digit[static_cast<unsigned char>(ch) & 15];
+        }
+    }
+    return result;
+}
+
 // AWS requests require an authorization signature in the header. This is part
 // of a scheme to validate the request. The body is used to create this
 // signature. This is one of the reasons the same header cannot be used across
@@ -53,7 +71,7 @@ httplib::Headers BedrockEmbedding::getHeaders(const std::string& model,
     auto dateHeader = Timestamp::getDateHeader(timestamp);
     auto datetimeHeader = Timestamp::getDateTimeHeader(timestamp);
 
-    std::string canonicalUri = "/model/" + model + "/invoke";
+    std::string canonicalUri = encodeURL("/model/" + model + "/invoke");
     std::string canonicalQueryString = "";
 
     httplib::Headers headers{{"host", host}, {"x-amz-date", datetimeHeader}};
