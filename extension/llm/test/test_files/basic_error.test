@@ -67,6 +67,7 @@ Binder exception: Function CREATE_EMBEDDING for open-ai did not receive correct 
 Actual:   (STRING,STRING,STRING,INT64,INT64)
 Expected: (STRING,STRING,STRING) -> LIST
           (STRING,STRING,STRING,INT64) -> LIST
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 -STATEMENT RETURN CREATE_EMBEDDING("helo", "open-ai", '5', CAST(5 AS INT8), 50);
 ---- error
@@ -74,6 +75,7 @@ Binder exception: Function CREATE_EMBEDDING for open-ai did not receive correct 
 Actual:   (STRING,STRING,STRING,INT8,INT64)
 Expected: (STRING,STRING,STRING) -> LIST
           (STRING,STRING,STRING,INT64) -> LIST
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 -STATEMENT CREATE NODE TABLE User (name STRING, age INT64, PRIMARY KEY (name))
 ---- ok
