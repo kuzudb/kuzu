@@ -65,7 +65,7 @@ struct DBConfig {
     uint64_t checkpointThreshold;
     bool forceCheckpointOnClose;
     bool enableSpillingToDisk;
-#if defined(__SWIFT__) && defined(__APPLE__)
+#if defined(__APPLE__)
     uint32_t threadQos;
 #endif
 

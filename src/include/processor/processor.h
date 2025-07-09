@@ -11,7 +11,7 @@ class QueryProcessor {
 
 public:
     explicit QueryProcessor(uint64_t numThreads
-#if defined(__SWIFT__) && defined(__APPLE__)
+#if defined(__APPLE__)
         ,
         uint32_t threadQos
 #endif

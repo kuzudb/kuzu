@@ -31,7 +31,7 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
       autoCheckpoint{systemConfig.autoCheckpoint},
       checkpointThreshold{systemConfig.checkpointThreshold},
       forceCheckpointOnClose{systemConfig.forceCheckpointOnClose}, enableSpillingToDisk{true}
-#if defined(__SWIFT__) && defined(__APPLE__)
+#if defined(__APPLE__)
       ,
       threadQos(systemConfig.threadQos)
 #endif

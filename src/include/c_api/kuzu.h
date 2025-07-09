@@ -133,7 +133,7 @@ typedef struct {
     // WAL file exceeds this threshold, the database will checkpoint if auto_checkpoint is true.
     uint64_t checkpoint_threshold;
 
-#if defined(__SWIFT__) && defined(__APPLE__)
+#if defined(__APPLE__)
     // The thread quality of service (QoS) for the worker threads.
     // This works for Swift bindings on Apple platforms only.
     uint32_t thread_qos;

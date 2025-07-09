@@ -31,7 +31,7 @@ namespace main {
 SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression,
     bool readOnly, uint64_t maxDBSize, bool autoCheckpoint, uint64_t checkpointThreshold,
     bool forceCheckpointOnClose
-#if defined(__SWIFT__) && defined(__APPLE__)
+#if defined(__APPLE__)
     ,
     uint32_t threadQos
 #endif
@@ -39,7 +39,7 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly{readOnly},
       autoCheckpoint{autoCheckpoint}, checkpointThreshold{checkpointThreshold},
       forceCheckpointOnClose{forceCheckpointOnClose}
-#if defined(__SWIFT__) && defined(__APPLE__)
+#if defined(__APPLE__)
       ,
       threadQos{threadQos}
 #endif
@@ -121,7 +121,7 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     bufferManager = initBmFunc(*this);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads
-#if defined(__SWIFT__) && defined(__APPLE__)
+#if defined(__APPLE__)
         ,
         dbConfig.threadQos
 #endif
