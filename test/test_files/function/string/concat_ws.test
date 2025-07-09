@@ -74,3 +74,9 @@ Binder exception: concat_ws expects all string parameters. Got: INT64.
 -STATEMENT RETURN CONCAT_WS('ac', 'test1', 55)
 ---- error
 Binder exception: concat_ws expects all string parameters. Got: INT64.
+-STATEMENT RETURN CONCAT_WS()
+---- error
+Binder exception: concat_ws expects at least two parameters. Got: 0.
+-STATEMENT RETURN CONCAT_WS(5)
+---- error
+Binder exception: concat_ws expects at least two parameters. Got: 1.

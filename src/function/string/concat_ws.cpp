@@ -7,6 +7,10 @@ namespace function {
 using namespace kuzu::common;
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
+    if (input.arguments.size() < 2) {
+        throw BinderException{stringFormat("concat_ws expects at least two parameters. Got: {}.",
+            input.arguments.size())};
+    }
     for (auto i = 0u; i < input.arguments.size(); i++) {
         auto& argument = input.arguments[i];
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
