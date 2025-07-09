@@ -382,3 +382,29 @@ Binder exception: In vector filtered search, projected graph G9 must contain exa
 333
 444
 146
+
+-CASE CopyAfterCreateIndexWithFilter
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT create node table tab(id uint64, vec float[2], primary key (id))
+---- ok
+-STATEMENT call create_vector_index('tab', 'tbl_hnsw_index', 'vec', metric := 'l2', ml := 60)
+---- ok
+-STATEMENT copy tab from (unwind range(1, 5000) as i return i, [1.0, cast(i, 'float')])
+---- ok
+-STATEMENT call query_vector_index("tab", "tbl_hnsw_index", [0.0, 1.0], 3) return node.id, distance order by distance asc, node.id asc
+---- 3
+1|1.000000
+2|1.414214
+3|2.236068
+
+-STATEMENT CALL PROJECT_GRAPH(
+        'filtered_tab',
+        {'tab': 'n.id >= 3'},
+        []
+    )
+---- ok
+-STATEMENT call query_vector_index("filtered_tab", "tbl_hnsw_index", [0.0, 1.0], 3) return node.id, distance order by distance
+---- 3
+3|2.236068
+4|3.162278
+5|4.123106
