@@ -20,12 +20,16 @@ void AttachedDatabase::invalidateCache() {
 }
 
 static void validateEmptyWAL(const std::string& path, ClientContext* context) {
-    auto walFile = context->getVFSUnsafe()->openFile(storage::StorageUtils::getWALFilePath(path),
-        common::FileOpenFlags(common::FileFlags::READ_ONLY), context);
-    if (walFile->getFileSize() > 0) {
-        throw common::RuntimeException(common::stringFormat(
-            "Cannot attach an external Kuzu database with non-empty wal file. Try manually "
-            "checkpointing the external database (i.e., run \"CHECKPOINT;\")."));
+    auto vfs = context->getVFSUnsafe();
+    auto walFilePath = storage::StorageUtils::getWALFilePath(path);
+    if (vfs->fileOrPathExists(walFilePath, context)) {
+        auto walFile = vfs->openFile(walFilePath,
+            common::FileOpenFlags(common::FileFlags::READ_ONLY), context);
+        if (walFile->getFileSize() > 0) {
+            throw common::RuntimeException(common::stringFormat(
+                "Cannot attach an external Kuzu database with non-empty wal file. Try manually "
+                "checkpointing the external database (i.e., run \"CHECKPOINT;\")."));
+        }
     }
 }
 
@@ -54,11 +58,10 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
     transactionManager =
         std::make_unique<transaction::TransactionManager>(storageManager->getWAL());
 
-    if (storageManager->getDataFH()->getNumPages() <= 1) {
-        return;
+    if (storageManager->getDataFH()->getNumPages() > 0) {
+        storage::Checkpointer::readCheckpoint(path, clientContext, vfs, catalog.get(),
+            storageManager.get());
     }
-    storage::Checkpointer::readCheckpoint(path, clientContext, vfs, catalog.get(),
-        storageManager.get());
 }
 
 } // namespace main

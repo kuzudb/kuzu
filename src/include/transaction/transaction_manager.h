@@ -6,6 +6,7 @@
 
 #include "common/constants.h"
 #include "common/uniq_lock.h"
+#include "storage/checkpointer.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
@@ -17,6 +18,7 @@ class ClientContext;
 namespace testing {
 class DBTest;
 class FlakyBufferManager;
+class FlakyCheckpointer;
 } // namespace testing
 
 namespace transaction {
@@ -24,11 +26,19 @@ namespace transaction {
 class TransactionManager {
     friend class testing::DBTest;
     friend class testing::FlakyBufferManager;
+    friend class testing::FlakyCheckpointer;
+
+    using init_checkpointer_func_t =
+        std::function<std::unique_ptr<storage::Checkpointer>(main::ClientContext&)>;
+    static std::unique_ptr<storage::Checkpointer> initCheckpointer(
+        main::ClientContext& clientContext);
 
 public:
     // Timestamp starts from 1. 0 is reserved for the dummy system transaction.
     explicit TransactionManager(storage::WAL& wal)
-        : wal{wal}, lastTransactionID{Transaction::START_TRANSACTION_ID}, lastTimestamp{1} {};
+        : wal{wal}, lastTransactionID{Transaction::START_TRANSACTION_ID}, lastTimestamp{1} {
+        initCheckpointerFunc = initCheckpointer;
+    }
 
     std::unique_ptr<Transaction> beginTransaction(main::ClientContext& clientContext,
         TransactionType type);
@@ -64,6 +74,8 @@ private:
     std::mutex mtxForSerializingPublicFunctionCalls;
     std::mutex mtxForStartingNewTransactions;
     uint64_t checkpointWaitTimeoutInMicros = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS;
+
+    init_checkpointer_func_t initCheckpointerFunc;
 };
 } // namespace transaction
 } // namespace kuzu

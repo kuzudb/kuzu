@@ -7,7 +7,7 @@
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/checkpointer.h"
-#include "storage/storage_manager.h"
+#include "storage/wal/local_wal.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -40,7 +40,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
         activeWriteTransactions.insert(transaction->getID());
         KU_ASSERT(clientContext.getStorageManager());
         if (transaction->shouldLogToWAL()) {
-            clientContext.getStorageManager()->getWAL().logBeginTransaction();
+            transaction->getLocalWAL().logBeginTransaction();
         }
     } break;
     default: {
@@ -129,6 +129,11 @@ bool TransactionManager::hasNoActiveTransactions() const {
     return activeWriteTransactions.empty() && activeReadOnlyTransactions.empty();
 }
 
+std::unique_ptr<Checkpointer> TransactionManager::initCheckpointer(
+    main::ClientContext& clientContext) {
+    return std::make_unique<Checkpointer>(clientContext);
+}
+
 void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // Note: It is enough to stop and wait for transactions to leave the system instead of, for
     // example, checking on the query processor's task scheduler. This is because the
@@ -138,11 +143,11 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
     auto lockForStartingTransaction = stopNewTransactionsAndWaitUntilAllTransactionsLeave();
-    Checkpointer checkpointer(clientContext);
+    auto checkpointer = initCheckpointerFunc(clientContext);
     try {
-        checkpointer.writeCheckpoint();
+        checkpointer->writeCheckpoint();
     } catch (std::exception& e) {
-        checkpointer.rollback();
+        checkpointer->rollback();
         throw CheckpointException{e};
     }
 }

@@ -22,7 +22,6 @@ enum class WALRecordType : uint8_t {
                         // accidentally read from an empty buffer.
     BEGIN_TRANSACTION_RECORD = 1,
     COMMIT_RECORD = 2,
-    ROLLBACK_RECORD = 3,
 
     COPY_TABLE_RECORD = 13,
     CREATE_CATALOG_ENTRY_RECORD = 14,
@@ -75,13 +74,6 @@ struct CommitRecord final : WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CommitRecord> deserialize(common::Deserializer& deserializer);
-};
-
-struct RollbackRecord final : WALRecord {
-    RollbackRecord() : WALRecord{WALRecordType::ROLLBACK_RECORD} {}
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<RollbackRecord> deserialize(common::Deserializer& deserializer);
 };
 
 struct CheckpointRecord final : WALRecord {

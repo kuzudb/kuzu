@@ -17,14 +17,13 @@ struct ShadowFileHeader {
     common::page_idx_t numShadowPages = 0;
 };
 
+class BufferManager;
 // NOTE: This class is NOT thread-safe for now, as we are not checkpointing in parallel yet.
 class ShadowFile {
 public:
-    ShadowFile(const std::string& dbPath, bool readOnly, BufferManager& bufferManager,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+    ShadowFile(BufferManager& bm, common::VirtualFileSystem* vfs, const std::string& databasePath);
 
-    DELETE_COPY_DEFAULT_MOVE(ShadowFile);
-
+    // TODO(Guodong): Remove originalFile param.
     bool hasShadowPage(common::file_idx_t originalFile, common::page_idx_t originalPage) const {
         return shadowPagesMap.contains(originalFile) &&
                shadowPagesMap.at(originalFile).contains(originalPage);
@@ -37,12 +36,25 @@ public:
 
     FileHandle& getShadowingFH() const { return *shadowingFH; }
 
-    void replayShadowPageRecords(main::ClientContext& context) const;
+    void applyShadowPages(main::ClientContext& context) const;
 
     void flushAll() const;
-    void clearAll(main::ClientContext& context);
+    void clear(BufferManager& bm);
+
+    // Replay shadow page records from the shadow file to the original data file. This is used
+    // during recovery.
+    static void replayShadowPageRecords(main::ClientContext& context,
+        std::unique_ptr<common::FileInfo> fileInfo);
 
 private:
+    FileHandle* getOrCreateShadowingFH();
+
+private:
+    BufferManager& bm;
+    std::string shadowFilePath;
+    common::VirtualFileSystem* vfs;
+    // This is the file handle for the shadow file. It is created lazily when the first shadow page
+    // is created.
     FileHandle* shadowingFH;
     // The map caches shadow page idxes for pages in original files.
     std::unordered_map<common::file_idx_t,

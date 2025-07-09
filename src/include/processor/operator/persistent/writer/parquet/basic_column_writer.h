@@ -78,7 +78,7 @@ protected:
     // The number of elements in the dictionary.
     virtual uint64_t dictionarySize(BasicColumnWriterState& /*writerState*/) { KU_UNREACHABLE; }
     void writeDictionary(BasicColumnWriterState& state,
-        std::unique_ptr<common::BufferedSerializer> bufferedSerializer, uint64_t rowCount);
+        std::unique_ptr<common::BufferWriter> bufferedSerializer, uint64_t rowCount);
     virtual void flushDictionary(BasicColumnWriterState& /*state*/,
         ColumnWriterStatistics* /*stats*/) {
         KU_UNREACHABLE;

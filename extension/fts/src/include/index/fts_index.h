@@ -19,7 +19,7 @@ struct FTSStorageInfo final : storage::IndexStorageInfo {
     FTSStorageInfo(common::idx_t numDocs, double avgDocLen, common::offset_t numCheckpointedNodes)
         : numDocs{numDocs}, avgDocLen{avgDocLen}, numCheckpointedNodes{numCheckpointedNodes} {}
 
-    std::shared_ptr<common::BufferedSerializer> serialize() const override;
+    std::shared_ptr<common::BufferWriter> serialize() const override;
 
     static std::unique_ptr<IndexStorageInfo> deserialize(
         std::unique_ptr<common::BufferReader> reader);

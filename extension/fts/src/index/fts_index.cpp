@@ -36,8 +36,8 @@ struct TermInfo {
     uint64_t tf;
 };
 
-std::shared_ptr<BufferedSerializer> FTSStorageInfo::serialize() const {
-    auto bufferWriter = std::make_shared<BufferedSerializer>();
+std::shared_ptr<BufferWriter> FTSStorageInfo::serialize() const {
+    auto bufferWriter = std::make_shared<BufferWriter>();
     auto serializer = Serializer(bufferWriter);
     serializer.write<idx_t>(numDocs);
     serializer.write<double>(avgDocLen);

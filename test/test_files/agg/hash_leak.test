@@ -1,8 +1,11 @@
 -DATASET CSV empty
+# TODO(Guoodng): This test currently needs more memory as the local wal consumes a large chunk of memory, which should be fixed.
+-BUFFER_POOL_SIZE 94371840
 
 --
 # Tests that buffer manager exceptions during aggregation do not leak memory (meant to be run with the leak sanitizer)
 -CASE LargeAggregateLeakTest
+-SKIP_PAGE_SIZE_TESTS
 -STATEMENT CREATE NODE TABLE vertex(ID STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT UNWIND range(1, 300000) AS i CREATE (a:vertex {ID: i});

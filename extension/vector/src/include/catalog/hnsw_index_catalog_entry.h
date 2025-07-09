@@ -18,7 +18,7 @@ struct HNSWIndexAuxInfo final : catalog::IndexAuxInfo {
 
     HNSWIndexAuxInfo(const HNSWIndexAuxInfo& other) : config{other.config.copy()} {}
 
-    std::shared_ptr<common::BufferedSerializer> serialize() const override;
+    std::shared_ptr<common::BufferWriter> serialize() const override;
     static std::unique_ptr<HNSWIndexAuxInfo> deserialize(
         std::unique_ptr<common::BufferReader> reader);
 

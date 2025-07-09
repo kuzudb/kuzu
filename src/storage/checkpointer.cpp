@@ -1,15 +1,19 @@
 #include "storage/checkpointer.h"
 
 #include "catalog/catalog.h"
+#include "common/exception/runtime.h"
 #include "common/file_system/file_system.h"
 #include "common/file_system/virtual_file_system.h"
+#include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
-#include "common/serializer/metadata_writer.h"
+#include "common/serializer/in_mem_file_writer.h"
+#include "extension/extension_manager.h"
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_version_info.h"
+#include "storage/wal/local_wal.h"
 
 namespace kuzu {
 namespace storage {
@@ -52,9 +56,12 @@ Checkpointer::Checkpointer(main::ClientContext& clientContext)
       isInMemory{main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())},
       pageAllocator(*clientContext.getStorageManager()->getDataFH()->getPageManager()) {}
 
+Checkpointer::~Checkpointer() = default;
+
 PageRange Checkpointer::serializeCatalog(const catalog::Catalog& catalog,
     StorageManager& storageManager) {
-    auto catalogWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
+    auto catalogWriter =
+        std::make_shared<common::InMemFileWriter>(*clientContext.getMemoryManager());
     common::Serializer catalogSerializer(catalogWriter);
     catalog.serialize(catalogSerializer);
     return catalogWriter->flush(pageAllocator, storageManager.getShadowFile());
@@ -62,19 +69,20 @@ PageRange Checkpointer::serializeCatalog(const catalog::Catalog& catalog,
 
 PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
     StorageManager& storageManager) {
-    auto metadataWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
+    auto metadataWriter =
+        std::make_shared<common::InMemFileWriter>(*clientContext.getMemoryManager());
     common::Serializer metadataSerializer(metadataWriter);
     storageManager.serialize(catalog, metadataSerializer);
 
-    // We need to preallocate the pages for the page manager before we actually serialize it
-    // This is because the page manager needs to track the pages used for itself
+    // We need to preallocate the pages for the page manager before we actually serialize it,
+    // this is because the page manager needs to track the pages used for itself.
     // The number of pages needed for the page manager should only decrease after making an
-    // additional allocation so we just calculate the number of pages needed to serialize the
-    // current state of the page manager
-    // Thus it is possible that we allocate an extra page that we won't end up writing to when we
+    // additional allocation, so we just calculate the number of pages needed to serialize the
+    // current state of the page manager.
+    // Thus, it is possible that we allocate an extra page that we won't end up writing to when we
     // flush the metadata writer. This may cause a discrepancy between the number of tracked pages
     // and the number of physical pages in the file but shouldn't cause any actual incorrect
-    // behaviour in the database
+    // behavior in the database.
     auto& pageManager = *storageManager.getDataFH()->getPageManager();
     const auto pagesForPageManager = pageManager.estimatePagesNeededForSerialize();
     const auto allocatedPages =
@@ -90,17 +98,43 @@ void Checkpointer::writeCheckpoint() {
     if (isInMemory) {
         return;
     }
-    const auto catalog = clientContext.getCatalog();
-    const auto storageManager = clientContext.getStorageManager();
-    auto wal = clientContext.getWAL();
 
     auto databaseHeader = getCurrentDatabaseHeader();
-
     // Checkpoint storage. Note that we first checkpoint storage before serializing the catalog, as
     // checkpointing storage may overwrite columnIDs in the catalog.
-    bool hasStorageChanges = storageManager->checkpoint(&clientContext, pageAllocator);
+    bool hasStorageChanges = checkpointStorage();
+    serializeCatalogAndMetadata(databaseHeader, hasStorageChanges);
+    writeDatabaseHeader(databaseHeader);
+    logCheckpointAndApplyShadowPages();
 
-    auto& shadowFile = storageManager->getShadowFile();
+    // This function will evict all pages that were freed during this checkpoint
+    // It must be called before we remove all evicted candidates from the BM
+    // Or else the evicted pages may end up appearing multiple times in the eviction queue
+    auto storageManager = clientContext.getStorageManager();
+    storageManager->finalizeCheckpoint();
+    // When a page is freed by the FSM, it evicts it from the BM. However, if the page is freed,
+    // then reused over and over, it can be appended to the eviction queue multiple times. To
+    // prevent multiple entries of the same page from existing in the eviction queue, at the end of
+    // each checkpoint we remove any already-evicted pages.
+    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    bufferManager->removeEvictedCandidates();
+
+    clientContext.getCatalog()->resetVersion();
+    auto* dataFH = storageManager->getDataFH();
+    dataFH->getPageManager()->resetVersion();
+    clientContext.getWAL()->reset();
+    // TODO: Should also remove the shadow file if we're closing the database.
+}
+
+bool Checkpointer::checkpointStorage() {
+    const auto storageManager = clientContext.getStorageManager();
+    return storageManager->checkpoint(&clientContext, pageAllocator);
+}
+
+void Checkpointer::serializeCatalogAndMetadata(DatabaseHeader& databaseHeader,
+    bool hasStorageChanges) {
+    const auto storageManager = clientContext.getStorageManager();
+    const auto catalog = clientContext.getCatalog();
     auto* dataFH = storageManager->getDataFH();
 
     // Serialize the catalog if there are changes
@@ -118,37 +152,11 @@ void Checkpointer::writeCheckpoint() {
         databaseHeader.freeMetadataPageRange(*dataFH->getPageManager());
         databaseHeader.metadataPageRange = serializeMetadata(*catalog, *storageManager);
     }
-
-    writeDatabaseHeader(databaseHeader);
-
-    // Flush the shadow file.
-    shadowFile.flushAll();
-
-    // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
-    // files (snapshots of catalog and metadata) have been written to disk. The part that is not
-    // done is to replace them with the original pages or catalog and metadata files. If the
-    // system crashes before this point, the WAL can still be used to recover the system to a
-    // state where the checkpoint can be redone.
-    wal->logAndFlushCheckpoint();
-    shadowFile.replayShadowPageRecords(clientContext);
-    // Clear the wal and also shadowing files.
-    wal->clearWAL();
-    shadowFile.clearAll(clientContext);
-
-    // This function will evict all pages that were freed during this checkpoint
-    // It must be called before we remove all evicted candidates from the BM
-    // Or else the evicted pages may end up appearing multiple times in the eviction queue
-    storageManager->finalizeCheckpoint();
-
-    auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();
-    storageManager->getDataFH()->getPageManager()->clearEvictedBMEntriesIfNeeded(bufferManager);
-
-    catalog->resetVersion();
-    dataFH->getPageManager()->resetVersion();
 }
 
 void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {
-    auto headerWriter = std::make_shared<common::MetaWriter>(clientContext.getMemoryManager());
+    auto headerWriter =
+        std::make_shared<common::InMemFileWriter>(*clientContext.getMemoryManager());
     common::Serializer headerSerializer(headerWriter);
     header.serialize(headerSerializer);
     auto headerPage = headerWriter->getPage(0);
@@ -161,6 +169,25 @@ void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {
         shadowFile);
     memcpy(shadowHeader.frame, headerPage.data(), common::KUZU_PAGE_SIZE);
     shadowFile.getShadowingFH().unpinPage(shadowHeader.shadowPage);
+}
+
+void Checkpointer::logCheckpointAndApplyShadowPages() {
+    const auto storageManager = clientContext.getStorageManager();
+    auto& shadowFile = storageManager->getShadowFile();
+    // Flush the shadow file.
+    shadowFile.flushAll();
+    auto wal = clientContext.getWAL();
+    // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
+    // files (snapshots of catalog and metadata) have been written to disk. The part that is not
+    // done is to replace them with the original pages or catalog and metadata files. If the
+    // system crashes before this point, the WAL can still be used to recover the system to a
+    // state where the checkpoint can be redone.
+    wal->logAndFlushCheckpoint(&clientContext);
+    shadowFile.applyShadowPages(clientContext);
+    // Clear the wal and also shadowing files.
+    auto bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    wal->clear();
+    shadowFile.clear(*bufferManager);
 }
 
 void Checkpointer::rollback() {
@@ -186,7 +213,7 @@ bool Checkpointer::canAutoCheckpoint(const main::ClientContext& clientContext) {
     }
     auto wal = clientContext.getWAL();
     const auto expectedSize =
-        clientContext.getTransaction()->getEstimatedMemUsage() + wal->getFileSize();
+        clientContext.getTransaction()->getLocalWAL().getSize() + wal->getFileSize();
     return expectedSize > clientContext.getDBConfig()->checkpointThreshold;
 }
 
@@ -258,16 +285,13 @@ DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
 }
 
 void Checkpointer::readCheckpoint() {
-    if (isInMemory) {
-        return;
-    }
     auto storageManager = clientContext.getStorageManager();
-    if (storageManager->getDataFH()->getNumPages() == 0) {
-        return;
+    if (!isInMemory && storageManager->getDataFH()->getNumPages() > 0) {
+        auto vfs = clientContext.getVFSUnsafe();
+        readCheckpoint(clientContext.getDatabasePath(), &clientContext, vfs,
+            clientContext.getCatalog(), clientContext.getStorageManager());
     }
-    auto vfs = clientContext.getVFSUnsafe();
-    readCheckpoint(clientContext.getDatabasePath(), &clientContext, vfs, clientContext.getCatalog(),
-        storageManager);
+    clientContext.getExtensionManager()->autoLoadLinkedExtensions(&clientContext);
 }
 
 void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext* context,
@@ -278,7 +302,7 @@ void Checkpointer::readCheckpoint(const std::string& dbPath, main::ClientContext
     common::Deserializer deSer(std::move(reader));
     auto currentHeader = readDatabaseHeader(deSer);
     if (currentHeader.catalogPageRange.startPageIdx == common::INVALID_PAGE_IDX) {
-        // If the catalog page range is invalid, it means there is no catalog to read, thus the
+        // If the catalog page range is invalid, it means there is no catalog to read; thus, the
         // database is empty.
         return;
     }

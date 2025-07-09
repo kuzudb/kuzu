@@ -1,4 +1,4 @@
-#include "../../include/storage/wal/wal_replayer.h"
+#include "storage/wal/wal_replayer.h"
 
 #include "binder/binder.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
@@ -29,52 +29,105 @@ namespace kuzu {
 namespace storage {
 
 WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{clientContext} {
-    walFilePath = StorageUtils::getWALFilePath(clientContext.getDatabasePath());
-    pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
+    walPath = StorageUtils::getWALFilePath(clientContext.getDatabasePath());
+    shadowFilePath = StorageUtils::getShadowFilePath(clientContext.getDatabasePath());
 }
 
 void WALReplayer::replay() const {
-    if (!clientContext.getVFSUnsafe()->fileOrPathExists(walFilePath, &clientContext)) {
+    auto vfs = clientContext.getVFSUnsafe();
+    Checkpointer checkpointer(clientContext);
+    // First, check if the WAL file exists. If it does not, we can safely remove the shadow file.
+    if (!vfs->fileOrPathExists(walPath, &clientContext)) {
+        removeFileIfExists(shadowFilePath);
+        // Read the checkpointed data from the disk.
+        checkpointer.readCheckpoint();
         return;
     }
+    // If the WAL file exists, we need to replay it.
     auto fileInfo =
-        clientContext.getVFSUnsafe()->openFile(walFilePath, FileOpenFlags(FileFlags::READ_ONLY));
-    const auto walFileSize = fileInfo->getFileSize();
-    // Check if the wal file is empty. If so, nothing to read.
-    if (walFileSize == 0) {
+        clientContext.getVFSUnsafe()->openFile(walPath, FileOpenFlags(FileFlags::READ_ONLY));
+    // Check if the wal file is empty. If so, we do not need to replay anything.
+    if (fileInfo->getFileSize() == 0) {
+        removeWALAndShadowFiles();
+        // Read the checkpointed data from the disk.
+        checkpointer.readCheckpoint();
         return;
     }
+    // Start replaying the WAL records.
     try {
-        Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
-        RUNTIME_CHECK(bool nextRecordShouldBeRollback = false);
-        while (!deserializer.finished()) {
-            // If an exception occurs while deserializing, we will stop replaying
-            auto walRecord = WALRecord::deserialize(deserializer, clientContext);
-            KU_ASSERT(
-                !nextRecordShouldBeRollback || walRecord->type == WALRecordType::ROLLBACK_RECORD);
-            try {
+        // First, we dry run the replay to find out the offset of the last record that was
+        // CHECKPOINT or COMMIT.
+        auto [offsetDeserialized, isLastRecordCheckpoint] = dryReplay();
+        if (isLastRecordCheckpoint) {
+            // If the last record is a checkpoint, we resume by replaying the shadow file.
+            auto shadowFileInfo =
+                vfs->openFile(shadowFilePath, FileOpenFlags(FileFlags::READ_ONLY));
+            ShadowFile::replayShadowPageRecords(clientContext, std::move(shadowFileInfo));
+            removeWALAndShadowFiles();
+            // Re-read checkpointed data from disk again as now the shadow file is applied.
+            clientContext.getStorageManager()->initDataFileHandle(vfs, &clientContext);
+            checkpointer.readCheckpoint();
+        } else {
+            // There is no checkpoint record, so we should remove the shadow file if it exists.
+            removeFileIfExists(shadowFilePath);
+            // Read the checkpointed data from the disk.
+            checkpointer.readCheckpoint();
+            // Resume by replaying the WAL file from the beginning until the last COMMIT record.
+            Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
+            while (deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset() <
+                   offsetDeserialized) {
+                KU_ASSERT(!deserializer.finished());
+                auto walRecord = WALRecord::deserialize(deserializer, clientContext);
                 replayWALRecord(*walRecord);
-                RUNTIME_CHECK(nextRecordShouldBeRollback = false);
-            } catch (const Exception&) {
-                // exception while replaying a WAL record
-                // stop executing the current query, the next record should be a rollback record
-                RUNTIME_CHECK(nextRecordShouldBeRollback = true);
             }
         }
-        if (clientContext.getTransactionContext()->hasActiveTransaction()) {
-            // Handle the case that either the last transaction is not committed or the wal file is
-            // corrupted and there is no COMMIT record for the last transaction. We should roll back
-            // under this case, and clear the WAL file.
-            clientContext.getTransactionContext()->rollback();
-            clientContext.getStorageManager()->getWAL().clearWAL();
-        }
-    } catch (const Exception&) {
+    } catch (const std::exception&) {
         if (clientContext.getTransactionContext()->hasActiveTransaction()) {
             // Handle the case that some transaction went during replaying. We should roll back
-            // under this case.
+            // under this case. Usually this shouldn't happen, but it is possible if we have a bug
+            // with the replay logic. This is to handle cases like that so we don't corrupt
+            // transactions that have been replayed.
             clientContext.getTransactionContext()->rollback();
         }
+        throw;
     }
+}
+
+WALReplayer::WALReplayInfo WALReplayer::dryReplay() const {
+    uint64_t offsetDeserialized = 0;
+    bool isLastRecordCheckpoint = false;
+    try {
+        auto fileInfo =
+            clientContext.getVFSUnsafe()->openFile(walPath, FileOpenFlags(FileFlags::READ_ONLY));
+        Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
+        bool finishedDeserializing = deserializer.finished();
+        while (!finishedDeserializing) {
+            auto walRecord = WALRecord::deserialize(deserializer, clientContext);
+            finishedDeserializing = deserializer.finished();
+            switch (walRecord->type) {
+            case WALRecordType::CHECKPOINT_RECORD: {
+                KU_ASSERT(finishedDeserializing);
+                // If we reach a checkpoint record, we can stop replaying.
+                isLastRecordCheckpoint = true;
+                finishedDeserializing = true;
+                offsetDeserialized =
+                    deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset();
+            } break;
+            case WALRecordType::COMMIT_RECORD: {
+                // Update the offset to the end of the last commit record.
+                offsetDeserialized =
+                    deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset();
+            } break;
+            default: {
+                // DO NOTHING.
+            }
+            }
+        }
+    } catch (...) { // NOLINT
+        // If we hit an exception while deserializing, we assume that the WAL file is (partially)
+        // corrupted. This should only happen for records of the last transaction recorded.
+    }
+    return {offsetDeserialized, isLastRecordCheckpoint};
 }
 
 void WALReplayer::replayWALRecord(WALRecord& walRecord) const {
@@ -84,9 +137,6 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) const {
     } break;
     case WALRecordType::COMMIT_RECORD: {
         clientContext.getTransactionContext()->commit();
-    } break;
-    case WALRecordType::ROLLBACK_RECORD: {
-        clientContext.getTransactionContext()->rollback();
     } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         replayCreateCatalogEntryRecord(walRecord);
@@ -412,6 +462,21 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
 void WALReplayer::replayLoadExtensionRecord(const WALRecord& walRecord) const {
     const auto& loadExtensionRecord = walRecord.constCast<LoadExtensionRecord>();
     clientContext.getExtensionManager()->loadExtension(loadExtensionRecord.path, &clientContext);
+}
+
+void WALReplayer::removeWALAndShadowFiles() const {
+    removeFileIfExists(shadowFilePath);
+    removeFileIfExists(walPath);
+}
+
+void WALReplayer::removeFileIfExists(const std::string& path) const {
+    if (clientContext.getStorageManager()->isReadOnly()) {
+        return;
+    }
+    auto vfs = clientContext.getVFSUnsafe();
+    if (vfs->fileOrPathExists(path, &clientContext)) {
+        vfs->removeFileIfExists(path);
+    }
 }
 
 } // namespace storage

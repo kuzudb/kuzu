@@ -5,7 +5,7 @@
 #include <type_traits>
 
 #include "common/cast.h"
-#include "common/serializer/buffered_reader.h"
+#include "common/serializer/buffer_reader.h"
 #include "common/serializer/serializer.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
@@ -321,8 +321,8 @@ struct PrimaryKeyIndexStorageInfo final : IndexStorageInfo {
 
     DELETE_COPY_DEFAULT_MOVE(PrimaryKeyIndexStorageInfo);
 
-    std::shared_ptr<common::BufferedSerializer> serialize() const override {
-        auto bufferWriter = std::make_shared<common::BufferedSerializer>();
+    std::shared_ptr<common::BufferWriter> serialize() const override {
+        auto bufferWriter = std::make_shared<common::BufferWriter>();
         auto serializer = common::Serializer(bufferWriter);
         serializer.write<common::page_idx_t>(firstHeaderPage);
         serializer.write<common::page_idx_t>(overflowHeaderPage);

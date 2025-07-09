@@ -1,5 +1,5 @@
 #include "common/file_system/virtual_file_system.h"
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_writer.h"
 #include "function/cast/vector_cast_functions.h"
 #include "function/export/export_function.h"
 #include "function/scalar_function.h"
@@ -62,7 +62,7 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
     return false;
 }
 
-static void writeString(BufferedSerializer* serializer, const ExportFuncBindData& bindData,
+static void writeString(BufferWriter* serializer, const ExportFuncBindData& bindData,
     const uint8_t* strData, uint64_t strLen, bool forceQuote) {
     auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
     if (!forceQuote) {
@@ -115,7 +115,7 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
 
     void writeHeader(const ExportFuncBindData& bindData) {
         auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
-        BufferedSerializer bufferedSerializer;
+        BufferWriter bufferedSerializer;
         if (exportCSVBindData.exportOption.hasHeader) {
             for (auto i = 0u; i < exportCSVBindData.columnNames.size(); i++) {
                 if (i != 0) {
@@ -139,7 +139,7 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
 };
 
 struct ExportCSVLocalState final : public ExportFuncLocalState {
-    std::unique_ptr<BufferedSerializer> serializer;
+    std::unique_ptr<BufferWriter> serializer;
     std::unique_ptr<DataChunk> unflatCastDataChunk;
     std::unique_ptr<DataChunk> flatCastDataChunk;
     std::vector<ValueVector*> castVectors;
@@ -148,7 +148,7 @@ struct ExportCSVLocalState final : public ExportFuncLocalState {
     ExportCSVLocalState(main::ClientContext& context, const ExportFuncBindData& bindData,
         std::vector<bool> isFlatVec) {
         auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
-        serializer = std::make_unique<BufferedSerializer>();
+        serializer = std::make_unique<BufferWriter>();
         auto numFlatVectors = std::count(isFlatVec.begin(), isFlatVec.end(), true /* isFlat */);
         unflatCastDataChunk = std::make_unique<DataChunk>(isFlatVec.size() - numFlatVectors);
         flatCastDataChunk = std::make_unique<DataChunk>(numFlatVectors,
@@ -242,7 +242,7 @@ static void sinkFunc(ExportFuncSharedState& sharedState, ExportFuncLocalState& l
     if (serializer->getSize() > ExportCSVConstants::DEFAULT_CSV_FLUSH_SIZE) {
         auto& exportCSVSharedState = sharedState.cast<ExportCSVSharedState>();
         exportCSVSharedState.writeRows(serializer->getBlobData(), serializer->getSize());
-        serializer->reset();
+        serializer->clear();
     }
 }
 
@@ -251,7 +251,7 @@ static void combineFunc(ExportFuncSharedState& sharedState, ExportFuncLocalState
     auto& exportCSVSharedState = sharedState.cast<ExportCSVSharedState>();
     if (serializer->getSize() > 0) {
         exportCSVSharedState.writeRows(serializer->getBlobData(), serializer->getSize());
-        serializer->reset();
+        serializer->clear();
     }
 }
 

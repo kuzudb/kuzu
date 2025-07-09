@@ -377,8 +377,8 @@ void InMemHNSWIndex::finalizeNodeGroup(common::node_group_idx_t nodeGroupIdx) {
         *scanState);
 }
 
-std::shared_ptr<common::BufferedSerializer> HNSWStorageInfo::serialize() const {
-    auto bufferWriter = std::make_shared<common::BufferedSerializer>();
+std::shared_ptr<common::BufferWriter> HNSWStorageInfo::serialize() const {
+    auto bufferWriter = std::make_shared<common::BufferWriter>();
     auto serializer = common::Serializer(bufferWriter);
     serializer.write<common::table_id_t>(upperRelTableID);
     serializer.write<common::table_id_t>(lowerRelTableID);

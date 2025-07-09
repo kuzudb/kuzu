@@ -1,7 +1,7 @@
 #include "storage/free_space_manager.h"
 
 #include "common/serializer/deserializer.h"
-#include "common/serializer/metadata_writer.h"
+#include "common/serializer/in_mem_file_writer.h"
 #include "common/serializer/serializer.h"
 #include "common/utils.h"
 #include "storage/buffer_manager/buffer_manager.h"
@@ -86,7 +86,7 @@ struct SerializePagesUsedTracker {
     uint64_t numBytesUsedInPage;
 
     void updatePagesUsed(uint64_t numBytesToAdd) {
-        if (numBytesUsedInPage + numBytesToAdd > common::MetaWriter::getPageSize()) {
+        if (numBytesUsedInPage + numBytesToAdd > common::InMemFileWriter::getPageSize()) {
             ++numPagesUsed;
             numBytesUsedInPage = 0;
         }

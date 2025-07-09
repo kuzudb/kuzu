@@ -523,7 +523,7 @@ TEST_F(ApiTest, InvalidDBFile) {
     ASSERT_TRUE(std::filesystem::exists(databasePath));
     ASSERT_FALSE(std::filesystem::file_size(databasePath) == 0);
     // Attempt to open the database with the empty file.
-    ASSERT_THROW(std::make_unique<Database>(databasePath, *systemConfig), RuntimeException);
+    ASSERT_THROW(std::make_unique<Database>(databasePath, *systemConfig), Exception);
 }
 
 TEST_F(ApiTest, DBFileUnderNonExistingDir) {

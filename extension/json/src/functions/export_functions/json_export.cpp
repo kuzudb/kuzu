@@ -1,7 +1,7 @@
 #include "json_export.h"
 
 #include "common/file_system/virtual_file_system.h"
-#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/buffer_writer.h"
 #include "function/export/export_function.h"
 #include "json_utils.h"
 #include "main/client_context.h"
@@ -79,7 +79,7 @@ static void combineFunc(ExportFuncSharedState& sharedState, ExportFuncLocalState
 
 static void finalizeFunc(ExportFuncSharedState& sharedState) {
     auto& jsonSharedState = sharedState.cast<ExportJSONSharedState>();
-    BufferedSerializer serializer;
+    BufferWriter serializer;
     serializer.writeBufferData("[\n");
     for (auto& i : jsonSharedState.jsonValues) {
         serializer.writeBufferData(i);

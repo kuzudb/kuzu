@@ -54,20 +54,6 @@ std::span<std::atomic<EvictionCandidate>, EvictionQueue::BATCH_SIZE> EvictionQue
         data.get() + ((evictionCursor += BATCH_SIZE) % capacity), BATCH_SIZE);
 }
 
-void EvictionQueue::removeCandidatesForFile(uint32_t fileIndex) {
-    if (size == 0) {
-        return;
-    }
-    for (uint64_t i = 0; i < capacity; i++) {
-        auto candidate = data[i].load();
-        if (candidate.fileIdx == fileIndex && data[i].compare_exchange_strong(candidate, EMPTY)) {
-            if (size-- == 1) {
-                return;
-            }
-        }
-    }
-}
-
 void EvictionQueue::clear(std::atomic<EvictionCandidate>& candidate) {
     auto nonEmpty = candidate.load();
     if (nonEmpty != EMPTY && candidate.compare_exchange_strong(nonEmpty, EMPTY)) {
@@ -469,7 +455,6 @@ void BufferManager::cachePageIntoFrame(FileHandle& fileHandle, page_idx_t pageId
 }
 
 void BufferManager::removeFilePagesFromFrames(FileHandle& fileHandle) {
-    evictionQueue.removeCandidatesForFile(fileHandle.getFileIndex());
     for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
         removePageFromFrame(fileHandle, pageIdx, false /* do not flush */);
     }

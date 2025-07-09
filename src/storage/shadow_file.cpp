@@ -5,7 +5,6 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "main/client_context.h"
-#include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
@@ -30,19 +29,10 @@ ShadowPageRecord ShadowPageRecord::deserialize(Deserializer& deserializer) {
     return ShadowPageRecord{originalFileIdx, originalPageIdx};
 }
 
-ShadowFile::ShadowFile(const std::string& dbPath, bool readOnly, BufferManager& bufferManager,
-    VirtualFileSystem* vfs, ClientContext* context) {
-    if (DBConfig::isDBPathInMemory(dbPath)) {
-        return;
-    }
-    shadowingFH = bufferManager.getFileHandle(StorageUtils::getShadowFilePath(dbPath),
-        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                   FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        vfs, context);
-    if (shadowingFH->getNumPages() == 0) {
-        // Reserve the first page for the header.
-        shadowingFH->addNewPage();
-    }
+ShadowFile::ShadowFile(BufferManager& bm, VirtualFileSystem* vfs, const std::string& databasePath)
+    : bm{bm}, shadowFilePath{StorageUtils::getShadowFilePath(databasePath)}, vfs{vfs},
+      shadowingFH{nullptr} {
+    KU_ASSERT(vfs);
 }
 
 void ShadowFile::clearShadowPage(file_idx_t originalFile, page_idx_t originalPage) {
@@ -58,7 +48,7 @@ page_idx_t ShadowFile::getOrCreateShadowPage(file_idx_t originalFile, page_idx_t
     if (hasShadowPage(originalFile, originalPage)) {
         return shadowPagesMap[originalFile][originalPage];
     }
-    const auto shadowPageIdx = shadowingFH->addNewPage();
+    const auto shadowPageIdx = getOrCreateShadowingFH()->addNewPage();
     shadowPagesMap[originalFile][originalPage] = shadowPageIdx;
     shadowPageRecords.push_back({originalFile, originalPage});
     return shadowPageIdx;
@@ -69,17 +59,42 @@ page_idx_t ShadowFile::getShadowPage(file_idx_t originalFile, page_idx_t origina
     return shadowPagesMap.at(originalFile).at(originalPage);
 }
 
-void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
+void ShadowFile::applyShadowPages(ClientContext& context) const {
     const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     page_idx_t shadowPageIdx = 1; // Skip header page.
     auto dataFileInfo = context.getStorageManager()->getDataFH()->getFileInfo();
+    KU_ASSERT(shadowingFH);
     for (const auto& record : shadowPageRecords) {
         shadowingFH->readPageFromDisk(pageBuffer.get(), shadowPageIdx++);
         dataFileInfo->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
             record.originalPageIdx * KUZU_PAGE_SIZE);
-        // NOTE: We're not taking lock here, as we assume this is only called with single thread.
+        // NOTE: We're not taking lock here, as we assume this is only called with a single thread.
         context.getMemoryManager()->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
             record.originalFileIdx, pageBuffer.get(), record.originalPageIdx);
+    }
+}
+
+void ShadowFile::replayShadowPageRecords(ClientContext& context,
+    std::unique_ptr<FileInfo> fileInfo) {
+    ShadowFileHeader header;
+    const auto headerBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
+    fileInfo->readFromFile(headerBuffer.get(), KUZU_PAGE_SIZE, 0);
+    memcpy(&header, headerBuffer.get(), sizeof(ShadowFileHeader));
+    std::vector<ShadowPageRecord> shadowPageRecords;
+    shadowPageRecords.reserve(header.numShadowPages);
+    auto fileInfoPtr = fileInfo.get();
+    auto reader = std::make_unique<BufferedFileReader>(std::move(fileInfo));
+    reader->resetReadOffset((header.numShadowPages + 1) * KUZU_PAGE_SIZE);
+    Deserializer deSer(std::move(reader));
+    deSer.deserializeVector(shadowPageRecords);
+    auto dataFileInfo = context.getStorageManager()->getDataFH()->getFileInfo();
+    const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
+    page_idx_t shadowPageIdx = 1;
+    for (const auto& record : shadowPageRecords) {
+        fileInfoPtr->readFromFile(pageBuffer.get(), KUZU_PAGE_SIZE, shadowPageIdx * KUZU_PAGE_SIZE);
+        dataFileInfo->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
+            record.originalPageIdx * KUZU_PAGE_SIZE);
+        shadowPageIdx++;
     }
 }
 
@@ -89,7 +104,7 @@ void ShadowFile::flushAll() const {
     header.numShadowPages = shadowPageRecords.size();
     const auto headerBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     memcpy(headerBuffer.get(), &header, sizeof(ShadowFileHeader));
-    KU_ASSERT(!shadowingFH->isInMemoryMode());
+    KU_ASSERT(shadowingFH && !shadowingFH->isInMemoryMode());
     shadowingFH->writePageToFile(headerBuffer.get(), 0);
     // Flush shadow pages to file.
     shadowingFH->flushAllDirtyPagesInFrames();
@@ -104,13 +119,29 @@ void ShadowFile::flushAll() const {
     writer->sync();
 }
 
-void ShadowFile::clearAll(ClientContext& context) {
-    context.getMemoryManager()->getBufferManager()->removeFilePagesFromFrames(*shadowingFH);
+void ShadowFile::clear(BufferManager& bm) {
+    KU_ASSERT(shadowingFH);
+    // TODO(Guodong): We should remove shadow file here. This requires changes:
+    // 1. We need to make shadow file not going through BM.
+    // 2. We need to remove fileHandles held in BM, so that BM only keeps FH for the data file.
+    bm.removeFilePagesFromFrames(*shadowingFH);
     shadowingFH->resetToZeroPagesAndPageCapacity();
     shadowPagesMap.clear();
     shadowPageRecords.clear();
     // Reserve header page.
     shadowingFH->addNewPage();
+}
+
+FileHandle* ShadowFile::getOrCreateShadowingFH() {
+    if (!shadowingFH) {
+        shadowingFH = bm.getFileHandle(shadowFilePath,
+            FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs, nullptr);
+        if (shadowingFH->getNumPages() == 0) {
+            // Reserve the first page for the header.
+            shadowingFH->addNewPage();
+        }
+    }
+    return shadowingFH;
 }
 
 } // namespace storage
