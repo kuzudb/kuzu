@@ -171,6 +171,13 @@ void B::validate(double value) {
     }
 }
 
+void TopK::validate(uint64_t value) {
+    if (value == 0) {
+        throw common::BinderException{
+            "QUERY_FTS_INDEX requires a positive non-zero value for the 'top' parameter."};
+    }
+}
+
 QueryFTSConfig::QueryFTSConfig(const function::optional_params_t& optionalParams) {
     for (auto& [name, value] : optionalParams) {
         auto lowerCaseName = common::StringUtils::getLower(name);
