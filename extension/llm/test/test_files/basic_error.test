@@ -11,6 +11,11 @@
 Binder exception: The PROMPT argument must be a STRING. Got STRUCT(a UNION(b INT64)).
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
+-STATEMENT RETURN CREATE_EMBEDDING(-1, "open-ai", "text-embedding-3-small");
+---- error
+Binder exception: The PROMPT argument must be a STRING. Got INT64.
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
 -STATEMENT RETURN CREATE_EMBEDDING(123, "open-ai", "text-embedding-3-small");
 ---- error
 Binder exception: The PROMPT argument must be a STRING. Got INT64.
