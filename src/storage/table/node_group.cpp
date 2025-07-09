@@ -239,6 +239,13 @@ NodeGroupScanResult NodeGroup::scanInternal(const UniqLock& lock, Transaction* t
     auto startOffsetInGroup = startOffset - nodeGroupStartOffset;
     KU_ASSERT(startOffsetInGroup + numRowsToScan <= numRows);
 
+    auto startRowIdxInGroup = getStartRowIdxInGroupNoLock();
+    if (startOffsetInGroup < startRowIdxInGroup) {
+        numRowsToScan = std::min(numRowsToScan, startRowIdxInGroup - startOffsetInGroup);
+        // If the scan starts before the first row in the group, skip the deleted part and return.
+        return NodeGroupScanResult{startOffsetInGroup, numRowsToScan};
+    }
+
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     nodeGroupScanState.nextRowToScan = startOffsetInGroup;
 
@@ -248,7 +255,7 @@ NodeGroupScanResult NodeGroup::scanInternal(const UniqLock& lock, Transaction* t
     const auto* chunkedGroupToScan = chunkedGroups.getGroup(lock, newChunkedGroupIdx);
     if (newChunkedGroupIdx != nodeGroupScanState.chunkedGroupIdx) {
         // If the chunked group matches the scan state, don't re-initialize it.
-        // E.g. we may scan a group multiple times in parts
+        // E.g., we may scan a group multiple times in parts
         initializeScanStateForChunkedGroup(state, chunkedGroupToScan);
         nodeGroupScanState.chunkedGroupIdx = newChunkedGroupIdx;
     }
@@ -256,7 +263,6 @@ NodeGroupScanResult NodeGroup::scanInternal(const UniqLock& lock, Transaction* t
     uint64_t numRowsScanned = 0;
     const auto rowIdxInChunkToScan =
         (startOffsetInGroup + numRowsScanned) - chunkedGroupToScan->getStartRowIdx();
-
     uint64_t numRowsToScanInChunk = std::min(numRowsToScan - numRowsScanned,
         chunkedGroupToScan->getNumRows() - rowIdxInChunkToScan);
     chunkedGroupToScan->scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
