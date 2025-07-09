@@ -104,8 +104,6 @@ public:
 
     bool canHandleFile(const std::string_view path) const override;
 
-    static std::string encodeURL(const std::string& input, bool encodeSlash = false);
-
     static std::string decodeURL(std::string input);
 
     ParsedS3URL parseS3URL(std::string url, S3AuthParams& params) const;

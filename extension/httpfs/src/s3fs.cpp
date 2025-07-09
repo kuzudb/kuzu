@@ -72,7 +72,7 @@ void S3FileInfo::rethrowIOError() const {
 }
 
 std::string ParsedS3URL::getHTTPURL(std::string httpQueryString) const {
-    auto url = httpProto + host + S3FileSystem::encodeURL(path);
+    auto url = httpProto + host + StringUtils::encodeURL(path);
     if (!httpQueryString.empty()) {
         url += "?" + httpQueryString;
     }
@@ -317,30 +317,6 @@ std::vector<std::string> S3FileSystem::glob(main::ClientContext* context,
     return globResult;
 }
 
-std::string S3FileSystem::encodeURL(const std::string& input, bool encodeSlash) {
-    static const char* hex_digit = "0123456789ABCDEF";
-    std::string result;
-    result.reserve(input.size());
-    for (auto i = 0u; i < input.length(); i++) {
-        char ch = input[i];
-        if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
-            ch == '_' || ch == '-' || ch == '~' || ch == '.') {
-            result += ch;
-        } else if (ch == '/') {
-            if (encodeSlash) {
-                result += std::string("%2F");
-            } else {
-                result += ch;
-            }
-        } else {
-            result += std::string("%");
-            result += hex_digit[static_cast<unsigned char>(ch) >> 4];
-            result += hex_digit[static_cast<unsigned char>(ch) & 15];
-        }
-    }
-    return result;
-}
-
 std::string S3FileSystem::decodeURL(std::string input) {
     std::string result;
     result.reserve(input.size());
@@ -528,7 +504,7 @@ void S3FileSystem::finalizeMultipartUpload(S3FileInfo* fileInfo) {
     uint64_t responseBufferSize = DEFAULT_RESPONSE_BUFFER_SIZE;
     auto responseBuffer = std::make_unique<uint8_t[]>(responseBufferSize);
     std::string queryParam =
-        "uploadId=" + S3FileSystem::encodeURL(fileInfo->multipartUploadID, true);
+        "uploadId=" + StringUtils::encodeURL(fileInfo->multipartUploadID, true);
     auto res = s3FS->postRequest(fileInfo, fileInfo->path, {} /* headerMap */, responseBuffer,
         responseBufferSize, reinterpret_cast<const uint8_t*>(body.c_str()), body.length(),
         queryParam);
@@ -567,7 +543,7 @@ HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::
     if (!authParams.sessionToken.empty()) {
         signedHeaders += ";x-amz-security-token";
     }
-    auto canonicalRequest = method + "\n" + S3FileSystem::encodeURL(url) + "\n" + query;
+    auto canonicalRequest = method + "\n" + StringUtils::encodeURL(url) + "\n" + query;
     if (!contentType.empty()) {
         canonicalRequest += "\ncontent-type:" + contentType;
     }
@@ -688,7 +664,7 @@ void S3FileSystem::uploadBuffer(S3FileInfo* fileInfo,
     auto s3FileSystem = fileInfo->fileSystem->ptrCast<S3FileSystem>();
     std::string queryParam =
         "partNumber=" + std::to_string(bufferToUpload->partID + 1) + "&" +
-        "uploadId=" + S3FileSystem::encodeURL(fileInfo->multipartUploadID, true);
+        "uploadId=" + StringUtils::encodeURL(fileInfo->multipartUploadID, true);
     std::unique_ptr<HTTPResponse> res;
     case_insensitive_map_t<std::string>::iterator etagIter;
     try {
@@ -762,11 +738,11 @@ std::string AWSListObjectV2::request(const S3FileSystem& fs, std::string& path,
     std::string requestParams = "";
     if (!continuationToken.empty()) {
         requestParams += "continuation-token=" +
-                         S3FileSystem::encodeURL(continuationToken, true /* encodeSlash */);
+                         StringUtils::encodeURL(continuationToken, true /* encodeSlash */);
         requestParams += "&";
     }
     requestParams += "encoding-type=url&list-type=2";
-    requestParams += "&prefix=" + S3FileSystem::encodeURL(prefix, true);
+    requestParams += "&prefix=" + StringUtils::encodeURL(prefix, true);
     std::string listObjectV2URL = requestPath + "?" + requestParams;
     auto headerMap = fs.createS3Header(requestPath, requestParams, parsedURL.host, "s3", "GET",
         authParams, "" /* payloadHash */, "" /* contentType */);
