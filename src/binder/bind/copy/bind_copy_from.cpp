@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
@@ -145,6 +146,16 @@ BoundCopyFromInfo Binder::bindCopyNodeFromInfo(std::string tableName,
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
     NodeTableCatalogEntry& nodeTableEntry) {
     auto& copyStatement = statement.constCast<CopyFrom>();
+    // Check extension secondary index loaded
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
+    for (auto indexEntry : catalog->getIndexEntries(transaction, nodeTableEntry.getTableID())) {
+        if (!indexEntry->isLoaded()) {
+            throw BinderException(stringFormat(
+                "Trying to insert into an index on table {} but its extension is not loaded.",
+                nodeTableEntry.getName()));
+        }
+    }
     // Bind expected columns based on catalog information.
     std::vector<std::string> expectedColumnNames;
     std::vector<LogicalType> expectedColumnTypes;

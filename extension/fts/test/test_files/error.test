@@ -163,6 +163,9 @@ Binder exception: Trying to insert into an index on table STUDENT but its extens
 -STATEMENT MERGE (:Student {id:0, name:'Alice'});
 ---- error
 Binder exception: Trying to insert into an index on table STUDENT but its extension is not loaded.
+-STATEMENT COPY Student FROM (RETURN 100 AS id, 'Bob' AS name, 25 AS age, 'hhh' AS note)
+---- error
+Binder exception: Trying to insert into an index on table STUDENT but its extension is not loaded.
 -STATEMENT MATCH (a:Student) DELETE a;
 ---- error
 Binder exception: Trying to delete from an index on table STUDENT but its extension is not loaded.
