@@ -34,8 +34,9 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
 #if defined(__SWIFT__) && defined(__APPLE__)
       ,
       threadQos(systemConfig.threadQos)
-#endif 
-{}
+#endif
+{
+}
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
     auto lOptionName = optionName;
@@ -52,5 +53,5 @@ bool DBConfig::isDBPathInMemory(const std::string& dbPath) {
     return dbPath.empty() || dbPath == ":memory:";
 }
 
-} // namespace kuzu
+} // namespace main
 } // namespace kuzu
