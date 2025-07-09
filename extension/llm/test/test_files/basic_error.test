@@ -49,8 +49,7 @@ For more information, please refer to the official Kuzu documentation: https://d
 
 -STATEMENT RETURN CREATE_EMBEDDING("helo", "ollama", 5, '${OLLAMA_URL}');
 ---- error
-Connection exception: Request failed with status 404
- Body: {"error":"model \"5\" not found, try pulling it first"}
+Connection exception: Request failed: Could not connect to server <${ollama_url}> 
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 
@@ -75,6 +74,19 @@ Binder exception: Function CREATE_EMBEDDING for open-ai did not receive correct 
 Actual:   (STRING,STRING,STRING,INT8,INT64)
 Expected: (STRING,STRING,STRING) -> LIST
           (STRING,STRING,STRING,INT64) -> LIST
+
+-STATEMENT CREATE NODE TABLE User (name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+
+-STATEMENT MATCH(u:User) RETURN CREATE_EMBEDDING(u.age, 'blah', 'blah') as EMB
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (INT64,STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
+
 
 -CASE MismatchParams
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
