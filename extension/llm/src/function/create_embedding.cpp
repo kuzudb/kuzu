@@ -2,7 +2,6 @@
 #include "common/exception/binder.h"
 #include "common/exception/connection.h"
 #include "common/string_utils.h"
-#include "common/types/types.h"
 #include "function/built_in_function_utils.h"
 #include "function/llm_functions.h"
 #include "function/scalar_function.h"
