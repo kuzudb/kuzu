@@ -113,23 +113,23 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     std::optional<uint64_t> numConfig = std::nullopt;
     std::optional<std::string> stringConfig = std::nullopt;
     auto providerNameExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
-         input.arguments[1], LogicalType::STRING());
+        input.arguments[1], LogicalType::STRING());
     auto providerName =
-         ExpressionUtil::evaluateLiteral<std::string>(*providerNameExpr, LogicalType::STRING());
+        ExpressionUtil::evaluateLiteral<std::string>(*providerNameExpr, LogicalType::STRING());
     auto provider = EmbeddingProviderFactory::getProvider(providerName);
     auto modelNameExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
-         input.arguments[2], LogicalType::STRING());
+        input.arguments[2], LogicalType::STRING());
     auto modelName =
-         ExpressionUtil::evaluateLiteral<std::string>(*modelNameExpr, LogicalType::STRING());
+        ExpressionUtil::evaluateLiteral<std::string>(*modelNameExpr, LogicalType::STRING());
     if (input.arguments.size() == 5) {
-       auto numConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
-           input.arguments[3], LogicalType::INT64());
-       numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*numConfigExpr, LogicalType::INT64(),
-           validate);
-       auto stringConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
-           input.arguments[4], LogicalType::STRING());
-       stringConfig =
-           ExpressionUtil::evaluateLiteral<std::string>(*stringConfigExpr, LogicalType::STRING());
+        auto numConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
+            input.arguments[3], LogicalType::INT64());
+        numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*numConfigExpr, LogicalType::INT64(),
+            validate);
+        auto stringConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
+            input.arguments[4], LogicalType::STRING());
+        stringConfig =
+            ExpressionUtil::evaluateLiteral<std::string>(*stringConfigExpr, LogicalType::STRING());
     } else if (input.arguments.size() == 4) {
         if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
             auto stringConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
