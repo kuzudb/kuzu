@@ -14,16 +14,21 @@ def remove_worktree(path, repo_root):
         run_command(f"git worktree remove --force {path}", cwd=repo_root)
 
 
+def check_for_extension_build(makefile):
+    with open(makefile, "r") as f:
+        return any(line.strip() == "extension-build:" for line in f)
+
+
 # Duplicates code from benchmark/version.py.
 # Should be fine since the footprint is small, but any further extensions
 # to this tool should rework this if the footprint for duplicated code gets
 # bigger.
 def get_version(kuzu_root):
-    cmake_file = os.path.join(kuzu_root, 'CMakeLists.txt')
+    cmake_file = os.path.join(kuzu_root, "CMakeLists.txt")
     with open(cmake_file) as f:
         for line in f:
-            if line.startswith('project(Kuzu VERSION'):
-                return line.split(' ')[2].strip()
+            if line.startswith("project(Kuzu VERSION"):
+                return line.split(" ")[2].strip()
     return "0"
 
 
@@ -68,10 +73,10 @@ def main():
         "--output-dir", required=True, help="Path to output the exported databases"
     )
     parser.add_argument(
-    "--cleanup",
-    dest="cleanup",
-    action="store_true",
-    help="Delete exported DBs after test",
+        "--cleanup",
+        dest="cleanup",
+        action="store_true",
+        help="Delete exported DBs after test",
     )
     parser.add_argument(
         "--no-cleanup",
@@ -106,10 +111,16 @@ def main():
             # JSON support to ensure the export works correctly.
 
             # Older makefiles did not have the command specified under else
-            if (version == "0.10.0"):
-                run_command("make extension-test-build EXTENSION_LIST=json", cwd=base_worktree)
+            if check_for_extension_build(
+                os.path.abspath(os.path.join(base_worktree, "Makefile"))
+            ):
+                run_command(
+                    "make extension-build EXTENSION_LIST=json", cwd=base_worktree
+                )
             else:
-                run_command("make extension-build EXTENSION_LIST=json", cwd=base_worktree)
+                run_command(
+                    "make extension-test-build EXTENSION_LIST=json", cwd=base_worktree
+                )
             inprogress_path = f"{export_path}_inprogress" + os.sep
             export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
             exec_path = os.path.join(
