@@ -265,5 +265,30 @@ std::string StringUtils::rtrimNewlines(const std::string& input) {
     return s;
 }
 
+std::string StringUtils::encodeURL(const std::string& input, bool encodeSlash) {
+    static const char* hex_digit = "0123456789ABCDEF";
+    static constexpr std::string_view unreserved_chars = "_.-~";
+    constexpr auto isUnreserved = [](char ch) {
+        return std::isalnum(ch) || unreserved_chars.find(ch) != std::string_view::npos;
+    };
+    std::string result;
+    result.reserve(input.size());
+    for (auto ch : input) {
+        if (isUnreserved(ch)) {
+            result += ch;
+        } else if (ch == '/') {
+            if (encodeSlash) {
+                result += std::string("%2F");
+            } else {
+                result += ch;
+            }
+        } else {
+            result += std::string("%");
+            result += hex_digit[static_cast<unsigned char>(ch) >> 4];
+            result += hex_digit[static_cast<unsigned char>(ch) & 15];
+        }
+    }
+    return result;
+}
 } // namespace common
 } // namespace kuzu
