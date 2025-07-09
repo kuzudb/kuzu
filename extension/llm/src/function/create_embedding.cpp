@@ -160,8 +160,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         provider->configure(numConfig, stringConfig);
     } catch (const std::string& supportedInputs) {
         throw(BinderException(BuiltInFunctionsUtils::getFunctionMatchFailureMsg(
-            std::string(CreateEmbedding::name) + " for " + providerName,
-            ExpressionUtil::getDataTypes(input.arguments), supportedInputs) + '\n' + EmbeddingProvider::referenceKuzuDocs));
+                                  std::string(CreateEmbedding::name) + " for " + providerName,
+                                  ExpressionUtil::getDataTypes(input.arguments), supportedInputs) +
+                              '\n' + EmbeddingProvider::referenceKuzuDocs));
     }
     return std::make_unique<CreateEmbeddingBindData>(ExpressionUtil::getDataTypes(input.arguments),
         LogicalType::LIST(LogicalType(LogicalTypeID::FLOAT)), std::move(provider),
