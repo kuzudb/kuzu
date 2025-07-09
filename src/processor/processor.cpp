@@ -10,11 +10,15 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-QueryProcessor::QueryProcessor(uint64_t numThreads) {
+QueryProcessor::QueryProcessor(uint64_t numThreads
+#if defined(__SWIFT__) && defined(__APPLE__)
+    , uint32_t threadQos
+#endif
+) {
     taskScheduler = std::make_unique<TaskScheduler>(numThreads
 #if defined(__SWIFT__) && defined(__APPLE__)
         ,
-        dbConfig.threadQos
+        threadQos
 #endif
     );
 }

@@ -10,7 +10,11 @@ namespace processor {
 class QueryProcessor {
 
 public:
-    explicit QueryProcessor(uint64_t numThreads);
+    explicit QueryProcessor(uint64_t numThreads
+#if defined(__SWIFT__) && defined(__APPLE__)
+        , uint32_t threadQos
+#endif
+    );
 
     inline common::TaskScheduler* getTaskScheduler() { return taskScheduler.get(); }
 
