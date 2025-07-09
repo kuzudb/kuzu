@@ -99,11 +99,12 @@ def main():
     test_worktree = os.path.join(kuzu_root, ".worktree-test")
     create_worktree(base_worktree, base_commit, kuzu_root)
     create_worktree(test_worktree, test_commit, kuzu_root)
+    export_path = None
     try:
         version = get_version(base_worktree)
-        export_path = os.path.abspath(os.path.join(output_dir, version))
         if version == "0":
             raise Exception("Failed to determine version. Aborting.")
+        export_path = os.path.abspath(os.path.join(output_dir, version))
 
         if not os.path.exists(export_path + os.sep):
             # Some datasets, like tinysnb_json, have a dependency on the JSON
@@ -141,10 +142,9 @@ def main():
         run_command("make test", cwd=test_worktree)
         return 0
     finally:
-        if cleanup:
-            if os.path.exists(export_path):
-                print(f"Cleaning up export directory: {export_path}")
-                shutil.rmtree(export_path)
+        if cleanup and export_path and os.path.exists(export_path):
+            print(f"Cleaning up export directory: {export_path}")
+            shutil.rmtree(export_path)
         else:
             print(f"Skipping cleaning up export directory: {export_path}")
 
