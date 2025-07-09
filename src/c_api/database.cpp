@@ -12,7 +12,7 @@ kuzu_state kuzu_database_init(const char* database_path, kuzu_system_config conf
             SystemConfig(config.buffer_pool_size, config.max_num_threads, config.enable_compression,
                 config.read_only, config.max_db_size, config.auto_checkpoint,
                 config.checkpoint_threshold
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
                 ,
                 config.thread_qos
 #endif
@@ -37,7 +37,7 @@ kuzu_system_config kuzu_default_system_config() {
     SystemConfig config = SystemConfig();
     return {config.bufferPoolSize, config.maxNumThreads, config.enableCompression, config.readOnly,
         config.maxDBSize, config.autoCheckpoint, config.checkpointThreshold
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
         ,
         config.threadQos
 #endif

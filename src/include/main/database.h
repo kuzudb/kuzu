@@ -4,7 +4,7 @@
 #include <mutex>
 #include <vector>
 
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
 #include <pthread/qos.h>
 #endif
 
@@ -69,7 +69,7 @@ struct KUZU_API SystemConfig {
         bool enableCompression = true, bool readOnly = false, uint64_t maxDBSize = -1u,
         bool autoCheckpoint = true, uint64_t checkpointThreshold = 16777216 /* 16MB */,
         bool forceCheckpointOnClose = true
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
         ,
         uint32_t threadQos = QOS_CLASS_DEFAULT
 #endif

@@ -12,7 +12,7 @@ namespace processor {
 
 QueryProcessor::QueryProcessor(uint64_t numThreads) {
     taskScheduler = std::make_unique<TaskScheduler>(numThreads
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
         ,
         dbConfig.threadQos
 #endif

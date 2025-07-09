@@ -43,7 +43,7 @@ struct ScheduledTask {
 class KUZU_API TaskScheduler {
 public:
     explicit TaskScheduler(uint64_t numWorkerThreads
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
         ,
         uint32_t threadQos
 #endif
@@ -76,7 +76,7 @@ private:
     std::mutex taskSchedulerMtx;
     std::condition_variable cv;
     uint64_t nextScheduledTaskID;
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
     uint32_t threadQos; // Thread quality of service for worker threads.
 #endif
 };

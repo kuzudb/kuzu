@@ -1,5 +1,5 @@
 #include "common/task_system/task_scheduler.h"
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
 #include <pthread.h>
 
 #include <pthread/qos.h>
@@ -12,13 +12,13 @@ namespace common {
 
 #ifndef __SINGLE_THREADED__
 TaskScheduler::TaskScheduler(uint64_t numWorkerThreads
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
     ,
     uint32_t threadQos
 #endif
     )
     : stopWorkerThreads{false}, nextScheduledTaskID{0}
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
       ,
       threadQos{threadQos}
 #endif
@@ -98,7 +98,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
 }
 
 void TaskScheduler::runWorkerThread() {
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
     auto pthreadQosStatus = pthread_set_qos_class_self_np((qos_class_t)threadQos, 0);
     KU_UNUSED(pthreadQosStatus);
 #endif

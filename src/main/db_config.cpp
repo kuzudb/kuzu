@@ -31,11 +31,11 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
       autoCheckpoint{systemConfig.autoCheckpoint},
       checkpointThreshold{systemConfig.checkpointThreshold},
       forceCheckpointOnClose{systemConfig.forceCheckpointOnClose}, enableSpillingToDisk{true}
-#ifdef __SWIFT__
+#if defined(__SWIFT__) && defined(__APPLE__)
       ,
       threadQos(systemConfig.threadQos)
-#endif {
-} // namespace main
+#endif 
+{}
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
     auto lOptionName = optionName;
