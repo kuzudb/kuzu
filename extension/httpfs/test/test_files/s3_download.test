@@ -3,6 +3,7 @@
 --
 
 -CASE S3Option
+-SKIP_STATIC_LINK
 -LOAD_DYNAMIC_EXTENSION httpfs
 -SET S3_ACCESS_KEY_ID random_key_id
 -SET S3_REGION random_region
