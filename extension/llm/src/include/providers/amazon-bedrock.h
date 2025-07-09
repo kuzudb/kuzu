@@ -9,11 +9,9 @@ namespace kuzu {
 namespace llm_extension {
 
 class BedrockEmbedding final : public EmbeddingProvider {
+public:
     BedrockEmbedding() = default;
     DELETE_COPY_AND_MOVE(BedrockEmbedding);
-    std::optional<std::string> region;
-
-public:
     ~BedrockEmbedding() override = default;
     static EmbeddingProvider& getInstance();
     std::string getClient() const override;
@@ -24,6 +22,9 @@ public:
     std::vector<float> parseResponse(const httplib::Result& res) const override;
     void configure(const std::optional<uint64_t>& dimensions,
         const std::optional<std::string>& region) override;
+
+private:
+    std::optional<std::string> region;
 };
 
 } // namespace llm_extension
