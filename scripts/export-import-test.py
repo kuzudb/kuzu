@@ -5,8 +5,7 @@ import shutil
 
 
 def create_worktree(path, commit, repo_root):
-    if os.path.exists(path):
-        run_command(f"git worktree remove --force {path}", cwd=repo_root)
+    remove_worktree(path, repo_root)
     run_command(f"git worktree add {path} {commit}", cwd=repo_root)
 
 
