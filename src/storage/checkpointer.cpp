@@ -122,8 +122,8 @@ void Checkpointer::writeCheckpoint() {
     clientContext.getCatalog()->resetVersion();
     auto* dataFH = storageManager->getDataFH();
     dataFH->getPageManager()->resetVersion();
-    clientContext.getWAL()->reset();
-    // TODO: Should also remove the shadow file if we're closing the database.
+    storageManager->getWAL().reset();
+    storageManager->getShadowFile().reset();
 }
 
 bool Checkpointer::checkpointStorage() {

@@ -12,7 +12,7 @@ namespace storage {
 class LocalWAL;
 class WAL {
 public:
-    WAL(std::string dbPath, bool readOnly, common::VirtualFileSystem* vfs);
+    WAL(const std::string& dbPath, bool readOnly, common::VirtualFileSystem* vfs);
     ~WAL();
 
     void logCommittedWAL(LocalWAL& localWAL, main::ClientContext* context);
@@ -32,7 +32,8 @@ private:
 
 private:
     std::mutex mtx;
-    std::string dbPath;
+    std::string walPath;
+    bool inMemory;
     bool readOnly;
     common::VirtualFileSystem* vfs;
     std::unique_ptr<common::FileInfo> fileInfo;

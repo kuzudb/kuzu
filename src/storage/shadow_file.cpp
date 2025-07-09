@@ -132,6 +132,12 @@ void ShadowFile::clear(BufferManager& bm) {
     shadowingFH->addNewPage();
 }
 
+void ShadowFile::reset() {
+    shadowingFH->getFileInfo()->reset();
+    shadowingFH = nullptr;
+    vfs->removeFileIfExists(shadowFilePath);
+}
+
 FileHandle* ShadowFile::getOrCreateShadowingFH() {
     if (!shadowingFH) {
         shadowingFH = bm.getFileHandle(shadowFilePath,
