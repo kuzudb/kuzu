@@ -28,21 +28,22 @@ class EmbeddingProviderFactory {
 public:
     static std::shared_ptr<EmbeddingProvider> getProvider(std::string& provider) {
         StringUtils::toLower(provider);
-        static const std::unordered_map<std::string, std::function<std::shared_ptr<EmbeddingProvider>()>> providerInstanceMap = 
-            {{"open-ai", &OpenAIEmbedding::getInstance},
-            {"voyage-ai", &VoyageAIEmbedding::getInstance},
-            {"google-vertex", &GoogleVertexEmbedding::getInstance},
-            {"google-gemini", &GoogleGeminiEmbedding::getInstance},
-            {"amazon-bedrock", &BedrockEmbedding::getInstance},
-            {"ollama", &OllamaEmbedding::getInstance}};
+        static const std::unordered_map<std::string,
+            std::function<std::shared_ptr<EmbeddingProvider>()>>
+            providerInstanceMap = {{"open-ai", &OpenAIEmbedding::getInstance},
+                {"voyage-ai", &VoyageAIEmbedding::getInstance},
+                {"google-vertex", &GoogleVertexEmbedding::getInstance},
+                {"google-gemini", &GoogleGeminiEmbedding::getInstance},
+                {"amazon-bedrock", &BedrockEmbedding::getInstance},
+                {"ollama", &OllamaEmbedding::getInstance}};
         auto providerInstanceIter = providerInstanceMap.find(provider);
         if (providerInstanceIter == providerInstanceMap.end()) {
-            throw BinderException("Provider not found: " + provider + "\n" + std::string(EmbeddingProvider::referenceKuzuDocs));
+            throw BinderException("Provider not found: " + provider + "\n" +
+                                  std::string(EmbeddingProvider::referenceKuzuDocs));
         }
         return providerInstanceIter->second();
     };
 };
-
 
 struct CreateEmbeddingBindData : public FunctionBindData {
     std::shared_ptr<EmbeddingProvider> provider;
