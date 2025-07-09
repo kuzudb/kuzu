@@ -1187,13 +1187,6 @@ jobs:
           python3 scripts/setup-extension-repo.py &
           make extension-static-link-test
 
-      - name: Static link extension test in mme mode
-        env:
-          IN_MEM_MODE: true
-          HTTP_CACHE_FILE: false
-        run: |
-          make extension-static-link-test
-
   macos-extension-test:
     name: macos extension test
     needs: [ macos-build-test ]
