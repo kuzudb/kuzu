@@ -254,21 +254,15 @@ NodeGroupScanResult NodeGroup::scanInternal(const UniqLock& lock, Transaction* t
     }
 
     uint64_t numRowsScanned = 0;
-    do {
-        const auto rowIdxInChunkToScan =
-            (startOffsetInGroup + numRowsScanned) - chunkedGroupToScan->getStartRowIdx();
+    const auto rowIdxInChunkToScan =
+        (startOffsetInGroup + numRowsScanned) - chunkedGroupToScan->getStartRowIdx();
 
-        uint64_t numRowsToScanInChunk = std::min(numRowsToScan - numRowsScanned,
-            chunkedGroupToScan->getNumRows() - rowIdxInChunkToScan);
-        chunkedGroupToScan->scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
-            numRowsToScanInChunk);
-        numRowsScanned += numRowsToScanInChunk;
-        nodeGroupScanState.nextRowToScan += numRowsToScanInChunk;
-        if (numRowsScanned < numRowsToScan) {
-            nodeGroupScanState.chunkedGroupIdx++;
-            chunkedGroupToScan = chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
-        }
-    } while (numRowsScanned < numRowsToScan);
+    uint64_t numRowsToScanInChunk = std::min(numRowsToScan - numRowsScanned,
+        chunkedGroupToScan->getNumRows() - rowIdxInChunkToScan);
+    chunkedGroupToScan->scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
+        numRowsToScanInChunk);
+    numRowsScanned += numRowsToScanInChunk;
+    nodeGroupScanState.nextRowToScan += numRowsToScanInChunk;
 
     return NodeGroupScanResult{startOffsetInGroup, numRowsScanned};
 }
