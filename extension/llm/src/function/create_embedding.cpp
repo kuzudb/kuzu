@@ -112,53 +112,34 @@ void validate(int64_t val) {
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::optional<uint64_t> numConfig = std::nullopt;
     std::optional<std::string> stringConfig = std::nullopt;
-    auto formatErrorMsg = [&](const std::string& argument, const std::string& targetType,
-                              const std::string& inputType) {
-        return common::stringFormat("The {} argument must be a {}. Got {}.\n{}", argument,
-            targetType, inputType, EmbeddingProvider::referenceKuzuDocs);
-    };
-    if (input.arguments[0]->getDataType() != LogicalType::STRING()) {
-        throw(BinderException(
-            formatErrorMsg("PROMPT", "STRING", input.arguments[0]->getDataType().toString())));
-    }
-    if (input.arguments[1]->getDataType() != LogicalType::STRING()) {
-        throw(BinderException(
-            formatErrorMsg("PROVIDER", "STRING", input.arguments[1]->getDataType().toString())));
-    }
-    if (input.arguments[2]->getDataType() != LogicalType::STRING()) {
-        throw(BinderException(
-            formatErrorMsg("MODEL", "STRING", input.arguments[2]->getDataType().toString())));
-    }
+    auto providerNameExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
+         input.arguments[1], LogicalType::STRING());
     auto providerName =
-        ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[1], LogicalType::STRING());
+         ExpressionUtil::evaluateLiteral<std::string>(*providerNameExpr, LogicalType::STRING());
     auto provider = EmbeddingProviderFactory::getProvider(providerName);
+    auto modelNameExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
+         input.arguments[2], LogicalType::STRING());
     auto modelName =
-        ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[2], LogicalType::STRING());
-    StringUtils::toLower(modelName);
+         ExpressionUtil::evaluateLiteral<std::string>(*modelNameExpr, LogicalType::STRING());
     if (input.arguments.size() == 5) {
-        if (input.arguments[3]->getDataType() != LogicalType::INT64()) {
-            throw(BinderException(formatErrorMsg("DIMENSIONS", "INT64",
-                input.arguments[3]->getDataType().toString())));
-        }
-        if (input.arguments[4]->getDataType() != LogicalType::STRING()) {
-            throw(BinderException(formatErrorMsg("REGION/ENDPOINT", "STRING",
-                input.arguments[4]->getDataType().toString())));
-        }
-        numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*input.arguments[3],
-            LogicalType::INT64(), validate);
-        stringConfig = ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[4],
-            LogicalType::STRING());
+       auto numConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
+           input.arguments[3], LogicalType::INT64());
+       numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*numConfigExpr, LogicalType::INT64(),
+           validate);
+       auto stringConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
+           input.arguments[4], LogicalType::STRING());
+       stringConfig =
+           ExpressionUtil::evaluateLiteral<std::string>(*stringConfigExpr, LogicalType::STRING());
     } else if (input.arguments.size() == 4) {
-        if (input.arguments[3]->getDataType() != LogicalType::STRING() &&
-            input.arguments[3]->getDataType() != LogicalType::INT64()) {
-            throw(BinderException(formatErrorMsg("DIMENSIONS OR REGION/ENDPOINT", "INT64 OR STRING",
-                input.arguments[3]->getDataType().toString())));
-        }
-        if (input.arguments[3]->getDataType() == LogicalType::STRING()) {
-            stringConfig = ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[3],
+        if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
+            auto stringConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
+                input.arguments[3], LogicalType::STRING());
+            stringConfig = ExpressionUtil::evaluateLiteral<std::string>(*stringConfigExpr,
                 LogicalType::STRING());
         } else {
-            numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*input.arguments[3],
+            auto numConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
+                input.arguments[3], LogicalType::INT64());
+            numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*numConfigExpr,
                 LogicalType::INT64(), validate);
         }
     }
