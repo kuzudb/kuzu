@@ -1,4 +1,3 @@
-
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
 #include "function/string/functions/substr_function.h"
@@ -59,11 +58,14 @@ struct ListSlice {
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     KU_ASSERT(input.arguments.size() == 3);
     std::vector<LogicalType> paramTypes;
-    paramTypes.push_back(input.arguments[0]->getDataType().copy());
+    if (input.arguments[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
+        paramTypes.push_back(LogicalType::STRING());
+    } else {
+        paramTypes.push_back(input.arguments[0]->getDataType().copy());
+    }
     paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[1]));
     paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[2]));
-    return std::make_unique<FunctionBindData>(std::move(paramTypes),
-        input.arguments[0]->getDataType().copy());
+    return std::make_unique<FunctionBindData>(std::move(paramTypes), paramTypes[0].copy());
 }
 
 function_set ListSliceFunction::getFunctionSet() {

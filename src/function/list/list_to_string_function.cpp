@@ -32,7 +32,11 @@ void ListToString::operation(ku_string_t& delim, list_entry_t& input, ku_string_
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<LogicalType> paramTypes;
     paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[0]));
-    paramTypes.push_back(input.arguments[1]->getDataType().copy());
+    if (input.arguments[1]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
+        paramTypes.push_back(LogicalType::STRING());
+    } else {
+        paramTypes.push_back(input.arguments[1]->getDataType().copy());
+    }
     return std::make_unique<FunctionBindData>(std::move(paramTypes), LogicalType::STRING());
 }
 

@@ -1927,6 +1927,34 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12*a0eebc
 ---- 1
 [96,54,86,92]/[98,42,93,88]/[91,75,21,95]/[76,88,99,89]/[96,59,65,88]/[80,78,34,83]/[43,83,67,43]/[77,64,100,54]
 
+-LOG ListToStringNull
+-STATEMENT MATCH (p:person) return list_to_string(null, p.grades)
+---- 8
+
+
+
+
+
+
+
+
+
+-LOG ListToStringNull
+-STATEMENT return list_to_string(null, null)
+---- 1
+
+-LOG ListToStringNull
+-STATEMENT return list_to_string('abc', null)
+---- 1
+
+-LOG ListToStringNull
+-STATEMENT return list_to_string('abc', [])
+---- 1
+
+-LOG ListToStringNull
+-STATEMENT return list_to_string(null, [])
+---- 1
+
 -LOG 2385
 -STATEMENT RETURN [[23, 432], [], [NULL]];
 ---- 1

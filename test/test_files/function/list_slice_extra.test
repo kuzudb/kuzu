@@ -128,3 +128,27 @@ abcd
 -STATEMENT RETURN "abc"[-1:2];
 ---- 1
 
+-STATEMENT RETURN list_slice([1,3,4],null,1);
+---- 1
+
+-STATEMENT RETURN list_slice([1,3,4],null,null);
+---- 1
+
+-STATEMENT RETURN list_slice('abc',null,1);
+---- 1
+
+-STATEMENT RETURN list_slice('def',null,null);
+---- 1
+
+-STATEMENT RETURN list_slice(null,0,1);
+---- 1
+
+-STATEMENT RETURN list_slice(null,null,1);
+---- 1
+
+-STATEMENT RETURN list_slice(null,null,null);
+---- 1
+
+-STATEMENT RETURN list_slice([],1,1);
+---- 1
+[]
