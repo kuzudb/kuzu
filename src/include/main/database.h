@@ -70,7 +70,8 @@ struct KUZU_API SystemConfig {
         bool autoCheckpoint = true, uint64_t checkpointThreshold = 16777216 /* 16MB */,
         bool forceCheckpointOnClose = true
 #ifdef __SWIFT__
-        ,uint32_t threadQos = QOS_CLASS_DEFAULT
+        ,
+        uint32_t threadQos = QOS_CLASS_DEFAULT
 #endif
     );
 

@@ -1,6 +1,7 @@
 #include "common/task_system/task_scheduler.h"
 #ifdef __SWIFT__
 #include <pthread.h>
+
 #include <pthread/qos.h>
 #endif
 
@@ -17,10 +18,11 @@ TaskScheduler::TaskScheduler(uint64_t numWorkerThreads
 #endif
     )
     : stopWorkerThreads{false}, nextScheduledTaskID{0}
-    #ifdef __SWIFT__
-      ,threadQos{threadQos}
-    #endif
-    {
+#ifdef __SWIFT__
+      ,
+      threadQos{threadQos}
+#endif
+{
     for (auto n = 0u; n < numWorkerThreads; ++n) {
         workerThreads.emplace_back([&] { runWorkerThread(); });
     }
@@ -96,7 +98,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
 }
 
 void TaskScheduler::runWorkerThread() {
-    #ifdef __SWIFT__
+#ifdef __SWIFT__
     auto pthreadQosStatus = pthread_set_qos_class_self_np((qos_class_t)threadQos, 0);
     KU_UNUSED(pthreadQosStatus);
 #endif

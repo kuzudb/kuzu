@@ -32,16 +32,18 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     bool readOnly, uint64_t maxDBSize, bool autoCheckpoint, uint64_t checkpointThreshold,
     bool forceCheckpointOnClose
 #ifdef __SWIFT__
-    , uint32_t threadQos
+    ,
+    uint32_t threadQos
 #endif
-)
+    )
     : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly{readOnly},
       autoCheckpoint{autoCheckpoint}, checkpointThreshold{checkpointThreshold},
       forceCheckpointOnClose{forceCheckpointOnClose}
-      #ifdef __SWIFT__
-      , threadQos{threadQos}
-      #endif
-      {
+#ifdef __SWIFT__
+      ,
+      threadQos{threadQos}
+#endif
+{
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;
@@ -119,9 +121,10 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     bufferManager = initBmFunc(*this);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads
-    #ifdef __SWIFT__
-        , dbConfig.threadQos
-    #endif
+#ifdef __SWIFT__
+        ,
+        dbConfig.threadQos
+#endif
     );
     catalog = std::make_unique<Catalog>();
     storageManager = std::make_unique<StorageManager>(databasePath, dbConfig.readOnly,

@@ -12,9 +12,10 @@ namespace processor {
 
 QueryProcessor::QueryProcessor(uint64_t numThreads) {
     taskScheduler = std::make_unique<TaskScheduler>(numThreads
-    #ifdef __SWIFT__
-        , dbConfig.threadQos
-    #endif
+#ifdef __SWIFT__
+        ,
+        dbConfig.threadQos
+#endif
     );
 }
 

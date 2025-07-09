@@ -33,9 +33,9 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
       forceCheckpointOnClose{systemConfig.forceCheckpointOnClose}, enableSpillingToDisk{true}
 #ifdef __SWIFT__
       ,
-      threadQos(systemConfig.threadQos) 
-      #endif {
-}
+      threadQos(systemConfig.threadQos)
+#endif {
+} // namespace main
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
     auto lOptionName = optionName;
@@ -52,5 +52,5 @@ bool DBConfig::isDBPathInMemory(const std::string& dbPath) {
     return dbPath.empty() || dbPath == ":memory:";
 }
 
-} // namespace main
+} // namespace kuzu
 } // namespace kuzu
