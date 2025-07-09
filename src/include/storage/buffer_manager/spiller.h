@@ -31,6 +31,7 @@ public:
     ~Spiller();
 
 private:
+    FileHandle* getOrCreateDataFH() const;
     FileHandle* getDataFH() const;
 
 private:

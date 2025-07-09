@@ -24,7 +24,7 @@ Spiller::Spiller(std::string tmpFilePath, BufferManager& bufferManager,
     vfs->removeFileIfExists(this->tmpFilePath);
 }
 
-FileHandle* Spiller::getDataFH() const {
+FileHandle* Spiller::getOrCreateDataFH() const {
     if (dataFH.load()) {
         return dataFH;
     }
@@ -38,13 +38,20 @@ FileHandle* Spiller::getDataFH() const {
     return dataFH;
 }
 
+FileHandle* Spiller::getDataFH() const {
+    if (dataFH.load()) {
+        return dataFH;
+    }
+    return nullptr;
+}
+
 void Spiller::addUnusedChunk(ChunkedNodeGroup* nodeGroup) {
-    std::unique_lock<std::mutex> lock(partitionerGroupsMtx);
+    std::unique_lock lock(partitionerGroupsMtx);
     fullPartitionerGroups.insert(nodeGroup);
 }
 
 void Spiller::clearUnusedChunk(ChunkedNodeGroup* nodeGroup) {
-    std::unique_lock<std::mutex> lock(partitionerGroupsMtx);
+    std::unique_lock lock(partitionerGroupsMtx);
     auto entry = fullPartitionerGroups.find(nodeGroup);
     if (entry != fullPartitionerGroups.end()) {
         fullPartitionerGroups.erase(entry);
@@ -62,7 +69,7 @@ Spiller::~Spiller() {
 uint64_t Spiller::spillToDisk(ColumnChunkData& chunk) const {
     auto& buffer = *chunk.buffer;
     KU_ASSERT(!buffer.evicted);
-    auto dataFH = getDataFH();
+    auto dataFH = getOrCreateDataFH();
     auto pageSize = dataFH->getPageSize();
     auto numPages = (buffer.buffer.size_bytes() + pageSize - 1) / pageSize;
     auto startPage = dataFH->addNewPages(numPages);
@@ -75,7 +82,9 @@ void Spiller::loadFromDisk(ColumnChunkData& chunk) const {
     auto& buffer = *chunk.buffer;
     if (buffer.evicted) {
         buffer.prepareLoadFromDisk();
-        getDataFH()->getFileInfo()->readFromFile(buffer.buffer.data(), buffer.buffer.size(),
+        auto dataFH = getDataFH();
+        KU_ASSERT(dataFH);
+        dataFH->getFileInfo()->readFromFile(buffer.buffer.data(), buffer.buffer.size(),
             buffer.filePosition);
     }
 }
@@ -83,7 +92,7 @@ void Spiller::loadFromDisk(ColumnChunkData& chunk) const {
 uint64_t Spiller::claimNextGroup() {
     ChunkedNodeGroup* groupToFlush = nullptr;
     {
-        std::unique_lock<std::mutex> lock(partitionerGroupsMtx);
+        std::unique_lock lock(partitionerGroupsMtx);
         if (!fullPartitionerGroups.empty()) {
             auto groupToFlushEntry = fullPartitionerGroups.begin();
             groupToFlush = *groupToFlushEntry;
