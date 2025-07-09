@@ -112,6 +112,17 @@ void validate(int64_t val) {
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::optional<uint64_t> numConfig = std::nullopt;
     std::optional<std::string> stringConfig = std::nullopt;
+    if (input.arguments[0]->getDataType() != LogicalType::STRING())
+    {
+        static const auto fcnSet = CreateEmbedding::getFunctionSet();
+        std::string supportedArgs;
+        for(const auto& signature : fcnSet)
+        {
+            supportedArgs += signature->signatureToString() + '\n';
+        }
+        throw(BinderException(BuiltInFunctionsUtils::getFunctionMatchFailureMsg(
+            std::string(CreateEmbedding::name), ExpressionUtil::getDataTypes(input.arguments), supportedArgs)));
+    }
     auto providerNameExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
         input.arguments[1], LogicalType::STRING());
     auto providerName =
