@@ -11,7 +11,11 @@ namespace kuzu {
 namespace processor {
 
 QueryProcessor::QueryProcessor(uint64_t numThreads) {
-    taskScheduler = std::make_unique<TaskScheduler>(numThreads);
+    taskScheduler = std::make_unique<TaskScheduler>(numThreads
+    #ifdef __SWIFT__
+        , dbConfig.threadQos
+    #endif
+    );
 }
 
 std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalPlan,

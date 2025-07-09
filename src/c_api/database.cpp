@@ -11,7 +11,11 @@ kuzu_state kuzu_database_init(const char* database_path, kuzu_system_config conf
         out_database->_database = new Database(database_path_str,
             SystemConfig(config.buffer_pool_size, config.max_num_threads, config.enable_compression,
                 config.read_only, config.max_db_size, config.auto_checkpoint,
-                config.checkpoint_threshold));
+                config.checkpoint_threshold
+            #ifdef __SWIFT__
+                ,config.thread_qos
+            #endif
+            ));
     } catch (Exception& e) {
         out_database->_database = nullptr;
         return KuzuError;
@@ -31,5 +35,9 @@ void kuzu_database_destroy(kuzu_database* database) {
 kuzu_system_config kuzu_default_system_config() {
     SystemConfig config = SystemConfig();
     return {config.bufferPoolSize, config.maxNumThreads, config.enableCompression, config.readOnly,
-        config.maxDBSize, config.autoCheckpoint, config.checkpointThreshold};
+        config.maxDBSize, config.autoCheckpoint, config.checkpointThreshold
+#ifdef __SWIFT__
+        ,config.threadQos
+#endif
+    };
 }

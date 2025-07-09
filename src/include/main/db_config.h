@@ -65,6 +65,9 @@ struct DBConfig {
     uint64_t checkpointThreshold;
     bool forceCheckpointOnClose;
     bool enableSpillingToDisk;
+    #ifdef __SWIFT__
+    uint32_t threadQos;
+    #endif
 
     explicit DBConfig(const SystemConfig& systemConfig);
 

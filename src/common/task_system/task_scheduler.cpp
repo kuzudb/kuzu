@@ -1,12 +1,26 @@
 #include "common/task_system/task_scheduler.h"
+#ifdef __SWIFT__
+#include <pthread.h>
+#include <pthread/qos.h>
+#endif
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace common {
 
 #ifndef __SINGLE_THREADED__
-TaskScheduler::TaskScheduler(uint64_t numWorkerThreads)
-    : stopWorkerThreads{false}, nextScheduledTaskID{0} {
+TaskScheduler::TaskScheduler(uint64_t numWorkerThreads
+#ifdef __SWIFT__
+    ,
+    uint32_t threadQos
+#endif
+    )
+    : stopWorkerThreads{false}, nextScheduledTaskID{0}
+    #ifdef __SWIFT__
+      ,threadQos{threadQos}
+    #endif
+    {
     for (auto n = 0u; n < numWorkerThreads; ++n) {
         workerThreads.emplace_back([&] { runWorkerThread(); });
     }
@@ -82,6 +96,10 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
 }
 
 void TaskScheduler::runWorkerThread() {
+    #ifdef __SWIFT__
+    auto pthreadQosStatus = pthread_set_qos_class_self_np((qos_class_t)threadQos, 0);
+    KU_UNUSED(pthreadQosStatus);
+#endif
     std::unique_lock<std::mutex> lck{taskSchedulerMtx, std::defer_lock};
     std::exception_ptr exceptionPtr = nullptr;
     std::shared_ptr<ScheduledTask> scheduledTask = nullptr;

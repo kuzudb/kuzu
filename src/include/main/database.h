@@ -4,6 +4,10 @@
 #include <mutex>
 #include <vector>
 
+#ifdef __SWIFT__
+#include <pthread/qos.h>
+#endif
+
 #include "common/api.h"
 #include "common/database_lifecycle_manager.h"
 #include "kuzu_fwd.h"
@@ -64,7 +68,11 @@ struct KUZU_API SystemConfig {
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
         bool enableCompression = true, bool readOnly = false, uint64_t maxDBSize = -1u,
         bool autoCheckpoint = true, uint64_t checkpointThreshold = 16777216 /* 16MB */,
-        bool forceCheckpointOnClose = true);
+        bool forceCheckpointOnClose = true
+#ifdef __SWIFT__
+        ,uint32_t threadQos = QOS_CLASS_DEFAULT
+#endif
+    );
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
