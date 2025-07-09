@@ -177,10 +177,10 @@ TEST_F(RelScanTest, ScanVertexProperties) {
     auto entry = catalog->getTableCatalogEntry(context->getTransaction(), "person");
     std::vector<std::string> properties = {"fname", "height"};
 
+    auto scanState = graph->prepareVertexScan(entry, properties);
     const auto compare = [&](offset_t startNodeOffset, offset_t endNodeOffset,
                              std::vector<std::tuple<offset_t, std::string, float>> expectedNames) {
         std::vector<std::tuple<offset_t, std::string, float>> results;
-        auto scanState = graph->prepareVertexScan(entry, properties);
         for (auto chunk : graph->scanVertices(startNodeOffset, endNodeOffset, *scanState)) {
             for (size_t i = 0; i < chunk.size(); i++) {
                 results.push_back(std::make_tuple(chunk.getNodeIDs()[i].offset,
@@ -198,9 +198,9 @@ TEST_F(RelScanTest, ScanVertexProperties) {
 TEST_F(VertexScanTest, ScanVertexProperties) {
     auto entry = catalog->getTableCatalogEntry(context->getTransaction(), "account");
     std::vector<std::string> properties = {"id"};
+    auto scanState = graph->prepareVertexScan(entry, properties);
     const auto compare = [&](offset_t startNode, offset_t endNode) {
         common::idx_t idx = 0;
-        auto scanState = graph->prepareVertexScan(entry, properties);
         for (auto chunk : graph->scanVertices(startNode, endNode, *scanState)) {
             for (auto i = 0u; i < chunk.size(); i++) {
                 auto nodeID = chunk.getNodeIDs()[i];

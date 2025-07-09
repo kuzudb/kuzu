@@ -317,6 +317,10 @@ void OnDiskGraphVertexScanState::startScan(offset_t beginOffset, offset_t endOff
     numNodesToScan = 0;
     this->currentOffset = beginOffset;
     this->endOffsetExclusive = endOffsetExclusive;
+    tableScanState->nodeIDVector->getSelVectorPtr()->setToUnfiltered(0);
+    for (auto& vector : tableScanState->outputVectors) {
+        vector->resetAuxiliaryBuffer();
+    }
     nodeTable.initScanState(context.getTransaction(), *tableScanState, nodeTable.getTableID(),
         beginOffset);
 }
