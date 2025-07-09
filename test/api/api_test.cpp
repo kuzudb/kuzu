@@ -12,7 +12,6 @@
 
 #include "api_test/api_test.h"
 #include "common/exception/io.h"
-#include "common/exception/runtime.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
