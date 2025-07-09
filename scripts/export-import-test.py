@@ -4,11 +4,39 @@ import os
 import shutil
 
 
+def create_worktree(path, commit, repo_root):
+    remove_worktree(path, repo_root)
+    run_command(f"git worktree add {path} {commit}", cwd=repo_root)
+
+
+def remove_worktree(path, repo_root):
+    if os.path.exists(path):
+        run_command(f"git worktree remove --force {path}", cwd=repo_root)
+
+
+def check_for_extension_build(makefile):
+    with open(makefile, "r") as f:
+        return any(line.strip() == "extension-build:" for line in f)
+
+
+# Duplicates code from benchmark/version.py.
+# Should be fine since the footprint is small, but any further extensions
+# to this tool should rework this if the footprint for duplicated code gets
+# bigger.
+def get_version(kuzu_root):
+    cmake_file = os.path.join(kuzu_root, "CMakeLists.txt")
+    with open(cmake_file) as f:
+        for line in f:
+            if line.startswith("project(Kuzu VERSION"):
+                return line.split(" ")[2].strip()
+    return "0"
+
+
 def run_command(cmd, cwd=None, capture_output=False):
     print(f"> Running: {cmd} (cwd={cwd})")
 
     # We redirect stdin to devnull in an attempt
-    # to stop the proccess from intefering with the terminal's input buffer.
+    # to stop the process from interfering with the terminal's input buffer.
     # This needs some work. After running the script I found that my buffer
     # was filled with a sequence like 8;1R8;1R8;1R8;1R8;... This doesn't seem
     # to affect the script but is annoying.
@@ -45,10 +73,10 @@ def main():
         "--output-dir", required=True, help="Path to output the exported databases"
     )
     parser.add_argument(
-    "--cleanup",
-    dest="cleanup",
-    action="store_true",
-    help="Delete exported DBs after test",
+        "--cleanup",
+        dest="cleanup",
+        action="store_true",
+        help="Delete exported DBs after test",
     )
     parser.add_argument(
         "--no-cleanup",
@@ -67,30 +95,38 @@ def main():
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
     kuzu_root = os.path.abspath(os.path.join(script_dir, ".."))
-    current_branch = run_command(
-        "git rev-parse --abbrev-ref HEAD", cwd=kuzu_root, capture_output=True
-    )
+    base_worktree = os.path.join(kuzu_root, ".worktree-base")
+    test_worktree = os.path.join(kuzu_root, ".worktree-test")
+    create_worktree(base_worktree, base_commit, kuzu_root)
+    create_worktree(test_worktree, test_commit, kuzu_root)
+    export_path = None
     try:
-        run_command(f"git checkout {base_commit}", cwd=kuzu_root)
-
-        version = run_command(
-            f"python3 benchmark/version.py", cwd=kuzu_root, capture_output=True
-        )
+        version = get_version(base_worktree)
         if version == "0":
             raise Exception("Failed to determine version. Aborting.")
-        export_path = os.path.join(output_dir, version)
+        export_path = os.path.abspath(os.path.join(output_dir, version))
 
         if not os.path.exists(export_path + os.sep):
-            export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
-            exec_path = os.path.join(
-                kuzu_root, "build", "relwithdebinfo", "tools", "shell", "kuzu"
-            )
             # Some datasets, like tinysnb_json, have a dependency on the JSON
             # extension in their copy.cypher files. Therefore, we must build with
             # JSON support to ensure the export works correctly.
-            run_command("make extension-build EXTENSION_LIST=json", cwd=kuzu_root)
+
+            # Older makefiles did not have the command specified under else
+            if check_for_extension_build(
+                os.path.abspath(os.path.join(base_worktree, "Makefile"))
+            ):
+                run_command(
+                    "make extension-build EXTENSION_LIST=json", cwd=base_worktree
+                )
+            else:
+                run_command(
+                    "make extension-test-build EXTENSION_LIST=json", cwd=base_worktree
+                )
             inprogress_path = f"{export_path}_inprogress" + os.sep
-            run_command(f"git checkout {current_branch}", cwd=kuzu_root)
+            export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
+            exec_path = os.path.join(
+                base_worktree, "build", "relwithdebinfo", "tools", "shell", "kuzu"
+            )
             run_command(
                 f"""python3 {export_script_path} \
                 --executable {exec_path} \
@@ -100,25 +136,21 @@ def main():
             )
             os.rename(inprogress_path, export_path + os.sep)
 
-        run_command(f"git checkout {test_commit}", cwd=kuzu_root)
         # appends / so that datasets can be found correctly
         export_path += os.sep
         os.environ["E2E_IMPORT_DB_DIR"] = export_path
-        run_command("make test", cwd=kuzu_root)
+        run_command("make test", cwd=test_worktree)
         return 0
     finally:
-        if cleanup:
-            if os.path.exists(export_path):
-                print(f"Cleaning up export directory: {export_path}")
-                shutil.rmtree(export_path)
+        if cleanup and export_path and os.path.exists(export_path):
+            print(f"Cleaning up export directory: {export_path}")
+            shutil.rmtree(export_path)
         else:
             print(f"Skipping cleaning up export directory: {export_path}")
 
-        print(f"Restoring original git branch: {current_branch}")
-        try:
-            run_command(f"git checkout {current_branch}", cwd=kuzu_root)
-        except Exception as e:
-            print(f"Warning: Failed to restore branch {current_branch}: {e}")
+        print("Removing worktrees")
+        remove_worktree(base_worktree, kuzu_root)
+        remove_worktree(test_worktree, kuzu_root)
 
 
 if __name__ == "__main__":
