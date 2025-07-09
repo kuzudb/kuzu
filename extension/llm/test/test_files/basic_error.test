@@ -49,9 +49,9 @@ For more information, please refer to the official Kuzu documentation: https://d
 
 -STATEMENT RETURN CREATE_EMBEDDING("helo", "ollama", 5, '${OLLAMA_URL}');
 ---- error
-Connection exception: Request failed: Could not connect to server <${ollama_url}> 
+Connection exception: Request failed with status 404
+ Body: {"error":"model \"5\" not found, try pulling it first"}
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
-
 
 -CASE InvalidInputsWithOptionalParams
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
