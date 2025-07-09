@@ -112,9 +112,10 @@ void validate(int64_t val) {
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::optional<uint64_t> numConfig = std::nullopt;
     std::optional<std::string> stringConfig = std::nullopt;
-    auto formatErrorMsg = [&](const std::string& argument, const std::string& targetType, const std::string& inputType)
-    {
-        return common::stringFormat("The {} argument must be a {}. Got {}.\n{}", argument, targetType, inputType, EmbeddingProvider::referenceKuzuDocs);
+    auto formatErrorMsg = [&](const std::string& argument, const std::string& targetType,
+                              const std::string& inputType) {
+        return common::stringFormat("The {} argument must be a {}. Got {}.\n{}", argument,
+            targetType, inputType, EmbeddingProvider::referenceKuzuDocs);
     };
     if (input.arguments[0]->getDataType() != LogicalType::STRING()) {
         throw(BinderException(
@@ -148,9 +149,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         stringConfig = ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[4],
             LogicalType::STRING());
     } else if (input.arguments.size() == 4) {
-        if (input.arguments[3]->getDataType() != LogicalType::STRING() && input.arguments[3]->getDataType() != LogicalType::INT64())
-        {
-            throw(BinderException(formatErrorMsg("DIMENSIONS OR REGION/ENDPOINT", "INT64 OR STRING", input.arguments[3]->getDataType().toString())));
+        if (input.arguments[3]->getDataType() != LogicalType::STRING() &&
+            input.arguments[3]->getDataType() != LogicalType::INT64()) {
+            throw(BinderException(formatErrorMsg("DIMENSIONS OR REGION/ENDPOINT", "INT64 OR STRING",
+                input.arguments[3]->getDataType().toString())));
         }
         if (input.arguments[3]->getDataType() == LogicalType::STRING()) {
             stringConfig = ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[3],
