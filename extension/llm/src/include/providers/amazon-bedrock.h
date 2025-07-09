@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include "common/copy_constructors.h"
 #include "httplib.h"
 #include "json.hpp"
