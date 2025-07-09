@@ -1,0 +1,15 @@
+-DATASET CSV empty
+
+--
+
+-CASE InvalidInputs
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT RETURN CREATE_EMBEDDING({a: union_value(b := 12345)}, 'open-ai', 'text-embedding-3-small');
+---- error
+Binder exception: The PROMPT argument must be a STRING, got STRUCT(a UNION(b INT64))
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+
+
