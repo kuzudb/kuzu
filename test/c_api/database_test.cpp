@@ -151,3 +151,23 @@ TEST_F(CApiDatabaseTest, CloseQueryResultAndConnectionAfterDatabaseDestroy) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&tuple);
 }
+
+TEST_F(CApiDatabaseTest, UseConnectionAfterDatabaseDestroy) {
+    kuzu_database db;
+    kuzu_connection conn;
+    kuzu_query_result result;
+
+    auto systemConfig = kuzu_default_system_config();
+    systemConfig.buffer_pool_size = 10 * 1024 * 1024; // 10MB
+    systemConfig.max_db_size = 1 << 30;               // 1GB
+    systemConfig.max_num_threads = 2;
+    auto state = kuzu_database_init("", systemConfig, &db);
+    ASSERT_EQ(state, KuzuSuccess);
+    state = kuzu_connection_init(&db, &conn);
+    ASSERT_EQ(state, KuzuSuccess);
+    kuzu_database_destroy(&db);
+    state = kuzu_connection_query(&conn, "RETURN 0", &result);
+    ASSERT_EQ(state, KuzuError);
+
+    kuzu_connection_destroy(&conn);
+}
