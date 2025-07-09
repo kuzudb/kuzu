@@ -1,3 +1,6 @@
+#include <fstream>
+
+#include "api_test/api_test.h"
 #include "api_test/private_api_test.h"
 #include "common/exception/io.h"
 #include "storage/storage_utils.h"
@@ -126,7 +129,10 @@ TEST_F(PrivateApiTest, ShadowFileExistsWithoutWAL) {
     conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
     conn->query("COMMIT;");
     auto shadowFilePath = kuzu::storage::StorageUtils::getShadowFilePath(databasePath);
-    ASSERT_TRUE(std::filesystem::exists(shadowFilePath));
+    // Create a shadow file that is corrupted.
+    std::ofstream file(shadowFilePath);
+    file << "This is not a valid Kuzu database file.";
+    file.close();
     auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
     ASSERT_TRUE(std::filesystem::exists(walFilePath));
     ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
@@ -150,7 +156,10 @@ TEST_F(PrivateApiTest, ShadowFileExistsWithEmptyWAL) {
     conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
     conn->query("COMMIT;");
     auto shadowFilePath = kuzu::storage::StorageUtils::getShadowFilePath(databasePath);
-    ASSERT_TRUE(std::filesystem::exists(shadowFilePath));
+    // Create a shadow file that is corrupted.
+    std::ofstream file(shadowFilePath);
+    file << "This is not a valid Kuzu database file.";
+    file.close();
     auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
     ASSERT_TRUE(std::filesystem::exists(walFilePath));
     ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
@@ -209,26 +218,35 @@ TEST_F(PrivateApiTest, CorruptedWALTailTruncated2) {
     ASSERT_EQ(res->getNumTuples(), 3);
 }
 
-TEST_F(PrivateApiTest, MissingShadowFile) {
+class EmptyDBTransactionTest : public EmptyDBTest {
+protected:
+    void SetUp() override {
+        EmptyDBTest::SetUp();
+        createDBAndConn();
+    }
+
+    void TearDown() override { EmptyDBTest::TearDown(); }
+};
+
+TEST_F(EmptyDBTransactionTest, DatabaseFilesAfterCheckpoint) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
-    conn->query("CALL force_checkpoint_on_close=false");
-    conn->query("BEGIN TRANSACTION;");
+    conn->query("CALL auto_checkpoint=false;");
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getTmpFilePath(databasePath)));
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getShadowFilePath(databasePath)));
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getWALFilePath(databasePath)));
     conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
-    conn->query("CREATE NODE TABLE test2(id INT64 PRIMARY KEY, name STRING);");
-    conn->query("CREATE NODE TABLE test3(id INT64 PRIMARY KEY, name STRING);");
-    conn->query("CREATE NODE TABLE test4(id INT64 PRIMARY KEY, name STRING);");
-    conn->query("COMMIT;");
-    // Simulate a checkpoint with a FlakyCheckpointer that fail right after logging CHECKPOINT.
-    auto context = getClientContext(*conn);
-    context->getWAL()->logAndFlushCheckpoint(context);
-    auto shadowFilePath = kuzu::storage::StorageUtils::getShadowFilePath(databasePath);
-    ASSERT_TRUE(std::filesystem::exists(shadowFilePath));
-    auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
-    ASSERT_TRUE(std::filesystem::exists(walFilePath));
-    // Remove the shadow file to simulate a missing shadow file.
-    std::filesystem::remove(shadowFilePath);
-    // No shadow file, so no replay.
-    EXPECT_THROW(createDBAndConn(), Exception);
+    ASSERT_TRUE(std::filesystem::exists(kuzu::storage::StorageUtils::getWALFilePath(databasePath)));
+    conn->query("CHECKPOINT;");
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getTmpFilePath(databasePath)));
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getShadowFilePath(databasePath)));
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getWALFilePath(databasePath)));
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
 }

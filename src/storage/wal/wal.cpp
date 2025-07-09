@@ -13,14 +13,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-WAL::WAL(std::string dbPath, bool readOnly, VirtualFileSystem* vfs)
-    : dbPath{std::move(dbPath)}, readOnly{readOnly}, vfs{vfs} {}
+WAL::WAL(const std::string& dbPath, bool readOnly, VirtualFileSystem* vfs)
+    : walPath{StorageUtils::getWALFilePath(dbPath)},
+      inMemory{main::DBConfig::isDBPathInMemory(dbPath)}, readOnly{readOnly}, vfs{vfs} {}
 
 WAL::~WAL() {}
 
 void WAL::logCommittedWAL(LocalWAL& localWAL, main::ClientContext* context) {
     KU_ASSERT(!readOnly);
-    if (main::DBConfig::isDBPathInMemory(dbPath) || localWAL.getSize() == 0) {
+    if (inMemory || localWAL.getSize() == 0) {
         return; // No need to log empty WAL.
     }
     std::unique_lock lck{mtx};
@@ -45,10 +46,10 @@ void WAL::clear() {
 
 void WAL::reset() {
     std::unique_lock lck{mtx};
-    vfs->removeFileIfExists(StorageUtils::getWALFilePath(dbPath));
     fileInfo.reset();
     writer.reset();
     serializer.reset();
+    vfs->removeFileIfExists(walPath);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
@@ -66,7 +67,7 @@ void WAL::initWriter(main::ClientContext* context) {
     if (writer) {
         return;
     }
-    fileInfo = vfs->openFile(StorageUtils::getWALFilePath(dbPath),
+    fileInfo = vfs->openFile(walPath,
         FileOpenFlags(FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::READ_ONLY | FileFlags::WRITE),
         context);
     writer = std::make_shared<BufferedFileWriter>(*fileInfo);
@@ -80,7 +81,7 @@ void WAL::initWriter(main::ClientContext* context) {
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void WAL::addNewWALRecordNoLock(const WALRecord& walRecord) {
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
-    KU_ASSERT(!main::DBConfig::isDBPathInMemory(dbPath));
+    KU_ASSERT(!inMemory);
     walRecord.serialize(*serializer);
 }
 

@@ -39,7 +39,10 @@ public:
     void applyShadowPages(main::ClientContext& context) const;
 
     void flushAll() const;
+    // Clear any buffer in the WAL writer. Also truncate the WAL file to 0 bytes.
     void clear(BufferManager& bm);
+    // Reset the WAL writer to nullptr, and remove the WAL file if it exists.
+    void reset();
 
     // Replay shadow page records from the shadow file to the original data file. This is used
     // during recovery.
