@@ -30,6 +30,8 @@ public:
         return getProperty(primaryKeyName);
     }
 
+    void renameProperty(const std::string& propertyName, const std::string& newName) override;
+
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<NodeTableCatalogEntry> deserialize(common::Deserializer& deserializer);
 

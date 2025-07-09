@@ -528,6 +528,22 @@ Elizabeth
 Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+-STATEMENT ALTER TABLE person RENAME id TO newID
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) return p.id
+---- error
+Binder exception: Cannot find property id for p.
+-STATEMENT MATCH (p:person) return p.newID
+---- 8
+0
+10
+2
+3
+5
+7
+8
+9
 
 -CASE CreateTableIfNotExists
 -STATEMENT CREATE NODE TABLE IF NOT EXISTS UW(ID INT64, PRIMARY KEY(ID))

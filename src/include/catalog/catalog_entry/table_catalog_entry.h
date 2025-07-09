@@ -57,7 +57,7 @@ public:
     common::column_id_t getColumnID(common::idx_t idx) const;
     void addProperty(const binder::PropertyDefinition& propertyDefinition);
     void dropProperty(const std::string& propertyName);
-    void renameProperty(const std::string& propertyName, const std::string& newName);
+    virtual void renameProperty(const std::string& propertyName, const std::string& newName);
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableCatalogEntry> deserialize(common::Deserializer& deserializer,
