@@ -8,8 +8,67 @@
 
 -STATEMENT RETURN CREATE_EMBEDDING({a: union_value(b := 12345)}, 'open-ai', 'text-embedding-3-small');
 ---- error
-Binder exception: The PROMPT argument must be a STRING, got STRUCT(a UNION(b INT64))
+Binder exception: The PROMPT argument must be a STRING. Got STRUCT(a UNION(b INT64)).
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
+-STATEMENT RETURN CREATE_EMBEDDING(123, "open-ai", "text-embedding-3-small");
+---- error
+Binder exception: The PROMPT argument must be a STRING. Got INT64.
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
+-STATEMENT RETURN CREATE_EMBEDDING(3.24, "open-ai", "text-embedding-3-small");
+---- error
+Binder exception: The PROMPT argument must be a STRING. Got DOUBLE.
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", 4, "text-embedding-3-small");
+---- error
+Binder exception: The PROVIDER argument must be a STRING. Got INT64.
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", "open-ai", 5);
+---- error
+Binder exception: The MODEL argument must be a STRING. Got INT64.
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-CASE InvalidInputsWithOptionalParams
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", "open-ai", '5', {a: union_value(b := 12345)});
+---- error
+Binder exception: The DIMENSIONS OR REGION/ENDPOINT argument must be a INT64 OR STRING. Got STRUCT(a UNION(b INT64)).
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", "open-ai", '5', 50, 50);
+---- error
+Binder exception: The REGION/ENDPOINT argument must be a STRING. Got INT64.
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", "open-ai", '5', CAST(5 AS INT8), 50);
+---- error
+Binder exception: The DIMENSIONS argument must be a INT64. Got INT8.
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-CASE MismatchParams
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT RETURN CREATE_EMBEDDING('5');
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
+
+-STATEMENT RETURN CREATE_EMBEDDING('g', 'h');
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
 
