@@ -181,6 +181,7 @@ TEST_F(RelScanTest, ScanVertexProperties) {
     const auto compare = [&](offset_t startNodeOffset, offset_t endNodeOffset,
                              std::vector<std::tuple<offset_t, std::string, float>> expectedNames) {
         std::vector<std::tuple<offset_t, std::string, float>> results;
+        auto scanState = graph->prepareVertexScan(entry, properties);
         for (auto chunk : graph->scanVertices(startNodeOffset, endNodeOffset, *scanState)) {
             for (size_t i = 0; i < chunk.size(); i++) {
                 results.push_back(std::make_tuple(chunk.getNodeIDs()[i].offset,
