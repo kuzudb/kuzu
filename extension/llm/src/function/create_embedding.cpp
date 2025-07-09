@@ -28,24 +28,21 @@ class EmbeddingProviderFactory {
 public:
     static std::shared_ptr<EmbeddingProvider> getProvider(std::string& provider) {
         StringUtils::toLower(provider);
-        if (provider == "open-ai") {
-            return std::make_unique<OpenAIEmbedding>();
-        } else if (provider == "voyage-ai") {
-            return std::make_unique<VoyageAIEmbedding>();
-        } else if (provider == "google-vertex") {
-            return std::make_unique<GoogleVertexEmbedding>();
-        } else if (provider == "google-gemini") {
-            return std::make_unique<GoogleGeminiEmbedding>();
-        } else if (provider == "amazon-bedrock") {
-            return std::make_shared<BedrockEmbedding>();
-        } else if (provider == "ollama") {
-            return std::make_shared<OllamaEmbedding>();
-        } else {
-            throw BinderException("Provider not found: " + provider + "\n" +
-                                  std::string(EmbeddingProvider::referenceKuzuDocs));
+        static const std::unordered_map<std::string, std::function<std::shared_ptr<EmbeddingProvider>()>> providerInstanceMap = 
+            {{"open-ai", &OpenAIEmbedding::getInstance},
+            {"voyage-ai", &VoyageAIEmbedding::getInstance},
+            {"google-vertex", &GoogleVertexEmbedding::getInstance},
+            {"google-gemini", &GoogleGeminiEmbedding::getInstance},
+            {"amazon-bedrock", &BedrockEmbedding::getInstance},
+            {"ollama", &OllamaEmbedding::getInstance}};
+        auto providerInstanceIter = providerInstanceMap.find(provider);
+        if (providerInstanceIter == providerInstanceMap.end()) {
+            throw BinderException("Provider not found: " + provider + "\n" + std::string(EmbeddingProvider::referenceKuzuDocs));
         }
-    }
+        return providerInstanceIter->second();
+    };
 };
+
 
 struct CreateEmbeddingBindData : public FunctionBindData {
     std::shared_ptr<EmbeddingProvider> provider;

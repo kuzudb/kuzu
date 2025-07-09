@@ -9,9 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace llm_extension {
 
-EmbeddingProvider& VoyageAIEmbedding::getInstance() {
-    static VoyageAIEmbedding instance;
-    return instance;
+std::shared_ptr<EmbeddingProvider> VoyageAIEmbedding::getInstance() {
+    return std::make_shared<VoyageAIEmbedding>();
 }
 
 std::string VoyageAIEmbedding::getClient() const {

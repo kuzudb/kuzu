@@ -13,7 +13,7 @@ public:
     OpenAIEmbedding() = default;
     DELETE_COPY_AND_MOVE(OpenAIEmbedding);
     ~OpenAIEmbedding() override = default;
-    static EmbeddingProvider& getInstance();
+    static std::shared_ptr<EmbeddingProvider> getInstance();
     std::string getClient() const override;
     std::string getPath(const std::string& model) const override;
     httplib::Headers getHeaders(const std::string& model,

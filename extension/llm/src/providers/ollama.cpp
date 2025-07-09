@@ -7,9 +7,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace llm_extension {
 
-EmbeddingProvider& OllamaEmbedding::getInstance() {
-    static OllamaEmbedding instance;
-    return instance;
+std::shared_ptr<EmbeddingProvider> OllamaEmbedding::getInstance() {
+    return std::make_shared<OllamaEmbedding>();
 }
 
 std::string OllamaEmbedding::getClient() const {

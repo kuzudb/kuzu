@@ -9,9 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace llm_extension {
 
-EmbeddingProvider& GoogleVertexEmbedding::getInstance() {
-    static GoogleVertexEmbedding instance;
-    return instance;
+std::shared_ptr<EmbeddingProvider> GoogleVertexEmbedding::getInstance() {
+    return std::make_shared<GoogleVertexEmbedding>();
 }
 
 std::string GoogleVertexEmbedding::getClient() const {
