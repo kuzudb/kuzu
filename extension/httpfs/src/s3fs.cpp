@@ -317,7 +317,6 @@ std::vector<std::string> S3FileSystem::glob(main::ClientContext* context,
     return globResult;
 }
 
-
 std::string S3FileSystem::decodeURL(std::string input) {
     std::string result;
     result.reserve(input.size());
