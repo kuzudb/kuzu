@@ -101,9 +101,9 @@ def main():
     create_worktree(test_worktree, test_commit, kuzu_root)
     try:
         version = get_version(base_worktree)
+        export_path = os.path.abspath(os.path.join(output_dir, version))
         if version == "0":
             raise Exception("Failed to determine version. Aborting.")
-        export_path = os.path.abspath(os.path.join(output_dir, version))
 
         if not os.path.exists(export_path + os.sep):
             # Some datasets, like tinysnb_json, have a dependency on the JSON
