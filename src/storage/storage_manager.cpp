@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/in_mem_file_writer.h"
+#include "extension/extension_manager.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
@@ -67,10 +68,6 @@ Table* StorageManager::getTable(table_id_t tableID) {
 }
 
 void StorageManager::recover(main::ClientContext& clientContext) {
-    if (clientContext.isInMemory()) {
-        // In-memory mode. Nothing to recover from.
-        return;
-    }
     try {
         const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
         walReplayer->replay();
