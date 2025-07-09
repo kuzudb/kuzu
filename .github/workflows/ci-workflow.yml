@@ -346,7 +346,7 @@ jobs:
           find . -name "*.gcda" -delete
           lcov --zerocounters --directory ./
 
-      - name: Test coverate for recovery
+      - name: Test coverage for recovery
         env:
           AUTO_CHECKPOINT: false
           CHECKPOINT_ON_CLOSE: false
