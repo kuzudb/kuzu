@@ -100,7 +100,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     }
 }
 
-void validate(int64_t val) {
+void validateValAsPositive(int64_t val) {
     if (val <= 0) {
         throw(BinderException(
             common::stringFormat("Dimensions should be greater than 0. Got: {}.\n{}", val,
@@ -134,7 +134,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         auto numConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
             input.arguments[3], LogicalType::INT64());
         numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*numConfigExpr, LogicalType::INT64(),
-            validate);
+            validateValAsPositive);
         auto stringConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
             input.arguments[4], LogicalType::STRING());
         stringConfig =
@@ -149,7 +149,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
             auto numConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
                 input.arguments[3], LogicalType::INT64());
             numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*numConfigExpr,
-                LogicalType::INT64(), validate);
+                LogicalType::INT64(), validateValAsPositive);
         }
     }
     if (stringConfig.has_value()) {
