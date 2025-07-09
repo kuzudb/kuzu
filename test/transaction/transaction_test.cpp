@@ -1,3 +1,4 @@
+#include "api_test/api_test.h"
 #include "api_test/private_api_test.h"
 #include "common/exception/io.h"
 #include "storage/storage_utils.h"
@@ -231,4 +232,37 @@ TEST_F(PrivateApiTest, MissingShadowFile) {
     std::filesystem::remove(shadowFilePath);
     // No shadow file, so no replay.
     EXPECT_THROW(createDBAndConn(), Exception);
+}
+
+class EmptyDBTransactionTest : public EmptyDBTest {
+protected:
+    void SetUp() override {
+        EmptyDBTest::SetUp();
+        createDBAndConn();
+    }
+
+    void TearDown() override { EmptyDBTest::TearDown(); }
+};
+
+TEST_F(EmptyDBTransactionTest, DatabaseFilesAfterCheckpoint) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL auto_checkpoint=false;");
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getTmpFilePath(databasePath)));
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getShadowFilePath(databasePath)));
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getWALFilePath(databasePath)));
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    ASSERT_TRUE(std::filesystem::exists(kuzu::storage::StorageUtils::getWALFilePath(databasePath)));
+    conn->query("CHECKPOINT;");
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getTmpFilePath(databasePath)));
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getShadowFilePath(databasePath)));
+    ASSERT_FALSE(
+        std::filesystem::exists(kuzu::storage::StorageUtils::getWALFilePath(databasePath)));
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
 }
