@@ -65,8 +65,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     }
     paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[1]));
     paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[2]));
-    return std::make_unique<FunctionBindData>(std::move(paramTypes),
-        paramTypes[0].copy());
+    return std::make_unique<FunctionBindData>(std::move(paramTypes), paramTypes[0].copy());
 }
 
 function_set ListSliceFunction::getFunctionSet() {
