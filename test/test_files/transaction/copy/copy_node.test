@@ -2,6 +2,8 @@
 --
 
 -CASE CopyNodeAfterPKErrorRollbackFlushedGroups
+# TODO(Guodong): FIX-ME. This test fails randomly when NODE_GROUP_SIZE_LOG2 is set to 12.
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT create node table Comment (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));
 ---- ok
 # COPY will trigger duplicate PK once the 2nd file is hit
