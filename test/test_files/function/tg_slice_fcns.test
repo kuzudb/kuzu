@@ -1,0 +1,80 @@
+-DATASET CSV EMPTY
+
+--
+
+-CASE TestSliceFunctions
+-STATEMENT RETURN array_slice("abcd",1,4);
+---- 1
+abcd
+
+-STATEMENT RETURN list_slice(['a', 'b', 'c', 'd'],1,4);
+---- 1
+[a,b,c,d]
+
+
+-STATEMENT RETURN array_slice("abcd",4, 1);
+---- 1
+
+
+-STATEMENT RETURN list_slice(['a', 'b', 'c', 'd'],4, 1);
+---- 1
+[]
+
+-STATEMENT RETURN array_slice("abcd",NULL, NULL);
+---- 1
+
+
+-STATEMENT RETURN list_slice(['a', 'b', 'c', 'd'],NULL, NULL)
+---- 1
+
+-STATEMENT RETURN array_slice(NULL,NULL, NULL);
+---- ok
+
+
+
+-STATEMENT RETURN list_slice(NULL,NULL, NULL)
+---- ok
+
+
+
+-STATEMENT RETURN array_slice("abcd",-2, 4);
+---- 1
+cd
+
+-STATEMENT RETURN list_slice(['a', 'b', 'c', 'd'], -2, 4)
+---- 1
+[c,d]
+
+-STATEMENT RETURN array_slice(NULL);
+---- error
+Binder exception: Function ARRAY_SLICE did not receive correct arguments:
+Actual:   (ANY)
+Expected: (LIST,INT64,INT64) -> LIST
+          (STRING,INT64,INT64) -> STRING
+
+-STATEMENT RETURN list_slice(NULL)
+---- error
+Binder exception: Function LIST_SLICE did not receive correct arguments:
+Actual:   (ANY)
+Expected: (LIST,INT64,INT64) -> LIST
+          (STRING,INT64,INT64) -> STRING
+
+
+-STATEMENT RETURN typeof(list_slice(['a', 'b', NULL, NULL, 'e', NULL], -2, 4))
+---- 1
+STRING[]
+
+-STATEMENT RETURN typeof(list_slice([NULL, NULL, NULL, NULL], 0, 4))
+---- 1
+INT64[]
+
+-STATEMENT RETURN (list_slice([NULL, NULL, NULL, NULL], 0, 4))
+---- 1
+[,,,]
+
+
+
+
+
+
+
