@@ -124,6 +124,9 @@ std::unique_ptr<GetEmbeddingsScanState> OnDiskEmbeddings::constructScanState() c
 EmbeddingHandle OnDiskEmbeddings::getEmbedding(common::offset_t offset,
     GetEmbeddingsScanState& embeddingScanState) const {
     auto& scanState = embeddingScanState.cast<OnDiskEmbeddingScanState>().getScanState();
+    if (!nodeTable.isVisibleNoLock(transaction, offset)) {
+        return EmbeddingHandle::createNullHandle();
+    }
     scanState.nodeIDVector->setValue(0, common::internalID_t{offset, nodeTable.getTableID()});
     scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(1);
     const auto source = scanState.source;

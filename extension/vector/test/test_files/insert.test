@@ -195,3 +195,18 @@ Binder exception: Cannot drop property vec in table embeddings because it is use
 333
 444
 133
+
+-CASE CopyAfterDeleteAll
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+---- ok
+-STATEMENT MATCH (n:embeddings) DELETE n;
+---- ok
+-RELOADDB
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok

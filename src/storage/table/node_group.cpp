@@ -243,6 +243,7 @@ NodeGroupScanResult NodeGroup::scanInternal(const UniqLock& lock, Transaction* t
     nodeGroupScanState.nextRowToScan = startOffsetInGroup;
 
     auto [newChunkedGroupIdx, _] = findChunkedGroupIdxFromRowIdxNoLock(startOffsetInGroup);
+    KU_ASSERT(newChunkedGroupIdx != INVALID_CHUNKED_GROUP_IDX);
 
     const auto* chunkedGroupToScan = chunkedGroups.getGroup(lock, newChunkedGroupIdx);
     if (newChunkedGroupIdx != nodeGroupScanState.chunkedGroupIdx) {
@@ -279,6 +280,7 @@ bool NodeGroup::lookupNoLock(const Transaction* transaction, const TableScanStat
     KU_ASSERT(!state.rowIdxVector->isNull(pos));
     const auto rowIdx = state.rowIdxVector->getValue<row_idx_t>(pos);
     const ChunkedNodeGroup* chunkedGroupToScan = findChunkedGroupFromRowIdxNoLock(rowIdx);
+    KU_ASSERT(chunkedGroupToScan);
     const auto rowIdxInChunkedGroup = rowIdx - chunkedGroupToScan->getStartRowIdx();
     return chunkedGroupToScan->lookup(transaction, state, nodeGroupScanState, rowIdxInChunkedGroup,
         posInSel);
@@ -293,6 +295,7 @@ bool NodeGroup::lookupMultiple(const UniqLock& lock, const Transaction* transact
         KU_ASSERT(!state.rowIdxVector->isNull(pos));
         const auto rowIdx = state.rowIdxVector->getValue<row_idx_t>(pos);
         const ChunkedNodeGroup* chunkedGroupToScan = findChunkedGroupFromRowIdx(lock, rowIdx);
+        KU_ASSERT(chunkedGroupToScan);
         const auto rowIdxInChunkedGroup = rowIdx - chunkedGroupToScan->getStartRowIdx();
         numTuplesFound += chunkedGroupToScan->lookup(transaction, state, nodeGroupScanState,
             rowIdxInChunkedGroup, i);
@@ -332,6 +335,7 @@ bool NodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxInGroup)
         const auto lock = chunkedGroups.lock();
         groupToDelete = findChunkedGroupFromRowIdx(lock, rowIdxInGroup);
     }
+    KU_ASSERT(groupToDelete);
     const auto rowIdxInChunkedGroup = rowIdxInGroup - groupToDelete->getStartRowIdx();
     return groupToDelete->delete_(transaction, rowIdxInChunkedGroup);
 }
@@ -681,12 +685,14 @@ bool NodeGroup::isVisibleNoLock(const Transaction* transaction, row_idx_t rowIdx
 bool NodeGroup::isDeleted(const Transaction* transaction, offset_t offsetInGroup) const {
     const auto lock = chunkedGroups.lock();
     const auto* chunkedGroup = findChunkedGroupFromRowIdx(lock, offsetInGroup);
+    KU_ASSERT(chunkedGroup);
     return chunkedGroup->isDeleted(transaction, offsetInGroup - chunkedGroup->getStartRowIdx());
 }
 
 bool NodeGroup::isInserted(const Transaction* transaction, offset_t offsetInGroup) const {
     const auto lock = chunkedGroups.lock();
     const auto* chunkedGroup = findChunkedGroupFromRowIdx(lock, offsetInGroup);
+    KU_ASSERT(chunkedGroup);
     return chunkedGroup->isInserted(transaction, offsetInGroup - chunkedGroup->getStartRowIdx());
 }
 
