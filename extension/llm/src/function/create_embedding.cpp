@@ -129,9 +129,11 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         throw(BinderException(
             formatErrorMsg("MODEL", "STRING", input.arguments[2]->getDataType().toString())));
     }
-    auto providerName = ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[1], LogicalType::STRING());
+    auto providerName =
+        ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[1], LogicalType::STRING());
     auto provider = EmbeddingProviderFactory::getProvider(providerName);
-    auto modelName = ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[2], LogicalType::STRING());
+    auto modelName =
+        ExpressionUtil::evaluateLiteral<std::string>(*input.arguments[2], LogicalType::STRING());
     StringUtils::toLower(modelName);
     if (input.arguments.size() == 5) {
         if (input.arguments[3]->getDataType() != LogicalType::INT64()) {
@@ -140,7 +142,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         }
         if (input.arguments[4]->getDataType() != LogicalType::STRING()) {
             throw(BinderException(formatErrorMsg("REGION/ENDPOINT", "STRING",
-                                                 input.arguments[4]->getDataType().toString())));
+                input.arguments[4]->getDataType().toString())));
         }
         numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*input.arguments[3],
             LogicalType::INT64(), validate);
@@ -160,8 +162,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
                 LogicalType::INT64(), validate);
         }
     }
-    if (stringConfig.has_value())
-    {
+    if (stringConfig.has_value()) {
         StringUtils::toLower(stringConfig.value());
     }
 
