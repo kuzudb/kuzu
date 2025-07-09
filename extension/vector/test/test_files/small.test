@@ -455,3 +455,43 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', '
 ---- 2
 embeddings2|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings2', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, metric := 'cosine', alpha := 1.100000, efc := 500);
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, metric := 'cosine', alpha := 1.100000, efc := 500);
+
+-CASE DeleteThenReinsert
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT create node table tab(id uint64, vec float[2], primary key (id))
+---- ok
+-STATEMENT copy tab from (unwind range(1, 2000) as i return i, [1.0, cast(i, 'float')])
+---- ok
+-STATEMENT call create_vector_index('tab', 'tbl_hnsw_index', 'vec', metric := 'l2', ml := 60)
+---- ok
+-STATEMENT call query_vector_index("tab", "tbl_hnsw_index", [0.0, 1.0], 3) return node.id, distance order by distance asc, node.id asc
+---- 3
+1|1.000000
+2|1.414214
+3|2.236068
+-STATEMENT match (t:tab) where t.id <= 50 delete t return count(*)
+---- 1
+50
+-STATEMENT call query_vector_index("tab", "tbl_hnsw_index", [0.0, 1.0], 3) return node.id, distance order by distance asc, node.id asc
+---- 3
+51|50.009998
+52|51.009804
+53|52.009613
+-STATEMENT unwind range(1, 50) as i create (t:tab {id: i, vec: [1.0, i]})
+---- ok
+-STATEMENT call query_vector_index("tab", "tbl_hnsw_index", [0.0, 1.0], 3) return node.id, distance order by distance asc, node.id asc
+---- 3
+1|1.000000
+2|1.414214
+3|2.236068
+# try delete + reinsert again
+-STATEMENT match (t:tab) where t.id <= 50 delete t return count(*)
+---- 1
+50
+-STATEMENT unwind range(1, 50) as i create (t:tab {id: i, vec: [1.0, i]})
+---- ok
+-STATEMENT call query_vector_index("tab", "tbl_hnsw_index", [0.0, 1.0], 3) return node.id, distance order by distance asc, node.id asc
+---- 3
+1|1.000000
+2|1.414214
+3|2.236068

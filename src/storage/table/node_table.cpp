@@ -330,8 +330,9 @@ template bool NodeTable::lookup<false>(const Transaction* transaction,
     const TableScanState& scanState) const;
 
 template<bool lock>
-void NodeTable::lookupMultiple(Transaction* transaction, TableScanState& scanState) const {
+bool NodeTable::lookupMultiple(Transaction* transaction, TableScanState& scanState) const {
     const auto numRowsToRead = scanState.nodeIDVector->state->getSelSize();
+    sel_t numRowsRead = 0;
     for (auto i = 0u; i < numRowsToRead; i++) {
         const auto nodeIDPos = scanState.nodeIDVector->state->getSelVector()[i];
         if (scanState.nodeIDVector->isNull(nodeIDPos)) {
@@ -359,16 +360,17 @@ void NodeTable::lookupMultiple(Transaction* transaction, TableScanState& scanSta
         }
         scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
         if constexpr (lock) {
-            (void)scanState.nodeGroup->lookup(transaction, scanState, i);
+            numRowsRead += scanState.nodeGroup->lookup(transaction, scanState, i);
         } else {
-            (void)scanState.nodeGroup->lookupNoLock(transaction, scanState, i);
+            numRowsRead += scanState.nodeGroup->lookupNoLock(transaction, scanState, i);
         }
     }
+    return numRowsRead == numRowsToRead;
 }
 
-template void NodeTable::lookupMultiple<true>(Transaction* transaction,
+template bool NodeTable::lookupMultiple<true>(Transaction* transaction,
     TableScanState& scanState) const;
-template void NodeTable::lookupMultiple<false>(Transaction* transaction,
+template bool NodeTable::lookupMultiple<false>(Transaction* transaction,
     TableScanState& scanState) const;
 
 offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
