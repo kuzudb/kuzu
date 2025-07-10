@@ -1,4 +1,3 @@
--SKIP
 -DATASET CSV llm/embeddings/googlevertex/
 
 --
@@ -51,73 +50,34 @@ False
 False
 
 -CASE UseWithVectorExtension
+
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
-
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension"
 ---- ok
 
 -STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING, title_embedding FLOAT[3072], published_year INT64);
 ---- ok
-
--STATEMENT CREATE NODE TABLE Publisher(name STRING PRIMARY KEY);
+-STATEMENT CREATE
+    (:Book {title: 'The Quantum World', published_year: 2004}),
+    (:Book {title: 'Chronicles of the Universe', published_year: 2022}),
+    (:Book {title: 'Learning Machines', published_year: 2019}),
+    (:Book {title: 'Echoes of the Past', published_year: 2010}),
+    (:Book {title: 'The Dragon Call', published_year: 2015});
 ---- ok
-
--STATEMENT CREATE REL TABLE PublishedBy(FROM Book TO Publisher);
----- ok
-
--STATEMENT CREATE (b:Book {title: 'The Quantum World', published_year: 2004});
----- ok
-
--STATEMENT CREATE (b:Book {title: 'Chronicles of the Universe', published_year: 2022});
----- ok
-
--STATEMENT CREATE (b:Book {title: 'Learning Machines', published_year: 2019});
----- ok
-
--STATEMENT CREATE (b:Book {title: 'Echoes of the Past', published_year: 2010});
----- ok
-
--STATEMENT CREATE (b:Book {title: 'The Dragon Call', published_year: 2015});
----- ok
-
--STATEMENT CREATE (p:Publisher {name: "Harvard University Press"});
----- ok
-
--STATEMENT CREATE (p:Publisher {name: "Independent Publisher"});
----- ok
-
--STATEMENT CREATE (p:Publisher {name: "Pearson"});
----- ok
-
--STATEMENT CREATE (p:Publisher {name: "McGraw-Hill Ryerson"});
----- ok
-
--STATEMENT CREATE (p:Publisher {name: "O'Reilly"});
----- ok
-
--STATEMENT MATCH (b:Book {title: 'The Quantum World'}) MATCH (p:Publisher {name: 'Harvard University Press'}) CREATE (b)-[:PublishedBy]->(p);
----- ok
-
--STATEMENT MATCH (b:Book {title: 'Chronicles of the Universe'}) MATCH (p:Publisher {name: 'Independent Publisher'}) CREATE (b)-[:PublishedBy]->(p);
----- ok
-
--STATEMENT MATCH (b:Book {title: 'Learning Machines'}) MATCH (p:Publisher {name: 'Pearson'}) CREATE (b)-[:PublishedBy]->(p);
----- ok
-
--STATEMENT MATCH (b:Book {title: 'Echoes of the Past'}) MATCH (p:Publisher {name: 'McGraw-Hill Ryerson'}) CREATE (b)-[:PublishedBy]->(p);
----- ok
-
--STATEMENT MATCH (b:Book {title: 'The Dragon Call'}) MATCH (p:Publisher {name: "O'Reilly"}) CREATE (b)-[:PublishedBy]->(p);
----- ok
-
 -STATEMENT MATCH (b:Book) WITH b, create_embedding(b.title, 'google-vertex', 'gemini-embedding-001', 'us-central1') AS emb SET b.title_embedding = emb;
 ---- ok
-
 -STATEMENT CALL CREATE_VECTOR_INDEX('Book', 'title_vec_index', 'title_embedding');
 ---- ok
 
--STATEMENT CALL QUERY_VECTOR_INDEX('Book', 'title_vec_index', create_embedding('quantum machine learning', 'google-vertex', 'gemini-embedding-001', 'us-central1'), 2) RETURN node.title ORDER BY distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX(
+        'Book',
+        'title_vec_index',
+        create_embedding('quantum machine learning', 'google-vertex', 'gemini-embedding-001', 'us-central1'),
+        2
+    )
+    RETURN node.title
+    ORDER BY distance;
 -CHECK_ORDER
 ---- 2
 Learning Machines
