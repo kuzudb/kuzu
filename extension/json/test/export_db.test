@@ -4,8 +4,7 @@
 --
 
 -CASE ExportDBTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT create node table person (id INT64, description json, primary key(id));
 ---- ok
 -STATEMENT CREATE (p:person {id: 5, description: 6})

@@ -3,8 +3,6 @@
 --
 
 -DEFINE_STATEMENT_BLOCK UW_S3_SETUP [
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
 -STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'
 ---- ok
 -STATEMENT CALL s3_secret_access_key='${UW_S3_SECRET_ACCESS_KEY}'
@@ -20,6 +18,7 @@
 #TODO(Ziyi): figure out a way to automate upload if storage has changed.
 -CASE UWS3RemoteDB
 -SKIP
+-LOAD_DYNAMIC_EXTENSION httpfs
 -INSERT_STATEMENT_BLOCK UW_S3_SETUP
 -STATEMENT CALL HTTP_CACHE_FILE=TRUE
 ---- ok
@@ -34,6 +33,7 @@ Attached database successfully.
 Detached database successfully.
 
 -CASE AttachTinysnb
+-LOAD_DYNAMIC_EXTENSION httpfs
 -INSERT_STATEMENT_BLOCK UW_S3_SETUP
 -STATEMENT CALL HTTP_CACHE_FILE=FALSE
 ---- ok

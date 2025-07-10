@@ -3,8 +3,7 @@
 --
 
 -CASE AttachHTTPDuckdb
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION duckdb
 -STATEMENT ATTACH 'http://localhost/dataset/databases/duckdb_database/tinysnb.db' as remoteTiny (dbtype duckdb, skip_unsupported_table=true);
 ---- ok
 -STATEMENT LOAD FROM remoteTiny.person RETURN *;
@@ -29,15 +28,13 @@
 6|DEsWork|824|4.100000|7|2 years 4 hours 22 us 34 minutes|82:00:00.1|0.520000|{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}|2023-12-15
 
 -CASE AttachNotExistHTTPRemoteDB
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION duckdb
 -STATEMENT ATTACH 'http://localhost/dataset/databases/duckdb_database/tinysnb132.db' as remoteTiny (dbtype duckdb, skip_unsupported_table=true);
 ---- error(regex)
 ^.+ Error: Cannot open database "http://localhost/dataset/databases/duckdb_database/tinysnb132.db" in read-only mode: database does not exist$
 
 -CASE AttachS3Duckdb
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION duckdb
 -STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'
 ---- ok
 -STATEMENT CALL s3_secret_access_key='${UW_S3_SECRET_ACCESS_KEY}'
@@ -62,8 +59,8 @@
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|1.323000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18|[77,64,100,54]
 
 -CASE AttachPublicS3Duckdb
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION duckdb
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT ATTACH 's3://duckdb-blobs/databases/stations.duckdb' as station (dbtype duckdb)
 ---- 1
 Attached database successfully.
@@ -72,8 +69,8 @@ Attached database successfully.
 578
 
 -CASE AttachNotExistS3RemoteDB
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION duckdb
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT ATTACH 's3://duckdb-blobs/databases/stations1.duckdb' as remoteTiny (dbtype duckdb, skip_unsupported_table=true);
 # Error type is determined by duckdb version.
 ---- error(regex)

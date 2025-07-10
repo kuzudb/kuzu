@@ -4,8 +4,7 @@
 
 -CASE JsonkeyTestFromDuckDB
 
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 
 -STATEMENT RETURN json_keys('{"duck": 42}');
 ---- 1

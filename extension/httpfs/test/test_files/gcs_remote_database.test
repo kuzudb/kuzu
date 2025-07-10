@@ -3,8 +3,6 @@
 --
 
 -DEFINE_STATEMENT_BLOCK GCS_SETUP [
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
 -STATEMENT CALL gcs_access_key_id='${GCS_ACCESS_KEY_ID}'
 ---- ok
 -STATEMENT CALL gcs_secret_access_key='${GCS_SECRET_ACCESS_KEY}'
@@ -12,6 +10,7 @@
 ]
 
 -CASE AttachTinysnb
+-LOAD_DYNAMIC_EXTENSION httpfs
 -INSERT_STATEMENT_BLOCK GCS_SETUP
 -STATEMENT CALL HTTP_CACHE_FILE=FALSE
 ---- ok

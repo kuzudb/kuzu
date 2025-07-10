@@ -3,8 +3,7 @@
 --
 
 -CASE SingleSCC
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node, id INT64);
@@ -114,8 +113,7 @@
 8|1|[8]
 
 -CASE SingleSCCIsolated
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
@@ -152,8 +150,7 @@
 6|1|[6]
 
 -CASE SCCMultiple
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node, id INT64);
@@ -259,8 +256,7 @@
 5|3|[5,7,8]
 
 -CASE SCCMultiple2
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
@@ -319,8 +315,7 @@
 10|1|[10]
 
 -CASE NoScc
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
@@ -382,8 +377,7 @@
 10|1|[10]
 
 -CASE ErrorHandling
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Person(id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE NODE TABLE City(id INT64 PRIMARY KEY);

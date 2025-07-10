@@ -3,8 +3,7 @@
 --
 
 -CASE JsonObjectTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT MATCH (p:person) RETURN json_object(p.fName, p.ID)
 ---- 8
 {"Alice":0}

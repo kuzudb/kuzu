@@ -124,12 +124,6 @@ void TestParser::parseHeader() {
 #endif
             break;
         }
-        case TokenType::SKIP_STATIC_LINK: {
-#ifdef __STATIC_LINK_TEST__
-            testGroup->group = "DISABLED_" + testGroup->group;
-#endif
-            break;
-        }
         case TokenType::WASM_ONLY: {
 #ifndef __WASM__
             testGroup->group = "DISABLED_" + testGroup->group;

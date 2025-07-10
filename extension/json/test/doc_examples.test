@@ -7,8 +7,7 @@
 # note that due to technical differences between the documentation and the testing framework, queries are not 1:1
 
 -CASE LoadFromTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people.json' RETURN * ORDER BY id DESC;
 ---- 3
 0|Alice|{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}|2024-07-31
@@ -41,8 +40,7 @@
 
 -CASE CopyFromTest
 -SKIP_IN_MEM
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT CREATE NODE TABLE Person (id SERIAL, name STRING, registryDate DATE, info STRUCT(height DOUBLE, age INT64, previousUsernames STRING[]), PRIMARY KEY(id));
 ---- ok
 -STATEMENT COPY Person FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people.json';
@@ -71,8 +69,7 @@
 0|Alice|{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}
 
 -CASE JsonTypeDoc
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
+-LOAD_DYNAMIC_EXTENSION json
 -STATEMENT CREATE NODE TABLE Person (id INT64, description JSON, primary key(id));
 ---- ok
 -STATEMENT CREATE (p:Person {id: 20, description: to_json({height: 52, age: 32, scores: [1,2,5]})});

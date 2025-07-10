@@ -30,8 +30,7 @@ Waterloo|150000
 # Command to generate a token: `aws sts get-session-token --duration-seconds 3600`
 # In-memory mode doesn't support file cache.
 -SKIP_IN_MEM
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -STATEMENT CALL s3_access_key_id=''
 ---- ok
 -STATEMENT CALL s3_secret_access_key=''
@@ -45,6 +44,5 @@ Waterloo|150000
 # Note: S3 session token is only valid for a maximum of 60 minutes, so we can't test in CI run.
 # In-memory mode doesn't support file cache.
 -SKIP_IN_MEM
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION httpfs
 -INSERT_STATEMENT_BLOCK AWS_S3_TEST

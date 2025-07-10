@@ -4,8 +4,7 @@
 
 -CASE SqlQueryInPG
 -SKIP
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres/build/libpostgres.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION postgres
 -STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' as tinysnb (dbtype POSTGRES);
 ---- ok
 -STATEMENT CALL SQL_QUERY('tinysnb', 'select * from person') RETURN *
@@ -80,8 +79,7 @@ DEsWork|Dan
 
 -CASE SqlQueryError
 -SKIP
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres/build/libpostgres.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION postgres
 -STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' as tinysnb (dbtype POSTGRES);
 ---- ok
 -STATEMENT CALL SQL_QUERY('tinysnb', 'create table tep(id int)') RETURN *
@@ -98,8 +96,7 @@ Binder Error: No fields returned by query "INSERT INTO PERSON VALUES(5)" - the q
 Binder Error: Failed to prepare query "SELECT * PERSON": ERROR:  syntax error at or near "PERSON"
 LINE 1: SELECT * PERSON
                  ^
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sqlite/build/libsqlite.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION postgres
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/tinysnb' as sqlitets (dbtype sqlite);
 ---- 1
 Attached database successfully.
@@ -109,8 +106,7 @@ Binder exception: sql queries can only be executed in attached postgres.
 
 -CASE SqlQueryInPGWithQuote
 -SKIP
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres/build/libpostgres.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION postgres
 -STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' as tinysnb (dbtype POSTGRES);
 ---- ok
 -STATEMENT CALL SQL_QUERY('tinysnb', "select * from person where fName = 'Alice'") RETURN fname

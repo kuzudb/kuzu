@@ -3,8 +3,7 @@
 --
 
 -CASE WCC
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/algo/build/libalgo.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CALL PROJECT_GRAPH('PK', ['person'], ['knows'])
 ---- ok
 -STATEMENT CALL weakly_connected_components('PK') RETURN node.fName, group_id;

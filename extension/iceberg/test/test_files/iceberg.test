@@ -3,13 +3,13 @@
 --
 
 -CASE DidNotLoadExtension
+-SKIP_STATIC_LINK
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct ORDER BY l_quantity, l_shipdate LIMIT 5;
 ---- error
 Binder exception: Cannot load from file type iceberg. If this file type is part of a kuzu extension please load the extension then try again.
 
 -CASE IcebergFunctions
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/iceberg/build/libiceberg.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION iceberg
 -LOG NOT_allow_moved_paths
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=false) RETURN *
 ---- error(regex)
@@ -145,6 +145,7 @@ lineitem_iceberg/metadata/cf3d0be5-cf70-453d-ad8f-48fdc412e608-m0.avro|1|DATA|AD
 
 -CASE InstallOfficialExtension
 -SKIP
+-SKIP_STATIC_LINK
 -STATEMENT FORCE INSTALL iceberg FROM 'http://localhost/extension/repo/'
 ---- ok
 -STATEMENT load extension iceberg
