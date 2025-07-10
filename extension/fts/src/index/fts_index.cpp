@@ -160,7 +160,11 @@ void FTSIndex::delete_(Transaction* transaction, const ValueVector& nodeIDVector
         deleteFromAppearsInTable(transaction, ftsDeleteState, deletedDocID);
     }
     auto numDeletedDocs = nodeIDVector.state->getSelSize();
-    ftsStorageInfo.avgDocLen = totalDocLen / (ftsStorageInfo.numDocs - numDeletedDocs);
+    if (ftsStorageInfo.numDocs == numDeletedDocs) {
+        ftsStorageInfo.avgDocLen = 0;
+    } else {
+        ftsStorageInfo.avgDocLen = totalDocLen / (ftsStorageInfo.numDocs - numDeletedDocs);
+    }
     ftsStorageInfo.numDocs -= numDeletedDocs;
 }
 
