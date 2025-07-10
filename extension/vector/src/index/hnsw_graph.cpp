@@ -159,21 +159,40 @@ EmbeddingHandle OnDiskEmbeddings::getEmbedding(common::offset_t offset,
 std::vector<EmbeddingHandle> OnDiskEmbeddings::getEmbeddings(
     std::span<const common::offset_t> offsets, GetEmbeddingsScanState& embeddingScanState) const {
     auto& scanState = embeddingScanState.cast<OnDiskEmbeddingScanState>().getScanState();
+    KU_ASSERT(scanState.nodeIDVector->state == scanState.outState);
+
+    // We skip scanning deleted nodes
+    common::sel_t numSelectedValues = 0;
+    auto& selVector = scanState.nodeIDVector->state->getSelVectorUnsafe();
+    selVector.setToFiltered();
     for (auto i = 0u; i < offsets.size(); i++) {
-        scanState.nodeIDVector->setValue(i,
-            common::internalID_t{offsets[i], nodeTable.getTableID()});
+        if (nodeTable.isVisible(transaction, offsets[i])) {
+            scanState.nodeIDVector->setValue(i,
+                common::internalID_t{offsets[i], nodeTable.getTableID()});
+            selVector[numSelectedValues] = i;
+            ++numSelectedValues;
+        }
     }
-    scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(offsets.size());
+    selVector.setSelSize(numSelectedValues);
+
     KU_ASSERT(
         scanState.outputVectors[0]->dataType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
-    nodeTable.lookupMultiple<false>(transaction, scanState);
+    [[maybe_unused]] const auto lookupSuccess =
+        nodeTable.lookupMultiple<false>(transaction, scanState);
+    KU_ASSERT(lookupSuccess);
     std::vector<EmbeddingHandle> embeddings;
     embeddings.reserve(offsets.size());
-    for (auto i = 0u; i < offsets.size(); i++) {
+    KU_ASSERT(selVector.getSelSize() == numSelectedValues);
+    for (common::sel_t i = 0u; i < selVector.getSelSize(); i++) {
+        const auto pos = selVector[i];
+        while (embeddings.size() < pos) {
+            // Return a null embedding for deleted nodes
+            embeddings.emplace_back(EmbeddingHandle::createNullHandle());
+        }
         if (scanState.outputVectors[0]->isNull(i)) {
             embeddings.emplace_back(EmbeddingHandle::createNullHandle());
         } else {
-            const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(i);
+            const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(pos);
             KU_ASSERT(value.size == info.typeInfo.getNumElements());
             embeddings.emplace_back(value.offset, &embeddingScanState);
         }
