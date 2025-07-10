@@ -30,10 +30,18 @@ namespace main {
 
 SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression,
     bool readOnly, uint64_t maxDBSize, bool autoCheckpoint, uint64_t checkpointThreshold,
-    bool forceCheckpointOnClose)
+    bool forceCheckpointOnClose
+#if defined(__APPLE__)
+    ,
+    uint32_t threadQos
+#endif
+    )
     : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly{readOnly},
       autoCheckpoint{autoCheckpoint}, checkpointThreshold{checkpointThreshold},
       forceCheckpointOnClose{forceCheckpointOnClose} {
+#if defined(__APPLE__)
+    this->threadQos = threadQos;
+#endif
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;
@@ -110,7 +118,13 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
 
     bufferManager = initBmFunc(*this);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
+#if defined(__APPLE__)
+    queryProcessor =
+        std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads, dbConfig.threadQos);
+#else
     queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads);
+#endif
+
     catalog = std::make_unique<Catalog>();
     storageManager = std::make_unique<StorageManager>(databasePath, dbConfig.readOnly,
         *memoryManager, dbConfig.enableCompression, vfs.get(), &clientContext);

@@ -132,6 +132,12 @@ typedef struct {
     // The threshold of the WAL file size in bytes. When the size of the
     // WAL file exceeds this threshold, the database will checkpoint if auto_checkpoint is true.
     uint64_t checkpoint_threshold;
+
+#if defined(__APPLE__)
+    // The thread quality of service (QoS) for the worker threads.
+    // This works for Swift bindings on Apple platforms only.
+    uint32_t thread_qos;
+#endif
 } kuzu_system_config;
 
 /**
