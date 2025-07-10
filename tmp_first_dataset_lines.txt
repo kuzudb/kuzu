@@ -1,0 +1,13 @@
+copy-fault-tests/duplicate-ids
+copy-fault-tests/invalid-row
+copy-fault-tests/null-pk
+copy-test/node/csv
+csv-dialect-detection
+csv-multiline-quote-tests
+gds-rec-joins-small
+ldbc-sf01
+tinysnb
+tinysnb copy-fault-tests/duplicate-ids
+long-string-pk-tests
+copy-test/node/parquet
+large-array
