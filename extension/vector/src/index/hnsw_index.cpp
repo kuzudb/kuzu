@@ -915,12 +915,14 @@ void OnDiskHNSWIndex::insertToLayer(Transaction* transaction, common::offset_t o
     bool isUpperLayer) {
     auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
     if (entryPoint == common::INVALID_OFFSET) {
-        if (hnswStorageInfo.lowerEntryPoint == common::INVALID_OFFSET) {
-            // The lower layer is empty. Set the entry point to the current offset.
-            hnswStorageInfo.lowerEntryPoint = offset;
+        auto& entryPointToSet =
+            isUpperLayer ? hnswStorageInfo.upperEntryPoint : hnswStorageInfo.lowerEntryPoint;
+        if (entryPointToSet == common::INVALID_OFFSET) {
+            // The layer is empty. Set the entry point to the current offset.
+            entryPointToSet = offset;
             return;
         }
-        entryPoint = hnswStorageInfo.lowerEntryPoint;
+        entryPoint = entryPointToSet;
     }
     const auto closest = searchKNNInLayer(transaction, queryVector, entryPoint,
         insertState.searchState, isUpperLayer);
