@@ -1397,6 +1397,7 @@ jobs:
           start /b make extension-static-link-test
 
       - name: Static link extension test in mem mode
+        shell: cmd
         env:
           IN_MEM_MODE: true
           HTTP_CACHE_FILE: false
