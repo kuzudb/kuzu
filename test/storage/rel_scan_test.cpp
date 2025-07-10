@@ -49,28 +49,7 @@ public:
 
 class VertexScanTest : public PrivateApiTest {
 public:
-    void SetUp() override {
-        PrivateApiTest::SetUp();
-        auto res = conn->query("CREATE NODE TABLE account(id INT64 PRIMARY KEY);");
-        ASSERT_TRUE(res->isSuccess());
-        conn->query("CALL threads=1;");
-        res = conn->query("UNWIND range(0, 10000) AS i CREATE (a:account {ID: i});");
-        ASSERT_TRUE(res->isSuccess());
-        res = conn->query("UNWIND range(10001, 20000) AS i CREATE (a:account {ID: i});");
-        ASSERT_TRUE(res->isSuccess());
-        res = conn->query("UNWIND range(20001, 30000) AS i CREATE (a:account {ID: i});");
-        ASSERT_TRUE(res->isSuccess());
-        conn->query("BEGIN TRANSACTION");
-        context = getClientContext(*conn);
-        catalog = context->getCatalog();
-        auto transaction = context->getTransaction();
-        std::vector<catalog::TableCatalogEntry*> nodeEntries;
-        for (auto& entry : catalog->getNodeTableEntries(transaction)) {
-            nodeEntries.push_back(entry);
-        }
-        auto entry = graph::NativeGraphEntry(nodeEntries, {});
-        graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
-    }
+    void SetUp() override { PrivateApiTest::SetUp(); }
 
     std::string getInputDir() override { return "empty"; }
 
@@ -196,9 +175,29 @@ TEST_F(RelScanTest, ScanVertexProperties) {
 }
 
 TEST_F(VertexScanTest, ScanVertexProperties) {
-    auto entry = catalog->getTableCatalogEntry(context->getTransaction(), "account");
+    auto res = conn->query("CREATE NODE TABLE account(id INT64 PRIMARY KEY);");
+    ASSERT_TRUE(res->isSuccess());
+    conn->query("CALL threads=1;");
+    res = conn->query("UNWIND range(0, 10000) AS i CREATE (a:account {ID: i});");
+    ASSERT_TRUE(res->isSuccess());
+    res = conn->query("UNWIND range(10001, 20000) AS i CREATE (a:account {ID: i});");
+    ASSERT_TRUE(res->isSuccess());
+    res = conn->query("UNWIND range(20001, 30000) AS i CREATE (a:account {ID: i});");
+    ASSERT_TRUE(res->isSuccess());
+    conn->query("BEGIN TRANSACTION");
+    context = getClientContext(*conn);
+    catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
+    std::vector<catalog::TableCatalogEntry*> nodeEntries;
+    for (auto& entry : catalog->getNodeTableEntries(transaction)) {
+        nodeEntries.push_back(entry);
+    }
+    auto entry = graph::NativeGraphEntry(nodeEntries, {});
+    graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
+
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), "account");
     std::vector<std::string> properties = {"id"};
-    auto scanState = graph->prepareVertexScan(entry, properties);
+    auto scanState = graph->prepareVertexScan(tableEntry, properties);
     const auto compare = [&](offset_t startNode, offset_t endNode) {
         common::idx_t idx = 0;
         for (auto chunk : graph->scanVertices(startNode, endNode, *scanState)) {
@@ -217,6 +216,79 @@ TEST_F(VertexScanTest, ScanVertexProperties) {
     compare(1, 20000);
     compare(14444, 20000);
     compare(24444, 29889);
+}
+
+TEST_F(VertexScanTest, ScanVertexPropertiesAfterDeletionReInsert) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    auto res = conn->query("CREATE NODE TABLE account(id INT64 PRIMARY KEY);");
+    ASSERT_TRUE(res->isSuccess());
+    conn->query("CALL threads=1;");
+    res = conn->query("UNWIND range(0, 10000) AS i CREATE (a:account {ID: i});");
+    ASSERT_TRUE(res->isSuccess());
+    res = conn->query("CHECKPOINT");
+    ASSERT_TRUE(res->isSuccess());
+    conn->query("MATCH (a:account) DELETE a;");
+    ASSERT_TRUE(res->isSuccess());
+    conn->query("CHECKPOINT");
+    res = conn->query("UNWIND range(10001, 20000) AS i CREATE (a:account {ID: i});");
+    ASSERT_TRUE(res->isSuccess());
+    res = conn->query("UNWIND range(20001, 30000) AS i CREATE (a:account {ID: i});");
+    ASSERT_TRUE(res->isSuccess());
+
+    conn->query("BEGIN TRANSACTION");
+    context = getClientContext(*conn);
+    catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
+    std::vector<catalog::TableCatalogEntry*> nodeEntries;
+    for (auto& entry : catalog->getNodeTableEntries(transaction)) {
+        nodeEntries.push_back(entry);
+    }
+    auto entry = graph::NativeGraphEntry(nodeEntries, {});
+    graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
+
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), "account");
+    std::vector<std::string> properties = {"id"};
+    auto scanState = graph->prepareVertexScan(tableEntry, properties);
+    const auto compare = [&](offset_t startNode, offset_t endNode) {
+        common::idx_t idx = 0;
+        for (auto chunk : graph->scanVertices(startNode, endNode, *scanState)) {
+            for (auto i = 0u; i < chunk.size(); i++) {
+                auto nodeID = chunk.getNodeIDs()[i];
+                auto id = chunk.getProperties<int64_t>(0)[i];
+                ASSERT_EQ(nodeID.offset, idx + startNode);
+                ASSERT_EQ(id, idx + startNode);
+                idx++;
+            }
+        }
+        ASSERT_EQ(idx, endNode - startNode);
+    };
+
+    compare(14444, 20000);
+    compare(24444, 29889);
+
+    // Scan from 0 to 1000 should return nothing, since we deleted all nodes.
+    common::idx_t idx = 0;
+    for (auto chunk : graph->scanVertices(0, 1000, *scanState)) {
+        for (auto i = 0u; i < chunk.size(); i++) {
+            idx++;
+        }
+    }
+    ASSERT_EQ(idx, 0);
+
+    // Scan from 5000 to 20,000 should scan non-deleted tuples only.
+    idx = 10001;
+    for (auto chunk : graph->scanVertices(5000, 20000, *scanState)) {
+        for (auto i = 0u; i < chunk.size(); i++) {
+            auto nodeID = chunk.getNodeIDs()[i];
+            auto id = chunk.getProperties<int64_t>(0)[i];
+            ASSERT_EQ(nodeID.offset, idx);
+            ASSERT_EQ(id, idx);
+            idx++;
+        }
+    }
+    ASSERT_EQ(idx, 20000);
 }
 
 } // namespace testing

@@ -63,3 +63,21 @@ Binder exception: Cannot set property author in table Book because it is used in
 -STATEMENT ALTER TABLE Book DROP abstract
 ---- error
 Binder exception: Cannot drop property abstract in table Book because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
+
+-CASE DeleteAndReCopy
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-STATEMENT MATCH (b:Book) DELETE b;
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+-STATEMENT CREATE (b:Book {title: 'Alice wonderland', author: 'newton', abstract: 'machine'})
+---- ok
+-STATEMENT COPY Book FROM '${KUZU_ROOT_DIRECTORY}/dataset/fts-basic/Book.csv';
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title, score;
+---- 3
+Alice wonderland|0.549301
+Learning Machines|0.599514
+The Quantum World|0.931796
