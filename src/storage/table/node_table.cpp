@@ -46,16 +46,16 @@ void NodeTableVersionRecordHandler::rollbackInsert(main::ClientContext* context,
     }
 }
 
-bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset,
+NodeGroupScanResult NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset,
     offset_t numNodes) {
     KU_ASSERT(columns.size() == outputVectors.size());
     if (source == TableScanSource::NONE) {
-        return false;
+        return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
     const NodeGroupScanResult scanResult =
         nodeGroup->scan(transaction, *this, startOffset, numNodes);
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-        return false;
+        return scanResult;
     }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto tableID = table->getTableID();
@@ -66,7 +66,7 @@ bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset
         nodeIDVector->setValue(i,
             nodeID_t{nodeGroupStartOffset + scanResult.startRow + i, tableID});
     }
-    return true;
+    return scanResult;
 }
 
 std::unique_ptr<NodeTableScanState> IndexScanHelper::initScanState(const Transaction* transaction,

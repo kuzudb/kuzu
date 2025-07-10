@@ -35,8 +35,8 @@ struct KUZU_API NodeTableScanState : TableScanState {
 
     bool scanNext(transaction::Transaction* transaction) override;
 
-    bool scanNext(transaction::Transaction* transaction, common::offset_t startOffset,
-        common::offset_t numNodes);
+    NodeGroupScanResult scanNext(transaction::Transaction* transaction,
+        common::offset_t startOffset, common::offset_t numNodes);
 };
 
 // There is a vtable bug related to the Apple clang v15.0.0+. Adding the `FINAL` specifier to

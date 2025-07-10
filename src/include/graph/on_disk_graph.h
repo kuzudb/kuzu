@@ -103,7 +103,8 @@ public:
 
     bool next() override;
     Chunk getChunk() override {
-        return createChunk(std::span(&nodeIDVector->getValue<common::nodeID_t>(0), numNodesScanned),
+        return createChunk(std::span(&nodeIDVector->getValue<common::nodeID_t>(0),
+                               nodeIDVector->getSelVectorPtr()->getSelSize()),
             std::span(propertyVectors.valueVectors));
     }
 
@@ -115,7 +116,7 @@ private:
     std::unique_ptr<common::ValueVector> nodeIDVector;
     std::unique_ptr<storage::NodeTableScanState> tableScanState;
 
-    common::offset_t numNodesScanned;
+    common::offset_t numNodesToScan;
     common::offset_t currentOffset;
     common::offset_t endOffsetExclusive;
 };

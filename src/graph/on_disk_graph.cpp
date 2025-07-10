@@ -291,7 +291,7 @@ OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
     const TableCatalogEntry* tableEntry, const std::vector<std::string>& propertyNames)
     : context{context}, nodeTable{ku_dynamic_cast<const NodeTable&>(
                             *context.getStorageManager()->getTable(tableEntry->getTableID()))},
-      numNodesScanned{0}, currentOffset{0}, endOffsetExclusive{0} {
+      numNodesToScan{0}, currentOffset{0}, endOffsetExclusive{0} {
     std::vector<column_id_t> propertyColumnIDs;
     propertyColumnIDs.reserve(propertyNames.size());
     std::vector<LogicalType> types;
@@ -314,9 +314,13 @@ OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
 }
 
 void OnDiskGraphVertexScanState::startScan(offset_t beginOffset, offset_t endOffsetExclusive) {
-    numNodesScanned = 0;
+    numNodesToScan = 0;
     this->currentOffset = beginOffset;
     this->endOffsetExclusive = endOffsetExclusive;
+    tableScanState->nodeIDVector->getSelVectorPtr()->setToUnfiltered(0);
+    for (auto& vector : tableScanState->outputVectors) {
+        vector->resetAuxiliaryBuffer();
+    }
     nodeTable.initScanState(context.getTransaction(), *tableScanState, nodeTable.getTableID(),
         beginOffset);
 }
@@ -332,11 +336,10 @@ bool OnDiskGraphVertexScanState::next() {
 
     auto endOffset = std::min(endOffsetExclusive,
         StorageUtils::getStartOffsetOfNodeGroup(tableScanState->nodeGroupIdx + 1));
-    numNodesScanned = std::min(endOffset - currentOffset, DEFAULT_VECTOR_CAPACITY);
-    auto result =
-        tableScanState->scanNext(context.getTransaction(), currentOffset, numNodesScanned);
-    currentOffset += numNodesScanned;
-    return result;
+    numNodesToScan = std::min(endOffset - currentOffset, DEFAULT_VECTOR_CAPACITY);
+    auto result = tableScanState->scanNext(context.getTransaction(), currentOffset, numNodesToScan);
+    currentOffset += result.numRows;
+    return result != NODE_GROUP_SCAN_EMMPTY_RESULT;
 }
 
 } // namespace graph

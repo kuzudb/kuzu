@@ -1,4 +1,3 @@
-#include <cstdint>
 #include <vector>
 
 #include "api_test/private_api_test.h"
@@ -48,10 +47,36 @@ public:
     bool fwdStorageOnly;
 };
 
-class RelScanTestAmazon : public RelScanTest {
-    std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/snap/amazon0601/csv/");
+class VertexScanTest : public PrivateApiTest {
+public:
+    void SetUp() override {
+        PrivateApiTest::SetUp();
+        auto res = conn->query("CREATE NODE TABLE account(id INT64 PRIMARY KEY);");
+        ASSERT_TRUE(res->isSuccess());
+        conn->query("CALL threads=1;");
+        res = conn->query("UNWIND range(0, 10000) AS i CREATE (a:account {ID: i});");
+        ASSERT_TRUE(res->isSuccess());
+        res = conn->query("UNWIND range(10001, 20000) AS i CREATE (a:account {ID: i});");
+        ASSERT_TRUE(res->isSuccess());
+        res = conn->query("UNWIND range(20001, 30000) AS i CREATE (a:account {ID: i});");
+        ASSERT_TRUE(res->isSuccess());
+        conn->query("BEGIN TRANSACTION");
+        context = getClientContext(*conn);
+        catalog = context->getCatalog();
+        auto transaction = context->getTransaction();
+        std::vector<catalog::TableCatalogEntry*> nodeEntries;
+        for (auto& entry : catalog->getNodeTableEntries(transaction)) {
+            nodeEntries.push_back(entry);
+        }
+        auto entry = graph::NativeGraphEntry(nodeEntries, {});
+        graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
     }
+
+    std::string getInputDir() override { return "empty"; }
+
+    std::unique_ptr<graph::OnDiskGraph> graph;
+    main::ClientContext* context = nullptr;
+    catalog::Catalog* catalog = nullptr;
 };
 
 // Test correctness of scan fwd
@@ -151,8 +176,8 @@ TEST_F(RelScanTest, ScanFwd) {
 TEST_F(RelScanTest, ScanVertexProperties) {
     auto entry = catalog->getTableCatalogEntry(context->getTransaction(), "person");
     std::vector<std::string> properties = {"fname", "height"};
-    auto scanState = graph->prepareVertexScan(entry, properties);
 
+    auto scanState = graph->prepareVertexScan(entry, properties);
     const auto compare = [&](offset_t startNodeOffset, offset_t endNodeOffset,
                              std::vector<std::tuple<offset_t, std::string, float>> expectedNames) {
         std::vector<std::tuple<offset_t, std::string, float>> results;
@@ -168,6 +193,30 @@ TEST_F(RelScanTest, ScanVertexProperties) {
     compare(0, 3, {{0, "Alice", 1.731}, {1, "Bob", 0.99}, {2, "Carol", 1.0}});
     compare(1, 3, {{1, "Bob", 0.99}, {2, "Carol", 1.0}});
     compare(2, 4, {{2, "Carol", 1.0}, {3, "Dan", 1.3}});
+}
+
+TEST_F(VertexScanTest, ScanVertexProperties) {
+    auto entry = catalog->getTableCatalogEntry(context->getTransaction(), "account");
+    std::vector<std::string> properties = {"id"};
+    auto scanState = graph->prepareVertexScan(entry, properties);
+    const auto compare = [&](offset_t startNode, offset_t endNode) {
+        common::idx_t idx = 0;
+        for (auto chunk : graph->scanVertices(startNode, endNode, *scanState)) {
+            for (auto i = 0u; i < chunk.size(); i++) {
+                auto nodeID = chunk.getNodeIDs()[i];
+                auto id = chunk.getProperties<int64_t>(0)[i];
+                ASSERT_EQ(nodeID.offset, idx + startNode);
+                ASSERT_EQ(id, idx + startNode);
+                idx++;
+            }
+        }
+        ASSERT_EQ(idx, endNode - startNode);
+    };
+
+    compare(0, 1000);
+    compare(1, 20000);
+    compare(14444, 20000);
+    compare(24444, 29889);
 }
 
 } // namespace testing
