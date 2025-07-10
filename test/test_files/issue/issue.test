@@ -581,3 +581,14 @@ Binder exception: Table rel2 does not exist.
 -STATEMENT create rel table knows1 (from person to person) as match (p:person) delete p return p.id AS id1,p.id as id2;
 ---- error
 Copy exception: Unable to find primary key value 1.
+
+-CASE 5716
+-STATEMENT create node table Test1 (id int64 primary key);
+---- ok
+-STATEMENT create node table Test2 (id int64 primary key);
+---- ok
+-STATEMENT create rel table Xyz (from Test1 to Test1, from Test2 to Test2);
+---- ok
+-STATEMENT match (a:Test1), (b:Test2) create (a)-[e:Xyz]->(b);
+---- error
+Binder exception: Cannot find a valid label in e that connects Test1 and Test2.
