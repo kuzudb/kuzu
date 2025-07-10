@@ -4,6 +4,8 @@
 
 -CASE LoadExtension
 
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
----- ok
+-LOAD_DYNAMIC_EXTENSION llm
 
+-STATEMENT CALL SHOW_LOADED_EXTENSIONS() RETURN *
+---- 1
+LLM|USER|${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension
