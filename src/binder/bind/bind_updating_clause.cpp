@@ -198,13 +198,13 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     infos.push_back(std::move(insertInfo));
 }
 
-static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel, table_id_t srcTableID,
-    table_id_t dstTableID) {
+static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel,
+    const TableCatalogEntry& srcEntry, const TableCatalogEntry& dstEntry) {
     std::vector<TableCatalogEntry*> candidates;
     for (auto& entry : rel.getEntries()) {
         KU_ASSERT(entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
         auto& relEntry = entry->constCast<RelGroupCatalogEntry>();
-        if (relEntry.hasRelEntryInfo(srcTableID, dstTableID)) {
+        if (relEntry.hasRelEntryInfo(srcEntry.getTableID(), dstEntry.getTableID())) {
             candidates.push_back(entry);
         }
     }
@@ -213,8 +213,9 @@ static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel, table_i
             "Create rel {} with multiple rel labels is not supported.", rel.toString()));
     }
     if (candidates.size() == 0) {
-        throw BinderException(stringFormat(
-            "Cannot find a valid label in {} to create. This should not happen.", rel.toString()));
+        throw BinderException(
+            stringFormat("Cannot find a valid label in {} that connects {} and {}.", rel.toString(),
+                srcEntry.getName(), dstEntry.getName()));
     }
     return candidates[0];
 }
@@ -237,9 +238,9 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
         KU_ASSERT(rel->getNumEntries() == 1);
         entry = rel->getEntry(0);
     } else {
-        auto srcTableID = rel->getSrcNode()->getEntry(0)->getTableID();
-        auto dstTableID = rel->getDstNode()->getEntry(0)->getTableID();
-        entry = tryPruneMultiLabeled(*rel, srcTableID, dstTableID);
+        auto srcEntry = rel->getSrcNode()->getEntry(0);
+        auto dstEntry = rel->getDstNode()->getEntry(0);
+        entry = tryPruneMultiLabeled(*rel, *srcEntry, *dstEntry);
     }
     rel->setEntries(std::vector{entry});
     auto insertInfo = BoundInsertInfo(TableType::REL, rel);
