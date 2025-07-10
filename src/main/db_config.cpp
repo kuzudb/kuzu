@@ -31,11 +31,10 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
       autoCheckpoint{systemConfig.autoCheckpoint},
       checkpointThreshold{systemConfig.checkpointThreshold},
       forceCheckpointOnClose{systemConfig.forceCheckpointOnClose}, enableSpillingToDisk{true}
-#if defined(__APPLE__)
-      ,
-      threadQos(systemConfig.threadQos)
-#endif
 {
+#if defined(__APPLE__)
+    this->threadQos = systemConfig.threadQos;
+#endif
 }
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {

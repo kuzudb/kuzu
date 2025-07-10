@@ -42,12 +42,12 @@ struct ScheduledTask {
 #ifndef __SINGLE_THREADED__
 class KUZU_API TaskScheduler {
 public:
-    explicit TaskScheduler(uint64_t numWorkerThreads
 #if defined(__APPLE__)
-        ,
-        uint32_t threadQos
+
+    explicit TaskScheduler(uint64_t numWorkerThreads, uint32_t threadQos);
+#else
+    explicit TaskScheduler(uint64_t numWorkerThreads);
 #endif
-    );
     ~TaskScheduler();
 
     // Schedules the dependencies of the given task and finally the task one after another (so
