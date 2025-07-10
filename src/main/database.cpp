@@ -118,12 +118,16 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
 
     bufferManager = initBmFunc(*this);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
-    queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads
 #if defined(__APPLE__)
+    queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads
         ,
         dbConfig.threadQos
-#endif
     );
+#else
+    queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads
+    );
+    #endif
+
     catalog = std::make_unique<Catalog>();
     storageManager = std::make_unique<StorageManager>(databasePath, dbConfig.readOnly,
         *memoryManager, dbConfig.enableCompression, vfs.get(), &clientContext);
