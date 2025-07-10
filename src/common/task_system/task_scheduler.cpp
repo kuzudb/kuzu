@@ -17,8 +17,7 @@ TaskScheduler::TaskScheduler(uint64_t numWorkerThreads, uint32_t threadQos)
 #else
 TaskScheduler::TaskScheduler(uint64_t numWorkerThreads)
 #endif
-    : stopWorkerThreads{false}, nextScheduledTaskID{0}
-{
+    : stopWorkerThreads{false}, nextScheduledTaskID{0} {
 #if defined(__APPLE__)
     this->threadQos = threadQos;
 #endif
