@@ -12,9 +12,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace llm_extension {
 
-EmbeddingProvider& BedrockEmbedding::getInstance() {
-    static BedrockEmbedding instance;
-    return instance;
+std::shared_ptr<EmbeddingProvider> BedrockEmbedding::getInstance() {
+    return std::make_shared<BedrockEmbedding>();
 }
 
 std::string BedrockEmbedding::getClient() const {

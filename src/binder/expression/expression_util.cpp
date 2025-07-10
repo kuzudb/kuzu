@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/parameter_expression.h"
@@ -501,6 +502,17 @@ T ExpressionUtil::evaluateLiteral(const Expression& expression, const common::Lo
     }
     auto value = evaluateAsLiteralValue(expression);
     return getExpressionVal(expression, value, type, validateParamFunc);
+}
+
+std::shared_ptr<Expression> ExpressionUtil::applyImplicitCastingIfNecessary(
+    main::ClientContext* context, std::shared_ptr<Expression> expr,
+    common::LogicalType targetType) {
+    if (expr->getDataType() != targetType) {
+        binder::Binder binder{context};
+        expr = binder.getExpressionBinder()->implicitCastIfNecessary(expr, targetType);
+        expr = binder.getExpressionBinder()->foldExpression(expr);
+    }
+    return expr;
 }
 
 template KUZU_API std::string ExpressionUtil::getExpressionVal(const Expression& expr,

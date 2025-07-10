@@ -9,9 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace llm_extension {
 
-EmbeddingProvider& GoogleGeminiEmbedding::getInstance() {
-    static GoogleGeminiEmbedding instance;
-    return instance;
+std::shared_ptr<EmbeddingProvider> GoogleGeminiEmbedding::getInstance() {
+    return std::make_shared<GoogleGeminiEmbedding>();
 }
 
 std::string GoogleGeminiEmbedding::getClient() const {

@@ -9,13 +9,11 @@ namespace kuzu {
 namespace llm_extension {
 
 class VoyageAIEmbedding final : public EmbeddingProvider {
+public:
     VoyageAIEmbedding() = default;
     DELETE_COPY_AND_MOVE(VoyageAIEmbedding);
-    std::optional<uint64_t> dimensions;
-
-public:
     ~VoyageAIEmbedding() override = default;
-    static EmbeddingProvider& getInstance();
+    static std::shared_ptr<EmbeddingProvider> getInstance();
     std::string getClient() const override;
     std::string getPath(const std::string& model) const override;
     httplib::Headers getHeaders(const std::string& model,
@@ -24,6 +22,9 @@ public:
     std::vector<float> parseResponse(const httplib::Result& res) const override;
     void configure(const std::optional<uint64_t>& dimensions,
         const std::optional<std::string>& region) override;
+
+private:
+    std::optional<uint64_t> dimensions;
 };
 
 } // namespace llm_extension

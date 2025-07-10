@@ -9,9 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace llm_extension {
 
-EmbeddingProvider& OpenAIEmbedding::getInstance() {
-    static OpenAIEmbedding instance;
-    return instance;
+std::shared_ptr<EmbeddingProvider> OpenAIEmbedding::getInstance() {
+    return std::make_shared<OpenAIEmbedding>();
 }
 
 std::string OpenAIEmbedding::getClient() const {

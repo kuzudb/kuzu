@@ -9,12 +9,11 @@ namespace kuzu {
 namespace llm_extension {
 
 class GoogleGeminiEmbedding final : public EmbeddingProvider {
+public:
     GoogleGeminiEmbedding() = default;
     DELETE_COPY_AND_MOVE(GoogleGeminiEmbedding);
-
-public:
     ~GoogleGeminiEmbedding() override = default;
-    static EmbeddingProvider& getInstance();
+    static std::shared_ptr<EmbeddingProvider> getInstance();
     std::string getClient() const override;
     std::string getPath(const std::string& model) const override;
     httplib::Headers getHeaders(const std::string& model,

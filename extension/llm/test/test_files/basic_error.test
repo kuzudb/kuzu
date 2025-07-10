@@ -1,0 +1,115 @@
+-SKIP
+-DATASET CSV empty
+
+--
+
+-CASE InvalidInputs
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT RETURN CREATE_EMBEDDING({a: union_value(b := 12345)}, 'open-ai', 'text-embedding-3-small');
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (STRUCT(a UNION(b INT64)),STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
+
+-STATEMENT RETURN CREATE_EMBEDDING(-1, "open-ai", "text-embedding-3-small");
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (INT64,STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
+
+-STATEMENT RETURN CREATE_EMBEDDING(123, "open-ai", "text-embedding-3-small");
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (INT64,STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
+
+-STATEMENT RETURN CREATE_EMBEDDING(3.24, "open-ai", "text-embedding-3-small");
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (DOUBLE,STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", 4, "text-embedding-3-small");
+---- error
+Binder exception: Provider not found: 4
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", "ollama", 5, '${OLLAMA_URL}');
+---- error
+Connection exception: Request failed with status 404
+ Body: {"error":"model \"5\" not found, try pulling it first"}
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-CASE InvalidInputsWithOptionalParams
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", "open-ai", '5', {a: union_value(b := 12345)});
+---- error
+Binder exception: Expression STRUCT_PACK(UNION_VALUE(b)) has data type STRUCT(a UNION(b INT64)) but expected INT64. Implicit cast is not supported.
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", "open-ai", '5', 50, 50);
+---- error
+Binder exception: Function CREATE_EMBEDDING for open-ai did not receive correct arguments:
+Actual:   (STRING,STRING,STRING,INT64,INT64)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT RETURN CREATE_EMBEDDING("helo", "open-ai", '5', CAST(5 AS INT8), 50);
+---- error
+Binder exception: Function CREATE_EMBEDDING for open-ai did not receive correct arguments:
+Actual:   (STRING,STRING,STRING,INT8,INT64)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
+
+-STATEMENT CREATE NODE TABLE User (name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+
+-STATEMENT MATCH(u:User) RETURN CREATE_EMBEDDING(u.age, 'blah', 'blah') as EMB
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (INT64,STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
+
+
+-CASE MismatchParams
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
+---- ok
+
+-STATEMENT RETURN CREATE_EMBEDDING('5');
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
+
+-STATEMENT RETURN CREATE_EMBEDDING('g', 'h');
+---- error
+Binder exception: Function CREATE_EMBEDDING did not receive correct arguments:
+Actual:   (STRING,STRING)
+Expected: (STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,STRING) -> LIST
+          (STRING,STRING,STRING,INT64) -> LIST
+          (STRING,STRING,STRING,INT64,STRING) -> LIST
+

@@ -75,6 +75,9 @@ struct KUZU_API ExpressionUtil {
     template<typename T>
     static T evaluateLiteral(const Expression& expression, const common::LogicalType& type,
         validate_param_func<T> validateParamFunc = nullptr);
+
+    static std::shared_ptr<Expression> applyImplicitCastingIfNecessary(main::ClientContext* context,
+        std::shared_ptr<Expression> expr, common::LogicalType targetType);
 };
 
 } // namespace binder

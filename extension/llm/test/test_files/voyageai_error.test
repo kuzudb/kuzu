@@ -22,6 +22,7 @@ Binder exception: Function CREATE_EMBEDDING for voyage-ai did not receive correc
 Actual:   (STRING,STRING,STRING,STRING)
 Expected: (STRING,STRING,STRING) -> LIST
           (STRING,STRING,STRING,INT64) -> LIST
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 -STATEMENT return create_embedding('this better fail', 'voyage-ai', 'voyage-3-large', 50, 'badRegion')
 ---- error
@@ -29,10 +30,11 @@ Binder exception: Function CREATE_EMBEDDING for voyage-ai did not receive correc
 Actual:   (STRING,STRING,STRING,INT64,STRING)
 Expected: (STRING,STRING,STRING) -> LIST
           (STRING,STRING,STRING,INT64) -> LIST
+For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 -STATEMENT return create_embedding('this better fail', 'voyage-ai', 'voyage-3-large', -50, 'badRegion')
 ---- error
-Binder exception: Dimensions should be greater than 0, but found: NEGATE(50)
+Binder exception: Dimensions should be greater than 0. Got: -50.
 For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
 
 -STATEMENT return create_embedding('this better fail', 'voyage-ai', 'randomModel')
