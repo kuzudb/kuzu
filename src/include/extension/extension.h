@@ -53,14 +53,14 @@ struct ExtensionSourceUtils {
 };
 
 template<typename T>
-void addFunc(transaction::Transaction* transaction, main::Database& database, std::string name,
-    catalog::CatalogEntryType functionType, bool isInternal = false) {
+void addFunc(main::Database& database, std::string name, catalog::CatalogEntryType functionType,
+    bool isInternal = false) {
     auto catalog = database.getCatalog();
-    if (catalog->containsFunction(transaction, name, isInternal)) {
+    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name, isInternal)) {
         return;
     }
-    catalog->addFunction(transaction, functionType, std::move(name), T::getFunctionSet(),
-        isInternal);
+    catalog->addFunction(&transaction::DUMMY_TRANSACTION, functionType, std::move(name),
+        T::getFunctionSet(), isInternal);
 }
 
 struct KUZU_API ExtensionUtils {
@@ -117,39 +117,35 @@ struct KUZU_API ExtensionUtils {
     static bool isOfficialExtension(const std::string& extension);
 
     template<typename T>
-    static void addTableFunc(transaction::Transaction* transaction, main::Database& database) {
-        addFunc<T>(transaction, database, T::name, catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY);
+    static void addTableFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY);
     }
 
     template<typename T>
-    static void addTableFuncAlias(transaction::Transaction* transaction, main::Database& database) {
-        addFunc<typename T::alias>(transaction, database, T::name,
+    static void addTableFuncAlias(main::Database& database) {
+        addFunc<typename T::alias>(database, T::name,
             catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY);
     }
 
     template<typename T>
-    static void addStandaloneTableFunc(transaction::Transaction* transaction,
-        main::Database& database) {
-        addFunc<T>(transaction, database, T::name,
-            catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY, false /* isInternal */);
+    static void addStandaloneTableFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY,
+            false /* isInternal */);
     }
     template<typename T>
-    static void addInternalStandaloneTableFunc(transaction::Transaction* transaction,
-        main::Database& database) {
-        addFunc<T>(transaction, database, T::name,
-            catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY, true /* isInternal */);
+    static void addInternalStandaloneTableFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY,
+            true /* isInternal */);
     }
 
     template<typename T>
-    static void addScalarFunc(transaction::Transaction* transaction, main::Database& database) {
-        addFunc<T>(transaction, database, T::name,
-            catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
+    static void addScalarFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
     }
 
     template<typename T>
-    static void addScalarFuncAlias(transaction::Transaction* transaction,
-        main::Database& database) {
-        addFunc<typename T::alias>(transaction, database, T::name,
+    static void addScalarFuncAlias(main::Database& database) {
+        addFunc<typename T::alias>(database, T::name,
             catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
     }
 

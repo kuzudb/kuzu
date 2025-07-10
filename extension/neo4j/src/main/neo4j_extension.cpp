@@ -10,7 +10,7 @@ using namespace extension;
 
 void Neo4jExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    ExtensionUtils::addStandaloneTableFunc<Neo4jMigrateFunction>(context->getTransaction(), db);
+    ExtensionUtils::addStandaloneTableFunc<Neo4jMigrateFunction>(db);
 }
 
 } // namespace neo4j_extension

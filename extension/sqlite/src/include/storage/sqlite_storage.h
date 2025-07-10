@@ -12,7 +12,7 @@ public:
 
     static constexpr const char* DEFAULT_SCHEMA_NAME = "main";
 
-    SqliteStorageExtension(transaction::Transaction* transaction, main::Database& database);
+    explicit SqliteStorageExtension(main::Database& database);
 
     bool canHandleDB(std::string dbType_) const override;
 };

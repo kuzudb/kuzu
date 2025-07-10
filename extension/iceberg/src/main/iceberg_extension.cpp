@@ -12,9 +12,9 @@ using namespace kuzu::extension;
 
 void IcebergExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    ExtensionUtils::addTableFunc<IcebergScanFunction>(context->getTransaction(), db);
-    ExtensionUtils::addTableFunc<IcebergMetadataFunction>(context->getTransaction(), db);
-    ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(context->getTransaction(), db);
+    ExtensionUtils::addTableFunc<IcebergScanFunction>(db);
+    ExtensionUtils::addTableFunc<IcebergMetadataFunction>(db);
+    ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(db);
     duckdb_extension::DuckdbExtension::loadRemoteFSOptions(context);
 }
 

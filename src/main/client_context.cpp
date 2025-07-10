@@ -323,7 +323,7 @@ void ClientContext::cleanUp() {
 }
 
 std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_view query,
-    std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams) {
+    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) {
     std::unique_lock lck{mtx};
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
@@ -338,9 +338,9 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
 
     // The binder deals with the parameter values as shared ptrs
     // Copy the params to a new map that matches the format that the binder expects
-    std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParamsTmp;
+    std::unordered_map<std::string, std::shared_ptr<Value>> inputParamsTmp;
     for (auto& [key, value] : inputParams) {
-        inputParamsTmp.insert(std::make_pair(key, std::make_shared<common::Value>(*value)));
+        inputParamsTmp.insert(std::make_pair(key, std::make_shared<Value>(*value)));
     }
     auto result = prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/,
         std::move(inputParamsTmp));
@@ -665,7 +665,7 @@ bool ClientContext::canExecuteWriteQuery() const {
     // remote kuzu database can be attached.
     const auto dbManager = localDatabase->databaseManager.get();
     for (const auto& attachedDB : dbManager->getAttachedDatabases()) {
-        if (attachedDB->getDBType() == common::ATTACHED_KUZU_DB_TYPE) {
+        if (attachedDB->getDBType() == ATTACHED_KUZU_DB_TYPE) {
             return false;
         }
     }

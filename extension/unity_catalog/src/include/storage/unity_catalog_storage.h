@@ -15,8 +15,7 @@ public:
 
     static constexpr const char* DEFAULT_SCHEMA_NAME = "default";
 
-    explicit UnityCatalogStorageExtension(transaction::Transaction* transaction,
-        main::Database& database);
+    explicit UnityCatalogStorageExtension(main::Database& database);
 
     bool canHandleDB(std::string dbType) const override;
 };

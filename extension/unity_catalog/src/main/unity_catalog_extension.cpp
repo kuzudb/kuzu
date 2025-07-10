@@ -10,8 +10,7 @@ namespace unity_catalog_extension {
 
 void UnityCatalogExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    db.registerStorageExtension(EXTENSION_NAME,
-        std::make_unique<UnityCatalogStorageExtension>(context->getTransaction(), db));
+    db.registerStorageExtension(EXTENSION_NAME, std::make_unique<UnityCatalogStorageExtension>(db));
     UnityCatalogOptions::registerExtensionOptions(&db);
     UnityCatalogOptions::setEnvValue(context);
 }

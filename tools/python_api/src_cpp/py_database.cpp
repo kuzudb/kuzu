@@ -54,8 +54,7 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
         systemConfig.checkpointThreshold = static_cast<uint64_t>(checkpointThreshold);
     }
     database = std::make_unique<Database>(databasePath, systemConfig);
-    kuzu::extension::ExtensionUtils::addTableFunc<kuzu::PandasScanFunction>(
-        &kuzu::transaction::DUMMY_TRANSACTION, *database);
+    kuzu::extension::ExtensionUtils::addTableFunc<kuzu::PandasScanFunction>(*database);
     storageDriver = std::make_unique<StorageDriver>(database.get());
     py::gil_scoped_acquire acquire;
     if (kuzu::importCache.get() == nullptr) {
