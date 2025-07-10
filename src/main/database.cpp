@@ -38,11 +38,10 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     )
     : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly{readOnly},
       autoCheckpoint{autoCheckpoint}, checkpointThreshold{checkpointThreshold},
-      forceCheckpointOnClose{forceCheckpointOnClose}
-{
-    #if defined(__APPLE__)
+      forceCheckpointOnClose{forceCheckpointOnClose} {
+#if defined(__APPLE__)
     this->threadQos = threadQos;
-    #endif
+#endif
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;

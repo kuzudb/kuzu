@@ -100,9 +100,9 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
 void TaskScheduler::runWorkerThread() {
 #if defined(__APPLE__)
     qos_class_t qosClass = (qos_class_t)threadQos;
-    if (qosClass != QOS_CLASS_DEFAULT && qosClass != QOS_CLASS_UNSPECIFIED){
-    auto pthreadQosStatus = pthread_set_qos_class_self_np(qosClass, 0);
-    KU_UNUSED(pthreadQosStatus);
+    if (qosClass != QOS_CLASS_DEFAULT && qosClass != QOS_CLASS_UNSPECIFIED) {
+        auto pthreadQosStatus = pthread_set_qos_class_self_np(qosClass, 0);
+        KU_UNUSED(pthreadQosStatus);
     }
 #endif
     std::unique_lock<std::mutex> lck{taskSchedulerMtx, std::defer_lock};

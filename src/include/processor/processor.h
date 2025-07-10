@@ -12,10 +12,7 @@ class QueryProcessor {
 public:
 #if defined(__APPLE__)
 
-    explicit QueryProcessor(uint64_t numThreads
-        ,
-        uint32_t threadQos
-    );
+    explicit QueryProcessor(uint64_t numThreads, uint32_t threadQos);
 #else
     explicit QueryProcessor(uint64_t numThreads);
 #endif
