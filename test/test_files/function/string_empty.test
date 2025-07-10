@@ -1,0 +1,37 @@
+-DATASET CSV empty
+
+--
+
+-CASE StringConcatOnUncheckpointedProperties
+-STATEMENT call auto_checkpoint=false
+---- ok
+-STATEMENT create node table person (ID INt64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create rel table marries (FROM person TO person, note STRING);
+---- ok
+-STATEMENT  create (:person {id: 9});
+            create (:person {id: 11});
+            create (:person {id: 12});
+            create (:person {id: 13});
+---- ok
+---- ok
+---- ok
+-STATEMENT match (a:person), (b:person) where a.id = 9 and b.id = 11 create (a)-[:marries{note: "some note"}]->(b);
+            match (a:person), (b:person) where a.id = 12 and b.id = 13 create (a)-[:marries]->(b);
+---- ok
+---- ok
+-STATEMENT match (a)-[m:marries]->(b) return concat("note:'", m.note, "'")
+---- 2
+note:''
+note:'some note'
+
+-CASE StringConcatOnFlatOutputWithNull
+-STATEMENT create node table person (ID serial, val string, PRIMARY KEY (ID));
+---- ok
+# create output is guaranteed to be flat
+-STATEMENT UNWIND ["111", "222", null, "333"] as i create (p:person{val: i}) return concat("val:", p.val)
+---- 4
+val:
+val:111
+val:222
+val:333
