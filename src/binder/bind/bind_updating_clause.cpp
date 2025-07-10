@@ -213,8 +213,9 @@ static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel,
             "Create rel {} with multiple rel labels is not supported.", rel.toString()));
     }
     if (candidates.size() == 0) {
-        throw BinderException(stringFormat(
-            "Cannot find a valid label in {} that connects {} and {}.", rel.toString(), srcEntry.getName(), dstEntry.getName()));
+        throw BinderException(
+            stringFormat("Cannot find a valid label in {} that connects {} and {}.", rel.toString(),
+                srcEntry.getName(), dstEntry.getName()));
     }
     return candidates[0];
 }
