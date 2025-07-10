@@ -660,3 +660,21 @@ def test_df_with_struct_cast(conn_db_readonly: ConnDB) -> None:
     tup = res.get_next()
     assert tup[0] == "{'b': 'abc'}"
     assert tup[1] == 'False'
+
+    df = pd.DataFrame({'test': [{'a': 1, 'b': 4}, {'a': 2}]})
+    res = conn.execute(
+        "load from df return test"
+    )
+    tup = res.get_next()
+    assert tup[0] == "{'a': 1, 'b': 4}"
+    tup = res.get_next()
+    assert tup[0] == "{'a': 2}"
+
+    df = pd.DataFrame({'test': [{'a': 1}, {'a': '2'}]})
+    res = conn.execute(
+        "load from df return test"
+    )
+    tup = res.get_next()
+    assert tup[0] == "{'a': 1}"
+    tup = res.get_next()
+    assert tup[0] == "{'a': '2'}"

@@ -31,15 +31,13 @@ static bool upgradeType(common::LogicalType& left, common::LogicalType& right) {
         for (auto i = 0u; i < common::StructType::getNumFields(left); i++) {
             auto& leftType = common::StructType::getField(left, 0);
             auto& rightType = common::StructType::getField(right, 0);
-            if (leftType.getName() != rightType.getName()) {
+            if (leftType.getName() != rightType.getName() ||
+                leftType.getType() != rightType.getType()) {
                 return false;
             }
-            if (function::BuiltInFunctionsUtils::getCastCost(leftType.getType().getLogicalTypeID(),
-                    rightType.getType().getLogicalTypeID()) == common::UNDEFINED_CAST_COST) {
-                return false;
-            }
-            return true;
         }
+        left = std::move(right);
+        return true;
     }
     auto leftToRightCost = function::BuiltInFunctionsUtils::getCastCost(left.getLogicalTypeID(),
         right.getLogicalTypeID());
