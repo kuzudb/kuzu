@@ -51,6 +51,9 @@ PK|NATIVE
 multipleTableWithFilter|NATIVE
 withFilter|NATIVE
 emptygraph|NATIVE
+-STATEMENT CALL PROJECTED_GRAPH_INFO('dummy') RETURN *
+---- error
+Binder exception: Graph dummy does not exist.
 -STATEMENT CALL PROJECTED_GRAPH_INFO('emptygraph') RETURN *
 ---- 0
 -STATEMENT CALL PROJECTED_GRAPH_INFO('G') RETURN *
