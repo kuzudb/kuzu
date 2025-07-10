@@ -23,6 +23,22 @@ static bool upgradeType(common::LogicalType& left, common::LogicalType& right) {
                 common::LogicalTypeID::ANY))) {
         return true;
     }
+    if (left.getLogicalTypeID() == common::LogicalTypeID::STRUCT &&
+        right.getLogicalTypeID() == common::LogicalTypeID::STRUCT) {
+        if (common::StructType::getNumFields(left) != common::StructType::getNumFields(right)) {
+            return false;
+        }
+        for (auto i = 0u; i < common::StructType::getNumFields(left); i++) {
+            auto& leftType = common::StructType::getField(left, 0);
+            auto& rightType = common::StructType::getField(right, 0);
+            if (leftType.getName() != rightType.getName() ||
+                leftType.getType() != rightType.getType()) {
+                return false;
+            }
+        }
+        left = std::move(right);
+        return true;
+    }
     auto leftToRightCost = function::BuiltInFunctionsUtils::getCastCost(left.getLogicalTypeID(),
         right.getLogicalTypeID());
     if (leftToRightCost != common::UNDEFINED_CAST_COST) {

@@ -641,3 +641,35 @@ def test_scan_py_dict_empty(conn_db_empty: ConnDB) -> None:
     df = pd.DataFrame({"id": [], "dt": []})
     res = conn.execute("LOAD FROM df RETURN *")
     assert not res.has_next()
+
+
+def test_df_with_struct_cast(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
+    df = pd.DataFrame({"test": [{"a": 1}, {"a": 2}, {"a": 3}, {"b": "abc"}], "qwe": [1, 2, 3, False]})
+    res = conn.execute("load from df return test, qwe")
+    tup = res.get_next()
+    assert tup[0] == "{'a': 1}"
+    assert tup[1] == "1"
+    tup = res.get_next()
+    assert tup[0] == "{'a': 2}"
+    assert tup[1] == "2"
+    tup = res.get_next()
+    assert tup[0] == "{'a': 3}"
+    assert tup[1] == "3"
+    tup = res.get_next()
+    assert tup[0] == "{'b': 'abc'}"
+    assert tup[1] == "False"
+
+    df = pd.DataFrame({"test": [{"a": 1, "b": 4}, {"a": 2}]})
+    res = conn.execute("load from df return test")
+    tup = res.get_next()
+    assert tup[0] == "{'a': 1, 'b': 4}"
+    tup = res.get_next()
+    assert tup[0] == "{'a': 2}"
+
+    df = pd.DataFrame({"test": [{"a": 1}, {"a": "2"}]})
+    res = conn.execute("load from df return test")
+    tup = res.get_next()
+    assert tup[0] == "{'a': 1}"
+    tup = res.get_next()
+    assert tup[0] == "{'a': '2'}"
