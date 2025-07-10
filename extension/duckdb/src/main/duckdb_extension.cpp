@@ -10,8 +10,7 @@ namespace duckdb_extension {
 
 void DuckdbExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
-    db->registerStorageExtension(EXTENSION_NAME,
-        std::make_unique<DuckDBStorageExtension>(context->getTransaction(), *db));
+    db->registerStorageExtension(EXTENSION_NAME, std::make_unique<DuckDBStorageExtension>(*db));
     loadRemoteFSOptions(context);
 }
 

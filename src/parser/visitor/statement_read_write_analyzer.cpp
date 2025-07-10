@@ -1,11 +1,22 @@
 #include "parser/visitor/statement_read_write_analyzer.h"
 
+#include "main/client_context.h"
+#include "main/db_config.h"
 #include "parser/expression/parsed_expression_visitor.h"
 #include "parser/query/reading_clause/reading_clause.h"
 #include "parser/query/return_with_clause/with_clause.h"
 
 namespace kuzu {
 namespace parser {
+
+void StatementReadWriteAnalyzer::visitExtension(const Statement& /*statement*/) {
+    // We allow LOAD EXTENSION to run in read-only mode.
+    if (context->getDBConfig()->readOnly) {
+        readOnly = true;
+    } else {
+        readOnly = false;
+    }
+}
 
 void StatementReadWriteAnalyzer::visitReadingClause(const ReadingClause* readingClause) {
     if (readingClause->hasWherePredicate()) {

@@ -17,7 +17,7 @@ namespace llm_extension {
 void LlmExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
 
-    extension::ExtensionUtils::addScalarFunc<CreateEmbedding>(context->getTransaction(), db);
+    extension::ExtensionUtils::addScalarFunc<CreateEmbedding>(db);
 }
 
 } // namespace llm_extension

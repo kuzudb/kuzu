@@ -10,9 +10,8 @@ namespace postgres_extension {
 
 void PostgresExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
-    db->registerStorageExtension(EXTENSION_NAME,
-        std::make_unique<PostgresStorageExtension>(context->getTransaction(), *db));
-    extension::ExtensionUtils::addTableFunc<SqlQueryFunction>(context->getTransaction(), *db);
+    db->registerStorageExtension(EXTENSION_NAME, std::make_unique<PostgresStorageExtension>(*db));
+    extension::ExtensionUtils::addTableFunc<SqlQueryFunction>(*db);
 }
 
 } // namespace postgres_extension

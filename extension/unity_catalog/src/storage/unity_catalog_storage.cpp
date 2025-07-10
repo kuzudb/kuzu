@@ -25,11 +25,10 @@ std::unique_ptr<main::AttachedDatabase> attachUnityCatalog(std::string dbName, s
         UnityCatalogStorageExtension::DB_TYPE, std::move(catalog), std::move(connector));
 }
 
-UnityCatalogStorageExtension::UnityCatalogStorageExtension(transaction::Transaction* transaction,
-    main::Database& database)
+UnityCatalogStorageExtension::UnityCatalogStorageExtension(main::Database& database)
     : StorageExtension{attachUnityCatalog} {
     extension::ExtensionUtils::addStandaloneTableFunc<duckdb_extension::ClearCacheFunction>(
-        transaction, database);
+        database);
 }
 
 bool UnityCatalogStorageExtension::canHandleDB(std::string dbType_) const {
