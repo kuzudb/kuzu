@@ -198,6 +198,9 @@ Binder exception: Trying to insert into an index on table embeddings but its ext
 -STATEMENT MERGE (:embeddings {id:0, vec:[0,1,2,3,4,5,6,7]});
 ---- error
 Binder exception: Trying to insert into an index on table embeddings but its extension is not loaded.
+-STATEMENT COPY embeddings FROM (RETURN 3, [1,2,3,4,5,6,7,8]);
+---- error
+Binder exception: Trying to insert into an index on table embeddings but its extension is not loaded.
 -STATEMENT MATCH (a:embeddings) DELETE a;
 ---- error
 Binder exception: Trying to delete from an index on table embeddings but its extension is not loaded.
