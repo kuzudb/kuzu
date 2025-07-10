@@ -43,7 +43,6 @@ struct ScheduledTask {
 class KUZU_API TaskScheduler {
 public:
 #if defined(__APPLE__)
-
     explicit TaskScheduler(uint64_t numWorkerThreads, uint32_t threadQos);
 #else
     explicit TaskScheduler(uint64_t numWorkerThreads);
