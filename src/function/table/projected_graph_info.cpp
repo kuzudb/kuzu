@@ -1,10 +1,10 @@
 #include "binder/binder.h"
+#include "common/exception/binder.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
 #include "graph/graph_entry_set.h"
 #include "main/client_context.h"
-#include "common/exception/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
