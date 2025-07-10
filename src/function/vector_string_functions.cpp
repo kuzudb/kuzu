@@ -112,7 +112,9 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<common::ValueVec
             const auto& parameter = *parameters[i];
             const auto& parameterSelVector = parameterSelVectors[i];
             auto paramPos = (*parameterSelVector)[parameter.state->isFlat() ? 0 : selectedPos];
-            strLen += parameter.getValue<ku_string_t>(paramPos).len;
+            if (!parameter.isNull(paramPos)) {
+                strLen += parameter.getValue<ku_string_t>(paramPos).len;
+            }
         }
         auto& resultStr = result.getValue<ku_string_t>(pos);
         StringVector::reserveString(&result, resultStr, strLen);
@@ -123,9 +125,11 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<common::ValueVec
             const auto& parameter = *parameters[i];
             const auto& parameterSelVector = parameterSelVectors[i];
             auto paramPos = (*parameterSelVector)[parameter.state->isFlat() ? 0 : selectedPos];
-            auto srcStr = parameter.getValue<ku_string_t>(paramPos);
-            memcpy(dstData, srcStr.getData(), srcStr.len);
-            dstData += srcStr.len;
+            if (!parameter.isNull(paramPos)) {
+                auto srcStr = parameter.getValue<ku_string_t>(paramPos);
+                memcpy(dstData, srcStr.getData(), srcStr.len);
+                dstData += srcStr.len;
+            }
         }
         if (strLen > ku_string_t::SHORT_STR_LENGTH) {
             memcpy(resultStr.prefix, resultStr.getData(), ku_string_t::PREFIX_LENGTH);
