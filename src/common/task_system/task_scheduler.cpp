@@ -1,6 +1,7 @@
 #include "common/task_system/task_scheduler.h"
 #if defined(__APPLE__)
 #include <pthread.h>
+
 #include <pthread/qos.h>
 #endif
 
