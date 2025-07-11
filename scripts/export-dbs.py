@@ -78,7 +78,7 @@ def main():
         dataset_name = os.path.relpath(dataset_path, arg_dataset_path)
         export_path = os.path.join(output_dir, dataset_name)
         export_command = (
-            f"EXPORT DATABASE '{export_path}' (format=\"csv\", header=true);"
+            f"EXPORT DATABASE '{export_path}';"
         )
         combined_commands.append(export_command)
         combined_commands.insert(0, "CALL threads=1;")
