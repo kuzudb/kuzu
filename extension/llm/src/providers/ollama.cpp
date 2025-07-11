@@ -1,6 +1,7 @@
 #include "providers/ollama.h"
 
 #include "function/llm_functions.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 
@@ -35,12 +36,20 @@ std::vector<float> OllamaEmbedding::parseResponse(const httplib::Result& res) co
 
 void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
     const std::optional<std::string>& endpoint) {
+    static const std::string envVarOllamaUrl = "OLLAMA_URL";
     if (dimensions.has_value()) {
         static const auto functionSignatures = CreateEmbedding::getFunctionSet();
         throw(functionSignatures[0]->signatureToString() + '\n' +
               functionSignatures[1]->signatureToString());
     }
     this->endpoint = endpoint;
+    if (endpoint.has_value()) {
+        return;
+    }
+    auto envOllamaUrl = main::ClientContext::getEnvVariable(envVarOllamaUrl);
+    if (!envOllamaUrl.empty()) {
+        this->endpoint = envOllamaUrl;
+    }
 }
 
 } // namespace llm_extension
