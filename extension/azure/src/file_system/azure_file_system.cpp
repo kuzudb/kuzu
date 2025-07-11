@@ -45,7 +45,7 @@ bool AzureFileSystem::fileOrPathExists(const std::string& /*path*/,
     return true;
 }
 
-TableFunction AzureFileSystem::getHandleFunction() const {
+TableFunction AzureFileSystem::getHandleFunction(const std::string& /*path*/) const {
     return *AzureScanFunction::getFunctionSet()[0]->constPtrCast<TableFunction>();
 }
 
