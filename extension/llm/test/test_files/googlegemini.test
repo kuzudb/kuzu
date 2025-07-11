@@ -78,3 +78,9 @@ False
 #---- 2
 #Learning Machines
 #The Quantum World
+
+-CASE Example
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension";
+---- ok
+-STATEMENT RETURN CREATE_EMBEDDING("Hello world", "google-gemini", "gemini-embedding-exp-03-07");
+---- ok

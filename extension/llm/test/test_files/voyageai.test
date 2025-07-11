@@ -20,6 +20,9 @@
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
 
+-STATEMENT RETURN CREATE_EMBEDDING("Hello world", "voyage-ai", "voyage-3-large");
+---- ok
+
 -STATEMENT return create_embedding('Hello World', 'voyage-ai', 'voyage-3-large', 512);
 ---- ok
 

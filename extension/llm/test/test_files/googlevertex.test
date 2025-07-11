@@ -22,6 +22,9 @@ True
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"
 ---- ok
 
+-STATEMENT RETURN CREATE_EMBEDDING("Hello world", "google-vertex", "gemini-embedding-001", "us-central1");
+---- ok
+
 -STATEMENT return create_embedding('Hello World', 'google-vertex', 'gemini-embedding-001', 256, 'us-east1');
 ---- ok
 
