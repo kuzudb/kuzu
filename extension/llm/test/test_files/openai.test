@@ -31,6 +31,12 @@ True
 -STATEMENT return create_embedding('Hello World', 'open-ai', 'text-embedding-3-small', 969);
 ---- ok
 
+-STATEMENT RETURN CREATE_EMBEDDING("Hello world", "open-ai", "text-embedding-3-small");
+---- ok
+
+-STATEMENT RETURN CREATE_EMBEDDING("Hello world", "open-ai", "text-embedding-3-small", 512);
+---- ok
+
 -CASE SemanticDistanceCheck
 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/llm/build/libllm.kuzu_extension"

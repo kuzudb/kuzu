@@ -408,3 +408,26 @@ Binder exception: In vector filtered search, projected graph G9 must contain exa
 3|2.236068
 4|3.162278
 5|4.123106
+
+-CASE Example
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT CREATE NODE TABLE Book(id SERIAL PRIMARY KEY, title STRING, title_embedding FLOAT[8], published_year INT64);
+---- ok
+-STATEMENT CREATE (:Book {title: "The Quantum World", title_embedding: [0.142300,0.484900,0.018000,0.231700,0.622700,0.022500,0.774400,0.020600], published_year: 2004});
+---- ok
+-STATEMENT CREATE (:Book {title: "Chronicles of the Universe", title_embedding: [0.666400,0.836000,0.370000,0.536400,0.333600,0.050900,0.282200,0.194400], published_year: 2022});
+---- ok
+-STATEMENT CREATE (:Book {title: "Learning Machines", title_embedding: [0.501300,0.859300,0.649300,0.387900,0.479300,0.695400,0.003300,0.395800], published_year: 2019});
+---- ok
+-STATEMENT CREATE (:Book {title: "Echoes of the Past", title_embedding: [0.595500,0.781900,0.135700,0.419500,0.782400,0.110600,0.076500,0.302400], published_year: 2010});
+---- ok
+-STATEMENT CREATE (:Book {title: "The Dragon's Call", title_embedding: [0.042200,0.668200,0.485900,0.067400,0.843900,0.154300,0.539200,0.693600], published_year: 2015});
+---- ok
+-STATEMENT CALL CREATE_VECTOR_INDEX('Book', 'book_title_index', 'title_embedding', metric := 'l2');
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('filtered_book', {'Book': 'n.published_year > 2010'}, []);
+---- ok
+-STATEMENT CALL QUERY_VECTOR_INDEX('filtered_book', 'book_title_index', [0.451000,0.775600,0.844900,0.360400,0.070900,0.200700,0.250900,0.735800], 2) WITH node as n, distance AS dist RETURN n.title AS book, n.published_year AS year ORDER BY dist;
+---- 2
+Learning Machines|2019
+Chronicles of the Universe|2022

@@ -186,3 +186,17 @@ likes_import|personB|5|Dan
 -STATEMENT MATCH (a)-[e:likes_import]-(b) WHERE a.ID = 0 RETURN COUNT(*)
 ---- 1
 6
+
+-CASE BulkInsertManyFromTo
+-STATEMENT create node table personA2 as load from "${KUZU_ROOT_DIRECTORY}/dataset/rel-group/node.csv" return *;
+---- ok
+-STATEMENT create node table personB2 as load from "${KUZU_ROOT_DIRECTORY}/dataset/rel-group/node.csv" return *;
+---- ok
+-STATEMENT create node table personC2 as load from "${KUZU_ROOT_DIRECTORY}/dataset/rel-group/node.csv" return *;
+---- ok
+-STATEMENT create rel table knowsA (from personA2 to personA2, from personA2 to personB2, d date);
+---- ok
+-STATEMENT copy knowsA from "${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv" (from='personA2', to='personA2');
+---- ok
+-STATEMENT copy knowsA from "${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv" (from='personA2', to='personB2');
+---- ok
