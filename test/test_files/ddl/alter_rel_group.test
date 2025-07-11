@@ -105,3 +105,18 @@ person->person does not exist in knows table.
 ---- 1
 0
 
+-CASE Example
+-STATEMENT CREATE NODE TABLE User(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE NODE TABLE Celebrity(name STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User);
+---- ok
+-STATEMENT ALTER TABLE Follows ADD FROM User TO Celebrity;
+---- ok
+-STATEMENT ALTER TABLE Follows ADD IF NOT EXISTS FROM User TO Celebrity;
+---- ok
+-STATEMENT ALTER TABLE Follows DROP FROM User TO Celebrity;
+---- ok
+-STATEMENT ALTER TABLE Follows DROP IF EXISTS FROM User TO Celebrity;
+---- ok

@@ -684,3 +684,17 @@ Bob|Dan
 -RELOADDB
 -STATEMENT DROP TABLE knows
 ---- ok
+
+-CASE CreateTableAsExample
+-STATEMENT CREATE NODE TABLE Person2 AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" RETURN *;
+---- ok
+-STATEMENT CREATE NODE TABLE YoungPerson AS MATCH (p:Person2) WHERE p.age < 25 RETURN p.*;
+---- ok
+-STATEMENT CREATE REL TABLE Knows2(FROM Person2 TO Person2) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
+---- ok
+-STATEMENT CREATE REL TABLE KnowsSameCity(FROM Person2 TO Person2) AS MATCH (a:Person2)-[e:Knows]->(b:Person2) WHERE a.Gender = b.Gender RETURN a.id, b.id;
+---- ok
+-STATEMENT CREATE NODE TABLE IF NOT EXISTS Person2 AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" RETURN *;
+---- ok
+-STATEMENT CREATE REL TABLE IF NOT EXISTS Knows2(FROM Person2 TO Person2) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
+---- ok

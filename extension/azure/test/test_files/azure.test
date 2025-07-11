@@ -71,6 +71,38 @@ Dan|Bob
 Dan|Carol
 Elizabeth|Farooq
 Elizabeth|Greg
+-STATEMENT LOAD FROM "abfss://kuzu-test/glob/glob*.csv" RETURN * ORDER BY id;
+---- 16
+0|bob
+1|billy
+2|emily
+3|joanna
+4|peter
+5|alex
+6|beatrice
+7|timothy
+8|geralt
+9|jane
+10|carol
+11|michelle
+12|walter
+13|bryan
+14|devin
+15|farquaad
+-STATEMENT LOAD FROM "az://kuzu-test/glob/*glob.csv" RETURN *;
+---- 2
+20|abc
+21|xyz
+-STATEMENT LOAD FROM "az://kuzu-test/glob/*glob*.csv" RETURN *;
+---- error
+Invalid Input Error: Schema mismatch between globbed files.
+Main file schema: az://kuzu-test/glob/fglob.csv
+Current file: az://kuzu-test/glob/glob1.csv
+Column with name: "column0" is missing
+Column with name: "column1" is missing
+Potential Fixes 
+* Consider setting union_by_name=true.
+* Consider setting files_to_sniff to a higher value (e.g., files_to_sniff = -1)
 
 -CASE AzurePublicScan
 -SKIP_STATIC_LINK
