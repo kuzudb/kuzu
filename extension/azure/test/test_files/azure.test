@@ -100,9 +100,7 @@ Main file schema: az://kuzu-test/glob/fglob.csv
 Current file: az://kuzu-test/glob/glob1.csv
 Column with name: "column0" is missing
 Column with name: "column1" is missing
-Potential Fixes 
-* Consider setting union_by_name=true.
-* Consider setting files_to_sniff to a higher value (e.g., files_to_sniff = -1)
+Potential Fix: Since your schema has a mismatch, consider setting union_by_name=true.
 
 -CASE AzurePublicScan
 -SKIP_STATIC_LINK
