@@ -50,6 +50,9 @@ endfunction()
 
 if (BUILD_EXTENSION_TESTS)
     enable_testing()
+    if (NOT "${STATICALLY_LINKED_EXTENSIONS}" STREQUAL "")
+        add_compile_definitions(__STATIC_LINK_EXTENSION_TEST__)
+    endif()
 endif ()
 
 list(LENGTH STATICALLY_LINKED_EXTENSIONS LIST_SIZE)
