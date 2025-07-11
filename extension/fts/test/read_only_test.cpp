@@ -6,6 +6,9 @@ namespace kuzu {
 namespace testing {
 
 TEST_F(ApiTest, ReadOnlyDBTest) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
     createDBAndConn();
 #ifndef __STATIC_LINK_EXTENSION_TEST__
     ASSERT_TRUE(conn->query(common::stringFormat("LOAD EXTENSION '{}'",
