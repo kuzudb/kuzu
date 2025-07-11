@@ -244,7 +244,8 @@ extension-test: extension-test-build
 	$(if $(filter Windows_NT,$(OS)),\
 		set "E2E_TEST_FILES_DIRECTORY=extension" &&,\
 		E2E_TEST_FILES_DIRECTORY=extension) \
-    ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/{test/runner,extension} --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" && \
+    ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/test/runner --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" && \
+    ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/extension --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" && \
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-test-static-build:
@@ -259,7 +260,8 @@ extension-static-link-test: extension-test-static-build
 	$(if $(filter Windows_NT,$(OS)),\
 		set "E2E_TEST_FILES_DIRECTORY=extension" &&,\
 		E2E_TEST_FILES_DIRECTORY=extension) \
-    ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/{test/runner,extension} --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" && \
+    ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/test/runner --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" && \
+    ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/extension --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" && \
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-lcov-build:
