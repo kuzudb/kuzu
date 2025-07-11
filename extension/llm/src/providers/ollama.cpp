@@ -48,7 +48,7 @@ void OllamaEmbedding::configure(const std::optional<uint64_t>& dimensions,
     }
     auto envOllamaUrl = main::ClientContext::getEnvVariable(envVarOllamaUrl);
     if (!envOllamaUrl.empty()) {
-        this->endpoint = endpoint;
+        this->endpoint = envOllamaUrl;
     }
 }
 
