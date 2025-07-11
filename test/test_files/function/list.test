@@ -692,6 +692,29 @@ True|True
 8|[2]|False
 9|[3,4,5,6,7]|False
 
+-LOG ListContains
+-STATEMENT RETURN 2.0 IN [1, 2]
+---- 1
+True
+-STATEMENT RETURN  [1.0] IN [[1], [2]]
+---- 1
+True
+-STATEMENT RETURN {a:1} IN [2,3]
+---- error
+Binder exception: Cannot compare INT64 and STRUCT(a INT64) in list_contains function.
+-STATEMENT RETURN NULL in [1,2]
+---- 1
+
+-STATEMENT RETURN 1 IN [null]
+---- 1
+False
+-STATEMENT RETURN null in []
+---- 1
+
+-STATEMENT RETURN null in [null]
+---- 1
+
+
 -LOG ListContainsListOfInts
 -STATEMENT MATCH (a:person) RETURN list_contains(a.workedHours, 5)
 ---- 8

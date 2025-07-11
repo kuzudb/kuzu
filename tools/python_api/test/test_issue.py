@@ -112,6 +112,20 @@ def test_empty_map(conn_db_readwrite: ConnDB) -> None:
     result.close()
 
 
+def test_int8_type_sniffing(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
+    conn.execute("CREATE NODE TABLE Chunk(id INT64, PRIMARY KEY(id))")
+
+    conn.execute("CREATE (c:Chunk {id:259})")
+
+    result = conn.execute(
+        "MATCH (node:Chunk) WHERE node.id IN $chunk_ids RETURN node.id",
+        {"chunk_ids": [1]},
+    )
+    assert result.get_num_tuples() == 0
+    result.close()
+
+
 # TODO(Maxwell): check if we should change getCastCost() for the following test
 # def test_issue_3248(conn_db_readwrite: ConnDB) -> None:
 #     conn, _ = conn_db_readwrite
