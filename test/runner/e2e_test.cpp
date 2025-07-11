@@ -248,12 +248,7 @@ private:
             // ^Error: Binder exception: Variable .* is not in scope\.$
             case ResultType::ERROR_REGEX: {
                 newFile += statement->newOutput;
-                // Get the nextline which specifies the regex pattern the error should match
-                getline(file, currLine);
-                // If the actual output is an error, put the existing regex expression back.
-                if (statement->newOutput != "---- ok\n") {
-                    newFile += currLine + '\n';
-                }
+                skipExistingOutput(file);
             } break;
             }
         }
