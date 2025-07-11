@@ -111,6 +111,7 @@ def test_empty_map(conn_db_readwrite: ConnDB) -> None:
     assert not result.has_next()
     result.close()
 
+
 def test_int8_type_sniffing(conn_db_readwrite: ConnDB) -> None:
     conn, _ = conn_db_readwrite
     conn.execute("CREATE NODE TABLE Chunk(id INT64, PRIMARY KEY(id))")

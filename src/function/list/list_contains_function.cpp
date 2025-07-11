@@ -1,9 +1,9 @@
 #include "binder/expression/expression_util.h"
+#include "common/exception/binder.h"
 #include "common/type_utils.h"
 #include "function/list/functions/list_position_function.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
-#include "common/exception/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -37,7 +37,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         auto& listChildType = ListType::getChildType(listExpr->getDataType());
         auto& elementType = elementExpr->getDataType();
         if (!LogicalTypeUtils::tryGetMaxLogicalType(listChildType, elementType, childType)) {
-            throw BinderException(stringFormat("Cannot compare {} and {} in list_contains function.", listChildType.toString(), elementType.toString()));
+            throw BinderException(
+                stringFormat("Cannot compare {} and {} in list_contains function.",
+                    listChildType.toString(), elementType.toString()));
         }
     }
     if (childType.getLogicalTypeID() == LogicalTypeID::ANY) {
