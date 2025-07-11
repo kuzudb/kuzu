@@ -32,9 +32,7 @@ private:
 
     bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
 
-    bool handleFileViaFunction(const std::string& /*path*/) const override {
-        return true;
-    }
+    bool handleFileViaFunction(const std::string& /*path*/) const override { return true; }
 
     function::TableFunction getHandleFunction(const std::string& /*path*/) const override;
 };
