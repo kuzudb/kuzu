@@ -6,10 +6,12 @@ namespace kuzu {
 namespace testing {
 
 TEST_F(ApiTest, GDSPrepare) {
+#ifndef __STATIC_LINK_EXTENSION_TEST__
     ASSERT_TRUE(conn->query(common::stringFormat("LOAD EXTENSION '{}'",
                                 TestHelper::appendKuzuRootPath(
                                     "extension/algo/build/libalgo.kuzu_extension")))
                     ->isSuccess());
+#endif
     ASSERT_TRUE(conn->query("CALL PROJECT_GRAPH('PK', ['person'], ['knows'])")->isSuccess());
     auto preparedStatement = conn->prepare("CALL page_rank('PK', dampingFactor := $dp, "
                                            "tolerance := $tl) RETURN node.fName, rank;");

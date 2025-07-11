@@ -6,8 +6,7 @@ namespace kuzu {
 namespace testing {
 
 TEST_F(ApiTest, PrepareFTSTest) {
-    createDBAndConn();
-#ifdef __STATIC_LINK_EXTENSION_TEST__
+#ifndef __STATIC_LINK_EXTENSION_TEST__
     ASSERT_TRUE(conn->query(common::stringFormat("LOAD EXTENSION '{}'",
                                 TestHelper::appendKuzuRootPath(
                                     "extension/fts/build/libfts.kuzu_extension")))
@@ -29,7 +28,7 @@ TEST_F(ApiTest, PrepareFTSTest) {
     auto result = conn->execute(prepared.get());
     ASSERT_FALSE(result->isSuccess());
     ASSERT_EQ(result->getErrorMessage(),
-        "Runtime exception: The query must be a parameter/literal expression.");
+        "Binder exception: d.fName has type PROPERTY but LITERAL,PARAMETER,PATTERN was expected.");
 
     // User must have to give a value when executing the QUERY_FTS_INDEX.
     prepared =
