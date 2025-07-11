@@ -1,6 +1,7 @@
 #include <cstdint>
 
 #include "common/constants.h"
+#include "common/system_config.h"
 #include "common/types/types.h"
 #include "graph_test/private_graph_test.h"
 #include "gtest/gtest.h"
@@ -80,19 +81,37 @@ TEST_F(EmptyBufferManagerTest, TestSpillToDiskMemoryUsage) {
         auto chunkedNodeGroup = storage::ChunkedNodeGroup(std::move(chunks), 0);
         chunkedNodeGroup.setUnused(*mm);
         auto memoryWithChunks = bm->getUsedMemory();
-        uint64_t memorySpilled = 0;
+        SpillResult memorySpilled{};
         bm->getSpillerOrSkip([&](auto& spiller) {
             spiller.addUnusedChunk(&chunkedNodeGroup);
             // Claim memory from unused chunks
             memorySpilled = spiller.claimNextGroup();
         });
-        ASSERT_NE(memorySpilled, 0);
+        ASSERT_NE(memorySpilled.memoryFreed + memorySpilled.memoryNowEvictable, 0);
         // The chunks should be entirely on disk
-        ASSERT_EQ(initialUsedMemory, bm->getUsedMemory() - memorySpilled);
+        ASSERT_EQ(initialUsedMemory, bm->getUsedMemory() - memorySpilled.memoryFreed);
         chunkedNodeGroup.loadFromDisk(*mm);
         // The chunks should be back in memory, but Spiller::claimNextGroup does not update
         // the amount of used memory itself, so we end up with the spilled memory recorded twice
-        ASSERT_EQ(memoryWithChunks, bm->getUsedMemory() - memorySpilled);
+        ASSERT_EQ(memoryWithChunks, bm->getUsedMemory() - memorySpilled.memoryFreed);
+    }
+
+    {
+        // The memory manager uses the buffer manager for allocations of size TEMP_PAGE_SIZE
+        std::vector<std::unique_ptr<ColumnChunk>> chunks;
+        chunks.push_back(std::make_unique<storage::ColumnChunk>(false,
+            std::make_unique<ColumnChunkData>(*mm, LogicalType(LogicalTypeID::INT64),
+                TEMP_PAGE_SIZE / sizeof(int64_t), false, ResidencyState::IN_MEMORY, false)));
+        auto chunkedNodeGroup = storage::ChunkedNodeGroup(std::move(chunks), 0);
+        chunkedNodeGroup.setUnused(*mm);
+        SpillResult memorySpilled{};
+        bm->getSpillerOrSkip([&](auto& spiller) {
+            spiller.addUnusedChunk(&chunkedNodeGroup);
+            // Claim memory from unused chunks
+            memorySpilled = spiller.claimNextGroup();
+        });
+        ASSERT_EQ(memorySpilled.memoryFreed, 0);
+        ASSERT_EQ(memorySpilled.memoryNowEvictable, TEMP_PAGE_SIZE);
     }
 }
 

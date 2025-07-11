@@ -66,7 +66,7 @@ Spiller::~Spiller() {
     } catch (common::IOException&) {} // NOLINT
 }
 
-uint64_t Spiller::spillToDisk(ColumnChunkData& chunk) const {
+SpillResult Spiller::spillToDisk(ColumnChunkData& chunk) const {
     auto& buffer = *chunk.buffer;
     KU_ASSERT(!buffer.evicted);
     auto dataFH = getOrCreateDataFH();
@@ -74,8 +74,7 @@ uint64_t Spiller::spillToDisk(ColumnChunkData& chunk) const {
     auto numPages = (buffer.buffer.size_bytes() + pageSize - 1) / pageSize;
     auto startPage = dataFH->addNewPages(numPages);
     dataFH->writePagesToFile(buffer.buffer.data(), buffer.buffer.size_bytes(), startPage);
-    buffer.setSpilledToDisk(startPage * pageSize);
-    return buffer.buffer.size();
+    return buffer.setSpilledToDisk(startPage * pageSize);
 }
 
 void Spiller::loadFromDisk(ColumnChunkData& chunk) const {
@@ -89,7 +88,7 @@ void Spiller::loadFromDisk(ColumnChunkData& chunk) const {
     }
 }
 
-uint64_t Spiller::claimNextGroup() {
+SpillResult Spiller::claimNextGroup() {
     ChunkedNodeGroup* groupToFlush = nullptr;
     {
         std::unique_lock lock(partitionerGroupsMtx);
@@ -100,7 +99,7 @@ uint64_t Spiller::claimNextGroup() {
         }
     }
     if (groupToFlush == nullptr) {
-        return 0;
+        return SpillResult{};
     }
     return groupToFlush->spillToDisk();
 }

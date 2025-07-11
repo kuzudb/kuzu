@@ -24,6 +24,11 @@ class ChunkedNodeGroup;
 template<class T>
 class MmAllocator;
 
+struct SpillResult {
+    uint64_t memoryFreed = 0;
+    uint64_t memoryNowEvictable = 0;
+};
+
 class MemoryBuffer {
     friend class Spiller;
 
@@ -49,7 +54,7 @@ private:
     void prepareLoadFromDisk();
 
     // Must only be called once before loading from disk
-    void setSpilledToDisk(uint64_t filePosition);
+    SpillResult setSpilledToDisk(uint64_t filePosition);
 
 private:
     std::span<uint8_t> buffer;
@@ -92,6 +97,7 @@ public:
 
 private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
+    void updateUsedMemoryForFreedBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
     std::span<uint8_t> mallocBuffer(bool initializeToZero, uint64_t size);
 
 private:
