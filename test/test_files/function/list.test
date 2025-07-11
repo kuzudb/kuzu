@@ -1955,6 +1955,45 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12*a0eebc
 -STATEMENT return list_to_string(null, [])
 ---- 1
 
+-STATEMENT return list_to_string(null, [null])
+---- 1
+
+-STATEMENT return list_to_string(null, [null,null])
+---- 1
+
+-STATEMENT return list_to_string(null, [1,null])
+---- 1
+
+-STATEMENT return list_to_string(null, [1,1,null])
+---- 1
+
+-STATEMENT return list_to_string(null, [null,1])
+---- 1
+
+-STATEMENT return list_to_string(null, [null,1,null])
+---- 1
+
+-STATEMENT return list_to_string(null, [null,1,null,null])
+---- 1
+
+-STATEMENT return list_to_string('-', [1])
+---- 1
+1
+-STATEMENT return list_to_string('-', [1,null,1])
+---- 1
+1-1
+-STATEMENT return list_to_string('-', [null,null])
+---- 1
+
+-STATEMENT return list_to_string('-', [null,1,null])
+---- 1
+1
+-STATEMENT RETURN list_to_string('-', ['a', NULL, NULL, NULL, NULL]);
+---- 1
+a
+-STATEMENT RETURN list_to_string('-', [NULL, NULL, 1, NULL, 1]);
+---- 1
+1-1
 -LOG 2385
 -STATEMENT RETURN [[23, 432], [], [NULL]];
 ---- 1

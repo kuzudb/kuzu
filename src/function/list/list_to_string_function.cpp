@@ -16,15 +16,26 @@ struct ListToString {
 void ListToString::operation(ku_string_t& delim, list_entry_t& input, ku_string_t& result,
     ValueVector& /*delimVector*/, ValueVector& inputVector, ValueVector& resultVector) {
     std::string resultStr = "";
+    bool outputDelim = false;
     if (input.size != 0) {
         auto dataVector = ListVector::getDataVector(&inputVector);
-        for (auto i = 0u; i < input.size - 1; i++) {
+        if (!dataVector->isNull(input.offset)) {
+            resultStr += TypeUtils::entryToString(dataVector->dataType,
+                ListVector::getListValuesWithOffset(&inputVector, input, 0 /* offset */),
+                dataVector);
+            outputDelim = true;
+        }
+        for (auto i = 1u; i < input.size; i++) {
+            if (dataVector->isNull(input.offset + i)) {
+                continue;
+            }
+            if (outputDelim) {
+                resultStr += delim.getAsString();
+            }
+            outputDelim = true;
             resultStr += TypeUtils::entryToString(dataVector->dataType,
                 ListVector::getListValuesWithOffset(&inputVector, input, i), dataVector);
-            resultStr += delim.getAsString();
         }
-        resultStr += TypeUtils::entryToString(dataVector->dataType,
-            ListVector::getListValuesWithOffset(&inputVector, input, input.size - 1), dataVector);
     }
     StringVector::addString(&resultVector, result, resultStr);
 }
