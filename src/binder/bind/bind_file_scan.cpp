@@ -111,9 +111,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
 bool handleFileViaFunction(main::ClientContext* context, std::vector<std::string> filePaths) {
     bool handleFileViaFunction = false;
     if (context->getVFSUnsafe()->fileOrPathExists(filePaths[0], context)) {
-        auto fileInfo = context->getVFSUnsafe()->openFile(filePaths[0],
-            FileOpenFlags(FileFlags::READ_ONLY), context);
-        handleFileViaFunction = fileInfo->handleFileViaFunction();
+        handleFileViaFunction = context->getVFSUnsafe()->handleFileViaFunction(filePaths[0]);
     }
     return handleFileViaFunction;
 }
@@ -147,9 +145,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     fileScanInfo->options = std::move(boundOptions);
     TableFunction func;
     if (handleFileViaFunction(clientContext, filePaths)) {
-        func = clientContext->getVFSUnsafe()
-                   ->openFile(filePaths[0], FileOpenFlags(FileFlags::READ_ONLY), clientContext)
-                   ->getHandleFunction();
+        func = clientContext->getVFSUnsafe()->getHandleFunction(filePaths[0]);
     } else {
         func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
     }

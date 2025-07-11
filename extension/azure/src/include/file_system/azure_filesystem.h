@@ -9,10 +9,6 @@ namespace azure_extension {
 
 struct AzureFileInfo final : public common::FileInfo {
     AzureFileInfo(const std::string& path, common::FileSystem* fs) : common::FileInfo{path, fs} {}
-
-    bool handleFileViaFunction() const override { return true; }
-
-    function::TableFunction getHandleFunction() const override;
 };
 
 class AzureFileSystem final : public common::FileSystem {
@@ -35,6 +31,10 @@ private:
     uint64_t getFileSize(const common::FileInfo& fileInfo) const override;
 
     bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
+
+    bool handleFileViaFunction(const std::string& /*path*/) const override { return true; }
+
+    function::TableFunction getHandleFunction(const std::string& /*path*/) const override;
 };
 
 } // namespace azure_extension

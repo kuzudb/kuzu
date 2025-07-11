@@ -9,10 +9,6 @@ namespace azure_extension {
 using namespace kuzu::function;
 using namespace kuzu::common;
 
-TableFunction AzureFileInfo::getHandleFunction() const {
-    return *AzureScanFunction::getFunctionSet()[0]->constPtrCast<TableFunction>();
-}
-
 std::unique_ptr<common::FileInfo> AzureFileSystem::openFile(const std::string& path,
     common::FileOpenFlags /*flags*/, main::ClientContext* /*context*/) {
     return std::make_unique<AzureFileInfo>(path, this);
@@ -47,6 +43,10 @@ uint64_t AzureFileSystem::getFileSize(const FileInfo& /*fileInfo*/) const {
 bool AzureFileSystem::fileOrPathExists(const std::string& /*path*/,
     main::ClientContext* /*context*/) {
     return true;
+}
+
+TableFunction AzureFileSystem::getHandleFunction(const std::string& /*path*/) const {
+    return *AzureScanFunction::getFunctionSet()[0]->constPtrCast<TableFunction>();
 }
 
 } // namespace azure_extension

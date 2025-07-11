@@ -36,8 +36,6 @@ struct KUZU_API FileInfo {
 
     bool canPerformSeek() const;
 
-    virtual bool handleFileViaFunction() const { return false; }
-
     virtual function::TableFunction getHandleFunction() const { KU_UNREACHABLE; }
 
     template<class TARGET>

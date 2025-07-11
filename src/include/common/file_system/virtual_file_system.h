@@ -49,6 +49,10 @@ public:
 
     void cleanUP(main::ClientContext* context) override;
 
+    bool handleFileViaFunction(const std::string& path) const override;
+
+    function::TableFunction getHandleFunction(const std::string& path) const override;
+
 protected:
     void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;

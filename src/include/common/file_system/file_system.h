@@ -89,6 +89,12 @@ public:
 
     virtual bool canPerformSeek() const { return true; }
 
+    virtual bool handleFileViaFunction(const std::string& /*path*/) const { return false; }
+
+    virtual function::TableFunction getHandleFunction(const std::string& /*path*/) const {
+        KU_UNREACHABLE;
+    }
+
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);

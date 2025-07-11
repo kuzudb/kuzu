@@ -101,6 +101,14 @@ void VirtualFileSystem::cleanUP(main::ClientContext* context) {
     defaultFS->cleanUP(context);
 }
 
+bool VirtualFileSystem::handleFileViaFunction(const std::string& path) const {
+    return findFileSystem(path)->handleFileViaFunction(path);
+}
+
+function::TableFunction VirtualFileSystem::getHandleFunction(const std::string& path) const {
+    return findFileSystem(path)->getHandleFunction(path);
+}
+
 int64_t VirtualFileSystem::seek(FileInfo& /*fileInfo*/, uint64_t /*offset*/, int /*whence*/) const {
     KU_UNREACHABLE;
 }
