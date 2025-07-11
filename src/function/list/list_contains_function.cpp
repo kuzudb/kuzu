@@ -3,6 +3,7 @@
 #include "function/list/functions/list_position_function.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
+#include "common/exception/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -27,14 +28,22 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     // is empty, we use in the input type. Otherwise, we use list child type because casting list
     // is more expensive.
     std::vector<LogicalType> paramTypes;
-    LogicalType listType, childType;
-    if (ExpressionUtil::isEmptyList(*input.arguments[0])) {
-        childType = input.arguments[1]->getDataType().copy();
-        listType = LogicalType::LIST(childType.copy());
+    LogicalType childType;
+    auto listExpr = input.arguments[0];
+    auto elementExpr = input.arguments[1];
+    if (ExpressionUtil::isEmptyList(*listExpr)) {
+        childType = elementExpr->getDataType().copy();
     } else {
-        listType = input.arguments[0]->getDataType().copy();
-        childType = ListType::getChildType(listType).copy();
+        auto& listChildType = ListType::getChildType(listExpr->getDataType());
+        auto& elementType = elementExpr->getDataType();
+        if (!LogicalTypeUtils::tryGetMaxLogicalType(listChildType, elementType, childType)) {
+            throw BinderException(stringFormat("Cannot compare {} and {} in list_contains function.", listChildType.toString(), elementType.toString()));
+        }
     }
+    if (childType.getLogicalTypeID() == LogicalTypeID::ANY) {
+        childType = LogicalType::STRING();
+    }
+    auto listType = LogicalType::LIST(childType.copy());
     paramTypes.push_back(listType.copy());
     paramTypes.push_back(childType.copy());
     TypeUtils::visit(childType.getPhysicalType(), [&scalarFunction]<typename T>(T) {
