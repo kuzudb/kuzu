@@ -21,11 +21,7 @@
 ---- ok
 
 -STATEMENT return create_embedding('Hello World', 'voyage-ai', 'voyage-3-large', 512);
----- error
-Connection exception: Request failed with status 429
- Body: {"detail":"You have not yet added your payment method in the billing page and will have reduced rate limits of 3 RPM and 10K TPM. To unlock our standard rate limits, please add a payment method in the billing page for the appropriate organization in the user dashboard (https://dashboard.voyageai.com/). Even with payment methods entered, the free tokens (200M tokens for Voyage series 3) will still apply. After adding a payment method, you should see your rate limits increase after several minutes. See our pricing docs (https://docs.voyageai.com/docs/pricing) for the free tokens for your model."}
-For more information, please refer to the official Kuzu documentation: https://docs.kuzudb.com/extensions/llm/
-
+---- ok
 
 #-STATEMENT return create_embedding('Hello World', 'voyage-ai', 'voyage-3-large', 256);
 #---- ok
