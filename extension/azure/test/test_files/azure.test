@@ -4,8 +4,8 @@
 -CASE AzureExtensionNotLoaded
 -SKIP_STATIC_LINK
 -STATEMENT LOAD FROM "az://kuzu-test/vPerson.csv" RETURN *;
----- error
-IO exception: Cannot open file az://kuzu-test/vPerson.csv: No such file or directory
+---- error(regex)
+^IO exception: Cannot open file.+
 
 -CASE AzureScan
 -SKIP_STATIC_LINK
