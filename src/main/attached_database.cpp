@@ -7,11 +7,11 @@
 #include "storage/checkpointer.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
-#include "transaction/transaction_manager.h"
 
 namespace kuzu {
 namespace main {
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void AttachedDatabase::invalidateCache() {
     if (dbType != common::ATTACHED_KUZU_DB_TYPE) {
         auto catalogExtension = catalog->ptrCast<extension::CatalogExtension>();
@@ -33,7 +33,7 @@ static void validateEmptyWAL(const std::string& path, ClientContext* context) {
     }
 }
 
-AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbName,
+AttachedKuzuDatabase::AttachedKuzuDatabase(const std::string& dbPath, std::string dbName,
     std::string dbType, ClientContext* clientContext)
     : AttachedDatabase{std::move(dbName), std::move(dbType), nullptr /* catalog */} {
     auto vfs = clientContext->getVFSUnsafe();
@@ -55,8 +55,6 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
     storageManager = std::make_unique<storage::StorageManager>(path, true /* isReadOnly */,
         *clientContext->getMemoryManager(), clientContext->getDBConfig()->enableCompression, vfs,
         clientContext);
-    transactionManager =
-        std::make_unique<transaction::TransactionManager>(storageManager->getWAL());
 
     if (storageManager->getDataFH()->getNumPages() > 0) {
         storage::Checkpointer::readCheckpoint(path, clientContext, vfs, catalog.get(),

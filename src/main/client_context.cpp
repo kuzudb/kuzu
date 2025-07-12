@@ -184,7 +184,7 @@ void ClientContext::setExtensionOption(std::string name, Value value) {
     extensionOptionValues.insert_or_assign(name, std::move(value));
 }
 
-const main::ExtensionOption* ClientContext::getExtensionOption(std::string optionName) const {
+const ExtensionOption* ClientContext::getExtensionOption(std::string optionName) const {
     return localDatabase->extensionManager->getExtensionOption(optionName);
 }
 
@@ -235,11 +235,7 @@ Catalog* ClientContext::getCatalog() const {
 }
 
 TransactionManager* ClientContext::getTransactionManagerUnsafe() const {
-    if (remoteDatabase == nullptr) {
-        return localDatabase->transactionManager.get();
-    } else {
-        return remoteDatabase->getTransactionManager();
-    }
+    return localDatabase->transactionManager.get();
 }
 
 VirtualFileSystem* ClientContext::getVFSUnsafe() const {

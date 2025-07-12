@@ -31,8 +31,6 @@ public:
 
     catalog::Catalog* getCatalog() { return catalog.get(); }
 
-    std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(const std::string& query);
-
     void invalidateCache();
 
     template<class TARGET>
@@ -48,16 +46,13 @@ protected:
 
 class AttachedKuzuDatabase final : public AttachedDatabase {
 public:
-    AttachedKuzuDatabase(std::string dbPath, std::string dbName, std::string dbType,
+    AttachedKuzuDatabase(const std::string& dbPath, std::string dbName, std::string dbType,
         ClientContext* clientContext);
 
     storage::StorageManager* getStorageManager() { return storageManager.get(); }
 
-    transaction::TransactionManager* getTransactionManager() { return transactionManager.get(); }
-
 private:
     std::unique_ptr<storage::StorageManager> storageManager;
-    std::unique_ptr<transaction::TransactionManager> transactionManager;
 };
 
 } // namespace main
