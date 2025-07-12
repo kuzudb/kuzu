@@ -67,9 +67,6 @@ public:
         return std::make_pair(nodeGroupIdx, offsetInChunk);
     }
 
-    // static std::string getLockFilePath(const std::string& path) {
-        // return common::stringFormat("{}.{}", path, common::StorageConstants::LOCK_FILE_SUFFIX);
-    // }
     static std::string getWALFilePath(const std::string& path) {
         return common::stringFormat("{}.{}", path, common::StorageConstants::WAL_FILE_SUFFIX);
     }

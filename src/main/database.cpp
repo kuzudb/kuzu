@@ -78,14 +78,6 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     this->maxDBSize = maxDBSize;
 }
 
-// static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, FileLockType& lock) {
-    // flags = readOnly ? FileFlags::READ_ONLY : FileFlags::WRITE;
-    // if (createNew && !readOnly) {
-        // flags |= FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS;
-    // }
-    // lock = readOnly ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
-// }
-
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     : dbConfig{systemConfig} {
     initMembers(databasePath);
@@ -114,7 +106,7 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
         throw RuntimeException("Database path cannot be a directory: " + databasePath);
     }
     vfs = std::make_unique<VirtualFileSystem>(databasePath);
-    initAndLockDBDir();
+    validatePathInReadOnly();
 
     bufferManager = initBmFunc(*this);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
@@ -150,51 +142,37 @@ Database::~Database() {
     dbLifeCycleManager->isDatabaseClosed = true;
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {
     vfs->registerFileSystem(std::move(fs));
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void Database::registerStorageExtension(std::string name,
     std::unique_ptr<StorageExtension> storageExtension) {
     extensionManager->registerStorageExtension(std::move(name), std::move(storageExtension));
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void Database::addExtensionOption(std::string name, LogicalTypeID type, Value defaultValue,
     bool isConfidential) {
-    extensionManager->addExtensionOption(name, type, std::move(defaultValue), isConfidential);
+    extensionManager->addExtensionOption(std::move(name), type, std::move(defaultValue),
+        isConfidential);
 }
 
 std::vector<StorageExtension*> Database::getStorageExtensions() {
     return extensionManager->getStorageExtensions();
 }
 
-// void Database::openLockFile() {
-    // int flags = 0;
-    // FileLockType lock{};
-    // auto lockFilePath = StorageUtils::getLockFilePath(databasePath);
-    // if (!vfs->fileOrPathExists(lockFilePath)) {
-        // getLockFileFlagsAndType(dbConfig.readOnly, true, flags, lock);
-    // } else {
-        // getLockFileFlagsAndType(dbConfig.readOnly, false, flags, lock);
-    // }
-    // FileOpenFlags openFlags{flags};
-    // openFlags.lockType = lock;
-    // lockFile = vfs->openFile(lockFilePath, openFlags, nullptr /* clientContext */);
-// }
-
-void Database::initAndLockDBDir() {
-    if (DBConfig::isDBPathInMemory(databasePath)) {
-        if (dbConfig.readOnly) {
+void Database::validatePathInReadOnly() const {
+    if (dbConfig.readOnly) {
+        if (DBConfig::isDBPathInMemory(databasePath)) {
             throw Exception("Cannot open an in-memory database under READ ONLY mode.");
         }
-        return;
-    }
-    if (!vfs->fileOrPathExists(databasePath)) {
-        if (dbConfig.readOnly) {
+        if (!vfs->fileOrPathExists(databasePath)) {
             throw Exception("Cannot create an empty database under READ ONLY mode.");
         }
     }
-    // openLockFile();
 }
 
 uint64_t Database::getNextQueryID() {
