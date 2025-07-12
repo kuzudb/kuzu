@@ -41,8 +41,9 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
         dataFH = memoryManager.getBufferManager()->getFileHandle(databasePath,
             FileHandle::O_PERSISTENT_FILE_IN_MEM, vfs, context);
     } else {
-        const auto flag = readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                                     FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS;
+        auto flag = readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                               FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS;
+        flag |= FileHandle::O_LOCKED_PERSISTENT_FILE;
         dataFH = memoryManager.getBufferManager()->getFileHandle(databasePath, flag, vfs, context);
         if (dataFH->getNumPages() == 0) {
             if (!readOnly) {

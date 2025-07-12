@@ -147,8 +147,7 @@ private:
     Database(std::string_view databasePath, SystemConfig systemConfig,
         construct_bm_func_t constructBMFunc);
 
-    void openLockFile();
-    void initAndLockDBDir();
+    void validatePathInReadOnly() const;
 
 private:
     std::string databasePath;

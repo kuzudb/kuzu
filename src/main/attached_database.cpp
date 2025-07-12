@@ -59,8 +59,7 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
         std::make_unique<transaction::TransactionManager>(storageManager->getWAL());
 
     if (storageManager->getDataFH()->getNumPages() > 0) {
-        storage::Checkpointer::readCheckpoint(path, clientContext, vfs, catalog.get(),
-            storageManager.get());
+        storage::Checkpointer::readCheckpoint(clientContext, catalog.get(), storageManager.get());
     }
 }
 

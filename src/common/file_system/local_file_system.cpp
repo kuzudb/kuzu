@@ -175,9 +175,9 @@ std::vector<std::string> LocalFileSystem::glob(main::ClientContext* context,
             auto fileSearchPath = context->getCurrentSetting(main::FileSearchPathSetting::name)
                                       .getValue<std::string>();
             if (fileSearchPath != "") {
-                auto searchPaths = common::StringUtils::split(fileSearchPath, ",");
+                auto searchPaths = StringUtils::split(fileSearchPath, ",");
                 for (auto& searchPath : searchPaths) {
-                    pathsToGlob.push_back(common::stringFormat("{}/{}", searchPath, path));
+                    pathsToGlob.push_back(stringFormat("{}/{}", searchPath, path));
                 }
             }
         }
@@ -260,7 +260,6 @@ void LocalFileSystem::createDir(const std::string& dir) const {
 static std::unordered_set<std::string> getDatabaseFileSet(const std::string& path) {
     std::unordered_set<std::string> result;
     result.insert(storage::StorageUtils::getWALFilePath(path));
-    result.insert(storage::StorageUtils::getLockFilePath(path));
     result.insert(storage::StorageUtils::getShadowFilePath(path));
     result.insert(storage::StorageUtils::getTmpFilePath(path));
     return result;
