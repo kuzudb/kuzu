@@ -203,10 +203,9 @@ public:
 
     // For files that are managed by BM, their FileHandles should be created through this function.
     FileHandle* getFileHandle(const std::string& filePath, uint8_t flags,
-        common::VirtualFileSystem* vfs, main::ClientContext* context,
-        common::PageSizeClass pageSizeClass = common::REGULAR_PAGE) {
-        fileHandles.emplace_back(std::make_unique<FileHandle>(filePath, flags, this,
-            fileHandles.size(), pageSizeClass, vfs, context));
+        common::VirtualFileSystem* vfs, main::ClientContext* context) {
+        fileHandles.emplace_back(
+            std::make_unique<FileHandle>(filePath, flags, this, fileHandles.size(), vfs, context));
         return fileHandles.back().get();
     }
 
@@ -227,7 +226,7 @@ public:
     void removeEvictedCandidates();
 
 protected:
-    // Reclaims used memory until the given size to reserve is available
+    // Reclaims used memory until the given size to reserve is available.
     // The specified amount of memory will be recorded as being used
     virtual bool reserve(uint64_t sizeToReserve);
 

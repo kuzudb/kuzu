@@ -57,8 +57,7 @@ public:
     constexpr static uint8_t O_PERSISTENT_FILE_IN_MEM{0b0000'0010};
 
     FileHandle(const std::string& path, uint8_t flags, BufferManager* bm, uint32_t fileIndex,
-        common::PageSizeClass pageSizeClass, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
     // File handles are registered with the buffer manager and must not be moved or copied
     DELETE_COPY_AND_MOVE(FileHandle);
 
@@ -117,9 +116,9 @@ private:
     bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
 
     common::page_idx_t addNewPageWithoutLock();
-    void constructExistingFileHandle(const std::string& path, common::VirtualFileSystem* vfs,
+    void constructPersistentFileHandle(const std::string& path, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
-    void constructNewFileHandle(const std::string& path);
+    void constructTmpFileHandle(const std::string& path);
     common::frame_idx_t getFrameIdx(common::page_idx_t pageIdx) {
         KU_ASSERT(pageIdx < pageCapacity);
         return (frameGroupIdxes[pageIdx >> common::StorageConstants::PAGE_GROUP_SIZE_LOG2]

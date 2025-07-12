@@ -39,7 +39,7 @@ protected:
 
 class BufferedFileReader final : public Reader {
 public:
-    explicit BufferedFileReader(std::unique_ptr<FileInfo> fileInfo);
+    explicit BufferedFileReader(FileInfo& fileInfo);
 
     // Note: this function resets the next file offset to read.
     void resetReadOffset(uint64_t fileOffset) {
@@ -53,7 +53,7 @@ public:
     bool finished() override;
 
     uint64_t getReadOffset() const { return fileOffset - bufferSize + bufferOffset; }
-    FileInfo* getFileInfo() const { return fileInfo.get(); }
+    FileInfo* getFileInfo() const { return &fileInfo; }
 
 private:
     void readNextPage();
@@ -61,7 +61,7 @@ private:
 private:
     std::unique_ptr<uint8_t[]> buffer;
     uint64_t fileOffset, bufferOffset;
-    std::unique_ptr<FileInfo> fileInfo;
+    FileInfo& fileInfo;
     uint64_t fileSize;
     uint64_t bufferSize;
 };
