@@ -11,7 +11,7 @@ struct DBConfig;
 
 namespace kuzu {
 namespace main {
-class AttachedKuzuDatabase;
+class KuzuDatabase;
 } // namespace main
 
 namespace binder {
@@ -49,7 +49,7 @@ concept TableCatalogEntryType =
     std::is_same_v<T, NodeTableCatalogEntry> || std::is_same_v<T, RelGroupCatalogEntry>;
 
 class KUZU_API Catalog {
-    friend class main::AttachedKuzuDatabase;
+    friend class main::KuzuDatabase;
 
 public:
     Catalog();

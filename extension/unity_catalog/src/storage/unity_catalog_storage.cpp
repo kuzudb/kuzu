@@ -10,7 +10,7 @@
 namespace kuzu {
 namespace unity_catalog_extension {
 
-std::unique_ptr<main::AttachedDatabase> attachUnityCatalog(std::string dbName, std::string dbPath,
+std::unique_ptr<main::DatabaseInstance> attachUnityCatalog(std::string dbName, std::string dbPath,
     main::ClientContext* clientContext, const binder::AttachOption& attachOption) {
     if (dbName == "") {
         dbName = dbPath;

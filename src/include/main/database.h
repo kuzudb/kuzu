@@ -123,7 +123,7 @@ public:
     KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
         common::Value defaultValue, bool isConfidential = false);
 
-    KUZU_API catalog::Catalog* getCatalog() { return catalog.get(); }
+    KUZU_API catalog::Catalog* getCatalog() { return systemCatalog.get(); }
 
     const DBConfig& getConfig() const { return dbConfig; }
 
@@ -157,8 +157,7 @@ private:
     std::unique_ptr<storage::BufferManager> bufferManager;
     std::unique_ptr<storage::MemoryManager> memoryManager;
     std::unique_ptr<processor::QueryProcessor> queryProcessor;
-    std::unique_ptr<catalog::Catalog> catalog;
-    std::unique_ptr<storage::StorageManager> storageManager;
+    std::unique_ptr<catalog::Catalog> systemCatalog;
     std::unique_ptr<transaction::TransactionManager> transactionManager;
     std::unique_ptr<common::FileInfo> lockFile;
     std::unique_ptr<DatabaseManager> databaseManager;

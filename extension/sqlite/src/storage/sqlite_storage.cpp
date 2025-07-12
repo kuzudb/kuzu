@@ -17,7 +17,7 @@ static std::string getCatalogNameFromPath(const std::string& dbPath) {
     return path.stem().string();
 }
 
-std::unique_ptr<main::AttachedDatabase> attachSqlite(std::string dbName, std::string dbPath,
+std::unique_ptr<main::DatabaseInstance> attachSqlite(std::string dbName, std::string dbPath,
     main::ClientContext* clientContext, const binder::AttachOption& attachOption) {
     auto catalogName = getCatalogNameFromPath(dbPath);
     if (dbName == "") {

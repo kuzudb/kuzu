@@ -11,9 +11,9 @@ namespace kuzu {
 namespace function {
 
 struct ShowAttachedDatabasesBindData final : TableFuncBindData {
-    std::vector<main::AttachedDatabase*> attachedDatabases;
+    std::vector<main::DatabaseInstance*> attachedDatabases;
 
-    ShowAttachedDatabasesBindData(std::vector<main::AttachedDatabase*> attachedDatabases,
+    ShowAttachedDatabasesBindData(std::vector<main::DatabaseInstance*> attachedDatabases,
         binder::expression_vector columns, offset_t maxOffset)
         : TableFuncBindData{std::move(columns), maxOffset},
           attachedDatabases{std::move(attachedDatabases)} {}

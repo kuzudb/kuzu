@@ -2,8 +2,8 @@
 
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
-#include "main/attached_database.h"
 #include "main/database.h"
+#include "main/database_instance.h"
 #include "main/database_manager.h"
 #include "processor/execution_context.h"
 #include "storage/storage_extension.h"
@@ -31,7 +31,7 @@ void AttachDatabase::executeInternal(ExecutionContext* context) {
     auto databaseManager = client->getDatabaseManager();
     auto memoryManager = client->getMemoryManager();
     if (common::StringUtils::getUpper(attachInfo.dbType) == common::ATTACHED_KUZU_DB_TYPE) {
-        auto db = std::make_unique<main::AttachedKuzuDatabase>(attachInfo.dbPath,
+        auto db = std::make_unique<main::KuzuDatabase>(attachInfo.dbPath,
             attachInfo.dbAlias, common::ATTACHED_KUZU_DB_TYPE, client);
         client->setDefaultDatabase(db.get());
         databaseManager->registerAttachedDatabase(std::move(db));

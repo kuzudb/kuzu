@@ -48,7 +48,7 @@ namespace main {
 struct DBConfig;
 class Database;
 class DatabaseManager;
-class AttachedKuzuDatabase;
+class KuzuDatabase;
 struct SpillToDiskSetting;
 struct ExtensionOption;
 class EmbeddedShell;
@@ -120,7 +120,7 @@ public:
 
     // Database component getters.
     std::string getDatabasePath() const;
-    Database* getDatabase() const { return localDatabase; }
+    Database* getDatabase() const { return database; }
     common::TaskScheduler* getTaskScheduler() const;
     DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
@@ -135,7 +135,7 @@ public:
 
     static std::string getEnvVariable(const std::string& name);
 
-    void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
+    void setDefaultDatabase(KuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase() const;
     void setUseInternalCatalogEntry(bool useInternalCatalogEntry) {
         this->useInternalCatalogEntry_ = useInternalCatalogEntry;
@@ -236,9 +236,7 @@ private:
     // Random generator for UUID.
     std::unique_ptr<common::RandomEngine> randomEngine;
     // Local database.
-    Database* localDatabase;
-    // Remote database.
-    AttachedKuzuDatabase* remoteDatabase;
+    Database* database;
     // Progress bar.
     std::unique_ptr<common::ProgressBar> progressBar;
     // Warning information

@@ -12,6 +12,7 @@
 #include "extension/extension_manager.h"
 #include "main/client_context.h"
 #include "processor/expression_mapper.h"
+#include "storage/checkpointer.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"

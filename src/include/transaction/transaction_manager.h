@@ -35,9 +35,10 @@ class TransactionManager {
 
 public:
     // Timestamp starts from 1. 0 is reserved for the dummy system transaction.
-    explicit TransactionManager(storage::WAL& wal)
-        : wal{wal}, lastTransactionID{Transaction::START_TRANSACTION_ID}, lastTimestamp{1} {
+    explicit TransactionManager()
+        : lastTransactionID{Transaction::START_TRANSACTION_ID}, lastTimestamp{1} {
         initCheckpointerFunc = initCheckpointer;
+        wal = std::unique_ptr<storage::WAL>();
     }
 
     std::unique_ptr<Transaction> beginTransaction(main::ClientContext& clientContext,
@@ -63,7 +64,7 @@ private:
     }
 
 private:
-    storage::WAL& wal;
+    std::unique_ptr<storage::WAL> wal;
     std::unordered_set<common::transaction_t> activeWriteTransactions;
     std::unordered_set<common::transaction_t> activeReadOnlyTransactions;
     common::transaction_t lastTransactionID;

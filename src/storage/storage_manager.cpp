@@ -11,7 +11,6 @@
 #include "storage/checkpointer.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
-#include "storage/wal/wal_replayer.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -64,15 +63,6 @@ Table* StorageManager::getTable(table_id_t tableID) {
     std::lock_guard lck{mtx};
     KU_ASSERT(tables.contains(tableID));
     return tables.at(tableID).get();
-}
-
-void StorageManager::recover(main::ClientContext& clientContext) {
-    try {
-        const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
-        walReplayer->replay();
-    } catch (std::exception& e) {
-        throw Exception(stringFormat("Error during recovery: {}", e.what()));
-    }
 }
 
 void StorageManager::createNodeTable(NodeTableCatalogEntry* entry) {

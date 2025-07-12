@@ -14,7 +14,7 @@ namespace testing {
 struct FSMLeakChecker;
 }
 namespace main {
-class AttachedKuzuDatabase;
+class KuzuDatabase;
 } // namespace main
 
 namespace storage {
@@ -32,7 +32,7 @@ struct DatabaseHeader {
 };
 
 class Checkpointer {
-    friend class main::AttachedKuzuDatabase;
+    friend class main::KuzuDatabase;
     friend struct testing::FSMLeakChecker;
 
 public:

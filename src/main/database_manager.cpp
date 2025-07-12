@@ -10,7 +10,7 @@ namespace main {
 
 DatabaseManager::DatabaseManager() : defaultDatabase{""} {}
 
-void DatabaseManager::registerAttachedDatabase(std::unique_ptr<AttachedDatabase> attachedDatabase) {
+void DatabaseManager::registerAttachedDatabase(std::unique_ptr<DatabaseInstance> attachedDatabase) {
     if (defaultDatabase == "") {
         defaultDatabase = attachedDatabase->getDBName();
     }
@@ -22,7 +22,7 @@ void DatabaseManager::registerAttachedDatabase(std::unique_ptr<AttachedDatabase>
     attachedDatabases.push_back(std::move(attachedDatabase));
 }
 
-bool DatabaseManager::hasAttachedDatabase(const std::string& name) {
+bool DatabaseManager::hasAttachedDatabase(const std::string& name) const {
     auto upperCaseName = StringUtils::getUpper(name);
     for (auto& attachedDatabase : attachedDatabases) {
         auto attachedDBName = StringUtils::getUpper(attachedDatabase->getDBName());
@@ -33,7 +33,7 @@ bool DatabaseManager::hasAttachedDatabase(const std::string& name) {
     return false;
 }
 
-AttachedDatabase* DatabaseManager::getAttachedDatabase(const std::string& name) {
+DatabaseInstance* DatabaseManager::getAttachedDatabase(const std::string& name) {
     auto upperCaseName = StringUtils::getUpper(name);
     for (auto& attachedDatabase : attachedDatabases) {
         auto attachedDBName = StringUtils::getUpper(attachedDatabase->getDBName());
@@ -42,6 +42,13 @@ AttachedDatabase* DatabaseManager::getAttachedDatabase(const std::string& name) 
         }
     }
     throw RuntimeException{stringFormat("No database named {}.", name)};
+}
+
+DatabaseInstance* DatabaseManager::getDefaultDatabaseInstance() {
+    if (defaultDatabase == "") {
+        throw common::RuntimeException{"No default database is set."};
+    }
+    return getAttachedDatabase(defaultDatabase);
 }
 
 void DatabaseManager::detachDatabase(const std::string& databaseName) {
@@ -64,8 +71,8 @@ void DatabaseManager::setDefaultDatabase(const std::string& databaseName) {
     defaultDatabase = databaseName;
 }
 
-std::vector<AttachedDatabase*> DatabaseManager::getAttachedDatabases() const {
-    std::vector<AttachedDatabase*> attachedDatabasesPtr;
+std::vector<DatabaseInstance*> DatabaseManager::getAttachedDatabases() const {
+    std::vector<DatabaseInstance*> attachedDatabasesPtr;
     for (auto& attachedDatabase : attachedDatabases) {
         attachedDatabasesPtr.push_back(attachedDatabase.get());
     }

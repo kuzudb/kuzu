@@ -11,10 +11,11 @@
 #include "extension/extension.h"
 #include "extension/extension_manager.h"
 #include "graph/graph_entry_set.h"
-#include "main/attached_database.h"
 #include "main/database.h"
+#include "main/database_instance.h"
 #include "main/database_manager.h"
 #include "main/db_config.h"
+#include "main/kuzu_database.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
 #include "parser/visitor/standalone_call_rewriter.h"
@@ -26,6 +27,7 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
 #if defined(_WIN32)
 #include "common/windows_utils.h"
@@ -50,10 +52,9 @@ void ActiveQuery::reset() {
 }
 
 ClientContext::ClientContext(Database* database)
-    : dbConfig{database->dbConfig}, localDatabase{database}, warningContext(&clientConfig) {
+    : dbConfig{database->dbConfig}, database{database}, warningContext(&clientConfig) {
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<RandomEngine>();
-    remoteDatabase = nullptr;
     graphEntrySet = std::make_unique<graph::GraphEntrySet>();
 #if defined(_WIN32)
     clientConfig.homeDirectory = getEnvVariable("USERPROFILE");
@@ -109,7 +110,7 @@ uint64_t ClientContext::getQueryTimeOut() const {
 void ClientContext::setMaxNumThreadForExec(uint64_t numThreads) {
     lock_t lck{mtx};
     if (numThreads == 0) {
-        numThreads = localDatabase->dbConfig.maxNumThreads;
+        numThreads = database->dbConfig.maxNumThreads;
     }
     clientConfig.numThreads = numThreads;
 }
@@ -185,7 +186,7 @@ void ClientContext::setExtensionOption(std::string name, Value value) {
 }
 
 const ExtensionOption* ClientContext::getExtensionOption(std::string optionName) const {
-    return localDatabase->extensionManager->getExtensionOption(optionName);
+    return database->extensionManager->getExtensionOption(optionName);
 }
 
 std::string ClientContext::getExtensionDir() const {
@@ -194,52 +195,55 @@ std::string ClientContext::getExtensionDir() const {
 }
 
 std::string ClientContext::getDatabasePath() const {
-    return localDatabase->databasePath;
+    return database->databasePath;
 }
 
 TaskScheduler* ClientContext::getTaskScheduler() const {
-    return localDatabase->queryProcessor->getTaskScheduler();
+    return database->queryProcessor->getTaskScheduler();
 }
 
 DatabaseManager* ClientContext::getDatabaseManager() const {
-    return localDatabase->databaseManager.get();
+    return database->databaseManager.get();
 }
 
 storage::StorageManager* ClientContext::getStorageManager() const {
-    if (remoteDatabase == nullptr) {
-        return localDatabase->storageManager.get();
-    } else {
-        return remoteDatabase->getStorageManager();
+    auto databaseInstance = getDatabaseManager()->getAttachedDatabase("DEFAULT");
+    KU_ASSERT(databaseInstance);
+    if (databaseInstance->getDBType() == ATTACHED_KUZU_DB_TYPE) {
+        // If we are connected to the main Kuzu database, we return the storage manager of the
+        // database.
+        return ku_dynamic_cast<KuzuDatabase*>(databaseInstance)->getStorageManager();
     }
+    return nullptr;
 }
 
 storage::MemoryManager* ClientContext::getMemoryManager() const {
-    return localDatabase->memoryManager.get();
+    return database->memoryManager.get();
 }
 
 extension::ExtensionManager* ClientContext::getExtensionManager() const {
-    return localDatabase->extensionManager.get();
+    return database->extensionManager.get();
 }
 
 storage::WAL* ClientContext::getWAL() const {
-    KU_ASSERT(localDatabase && localDatabase->storageManager);
-    return &localDatabase->storageManager->getWAL();
+    KU_ASSERT(database && database->storageManager);
+    return &database->storageManager->getWAL();
 }
 
 Catalog* ClientContext::getCatalog() const {
     if (remoteDatabase == nullptr) {
-        return localDatabase->catalog.get();
+        return database->systemCatalog.get();
     } else {
         return remoteDatabase->getCatalog();
     }
 }
 
 TransactionManager* ClientContext::getTransactionManagerUnsafe() const {
-    return localDatabase->transactionManager.get();
+    return database->transactionManager.get();
 }
 
 VirtualFileSystem* ClientContext::getVFSUnsafe() const {
-    return localDatabase->vfs.get();
+    return database->vfs.get();
 }
 
 RandomEngine* ClientContext::getRandomEngine() const {
@@ -247,11 +251,16 @@ RandomEngine* ClientContext::getRandomEngine() const {
 }
 
 bool ClientContext::isInMemory() const {
+    auto defaultDatabaseName = getDatabaseManager()->getDefaultDatabase();
+    if (defaultDatabaseName == "DEFAULT") {
+        // If we are connected to the main Kuzu database, we check if it is in memory.
+        return DBConfig::isDBPathInMemory(database->databasePath);
+    }
     if (remoteDatabase != nullptr) {
         // If we are connected to a remote database, we assume it is not in memory.
         return false;
     }
-    return localDatabase->storageManager->isInMemory();
+    return database->storageManager->isInMemory();
 }
 
 std::string ClientContext::getEnvVariable(const std::string& name) {
@@ -271,7 +280,7 @@ std::string ClientContext::getEnvVariable(const std::string& name) {
 #endif
 }
 
-void ClientContext::setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_) {
+void ClientContext::setDefaultDatabase(KuzuDatabase* defaultDatabase_) {
     remoteDatabase = defaultDatabase_;
 }
 
@@ -283,7 +292,7 @@ void ClientContext::addScalarFunction(std::string name, function::function_set d
     TransactionHelper::runFuncInTransaction(
         *transactionContext,
         [&]() {
-            localDatabase->catalog->addFunction(getTransaction(),
+            database->systemCatalog->addFunction(getTransaction(),
                 CatalogEntryType::SCALAR_FUNCTION_ENTRY, std::move(name), std::move(definitions));
         },
         false /*readOnlyStatement*/, false /*isTransactionStatement*/,
@@ -293,7 +302,7 @@ void ClientContext::addScalarFunction(std::string name, function::function_set d
 void ClientContext::removeScalarFunction(const std::string& name) {
     TransactionHelper::runFuncInTransaction(
         *transactionContext,
-        [&]() { localDatabase->catalog->dropFunction(getTransaction(), name); },
+        [&]() { database->systemCatalog->dropFunction(getTransaction(), name); },
         false /*readOnlyStatement*/, false /*isTransactionStatement*/,
         TransactionHelper::TransactionCommitAction::COMMIT_IF_NEW);
 }
@@ -565,7 +574,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                 const auto profiler = std::make_unique<Profiler>();
                 profiler->enabled = preparedStatement->isProfile();
                 if (!queryID) {
-                    queryID = localDatabase->getNextQueryID();
+                    queryID = database->getNextQueryID();
                 }
                 const auto executionContext =
                     std::make_unique<ExecutionContext>(profiler.get(), this, *queryID);
@@ -575,14 +584,14 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                         preparedStatement->statementResult->getColumns());
                 queryResult = std::make_unique<QueryResult>(preparedStatement->preparedSummary);
                 if (preparedStatement->isTransactionStatement()) {
-                    resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
+                    resultFT = database->queryProcessor->execute(physicalPlan.get(),
                         executionContext.get());
                 } else {
                     if (preparedStatement->getStatementType() == StatementType::COPY_FROM) {
                         // Note: We always force checkpoint for COPY_FROM statement.
                         getTransaction()->setForceCheckpoint();
                     }
-                    resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
+                    resultFT = database->queryProcessor->execute(physicalPlan.get(),
                         executionContext.get());
                 }
             },
@@ -659,7 +668,7 @@ bool ClientContext::canExecuteWriteQuery() const {
     }
     // Note: we can only attach a remote kuzu database in read-only mode and only one
     // remote kuzu database can be attached.
-    const auto dbManager = localDatabase->databaseManager.get();
+    const auto dbManager = database->databaseManager.get();
     for (const auto& attachedDB : dbManager->getAttachedDatabases()) {
         if (attachedDB->getDBType() == ATTACHED_KUZU_DB_TYPE) {
             return false;

@@ -14,6 +14,7 @@
 #include "common/exception/exception.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/db_config.h"
+#include "main/kuzu_database.h"
 #include "processor/processor.h"
 #include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
@@ -125,10 +126,8 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads);
 #endif
 
-    catalog = std::make_unique<Catalog>();
-    storageManager = std::make_unique<StorageManager>(databasePath, dbConfig.readOnly,
-        *memoryManager, dbConfig.enableCompression, vfs.get(), &clientContext);
-    transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
+    systemCatalog = std::make_unique<Catalog>();
+    transactionManager = std::make_unique<TransactionManager>();
     databaseManager = std::make_unique<DatabaseManager>();
 
     extensionManager = std::make_unique<extension::ExtensionManager>();
@@ -137,7 +136,10 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
         extensionManager->autoLoadLinkedExtensions(&clientContext);
         return;
     }
-    StorageManager::recover(clientContext);
+    auto kuzuDatabase = std::make_unique<KuzuDatabase>(databasePath, "DEFAULT",
+        ATTACHED_KUZU_DB_TYPE, &clientContext);
+    databaseManager->registerAttachedDatabase(std::move(kuzuDatabase));
+    KuzuDatabase::recover(clientContext);
 }
 
 Database::~Database() {

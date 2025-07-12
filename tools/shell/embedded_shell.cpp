@@ -109,7 +109,7 @@ void EmbeddedShell::updateTableNames() {
             ->beginReadTransaction(); // start transaction to get current table names
         transactionStarted = true;
     }
-    for (auto& tableEntry : database->catalog->getTableEntries(clientContext->getTransaction(),
+    for (auto& tableEntry : database->systemCatalog->getTableEntries(clientContext->getTransaction(),
              false /*useInternal*/)) {
         if (tableEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
             nodeTableNames.push_back(tableEntry->getName());
@@ -135,7 +135,7 @@ void EmbeddedShell::updateFunctionAndTypeNames() {
     for (auto& type : typeNames) {
         functionAndTypeNames.push_back(LogicalTypeUtils::toString(type));
     }
-    for (auto& entry : database->catalog->getFunctionEntries(&transaction::DUMMY_TRANSACTION)) {
+    for (auto& entry : database->systemCatalog->getFunctionEntries(&transaction::DUMMY_TRANSACTION)) {
         switch (entry->getType()) {
         case catalog::CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
             aggregateFunctionNames.push_back(entry->getName());
@@ -430,7 +430,7 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     maxPrintWidth = shellConfig.maxPrintWidth;
     printer = std::move(shellConfig.printer);
     stats = shellConfig.stats;
-    catalogVersion = database->catalog->getVersion();
+    catalogVersion = database->systemCatalog->getVersion();
     updateTableNames();
     updateFunctionAndTypeNames();
     auto sigResult = std::signal(SIGINT, interruptHandler);
@@ -555,9 +555,9 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         continueLine = true;
         currLine += input + "\n";
     }
-    if (catalogVersion != database->catalog->getVersion()) {
+    if (catalogVersion != database->systemCatalog->getVersion()) {
         updateTableNames();
-        catalogVersion = database->catalog->getVersion();
+        catalogVersion = database->systemCatalog->getVersion();
     }
     historyLine = input;
     return queryResults;
