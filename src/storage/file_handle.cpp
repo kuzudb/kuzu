@@ -10,9 +10,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-FileHandle::FileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
+FileHandle::FileHandle(const std::string& path, uint8_t fhFlags, BufferManager* bm,
     uint32_t fileIndex, VirtualFileSystem* vfs, main::ClientContext* context)
-    : flags{flags}, fileIndex{fileIndex}, numPages{0}, pageCapacity{0}, bm{bm},
+    : fhFlags{fhFlags}, fileIndex{fileIndex}, numPages{0}, pageCapacity{0}, bm{bm},
       pageSizeClass{isNewTmpFile() ? TEMP_PAGE : REGULAR_PAGE}, pageStates{0, 0},
       frameGroupIdxes{0, 0}, pageManager(std::make_unique<PageManager>(this)) {
     if (isNewTmpFile()) {
@@ -33,12 +33,12 @@ void FileHandle::constructPersistentFileHandle(const std::string& path, VirtualF
     FileOpenFlags openFlags{0};
     if (isReadOnlyFile()) {
         openFlags.flags = FileFlags::READ_ONLY;
-        openFlags.lockType = FileLockType::READ_LOCK;
+        openFlags.lockType = isLockRequired() ? FileLockType::READ_LOCK : FileLockType::NO_LOCK;
     } else {
         openFlags.flags =
             FileFlags::WRITE | FileFlags::READ_ONLY |
             ((createFileIfNotExists()) ? FileFlags::CREATE_IF_NOT_EXISTS : 0x00000000);
-        openFlags.lockType = FileLockType::WRITE_LOCK;
+        openFlags.lockType = isLockRequired() ? FileLockType::WRITE_LOCK : FileLockType::NO_LOCK;
     }
     fileInfo = vfs->openFile(path, openFlags, context);
     const auto fileLength = fileInfo->getFileSize();
