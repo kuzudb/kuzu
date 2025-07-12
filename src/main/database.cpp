@@ -78,13 +78,13 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     this->maxDBSize = maxDBSize;
 }
 
-static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, FileLockType& lock) {
-    flags = readOnly ? FileFlags::READ_ONLY : FileFlags::WRITE;
-    if (createNew && !readOnly) {
-        flags |= FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS;
-    }
-    lock = readOnly ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
-}
+// static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, FileLockType& lock) {
+    // flags = readOnly ? FileFlags::READ_ONLY : FileFlags::WRITE;
+    // if (createNew && !readOnly) {
+        // flags |= FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS;
+    // }
+    // lock = readOnly ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
+// }
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     : dbConfig{systemConfig} {
@@ -168,19 +168,19 @@ std::vector<StorageExtension*> Database::getStorageExtensions() {
     return extensionManager->getStorageExtensions();
 }
 
-void Database::openLockFile() {
-    int flags = 0;
-    FileLockType lock{};
-    auto lockFilePath = StorageUtils::getLockFilePath(databasePath);
-    if (!vfs->fileOrPathExists(lockFilePath)) {
-        getLockFileFlagsAndType(dbConfig.readOnly, true, flags, lock);
-    } else {
-        getLockFileFlagsAndType(dbConfig.readOnly, false, flags, lock);
-    }
-    FileOpenFlags openFlags{flags};
-    openFlags.lockType = lock;
-    lockFile = vfs->openFile(lockFilePath, openFlags, nullptr /* clientContext */);
-}
+// void Database::openLockFile() {
+    // int flags = 0;
+    // FileLockType lock{};
+    // auto lockFilePath = StorageUtils::getLockFilePath(databasePath);
+    // if (!vfs->fileOrPathExists(lockFilePath)) {
+        // getLockFileFlagsAndType(dbConfig.readOnly, true, flags, lock);
+    // } else {
+        // getLockFileFlagsAndType(dbConfig.readOnly, false, flags, lock);
+    // }
+    // FileOpenFlags openFlags{flags};
+    // openFlags.lockType = lock;
+    // lockFile = vfs->openFile(lockFilePath, openFlags, nullptr /* clientContext */);
+// }
 
 void Database::initAndLockDBDir() {
     if (DBConfig::isDBPathInMemory(databasePath)) {
@@ -194,7 +194,7 @@ void Database::initAndLockDBDir() {
             throw Exception("Cannot create an empty database under READ ONLY mode.");
         }
     }
-    openLockFile();
+    // openLockFile();
 }
 
 uint64_t Database::getNextQueryID() {
