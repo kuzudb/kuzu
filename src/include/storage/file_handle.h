@@ -48,16 +48,17 @@ public:
     // createIfNotExistsMask only applies to existing db files; tmp i-memory files are not created
     constexpr static uint8_t createIfNotExistsMask{0b0000'0100}; // represents 3rd LSB
     constexpr static uint8_t isReadOnlyMask{0b0000'1000};        // represents 4th LSB
+    constexpr static uint8_t isLockRequiredMask{0b1000'0000};    // represents 8th LSB
 
     // READ_ONLY subsumes DEFAULT_PAGED, PERSISTENT, and NO_CREATE.
     constexpr static uint8_t O_PERSISTENT_FILE_READ_ONLY{0b0000'1000};
-    constexpr static uint8_t O_PERSISTENT_FILE_NO_CREATE{0b0000'0000};
     constexpr static uint8_t O_PERSISTENT_FILE_CREATE_NOT_EXISTS{0b0000'0100};
     constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0011};
     constexpr static uint8_t O_PERSISTENT_FILE_IN_MEM{0b0000'0010};
+    constexpr static uint8_t O_LOCKED_PERSISTENT_FILE{0b1000'0000};
 
-    FileHandle(const std::string& path, uint8_t flags, BufferManager* bm, uint32_t fileIndex,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+    FileHandle(const std::string& path, uint8_t fhFlags, BufferManager* bm,
+        uint32_t fileIndex, common::VirtualFileSystem* vfs, main::ClientContext* context);
     // File handles are registered with the buffer manager and must not be moved or copied
     DELETE_COPY_AND_MOVE(FileHandle);
 
@@ -110,10 +111,11 @@ public:
     PageManager* getPageManager() { return pageManager.get(); }
 
 private:
-    bool isLargePaged() const { return flags & isLargePagedMask; }
-    bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
-    bool isReadOnlyFile() const { return flags & isReadOnlyMask; }
-    bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
+    bool isLargePaged() const { return fhFlags & isLargePagedMask; }
+    bool isNewTmpFile() const { return fhFlags & isNewInMemoryTmpFileMask; }
+    bool isReadOnlyFile() const { return fhFlags & isReadOnlyMask; }
+    bool createFileIfNotExists() const { return fhFlags & createIfNotExistsMask; }
+    bool isLockRequired() const { return fhFlags & isLockRequiredMask; }
 
     common::page_idx_t addNewPageWithoutLock();
     void constructPersistentFileHandle(const std::string& path, common::VirtualFileSystem* vfs,
@@ -142,7 +144,7 @@ private:
     // structures of the file handle.
     std::shared_mutex fhSharedMutex;
 
-    uint8_t flags;
+    uint8_t fhFlags;
     std::unique_ptr<common::FileInfo> fileInfo;
     common::file_idx_t fileIndex;
     // Actually allocated/used number of pages in the file.
