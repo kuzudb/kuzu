@@ -57,8 +57,8 @@ public:
     constexpr static uint8_t O_PERSISTENT_FILE_IN_MEM{0b0000'0010};
     constexpr static uint8_t O_LOCKED_PERSISTENT_FILE{0b1000'0000};
 
-    FileHandle(const std::string& path, uint8_t fhFlags, BufferManager* bm,
-        uint32_t fileIndex, common::VirtualFileSystem* vfs, main::ClientContext* context);
+    FileHandle(const std::string& path, uint8_t fhFlags, BufferManager* bm, uint32_t fileIndex,
+        common::VirtualFileSystem* vfs, main::ClientContext* context);
     // File handles are registered with the buffer manager and must not be moved or copied
     DELETE_COPY_AND_MOVE(FileHandle);
 
