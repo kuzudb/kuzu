@@ -4,7 +4,6 @@
 #include <cstring>
 #include <mutex>
 
-#include "common/constants.h"
 #include "common/exception/buffer_manager.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/types/types.h"
