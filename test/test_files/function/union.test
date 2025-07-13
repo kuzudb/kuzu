@@ -89,3 +89,10 @@ age|PERSON_id
 20|45
 20|25
 20|40
+
+-LOG castNestedUnionError
+-STATEMENT CREATE NODE TABLE MyTable (id SERIAL PRIMARY KEY, value UNION(value1 int8, value2 int64)[]);
+---- ok
+-STATEMENT CREATE (:MyTable { value: [] }),(:MyTable { value: [128] });
+---- error
+Binder exception: Casting from/to nested union type is not supported yet.

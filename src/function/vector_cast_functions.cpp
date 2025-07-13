@@ -92,6 +92,11 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
         }
     }
 
+    // TODO(Sami): Remove this restriction after we support casting between nested unions.
+    if (inputType->getLogicalTypeID() == LogicalTypeID::UNION ||
+        resultType->getLogicalTypeID() == LogicalTypeID::UNION) {
+        throw common::BinderException{"Casting from/to nested union type is not supported yet."};
+    }
     // non-nested types
     if (inputType->getLogicalTypeID() != resultType->getLogicalTypeID()) {
         auto func = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", *inputType,
