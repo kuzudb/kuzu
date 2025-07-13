@@ -1,5 +1,6 @@
 #include "common/type_utils.h"
 
+#include "common/exception/runtime.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -93,7 +94,8 @@ std::string TypeUtils::entryToString(const LogicalType& dataType, const uint8_t*
     case LogicalTypeID::REL:
         return TypeUtils::relToString(*reinterpret_cast<const struct_entry_t*>(value), valueVector);
     default:
-        KU_UNREACHABLE;
+        throw common::RuntimeException{
+            common::stringFormat("Unsupported type: {} to string.", dataType.toString())};
     }
 }
 
