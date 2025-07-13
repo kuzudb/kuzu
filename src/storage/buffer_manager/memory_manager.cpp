@@ -1,7 +1,5 @@
 #include "storage/buffer_manager/memory_manager.h"
 
-#include <cstdint>
-#include <cstring>
 #include <mutex>
 
 #include "common/exception/buffer_manager.h"

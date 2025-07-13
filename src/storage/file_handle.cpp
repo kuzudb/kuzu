@@ -13,7 +13,7 @@ namespace storage {
 FileHandle::FileHandle(const std::string& path, uint8_t fhFlags, BufferManager* bm,
     uint32_t fileIndex, VirtualFileSystem* vfs, main::ClientContext* context)
     : fhFlags{fhFlags}, fileIndex{fileIndex}, numPages{0}, pageCapacity{0}, bm{bm},
-      pageSizeClass{isNewTmpFile() ? TEMP_PAGE : REGULAR_PAGE}, pageStates{0, 0},
+      pageSizeClass{isNewTmpFile() && isLargePaged() ? TEMP_PAGE : REGULAR_PAGE}, pageStates{0, 0},
       frameGroupIdxes{0, 0}, pageManager(std::make_unique<PageManager>(this)) {
     if (isNewTmpFile()) {
         constructTmpFileHandle(path);
