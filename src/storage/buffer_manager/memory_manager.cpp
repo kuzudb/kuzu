@@ -9,6 +9,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/spill_result.h"
 #include "storage/file_handle.h"
 
 using namespace kuzu::common;

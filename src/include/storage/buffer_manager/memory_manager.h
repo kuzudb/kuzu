@@ -23,11 +23,7 @@ class BufferManager;
 class ChunkedNodeGroup;
 template<class T>
 class MmAllocator;
-
-struct SpillResult {
-    uint64_t memoryFreed = 0;
-    uint64_t memoryNowEvictable = 0;
-};
+struct SpillResult;
 
 class MemoryBuffer {
     friend class Spiller;

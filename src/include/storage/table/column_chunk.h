@@ -1,6 +1,6 @@
 #pragma once
 
-#include "storage/buffer_manager/memory_manager.h"
+#include "storage/buffer_manager/spill_result.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/update_info.h"
 

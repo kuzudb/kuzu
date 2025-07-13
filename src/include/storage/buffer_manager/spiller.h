@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
 
