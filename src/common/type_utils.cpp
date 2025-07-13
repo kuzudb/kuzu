@@ -1,5 +1,6 @@
 #include "common/type_utils.h"
 
+#include "common/exception/runtime.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -70,6 +71,8 @@ std::string TypeUtils::entryToString(const LogicalType& dataType, const uint8_t*
         return TypeUtils::toString(*reinterpret_cast<const timestamp_t*>(value));
     case LogicalTypeID::INTERVAL:
         return TypeUtils::toString(*reinterpret_cast<const interval_t*>(value));
+    case LogicalTypeID::BLOB:
+        return TypeUtils::toString(*reinterpret_cast<const blob_t*>(value));
     case LogicalTypeID::STRING:
         return TypeUtils::toString(*reinterpret_cast<const ku_string_t*>(value));
     case LogicalTypeID::INTERNAL_ID:
@@ -91,7 +94,8 @@ std::string TypeUtils::entryToString(const LogicalType& dataType, const uint8_t*
     case LogicalTypeID::REL:
         return TypeUtils::relToString(*reinterpret_cast<const struct_entry_t*>(value), valueVector);
     default:
-        KU_UNREACHABLE;
+        throw common::RuntimeException{
+            common::stringFormat("Unsupported type: {} to string.", dataType.toString())};
     }
 }
 
