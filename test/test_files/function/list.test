@@ -2017,6 +2017,12 @@ a
 -STATEMENT RETURN list_to_string('-', [NULL, NULL, 1, NULL, 1]);
 ---- 1
 1-1
+-STATEMENT RETURN list_to_string('-', [BLOB('\\xBC\\xBD\\xBA\\xAA')]);
+---- 1
+\xBC\xBD\xBA\xAA
+-STATEMENT RETURN list_to_string('-', [BLOB('\\xBC\\xBD\\xBA\\xAA'), BLOB('\\xAB\\x88ABC')]);
+---- 1
+\xBC\xBD\xBA\xAA-\xAB\x88ABC
 -LOG 2385
 -STATEMENT RETURN [[23, 432], [], [NULL]];
 ---- 1

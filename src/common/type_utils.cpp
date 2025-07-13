@@ -70,6 +70,8 @@ std::string TypeUtils::entryToString(const LogicalType& dataType, const uint8_t*
         return TypeUtils::toString(*reinterpret_cast<const timestamp_t*>(value));
     case LogicalTypeID::INTERVAL:
         return TypeUtils::toString(*reinterpret_cast<const interval_t*>(value));
+    case LogicalTypeID::BLOB:
+        return TypeUtils::toString(*reinterpret_cast<const blob_t*>(value));
     case LogicalTypeID::STRING:
         return TypeUtils::toString(*reinterpret_cast<const ku_string_t*>(value));
     case LogicalTypeID::INTERNAL_ID:
