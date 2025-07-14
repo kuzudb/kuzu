@@ -49,8 +49,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         auto expr = bindExpression(*parsedExpression.getChild(i));
         if (!parsedExpression.getChild(i)->hasAlias()) {
             children.push_back(expr);
-        }
-        else {
+        } else {
             expr->setAlias(parsedExpression.getChild(i)->getAlias());
             optionalParams.push_back(expr);
         }
