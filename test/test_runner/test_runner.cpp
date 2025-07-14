@@ -252,23 +252,21 @@ void TestRunner::generateOutput(QueryResult* result, TestStatement* statement, s
         statement->newOutput += StringUtils::rtrim(result->getErrorMessage()) + '\n';
     } break;
     case ResultType::ERROR_REGEX: {
-            statement->newOutput += "---- ";
-            if (result->isSuccess())
-            {
-                statement->newOutput += "ok\n";
-                break;
-            }
-            auto actualError = StringUtils::rtrim(result->getErrorMessage());
-            if (std::regex_match(actualError, std::regex(testAnswer.expectedResult[0])))
-            {
-                statement->newOutput += "error(regex)\n";
-                statement->newOutput += testAnswer.expectedResult[0];
-                statement->newOutput += '\n';
-                break;
-            }
-            statement->newOutput += "error\n";
-            statement->newOutput += actualError;
+        statement->newOutput += "---- ";
+        if (result->isSuccess()) {
+            statement->newOutput += "ok\n";
+            break;
+        }
+        auto actualError = StringUtils::rtrim(result->getErrorMessage());
+        if (std::regex_match(actualError, std::regex(testAnswer.expectedResult[0]))) {
+            statement->newOutput += "error(regex)\n";
+            statement->newOutput += testAnswer.expectedResult[0];
             statement->newOutput += '\n';
+            break;
+        }
+        statement->newOutput += "error\n";
+        statement->newOutput += actualError;
+        statement->newOutput += '\n';
     } break;
     }
 }
