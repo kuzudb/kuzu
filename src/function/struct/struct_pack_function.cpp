@@ -23,7 +23,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
             throw BinderException(
                 stringFormat("Cannot infer field name for {}.", argument->toString()));
         }
-        auto fieldName = input.optionalArguments[i];
+        auto fieldName = input.optionalArguments[i]->getAlias();
         if (fieldNameSet.contains(fieldName)) {
             throw BinderException(stringFormat("Found duplicate field {} in STRUCT.", fieldName));
         } else {
