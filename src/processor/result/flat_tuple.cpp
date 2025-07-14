@@ -8,8 +8,6 @@
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 
-#include <iostream>
-
 using namespace kuzu::utf8proc;
 using namespace kuzu::common;
 
