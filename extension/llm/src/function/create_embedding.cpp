@@ -34,6 +34,7 @@ public:
                 // Accepted for backward compatibility.
                 {"open-ai", &OpenAIEmbedding::getInstance},
                 {"voyageai", &VoyageAIEmbedding::getInstance},
+                // Accepted for backward compatibility.
                 {"voyage-ai", &VoyageAIEmbedding::getInstance},
                 {"google-vertex", &GoogleVertexEmbedding::getInstance},
                 {"google-gemini", &GoogleGeminiEmbedding::getInstance},
