@@ -30,7 +30,10 @@ public:
         StringUtils::toLower(provider);
         static const std::unordered_map<std::string,
             std::function<std::shared_ptr<EmbeddingProvider>()>>
-            providerInstanceMap = {{"open-ai", &OpenAIEmbedding::getInstance},
+            providerInstanceMap = {{"openai", &OpenAIEmbedding::getInstance},
+                // Accepted for backward compatibility.
+                {"open-ai", &OpenAIEmbedding::getInstance},
+                {"voyageai", &VoyageAIEmbedding::getInstance},
                 {"voyage-ai", &VoyageAIEmbedding::getInstance},
                 {"google-vertex", &GoogleVertexEmbedding::getInstance},
                 {"google-gemini", &GoogleGeminiEmbedding::getInstance},

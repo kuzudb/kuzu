@@ -29,8 +29,7 @@ build_extension_lib(${BUILD_STATIC_EXTENSION} "llm")
 
 target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
-        simsimd
-        OpenSSL::SSL
+        ${OPENSSL_LIBRARIES}
         mbedtls
         $<TARGET_OBJECTS:httpfs_crypto>
 )
