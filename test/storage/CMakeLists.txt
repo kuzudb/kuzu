@@ -5,5 +5,8 @@ add_kuzu_test(local_hash_index_test local_hash_index_test.cpp)
 add_kuzu_test(buffer_manager_test buffer_manager_test.cpp)
 add_kuzu_test(rel_tests rel_scan_test.cpp rel_delete_test.cpp)
 add_kuzu_test(node_update_test node_update_test.cpp)
+add_kuzu_test(file_descriptor_leak_test file_descriptor_leak_test.cpp)
+#add_kuzu_test(wal_shadow_file_leak_test wal_shadow_file_leak_test.cpp)
+#add_kuzu_test(error_scenario_file_leak_test error_scenario_file_leak_test.cpp)
 
 target_include_directories(compression_test PRIVATE ${PROJECT_SOURCE_DIR}/third_party/alp/include)
