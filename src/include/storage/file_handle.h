@@ -102,6 +102,7 @@ public:
 
     common::page_idx_t getNumPages() const { return numPages; }
     common::FileInfo* getFileInfo() const { return fileInfo.get(); }
+    void resetFileInfo() { fileInfo.reset(); }
 
     uint64_t getPageSize() const {
         return isLargePaged() ? common::TEMP_PAGE_SIZE : common::KUZU_PAGE_SIZE;
