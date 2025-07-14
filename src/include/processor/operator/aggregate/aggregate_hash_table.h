@@ -5,6 +5,7 @@
 #include "aggregate_input.h"
 #include "common/copy_constructors.h"
 #include "common/data_chunk/data_chunk_state.h"
+#include "common/null_mask.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "function/aggregate_function.h"
@@ -21,10 +22,29 @@ class MemoryManager;
 }
 namespace processor {
 
-struct HashSlot {
-    common::hash_t hash; // 8 bytes for hashVector.
-    uint8_t* entry;      // pointer to the factorizedTable entry which stores [groupKey1, ...
-                         // groupKeyN, aggregateState1, ..., aggregateStateN, hashValue].
+class HashSlot {
+    // upper 7 bits are for the fingerprint, the remaining 57 bits are for the pointer.
+    // The largest pointer size seems to be 57 bytes for intel's 5-level paging
+    static constexpr size_t FINGERPRINT_BITS = 7;
+    static constexpr size_t POINTER_BITS = 57;
+
+public:
+    HashSlot(common::hash_t hash, const uint8_t* entry)
+        : entry(reinterpret_cast<uint64_t>(entry) |
+                (hash & common::NULL_HIGH_MASKS[FINGERPRINT_BITS])) {}
+
+    bool checkFingerprint(common::hash_t hash) const {
+        return (entry >> POINTER_BITS) == (hash >> POINTER_BITS);
+    }
+
+    // pointer to the factorizedTable entry which stores [groupKey1, ...
+    // groupKeyN, aggregateState1, ..., aggregateStateN, hashValue].
+    uint8_t* getEntry() const {
+        return reinterpret_cast<uint8_t*>(entry & common::NULL_LOWER_MASKS[POINTER_BITS]);
+    }
+
+private:
+    uint64_t entry;
 };
 
 enum class HashTableType : uint8_t { AGGREGATE_HASH_TABLE = 0, MARK_HASH_TABLE = 1 };
@@ -226,10 +246,10 @@ protected:
         auto slotIdx = getSlotIdxForHash(hash);
         while (true) {
             auto slot = (HashSlot*)getHashSlot(slotIdx);
-            if (slot->entry == nullptr) {
+            if (slot->getEntry() == nullptr) {
                 return nullptr;
-            } else if ((slot->hash == hash) && compareKeys(slot->entry)) {
-                return slot->entry;
+            } else if (slot->checkFingerprint(hash) && compareKeys(slot->getEntry())) {
+                return slot->getEntry();
             }
             increaseSlotIdx(slotIdx);
         }
