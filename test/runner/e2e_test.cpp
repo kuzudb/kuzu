@@ -247,8 +247,14 @@ private:
             // ---- error(regex)
             // ^Error: Binder exception: Variable .* is not in scope\.$
             case ResultType::ERROR_REGEX: {
-                newFile += statement->newOutput;
-                skipExistingOutput(file);
+                auto lines = skipExistingOutput(file);
+                // See ERROR_MSG
+                if (lines.find("${") != std::string::npos) {
+                    newFile += currLine + '\n' + lines;
+                } else {
+                    newFile += statement->newOutput;
+                }
+
             } break;
             }
         }
