@@ -9,21 +9,21 @@ namespace function {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<StructField> fields;
-    if (input.optionalArguments.size() > INVALID_STRUCT_FIELD_IDX - 1) {
+    if (input.arguments.size() > INVALID_STRUCT_FIELD_IDX - 1) {
         throw BinderException(stringFormat("Too many fields in STRUCT literal (max {}, got {})",
-            INVALID_STRUCT_FIELD_IDX - 1, input.optionalArguments.size()));
+            INVALID_STRUCT_FIELD_IDX - 1, input.arguments.size()));
     }
     std::unordered_set<std::string> fieldNameSet;
-    for (auto i = 0u; i < input.optionalArguments.size(); i++) {
-        auto& argument = input.optionalArguments[i];
+    for (auto i = 0u; i < input.arguments.size(); i++) {
+        auto& argument = input.arguments[i];
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             argument->cast(LogicalType::STRING());
         }
-        if (!argument->hasAlias()) {
+        if (i >= input.optionalArguments.size()) {
             throw BinderException(
                 stringFormat("Cannot infer field name for {}.", argument->toString()));
         }
-        auto fieldName = input.optionalArguments[i]->toString();
+        auto fieldName = input.optionalArguments[i];
         if (fieldNameSet.contains(fieldName)) {
             throw BinderException(stringFormat("Found duplicate field {} in STRUCT.", fieldName));
         } else {
@@ -32,7 +32,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         fields.emplace_back(fieldName, argument->getDataType().copy());
     }
     const auto resultType = LogicalType::STRUCT(std::move(fields));
-    return FunctionBindData::getSimpleBindData(input.optionalArguments, resultType);
+    return FunctionBindData::getSimpleBindData(input.arguments, resultType);
 }
 
 void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,
