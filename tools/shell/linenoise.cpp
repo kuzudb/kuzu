@@ -1701,13 +1701,11 @@ void addErrorHighlighting(uint64_t render_start, uint64_t render_end,
                     comment_start.push_back(i);
                     i++;
                     state = ScanState::IN_COMMENT;
-                    break;
                 } else if (i + 1 < l->len && l->buf[i + 1] == '*') {
                     // /* puts us in a multiline comment
                     comment_start.push_back(i);
                     i++;
                     state = ScanState::IN_MULTILINE_COMMENT;
-                    break;
                 }
                 break;
             case '\'':
@@ -1764,28 +1762,16 @@ void addErrorHighlighting(uint64_t render_start, uint64_t render_end,
             break;
         case ScanState::IN_SINGLE_QUOTE:
             // single quote - all that will get us out is an unescaped single-quote
-            if (c == '\'') {
-                if (i > 0 && l->buf[i - 1] == '\\') { // escaped quote
-                    i++;
-                    break;
-                } else {
-                    // otherwise revert to standard scan state
-                    state = ScanState::STANDARD;
-                    break;
-                }
+            if (c == '\'' && (i == 0 || l->buf[i - 1] != '\\')) {
+                // revert to standard scan state if not escaped quote
+                state = ScanState::STANDARD;
             }
             break;
         case ScanState::IN_DOUBLE_QUOTE:
             // double quote - all that will get us out is an unescaped quote
-            if (c == '"') {
-                if (i > 0 && l->buf[i - 1] == '\\') { // escaped quote
-                    i++;
-                    break;
-                } else {
-                    // otherwise revert to standard scan state
-                    state = ScanState::STANDARD;
-                    break;
-                }
+            if (c == '"' && (i == 0 || l->buf[i - 1] != '\\')) {
+                // revert to standard scan state if not escaped quote
+                state = ScanState::STANDARD;
             }
             break;
         default:
