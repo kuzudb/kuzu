@@ -59,7 +59,7 @@ void FileSystem::truncate(FileInfo& /*fileInfo*/, uint64_t /*size*/) const {
     KU_UNREACHABLE;
 }
 
-void FileSystem::reset(kuzu::common::FileInfo& fileInfo) {
+void FileSystem::reset(FileInfo& fileInfo) {
     fileInfo.seek(0, SEEK_SET);
 }
 
