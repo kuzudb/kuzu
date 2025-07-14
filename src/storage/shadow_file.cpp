@@ -73,6 +73,7 @@ void ShadowFile::applyShadowPages(ClientContext& context) const {
         context.getMemoryManager()->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
             record.originalFileIdx, pageBuffer.get(), record.originalPageIdx);
     }
+    dataFileInfo->syncFile();
 }
 
 void ShadowFile::replayShadowPageRecords(ClientContext& context) {

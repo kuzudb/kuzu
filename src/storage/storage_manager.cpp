@@ -54,6 +54,7 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
                 defaultHeader.serialize(headerSerializer);
                 dataFH->getFileInfo()->writeFile(headerWriter->getPage(0).data(), KUZU_PAGE_SIZE,
                     StorageConstants::DB_HEADER_PAGE_IDX);
+                dataFH->getFileInfo()->syncFile();
             }
         }
     }
