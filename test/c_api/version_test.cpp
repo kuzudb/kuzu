@@ -43,3 +43,29 @@ TEST_F(CApiVersionTest, GetStorageVersion) {
     dbFile.close();
     ASSERT_EQ(storageVersion, actualVersion);
 }
+
+class EmptyCApiVersionTest : public CApiTest {
+public:
+    std::string getInputDir() override { return "empty"; }
+};
+
+TEST_F(EmptyCApiVersionTest, GetStorageVersion) {
+    auto storageVersion = kuzu_get_storage_version();
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    // Reset the database to ensure that the lock on db file is released.
+    conn.reset();
+    database.reset();
+    auto data = std::filesystem::path(databasePath);
+    std::ifstream dbFile;
+    dbFile.open(data, std::ios::binary);
+    char magic[5];
+    dbFile.read(magic, 4);
+    magic[4] = '\0';
+    ASSERT_STREQ(magic, "KUZU");
+    uint64_t actualVersion;
+    dbFile.read(reinterpret_cast<char*>(&actualVersion), sizeof(actualVersion));
+    dbFile.close();
+    ASSERT_EQ(storageVersion, actualVersion);
+}
