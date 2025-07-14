@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/aggregate_function_expression.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/scalar_function_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
@@ -43,15 +44,18 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(const Parse
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName) {
     expression_vector children;
+    expression_vector optionalParams;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto expr = bindExpression(*parsedExpression.getChild(i));
-        if (parsedExpression.getChild(i)->hasAlias()) {
-            expr->setAlias(parsedExpression.getChild(i)->getAlias());
+        if (!parsedExpression.getChild(i)->hasAlias()) {
+            children.push_back(expr);
         }
-        children.push_back(expr);
+        else {
+            expr->setAlias(parsedExpression.getChild(i)->getAlias());
+            optionalParams.push_back(expr);
+        }
     }
-    return bindScalarFunctionExpression(children, functionName,
-        parsedExpression.constCast<ParsedFunctionExpression>().getOptionalArguments());
+    return bindScalarFunctionExpression(children, functionName, optionalParams);
 }
 
 static std::vector<LogicalType> getTypes(const expression_vector& exprs) {
@@ -64,7 +68,7 @@ static std::vector<LogicalType> getTypes(const expression_vector& exprs) {
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName,
-    std::vector<std::string> optionalArguments) {
+    binder::expression_vector optionalArguments) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto childrenTypes = getTypes(children);
@@ -171,7 +175,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     std::unique_ptr<FunctionBindData> bindData;
     if (function.bindFunc) {
         auto bindInput = ScalarBindFuncInput{children, &function, context,
-            std::vector<std::string>{} /* optionalParams */};
+            binder::expression_vector{} /* optionalParams */};
         bindData = function.bindFunc(bindInput);
     } else {
         bindData = std::make_unique<FunctionBindData>(LogicalType(function.returnTypeID));
