@@ -1,6 +1,5 @@
 #include "storage/buffer_manager/spiller.h"
 
-#include <cstdint>
 #include <mutex>
 
 #include "common/assert.h"
