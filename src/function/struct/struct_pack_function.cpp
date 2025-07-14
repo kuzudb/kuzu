@@ -14,12 +14,12 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
             INVALID_STRUCT_FIELD_IDX - 1, input.arguments.size()));
     }
     std::unordered_set<std::string> fieldNameSet;
-    for (auto i = 0u; i < input.arguments.size(); i++) {
-        auto& argument = input.arguments[i];
+    for (auto i = 0u; i < input.optionalArguments.size(); i++) {
+        auto& argument = input.optionalArguments[i];
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             argument->cast(LogicalType::STRING());
         }
-        if (i >= input.optionalArguments.size()) {
+        if (!argument->hasAlias()) {
             throw BinderException(
                 stringFormat("Cannot infer field name for {}.", argument->toString()));
         }
@@ -32,7 +32,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         fields.emplace_back(fieldName, argument->getDataType().copy());
     }
     const auto resultType = LogicalType::STRUCT(std::move(fields));
-    return FunctionBindData::getSimpleBindData(input.arguments, resultType);
+    return FunctionBindData::getSimpleBindData(input.optionalArguments, resultType);
 }
 
 void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,

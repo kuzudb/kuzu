@@ -47,7 +47,7 @@ struct ScalarBindFuncInput {
     const binder::expression_vector& arguments;
     Function* definition;
     main::ClientContext* context;
-    binder::expression_vector optionalArguments;
+    const binder::expression_vector optionalArguments;
 
     ScalarBindFuncInput(const binder::expression_vector& arguments, Function* definition,
         main::ClientContext* context, binder::expression_vector optionalArguments)
