@@ -14,7 +14,6 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/types/types.h"
 #include "main/db_config.h"
-#include "storage/buffer_manager/spill_result.h"
 #include "storage/buffer_manager/spiller.h"
 #include "storage/file_handle.h"
 #include "storage/table/column_chunk_data.h"

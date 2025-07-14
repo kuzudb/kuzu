@@ -7,6 +7,7 @@
 
 #include "common/system_config.h"
 #include "common/types/types.h"
+#include "storage/buffer_manager/spill_result.h"
 #include <span>
 
 namespace kuzu {
@@ -23,7 +24,6 @@ class BufferManager;
 class ChunkedNodeGroup;
 template<class T>
 class MmAllocator;
-struct SpillResult;
 
 class MemoryBuffer {
     friend class Spiller;
