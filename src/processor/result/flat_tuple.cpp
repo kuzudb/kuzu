@@ -49,7 +49,7 @@ std::string FlatTuple::toString(const std::vector<uint32_t>& colsWidth,
         std::string value = values[i]->toString();
         uint32_t fieldLen = 0;
         uint32_t cutoff = 0, cutoffLen = 0;
-        for (uint32_t iter = 0; iter < value.length(); ) {
+        for (uint32_t iter = 0; iter < value.length();) {
             uint32_t width = Utf8Proc::renderWidth(value.c_str(), iter);
             if (fieldLen + 3 > maxWidth && cutoff == 0) {
                 cutoff = iter;
