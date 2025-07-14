@@ -7,6 +7,7 @@
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
 #include "common/file_system/virtual_file_system.h"
+#include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
 
@@ -21,17 +22,23 @@ MemoryBuffer::MemoryBuffer(MemoryManager* mm, page_idx_t pageIdx, uint8_t* buffe
 MemoryBuffer::~MemoryBuffer() {
     if (buffer.data() != nullptr && !evicted) {
         mm->freeBlock(pageIdx, buffer);
+        mm->updateUsedMemoryForFreedBlock(pageIdx, buffer);
         buffer = std::span<uint8_t>();
     }
 }
 
-void MemoryBuffer::setSpilledToDisk(uint64_t filePosition) {
-    std::free(buffer.data());
+SpillResult MemoryBuffer::setSpilledToDisk(uint64_t filePosition) {
+    mm->freeBlock(pageIdx, buffer);
     // reinterpret_cast isn't allowed here, but we shouldn't leave the invalid pointer and
     // still want to store the size
     buffer = std::span<uint8_t>((uint8_t*)nullptr, buffer.size());
     evicted = true;
     this->filePosition = filePosition;
+    if (pageIdx == INVALID_PAGE_IDX) {
+        return SpillResult{buffer.size(), 0};
+    } else {
+        return SpillResult{0, buffer.size()};
+    }
 }
 
 void MemoryBuffer::prepareLoadFromDisk() {
@@ -87,10 +94,16 @@ std::unique_ptr<MemoryBuffer> MemoryManager::allocateBuffer(bool initializeToZer
 void MemoryManager::freeBlock(page_idx_t pageIdx, std::span<uint8_t> buffer) {
     if (pageIdx == INVALID_PAGE_IDX) {
         std::free(buffer.data());
+    } else {
+        bm->unpin(*fh, pageIdx);
+    }
+}
+
+void MemoryManager::updateUsedMemoryForFreedBlock(page_idx_t pageIdx, std::span<uint8_t> buffer) {
+    if (pageIdx == INVALID_PAGE_IDX) {
         bm->freeUsedMemory(buffer.size());
         bm->nonEvictableMemory -= buffer.size();
     } else {
-        bm->unpin(*fh, pageIdx);
         std::unique_lock<std::mutex> lock(allocatorLock);
         freePages.push(pageIdx);
     }

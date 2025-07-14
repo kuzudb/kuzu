@@ -7,6 +7,7 @@
 
 #include "common/system_config.h"
 #include "common/types/types.h"
+#include "storage/buffer_manager/spill_result.h"
 #include <span>
 
 namespace kuzu {
@@ -49,7 +50,7 @@ private:
     void prepareLoadFromDisk();
 
     // Must only be called once before loading from disk
-    void setSpilledToDisk(uint64_t filePosition);
+    SpillResult setSpilledToDisk(uint64_t filePosition);
 
 private:
     std::span<uint8_t> buffer;
@@ -92,6 +93,7 @@ public:
 
 private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
+    void updateUsedMemoryForFreedBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
     std::span<uint8_t> mallocBuffer(bool initializeToZero, uint64_t size);
 
 private:

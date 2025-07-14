@@ -367,10 +367,13 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
         if (!spiller || usedMemory - nonEvictableMemory > bufferPoolSize / 2) {
             memoryClaimed = evictPages();
         } else {
-            memoryClaimed = spiller->claimNextGroup();
-            nonEvictableClaimedMemory += memoryClaimed;
+            auto [_memoryClaimed, nowEvictableMemory] = spiller->claimNextGroup();
+            memoryClaimed = _memoryClaimed;
+            nonEvictableClaimedMemory += _memoryClaimed;
+            nonEvictableMemory -= nowEvictableMemory;
             // If we're unable to claim anything from the spiller, fall back to evicting pages
-            if (memoryClaimed == 0) {
+            // We may also need to evict pages if the spiller just unpins BM pages
+            if (memoryClaimed == 0 || nowEvictableMemory > 0) {
                 memoryClaimed = evictPages();
             }
         }

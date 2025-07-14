@@ -14,6 +14,7 @@
 #include "expression_evaluator/expression_evaluator.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/buffer_manager/spill_result.h"
 #include "storage/buffer_manager/spiller.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
@@ -998,11 +999,11 @@ void ColumnChunkData::loadFromDisk() {
         [&](auto& spiller) { spiller.loadFromDisk(*this); });
 }
 
-uint64_t ColumnChunkData::spillToDisk() {
-    uint64_t spilledBytes = 0;
+SpillResult ColumnChunkData::spillToDisk() {
+    SpillResult spilled{};
     buffer->getMemoryManager()->getBufferManager()->getSpillerOrSkip(
-        [&](auto& spiller) { spilledBytes = spiller.spillToDisk(*this); });
-    return spilledBytes;
+        [&](auto& spiller) { spilled = spiller.spillToDisk(*this); });
+    return spilled;
 }
 
 void ColumnChunkData::reclaimStorage(PageAllocator& pageAllocator) {

@@ -10,6 +10,7 @@
 #include "common/system_config.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/enums/residency_state.h"
 #include "storage/table/column_chunk_metadata.h"
@@ -233,7 +234,7 @@ public:
     MemoryManager& getMemoryManager() const;
 
     void loadFromDisk();
-    uint64_t spillToDisk();
+    SpillResult spillToDisk();
 
     MergedColumnChunkStats getMergedColumnChunkStats() const;
 
