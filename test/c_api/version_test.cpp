@@ -25,18 +25,21 @@ TEST_F(CApiVersionTest, GetVersion) {
 
 TEST_F(CApiVersionTest, GetStorageVersion) {
     auto storageVersion = kuzu_get_storage_version();
-    if (databasePath == "" || databasePath == ":memory:") {
-        return;
+    if (inMemMode) {
+        GTEST_SKIP();
     }
+    // Reset the database to ensure that the lock on db file is released.
+    conn.reset();
+    database.reset();
     auto data = std::filesystem::path(databasePath);
-    std::ifstream catalogFile;
-    catalogFile.open(data, std::ios::binary);
+    std::ifstream dbFile;
+    dbFile.open(data, std::ios::binary);
     char magic[5];
-    catalogFile.read(magic, 4);
+    dbFile.read(magic, 4);
     magic[4] = '\0';
     ASSERT_STREQ(magic, "KUZU");
     uint64_t actualVersion;
-    catalogFile.read(reinterpret_cast<char*>(&actualVersion), sizeof(actualVersion));
-    catalogFile.close();
+    dbFile.read(reinterpret_cast<char*>(&actualVersion), sizeof(actualVersion));
+    dbFile.close();
     ASSERT_EQ(storageVersion, actualVersion);
 }
