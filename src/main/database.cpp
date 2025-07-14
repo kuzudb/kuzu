@@ -119,13 +119,14 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
 
     catalog = std::make_unique<Catalog>();
     storageManager = std::make_unique<StorageManager>(databasePath, dbConfig.readOnly,
-        *memoryManager, dbConfig.enableCompression, vfs.get(), &clientContext);
+        *memoryManager, dbConfig.enableCompression, vfs.get());
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
     databaseManager = std::make_unique<DatabaseManager>();
 
     extensionManager = std::make_unique<extension::ExtensionManager>();
     dbLifeCycleManager = std::make_shared<DatabaseLifeCycleManager>();
     if (clientContext.isInMemory()) {
+        storageManager->initDataFileHandle(vfs.get(), &clientContext);
         extensionManager->autoLoadLinkedExtensions(&clientContext);
         return;
     }

@@ -22,15 +22,13 @@ namespace kuzu {
 namespace storage {
 
 StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
-    MemoryManager& memoryManager, bool enableCompression, VirtualFileSystem* vfs,
-    main::ClientContext* context)
+    MemoryManager& memoryManager, bool enableCompression, VirtualFileSystem* vfs)
     : databasePath{databasePath}, readOnly{readOnly}, dataFH{nullptr}, memoryManager{memoryManager},
       enableCompression{enableCompression} {
     wal = std::make_unique<WAL>(databasePath, readOnly, vfs);
     shadowFile =
         std::make_unique<ShadowFile>(*memoryManager.getBufferManager(), vfs, this->databasePath);
     inMemory = main::DBConfig::isDBPathInMemory(databasePath);
-    initDataFileHandle(vfs, context);
     registerIndexType(PrimaryKeyIndex::getIndexType());
 }
 
@@ -71,8 +69,8 @@ void StorageManager::recover(main::ClientContext& clientContext) {
     try {
         const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
         walReplayer->replay();
-    } catch (std::exception& e) {
-        throw Exception(stringFormat("Error during recovery: {}", e.what()));
+    } catch (std::exception&) {
+        throw;
     }
 }
 

@@ -53,8 +53,7 @@ void DatabaseHeader::serialize(common::Serializer& ser) const {
 
 Checkpointer::Checkpointer(main::ClientContext& clientContext)
     : clientContext{clientContext},
-      isInMemory{main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())},
-      pageAllocator(*clientContext.getStorageManager()->getDataFH()->getPageManager()) {}
+      isInMemory{main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())} {}
 
 Checkpointer::~Checkpointer() = default;
 
@@ -64,7 +63,8 @@ PageRange Checkpointer::serializeCatalog(const catalog::Catalog& catalog,
         std::make_shared<common::InMemFileWriter>(*clientContext.getMemoryManager());
     common::Serializer catalogSerializer(catalogWriter);
     catalog.serialize(catalogSerializer);
-    return catalogWriter->flush(pageAllocator, storageManager.getShadowFile());
+    auto pageAllocator = storageManager.getDataFH()->getPageManager();
+    return catalogWriter->flush(*pageAllocator, storageManager.getShadowFile());
 }
 
 PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
@@ -85,11 +85,12 @@ PageRange Checkpointer::serializeMetadata(const catalog::Catalog& catalog,
     // behavior in the database.
     auto& pageManager = *storageManager.getDataFH()->getPageManager();
     const auto pagesForPageManager = pageManager.estimatePagesNeededForSerialize();
-    const auto allocatedPages =
-        pageAllocator.allocatePageRange(metadataWriter->getNumPagesToFlush() + pagesForPageManager);
+    auto pageAllocator = storageManager.getDataFH()->getPageManager();
+    const auto allocatedPages = pageAllocator->allocatePageRange(
+        metadataWriter->getNumPagesToFlush() + pagesForPageManager);
     pageManager.serialize(metadataSerializer);
 
-    metadataWriter->flush(allocatedPages, pageAllocator.getDataFH(),
+    metadataWriter->flush(allocatedPages, pageAllocator->getDataFH(),
         storageManager.getShadowFile());
     return allocatedPages;
 }
@@ -128,7 +129,8 @@ void Checkpointer::writeCheckpoint() {
 
 bool Checkpointer::checkpointStorage() {
     const auto storageManager = clientContext.getStorageManager();
-    return storageManager->checkpoint(&clientContext, pageAllocator);
+    auto pageAllocator = storageManager->getDataFH()->getPageManager();
+    return storageManager->checkpoint(&clientContext, *pageAllocator);
 }
 
 void Checkpointer::serializeCatalogAndMetadata(DatabaseHeader& databaseHeader,
@@ -283,6 +285,7 @@ DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
 
 void Checkpointer::readCheckpoint() {
     auto storageManager = clientContext.getStorageManager();
+    storageManager->initDataFileHandle(clientContext.getVFSUnsafe(), &clientContext);
     if (!isInMemory && storageManager->getDataFH()->getNumPages() > 0) {
         readCheckpoint(&clientContext, clientContext.getCatalog(),
             clientContext.getStorageManager());

@@ -46,7 +46,7 @@ public:
 
     // Replay shadow page records from the shadow file to the original data file. This is used
     // during recovery.
-    static void replayShadowPageRecords(main::ClientContext& context, common::FileInfo& fileInfo);
+    static void replayShadowPageRecords(main::ClientContext& context);
 
 private:
     FileHandle* getOrCreateShadowingFH();

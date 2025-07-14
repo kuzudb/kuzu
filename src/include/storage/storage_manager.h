@@ -28,7 +28,7 @@ class DiskArrayCollection;
 class KUZU_API StorageManager {
 public:
     StorageManager(const std::string& databasePath, bool readOnly, MemoryManager& memoryManager,
-        bool enableCompression, common::VirtualFileSystem* vfs, main::ClientContext* context);
+        bool enableCompression, common::VirtualFileSystem* vfs);
     ~StorageManager();
 
     Table* getTable(common::table_id_t tableID);

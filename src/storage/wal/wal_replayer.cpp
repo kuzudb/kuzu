@@ -60,12 +60,9 @@ void WALReplayer::replay() const {
         auto [offsetDeserialized, isLastRecordCheckpoint] = dryReplay(*fileInfo);
         if (isLastRecordCheckpoint) {
             // If the last record is a checkpoint, we resume by replaying the shadow file.
-            auto shadowFileInfo =
-                vfs->openFile(shadowFilePath, FileOpenFlags(FileFlags::READ_ONLY));
-            ShadowFile::replayShadowPageRecords(clientContext, *shadowFileInfo);
+            ShadowFile::replayShadowPageRecords(clientContext);
             removeWALAndShadowFiles();
             // Re-read checkpointed data from disk again as now the shadow file is applied.
-            clientContext.getStorageManager()->initDataFileHandle(vfs, &clientContext);
             checkpointer.readCheckpoint();
         } else {
             // There is no checkpoint record, so we should remove the shadow file if it exists.

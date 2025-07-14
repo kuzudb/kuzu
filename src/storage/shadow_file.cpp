@@ -5,6 +5,7 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
@@ -74,22 +75,31 @@ void ShadowFile::applyShadowPages(ClientContext& context) const {
     }
 }
 
-void ShadowFile::replayShadowPageRecords(ClientContext& context, FileInfo& fileInfo) {
+void ShadowFile::replayShadowPageRecords(ClientContext& context) {
+    if (context.getDBConfig()->readOnly) {
+        throw RuntimeException("Couldn't replay shadow pages under read-only mode. Please re-open "
+                               "the database with read-write mode to replay shadow pages.");
+    }
+    auto vfs = context.getVFSUnsafe();
+    auto shadowFilePath = StorageUtils::getShadowFilePath(context.getDatabasePath());
+    auto shadowFileInfo = vfs->openFile(shadowFilePath, FileOpenFlags(FileFlags::READ_ONLY));
     ShadowFileHeader header;
     const auto headerBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
-    fileInfo.readFromFile(headerBuffer.get(), KUZU_PAGE_SIZE, 0);
+    shadowFileInfo->readFromFile(headerBuffer.get(), KUZU_PAGE_SIZE, 0);
     memcpy(&header, headerBuffer.get(), sizeof(ShadowFileHeader));
     std::vector<ShadowPageRecord> shadowPageRecords;
     shadowPageRecords.reserve(header.numShadowPages);
-    auto reader = std::make_unique<BufferedFileReader>(fileInfo);
+    auto reader = std::make_unique<BufferedFileReader>(*shadowFileInfo);
     reader->resetReadOffset((header.numShadowPages + 1) * KUZU_PAGE_SIZE);
     Deserializer deSer(std::move(reader));
     deSer.deserializeVector(shadowPageRecords);
-    auto dataFileInfo = context.getStorageManager()->getDataFH()->getFileInfo();
+    auto dataFileInfo = vfs->openFile(context.getDatabasePath(),
+        FileOpenFlags{FileFlags::WRITE | FileFlags::READ_ONLY, FileLockType::WRITE_LOCK});
     const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     page_idx_t shadowPageIdx = 1;
     for (const auto& record : shadowPageRecords) {
-        fileInfo.readFromFile(pageBuffer.get(), KUZU_PAGE_SIZE, shadowPageIdx * KUZU_PAGE_SIZE);
+        shadowFileInfo->readFromFile(pageBuffer.get(), KUZU_PAGE_SIZE,
+            shadowPageIdx * KUZU_PAGE_SIZE);
         dataFileInfo->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
             record.originalPageIdx * KUZU_PAGE_SIZE);
         shadowPageIdx++;

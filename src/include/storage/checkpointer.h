@@ -64,7 +64,6 @@ private:
 protected:
     main::ClientContext& clientContext;
     bool isInMemory;
-    OptimisticAllocator pageAllocator;
 };
 
 } // namespace storage
