@@ -3,10 +3,12 @@
 #include <sstream>
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "common/assert.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
@@ -124,6 +126,20 @@ static void exportLoadedExtensions(stringstream& ss, const ClientContext* client
     }
 }
 
+enum class EntryType
+{
+    NODE,
+    REL,
+    SEQUENCE,
+    UNREACHABLE
+};
+
+struct EntryAndType
+{
+    CatalogEntry* entry = nullptr;
+    EntryType type = EntryType::UNREACHABLE;
+};
+
 std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) {
     stringstream ss;
     exportLoadedExtensions(ss, clientContext);
@@ -136,9 +152,37 @@ std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) 
 
     if (sortInternalIds)
     {
-        std::sort(nodeTableEntries.begin(), nodeTableEntries.end(), [](const NodeTableCatalogEntry* const & a, const NodeTableCatalogEntry* const & b) {return a->getOID() < b->getOID();});
-        std::sort(relGroupEntries.begin(), relGroupEntries.end(), [](const RelGroupCatalogEntry* const & a, const RelGroupCatalogEntry* const & b) {return a->getOID() < b->getOID();});
-        std::sort(sequenceEntries.begin(), sequenceEntries.end(), [](const SequenceCatalogEntry* const & a, const SequenceCatalogEntry* const & b) {return a->getOID() < b->getOID();});
+        std::vector<EntryAndType> allEntries;
+        for (auto* e : nodeTableEntries) {
+            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
+        }
+        for (auto* e : relGroupEntries) {
+            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
+
+        }
+        for (auto* e : sequenceEntries) {
+            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
+        }
+        std::sort(allEntries.begin(), allEntries.end(), [](const EntryAndType & a, const EntryAndType & b) {return a.entry->getOID() < b.entry->getOID();});
+        ToCypherInfo toCypherInfo;
+        RelGroupToCypherInfo relTableToCypherInfo{clientContext};
+        RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
+        for (const auto& entryWithType : allEntries) {
+            switch (entryWithType.type) {
+                case EntryType::NODE:
+                    ss << static_cast<NodeTableCatalogEntry*>(entryWithType.entry)->toCypher(toCypherInfo) << std::endl;
+                break;
+                case EntryType::REL:
+                    ss << static_cast<RelGroupCatalogEntry*>(entryWithType.entry)->toCypher(relTableToCypherInfo) << std::endl;
+                break;
+                case EntryType::SEQUENCE:
+                    ss << static_cast<SequenceCatalogEntry*>(entryWithType.entry)->toCypher(relGroupToCypherInfo) << std::endl;
+                break;
+                default:
+                    KU_UNREACHABLE;
+                break;
+            }
+        }
     }
 
     ToCypherInfo toCypherInfo;
