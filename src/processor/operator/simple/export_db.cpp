@@ -124,16 +124,9 @@ static void exportLoadedExtensions(stringstream& ss, const ClientContext* client
     }
 }
 
-enum class EntryType
-{
-    NODE,
-    REL,
-    SEQUENCE,
-    UNREACHABLE
-};
+enum class EntryType { NODE, REL, SEQUENCE, UNREACHABLE };
 
-struct EntryAndType
-{
+struct EntryAndType {
     CatalogEntry* entry = nullptr;
     EntryType type = EntryType::UNREACHABLE;
 };
@@ -143,7 +136,7 @@ std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) 
     exportLoadedExtensions(ss, clientContext);
     const auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
-    
+
     auto nodeTableEntries = catalog->getNodeTableEntries(transaction, false);
     auto relGroupEntries = catalog->getRelGroupEntries(transaction, false);
     auto sequenceEntries = catalog->getSequenceEntries(transaction);
@@ -151,39 +144,44 @@ std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) 
     RelGroupToCypherInfo relTableToCypherInfo{clientContext};
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
 
-    if (sortInternalIds)
-    {
+    if (sortInternalIds) {
         std::vector<EntryAndType> allEntries;
         for (auto* e : nodeTableEntries) {
             allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
         }
         for (auto* e : relGroupEntries) {
             allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::REL});
-
         }
         for (auto* e : sequenceEntries) {
             allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::SEQUENCE});
         }
-        std::sort(allEntries.begin(), allEntries.end(), [](const EntryAndType & a, const EntryAndType & b) {return a.entry->getOID() < b.entry->getOID();});
+        std::sort(allEntries.begin(), allEntries.end(),
+            [](const EntryAndType& a, const EntryAndType& b) {
+                return a.entry->getOID() < b.entry->getOID();
+            });
         for (const auto& entryWithType : allEntries) {
             switch (entryWithType.type) {
-                case EntryType::NODE:
-                    ss << static_cast<NodeTableCatalogEntry*>(entryWithType.entry)->toCypher(toCypherInfo) << std::endl;
+            case EntryType::NODE:
+                ss << static_cast<NodeTableCatalogEntry*>(entryWithType.entry)
+                          ->toCypher(toCypherInfo)
+                   << std::endl;
                 break;
-                case EntryType::REL:
-                    ss << static_cast<RelGroupCatalogEntry*>(entryWithType.entry)->toCypher(relTableToCypherInfo) << std::endl;
+            case EntryType::REL:
+                ss << static_cast<RelGroupCatalogEntry*>(entryWithType.entry)
+                          ->toCypher(relTableToCypherInfo)
+                   << std::endl;
                 break;
-                case EntryType::SEQUENCE:
-                    ss << static_cast<SequenceCatalogEntry*>(entryWithType.entry)->toCypher(relGroupToCypherInfo) << std::endl;
+            case EntryType::SEQUENCE:
+                ss << static_cast<SequenceCatalogEntry*>(entryWithType.entry)
+                          ->toCypher(relGroupToCypherInfo)
+                   << std::endl;
                 break;
-                default:
-                    KU_UNREACHABLE;
+            default:
+                KU_UNREACHABLE;
                 break;
             }
         }
-    }
-    else
-    {
+    } else {
         for (const auto& nodeTableEntry : nodeTableEntries) {
             ss << nodeTableEntry->toCypher(toCypherInfo) << std::endl;
         }
