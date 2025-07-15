@@ -14,7 +14,6 @@ struct AggregateState {
     virtual uint32_t getStateSize() const = 0;
     virtual void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) = 0;
     virtual ~AggregateState() = default;
-    virtual bool hasNoNullGuarantee() const = 0;
     template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const TARGET&>(*this);
@@ -22,8 +21,6 @@ struct AggregateState {
 };
 
 struct AggregateStateWithNull : public AggregateState {
-    bool hasNoNullGuarantee() const override { return false; }
-
     bool isNull = true;
 };
 
