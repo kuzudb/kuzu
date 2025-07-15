@@ -31,7 +31,9 @@ struct CastToUnionBindData : public FunctionBindData {
 struct CastBetweenUnionBindData : public FunctionBindData {
     std::shared_ptr<std::vector<std::unique_ptr<CastToUnionBindData>>> innerCasts;
 
-    CastBetweenUnionBindData(const std::shared_ptr<std::vector<std::unique_ptr<CastToUnionBindData>>>& innerCasts, common::LogicalType dataType)
+    CastBetweenUnionBindData(
+        const std::shared_ptr<std::vector<std::unique_ptr<CastToUnionBindData>>>& innerCasts,
+        common::LogicalType dataType)
         : FunctionBindData{std::move(dataType)}, innerCasts{std::move(innerCasts)} {}
 
     std::unique_ptr<FunctionBindData> copy() const override {
