@@ -12,7 +12,8 @@ class LogicalExportDatabase final : public LogicalSimple {
 
 public:
     LogicalExportDatabase(common::FileScanInfo boundFileInfo,
-        const std::vector<std::shared_ptr<LogicalOperator>>& plans, bool exportSchemaOnly, bool sortInternalIds)
+        const std::vector<std::shared_ptr<LogicalOperator>>& plans, bool exportSchemaOnly,
+        bool sortInternalIds)
         : LogicalSimple{type_, plans}, boundFileInfo{std::move(boundFileInfo)},
           schemaOnly{exportSchemaOnly}, orderByInternalIds{sortInternalIds} {}
 
