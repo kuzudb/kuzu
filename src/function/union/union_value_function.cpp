@@ -16,7 +16,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     fields.emplace_back(input.optionalArguments[0]->getAlias(),
         input.optionalArguments[0]->getDataType().copy());
     auto resultType = LogicalType::UNION(std::move(fields));
-    return FunctionBindData::getSimpleBindData(input.arguments, resultType);
+    return FunctionBindData::getSimpleBindData(input.optionalArguments, resultType);
 }
 
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>&,
