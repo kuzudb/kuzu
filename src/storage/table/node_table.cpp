@@ -619,7 +619,7 @@ void NodeTable::commit(main::ClientContext* context, TableCatalogEntry* tableEnt
     }
 
     // 4. Clear local table.
-    localTable->clear();
+    localTable->clear(*context->getMemoryManager());
 }
 
 visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {

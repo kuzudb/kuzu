@@ -22,7 +22,8 @@ LocalTable* LocalStorage::getOrCreateLocalTable(const Table& table) {
         switch (table.getTableType()) {
         case TableType::NODE: {
             auto tableEntry = catalog->getTableCatalogEntry(transaction, table.getTableID());
-            tables[tableID] = std::make_unique<LocalNodeTable>(tableEntry, table);
+            tables[tableID] = std::make_unique<LocalNodeTable>(tableEntry, table,
+                *clientContext.getMemoryManager());
         } break;
         case TableType::REL: {
             // We have to fetch the rel group entry from the catalog to based on the relGroupID.
@@ -49,7 +50,7 @@ PageAllocator* LocalStorage::addOptimisticAllocator() {
     if (dataFH->isInMemoryMode()) {
         return dataFH->getPageManager();
     }
-    common::UniqLock lck{mtx};
+    UniqLock lck{mtx};
     optimisticAllocators.emplace_back(
         std::make_unique<OptimisticAllocator>(*dataFH->getPageManager()));
     return optimisticAllocators.back().get();
@@ -80,13 +81,14 @@ void LocalStorage::commit() {
 }
 
 void LocalStorage::rollback() {
+    auto mm = clientContext.getMemoryManager();
     for (auto& [_, localTable] : tables) {
-        localTable->clear();
+        localTable->clear(*mm);
     }
     for (auto& optimisticAllocator : optimisticAllocators) {
         optimisticAllocator->rollback();
     }
-    auto* bufferManager = clientContext.getMemoryManager()->getBufferManager();
+    auto* bufferManager = mm->getBufferManager();
     clientContext.getStorageManager()->getDataFH()->getPageManager()->clearEvictedBMEntriesIfNeeded(
         bufferManager);
 }

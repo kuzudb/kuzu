@@ -23,17 +23,18 @@ std::vector<LogicalType> LocalNodeTable::getNodeTableColumnTypes(
     return types;
 }
 
-LocalNodeTable::LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, const Table& table)
+LocalNodeTable::LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, const Table& table,
+    MemoryManager& mm)
     : LocalTable{table}, overflowFileHandle(nullptr),
       nodeGroups{getNodeTableColumnTypes(*tableEntry), false /*enableCompression*/} {
-    initLocalHashIndex();
+    initLocalHashIndex(mm);
 }
 
-void LocalNodeTable::initLocalHashIndex() {
+void LocalNodeTable::initLocalHashIndex(MemoryManager& mm) {
     auto& nodeTable = ku_dynamic_cast<const NodeTable&>(table);
-    overflowFile = std::make_unique<InMemOverflowFile>(nodeTable.getMemoryManager());
+    overflowFile = std::make_unique<InMemOverflowFile>(mm);
     overflowFileHandle = overflowFile->addHandle();
-    hashIndex = std::make_unique<LocalHashIndex>(table.getMemoryManager(),
+    hashIndex = std::make_unique<LocalHashIndex>(mm,
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
         overflowFileHandle);
 }
@@ -110,9 +111,9 @@ uint64_t LocalNodeTable::getEstimatedMemUsage() {
     return nodeGroups.getEstimatedMemoryUsage() + hashIndex->getEstimatedMemUsage();
 }
 
-void LocalNodeTable::clear() {
+void LocalNodeTable::clear(MemoryManager& mm) {
     auto& nodeTable = ku_dynamic_cast<const NodeTable&>(table);
-    hashIndex = std::make_unique<LocalHashIndex>(table.getMemoryManager(),
+    hashIndex = std::make_unique<LocalHashIndex>(mm,
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
         overflowFileHandle);
     nodeGroups.clear();

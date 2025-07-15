@@ -13,7 +13,8 @@ class MemoryManager;
 
 class LocalNodeTable final : public LocalTable {
 public:
-    LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, const Table& table);
+    LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, const Table& table,
+        MemoryManager& mm);
     DELETE_COPY_AND_MOVE(LocalNodeTable);
 
     bool insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
@@ -28,7 +29,7 @@ public:
 
     common::TableType getTableType() const override { return common::TableType::NODE; }
 
-    void clear() override;
+    void clear(MemoryManager& mm) override;
 
     common::row_idx_t getNumTotalRows() override { return nodeGroups.getNumTotalRows(); }
     common::node_group_idx_t getNumNodeGroups() const { return nodeGroups.getNumNodeGroups(); }
@@ -47,7 +48,7 @@ public:
         const catalog::TableCatalogEntry& table);
 
 private:
-    void initLocalHashIndex();
+    void initLocalHashIndex(MemoryManager& mm);
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
 
 private:

@@ -50,7 +50,7 @@ public:
     static void initializeScan(TableScanState& state);
     bool scan(const transaction::Transaction* transaction, TableScanState& state) const;
 
-    void clear() override {
+    void clear(MemoryManager&) override {
         localNodeGroup.reset();
         for (auto& index : directedIndices) {
             index.clear();
@@ -58,8 +58,7 @@ public:
     }
     bool isEmpty() const {
         KU_ASSERT(directedIndices.size() >= 1);
-        RUNTIME_CHECK(for (const auto& index
-                           : directedIndices) {
+        RUNTIME_CHECK(for (const auto& index : directedIndices) {
             KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
         });
         return directedIndices[0].isEmpty();
