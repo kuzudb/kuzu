@@ -133,8 +133,10 @@ std::string getSchemaCypher(ClientContext* clientContext) {
 
     auto nodeTableEntries = catalog->getNodeTableEntries(transaction, false);
     auto relGroupEntries = catalog->getRelGroupEntries(transaction, false);
-    std::sort(nodeTableEntries.begin(), nodeTableEntries.end(), [](const NodeTableCatalogEntry* const & a, const NodeTableCatalogEntry* const & b) {return a->getTableID() < b->getTableID();});
-    std::sort(relGroupEntries.begin(), relGroupEntries.end(), [](const RelGroupCatalogEntry* const & a, const RelGroupCatalogEntry* const & b) {return a->getTableID() < b->getTableID();});
+    auto sequenceEntries = catalog->getSequenceEntries(transaction);
+    std::sort(nodeTableEntries.begin(), nodeTableEntries.end(), [](const NodeTableCatalogEntry* const & a, const NodeTableCatalogEntry* const & b) {return a->getOID() < b->getOID();});
+    std::sort(relGroupEntries.begin(), relGroupEntries.end(), [](const RelGroupCatalogEntry* const & a, const RelGroupCatalogEntry* const & b) {return a->getOID() < b->getOID();});
+    std::sort(sequenceEntries.begin(), sequenceEntries.end(), [](const SequenceCatalogEntry* const & a, const SequenceCatalogEntry* const & b) {return a->getOID() < b->getOID();});
 
     ToCypherInfo toCypherInfo;
     for (const auto& nodeTableEntry : nodeTableEntries) {
