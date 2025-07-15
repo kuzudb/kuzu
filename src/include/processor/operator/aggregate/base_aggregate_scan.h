@@ -6,19 +6,26 @@
 namespace kuzu {
 namespace processor {
 
+using move_agg_result_to_vector_func = std::function<void(common::ValueVector& vector, uint64_t pos,
+    function::AggregateState* aggregateState)>;
+
+struct AggregateScanInfo {
+    std::vector<DataPos> aggregatesPos;
+    std::vector<move_agg_result_to_vector_func> moveAggResultToVectorFuncs;
+};
+
 class BaseAggregateScan : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::AGGREGATE_SCAN;
 
 public:
-    BaseAggregateScan(std::vector<DataPos> aggregatesPos, std::unique_ptr<PhysicalOperator> child,
+    BaseAggregateScan(AggregateScanInfo scanInfo, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          aggregatesPos{std::move(aggregatesPos)} {}
+          scanInfo{std::move(scanInfo)} {}
 
-    BaseAggregateScan(std::vector<DataPos> aggregatesPos, physical_op_id id,
+    BaseAggregateScan(AggregateScanInfo scanInfo, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, id, std::move(printInfo)},
-          aggregatesPos{std::move(aggregatesPos)} {}
+        : PhysicalOperator{type_, id, std::move(printInfo)}, scanInfo{std::move(scanInfo)} {}
 
     bool isSource() const override { return true; }
 
@@ -29,11 +36,7 @@ public:
     std::unique_ptr<PhysicalOperator> copy() override = 0;
 
 protected:
-    void writeAggregateResultToVector(common::ValueVector& vector, uint64_t pos,
-        function::AggregateState* aggregateState);
-
-protected:
-    std::vector<DataPos> aggregatesPos;
+    AggregateScanInfo scanInfo;
     std::vector<std::shared_ptr<common::ValueVector>> aggregateVectors;
 };
 

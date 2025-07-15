@@ -13,13 +13,13 @@ struct BaseCountFunction {
             memcpy(outputVector->getData() + pos * outputVector->getNumBytesPerValue(),
                 reinterpret_cast<uint8_t*>(&count), outputVector->getNumBytesPerValue());
         }
+        bool hasNoNullGuarantee() const override { return true; }
 
         uint64_t count = 0;
     };
 
     static std::unique_ptr<AggregateState> initialize() {
         auto state = std::make_unique<CountState>();
-        state->isNull = false;
         return state;
     }
 

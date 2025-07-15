@@ -9,7 +9,7 @@ namespace kuzu {
 namespace function {
 
 template<typename T>
-struct AvgState : public AggregateState {
+struct AvgState : public AggregateStateWithNull {
     uint32_t getStateSize() const override { return sizeof(*this); }
     void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
         outputVector->setValue(pos, avg);

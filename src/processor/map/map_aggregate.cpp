@@ -77,6 +77,34 @@ static std::vector<AggregateFunction> getAggFunctions(const expression_vector& a
     return aggregateFunctions;
 }
 
+static void writeAggResultWithNullToVector(ValueVector& vector, uint64_t pos,
+    AggregateState* aggregateState) {
+    auto isNull = aggregateState->constCast<AggregateStateWithNull>().isNull;
+    vector.setNull(pos, isNull);
+    if (!isNull) {
+        aggregateState->moveResultToVector(&vector, pos);
+    }
+}
+
+static void writeAggResultWithoutNullToVector(ValueVector& vector, uint64_t pos,
+    AggregateState* aggregateState) {
+    vector.setNull(pos, false);
+    aggregateState->moveResultToVector(&vector, pos);
+}
+
+static std::vector<move_agg_result_to_vector_func> getMoveAggResultToVectorFuncs(
+    std::vector<AggregateFunction>& aggregateFunctions) {
+    std::vector<move_agg_result_to_vector_func> moveAggResultToVectorFuncs;
+    for (auto& aggregateFunction : aggregateFunctions) {
+        if (aggregateFunction.hasNoNullGuarantee) {
+            moveAggResultToVectorFuncs.push_back(writeAggResultWithoutNullToVector);
+        } else {
+            moveAggResultToVectorFuncs.push_back(writeAggResultWithNullToVector);
+        }
+    }
+    return moveAggResultToVectorFuncs;
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(const LogicalOperator* logicalOperator) {
     auto& agg = logicalOperator->constCast<LogicalAggregate>();
     auto aggregates = agg.getAggregates();
@@ -101,8 +129,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(const LogicalOperator
     auto finalizer = std::make_unique<SimpleAggregateFinalize>(sharedState,
         std::move(aggregateInputInfos), getOperatorID(), printInfo->copy());
     finalizer->addChild(std::move(aggregate));
-    auto scan = std::make_unique<SimpleAggregateScan>(sharedState, aggOutputPos, getOperatorID(),
-        printInfo->copy());
+    aggFunctions = getAggFunctions(aggregates);
+    auto scan = std::make_unique<SimpleAggregateScan>(sharedState,
+        AggregateScanInfo{std::move(aggOutputPos), getMoveAggResultToVectorFuncs(aggFunctions)},
+        getOperatorID(), printInfo->copy());
     scan->addChild(std::move(finalizer));
     return scan;
 }
@@ -184,9 +214,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     auto finalizer =
         std::make_unique<HashAggregateFinalize>(sharedState, getOperatorID(), printInfo->copy());
     finalizer->addChild(std::move(aggregate));
+    aggFunctions = getAggFunctions(aggregates);
     auto scan =
         std::make_unique<HashAggregateScan>(sharedState, getDataPos(outputExpressions, *outSchema),
-            std::move(aggOutputPos), getOperatorID(), printInfo->copy());
+            AggregateScanInfo{std::move(aggOutputPos), getMoveAggResultToVectorFuncs(aggFunctions)},
+            getOperatorID(), printInfo->copy());
     scan->addChild(std::move(finalizer));
     return scan;
 }

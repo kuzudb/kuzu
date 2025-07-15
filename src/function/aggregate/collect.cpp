@@ -39,7 +39,7 @@ struct CollectListElement {
     uint8_t* elementPtr;
 };
 
-struct CollectState : public AggregateState {
+struct CollectState : public AggregateStateWithNull {
     CollectState() = default;
     uint32_t getStateSize() const override { return sizeof(*this); }
     void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override;
