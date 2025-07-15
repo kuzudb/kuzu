@@ -610,7 +610,7 @@ struct KUZU_API UnionType {
 
     static bool hasField(const LogicalType& type, const std::string& key);
 
-    static union_field_idx_t getAbsoluteFieldIdx(const LogicalType& type, const std::string& key);
+    static union_field_idx_t getFieldIdx(const LogicalType& type, const std::string& key);
 };
 
 struct PhysicalTypeUtils {

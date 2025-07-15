@@ -13,6 +13,8 @@
 #include "function/cast/functions/cast_functions.h"
 #include "main/client_context.h"
 
+#include <iostream>
+
 using namespace kuzu::common;
 using namespace kuzu::binder;
 
@@ -695,14 +697,14 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenUnionFunction(const std::s
     for (auto i = 0u; i < numFieldsSrc; ++i) {
         const auto& fieldName = UnionType::getFieldName(sourceType, i);
         if (!UnionType::hasField(targetType, fieldName)) {
-            throw ConversionException{stringFormat("Cannot cast from {} to {}, target type is missing field '{}'", sourceType.toString(), targetType.toString())};
+            throw ConversionException{stringFormat("Cannot cast from {} to {}, target type is missing field '{}'", sourceType.toString(), targetType.toString(), fieldName)};
         }
         const auto& fieldTypeSrc = UnionType::getFieldType(sourceType, i);
         const auto& fieldTypeDst = UnionType::getFieldType(targetType, fieldName);
         if (!CastFunction::hasImplicitCast(fieldTypeSrc, fieldTypeDst)) {
             throw ConversionException{stringFormat("Unsupported casting function from {} to {}", fieldTypeSrc.toString(), fieldTypeDst.toString())};
         }
-        auto dstTag = UnionType::getAbsoluteFieldIdx(targetType, fieldName);
+        auto dstTag = UnionType::getFieldIdx(targetType, fieldName);
         innerCasts->push_back(std::make_unique<CastToUnionBindData>(dstTag, unionCastInner(fieldTypeSrc, fieldTypeDst), fieldTypeDst.copy(), targetType.copy()));
     }
     scalar_func_exec_t execFunc = ScalarFunction::UnaryCastUnionExecFunction<union_entry_t, union_entry_t, CastToUnion>;

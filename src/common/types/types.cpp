@@ -223,9 +223,9 @@ bool UnionType::hasField(const LogicalType& type, const std::string& key) {
     return StructType::hasField(type, key);
 }
 
-union_field_idx_t UnionType::getAbsoluteFieldIdx(const LogicalType& type, const std::string& key) {
+union_field_idx_t UnionType::getFieldIdx(const LogicalType& type, const std::string& key) {
     KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
-    return StructType::getFieldIdx(type, key);
+    return StructType::getFieldIdx(type, key) - 1; // inverse of getInternalFieldIdx
 }
 
 std::string PhysicalTypeUtils::toString(PhysicalTypeID physicalType) {
