@@ -13,8 +13,6 @@
 #include "function/cast/functions/cast_functions.h"
 #include "main/client_context.h"
 
-#include <iostream>
-
 using namespace kuzu::common;
 using namespace kuzu::binder;
 
