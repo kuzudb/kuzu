@@ -24,6 +24,8 @@ public:
 };
 
 TEST_F(EmptyCApiVersionTest, GetVersion) {
+    kuzu_connection_destroy(&connection);
+    kuzu_database_destroy(&_database);
     auto version = kuzu_get_version();
     ASSERT_NE(version, nullptr);
     ASSERT_STREQ(version, KUZU_CMAKE_VERSION);
