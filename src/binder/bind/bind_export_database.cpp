@@ -141,6 +141,23 @@ static bool schemaOnly(case_insensitive_map_t<Value>& parsedOptions,
     return exportSchemaOnly;
 }
 
+static bool orderByInternalIds(case_insensitive_map_t<Value>& parsedOptions) {
+    auto isInternalIdsOption = [](const std::pair<std::string, Value>& option) -> bool {
+        if (option.first != PortDBConstants::SORT_INTERNAL_IDS_OPTIONS) {
+            return false;
+        }
+        if (option.second.getDataType() != LogicalType::BOOL()) {
+            throw common::BinderException{common::stringFormat(
+                "The '{}' option must have a BOOL value.", PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)};
+        }
+        return option.second.getValue<bool>();
+    };
+    auto sortInternalIds =
+        std::count_if(parsedOptions.begin(), parsedOptions.end(), isInternalIdsOption) != 0;
+    parsedOptions.erase(PortDBConstants::SCHEMA_ONLY_OPTION);
+    return sortInternalIds;
+}
+
 std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement& statement) {
     auto& exportDB = statement.constCast<ExportDB>();
     auto parsedOptions = bindParsingOptions(exportDB.getParsingOptionsRef());
@@ -153,6 +170,7 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
         throw BinderException("Export database currently only supports csv and parquet files.");
     }
     auto exportSchemaOnly = schemaOnly(parsedOptions, exportDB);
+    auto sortInternalIds = orderByInternalIds(parsedOptions);
     if (!exportSchemaOnly && fileTypeInfo.fileType != FileType::CSV && parsedOptions.size() != 0) {
         throw BinderException{"Only export to csv can have options."};
     }
@@ -161,7 +179,7 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     auto boundFilePath =
         clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
     return std::make_unique<BoundExportDatabase>(boundFilePath, fileTypeInfo, std::move(exportData),
-        std::move(parsedOptions), exportSchemaOnly);
+        std::move(parsedOptions), exportSchemaOnly, sortInternalIds);
 }
 
 } // namespace binder

@@ -71,7 +71,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     auto messageTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     auto exportDB = std::make_unique<ExportDB>(boundFileInfo->copy(),
-        exportDatabase->isSchemaOnly(), messageTable, getOperatorID(), std::move(printInfo));
+        exportDatabase->isSchemaOnly(), exportDatabase->sortInternalIds(), messageTable, getOperatorID(), std::move(printInfo));
     auto sink = std::make_unique<DummySimpleSink>(messageTable, getOperatorID());
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));

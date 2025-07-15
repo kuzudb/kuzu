@@ -58,7 +58,7 @@ LogicalPlan Planner::planExportDatabase(const BoundStatement& statement) {
     }
     auto exportDatabase =
         std::make_shared<LogicalExportDatabase>(boundExportDatabase.getBoundFileInfo()->copy(),
-            std::move(logicalOperators), boundExportDatabase.exportSchemaOnly());
+            std::move(logicalOperators), boundExportDatabase.exportSchemaOnly(), boundExportDatabase.orderByInternalIds());
     plan.setLastOperator(std::move(exportDatabase));
     return plan;
 }

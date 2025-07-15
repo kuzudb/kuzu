@@ -199,6 +199,7 @@ struct PortDBConstants {
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
     static constexpr const char* SCHEMA_ONLY_OPTION = "SCHEMA_ONLY";
+    static constexpr const char* SORT_INTERNAL_IDS_OPTIONS = "SORT_INTERNAL_IDS";
     static constexpr const char* EXPORT_FORMAT_OPTION = "FORMAT";
     static constexpr const char* DEFAULT_EXPORT_FORMAT_OPTION = "PARQUET";
 };
