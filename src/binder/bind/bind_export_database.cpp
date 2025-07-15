@@ -154,7 +154,7 @@ static bool orderByInternalIds(case_insensitive_map_t<Value>& parsedOptions) {
     };
     auto sortInternalIds =
         std::count_if(parsedOptions.begin(), parsedOptions.end(), isInternalIdsOption) != 0;
-    parsedOptions.erase(PortDBConstants::SCHEMA_ONLY_OPTION);
+    parsedOptions.erase(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS);
     return sortInternalIds;
 }
 
