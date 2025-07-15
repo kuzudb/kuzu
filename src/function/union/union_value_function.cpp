@@ -28,7 +28,6 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
     UnionVector::setTagField(result, *resultSelVector, UnionType::TAG_FIELD_IDX);
 }
 
-
 function_set UnionValueFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{},
