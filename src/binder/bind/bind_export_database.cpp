@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "common/constants.h"
 #include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
@@ -119,43 +120,41 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
 
 static bool schemaOnly(case_insensitive_map_t<Value>& parsedOptions,
     const parser::ExportDB& exportDB) {
-    auto isSchemaOnlyOption = [](const std::pair<std::string, Value>& option) -> bool {
-        if (option.first != PortDBConstants::SCHEMA_ONLY_OPTION) {
-            return false;
-        }
-        if (option.second.getDataType() != LogicalType::BOOL()) {
+    bool exportSchemaOnly = false;
+    if (parsedOptions.contains(PortDBConstants::SCHEMA_ONLY_OPTION))
+    {
+        auto& value = parsedOptions.at(PortDBConstants::SCHEMA_ONLY_OPTION);
+        if (value.getDataType() != LogicalType::BOOL())
+        {
             throw common::BinderException{common::stringFormat(
                 "The '{}' option must have a BOOL value.", PortDBConstants::SCHEMA_ONLY_OPTION)};
         }
-        return option.second.getValue<bool>();
-    };
-    auto exportSchemaOnly =
-        std::count_if(parsedOptions.begin(), parsedOptions.end(), isSchemaOnlyOption) != 0;
+        exportSchemaOnly = value.getValue<bool>();
+        parsedOptions.erase(PortDBConstants::SCHEMA_ONLY_OPTION);
+    }
+
     if (exportSchemaOnly && exportDB.getParsingOptionsRef().size() != 1) {
         throw common::BinderException{
             common::stringFormat("When '{}' option is set to true in export "
                                  "database, no other options are allowed.",
                 PortDBConstants::SCHEMA_ONLY_OPTION)};
     }
-    parsedOptions.erase(PortDBConstants::SCHEMA_ONLY_OPTION);
     return exportSchemaOnly;
 }
 
 static bool orderByInternalIds(case_insensitive_map_t<Value>& parsedOptions) {
-    auto isInternalIdsOption = [](const std::pair<std::string, Value>& option) -> bool {
-        if (option.first != PortDBConstants::SORT_INTERNAL_IDS_OPTIONS) {
-            return false;
+    bool sortInternalIds = false;
+    if (parsedOptions.contains(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS))
+    {
+        auto& value = parsedOptions.at(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS);
+        if (value.getDataType() != LogicalType::BOOL())
+        {
+            throw common::BinderException{common::stringFormat(
+                "The '{}' option must have a BOOL value.", PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)};
         }
-        if (option.second.getDataType() != LogicalType::BOOL()) {
-            throw common::BinderException{
-                common::stringFormat("The '{}' option must have a BOOL value.",
-                    PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)};
-        }
-        return option.second.getValue<bool>();
-    };
-    auto sortInternalIds =
-        std::count_if(parsedOptions.begin(), parsedOptions.end(), isInternalIdsOption) != 0;
-    parsedOptions.erase(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS);
+        sortInternalIds = value.getValue<bool>();
+        parsedOptions.erase(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS);
+    }
     return sortInternalIds;
 }
 
