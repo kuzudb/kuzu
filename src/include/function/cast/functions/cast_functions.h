@@ -64,8 +64,8 @@ inline void CastToUnion::operation(common::union_entry_t&, common::union_entry_t
         auto* srcValVector = common::UnionVector::getValVector(&inputVector, srcTag);
         auto* resValVector =
             common::UnionVector::getValVector(&resultVector, innerCastBindData->targetTag);
-        innerCastBindData->innerFunc(*srcValVector, *resValVector,
-            *srcValVector->getSelVectorPtr(), innerCastBindData->innerBindData);
+        innerCastBindData->innerFunc(*srcValVector, *resValVector, *srcValVector->getSelVectorPtr(),
+            innerCastBindData->innerBindData);
     }
 }
 
