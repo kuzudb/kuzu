@@ -54,21 +54,27 @@ static void writeStringStreamToFile(ClientContext* context, const std::string& s
         0 /* offset */);
 }
 
+static std::string getTablePropertyDefinitions(const TableCatalogEntry* entry) {
+    std::string columns;
+    auto properties = entry->getProperties();
+    auto propertyIdx = 0u;
+    for (auto& property : properties) {
+        propertyIdx++;
+        if (property.getType() == LogicalType::INTERNAL_ID()) {
+            continue;
+        }
+        columns += "`" + property.getName() + "`";
+        columns += propertyIdx == properties.size() ? "" : ",";
+    }
+    return columns;
+}
+
 static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* entry,
     const FileScanInfo* info) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     // TODO(Ziyi): We should pass fileName from binder phase to here.
     auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
-    std::string columns;
-    const auto numProperties = entry->getNumProperties();
-    for (auto i = 0u; i < numProperties; i++) {
-        auto& prop = entry->getProperty(i);
-        if (prop.getType() == LogicalType::INTERNAL_ID()) {
-            continue;
-        }
-        columns += "`" + prop.getName() + "`";
-        columns += i == numProperties - 1 ? "" : ",";
-    }
+    std::string columns = getTablePropertyDefinitions(entry);
     auto copyOptionsCypher = CSVOption::toCypher(csvConfig.option.toOptionsMap());
     if (columns.empty()) {
         ss << stringFormat("COPY `{}` FROM \"{}\" {};\n", entry->getName(), fileName,
@@ -82,16 +88,7 @@ static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* en
 static void writeCopyRelStatement(stringstream& ss, const ClientContext* context,
     const TableCatalogEntry* entry, const FileScanInfo* info) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
-    std::string columns;
-    const auto numProperties = entry->getNumProperties();
-    for (auto i = 0u; i < numProperties; i++) {
-        auto& prop = entry->getProperty(i);
-        if (prop.getType() == LogicalType::INTERNAL_ID()) {
-            continue;
-        }
-        columns += "`" + prop.getName() + "`";
-        columns += i == numProperties - 1 ? "" : ",";
-    }
+    std::string columns = getTablePropertyDefinitions(entry);
     auto transaction = context->getTransaction();
     const auto catalog = context->getCatalog();
     auto optionsMap = csvConfig.option.toOptionsMap();
