@@ -7,6 +7,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "common/assert.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
@@ -161,6 +162,16 @@ std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boun
     {
         std::sort(nodeTableEntries.begin(), nodeTableEntries.end(), [](const NodeTableCatalogEntry* const & a, const NodeTableCatalogEntry* const & b) {return a->getTableID() < b->getTableID();});
         std::sort(relGroupEntries.begin(), relGroupEntries.end(), [](const RelGroupCatalogEntry* const & a, const RelGroupCatalogEntry* const & b) {return a->getTableID() < b->getTableID();});
+        if (!relGroupEntries.empty())
+        {
+            for(const auto& node : nodeTableEntries)
+            {
+                if(node->getTableID() > relGroupEntries.front()->getTableID())
+                {
+                    KU_ASSERT_UNCONDITIONAL(false);
+                }
+            }
+        }
     }
 
     for (const auto& nodeTableEntry :
