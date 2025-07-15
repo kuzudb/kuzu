@@ -130,13 +130,18 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     exportLoadedExtensions(ss, clientContext);
     const auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
+
+    auto nodeTableEntries = catalog->getNodeTableEntries(transaction, false);
+    auto relGroupEntries = catalog->getRelGroupEntries(transaction, false);
+    std::sort(nodeTableEntries.begin(), nodeTableEntries.end(), [](const NodeTableCatalogEntry* const & a, const NodeTableCatalogEntry* const & b) {return a->getTableID() < b->getTableID();});
+    std::sort(relGroupEntries.begin(), relGroupEntries.end(), [](const RelGroupCatalogEntry* const & a, const RelGroupCatalogEntry* const & b) {return a->getTableID() < b->getTableID();});
+
     ToCypherInfo toCypherInfo;
-    for (const auto& nodeTableEntry :
-        catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
+    for (const auto& nodeTableEntry : nodeTableEntries) {
         ss << nodeTableEntry->toCypher(toCypherInfo) << std::endl;
     }
     RelGroupToCypherInfo relTableToCypherInfo{clientContext};
-    for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
+    for (const auto& entry : relGroupEntries) {
         ss << entry->toCypher(relTableToCypherInfo) << std::endl;
     }
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
@@ -155,25 +160,6 @@ std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boun
     stringstream ss;
     auto transaction = context->getTransaction();
     const auto catalog = context->getCatalog();
-    auto nodeTableEntries = catalog->getNodeTableEntries(transaction, false);
-    auto relGroupEntries = catalog->getRelGroupEntries(transaction, false);
-
-    if (true /*TODO(Tanvir) use better condition*/)
-    {
-        std::sort(nodeTableEntries.begin(), nodeTableEntries.end(), [](const NodeTableCatalogEntry* const & a, const NodeTableCatalogEntry* const & b) {return a->getTableID() < b->getTableID();});
-        std::sort(relGroupEntries.begin(), relGroupEntries.end(), [](const RelGroupCatalogEntry* const & a, const RelGroupCatalogEntry* const & b) {return a->getTableID() < b->getTableID();});
-        if (!relGroupEntries.empty())
-        {
-            for(const auto& node : nodeTableEntries)
-            {
-                if(node->getTableID() > relGroupEntries.front()->getTableID())
-                {
-                    KU_ASSERT_UNCONDITIONAL(false);
-                }
-            }
-        }
-    }
-
     for (const auto& nodeTableEntry :
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
         writeCopyNodeStatement(ss, nodeTableEntry, boundFileInfo, canUseParallelReader);
