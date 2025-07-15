@@ -500,21 +500,47 @@ abcsdhqiwr
 ---- 1
 a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 
+-CASE CastBetweenUnion
+-STATEMENT RETURN CAST(union_value(a := 3.2) AS UNION(a FLOAT, b BOOL))
+---- 1
+3.200000
+-STATEMENT RETURN CAST(union_value(a := 23) AS UNION(x STRING, b BOOL, a INT32))
+---- 1
+23
+-STATEMENT RETURN CAST(union_value(v := true) AS UNION(v STRING, b BOOL, t INT32))
+---- 1
+True
+-STATEMENT RETURN CAST(union_value(f := 123) AS UNION(v STRING, b BOOL, f FLOAT, t INT32))
+---- 1
+123.000000
+
 -CASE CastToUnionError
 -STATEMENT RETURN CAST(CAST(1282158 AS INT64) AS UNION(a INT32, b INT16, c UINT8, d INT8))
 ---- error
-Conversion exception: Unsupported casting function from INT64 to UNION(a INT32, b INT16, c UINT8, d INT8).
+Conversion exception: Cannot cast from INT64 to UNION(a INT32, b INT16, c UINT8, d INT8), target type has no compatible field
 -STATEMENT RETURN CAST("abc" AS UNION(a BOOL, b INT64, c DOUBLE))
 ---- error
 Conversion exception: Could not convert to union type UNION(a BOOL, b INT64, c DOUBLE): abc.
+-STATEMENT RETURN CAST(union_value(x := 11) AS UNION(q INT64, w STRING, e BOOL, r INT128, t INT32))
+---- error
+Conversion exception: Cannot cast from UNION(x INT64) to UNION(q INT64, w STRING, e BOOL, r INT128, t INT32), target type is missing field 'x'
+-STATEMENT RETURN CAST(CAST(union_value(x := 11) AS UNION(s STRING, b BOOL, x INT64)) AS UNION(q INT64, w STRING, e BOOL, r INT128, t INT32))
+---- error
+Conversion exception: Cannot cast from UNION(s STRING, b BOOL, x INT64) to UNION(q INT64, w STRING, e BOOL, r INT128, t INT32), target type is missing field 's'
+-STATEMENT RETURN CAST(CAST(union_value(x := 11) AS UNION(s STRING, b BOOL, x INT64)) AS UNION(q INT64, w STRING, e BOOL, r INT128, t INT32, s STRING, b BOOL))
+---- error
+Conversion exception: Cannot cast from UNION(s STRING, b BOOL, x INT64) to UNION(q INT64, w STRING, e BOOL, r INT128, t INT32, s STRING, b BOOL), target type is missing field 'x'
+-STATEMENT RETURN CAST(union_value(q := 23) AS UNION(s STRING, q BOOL))
+---- error
+Conversion exception: Unsupported casting function from INT64 to BOOL
+-STATEMENT RETURN CAST(union_value(q := true) AS UNION(s STRING, q INT64))
+---- error
+Conversion exception: Unsupported casting function from BOOL to INT64
 
 -CASE CastToUnionErrorUnsupported
--STATEMENT RETURN CAST(union_value(a := 3.2) AS UNION(a FLOAT, b BOOL))
----- error
-Conversion exception: Casting from UNION to UNION is not supported right now.
 -STATEMENT RETURN CAST({a: 42} AS UNION(a INT64))
 ---- error
 Conversion exception: Unsupported casting function from STRUCT(a INT64) to UNION(a INT64).
 -STATEMENT RETURN CAST([false] AS UNION(a INT64))
 ---- error
-Conversion exception: Casting from LIST to UNION is not supported right now.
+Conversion exception: Casting from LIST to UNION is not supported.
