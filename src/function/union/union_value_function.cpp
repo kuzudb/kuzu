@@ -22,6 +22,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     const std::vector<common::SelectionVector*>&, common::ValueVector& result,
     common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
+    // (Tanvir) This is broken, parameters does not include optional params so we would
+    // get an out of bounds error
+    KU_ASSERT_UNCONDITIONAL(false);
     result.setState(parameters[0]->state);
     UnionVector::getTagVector(&result)->setState(parameters[0]->state);
     UnionVector::referenceVector(&result, UnionType::TAG_FIELD_IDX, parameters[0]);
