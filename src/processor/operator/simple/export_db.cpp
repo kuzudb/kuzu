@@ -149,6 +149,9 @@ std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) 
     auto nodeTableEntries = catalog->getNodeTableEntries(transaction, false);
     auto relGroupEntries = catalog->getRelGroupEntries(transaction, false);
     auto sequenceEntries = catalog->getSequenceEntries(transaction);
+    ToCypherInfo toCypherInfo;
+    RelGroupToCypherInfo relTableToCypherInfo{clientContext};
+    RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
 
     if (sortInternalIds)
     {
@@ -157,16 +160,13 @@ std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) 
             allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
         }
         for (auto* e : relGroupEntries) {
-            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
+            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::REL});
 
         }
         for (auto* e : sequenceEntries) {
-            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
+            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::SEQUENCE});
         }
         std::sort(allEntries.begin(), allEntries.end(), [](const EntryAndType & a, const EntryAndType & b) {return a.entry->getOID() < b.entry->getOID();});
-        ToCypherInfo toCypherInfo;
-        RelGroupToCypherInfo relTableToCypherInfo{clientContext};
-        RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
         for (const auto& entryWithType : allEntries) {
             switch (entryWithType.type) {
                 case EntryType::NODE:
@@ -184,18 +184,17 @@ std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) 
             }
         }
     }
-
-    ToCypherInfo toCypherInfo;
-    for (const auto& nodeTableEntry : nodeTableEntries) {
-        ss << nodeTableEntry->toCypher(toCypherInfo) << std::endl;
-    }
-    RelGroupToCypherInfo relTableToCypherInfo{clientContext};
-    for (const auto& entry : relGroupEntries) {
-        ss << entry->toCypher(relTableToCypherInfo) << std::endl;
-    }
-    RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
-    for (const auto sequenceEntry : sequenceEntries) {
-        ss << sequenceEntry->toCypher(relGroupToCypherInfo) << std::endl;
+    else
+    {
+        for (const auto& nodeTableEntry : nodeTableEntries) {
+            ss << nodeTableEntry->toCypher(toCypherInfo) << std::endl;
+        }
+        for (const auto& entry : relGroupEntries) {
+            ss << entry->toCypher(relTableToCypherInfo) << std::endl;
+        }
+        for (const auto sequenceEntry : sequenceEntries) {
+            ss << sequenceEntry->toCypher(relGroupToCypherInfo) << std::endl;
+        }
     }
     for (auto macroName : catalog->getMacroNames(transaction)) {
         ss << catalog->getScalarMacroFunction(transaction, macroName)->toCypher(macroName)
