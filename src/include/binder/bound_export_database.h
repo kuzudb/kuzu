@@ -28,7 +28,7 @@ public:
         : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
           exportData(std::move(exportData)),
           boundFileInfo(std::move(fileTypeInfo), std::vector{std::move(filePath)}),
-          schemaOnly{schemaOnly}, sortInternalIds(sortInternalIds) {
+          schemaOnly{schemaOnly}, sortInternalIds{sortInternalIds} {
         boundFileInfo.options = std::move(csvOption);
     }
 
