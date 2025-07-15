@@ -120,11 +120,9 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
 static bool schemaOnly(case_insensitive_map_t<Value>& parsedOptions,
     const parser::ExportDB& exportDB) {
     bool exportSchemaOnly = false;
-    if (parsedOptions.contains(PortDBConstants::SCHEMA_ONLY_OPTION))
-    {
+    if (parsedOptions.contains(PortDBConstants::SCHEMA_ONLY_OPTION)) {
         auto& value = parsedOptions.at(PortDBConstants::SCHEMA_ONLY_OPTION);
-        if (value.getDataType() != LogicalType::BOOL())
-        {
+        if (value.getDataType() != LogicalType::BOOL()) {
             throw common::BinderException{common::stringFormat(
                 "The '{}' option must have a BOOL value.", PortDBConstants::SCHEMA_ONLY_OPTION)};
         }
@@ -143,13 +141,12 @@ static bool schemaOnly(case_insensitive_map_t<Value>& parsedOptions,
 
 static bool orderByInternalIds(case_insensitive_map_t<Value>& parsedOptions) {
     bool sortInternalIds = false;
-    if (parsedOptions.contains(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS))
-    {
+    if (parsedOptions.contains(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)) {
         auto& value = parsedOptions.at(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS);
-        if (value.getDataType() != LogicalType::BOOL())
-        {
-            throw common::BinderException{common::stringFormat(
-                "The '{}' option must have a BOOL value.", PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)};
+        if (value.getDataType() != LogicalType::BOOL()) {
+            throw common::BinderException{
+                common::stringFormat("The '{}' option must have a BOOL value.",
+                    PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)};
         }
         sortInternalIds = value.getValue<bool>();
         parsedOptions.erase(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS);
