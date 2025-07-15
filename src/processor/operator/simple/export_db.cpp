@@ -125,18 +125,22 @@ static void exportLoadedExtensions(stringstream& ss, const ClientContext* client
     }
 }
 
-std::string getSchemaCypher(ClientContext* clientContext) {
+std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) {
     stringstream ss;
     exportLoadedExtensions(ss, clientContext);
     const auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
-
+    
     auto nodeTableEntries = catalog->getNodeTableEntries(transaction, false);
     auto relGroupEntries = catalog->getRelGroupEntries(transaction, false);
     auto sequenceEntries = catalog->getSequenceEntries(transaction);
-    std::sort(nodeTableEntries.begin(), nodeTableEntries.end(), [](const NodeTableCatalogEntry* const & a, const NodeTableCatalogEntry* const & b) {return a->getOID() < b->getOID();});
-    std::sort(relGroupEntries.begin(), relGroupEntries.end(), [](const RelGroupCatalogEntry* const & a, const RelGroupCatalogEntry* const & b) {return a->getOID() < b->getOID();});
-    std::sort(sequenceEntries.begin(), sequenceEntries.end(), [](const SequenceCatalogEntry* const & a, const SequenceCatalogEntry* const & b) {return a->getOID() < b->getOID();});
+
+    if (sortInternalIds)
+    {
+        std::sort(nodeTableEntries.begin(), nodeTableEntries.end(), [](const NodeTableCatalogEntry* const & a, const NodeTableCatalogEntry* const & b) {return a->getOID() < b->getOID();});
+        std::sort(relGroupEntries.begin(), relGroupEntries.end(), [](const RelGroupCatalogEntry* const & a, const RelGroupCatalogEntry* const & b) {return a->getOID() < b->getOID();});
+        std::sort(sequenceEntries.begin(), sequenceEntries.end(), [](const SequenceCatalogEntry* const & a, const SequenceCatalogEntry* const & b) {return a->getOID() < b->getOID();});
+    }
 
     ToCypherInfo toCypherInfo;
     for (const auto& nodeTableEntry : nodeTableEntries) {
@@ -188,7 +192,7 @@ std::string getIndexCypher(ClientContext* clientContext, const FileScanInfo& exp
 void ExportDB::executeInternal(ExecutionContext* context) {
     const auto clientContext = context->clientContext;
     // write the schema.cypher file
-    writeStringStreamToFile(clientContext, getSchemaCypher(clientContext),
+    writeStringStreamToFile(clientContext, getSchemaCypher(clientContext, sortInternalIds),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::SCHEMA_FILE_NAME);
     if (schemaOnly) {
         return;
