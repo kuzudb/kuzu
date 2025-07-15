@@ -48,26 +48,26 @@ struct CastToUnion {
         }
         bindData.innerFunc(inputVector, *valVector, *selVector, bindData.innerBindData);
     }
-
-    template<>
-    inline void operation(common::union_entry_t&, common::union_entry_t&,
-        common::ValueVector& inputVector, common::ValueVector& resultVector, void* pBindData) {
-        auto& bindData = *reinterpret_cast<CastBetweenUnionBindData*>(pBindData);
-        auto* srcTagVector = common::UnionVector::getTagVector(&inputVector);
-        auto* resTagVector = common::UnionVector::getTagVector(&resultVector);
-        auto* selVector = inputVector.getSelVectorPtr();
-        for (auto& pos : selVector->getSelectedPositions()) {
-            auto srcTag = srcTagVector->getValue<common::union_field_idx_t>(pos);
-            auto& innerCastBindData = bindData.innerCasts->operator[](srcTag);
-            resTagVector->setValue<common::union_field_idx_t>(pos, innerCastBindData->targetTag);
-            auto* srcValVector = common::UnionVector::getValVector(&inputVector, srcTag);
-            auto* resValVector =
-                common::UnionVector::getValVector(&resultVector, innerCastBindData->targetTag);
-            innerCastBindData->innerFunc(*srcValVector, *resValVector,
-                *srcValVector->getSelVectorPtr(), innerCastBindData->innerBindData);
-        }
-    }
 };
+
+template<>
+inline void CastToUnion::operation(common::union_entry_t&, common::union_entry_t&,
+    common::ValueVector& inputVector, common::ValueVector& resultVector, void* pBindData) {
+    auto& bindData = *reinterpret_cast<CastBetweenUnionBindData*>(pBindData);
+    auto* srcTagVector = common::UnionVector::getTagVector(&inputVector);
+    auto* resTagVector = common::UnionVector::getTagVector(&resultVector);
+    auto* selVector = inputVector.getSelVectorPtr();
+    for (auto& pos : selVector->getSelectedPositions()) {
+        auto srcTag = srcTagVector->getValue<common::union_field_idx_t>(pos);
+        auto& innerCastBindData = bindData.innerCasts->operator[](srcTag);
+        resTagVector->setValue<common::union_field_idx_t>(pos, innerCastBindData->targetTag);
+        auto* srcValVector = common::UnionVector::getValVector(&inputVector, srcTag);
+        auto* resValVector =
+            common::UnionVector::getValVector(&resultVector, innerCastBindData->targetTag);
+        innerCastBindData->innerFunc(*srcValVector, *resValVector,
+            *srcValVector->getSelVectorPtr(), innerCastBindData->innerBindData);
+    }
+}
 
 struct CastDateToTimestamp {
     template<typename T>
