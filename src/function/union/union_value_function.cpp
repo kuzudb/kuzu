@@ -25,6 +25,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>&,
     UnionVector::setTagField(result, *resultSelVector, UnionType::TAG_FIELD_IDX);
 }
 
+// TODO(Tanvir) move this to execFunc
 static void valueCompileFunc(FunctionBindData* /*bindData*/,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
