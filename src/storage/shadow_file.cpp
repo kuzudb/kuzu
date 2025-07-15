@@ -133,7 +133,7 @@ void ShadowFile::clear(BufferManager& bm) {
 }
 
 void ShadowFile::reset() {
-    shadowingFH->getFileInfo()->reset();
+    shadowingFH->resetFileInfo();
     shadowingFH = nullptr;
     vfs->removeFileIfExists(shadowFilePath);
 }
