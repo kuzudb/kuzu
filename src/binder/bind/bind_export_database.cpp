@@ -147,8 +147,9 @@ static bool orderByInternalIds(case_insensitive_map_t<Value>& parsedOptions) {
             return false;
         }
         if (option.second.getDataType() != LogicalType::BOOL()) {
-            throw common::BinderException{common::stringFormat(
-                "The '{}' option must have a BOOL value.", PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)};
+            throw common::BinderException{
+                common::stringFormat("The '{}' option must have a BOOL value.",
+                    PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)};
         }
         return option.second.getValue<bool>();
     };
