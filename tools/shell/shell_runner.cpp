@@ -135,7 +135,8 @@ int main(int argc, char* argv[]) {
         if (!homeDir.empty()) {
             pathToHistory = std::string(homeDir) + "/.kuzu/";
             if (std::filesystem::create_directories(pathToHistory) != 0) {
-                std::cerr << "Failed to create directory for the history file: "  << pathToHistory << '\n';
+                std::cerr << "Failed to create directory for the history file: " << pathToHistory
+                          << '\n';
                 return 1;
             }
         }
