@@ -192,3 +192,9 @@ Parser exception: DROP_FTS_INDEX must be called in a query which doesn't have ot
 -STATEMENT CALL QUERY_FTS_INDEX('person', 'personIdx', 'Alice', top := 0) RETURN node.ID, score
 ---- error
 Binder exception: QUERY_FTS_INDEX requires a positive non-zero value for the 'top' parameter.
+
+-CASE NonStringIgnorePattern
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'], ignore_pattern := true)
+---- error
+Binder exception: True has data type BOOL but STRING was expected.

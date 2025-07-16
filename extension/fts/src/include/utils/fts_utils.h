@@ -13,7 +13,7 @@ namespace fts_extension {
 
 struct FTSUtils {
 
-    static void normalizeQuery(std::string& query);
+    static void normalizeQuery(std::string& query, const regex::RE2& ignorePattern);
 
     static std::vector<std::string> stemTerms(std::vector<std::string> terms,
         const FTSConfig& config, storage::MemoryManager* mm, storage::NodeTable* stopwordsTable,

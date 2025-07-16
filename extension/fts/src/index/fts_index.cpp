@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "index/fts_update_state.h"
+#include "re2.h"
 #include "utils/fts_utils.h"
 
 namespace kuzu {
@@ -67,12 +68,13 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
     MemoryManager* mm) {
     std::string content;
     std::vector<std::string> terms;
+    RE2 regexPattern{config.ignorePattern};
     for (auto indexVector : indexVectors) {
         if (indexVector->isNull(pos)) {
             continue;
         }
         content = indexVector->getValue<ku_string_t>(pos).getAsString();
-        FTSUtils::normalizeQuery(content);
+        FTSUtils::normalizeQuery(content, regexPattern);
         auto termsInContent =
             StringUtils::split(content, " " /* delimiter */, true /* ignoreEmptyStringParts */);
         termsInContent = FTSUtils::stemTerms(termsInContent, config, mm, stopWordsTable,
@@ -186,8 +188,7 @@ void FTSIndex::finalize(main::ClientContext* context) {
         idVector.setValue(0, insertedNodeID);
         internalTableInfo.table->initScanState(transaction, *indexTableState.scanState,
             insertedNodeID.tableID, insertedNodeID.offset);
-        bool result = internalTableInfo.table->lookup(transaction, *indexTableState.scanState);
-        KU_ASSERT(result);
+        internalTableInfo.table->lookup(transaction, *indexTableState.scanState);
         auto insertState = initInsertState(context, [](offset_t) { return true; });
         insert(transaction, idVector, indexTableState.indexVectors, *insertState);
     }
