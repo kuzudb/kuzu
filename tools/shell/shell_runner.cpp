@@ -135,7 +135,7 @@ int main(int argc, char* argv[]) {
         if (!homeDir.empty()) {
             pathToHistory = std::string(homeDir) + "/.kuzu/";
             if (std::filesystem::create_directories(pathToHistory) != 0) {
-                std::cerr << "Failed to create directory ~/.kuzu for the history file" << '\n';
+                std::cerr << "Failed to create directory for the history file: "  << pathToHistory << '\n';
                 return 1;
             }
         }
@@ -146,7 +146,7 @@ int main(int argc, char* argv[]) {
             FileOpenFlags(
                 FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::WRITE | FileFlags::READ_ONLY));
     } catch (Exception&) {
-        std::cerr << "Could not open the history file at: " << pathToHistory << '\n';
+        std::cerr << "Failed to open history file: " << pathToHistory << '\n';
         return 1;
     }
 
