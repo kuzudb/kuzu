@@ -100,17 +100,22 @@ def run_entire_test_suite(kuzu_root, base_worktree, test_worktree, dataset_dir,
     return 0
 
 
-def write_case(export_dir, import_dir, case_name, header, case_lines, import_lines):
+def write_case(export_dir, import_dir, case_name, header, export_lines, import_lines):
     export_path = os.path.join(export_dir, f"{case_name}.test")
     import_path = os.path.join(import_dir, f"{case_name}.test")
 
+    db_dir = os.path.join(os.path.dirname(os.path.dirname(export_path)), "db")
+
+    def replace_placeholders(lines):
+        return [line.replace("{KUZU_EXPORT_DB_DIRECTORY}", db_dir) for line in lines]
+
     with open(export_path, "w") as f:
-        f.write(header)
-        f.writelines(case_lines)
+        f.write(header.replace("{KUZU_EXPORT_DB_DIRECTORY}", db_dir))
+        f.writelines(replace_placeholders(export_lines))
 
     with open(import_path, "w") as f:
-        f.write(header)
-        f.writelines(import_lines)
+        f.write(header.replace("{KUZU_EXPORT_DB_DIRECTORY}", db_dir))
+        f.writelines(replace_placeholders(import_lines))
 
 
 def split_tests(root, output_dir, file):
@@ -235,6 +240,7 @@ def main():
                                   export_path)
         else:
             assert (bool(args.test_dir))
+            export_path = output_dir
             run_export_specific_tests(kuzu_root, base_commit, test_commit,
                                       args.test_dir, output_dir, cleanup)
 
