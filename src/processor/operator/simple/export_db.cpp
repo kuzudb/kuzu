@@ -124,11 +124,10 @@ static void exportLoadedExtensions(stringstream& ss, const ClientContext* client
     }
 }
 
-enum class EntryType { NODE, REL, SEQUENCE, UNREACHABLE };
 
 struct EntryAndType {
-    CatalogEntry* entry = nullptr;
-    EntryType type = EntryType::UNREACHABLE;
+    const CatalogEntry* entry = nullptr;
+    CatalogEntryType type = CatalogEntryType::DUMMY_ENTRY;
 };
 
 std::string getSchemaCypher(ClientContext* clientContext) {
@@ -146,13 +145,13 @@ std::string getSchemaCypher(ClientContext* clientContext) {
 
     std::vector<EntryAndType> allEntries;
     for (auto* e : nodeTableEntries) {
-        allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
+        allEntries.push_back({e->constPtrCast<CatalogEntry>(), CatalogEntryType::NODE_TABLE_ENTRY});
     }
     for (auto* e : relGroupEntries) {
-        allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::REL});
+        allEntries.push_back({e->constPtrCast<CatalogEntry>(), CatalogEntryType::REL_GROUP_ENTRY});
     }
     for (auto* e : sequenceEntries) {
-        allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::SEQUENCE});
+        allEntries.push_back({e->constPtrCast<CatalogEntry>(), CatalogEntryType::SEQUENCE_ENTRY});
     }
     std::sort(allEntries.begin(), allEntries.end(),
         [](const EntryAndType& a, const EntryAndType& b) {
@@ -160,17 +159,18 @@ std::string getSchemaCypher(ClientContext* clientContext) {
         });
     for (const auto& entryWithType : allEntries) {
         switch (entryWithType.type) {
-        case EntryType::NODE:
-            ss << static_cast<NodeTableCatalogEntry*>(entryWithType.entry)->toCypher(toCypherInfo)
+        case CatalogEntryType::NODE_TABLE_ENTRY:
+            ss << entryWithType.entry->constPtrCast<NodeTableCatalogEntry>()
+                      ->toCypher(toCypherInfo)
                << std::endl;
             break;
-        case EntryType::REL:
-            ss << static_cast<RelGroupCatalogEntry*>(entryWithType.entry)
+        case CatalogEntryType::REL_GROUP_ENTRY:
+            ss << entryWithType.entry->constPtrCast<RelGroupCatalogEntry>()
                       ->toCypher(relTableToCypherInfo)
                << std::endl;
             break;
-        case EntryType::SEQUENCE:
-            ss << static_cast<SequenceCatalogEntry*>(entryWithType.entry)
+        case CatalogEntryType::SEQUENCE_ENTRY:
+            ss << entryWithType.entry->constPtrCast<SequenceCatalogEntry>()
                       ->toCypher(relGroupToCypherInfo)
                << std::endl;
             break;
