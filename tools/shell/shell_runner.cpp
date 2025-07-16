@@ -128,7 +128,8 @@ int main(int argc, char* argv[]) {
     if (!pathToHistory.empty() && pathToHistory.back() != '/') {
         pathToHistory += '/';
     }
-    // If `historyFile` is present in the current directory, use that to preserve backward compatibility.
+    // If `historyFile` is present in the current directory, use that to preserve backward
+    // compatibility.
     if (pathToHistory.empty() && !std::filesystem::exists(historyFile)) {
         auto homeDir = LocalFileSystem::getUserHomeDir();
         if (!homeDir.empty()) {
