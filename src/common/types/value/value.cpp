@@ -733,7 +733,8 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
     auto activeFieldIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
     // Create default value now that we know the active field
     if (children.empty()) {
-        children.push_back(std::make_unique<Value>(Value::createDefaultValue(*childrenTypes[activeFieldIdx])));
+        children.push_back(
+            std::make_unique<Value>(Value::createDefaultValue(*childrenTypes[activeFieldIdx])));
         ++childrenSize;
     }
     auto curMemberIdx = 0u;
