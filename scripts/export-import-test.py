@@ -99,7 +99,28 @@ def run_entire_test_suite(kuzu_root, base_worktree, test_worktree, dataset_dir, 
     return 0
 
 
-def run_export_specific_tests(kuzu_root, base_worktree, test_worktree, test_dir, output_dir, cleanup):
+def split_test(root, output_dir, file):
+    pass
+
+
+def split_tests(test_dir, output_dir):
+    for root, dirs, files in os.walk(test_dir):
+        for file in files:
+            split_test(root, output_dir, file)
+
+
+def run_export_specific_tests(kuzu_root, base_worktree, test_worktree, 
+                              test_dir, output_dir, cleanup):
+    # Split tests in test_dir
+    split_tests(test_dir, output_dir)
+    # Build base_worktree kuzu
+    run_command("make test-build", cwd=base_worktree)
+    # Run against one half of scripts (exports)
+    run_command(f"./build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "export"))}", cwd=base_worktree)
+    # Build test_worktree kuzu
+    run_command("make test-build", cwd=test_worktree)
+    # Run against other half of scripts
+    run_command(f"./build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "import"))}", cwd=test_worktree)
     pass
 
 
