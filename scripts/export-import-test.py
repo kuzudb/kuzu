@@ -149,9 +149,9 @@ def split_tests(root, output_dir, file):
             if current_case_name and reading_import:
                 write_case(export_dir, import_dir, current_case_name, header,
                            export_lines, import_lines, db_dir)
-                export_lines = []
-                import_lines = []
-                reading_import = False
+            export_lines = []
+            import_lines = []
+            reading_import = False
             current_case_name = line[len("--CASE"):].strip()
             inside_case = True
             export_lines.append(line + "\n")
@@ -185,11 +185,11 @@ def run_export_specific_tests(kuzu_root, base_worktree, test_worktree,
     # Build base_worktree kuzu
     run_command("make test-build", cwd=base_worktree)
     # Run against one half of scripts (exports)
-    run_command(f"E2E_TEST_FILES_DIRECTORY='.' ./build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "export"))}", cwd=base_worktree, check=False)
+    run_command(f"E2E_TEST_FILES_DIRECTORY='.' ./.worktree-base/build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "export"))}", cwd=kuzu_root, check=False)
     # Build test_worktree kuzu
     run_command("make test-build", cwd=test_worktree)
     # Run against other half of scripts
-    run_command(f"E2E_TEST_FILES_DIRECTORY='.' ./build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "import"))}", cwd=test_worktree, check=False)
+    run_command(f"E2E_TEST_FILES_DIRECTORY='.' ./.worktree-test/build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "import"))}", cwd=kuzu_root, check=False)
 
 
 def main():

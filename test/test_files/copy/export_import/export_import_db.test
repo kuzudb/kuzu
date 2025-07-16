@@ -13,7 +13,6 @@
 ---- ok
 -STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_column_test";
 ---- ok
-#SPLIT
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_column_test"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_column_test";
 ---- ok
