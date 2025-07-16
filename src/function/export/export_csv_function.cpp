@@ -54,10 +54,8 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
     }
     static constexpr const char* NEWLINE = "\n\r";
     for (auto i = 0u; i < len; i++) {
-        if (str[i] == exportCSVBindData.exportOption.quoteChar ||
-            str[i] == NEWLINE[0] ||
-            str[i] == NEWLINE[1] ||
-            str[i] == exportCSVBindData.exportOption.delimiter) {
+        if (str[i] == exportCSVBindData.exportOption.quoteChar || str[i] == NEWLINE[0] ||
+            str[i] == NEWLINE[1] || str[i] == exportCSVBindData.exportOption.delimiter) {
             return true;
         }
     }
