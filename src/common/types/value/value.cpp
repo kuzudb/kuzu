@@ -172,9 +172,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(dataType.copy(), std::move(children));
     }
     case LogicalTypeID::MAP:
-    case LogicalTypeID::LIST: {
-        return Value(dataType.copy(), std::vector<std::unique_ptr<Value>>{});
-    }
+    case LogicalTypeID::LIST:
     case LogicalTypeID::UNION: {
         // We can't create a default value for the union since the
         // selected variant is runtime information. Default value
@@ -734,7 +732,10 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
     // union fields into value.
     auto activeFieldIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
     // Create default value now that we know the active field
-    auto childValue = Value::createDefaultValue(*childrenTypes[activeFieldIdx]);
+    if (children.empty()) {
+        children.push_back(std::make_unique<Value>(Value::createDefaultValue(*childrenTypes[activeFieldIdx])));
+        ++childrenSize;
+    }
     auto curMemberIdx = 0u;
     // Seek to the current active member value.
     while (curMemberIdx < activeFieldIdx) {
@@ -742,12 +743,11 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
         curMemberIdx++;
     }
     if (NullBuffer::isNull(unionNullValues, activeFieldIdx)) {
-        childValue.setNull(true);
+        children[0]->setNull(true);
     } else {
-        childValue.setNull(false);
-        childValue.copyFromRowLayout(unionValues);
+        children[0]->setNull(false);
+        children[0]->copyFromRowLayout(unionValues);
     }
-    children.push_back(std::make_unique<Value>(std::move(childValue)));
 }
 
 void Value::serialize(Serializer& serializer) const {
