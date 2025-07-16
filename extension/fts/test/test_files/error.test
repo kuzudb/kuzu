@@ -198,3 +198,7 @@ Binder exception: QUERY_FTS_INDEX requires a positive non-zero value for the 'to
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'], ignore_pattern := true)
 ---- error
 Binder exception: True has data type BOOL but STRING was expected.
+-STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'], ignore_pattern := '[a-z')
+---- error
+Binder exception: An error occurred while compiling the regex: "[a-z".
+Error: "missing ]: [a-z".

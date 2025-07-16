@@ -134,7 +134,7 @@ static std::string createStopWordsTable(const ClientContext& context,
     return query;
 }
 
-static inline std::string escapeBackslashes(const std::string& input) {
+static std::string formatStrInCypher(const std::string& input) {
     std::string result;
     for (char c : input) {
         if (c == '\\' || c == '\'') {
@@ -163,7 +163,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                             '{}',
                             ' ',
                             'g')), ' ');)",
-            escapeBackslashes(ftsBindData->createFTSConfig.ignorePattern));
+            formatStrInCypher(ftsBindData->createFTSConfig.ignorePattern));
     }
 
     // Create the stop words table if not exists, or the user is not using the default english

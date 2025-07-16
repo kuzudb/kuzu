@@ -90,6 +90,12 @@ const std::unordered_set<std::string>& StopWords::getDefaultStopWords() {
 
 void IgnorePattern::validate(const std::string& ignorePattern) {
     const RE2 regexPattern(ignorePattern);
+    if (!regexPattern.ok()) {
+        throw common::BinderException{
+            common::stringFormat("An error occurred while compiling the regex: \"{}\"."
+                                 "\nError: \"{}\".",
+                ignorePattern, regexPattern.error())};
+    }
 }
 
 StopWordsTableInfo StopWords::bind(main::ClientContext& context, common::table_id_t tableID,
