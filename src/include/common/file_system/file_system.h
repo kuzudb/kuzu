@@ -40,6 +40,7 @@ struct FileOpenFlags {
     FileCompressionType compressionType = FileCompressionType::AUTO_DETECT;
 
     explicit FileOpenFlags(int flags) : flags{flags} {}
+    explicit FileOpenFlags(int flags, FileLockType lockType) : flags{flags}, lockType{lockType} {}
 };
 
 class KUZU_API FileSystem {

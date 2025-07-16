@@ -22,15 +22,13 @@ namespace kuzu {
 namespace storage {
 
 StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
-    MemoryManager& memoryManager, bool enableCompression, VirtualFileSystem* vfs,
-    main::ClientContext* context)
+    MemoryManager& memoryManager, bool enableCompression, VirtualFileSystem* vfs)
     : databasePath{databasePath}, readOnly{readOnly}, dataFH{nullptr}, memoryManager{memoryManager},
       enableCompression{enableCompression} {
     wal = std::make_unique<WAL>(databasePath, readOnly, vfs);
     shadowFile =
         std::make_unique<ShadowFile>(*memoryManager.getBufferManager(), vfs, this->databasePath);
     inMemory = main::DBConfig::isDBPathInMemory(databasePath);
-    initDataFileHandle(vfs, context);
     registerIndexType(PrimaryKeyIndex::getIndexType());
 }
 
@@ -41,8 +39,9 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
         dataFH = memoryManager.getBufferManager()->getFileHandle(databasePath,
             FileHandle::O_PERSISTENT_FILE_IN_MEM, vfs, context);
     } else {
-        const auto flag = readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                                     FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS;
+        auto flag = readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                               FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS;
+        flag |= FileHandle::O_LOCKED_PERSISTENT_FILE;
         dataFH = memoryManager.getBufferManager()->getFileHandle(databasePath, flag, vfs, context);
         if (dataFH->getNumPages() == 0) {
             if (!readOnly) {
@@ -55,6 +54,7 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
                 defaultHeader.serialize(headerSerializer);
                 dataFH->getFileInfo()->writeFile(headerWriter->getPage(0).data(), KUZU_PAGE_SIZE,
                     StorageConstants::DB_HEADER_PAGE_IDX);
+                dataFH->getFileInfo()->syncFile();
             }
         }
     }
@@ -70,8 +70,8 @@ void StorageManager::recover(main::ClientContext& clientContext) {
     try {
         const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
         walReplayer->replay();
-    } catch (std::exception& e) {
-        throw Exception(stringFormat("Error during recovery: {}", e.what()));
+    } catch (std::exception&) {
+        throw;
     }
 }
 

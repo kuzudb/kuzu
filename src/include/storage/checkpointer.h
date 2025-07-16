@@ -54,8 +54,8 @@ protected:
     virtual void logCheckpointAndApplyShadowPages();
 
 private:
-    static void readCheckpoint(const std::string& dbPath, main::ClientContext* context,
-        common::VirtualFileSystem* vfs, catalog::Catalog* catalog, StorageManager* storageManager);
+    static void readCheckpoint(main::ClientContext* context, catalog::Catalog* catalog,
+        StorageManager* storageManager);
 
     DatabaseHeader getCurrentDatabaseHeader() const;
     PageRange serializeCatalog(const catalog::Catalog& catalog, StorageManager& storageManager);
@@ -64,7 +64,6 @@ private:
 protected:
     main::ClientContext& clientContext;
     bool isInMemory;
-    OptimisticAllocator pageAllocator;
 };
 
 } // namespace storage

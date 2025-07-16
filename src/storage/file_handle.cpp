@@ -10,16 +10,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-FileHandle::FileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
-    uint32_t fileIndex, PageSizeClass pageSizeClass, VirtualFileSystem* vfs,
-    main::ClientContext* context)
-    : flags{flags}, fileIndex{fileIndex}, numPages{0}, pageCapacity{0}, bm{bm},
-      pageSizeClass{pageSizeClass}, pageStates{0, 0}, frameGroupIdxes{0, 0},
-      pageManager(std::make_unique<PageManager>(this)) {
-    if (!isNewTmpFile()) {
-        constructExistingFileHandle(path, vfs, context);
+FileHandle::FileHandle(const std::string& path, uint8_t fhFlags, BufferManager* bm,
+    uint32_t fileIndex, VirtualFileSystem* vfs, main::ClientContext* context)
+    : fhFlags{fhFlags}, fileIndex{fileIndex}, numPages{0}, pageCapacity{0}, bm{bm},
+      pageSizeClass{isNewTmpFile() && isLargePaged() ? TEMP_PAGE : REGULAR_PAGE}, pageStates{0, 0},
+      frameGroupIdxes{0, 0}, pageManager(std::make_unique<PageManager>(this)) {
+    if (isNewTmpFile()) {
+        constructTmpFileHandle(path);
     } else {
-        constructNewFileHandle(path);
+        constructPersistentFileHandle(path, vfs, context);
     }
     pageStates = ConcurrentVector<PageState, StorageConstants::PAGE_GROUP_SIZE,
         TEMP_PAGE_SIZE / sizeof(void*)>{numPages, pageCapacity};
@@ -29,16 +28,19 @@ FileHandle::FileHandle(const std::string& path, uint8_t flags, BufferManager* bm
     }
 }
 
-void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFileSystem* vfs,
+void FileHandle::constructPersistentFileHandle(const std::string& path, VirtualFileSystem* vfs,
     main::ClientContext* context) {
-    int openFlags = 0;
+    FileOpenFlags openFlags{0};
     if (isReadOnlyFile()) {
-        openFlags = FileFlags::READ_ONLY;
+        openFlags.flags = FileFlags::READ_ONLY;
+        openFlags.lockType = isLockRequired() ? FileLockType::READ_LOCK : FileLockType::NO_LOCK;
     } else {
-        openFlags = FileFlags::WRITE | FileFlags::READ_ONLY |
-                    ((createFileIfNotExists()) ? FileFlags::CREATE_IF_NOT_EXISTS : 0x00000000);
+        openFlags.flags =
+            FileFlags::WRITE | FileFlags::READ_ONLY |
+            ((createFileIfNotExists()) ? FileFlags::CREATE_IF_NOT_EXISTS : 0x00000000);
+        openFlags.lockType = isLockRequired() ? FileLockType::WRITE_LOCK : FileLockType::NO_LOCK;
     }
-    fileInfo = vfs->openFile(path, FileOpenFlags{openFlags}, context);
+    fileInfo = vfs->openFile(path, openFlags, context);
     const auto fileLength = fileInfo->getFileSize();
     numPages = ceil(static_cast<double>(fileLength) / static_cast<double>(getPageSize()));
     pageCapacity = 0;
@@ -47,7 +49,7 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
     }
 }
 
-void FileHandle::constructNewFileHandle(const std::string& path) {
+void FileHandle::constructTmpFileHandle(const std::string& path) {
     fileInfo = std::make_unique<FileInfo>(path, nullptr);
     numPages = 0;
     pageCapacity = 0;

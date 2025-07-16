@@ -14,9 +14,18 @@ public:
     std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
     }
+
+    void TearDown() override { APIDBTest::TearDown(); }
 };
 
-TEST_F(CApiVersionTest, GetVersion) {
+class EmptyCApiVersionTest : public CApiVersionTest {
+public:
+    std::string getInputDir() override { return "empty"; }
+};
+
+TEST_F(EmptyCApiVersionTest, GetVersion) {
+    kuzu_connection_destroy(&connection);
+    kuzu_database_destroy(&_database);
     auto version = kuzu_get_version();
     ASSERT_NE(version, nullptr);
     ASSERT_STREQ(version, KUZU_CMAKE_VERSION);
@@ -25,18 +34,44 @@ TEST_F(CApiVersionTest, GetVersion) {
 
 TEST_F(CApiVersionTest, GetStorageVersion) {
     auto storageVersion = kuzu_get_storage_version();
-    if (databasePath == "" || databasePath == ":memory:") {
-        return;
+    if (inMemMode) {
+        GTEST_SKIP();
     }
+    // Reset the database to ensure that the lock on db file is released.
+    kuzu_connection_destroy(&connection);
+    kuzu_database_destroy(&_database);
     auto data = std::filesystem::path(databasePath);
-    std::ifstream catalogFile;
-    catalogFile.open(data, std::ios::binary);
+    std::ifstream dbFile;
+    dbFile.open(data, std::ios::binary);
+    ASSERT_TRUE(dbFile.is_open());
     char magic[5];
-    catalogFile.read(magic, 4);
+    dbFile.read(magic, 4);
     magic[4] = '\0';
     ASSERT_STREQ(magic, "KUZU");
     uint64_t actualVersion;
-    catalogFile.read(reinterpret_cast<char*>(&actualVersion), sizeof(actualVersion));
-    catalogFile.close();
+    dbFile.read(reinterpret_cast<char*>(&actualVersion), sizeof(actualVersion));
+    dbFile.close();
+    ASSERT_EQ(storageVersion, actualVersion);
+}
+
+TEST_F(EmptyCApiVersionTest, GetStorageVersion) {
+    auto storageVersion = kuzu_get_storage_version();
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    // Reset the database to ensure that the lock on db file is released.
+    kuzu_connection_destroy(&connection);
+    kuzu_database_destroy(&_database);
+    auto data = std::filesystem::path(databasePath);
+    std::ifstream dbFile;
+    dbFile.open(data, std::ios::binary);
+    ASSERT_TRUE(dbFile.is_open());
+    char magic[5];
+    dbFile.read(magic, 4);
+    magic[4] = '\0';
+    ASSERT_STREQ(magic, "KUZU");
+    uint64_t actualVersion;
+    dbFile.read(reinterpret_cast<char*>(&actualVersion), sizeof(actualVersion));
+    dbFile.close();
     ASSERT_EQ(storageVersion, actualVersion);
 }

@@ -29,13 +29,13 @@ class ChunkedNodeGroup;
 class Spiller;
 
 // This class keeps state info for pages potentially can be evicted.
-// The page state of a candidate is set to MARKED when it is first enqueued. After enqueued, if the
-// candidate was recently accessed, it is no longer immediately evictable. See the state transition
-// diagram above `BufferManager` class declaration for more details.
+// The page state of a candidate is set to be MARKED when it is first enqueued. After enqueued, if
+// the candidate was recently accessed, it is no longer immediately evictable. See the state
+// transition diagram above `BufferManager` class declaration for more details.
 struct EvictionCandidate {
     friend class EvictionQueue;
 
-    // If the candidate is Marked it is evictable.
+    // If the candidate is MARKED, it is evictable.
     static bool isEvictable(uint64_t currPageStateAndVersion) {
         return PageState::getState(currPageStateAndVersion) == PageState::MARKED;
     }
@@ -118,9 +118,9 @@ private:
  * 2) it supports the caller to flush or remove pages from the BM;
  * 3) it supports the caller to directly update the content of a frame.
  *
- * All accesses to the BM are through a FileHandle. This design is to de-centralize the management
- * of page states from the BM to each file handle itself. Thus each on-disk file should have a
- * unique FileHandle, and MM also holds a unique FileHandle, which is backed by an temp in-mem
+ * All accesses to the BM are through a FileHandle. This design is to decentralize the management
+ * of page states from the BM to each file handle itself. Thus, each on-disk file should have a
+ * unique FileHandle, and MM also holds a unique FileHandle, which is backed by a temp in-mem
  * file, for all memory buffer allocations
  *
  * To start a Database, users need to specify the max size of the memory usage (`maxSize`) in BM.
@@ -156,13 +156,13 @@ private:
  *                               |        2. unpin(pX): enqueue pX & increment version         |
  *                               ------------------------------------------------------------->
  *
- * 1. When page pX at EVICTED state and it is pinned, it transits to the Locked state. `pin` will
- * first acquire the exclusive lock on the page, then read the page from disk into its frame. The
- * caller can safely make changes to the page.
+ * 1. When page pX at EVICTED state, and it is pinned, it transits to the Locked state. `pin` will
+ * first acquire the exclusive lock on the page, then read the page from the disk into its frame.
+ * The caller can safely make changes to the page.
  * 2. When the caller finishes changes to the page, it calls `unpin`, which releases the lock on the
  * page, puts the page into the eviction queue, and increments its version. The page now transits to
  * the MARKED state. Note that currently the page is still cached, but it is ready to be evicted.
- * The page version number is used to identify any potential writes on the page. Each time a page
+ * The page version number is used to identify any potential writing on the page. Each time a page
  * transits from LOCKED to MARKED state, we will increment its version. This happens when a page is
  * pinned, then unpinned. During the pin and unpin, we assume the page's content in its
  * corresponding frame might have changed, thus, we increment the version number to forbid stale
@@ -172,8 +172,9 @@ private:
  * into frames.
  * 4. The MARKED page can be pinned again by the caller, setting the page's state to LOCKED.
  * 5. The UNLOCKED page can also be pinned again by the caller, setting the page's state to LOCKED.
- * 6. During eviction, UNLOCKED pages will be check if they are second chance evictable. If so, they
- * will be set to MARKED, and their eviction candidates will be moved back to the eviction queue.
+ * 6. During eviction, UNLOCKED pages will be checked if they are second chance evictable. If so,
+ * they will be set to MARKED, and their eviction candidates will be moved back to the eviction
+ * queue.
  * 7. During eviction, if the page is in the MARKED state, it will be LOCKED first (7.1), then
  * removed from its frame, and set to EVICTED (7.2).
  *
@@ -203,10 +204,9 @@ public:
 
     // For files that are managed by BM, their FileHandles should be created through this function.
     FileHandle* getFileHandle(const std::string& filePath, uint8_t flags,
-        common::VirtualFileSystem* vfs, main::ClientContext* context,
-        common::PageSizeClass pageSizeClass = common::REGULAR_PAGE) {
-        fileHandles.emplace_back(std::make_unique<FileHandle>(filePath, flags, this,
-            fileHandles.size(), pageSizeClass, vfs, context));
+        common::VirtualFileSystem* vfs, main::ClientContext* context) {
+        fileHandles.emplace_back(
+            std::make_unique<FileHandle>(filePath, flags, this, fileHandles.size(), vfs, context));
         return fileHandles.back().get();
     }
 
@@ -227,7 +227,7 @@ public:
     void removeEvictedCandidates();
 
 protected:
-    // Reclaims used memory until the given size to reserve is available
+    // Reclaims used memory until the given size to reserve is available.
     // The specified amount of memory will be recorded as being used
     virtual bool reserve(uint64_t sizeToReserve);
 
@@ -284,7 +284,7 @@ private:
     EvictionQueue evictionQueue;
     // Total memory used
     std::atomic<uint64_t> usedMemory;
-    // Amount of memory used which cannot be evicted
+    // Amount of memory used, which cannot be evicted
     std::atomic<uint64_t> nonEvictableMemory;
     // Each VMRegion corresponds to a virtual memory region of a specific page size. Currently, we
     // hold two sizes of REGULAR_PAGE and TEMP_PAGE.

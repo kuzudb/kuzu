@@ -1,10 +1,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 
-#include <cstdint>
-#include <cstring>
 #include <mutex>
 
-#include "common/constants.h"
 #include "common/exception/buffer_manager.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/types/types.h"
@@ -17,7 +14,7 @@ namespace kuzu {
 namespace storage {
 
 MemoryBuffer::MemoryBuffer(MemoryManager* mm, page_idx_t pageIdx, uint8_t* buffer, uint64_t size)
-    : buffer{buffer, (size_t)size}, mm{mm}, pageIdx{pageIdx}, evicted{false} {}
+    : buffer{buffer, static_cast<size_t>(size)}, mm{mm}, pageIdx{pageIdx}, evicted{false} {}
 
 MemoryBuffer::~MemoryBuffer() {
     if (buffer.data() != nullptr && !evicted) {
@@ -31,7 +28,7 @@ SpillResult MemoryBuffer::setSpilledToDisk(uint64_t filePosition) {
     mm->freeBlock(pageIdx, buffer);
     // reinterpret_cast isn't allowed here, but we shouldn't leave the invalid pointer and
     // still want to store the size
-    buffer = std::span<uint8_t>((uint8_t*)nullptr, buffer.size());
+    buffer = std::span(static_cast<uint8_t*>(nullptr), buffer.size());
     evicted = true;
     this->filePosition = filePosition;
     if (pageIdx == INVALID_PAGE_IDX) {
@@ -49,8 +46,7 @@ void MemoryBuffer::prepareLoadFromDisk() {
 
 MemoryManager::MemoryManager(BufferManager* bm, VirtualFileSystem* vfs) : bm{bm} {
     pageSize = TEMP_PAGE_SIZE;
-    fh = bm->getFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE, vfs, nullptr,
-        PageSizeClass::TEMP_PAGE);
+    fh = bm->getFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE, vfs, nullptr);
 }
 
 std::span<uint8_t> MemoryManager::mallocBuffer(bool initializeToZero, uint64_t size) {
@@ -65,7 +61,7 @@ std::span<uint8_t> MemoryManager::mallocBuffer(bool initializeToZero, uint64_t s
     } else {
         buffer = malloc(size);
     }
-    return std::span<uint8_t>(static_cast<uint8_t*>(buffer), size);
+    return std::span(static_cast<uint8_t*>(buffer), size);
 }
 
 std::unique_ptr<MemoryBuffer> MemoryManager::allocateBuffer(bool initializeToZero, uint64_t size) {

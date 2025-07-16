@@ -40,7 +40,7 @@ private:
 
     // This function is used to deserialize the WAL records without actually applying them to the
     // storage.
-    WALReplayInfo dryReplay() const;
+    WALReplayInfo dryReplay(common::FileInfo& fileInfo) const;
 
     void removeWALAndShadowFiles() const;
     void removeFileIfExists(const std::string& path) const;

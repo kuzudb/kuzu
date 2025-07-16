@@ -57,15 +57,12 @@ void WALReplayer::replay() const {
     try {
         // First, we dry run the replay to find out the offset of the last record that was
         // CHECKPOINT or COMMIT.
-        auto [offsetDeserialized, isLastRecordCheckpoint] = dryReplay();
+        auto [offsetDeserialized, isLastRecordCheckpoint] = dryReplay(*fileInfo);
         if (isLastRecordCheckpoint) {
             // If the last record is a checkpoint, we resume by replaying the shadow file.
-            auto shadowFileInfo =
-                vfs->openFile(shadowFilePath, FileOpenFlags(FileFlags::READ_ONLY));
-            ShadowFile::replayShadowPageRecords(clientContext, std::move(shadowFileInfo));
+            ShadowFile::replayShadowPageRecords(clientContext);
             removeWALAndShadowFiles();
             // Re-read checkpointed data from disk again as now the shadow file is applied.
-            clientContext.getStorageManager()->initDataFileHandle(vfs, &clientContext);
             checkpointer.readCheckpoint();
         } else {
             // There is no checkpoint record, so we should remove the shadow file if it exists.
@@ -73,7 +70,7 @@ void WALReplayer::replay() const {
             // Read the checkpointed data from the disk.
             checkpointer.readCheckpoint();
             // Resume by replaying the WAL file from the beginning until the last COMMIT record.
-            Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
+            Deserializer deserializer(std::make_unique<BufferedFileReader>(*fileInfo));
             while (deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset() <
                    offsetDeserialized) {
                 KU_ASSERT(!deserializer.finished());
@@ -93,13 +90,11 @@ void WALReplayer::replay() const {
     }
 }
 
-WALReplayer::WALReplayInfo WALReplayer::dryReplay() const {
+WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo) const {
     uint64_t offsetDeserialized = 0;
     bool isLastRecordCheckpoint = false;
     try {
-        auto fileInfo =
-            clientContext.getVFSUnsafe()->openFile(walPath, FileOpenFlags(FileFlags::READ_ONLY));
-        Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
+        Deserializer deserializer(std::make_unique<BufferedFileReader>(fileInfo));
         bool finishedDeserializing = deserializer.finished();
         while (!finishedDeserializing) {
             auto walRecord = WALRecord::deserialize(deserializer, clientContext);
