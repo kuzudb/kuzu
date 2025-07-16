@@ -32,7 +32,7 @@ def get_version(kuzu_root):
     return "0"
 
 
-def run_command(cmd, cwd=None, capture_output=False):
+def run_command(cmd, cwd=None, capture_output=False, check=True):
     print(f"> Running: {cmd} (cwd={cwd})")
 
     # We redirect stdin to devnull in an attempt
@@ -45,7 +45,7 @@ def run_command(cmd, cwd=None, capture_output=False):
         cwd=cwd,
         text=True,
         capture_output=capture_output,
-        check=True,
+        check=check,
         shell=True,
         stdin=subprocess.DEVNULL,
     )
@@ -108,7 +108,6 @@ def write_case(export_dir, import_dir, case_name, header, export_lines, import_l
 
     def replace_placeholders(lines):
         return [line.replace("{KUZU_EXPORT_DB_DIRECTORY}", db_dir) for line in lines]
-
     with open(export_path, "w") as f:
         f.write(header.replace("{KUZU_EXPORT_DB_DIRECTORY}", db_dir))
         f.writelines(replace_placeholders(export_lines))
@@ -141,7 +140,7 @@ def split_tests(root, output_dir, file):
             if line.strip() == "--":
                 parsedHeader = True
             continue
-        if line.startswith("--CASE"):
+        if line.startswith("-CASE"):
             # this is a spell to skip any cases that do not have a split
             if current_case_name and reading_import:
                 write_case(export_dir, import_dir, current_case_name, header, export_lines, import_lines)
@@ -161,7 +160,7 @@ def split_tests(root, output_dir, file):
                 import_lines.append(line + "\n")
             else:
                 export_lines.append(line + "\n")
-    if current_case_name:
+    if current_case_name and reading_import:
         write_case(export_dir, import_dir, current_case_name, header, export_lines, import_lines)
 
 
@@ -180,12 +179,11 @@ def run_export_specific_tests(kuzu_root, base_worktree, test_worktree,
     # Build base_worktree kuzu
     run_command("make test-build", cwd=base_worktree)
     # Run against one half of scripts (exports)
-    run_command(f"./build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "export"))}", cwd=base_worktree)
+    run_command(f"E2E_TEST_FILES_DIRECTORY='.' ./build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "export"))}", cwd=base_worktree, check=False)
     # Build test_worktree kuzu
     run_command("make test-build", cwd=test_worktree)
     # Run against other half of scripts
-    run_command(f"./build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "import"))}", cwd=test_worktree)
-    pass
+    run_command(f"E2E_TEST_FILES_DIRECTORY='.' ./build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "import"))}", cwd=test_worktree, check=False)
 
 
 def main():
@@ -235,14 +233,14 @@ def main():
         create_worktree(test_worktree, test_commit, kuzu_root)
 
         if bool(args.dataset_dir):
-            run_entire_test_suite(kuzu_root, base_commit, test_commit,
-                                  os.abspath(args.dataset_dir), output_dir, cleanup,
+            run_entire_test_suite(kuzu_root, base_worktree, test_worktree,
+                                  os.path.abspath(args.dataset_dir), output_dir, cleanup,
                                   export_path)
         else:
             assert (bool(args.test_dir))
             export_path = output_dir
-            run_export_specific_tests(kuzu_root, base_commit, test_commit,
-                                      os.abspath(args.test_dir), output_dir, cleanup)
+            run_export_specific_tests(kuzu_root, base_worktree, test_worktree,
+                                      os.path.abspath(args.test_dir), output_dir, cleanup)
 
     finally:
         if cleanup and export_path and os.path.exists(export_path):
