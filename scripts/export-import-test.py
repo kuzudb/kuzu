@@ -137,7 +137,8 @@ def split_tests(root, output_dir, file):
                 parsedHeader = True
             continue
         if line.startswith("--CASE"):
-            if current_case_name:
+            # this is a spell to skip any cases that do not have a split
+            if current_case_name and reading_import:
                 write_case(export_dir, import_dir, current_case_name, header, export_lines, import_lines)
                 export_lines = []
                 import_lines = []
