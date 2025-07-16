@@ -101,11 +101,10 @@ def run_entire_test_suite(kuzu_root, base_worktree, test_worktree, dataset_dir,
     return 0
 
 
-def write_case(export_dir, import_dir, case_name, header, export_lines, import_lines):
+def write_case(export_dir, import_dir, case_name, header, export_lines,
+               import_lines, db_dir):
     export_path = os.path.join(export_dir, f"{case_name}.test")
     import_path = os.path.join(import_dir, f"{case_name}.test")
-
-    db_dir = os.path.join(os.path.dirname(os.path.dirname(export_path)), "db")
 
     def replace_placeholders(lines):
         return [line.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir) for line in lines]
@@ -123,10 +122,13 @@ def split_tests(root, output_dir, file):
 
     relative_path = os.path.relpath(file.name, root)
     base_path = os.path.splitext(relative_path)[0]
-    export_dir = os.path.join(output_dir, "export", base_path)
-    import_dir = os.path.join(output_dir, "import", base_path)
+    export_dir = os.path.abspath(os.path.join(output_dir, "export", base_path))
+    import_dir = os.path.abspath(os.path.join(output_dir, "import", base_path))
+    db_dir = os.path.abspath(os.path.join(output_dir, "db"))
     os.makedirs(export_dir, exist_ok=True)
     os.makedirs(import_dir, exist_ok=True)
+    os.makedirs(db_dir, exist_ok=True)
+
 
     header = ""
     parsedHeader = False
@@ -145,7 +147,8 @@ def split_tests(root, output_dir, file):
         if line.startswith("-CASE"):
             # this is a spell to skip any cases that do not have a split
             if current_case_name and reading_import:
-                write_case(export_dir, import_dir, current_case_name, header, export_lines, import_lines)
+                write_case(export_dir, import_dir, current_case_name, header,
+                           export_lines, import_lines, db_dir)
                 export_lines = []
                 import_lines = []
                 reading_import = False
@@ -163,7 +166,8 @@ def split_tests(root, output_dir, file):
             else:
                 export_lines.append(line + "\n")
     if current_case_name and reading_import:
-        write_case(export_dir, import_dir, current_case_name, header, export_lines, import_lines)
+        write_case(export_dir, import_dir, current_case_name, header,
+                   export_lines, import_lines, db_dir)
 
 
 def split_files(test_dir, output_dir):
