@@ -24,8 +24,10 @@ void CountStarFunction::updatePos(uint8_t* state_, ValueVector* input, uint64_t 
 
 function_set CountStarFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<AggregateFunction>(name, std::vector<LogicalTypeID>{},
-        LogicalTypeID::INT64, initialize, updateAll, updatePos, combine, finalize, false));
+    auto aggFunc = std::make_unique<AggregateFunction>(name, std::vector<LogicalTypeID>{},
+        LogicalTypeID::INT64, initialize, updateAll, updatePos, combine, finalize, false);
+    aggFunc->needToHandleNulls = true;
+    result.push_back(std::move(aggFunc));
     return result;
 }
 

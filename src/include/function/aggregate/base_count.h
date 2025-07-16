@@ -9,7 +9,7 @@ struct BaseCountFunction {
 
     struct CountState : public AggregateState {
         inline uint32_t getStateSize() const override { return sizeof(*this); }
-        inline void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
+        inline void writeToVector(common::ValueVector* outputVector, uint64_t pos) override {
             memcpy(outputVector->getData() + pos * outputVector->getNumBytesPerValue(),
                 reinterpret_cast<uint8_t*>(&count), outputVector->getNumBytesPerValue());
         }
@@ -19,7 +19,6 @@ struct BaseCountFunction {
 
     static std::unique_ptr<AggregateState> initialize() {
         auto state = std::make_unique<CountState>();
-        state->isNull = false;
         return state;
     }
 

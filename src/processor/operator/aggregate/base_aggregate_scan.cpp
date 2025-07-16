@@ -8,17 +8,9 @@ namespace processor {
 
 void BaseAggregateScan::initLocalStateInternal(ResultSet* resultSet,
     ExecutionContext* /*context*/) {
-    for (auto& dataPos : aggregatesPos) {
+    for (auto& dataPos : scanInfo.aggregatesPos) {
         auto valueVector = resultSet->getValueVector(dataPos);
         aggregateVectors.push_back(valueVector);
-    }
-}
-
-void BaseAggregateScan::writeAggregateResultToVector(ValueVector& vector, uint64_t pos,
-    AggregateState* aggregateState) {
-    vector.setNull(pos, aggregateState->isNull);
-    if (!aggregateState->isNull) {
-        aggregateState->moveResultToVector(&vector, pos);
     }
 }
 

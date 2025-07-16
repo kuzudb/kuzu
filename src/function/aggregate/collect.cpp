@@ -39,10 +39,10 @@ struct CollectListElement {
     uint8_t* elementPtr;
 };
 
-struct CollectState : public AggregateState {
+struct CollectState : public AggregateStateWithNull {
     CollectState() = default;
     uint32_t getStateSize() const override { return sizeof(*this); }
-    void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override;
+    void writeToVector(common::ValueVector* outputVector, uint64_t pos) override;
 
     void appendElement(ValueVector* input, uint32_t pos, InMemOverflowBuffer* overflowBuffer);
     void resetList();
@@ -97,7 +97,7 @@ void CollectState::resetList() {
     listSize = 0;
 }
 
-void CollectState::moveResultToVector(common::ValueVector* outputVector, uint64_t pos) {
+void CollectState::writeToVector(common::ValueVector* outputVector, uint64_t pos) {
     auto listEntry = common::ListVector::addList(outputVector, listSize);
     outputVector->setValue<common::list_entry_t>(pos, listEntry);
     auto outputDataVector = common::ListVector::getDataVector(outputVector);

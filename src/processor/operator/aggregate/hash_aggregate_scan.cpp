@@ -27,9 +27,10 @@ bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     for (auto pos = 0u; pos < numRowsToScan; ++pos) {
         auto entry = entries[pos];
         auto offset = sharedState->getTableSchema()->getColOffset(groupByKeyVectors.size());
-        for (auto& vector : aggregateVectors) {
+        for (auto i = 0u; i < aggregateVectors.size(); i++) {
+            auto vector = aggregateVectors[i];
             auto aggState = reinterpret_cast<AggregateState*>(entry + offset);
-            writeAggregateResultToVector(*vector, pos, aggState);
+            scanInfo.moveAggResultToVectorFuncs[i](*vector, pos, aggState);
             offset += aggState->getStateSize();
         }
     }

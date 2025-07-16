@@ -9,9 +9,9 @@ namespace function {
 template<typename T>
 struct MinMaxFunction {
 
-    struct MinMaxState : public AggregateState {
+    struct MinMaxState : public AggregateStateWithNull {
         uint32_t getStateSize() const override { return sizeof(*this); }
-        void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
+        void writeToVector(common::ValueVector* outputVector, uint64_t pos) override {
             outputVector->setValue(pos, val);
         }
         void setVal(const T& val_, common::InMemOverflowBuffer* /*overflowBuffer*/) { val = val_; }
