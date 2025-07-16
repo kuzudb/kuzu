@@ -71,12 +71,12 @@ std::vector<std::string> QueryFTSBindData::getTerms(main::ClientContext& context
     auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
     FTSUtils::normalizeQuery(queryInStr, config.ignorePattern);
     auto terms = StringUtils::split(queryInStr, " ");
-    auto stopWordsTable =
-        context.getStorageManager()
-            ->getTable(context.getCatalog()
-                    ->getTableCatalogEntry(context.getTransaction(), config.stopWordsTableName)
-                    ->getTableID())
-            ->ptrCast<NodeTable>();
+    auto stopWordsTable = context.getStorageManager()
+                              ->getTable(context.getCatalog()
+                                             ->getTableCatalogEntry(context.getTransaction(),
+                                                 config.stopWordsTableName)
+                                             ->getTableID())
+                              ->ptrCast<NodeTable>();
     return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
         context.getMemoryManager(), stopWordsTable, context.getTransaction(),
         getConfig().isConjunctive);
