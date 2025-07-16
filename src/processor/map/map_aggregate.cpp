@@ -82,21 +82,21 @@ static void writeAggResultWithNullToVector(ValueVector& vector, uint64_t pos,
     auto isNull = aggregateState->constCast<AggregateStateWithNull>().isNull;
     vector.setNull(pos, isNull);
     if (!isNull) {
-        aggregateState->moveResultToVector(&vector, pos);
+        aggregateState->writeToVector(&vector, pos);
     }
 }
 
 static void writeAggResultWithoutNullToVector(ValueVector& vector, uint64_t pos,
     AggregateState* aggregateState) {
     vector.setNull(pos, false);
-    aggregateState->moveResultToVector(&vector, pos);
+    aggregateState->writeToVector(&vector, pos);
 }
 
 static std::vector<move_agg_result_to_vector_func> getMoveAggResultToVectorFuncs(
     std::vector<AggregateFunction>& aggregateFunctions) {
     std::vector<move_agg_result_to_vector_func> moveAggResultToVectorFuncs;
     for (auto& aggregateFunction : aggregateFunctions) {
-        if (aggregateFunction.hasNoNullGuarantee) {
+        if (aggregateFunction.needToHandleNulls) {
             moveAggResultToVectorFuncs.push_back(writeAggResultWithoutNullToVector);
         } else {
             moveAggResultToVectorFuncs.push_back(writeAggResultWithNullToVector);

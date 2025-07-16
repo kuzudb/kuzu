@@ -9,7 +9,7 @@ namespace function {
 template<typename RESULT_TYPE>
 struct SumState : public AggregateStateWithNull {
     uint32_t getStateSize() const override { return sizeof(*this); }
-    void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
+    void writeToVector(common::ValueVector* outputVector, uint64_t pos) override {
         outputVector->setValue(pos, sum);
     }
 

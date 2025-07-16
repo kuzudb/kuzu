@@ -26,7 +26,7 @@ function_set CountStarFunction::getFunctionSet() {
     function_set result;
     auto aggFunc = std::make_unique<AggregateFunction>(name, std::vector<LogicalTypeID>{},
         LogicalTypeID::INT64, initialize, updateAll, updatePos, combine, finalize, false);
-    aggFunc->hasNoNullGuarantee = true;
+    aggFunc->needToHandleNulls = true;
     result.push_back(std::move(aggFunc));
     return result;
 }

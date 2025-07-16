@@ -12,7 +12,7 @@ namespace function {
 
 struct AggregateState {
     virtual uint32_t getStateSize() const = 0;
-    virtual void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) = 0;
+    virtual void writeToVector(common::ValueVector* outputVector, uint64_t pos) = 0;
     virtual ~AggregateState() = default;
     template<class TARGET>
     const TARGET& constCast() const {
@@ -36,7 +36,7 @@ using aggr_finalize_function_t = std::function<void(uint8_t* state)>;
 
 struct AggregateFunction final : public ScalarOrAggregateFunction {
     bool isDistinct;
-    bool hasNoNullGuarantee = false;
+    bool needToHandleNulls = false;
     aggr_initialize_function_t initializeFunc;
     aggr_update_all_function_t updateAllFunc;
     aggr_update_pos_function_t updatePosFunc;

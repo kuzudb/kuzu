@@ -32,7 +32,7 @@ function_set CountFunction::getFunctionSet() {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             auto func = AggregateFunctionUtils::getAggFunc<CountFunction>(name, type,
                 LogicalTypeID::INT64, isDistinct, paramRewriteFunc);
-            func->hasNoNullGuarantee = true;
+            func->needToHandleNulls = true;
             result.push_back(std::move(func));
         }
     }

@@ -13,7 +13,7 @@ namespace function {
 AggregateFunction::AggregateFunction(const AggregateFunction& other)
     : ScalarOrAggregateFunction{other.name, other.parameterTypeIDs, other.returnTypeID,
           other.bindFunc} {
-    hasNoNullGuarantee = other.hasNoNullGuarantee;
+    needToHandleNulls = other.needToHandleNulls;
     isDistinct = other.isDistinct;
     initializeFunc = other.initializeFunc;
     updateAllFunc = other.updateAllFunc;
