@@ -124,7 +124,6 @@ static void exportLoadedExtensions(stringstream& ss, const ClientContext* client
     }
 }
 
-
 struct EntryAndType {
     const CatalogEntry* entry = nullptr;
     CatalogEntryType type = CatalogEntryType::DUMMY_ENTRY;
@@ -160,18 +159,17 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     for (const auto& entryWithType : allEntries) {
         switch (entryWithType.type) {
         case CatalogEntryType::NODE_TABLE_ENTRY:
-            ss << entryWithType.entry->constPtrCast<NodeTableCatalogEntry>()
-                      ->toCypher(toCypherInfo)
+            ss << entryWithType.entry->constPtrCast<NodeTableCatalogEntry>()->toCypher(toCypherInfo)
                << std::endl;
             break;
         case CatalogEntryType::REL_GROUP_ENTRY:
-            ss << entryWithType.entry->constPtrCast<RelGroupCatalogEntry>()
-                      ->toCypher(relTableToCypherInfo)
+            ss << entryWithType.entry->constPtrCast<RelGroupCatalogEntry>()->toCypher(
+                      relTableToCypherInfo)
                << std::endl;
             break;
         case CatalogEntryType::SEQUENCE_ENTRY:
-            ss << entryWithType.entry->constPtrCast<SequenceCatalogEntry>()
-                      ->toCypher(relGroupToCypherInfo)
+            ss << entryWithType.entry->constPtrCast<SequenceCatalogEntry>()->toCypher(
+                      relGroupToCypherInfo)
                << std::endl;
             break;
         default:
