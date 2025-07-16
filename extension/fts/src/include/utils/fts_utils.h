@@ -50,6 +50,11 @@ struct FTSUtils {
         const std::string& indexName) {
         return common::stringFormat("{}_appears_in", getInternalTablePrefix(tableID, indexName));
     }
+
+    static std::string getTokenizeMacroName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return common::stringFormat("{}_tokenize", getInternalTablePrefix(tableID, indexName));
+    }
 };
 
 } // namespace fts_extension

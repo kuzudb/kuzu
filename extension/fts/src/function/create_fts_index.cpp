@@ -157,12 +157,13 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     // Create the tokenize macro.
     std::string query = "";
     if (!context.getCatalog()->containsMacro(context.getTransaction(), "tokenize")) {
-        query += common::stringFormat(R"(CREATE MACRO tokenize(query) AS
+        query += common::stringFormat(R"(CREATE MACRO `{}`(query) AS
                             string_split(lower(regexp_replace(
                             CAST(query as STRING),
                             '{}',
                             ' ',
                             'g')), ' ');)",
+            FTSUtils::getTokenizeMacroName(tableID, indexName),
             formatStrInCypher(ftsBindData->createFTSConfig.ignorePattern));
     }
 
@@ -183,14 +184,14 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
         auto propertyName = tableEntry->getProperty(property).getName();
         query += stringFormat("COPY `{}` FROM "
                               "(MATCH (b:`{}`) "
-                              "WITH tokenize(b.{}) AS tk, OFFSET(ID(b)) AS id "
+                              "WITH `{}`(b.{}) AS tk, OFFSET(ID(b)) AS id "
                               "UNWIND tk AS t "
                               "WITH t AS t1, id AS id1 "
                               "WHERE t1 is NOT NULL AND SIZE(t1) > 0 AND "
                               "NOT EXISTS {MATCH (s:`{}` {sw: t1})} "
                               "RETURN STEM(t1, '{}'), id1);",
-            appearsInfoTableName, tableName, propertyName,
-            ftsBindData->createFTSConfig.stopWordsTableInfo.tableName,
+            appearsInfoTableName, tableName, FTSUtils::getTokenizeMacroName(tableID, indexName),
+            propertyName, ftsBindData->createFTSConfig.stopWordsTableInfo.tableName,
             ftsBindData->createFTSConfig.stemmer);
     }
 
