@@ -17,7 +17,7 @@
 10|1.486305
 8|0.980953
 
--STATEMENT CALL CREATE_FTS_INDEX('emails', 'emailsIdx1',  ['file', 'message'], ignore_pattern:='[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|\'\"`\\n-]+')
+-STATEMENT CALL CREATE_FTS_INDEX('emails', 'emailsIdx1',  ['file', 'message'], ignore_pattern:='[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|\'\"`\\r\\n-]+')
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('emails', 'emailsIdx1',  'business meetings') return node.id,score
 ---- 3
