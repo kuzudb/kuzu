@@ -119,39 +119,26 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
 
 static bool schemaOnly(case_insensitive_map_t<Value>& parsedOptions,
     const parser::ExportDB& exportDB) {
-    bool exportSchemaOnly = false;
-    if (parsedOptions.contains(PortDBConstants::SCHEMA_ONLY_OPTION)) {
-        auto& value = parsedOptions.at(PortDBConstants::SCHEMA_ONLY_OPTION);
-        if (value.getDataType() != LogicalType::BOOL()) {
+    auto isSchemaOnlyOption = [](const std::pair<std::string, Value>& option) -> bool {
+        if (option.first != PortDBConstants::SCHEMA_ONLY_OPTION) {
+            return false;
+        }
+        if (option.second.getDataType() != LogicalType::BOOL()) {
             throw common::BinderException{common::stringFormat(
                 "The '{}' option must have a BOOL value.", PortDBConstants::SCHEMA_ONLY_OPTION)};
         }
-        exportSchemaOnly = value.getValue<bool>();
-        parsedOptions.erase(PortDBConstants::SCHEMA_ONLY_OPTION);
-    }
-
+        return option.second.getValue<bool>();
+    };
+    auto exportSchemaOnly =
+        std::count_if(parsedOptions.begin(), parsedOptions.end(), isSchemaOnlyOption) != 0;
     if (exportSchemaOnly && exportDB.getParsingOptionsRef().size() != 1) {
         throw common::BinderException{
             common::stringFormat("When '{}' option is set to true in export "
                                  "database, no other options are allowed.",
                 PortDBConstants::SCHEMA_ONLY_OPTION)};
     }
+    parsedOptions.erase(PortDBConstants::SCHEMA_ONLY_OPTION);
     return exportSchemaOnly;
-}
-
-static bool orderByInternalIds(case_insensitive_map_t<Value>& parsedOptions) {
-    bool sortInternalIds = false;
-    if (parsedOptions.contains(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)) {
-        auto& value = parsedOptions.at(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS);
-        if (value.getDataType() != LogicalType::BOOL()) {
-            throw common::BinderException{
-                common::stringFormat("The '{}' option must have a BOOL value.",
-                    PortDBConstants::SORT_INTERNAL_IDS_OPTIONS)};
-        }
-        sortInternalIds = value.getValue<bool>();
-        parsedOptions.erase(PortDBConstants::SORT_INTERNAL_IDS_OPTIONS);
-    }
-    return sortInternalIds;
 }
 
 std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement& statement) {
@@ -166,7 +153,6 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
         throw BinderException("Export database currently only supports csv and parquet files.");
     }
     auto exportSchemaOnly = schemaOnly(parsedOptions, exportDB);
-    auto sortInternalIds = orderByInternalIds(parsedOptions);
     if (!exportSchemaOnly && fileTypeInfo.fileType != FileType::CSV && parsedOptions.size() != 0) {
         throw BinderException{"Only export to csv can have options."};
     }
@@ -175,7 +161,7 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     auto boundFilePath =
         clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
     return std::make_unique<BoundExportDatabase>(boundFilePath, fileTypeInfo, std::move(exportData),
-        std::move(parsedOptions), exportSchemaOnly, sortInternalIds);
+        std::move(parsedOptions), exportSchemaOnly);
 }
 
 } // namespace binder
