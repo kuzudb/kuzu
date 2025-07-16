@@ -336,6 +336,18 @@ bool LocalFileSystem::fileExists(const std::string& filename) {
 }
 #endif
 
+std::string LocalFileSystem::getUserHomeDir() {
+#if defined(_WIN32)
+    auto homeDir = getenv("USERPROFILE");
+#else
+    auto homeDir = getenv("HOME");
+#endif
+    if (homeDir != nullptr) {
+        return std::string(homeDir);
+    }
+    return "";
+}
+
 std::string LocalFileSystem::expandPath(main::ClientContext* context,
     const std::string& path) const {
     auto fullPath = path;

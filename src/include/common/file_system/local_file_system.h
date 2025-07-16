@@ -54,6 +54,8 @@ public:
 
     static bool fileExists(const std::string& filename);
 
+    static std::string getUserHomeDir();
+
 protected:
     void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;

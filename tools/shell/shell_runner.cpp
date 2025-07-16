@@ -28,12 +28,12 @@ void processRunCommands(EmbeddedShell& shell, const std::string& filename) {
 
     if (fp == NULL) {
         if (filename != ".kuzurc") {
-            std::cerr << "Cannot open file " << filename << '\n';
+            std::cerr << "Cannot open init file: " << filename << '\n';
         }
         return;
     }
 
-    std::cout << "-- Loading resources from " << filename << '\n';
+    std::cout << "-- Processing: " << filename << '\n';
     while (fgets(buf, LINENOISE_MAX_LINE, fp) != NULL) {
         auto queryResults = shell.processInput(buf);
         for (auto& queryResult : queryResults) {
@@ -48,7 +48,7 @@ void processRunCommands(EmbeddedShell& shell, const std::string& filename) {
 }
 
 int main(int argc, char* argv[]) {
-    args::ArgumentParser parser("KuzuDB Shell");
+    args::ArgumentParser parser("Kuzu shell");
     args::Positional<std::string> inputDirFlag(parser, "databasePath",
         "Path to the database. If not given or set to \":memory:\", the database will be opened "
         "under in-memory mode.");
@@ -123,17 +123,29 @@ int main(int argc, char* argv[]) {
         systemConfig.readOnly = true;
     }
 
+    const std::string historyFile = "history.txt";
     auto pathToHistory = args::get(historyPathFlag);
     if (!pathToHistory.empty() && pathToHistory.back() != '/') {
         pathToHistory += '/';
     }
-    pathToHistory += "history.txt";
+    // If `historyFile` is present in the current directory, use that to preserve backward compatibility.
+    if (pathToHistory.empty() && !std::filesystem::exists(historyFile)) {
+        auto homeDir = LocalFileSystem::getUserHomeDir();
+        if (!homeDir.empty()) {
+            pathToHistory = std::string(homeDir) + "/.kuzu/";
+            if (std::filesystem::create_directories(pathToHistory) != 0) {
+                std::cerr << "Failed to create directory ~/.kuzu for the history file" << '\n';
+                return 1;
+            }
+        }
+    }
+    pathToHistory += historyFile;
     try {
         std::make_unique<LocalFileSystem>("")->openFile(pathToHistory,
             FileOpenFlags(
                 FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::WRITE | FileFlags::READ_ONLY));
     } catch (Exception&) {
-        std::cerr << "Invalid path to directory for history file" << '\n';
+        std::cerr << "Could not open the history file at: " << pathToHistory << '\n';
         return 1;
     }
 
