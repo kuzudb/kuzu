@@ -156,7 +156,8 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     // statements in a single transaction there.
     // Create the tokenize macro.
     std::string query = "";
-    if (!context.getCatalog()->containsMacro(context.getTransaction(), "tokenize")) {
+    if (!context.getCatalog()->containsMacro(context.getTransaction(),
+            FTSUtils::getTokenizeMacroName(tableID, indexName))) {
         query += common::stringFormat(R"(CREATE MACRO `{}`(query) AS
                             string_split(lower(regexp_replace(
                             CAST(query as STRING),
