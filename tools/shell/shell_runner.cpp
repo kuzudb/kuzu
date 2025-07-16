@@ -14,7 +14,7 @@ using namespace kuzu::common;
 int setConfigOutputMode(const std::string& mode, ShellConfig& shell) {
     shell.printer = PrinterFactory::getPrinter(PrinterTypeUtils::fromString(mode));
     if (shell.printer == nullptr) {
-        std::cerr << "Cannot parse '" << mode << "' as output mode." << '\n';
+        std::cerr << "Error: cannot parse output mode: " << mode << '\n';
         return 1;
     }
     shell.stats = shell.printer->defaultPrintStats();
@@ -28,7 +28,7 @@ void processRunCommands(EmbeddedShell& shell, const std::string& filename) {
 
     if (fp == NULL) {
         if (filename != ".kuzurc") {
-            std::cerr << "Cannot open init file: " << filename << '\n';
+            std::cerr << "Warning: cannot open init file: " << filename << '\n';
         }
         return;
     }
@@ -135,9 +135,8 @@ int main(int argc, char* argv[]) {
         if (!homeDir.empty()) {
             pathToHistory = std::string(homeDir) + "/.kuzu/";
             if (std::filesystem::create_directories(pathToHistory) != 0) {
-                std::cerr << "Failed to create directory for the history file: " << pathToHistory
-                          << '\n';
-                return 1;
+                std::cerr << "Warning: failed to create directory: " << pathToHistory << '\n';
+                pathToHistory = "";
             }
         }
     }
@@ -147,7 +146,7 @@ int main(int argc, char* argv[]) {
             FileOpenFlags(
                 FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::WRITE | FileFlags::READ_ONLY));
     } catch (Exception&) {
-        std::cerr << "Failed to open history file: " << pathToHistory << '\n';
+        std::cerr << "Error: failed to open the history file: " << pathToHistory << '\n';
         return 1;
     }
 
