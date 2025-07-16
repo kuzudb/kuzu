@@ -54,7 +54,8 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
     }
     for (auto i = 0u; i < len; i++) {
         if (str[i] == exportCSVBindData.exportOption.quoteChar ||
-            str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[0] ||
+            str[i] == ExportCSVConstants::CSV_NEWLINE[0] ||
+            str[i] == ExportCSVConstants::CSV_NEWLINE[1] ||
             str[i] == exportCSVBindData.exportOption.delimiter) {
             return true;
         }
