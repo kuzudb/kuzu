@@ -11,7 +11,8 @@ def create_worktree(path, commit, repo_root):
 
 def remove_worktree(path, repo_root):
     if os.path.exists(path):
-        run_command(f"git worktree remove --force {path}", cwd=repo_root)
+        run_command(f"git worktree remove --force {path}", cwd=repo_root,
+                    check=False)
 
 
 def check_for_extension_build(makefile):
@@ -107,13 +108,14 @@ def write_case(export_dir, import_dir, case_name, header, export_lines, import_l
     db_dir = os.path.join(os.path.dirname(os.path.dirname(export_path)), "db")
 
     def replace_placeholders(lines):
-        return [line.replace("{KUZU_EXPORT_DB_DIRECTORY}", db_dir) for line in lines]
+        return [line.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir) for line in lines]
+
     with open(export_path, "w") as f:
-        f.write(header.replace("{KUZU_EXPORT_DB_DIRECTORY}", db_dir))
+        f.write(header.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir))
         f.writelines(replace_placeholders(export_lines))
 
     with open(import_path, "w") as f:
-        f.write(header.replace("{KUZU_EXPORT_DB_DIRECTORY}", db_dir))
+        f.write(header.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir))
         f.writelines(replace_placeholders(import_lines))
 
 
