@@ -6,7 +6,6 @@
 #include "common/string_format.h"
 #include "common/task_system/progress_bar.h"
 #include "processor/execution_context.h"
-#include "processor/operator/persistent/rel_batch_insert.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"

@@ -28,8 +28,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
         {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
@@ -160,9 +160,11 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     auto lowerRelTableName = HNSWIndexUtils::getLowerGraphTableName(nodeTableID, indexName);
     auto lowerRelTableEntry = catalog->getTableCatalogEntry(transaction, lowerRelTableName)
                                   ->ptrCast<catalog::RelGroupCatalogEntry>();
+    auto lowerRelTable = storageManager->getTable(lowerRelTableEntry->getSingleRelEntryInfo().oid)
+                             ->ptrCast<storage::RelTable>();
     // Initialize partitioner shared state.
     auto& partitionerSharedState = finalizeFuncSharedState->partitionerSharedState;
-    partitionerSharedState->setTables(nodeTable, upperRelTable);
+    partitionerSharedState->setTables(nodeTable, upperRelTable, lowerRelTable);
     logical_type_vec_t callColumnTypes;
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());

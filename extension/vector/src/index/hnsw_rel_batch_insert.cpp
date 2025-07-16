@@ -9,13 +9,13 @@ namespace vector_extension {
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void HNSWIndexPartitionerSharedState::setTables(storage::NodeTable* nodeTable,
-    storage::RelTable* relTable) {
+    storage::RelTable* upperRelTable, storage::RelTable* lowerRelTable) {
     lowerPartitionerSharedState->srcNodeTable = nodeTable;
     lowerPartitionerSharedState->dstNodeTable = nodeTable;
-    lowerPartitionerSharedState->relTable = relTable;
+    lowerPartitionerSharedState->relTable = lowerRelTable;
     upperPartitionerSharedState->srcNodeTable = nodeTable;
     upperPartitionerSharedState->dstNodeTable = nodeTable;
-    upperPartitionerSharedState->relTable = relTable;
+    upperPartitionerSharedState->relTable = upperRelTable;
 }
 
 void HNSWLayerPartitionerSharedState::setGraph(std::unique_ptr<InMemHNSWGraph> newGraph,
@@ -80,7 +80,7 @@ void HNSWRelBatchInsert::populateCSRLengths(processor::RelBatchInsertExecutionSt
         reinterpret_cast<common::length_t*>(csrHeader.length->getData().getData());
     std::fill(lengthData, lengthData + numNodes, 0);
     for (common::offset_t graphOffset = startNodeInGraph; graphOffset < endNodeInGraph;
-         ++graphOffset) {
+        ++graphOffset) {
         const auto nodeOffsetInGroup = hnswExecutionState.getBoundNodeOffsetInGroup(graphOffset);
         KU_ASSERT(nodeOffsetInGroup < numNodes);
         lengthData[nodeOffsetInGroup] = graph.getCSRLength(graphOffset);
@@ -118,7 +118,7 @@ void HNSWRelBatchInsert::writeToTable(processor::RelBatchInsertExecutionState& e
     auto& relIDChunk = localState.chunkedGroup->getColumnChunk(rowIdxColumn).getData();
     auto numRelsWritten = 0;
     for (common::offset_t nodeInGraph = startNodeInGraph; nodeInGraph < endNodeInGraph;
-         ++nodeInGraph) {
+        ++nodeInGraph) {
         const auto boundNodeOffsetInGroup =
             hnswExecutionState.getBoundNodeOffsetInGroup(nodeInGraph);
         const auto neighbours = graph.getNeighbors(nodeInGraph);
