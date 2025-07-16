@@ -236,13 +236,13 @@ def main():
 
         if bool(args.dataset_dir):
             run_entire_test_suite(kuzu_root, base_commit, test_commit,
-                                  args.dataset_dir, output_dir, cleanup,
+                                  os.abspath(args.dataset_dir), output_dir, cleanup,
                                   export_path)
         else:
             assert (bool(args.test_dir))
             export_path = output_dir
             run_export_specific_tests(kuzu_root, base_commit, test_commit,
-                                      args.test_dir, output_dir, cleanup)
+                                      os.abspath(args.test_dir), output_dir, cleanup)
 
     finally:
         if cleanup and export_path and os.path.exists(export_path):
