@@ -189,7 +189,6 @@ struct ParquetConstants {
 
 struct ExportCSVConstants {
     static constexpr const char* DEFAULT_CSV_NEWLINE = "\n";
-    static constexpr const char* CSV_NEWLINE = "\n\r";
     static constexpr const char* DEFAULT_NULL_STR = "";
     static constexpr bool DEFAULT_FORCE_QUOTE = false;
     static constexpr uint64_t DEFAULT_CSV_FLUSH_SIZE = 4096 * 8;
