@@ -187,6 +187,7 @@ def main():
         base_worktree = None
         test_worktree = None
         export_path = None
+        cleanup = None
 
         parser = argparse.ArgumentParser(
             description="Export DBs from dataset-dir to output-dir using base-commit and test in test-commit"
@@ -243,11 +244,12 @@ def main():
         else:
             print(f"Skipping cleaning up export directory: {export_path}")
 
-        print("Removing worktrees")
-        if base_worktree:
-            remove_worktree(base_worktree, kuzu_root)
-        if test_worktree:
-            remove_worktree(test_worktree, kuzu_root)
+        if (base_worktree or test_worktree):
+            print("Removing worktrees")
+            if base_worktree:
+                remove_worktree(base_worktree, kuzu_root)
+            if test_worktree:
+                remove_worktree(test_worktree, kuzu_root)
 
 
 if __name__ == "__main__":
