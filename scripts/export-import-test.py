@@ -56,7 +56,8 @@ def run_command(cmd, cwd=None, capture_output=False):
         return None
 
 
-def run_entire_test_suite(kuzu_root, base_worktree, test_worktree, dataset_dir, output_dir, cleanup):
+def run_entire_test_suite(kuzu_root, base_worktree, test_worktree, dataset_dir,
+                          output_dir, cleanup, export_path):
     version = get_version(base_worktree)
     if version == "0":
         raise Exception("Failed to determine version. Aborting.")
@@ -99,20 +100,77 @@ def run_entire_test_suite(kuzu_root, base_worktree, test_worktree, dataset_dir, 
     return 0
 
 
-def split_test(root, output_dir, file):
-    pass
+def write_case(export_dir, import_dir, case_name, header, case_lines, import_lines):
+    export_path = os.path.join(export_dir, f"{case_name}.test")
+    import_path = os.path.join(import_dir, f"{case_name}.test")
+
+    with open(export_path, "w") as f:
+        f.write(header)
+        f.writelines(case_lines)
+
+    with open(import_path, "w") as f:
+        f.write(header)
+        f.writelines(import_lines)
 
 
-def split_tests(test_dir, output_dir):
+def split_tests(root, output_dir, file):
+
+    relative_path = os.path.relpath(file.name, root)
+    base_path = os.path.splitext(relative_path)[0]
+    export_dir = os.path.join(output_dir, "export", base_path)
+    import_dir = os.path.join(output_dir, "import", base_path)
+    os.makedirs(export_dir, exist_ok=True)
+    os.makedirs(import_dir, exist_ok=True)
+
+    header = ""
+    parsedHeader = False
+    current_case_name = None
+    export_lines = []
+    import_lines = []
+    inside_case = False
+    reading_import = False
+    for line in file:
+        line = line.rstrip("\n")
+        if not parsedHeader:
+            header += line + "\n"
+            if line.strip() == "--":
+                parsedHeader = True
+            continue
+        if line.startswith("--CASE"):
+            if current_case_name:
+                write_case(export_dir, import_dir, current_case_name, header, export_lines, import_lines)
+                export_lines = []
+                import_lines = []
+                reading_import = False
+            current_case_name = line[len("--CASE"):].strip()
+            inside_case = True
+            export_lines.append(line + "\n")
+            import_lines.append(line + "\n")
+            continue
+        if line.startswith("#SPLIT"):
+            reading_import = True
+            continue
+        if inside_case:
+            if reading_import:
+                import_lines.append(line + "\n")
+            else:
+                export_lines.append(line + "\n")
+    if current_case_name:
+        write_case(export_dir, import_dir, current_case_name, header, export_lines, import_lines)
+
+
+def split_files(test_dir, output_dir):
     for root, dirs, files in os.walk(test_dir):
         for file in files:
-            split_test(root, output_dir, file)
+            full_path = os.path.join(root, file)
+            with open(full_path, "r") as f:
+                split_tests(test_dir, output_dir, f)
 
 
 def run_export_specific_tests(kuzu_root, base_worktree, test_worktree, 
                               test_dir, output_dir, cleanup):
     # Split tests in test_dir
-    split_tests(test_dir, output_dir)
+    split_files(test_dir, output_dir)
     # Build base_worktree kuzu
     run_command("make test-build", cwd=base_worktree)
     # Run against one half of scripts (exports)
@@ -156,7 +214,6 @@ def main():
 
         if bool(args.dataset_dir) == bool(args.test_dir):
             parser.error("You must provide exactly one of --dataset-dir or --test-dir.")
-        return 0
 
         base_commit = args.base_commit
         test_commit = args.test_commit
@@ -172,7 +229,8 @@ def main():
 
         if bool(args.dataset_dir):
             run_entire_test_suite(kuzu_root, base_commit, test_commit,
-                                  args.dataset_dir, output_dir, cleanup)
+                                  args.dataset_dir, output_dir, cleanup,
+                                  export_path)
         else:
             assert (bool(args.test_dir))
             run_export_specific_tests(kuzu_root, base_commit, test_commit,
