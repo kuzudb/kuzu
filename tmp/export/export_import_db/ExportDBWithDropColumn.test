@@ -1,0 +1,14 @@
+-DATASET CSV demo-db/csv
+
+--
+-CASE ExportDBWithDropColumn
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT CREATE NODE TABLE test(id int64, prop1 string, prop2 string, prop3 int64, primary key(id));
+---- ok
+-STATEMENT CREATE (t:test{id:1, prop1:"A", prop2:"B", prop3:10});
+---- ok
+-STATEMENT ALTER TABLE test DROP prop1;
+---- ok
+-STATEMENT EXPORT DATABASE "$tmp/export/db_special/drop_column_test";
+---- ok

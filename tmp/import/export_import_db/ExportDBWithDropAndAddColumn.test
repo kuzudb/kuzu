@@ -1,0 +1,10 @@
+-DATASET CSV demo-db/csv
+
+--
+-CASE ExportDBWithDropAndAddColumn
+-IMPORT_DATABASE "$tmp/export/db_special/drop_add_column_test"
+-STATEMENT IMPORT DATABASE "$tmp/export/db_special/drop_add_column_test";
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.id, t.prop2, t.prop3, t.prop4;
+---- 1
+1|B|10|default_value
