@@ -161,8 +161,7 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     for (const auto& entryWithType : allEntries) {
         switch (entryWithType.type) {
         case EntryType::NODE:
-            ss << static_cast<NodeTableCatalogEntry*>(entryWithType.entry)
-                      ->toCypher(toCypherInfo)
+            ss << static_cast<NodeTableCatalogEntry*>(entryWithType.entry)->toCypher(toCypherInfo)
                << std::endl;
             break;
         case EntryType::REL:
@@ -180,7 +179,7 @@ std::string getSchemaCypher(ClientContext* clientContext) {
             break;
         }
     }
-     
+
     for (auto macroName : catalog->getMacroNames(transaction)) {
         ss << catalog->getScalarMacroFunction(transaction, macroName)->toCypher(macroName)
            << std::endl;
