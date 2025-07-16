@@ -32,7 +32,7 @@ class ExportDB final : public SimpleSink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::EXPORT_DATABASE;
 
 public:
-    ExportDB(common::FileScanInfo boundFileInfo, bool schemaOnly, bool sortInternalIds,
+    ExportDB(common::FileScanInfo boundFileInfo, bool schemaOnly,
         std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<ExportDBSharedState> sharedState = std::make_shared<ExportDBSharedState>())
