@@ -14,11 +14,16 @@ endif
 
 .venv:
 	python3 -m venv $(VENV)
-	$(MAKE) requirements
 
-requirements:
+requirements: .venv
 	$(VENV_BIN)/python -m pip install -U uv \
-	&& $(VENV_BIN)/uv pip install pytest pexpect
+	&& $(VENV_BIN)/uv pip install pytest pexpect ruff
 
-test: .venv
+test: requirements
 	$(VENV_BIN)/python3 -m pytest -v .
+
+check: requirements
+	$(VENV_BIN)/uv run ruff check
+
+format: requirements
+	$(VENV_BIN)/uv run ruff format

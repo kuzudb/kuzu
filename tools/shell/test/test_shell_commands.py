@@ -12,7 +12,7 @@ def test_help(temp_db) -> None:
             "    :max_rows [max_rows]     set maximum number of rows for display (default: 20)",
             "    :max_width [max_width]     set maximum width in characters for display",
             "    :mode [mode]     set output mode (default: box)",
-            "    :stats [on|off]     toggle query stats on or off",  
+            "    :stats [on|off]     toggle query stats on or off",
             "    :multiline     set multiline mode (default)",
             "    :singleline     set singleline mode",
             "    :highlight [on|off]     toggle syntax highlighting on or off",
@@ -22,7 +22,7 @@ def test_help(temp_db) -> None:
             "    Note: you can change and see several system configurations, such as num-threads, ",
             "          timeout, and progress_bar using Cypher CALL statements.",
             "          e.g. CALL THREADS=5; or CALL current_setting('threads') return *;",
-            "          See: \x1B]8;;https://docs.kuzudb.com/cypher/configuration\x1B\\https://docs.kuzudb.com/cypher/configuration\x1B]8;;\x1B\\",
+            "          See: \x1b]8;;https://docs.kuzudb.com/cypher/configuration\x1b\\https://docs.kuzudb.com/cypher/configuration\x1b]8;;\x1b\\",
         ],
     )
 
@@ -34,7 +34,12 @@ def test_clear(temp_db) -> None:
 
 
 def test_quit(temp_db) -> None:
-    test = ShellTest().add_argument(temp_db).statement(":quit").statement("RETURN RANGE(0,10) AS a;")
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":quit")
+        .statement("RETURN RANGE(0,10) AS a;")
+    )
     result = test.run()
     # check to make sure the return query did not execute
     result.check_not_stdout("[0,1,2,3,4,5,6,7,8,9,10]")
@@ -50,7 +55,13 @@ def test_max_rows(temp_db, csv_path) -> None:
     )
     result = test.run()
     result.check_stdout("(21 tuples)")
-    result.check_not_stdout(["\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502"])
+    result.check_not_stdout(
+        [
+            "\u2502  \u00b7    \u2502",
+            "\u2502  \u00b7    \u2502",
+            "\u2502  \u00b7    \u2502",
+        ]
+    )
 
     # test 1 row shown
     test = (
@@ -61,7 +72,13 @@ def test_max_rows(temp_db, csv_path) -> None:
     )
     result = test.run()
     result.check_stdout("(21 tuples, 1 shown)")
-    result.check_stdout(["\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502"])
+    result.check_stdout(
+        [
+            "\u2502  \u00b7    \u2502",
+            "\u2502  \u00b7    \u2502",
+            "\u2502  \u00b7    \u2502",
+        ]
+    )
 
     # test setting back to default
     test = (
@@ -72,7 +89,13 @@ def test_max_rows(temp_db, csv_path) -> None:
     )
     result = test.run()
     result.check_stdout("(21 tuples, 20 shown)")
-    result.check_stdout(["\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502"])
+    result.check_stdout(
+        [
+            "\u2502  \u00b7    \u2502",
+            "\u2502  \u00b7    \u2502",
+            "\u2502  \u00b7    \u2502",
+        ]
+    )
 
 
 def test_max_width(temp_db, csv_path) -> None:
@@ -177,7 +200,7 @@ def output_mode_verification(result) -> None:
             "    jsonlines:    Results in a NDJSON format",
             "    latex:    LaTeX tabular environment code",
             "    line:    One value per line",
-            "    list:    Values delimited by \"|\"",
+            '    list:    Values delimited by "|"',
             "    markdown:    Markdown table",
             "    table:    Tables using ASCII characters",
             "    tsv:    Tab-separated values",
@@ -224,7 +247,9 @@ def test_set_mode(temp_db) -> None:
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode csv")
-        .statement('RETURN "This is a \\"test\\", with commas, \\"quotes\\", and\nnewlines.";')
+        .statement(
+            'RETURN "This is a \\"test\\", with commas, \\"quotes\\", and\nnewlines.";'
+        )
     )
     result = test.run()
     result.check_stdout('"This is a ""test"", with commas, ""quotes"", and\nnewlines."')
@@ -264,7 +289,9 @@ def test_set_mode(temp_db) -> None:
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode html")
-        .statement('RETURN "This is a <test> & \\"example\\" with \'special\' characters." AS a;')
+        .statement(
+            'RETURN "This is a <test> & \\"example\\" with \'special\' characters." AS a;'
+        )
     )
     result = test.run()
     result.check_stdout("<table>")
@@ -272,7 +299,9 @@ def test_set_mode(temp_db) -> None:
     result.check_stdout("<th>a</th>")
     result.check_stdout("</tr>")
     result.check_stdout("<tr>")
-    result.check_stdout("<td>This is a &lt;test&gt; &amp; &quot;example&quot; with &apos;special&apos; characters.</td>")
+    result.check_stdout(
+        "<td>This is a &lt;test&gt; &amp; &quot;example&quot; with &apos;special&apos; characters.</td>"
+    )
     result.check_stdout("</tr>")
     result.check_stdout("</table>")
 
@@ -291,10 +320,14 @@ def test_set_mode(temp_db) -> None:
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode json")
-        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines\n, and tabs \t." AS a;')
+        .statement(
+            'RETURN "This is a \\"test\\" with backslashes \\\\, newlines\n, and tabs \t." AS a;'
+        )
     )
     result = test.run()
-    result.check_stdout('[\n{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}\n]')
+    result.check_stdout(
+        '[\n{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}\n]'
+    )
 
     # test jsonlines mode
     test = (
@@ -311,10 +344,14 @@ def test_set_mode(temp_db) -> None:
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode jsonlines")
-        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines\n, and tabs \t." AS a;')
+        .statement(
+            'RETURN "This is a \\"test\\" with backslashes \\\\, newlines\n, and tabs \t." AS a;'
+        )
     )
     result = test.run()
-    result.check_stdout('{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}')
+    result.check_stdout(
+        '{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}'
+    )
 
     # test latex mode
     test = (
@@ -337,14 +374,18 @@ def test_set_mode(temp_db) -> None:
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode latex")
-        .statement('RETURN "This is a test with special characters: %, $, &, #, _, {, }, ~, ^, \\\\, <, and >." AS a;')
+        .statement(
+            'RETURN "This is a test with special characters: %, $, &, #, _, {, }, ~, ^, \\\\, <, and >." AS a;'
+        )
     )
     result = test.run()
     result.check_stdout("\\begin{tabular}{l}")
     result.check_stdout("\\hline")
     result.check_stdout("a\\\\")
     result.check_stdout("\\hline")
-    result.check_stdout("This is a test with special characters: \\%, \\$, \\&, \\#, \\_, \\{, \\}, \\textasciitilde{}, \\textasciicircum{}, \\textbackslash{}, \\textless{}, and \\textgreater{}.\\\\")
+    result.check_stdout(
+        "This is a test with special characters: \\%, \\$, \\&, \\#, \\_, \\{, \\}, \\textasciitilde{}, \\textasciicircum{}, \\textbackslash{}, \\textless{}, and \\textgreater{}.\\\\"
+    )
     result.check_stdout("\\hline")
     result.check_stdout("\\end{tabular}")
 
@@ -358,7 +399,7 @@ def test_set_mode(temp_db) -> None:
     result = test.run()
     result.check_stdout("a = Databases Rule")
     result.check_stdout("b = kuzu is cool")
-    
+
     # test list mode
     test = (
         ShellTest()
@@ -375,10 +416,14 @@ def test_set_mode(temp_db) -> None:
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode tsv")
-        .statement('RETURN "This is a \\"test\\", with vertical bars |, \\"quotes\\", and\nnewlines.";')
+        .statement(
+            'RETURN "This is a \\"test\\", with vertical bars |, \\"quotes\\", and\nnewlines.";'
+        )
     )
     result = test.run()
-    result.check_stdout('"This is a ""test"", with vertical bars |, ""quotes"", and\nnewlines."')
+    result.check_stdout(
+        '"This is a ""test"", with vertical bars |, ""quotes"", and\nnewlines."'
+    )
 
     # test markdown mode
     test = (
@@ -418,17 +463,21 @@ def test_set_mode(temp_db) -> None:
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode tsv")
-        .statement('RETURN "This is a \\"test\\", with tabs \t, \\"quotes\\", and\nnewlines.";')
+        .statement(
+            'RETURN "This is a \\"test\\", with tabs \t, \\"quotes\\", and\nnewlines.";'
+        )
     )
     result = test.run()
-    result.check_stdout('"This is a ""test"", with tabs \t, ""quotes"", and\nnewlines."')
+    result.check_stdout(
+        '"This is a ""test"", with tabs \t, ""quotes"", and\nnewlines."'
+    )
 
     # test trash mode
     test = (
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode trash")
-        .statement('RETURN RANGE(0, 10) AS a;')
+        .statement("RETURN RANGE(0, 10) AS a;")
     )
     result = test.run()
     result.check_not_stdout("[0,1,2,3,4,5,6,7,8,9,10]")
@@ -457,11 +506,7 @@ def test_set_mode(temp_db) -> None:
 
 def test_stats(temp_db) -> None:
     # test stats default
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement('RETURN "Databases Rule" AS a;')
-    )
+    test = ShellTest().add_argument(temp_db).statement('RETURN "Databases Rule" AS a;')
     result = test.run()
     result.check_stdout("(1 tuple)")
     result.check_stdout("(1 column)")
@@ -517,11 +562,7 @@ def test_multiline(temp_db) -> None:
     result.check_stdout("\u2502 databases rule \u2502")
 
     # test no truncation
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement("a" * 400 + ";")
-    )
+    test = ShellTest().add_argument(temp_db).statement("a" * 400 + ";")
     result = test.run()
     result.check_stdout("a" * 400)
 
@@ -542,95 +583,67 @@ def test_singleline(temp_db) -> None:
     result.check_stdout("\u2502 databases rule \u2502")
 
     # test truncation
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement("a" * 400 + ";")
-    )
+    test = ShellTest().add_argument(temp_db).statement("a" * 400 + ";")
     result = test.run()
     result.check_stdout("a" * 80)
 
 
 def test_highlight(temp_db) -> None:
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement(":highlight off")
-    )
+    test = ShellTest().add_argument(temp_db).statement(":highlight off")
     result = test.run()
     result.check_stdout("disabled syntax highlighting")
 
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement(":highlight on")
-    )
+    test = ShellTest().add_argument(temp_db).statement(":highlight on")
     result = test.run()
     result.check_stdout("enabled syntax highlighting")
 
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement(":highlight o")
-    )
+    test = ShellTest().add_argument(temp_db).statement(":highlight o")
     result = test.run()
-    result.check_stdout("Cannot parse 'o' to toggle highlighting. Expect 'on' or 'off'.")
+    result.check_stdout(
+        "Cannot parse 'o' to toggle highlighting. Expect 'on' or 'off'."
+    )
 
 
 def test_render_errors(temp_db) -> None:
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement(":render_errors off")
-    )
+    test = ShellTest().add_argument(temp_db).statement(":render_errors off")
     result = test.run()
     result.check_stdout("disabled error highlighting")
 
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement(":render_errors on")
-    )
+    test = ShellTest().add_argument(temp_db).statement(":render_errors on")
     result = test.run()
     result.check_stdout("enabled error highlighting")
 
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement(":render_errors o")
-    )
+    test = ShellTest().add_argument(temp_db).statement(":render_errors o")
     result = test.run()
-    result.check_stdout("Cannot parse 'o' to toggle error highlighting. Expect 'on' or 'off'.")
+    result.check_stdout(
+        "Cannot parse 'o' to toggle error highlighting. Expect 'on' or 'off'."
+    )
 
 
 def test_completion_highlighting(temp_db) -> None:
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement(":render_completion off")
-    )
+    test = ShellTest().add_argument(temp_db).statement(":render_completion off")
     result = test.run()
     result.check_stdout("disabled completion highlighting")
 
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement(":render_completion on")
-    )
+    test = ShellTest().add_argument(temp_db).statement(":render_completion on")
     result = test.run()
     result.check_stdout("enabled completion highlighting")
 
-    test = (
-        ShellTest()
-        .add_argument(temp_db)
-        .statement(":render_completion o")
-    )
+    test = ShellTest().add_argument(temp_db).statement(":render_completion o")
     result = test.run()
-    result.check_stdout("Cannot parse 'o' to toggle completion highlighting. Expect 'on' or 'off'.")
+    result.check_stdout(
+        "Cannot parse 'o' to toggle completion highlighting. Expect 'on' or 'off'."
+    )
 
 
 def test_bad_command(temp_db) -> None:
-    test = ShellTest().add_argument(temp_db).statement(":maxrows").statement(":quiy").statement("clearr;")
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":maxrows")
+        .statement(":quiy")
+        .statement("clearr;")
+    )
     result = test.run()
     result.check_stdout(
         'Error: Unknown command: ":maxrows". Enter ":help" for help',

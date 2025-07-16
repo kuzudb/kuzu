@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
     // If `historyFile` is present in the current directory, use that to preserve backward
     // compatibility.
     if (pathToHistory.empty() && !std::filesystem::exists(historyFile)) {
-        auto homeDir = LocalFileSystem::getUserHomeDir();
+        auto homeDir = ClientContext::getUserHomeDir();
         if (!homeDir.empty()) {
             pathToHistory = std::string(homeDir) + "/.kuzu/";
             if (std::filesystem::create_directories(pathToHistory) != 0) {

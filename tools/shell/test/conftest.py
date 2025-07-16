@@ -212,5 +212,7 @@ def singleline():
     test = ShellTest()
     test.start()
     test.send_finished_statement(":singleline\r")
-    assert test.shell_process.expect_exact(["Single line mode enabled", pexpect.EOF]) == 0
+    assert (
+        test.shell_process.expect_exact(["Single line mode enabled", pexpect.EOF]) == 0
+    )
     return test
