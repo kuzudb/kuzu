@@ -55,11 +55,7 @@ ClientContext::ClientContext(Database* database)
     randomEngine = std::make_unique<RandomEngine>();
     remoteDatabase = nullptr;
     graphEntrySet = std::make_unique<graph::GraphEntrySet>();
-#if defined(_WIN32)
-    clientConfig.homeDirectory = getEnvVariable("USERPROFILE");
-#else
-    clientConfig.homeDirectory = getEnvVariable("HOME");
-#endif
+    clientConfig.homeDirectory = getUserHomeDir();
     clientConfig.fileSearchPath = "";
     clientConfig.enableSemiMask = ClientConfigDefault::ENABLE_SEMI_MASK;
     clientConfig.enableZoneMap = ClientConfigDefault::ENABLE_ZONE_MAP;
@@ -272,6 +268,14 @@ std::string ClientContext::getEnvVariable(const std::string& name) {
         return std::string();
     }
     return env;
+#endif
+}
+
+std::string ClientContext::getUserHomeDir() {
+#if defined(_WIN32)
+    return getEnvVariable("USERPROFILE");
+#else
+    return getEnvVariable("HOME");
 #endif
 }
 
