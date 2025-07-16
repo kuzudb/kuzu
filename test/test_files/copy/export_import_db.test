@@ -340,6 +340,7 @@ Binder exception: The 'SCHEMA_ONLY' option must have a BOOL value.
 ---- ok
 -STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_column_test";
 ---- ok
+#SPLIT
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_column_test"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_column_test";
 ---- ok
@@ -360,6 +361,7 @@ Binder exception: The 'SCHEMA_ONLY' option must have a BOOL value.
 ---- ok
 -STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_add_column_test";
 ---- ok
+#SPLIT
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_add_column_test"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_add_column_test";
 ---- ok
