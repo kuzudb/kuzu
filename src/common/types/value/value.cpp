@@ -732,11 +732,7 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
     // union fields into value.
     auto activeFieldIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
     // Create default value now that we know the active field
-    if (children.empty()) {
-        children.push_back(
-            std::make_unique<Value>(Value::createDefaultValue(*childrenTypes[activeFieldIdx])));
-        ++childrenSize;
-    }
+    auto childValue = Value::createDefaultValue(*childrenTypes[activeFieldIdx]);
     auto curMemberIdx = 0u;
     // Seek to the current active member value.
     while (curMemberIdx < activeFieldIdx) {
@@ -744,10 +740,16 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
         curMemberIdx++;
     }
     if (NullBuffer::isNull(unionNullValues, activeFieldIdx)) {
-        children[0]->setNull(true);
+        childValue.setNull(true);
     } else {
-        children[0]->setNull(false);
-        children[0]->copyFromRowLayout(unionValues);
+        childValue.setNull(false);
+        childValue.copyFromRowLayout(unionValues);
+    }
+    if (children.empty()) {
+        children.push_back(std::make_unique<Value>(std::move(childValue)));
+        childrenSize = 1;
+    } else {
+        children[0] = std::make_unique<Value>(std::move(childValue));
     }
 }
 
