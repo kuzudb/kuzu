@@ -24,12 +24,11 @@ class BoundExportDatabase final : public BoundStatement {
 public:
     BoundExportDatabase(std::string filePath, common::FileTypeInfo fileTypeInfo,
         std::vector<ExportedTableData> exportData,
-        common::case_insensitive_map_t<common::Value> csvOption, bool schemaOnly,
-        bool sortInternalIds)
+        common::case_insensitive_map_t<common::Value> csvOption, bool schemaOnly)
         : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
           exportData(std::move(exportData)),
           boundFileInfo(std::move(fileTypeInfo), std::vector{std::move(filePath)}),
-          schemaOnly{schemaOnly}, sortInternalIds{sortInternalIds} {
+          schemaOnly{schemaOnly} {
         boundFileInfo.options = std::move(csvOption);
     }
 
@@ -41,13 +40,11 @@ public:
     const common::FileScanInfo* getBoundFileInfo() const { return &boundFileInfo; }
     const std::vector<ExportedTableData>* getExportData() const { return &exportData; }
     bool exportSchemaOnly() const { return schemaOnly; }
-    bool orderByInternalIds() const { return sortInternalIds; }
 
 private:
     std::vector<ExportedTableData> exportData;
     common::FileScanInfo boundFileInfo;
     bool schemaOnly;
-    bool sortInternalIds;
 };
 
 } // namespace binder
