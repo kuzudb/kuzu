@@ -57,7 +57,7 @@
 9:5|(0:6)-{_LABEL: meets, _ID: 9:5, location: [3.000000,5.200000], times: 11, data: NO hex code}->(0:2)
 9:6|(0:7)-{_LABEL: meets, _ID: 9:6, location: [3.500000,1.100000], times: 13, data: :\xA3}->(0:1)
 
--STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/preserve_ids" (format='csv', header=true, sort_internal_ids=true);
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/preserve_ids" (format='csv', header=true);
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/preserve_ids"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/preserve_ids";
