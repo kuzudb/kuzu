@@ -131,7 +131,7 @@ struct EntryAndType {
     EntryType type = EntryType::UNREACHABLE;
 };
 
-std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) {
+std::string getSchemaCypher(ClientContext* clientContext) {
     stringstream ss;
     exportLoadedExtensions(ss, clientContext);
     const auto catalog = clientContext->getCatalog();
@@ -144,54 +144,43 @@ std::string getSchemaCypher(ClientContext* clientContext, bool sortInternalIds) 
     RelGroupToCypherInfo relTableToCypherInfo{clientContext};
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
 
-    if (sortInternalIds) {
-        std::vector<EntryAndType> allEntries;
-        for (auto* e : nodeTableEntries) {
-            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
-        }
-        for (auto* e : relGroupEntries) {
-            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::REL});
-        }
-        for (auto* e : sequenceEntries) {
-            allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::SEQUENCE});
-        }
-        std::sort(allEntries.begin(), allEntries.end(),
-            [](const EntryAndType& a, const EntryAndType& b) {
-                return a.entry->getOID() < b.entry->getOID();
-            });
-        for (const auto& entryWithType : allEntries) {
-            switch (entryWithType.type) {
-            case EntryType::NODE:
-                ss << static_cast<NodeTableCatalogEntry*>(entryWithType.entry)
-                          ->toCypher(toCypherInfo)
-                   << std::endl;
-                break;
-            case EntryType::REL:
-                ss << static_cast<RelGroupCatalogEntry*>(entryWithType.entry)
-                          ->toCypher(relTableToCypherInfo)
-                   << std::endl;
-                break;
-            case EntryType::SEQUENCE:
-                ss << static_cast<SequenceCatalogEntry*>(entryWithType.entry)
-                          ->toCypher(relGroupToCypherInfo)
-                   << std::endl;
-                break;
-            default:
-                KU_UNREACHABLE;
-                break;
-            }
-        }
-    } else {
-        for (const auto& nodeTableEntry : nodeTableEntries) {
-            ss << nodeTableEntry->toCypher(toCypherInfo) << std::endl;
-        }
-        for (const auto& entry : relGroupEntries) {
-            ss << entry->toCypher(relTableToCypherInfo) << std::endl;
-        }
-        for (const auto sequenceEntry : sequenceEntries) {
-            ss << sequenceEntry->toCypher(relGroupToCypherInfo) << std::endl;
+    std::vector<EntryAndType> allEntries;
+    for (auto* e : nodeTableEntries) {
+        allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::NODE});
+    }
+    for (auto* e : relGroupEntries) {
+        allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::REL});
+    }
+    for (auto* e : sequenceEntries) {
+        allEntries.push_back({static_cast<CatalogEntry*>(e), EntryType::SEQUENCE});
+    }
+    std::sort(allEntries.begin(), allEntries.end(),
+        [](const EntryAndType& a, const EntryAndType& b) {
+            return a.entry->getOID() < b.entry->getOID();
+        });
+    for (const auto& entryWithType : allEntries) {
+        switch (entryWithType.type) {
+        case EntryType::NODE:
+            ss << static_cast<NodeTableCatalogEntry*>(entryWithType.entry)
+                      ->toCypher(toCypherInfo)
+               << std::endl;
+            break;
+        case EntryType::REL:
+            ss << static_cast<RelGroupCatalogEntry*>(entryWithType.entry)
+                      ->toCypher(relTableToCypherInfo)
+               << std::endl;
+            break;
+        case EntryType::SEQUENCE:
+            ss << static_cast<SequenceCatalogEntry*>(entryWithType.entry)
+                      ->toCypher(relGroupToCypherInfo)
+               << std::endl;
+            break;
+        default:
+            KU_UNREACHABLE;
+            break;
         }
     }
+     
     for (auto macroName : catalog->getMacroNames(transaction)) {
         ss << catalog->getScalarMacroFunction(transaction, macroName)->toCypher(macroName)
            << std::endl;
@@ -230,7 +219,7 @@ std::string getIndexCypher(ClientContext* clientContext, const FileScanInfo& exp
 void ExportDB::executeInternal(ExecutionContext* context) {
     const auto clientContext = context->clientContext;
     // write the schema.cypher file
-    writeStringStreamToFile(clientContext, getSchemaCypher(clientContext, sortInternalIds),
+    writeStringStreamToFile(clientContext, getSchemaCypher(clientContext),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::SCHEMA_FILE_NAME);
     if (schemaOnly) {
         return;
