@@ -65,7 +65,7 @@ std::string ScalarMacroFunction::toCypher(const std::string& name) const {
     for (auto& defaultParam : defaultArgs) {
         paramStrings.push_back(defaultParam.first + ":=" + defaultParam.second->toString());
     }
-    return stringFormat("CREATE MACRO {} ({}) AS {};", name, StringUtils::join(paramStrings, ","),
+    return stringFormat("CREATE MACRO `{}` ({}) AS {};", name, StringUtils::join(paramStrings, ","),
         expression->toString());
 }
 } // namespace function
