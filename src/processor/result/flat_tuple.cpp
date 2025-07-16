@@ -46,11 +46,11 @@ std::string FlatTuple::toString(const std::vector<uint32_t>& colsWidth,
     const std::string& delimiter, const uint32_t maxWidth) {
     std::ostringstream result;
     for (auto i = 0ul; i < values.size(); i++) {
-        std::string value = values[i]->toString();
-        uint32_t fieldLen = 0;
-        uint32_t cutoff = 0, cutoffLen = 0;
-        for (uint32_t iter = 0; iter < value.length();) {
-            uint32_t width = Utf8Proc::renderWidth(value.c_str(), iter);
+        auto value = values[i]->toString();
+        auto fieldLen = 0u;
+        auto cutoff = 0u, cutoffLen = 0u;
+        for (auto iter = 0u; iter < value.length();) {
+            auto width = Utf8Proc::renderWidth(value.c_str(), iter);
             if (fieldLen + 3 > maxWidth && cutoff == 0) {
                 cutoff = iter;
                 cutoffLen = fieldLen;
