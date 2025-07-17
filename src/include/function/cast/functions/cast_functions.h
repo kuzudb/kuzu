@@ -51,7 +51,7 @@ struct CastToUnion {
 };
 
 template<>
-inline void CastToUnion::operation(union_entry_t, common::ValueVector& inputVector,
+inline void CastToUnion::operation(common::union_entry_t, common::ValueVector& inputVector,
     common::ValueVector& resultVector, uint64_t inputPos, uint64_t resultPos, void* pBindData) {
     auto& bindData = *reinterpret_cast<CastBetweenUnionBindData*>(pBindData);
     auto& srcTagVector = *common::UnionVector::getTagVector(&inputVector);
