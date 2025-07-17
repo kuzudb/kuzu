@@ -70,12 +70,12 @@ static std::string getTablePropertyDefinitions(const TableCatalogEntry* entry) {
 }
 
 static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* entry,
-    const FileScanInfo* info) {
+    const FileScanInfo* info, const bool& parallel) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     // TODO(Ziyi): We should pass fileName from binder phase to here.
     auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns = getTablePropertyDefinitions(entry);
-    auto copyOptionsCypher = CSVOption::toCypher(csvConfig.option.toOptionsMap());
+    auto copyOptionsCypher = CSVOption::toCypher(csvConfig.option.toOptionsMap(parallel));
     if (columns.empty()) {
         ss << stringFormat("COPY `{}` FROM \"{}\" {};\n", entry->getName(), fileName,
             copyOptionsCypher);
@@ -86,12 +86,12 @@ static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* en
 }
 
 static void writeCopyRelStatement(stringstream& ss, const ClientContext* context,
-    const TableCatalogEntry* entry, const FileScanInfo* info) {
+    const TableCatalogEntry* entry, const FileScanInfo* info, const bool& parallel) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     std::string columns = getTablePropertyDefinitions(entry);
     auto transaction = context->getTransaction();
     const auto catalog = context->getCatalog();
-    auto optionsMap = csvConfig.option.toOptionsMap();
+    auto optionsMap = csvConfig.option.toOptionsMap(parallel);
     for (auto& entryInfo : entry->constCast<RelGroupCatalogEntry>().getRelEntryInfos()) {
         auto fromTableName =
             catalog->getTableCatalogEntry(transaction, entryInfo.nodePair.srcTableID)->getName();
@@ -146,16 +146,16 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     return ss.str();
 }
 
-std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boundFileInfo) {
+std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boundFileInfo, const bool& parallel) {
     stringstream ss;
     auto transaction = context->getTransaction();
     const auto catalog = context->getCatalog();
     for (const auto& nodeTableEntry :
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
-        writeCopyNodeStatement(ss, nodeTableEntry, boundFileInfo);
+        writeCopyNodeStatement(ss, nodeTableEntry, boundFileInfo, parallel);
     }
     for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
-        writeCopyRelStatement(ss, context, entry, boundFileInfo);
+        writeCopyRelStatement(ss, context, entry, boundFileInfo, parallel);
     }
     return ss.str();
 }
@@ -183,7 +183,7 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     }
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
-    writeStringStreamToFile(clientContext, getCopyCypher(clientContext, &boundFileInfo),
+    writeStringStreamToFile(clientContext, getCopyCypher(clientContext, &boundFileInfo, parallel),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::COPY_FILE_NAME);
     // write the index.cypher file
     writeStringStreamToFile(clientContext, getIndexCypher(clientContext, boundFileInfo),

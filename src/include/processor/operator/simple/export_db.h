@@ -43,9 +43,13 @@ public:
             printInfo->copy());
     }
 
+    bool& getParallel() {return parallel;}
+    bool getParallel() const {return parallel;}
+
 private:
     common::FileScanInfo boundFileInfo;
     bool schemaOnly;
+    bool parallel = true;
 };
 } // namespace processor
 } // namespace kuzu
