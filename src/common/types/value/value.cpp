@@ -172,13 +172,12 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(dataType.copy(), std::move(children));
     }
     case LogicalTypeID::MAP:
-    case LogicalTypeID::LIST: {
-        return Value(dataType.copy(), std::vector<std::unique_ptr<Value>>{});
-    }
+    case LogicalTypeID::LIST:
     case LogicalTypeID::UNION: {
-        std::vector<std::unique_ptr<Value>> children;
-        children.push_back(std::make_unique<Value>(createNullValue()));
-        return Value(dataType.copy(), std::move(children));
+        // We can't create a default value for the union since the
+        // selected variant is runtime information. Default value
+        // is initialized when copying (see Value::copyFromUnion).
+        return Value(dataType.copy(), std::vector<std::unique_ptr<Value>>{});
     }
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
@@ -732,8 +731,8 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
     // For union dataType, only one member can be active at a time. So we don't need to copy all
     // union fields into value.
     auto activeFieldIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
-    auto childValue = children[0].get();
-    childValue->dataType = childrenTypes[activeFieldIdx]->copy();
+    // Create default value now that we know the active field
+    auto childValue = Value::createDefaultValue(*childrenTypes[activeFieldIdx]);
     auto curMemberIdx = 0u;
     // Seek to the current active member value.
     while (curMemberIdx < activeFieldIdx) {
@@ -741,10 +740,16 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
         curMemberIdx++;
     }
     if (NullBuffer::isNull(unionNullValues, activeFieldIdx)) {
-        childValue->setNull(true);
+        childValue.setNull(true);
     } else {
-        childValue->setNull(false);
-        childValue->copyFromRowLayout(unionValues);
+        childValue.setNull(false);
+        childValue.copyFromRowLayout(unionValues);
+    }
+    if (children.empty()) {
+        children.push_back(std::make_unique<Value>(std::move(childValue)));
+        childrenSize = 1;
+    } else {
+        children[0] = std::make_unique<Value>(std::move(childValue));
     }
 }
 

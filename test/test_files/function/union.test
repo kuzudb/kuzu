@@ -9,6 +9,14 @@
 ---- 1
 36
 
+-LOG UnionValueOnNestedType
+-STATEMENT RETURN union_value(a := struct_pack(b := 123))
+---- 1
+{b: 123}
+-STATEMENT RETURN union_value(a := [12, 34])
+---- 1
+[12,34]
+
 -LOG UnionValueOnExpr
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) return union_value(age := p.age) AS u1, union_value(age := p1.age) AS u2
 ---- 14
