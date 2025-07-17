@@ -230,7 +230,7 @@ def run_export_specific_tests(
     split_files(test_dir, output_dir)
     # Build base_worktree kuzu
     run_command("make test-build", cwd=base_worktree)
-    # Run against one half of scripts (exports)
+    # Run the export tests.
     run_command(
         f"E2E_TEST_FILES_DIRECTORY='.' ./.worktree-base/build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, 'export'))}",
         cwd=kuzu_root,
