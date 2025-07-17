@@ -11,8 +11,7 @@ def create_worktree(path, commit, repo_root):
 
 def remove_worktree(path, repo_root):
     if os.path.exists(path):
-        run_command(f"git worktree remove --force {path}", cwd=repo_root,
-                    check=False)
+        run_command(f"git worktree remove --force {path}", cwd=repo_root, check=False)
 
 
 def check_for_extension_build(makefile):
@@ -57,8 +56,15 @@ def run_command(cmd, cwd=None, capture_output=False, check=True):
         return None
 
 
-def run_entire_test_suite(kuzu_root, base_worktree, test_worktree, dataset_dir,
-                          output_dir, cleanup, export_path):
+def run_entire_test_suite(
+    kuzu_root,
+    base_worktree,
+    test_worktree,
+    dataset_dir,
+    output_dir,
+    cleanup,
+    export_path,
+):
     version = get_version(base_worktree)
     if version == "0":
         raise Exception("Failed to determine version. Aborting.")
@@ -73,9 +79,7 @@ def run_entire_test_suite(kuzu_root, base_worktree, test_worktree, dataset_dir,
         if check_for_extension_build(
             os.path.abspath(os.path.join(base_worktree, "Makefile"))
         ):
-            run_command(
-                "make extension-build EXTENSION_LIST=json", cwd=base_worktree
-            )
+            run_command("make extension-build EXTENSION_LIST=json", cwd=base_worktree)
         else:
             run_command(
                 "make extension-test-build EXTENSION_LIST=json", cwd=base_worktree
@@ -101,34 +105,64 @@ def run_entire_test_suite(kuzu_root, base_worktree, test_worktree, dataset_dir,
     return 0
 
 
-def write_case(export_dir, import_dir, case_name, header, export_lines,
-               import_lines, db_dir):
+def write_case(
+    export_dir, import_dir, case_name, header, export_lines, import_lines, db_dir
+):
     export_path = os.path.join(export_dir, f"{case_name}.test")
     import_path = os.path.join(import_dir, f"{case_name}.test")
 
     def replace_placeholders(lines):
-        return [line.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir) for line in lines]
+        return [
+            line.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir + os.sep)
+            for line in lines
+        ]
+
+    # We are going to be importing a db, there is no need to
+    # use time on copy statements for a dataset we will soon remove
+    def transform_import_header(header):
+        new_lines = []
+        for line in header.splitlines(keepends=True):
+            if line.startswith("-DATASET"):
+                parts = line.strip().split()
+                if len(parts) >= 2:
+                    parts[-1] = "EMPTY"
+                    line = " ".join(parts) + "\n"
+                new_lines.append(line)
+            return "".join(new_lines)
+
+    # Without this I run into an issue where the exported db seems to be deleted
+    # making the import fail. We still do import with the line
+    # -STATEMENT IMPORT DATABASE ...
+    def transform_import_lines(lines):
+        result = []
+        for line in lines:
+            if line.startswith("-IMPORT DATABASE"):
+                continue  # Skip this line entirely
+            result.append(line)
+        return result
 
     with open(export_path, "w") as f:
-        f.write(header.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir))
+        f.write(header.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir + os.sep))
         f.writelines(replace_placeholders(export_lines))
 
     with open(import_path, "w") as f:
-        f.write(header.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir))
-        f.writelines(replace_placeholders(import_lines))
+        f.write(
+            transform_import_header(
+                header.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir + os.sep)
+            )
+        )
+        f.writelines(transform_import_lines(replace_placeholders(import_lines)))
 
 
 def split_tests(root, output_dir, file):
-
     relative_path = os.path.relpath(file.name, root)
     base_path = os.path.splitext(relative_path)[0]
     export_dir = os.path.abspath(os.path.join(output_dir, "export", base_path))
     import_dir = os.path.abspath(os.path.join(output_dir, "import", base_path))
     db_dir = os.path.abspath(os.path.join(output_dir, "db"))
-    os.makedirs(export_dir, exist_ok=True)
-    os.makedirs(import_dir, exist_ok=True)
-    os.makedirs(db_dir, exist_ok=True)
-
+    os.makedirs(export_dir, exist_ok=False)
+    os.makedirs(import_dir, exist_ok=False)
+    os.makedirs(db_dir, exist_ok=False)
 
     header = ""
     parsedHeader = False
@@ -147,12 +181,19 @@ def split_tests(root, output_dir, file):
         if line.startswith("-CASE"):
             # this is a spell to skip any cases that do not have a split
             if current_case_name and reading_import:
-                write_case(export_dir, import_dir, current_case_name, header,
-                           export_lines, import_lines, db_dir)
+                write_case(
+                    export_dir,
+                    import_dir,
+                    current_case_name,
+                    header,
+                    export_lines,
+                    import_lines,
+                    db_dir,
+                )
             export_lines = []
             import_lines = []
             reading_import = False
-            current_case_name = line[len("--CASE"):].strip()
+            current_case_name = line[len("--CASE") :].strip()
             inside_case = True
             export_lines.append(line + "\n")
             import_lines.append(line + "\n")
@@ -166,8 +207,15 @@ def split_tests(root, output_dir, file):
             else:
                 export_lines.append(line + "\n")
     if current_case_name and reading_import:
-        write_case(export_dir, import_dir, current_case_name, header,
-                   export_lines, import_lines, db_dir)
+        write_case(
+            export_dir,
+            import_dir,
+            current_case_name,
+            header,
+            export_lines,
+            import_lines,
+            db_dir,
+        )
 
 
 def split_files(test_dir, output_dir):
@@ -178,18 +226,27 @@ def split_files(test_dir, output_dir):
                 split_tests(test_dir, output_dir, f)
 
 
-def run_export_specific_tests(kuzu_root, base_worktree, test_worktree, 
-                              test_dir, output_dir, cleanup):
+def run_export_specific_tests(
+    kuzu_root, base_worktree, test_worktree, test_dir, output_dir, cleanup
+):
     # Split tests in test_dir
     split_files(test_dir, output_dir)
     # Build base_worktree kuzu
     run_command("make test-build", cwd=base_worktree)
     # Run against one half of scripts (exports)
-    run_command(f"E2E_TEST_FILES_DIRECTORY='.' ./.worktree-base/build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "export"))}", cwd=kuzu_root, check=False)
+    run_command(
+        f"E2E_TEST_FILES_DIRECTORY='.' ./.worktree-base/build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, 'export'))}",
+        cwd=kuzu_root,
+        check=False,
+    )
     # Build test_worktree kuzu
     run_command("make test-build", cwd=test_worktree)
     # Run against other half of scripts
-    run_command(f"E2E_TEST_FILES_DIRECTORY='.' ./.worktree-test/build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, "import"))}", cwd=kuzu_root, check=False)
+    run_command(
+        f"E2E_TEST_FILES_DIRECTORY='.' ./.worktree-test/build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, 'import'))}",
+        cwd=kuzu_root,
+        check=False,
+    )
 
 
 def main():
@@ -217,8 +274,18 @@ def main():
         )
 
         mutually_exclusive_args = parser.add_mutually_exclusive_group()
-        mutually_exclusive_args.add_argument("--cleanup", dest="cleanup", action="store_true", help="Delete exported DBs after test")
-        mutually_exclusive_args.add_argument("--no-cleanup", dest="cleanup", action="store_false", help="Do not delete exported DBs after test")
+        mutually_exclusive_args.add_argument(
+            "--cleanup",
+            dest="cleanup",
+            action="store_true",
+            help="Delete exported DBs after test",
+        )
+        mutually_exclusive_args.add_argument(
+            "--no-cleanup",
+            dest="cleanup",
+            action="store_false",
+            help="Do not delete exported DBs after test",
+        )
         parser.set_defaults(cleanup=True)
 
         args = parser.parse_args()
@@ -239,14 +306,26 @@ def main():
         create_worktree(test_worktree, test_commit, kuzu_root)
 
         if bool(args.dataset_dir):
-            run_entire_test_suite(kuzu_root, base_worktree, test_worktree,
-                                  os.path.abspath(args.dataset_dir), output_dir, cleanup,
-                                  export_path)
+            run_entire_test_suite(
+                kuzu_root,
+                base_worktree,
+                test_worktree,
+                os.path.abspath(args.dataset_dir),
+                output_dir,
+                cleanup,
+                export_path,
+            )
         else:
-            assert (bool(args.test_dir))
+            assert bool(args.test_dir)
             export_path = output_dir
-            run_export_specific_tests(kuzu_root, base_worktree, test_worktree,
-                                      os.path.abspath(args.test_dir), output_dir, cleanup)
+            run_export_specific_tests(
+                kuzu_root,
+                base_worktree,
+                test_worktree,
+                os.path.abspath(args.test_dir),
+                output_dir,
+                cleanup,
+            )
 
     finally:
         if cleanup and export_path and os.path.exists(export_path):
@@ -255,7 +334,7 @@ def main():
         else:
             print(f"Skipping cleaning up export directory: {export_path}")
 
-        if (base_worktree or test_worktree):
+        if base_worktree or test_worktree:
             print("Removing worktrees")
             if base_worktree:
                 remove_worktree(base_worktree, kuzu_root)
