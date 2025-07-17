@@ -190,25 +190,25 @@ def split_tests(root, output_dir, file, db_dir):
                 )
             export_lines = []
             import_lines = []
-            reading_import = False
-            current_case_name = line[len("-CASE"):].strip()
-            inside_case = True
+            in_import = False
+            current_case = line[len("-CASE"):].strip()
+            in_case = True
             export_lines.append(line + "\n")
             import_lines.append(line + "\n")
             continue
-        if line.startswith("#SPLIT"):
-            reading_import = True
+        if line.startswith("#EXPORT_IMPORT_TEST_SPLIT"):
+            in_import = True
             continue
-        if inside_case:
-            if reading_import:
+        if in_case:
+            if in_import:
                 import_lines.append(line + "\n")
             else:
                 export_lines.append(line + "\n")
-    if current_case_name and reading_import:
+    if current_case and in_import:
         write_split_testfile(
             export_dir,
             import_dir,
-            current_case_name,
+            current_case,
             header,
             export_lines,
             import_lines,
