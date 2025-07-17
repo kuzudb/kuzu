@@ -52,7 +52,13 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
         memcmp(str, ExportCSVConstants::DEFAULT_NULL_STR, len) == 0) {
         return true;
     }
+    static constexpr const char* NEWLINE = "\n\r";
     for (auto i = 0u; i < len; i++) {
+        if (str[i] == NEWLINE[0] ||
+            str[i] == NEWLINE[1]) {
+            *exportCSVBindData.parallel=false;
+            return true;
+        }
         if (str[i] == exportCSVBindData.exportOption.quoteChar ||
             str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[0] ||
             str[i] == exportCSVBindData.exportOption.delimiter) {
