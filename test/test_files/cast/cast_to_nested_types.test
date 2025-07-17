@@ -545,6 +545,15 @@ True
 -STATEMENT RETURN CAST({a: {b: 123}} AS STRUCT(a UNION(x BOOL, y STRUCT(b FLOAT))))
 ---- 1
 {a: {b: 123.000000}}
+-STATEMENT CREATE NODE TABLE MyTable (id SERIAL PRIMARY KEY, value UNION(value1 int8, value2 int64)[]);
+---- ok
+-STATEMENT CREATE (:MyTable { value: [] }),(:MyTable { value: [128] });
+---- ok
+-STATEMENT MATCH (a:MyTable) RETURN a.*;
+---- 2
+0|[]
+1|[128]
+
 
 -CASE CastToUnionError
 -STATEMENT RETURN CAST(CAST(1282158 AS INT64) AS UNION(a INT32, b INT16, c UINT8, d INT8))
