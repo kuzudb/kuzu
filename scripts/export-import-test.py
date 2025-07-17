@@ -177,7 +177,7 @@ def split_tests(root, output_dir, file, db_dir):
                 header_parsed = True
             continue
         if line.startswith("-CASE"):
-            # this is a spell to skip any cases that do not have a split
+            # Write the previous case, if it had a split.
             if in_case and in_import:
                 write_split_testfile(
                     export_dir,
