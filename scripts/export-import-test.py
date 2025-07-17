@@ -238,7 +238,7 @@ def run_export_specific_tests(
     )
     # Build test_worktree kuzu
     run_command("make test-build", cwd=test_worktree)
-    # Run against other half of scripts
+    # Run the import tests.
     run_command(
         f"E2E_TEST_FILES_DIRECTORY='.' ./.worktree-test/build/relwithdebinfo/test/runner/e2e_test {os.path.abspath(os.path.join(output_dir, 'import'))}",
         cwd=kuzu_root,
