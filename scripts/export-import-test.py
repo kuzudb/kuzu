@@ -71,9 +71,7 @@ def run_entire_test_suite(
     export_path = os.path.abspath(os.path.join(output_dir, version))
 
     if not os.path.exists(export_path + os.sep):
-        # Some datasets, like tinysnb_json, have a dependency on the JSON
-        # extension in their copy.cypher files. Therefore, we must build with
-        # JSON support to ensure the export works correctly.
+        # Also build the `json` extension, which is needed for some datasets, like tinysnb_json.
 
         # Older makefiles did not have the command specified under else
         if check_for_extension_build(
