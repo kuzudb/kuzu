@@ -36,7 +36,8 @@ struct CastRelToString {
 };
 
 struct CastToUnion {
-    static void unionCastInner(common::ValueVector& inputVector, common::ValueVector& valVector, uint64_t inputPos, uint64_t resultPos, CastFunctionBindData& innerBindData);
+    static void unionCastInner(common::ValueVector& inputVector, common::ValueVector& valVector,
+        uint64_t inputPos, uint64_t resultPos, CastFunctionBindData& innerBindData);
 
     template<typename T>
     static inline void operation(T, common::ValueVector& inputVector,
@@ -61,7 +62,8 @@ inline void CastToUnion::operation(union_entry_t, common::ValueVector& inputVect
     auto& srcValVector = *common::UnionVector::getValVector(&inputVector, srcTag);
     auto& resValVector =
         *common::UnionVector::getValVector(&resultVector, innerCastBindData->targetTag);
-    unionCastInner(srcValVector, resValVector, inputPos, resultPos, innerCastBindData->innerBindData);
+    unionCastInner(srcValVector, resValVector, inputPos, resultPos,
+        innerCastBindData->innerBindData);
 }
 
 struct CastDateToTimestamp {

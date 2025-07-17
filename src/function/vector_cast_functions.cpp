@@ -41,7 +41,8 @@ template<typename EXECUTOR>
 static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string&,
     const LogicalType&, const LogicalType&);
 
-static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector, CastFunctionBindData* dataPtr) {
+static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
+    CastFunctionBindData* dataPtr) {
     const auto* inputType = &inputVector->dataType;
     const auto* resultType = &resultVector->dataType;
     auto& numOfEntries = dataPtr->numOfEntries;
@@ -122,7 +123,8 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             resultVector->getSelVectorPtr(), (void*)dataPtr);
     } else {
         for (auto i = 0u; i < numOfEntries; i++) {
-            resultVector->copyFromVectorData(i + dataPtr->inOffset, inputVector.get(), i + dataPtr->outOffset);
+            resultVector->copyFromVectorData(i + dataPtr->inOffset, inputVector.get(),
+                i + dataPtr->outOffset);
         }
     }
 }
@@ -154,7 +156,8 @@ static void nestedTypesCastExecFunction(
     }
 }
 
-void CastToUnion::unionCastInner(ValueVector& inputVector, ValueVector& valVector, uint64_t inputPos, uint64_t resultPos, CastFunctionBindData& innerBindData) {
+void CastToUnion::unionCastInner(ValueVector& inputVector, ValueVector& valVector,
+    uint64_t inputPos, uint64_t resultPos, CastFunctionBindData& innerBindData) {
     auto input = std::shared_ptr<ValueVector>(&inputVector, [](ValueVector*) {});
     innerBindData.inOffset = inputPos;
     innerBindData.outOffset = resultPos;
@@ -686,8 +689,7 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
         execFunc);
     auto pInnerType = std::make_shared<LogicalType>(innerType.copy());
     auto pTargetType = std::make_shared<LogicalType>(targetType.copy());
-    castFunc->bindFunc = [minCostTag, pInnerType, pTargetType](
-                             const ScalarBindFuncInput&) {
+    castFunc->bindFunc = [minCostTag, pInnerType, pTargetType](const ScalarBindFuncInput&) {
         return std::make_unique<CastToUnionBindData>(minCostTag, pInnerType->copy(),
             pTargetType->copy());
     };
@@ -713,7 +715,8 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenUnionFunction(const std::s
                 fieldTypeSrc.toString(), fieldTypeDst.toString())};
         }
         auto dstTag = UnionType::getFieldIdx(targetType, fieldName);
-        innerCasts->push_back(std::make_unique<CastToUnionBindData>(dstTag, fieldTypeDst.copy(), targetType.copy()));
+        innerCasts->push_back(
+            std::make_unique<CastToUnionBindData>(dstTag, fieldTypeDst.copy(), targetType.copy()));
     }
     scalar_func_exec_t execFunc = ScalarFunction::UnaryCastUnionExecFunction<union_entry_t,
         union_entry_t, CastToUnion, EXECUTOR>;
