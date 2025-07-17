@@ -82,6 +82,9 @@ def export_datasets_and_test(
             run_command(
                 "make extension-test-build EXTENSION_LIST=json", cwd=base_worktree
             )
+
+        # Use '_inprogress' as a staging suffix to ensure atomicity.
+        # That is, we only rename and continue once all exports are done.
         inprogress_path = f"{export_path}_inprogress" + os.sep
         export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
         exec_path = os.path.join(
@@ -97,7 +100,7 @@ def export_datasets_and_test(
         os.rename(inprogress_path, export_path + os.sep)
 
     # Append `/` so that datasets can be found correctly
-    os.environ["E2E_IMPORT_DB_DIR"] = export_path +  os.sep
+    os.environ["E2E_IMPORT_DB_DIR"] = export_path + os.sep
     run_command("make test", cwd=test_worktree)
     return 0
 
