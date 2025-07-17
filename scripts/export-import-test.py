@@ -160,7 +160,7 @@ def split_tests(root, output_dir, file, db_dir):
     import_dir = os.path.abspath(os.path.join(output_dir, "import", base_path))
 
     header = ""
-    parsedHeader = False
+    header_parsed = False
     current_case_name = None
     export_lines = []
     import_lines = []
