@@ -72,12 +72,11 @@ def export_datasets_and_test(
 
     if not os.path.exists(export_path + os.sep):
         # Also build the `json` extension, which is needed for some datasets, like tinysnb_json.
-
-        # Older Makefiles do not have the `extension-build` rule
         if check_for_extension_build(
             os.path.abspath(os.path.join(base_worktree, "Makefile"))
         ):
             run_command("make extension-build EXTENSION_LIST=json", cwd=base_worktree)
+        # Older Makefiles do not have the `extension-build` rule
         else:
             run_command(
                 "make extension-test-build EXTENSION_LIST=json", cwd=base_worktree
