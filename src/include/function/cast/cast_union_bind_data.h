@@ -9,7 +9,8 @@ namespace kuzu {
 namespace function {
 
 struct CastToUnionBindData : public CastFunctionBindData {
-    using inner_func_t = std::function<void(common::ValueVector&, common::ValueVector&, uint64_t, uint64_t, CastFunctionBindData&)>;
+    using inner_func_t = std::function<void(common::ValueVector&, common::ValueVector&, uint64_t,
+        uint64_t, CastFunctionBindData&)>;
 
     common::union_field_idx_t targetTag;
     inner_func_t innerFunc;
