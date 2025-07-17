@@ -9,22 +9,15 @@ namespace kuzu {
 namespace function {
 
 struct CastToUnionBindData : public CastFunctionBindData {
-    using inner_func_t = std::function<void(common::ValueVector&, common::ValueVector&, uint64_t,
-        uint64_t, CastFunctionBindData&)>;
-
     common::union_field_idx_t targetTag;
-    inner_func_t innerFunc;
     CastFunctionBindData innerBindData;
 
-    CastToUnionBindData(common::union_field_idx_t targetTag, inner_func_t innerFunc,
-        common::LogicalType innerType, common::LogicalType dataType)
+    CastToUnionBindData(common::union_field_idx_t targetTag, common::LogicalType innerType, common::LogicalType dataType)
         : CastFunctionBindData{std::move(dataType)}, targetTag{targetTag},
-          innerFunc{std::move(innerFunc)},
           innerBindData{CastFunctionBindData(std::move(innerType))} {}
 
     std::unique_ptr<FunctionBindData> copy() const override {
-        return std::make_unique<CastToUnionBindData>(targetTag, innerFunc,
-            innerBindData.resultType.copy(), resultType.copy());
+        return std::make_unique<CastToUnionBindData>(targetTag, innerBindData.resultType.copy(), resultType.copy());
     }
 };
 

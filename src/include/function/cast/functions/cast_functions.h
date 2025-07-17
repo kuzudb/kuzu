@@ -36,6 +36,8 @@ struct CastRelToString {
 };
 
 struct CastToUnion {
+    static void unionCastInner(common::ValueVector& inputVector, common::ValueVector& valVector, uint64_t inputPos, uint64_t resultPos, CastFunctionBindData& innerBindData);
+
     template<typename T>
     static inline void operation(T, common::ValueVector& inputVector,
         common::ValueVector& resultVector, uint64_t inputPos, uint64_t resultPos, void* pBindData) {
@@ -43,7 +45,7 @@ struct CastToUnion {
         auto& tagVector = *common::UnionVector::getTagVector(&resultVector);
         auto& valVector = *common::UnionVector::getValVector(&resultVector, bindData.targetTag);
         tagVector.setValue<common::union_field_idx_t>(resultPos, bindData.targetTag);
-        bindData.innerFunc(inputVector, valVector, inputPos, resultPos, bindData.innerBindData);
+        unionCastInner(inputVector, valVector, inputPos, resultPos, bindData.innerBindData);
     }
 };
 
@@ -59,8 +61,7 @@ inline void CastToUnion::operation(union_entry_t, common::ValueVector& inputVect
     auto& srcValVector = *common::UnionVector::getValVector(&inputVector, srcTag);
     auto& resValVector =
         *common::UnionVector::getValVector(&resultVector, innerCastBindData->targetTag);
-    innerCastBindData->innerFunc(srcValVector, resValVector, inputPos, resultPos,
-        innerCastBindData->innerBindData);
+    unionCastInner(srcValVector, resValVector, inputPos, resultPos, innerCastBindData->innerBindData);
 }
 
 struct CastDateToTimestamp {
