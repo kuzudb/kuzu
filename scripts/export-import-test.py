@@ -83,8 +83,9 @@ def export_datasets_and_test(
                 "make extension-test-build EXTENSION_LIST=json", cwd=base_worktree
             )
 
-        # Use '_inprogress' as a staging suffix to ensure atomicity.
-        # That is, we only rename and continue once all exports are done.
+        # Use '_inprogress' as a temporary suffix to store the exports
+        # and atomically rename to `export_path` after all exports are successful.
+        # Avoids partial exports.
         inprogress_path = f"{export_path}_inprogress" + os.sep
         export_script_path = os.path.join(kuzu_root, "scripts", "export-dbs.py")
         exec_path = os.path.join(
