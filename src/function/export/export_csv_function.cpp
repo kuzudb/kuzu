@@ -56,7 +56,7 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
     for (auto i = 0u; i < len; i++) {
         if (str[i] == NEWLINE[0] ||
             str[i] == NEWLINE[1]) {
-            *exportCSVBindData.parallel=false;
+            *(exportCSVBindData.parallel)=false;
             return true;
         }
         if (str[i] == exportCSVBindData.exportOption.quoteChar ||
