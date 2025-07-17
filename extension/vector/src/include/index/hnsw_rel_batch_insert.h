@@ -33,7 +33,8 @@ struct HNSWIndexPartitionerSharedState {
         : lowerPartitionerSharedState{std::make_shared<HNSWLayerPartitionerSharedState>()},
           upperPartitionerSharedState{std::make_shared<HNSWLayerPartitionerSharedState>()} {}
 
-    void setTables(storage::NodeTable* nodeTable, storage::RelTable* relTable);
+    void setTables(storage::NodeTable* nodeTable, storage::RelTable* upperRelTable,
+        storage::RelTable* lowerRelTable);
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     void initialize(const common::logical_type_vec_t& columnTypes,

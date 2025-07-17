@@ -42,18 +42,14 @@ struct KUZU_API RelBatchInsertProgressSharedState {
 struct KUZU_API RelBatchInsertInfo final : BatchInsertInfo {
     common::RelDataDirection direction;
     common::table_id_t fromTableID, toTableID;
-    uint64_t partitioningIdx;
-    common::column_id_t boundNodeOffsetColumnID;
+    uint64_t partitioningIdx = UINT64_MAX;
+    common::column_id_t boundNodeOffsetColumnID = common::INVALID_COLUMN_ID;
 
-    RelBatchInsertInfo(std::string tableName, bool compressionEnabled,
-        common::RelDataDirection direction, common::table_id_t fromTableID,
-        common::table_id_t toTableID, uint64_t partitioningIdx, common::column_id_t offsetColumnID,
-        std::vector<common::column_id_t> columnIDs, std::vector<common::LogicalType> columnTypes,
-        common::column_id_t numWarningDataColumns)
-        : BatchInsertInfo{std::move(tableName), compressionEnabled, std::move(columnIDs),
-              std::move(columnTypes), numWarningDataColumns},
-          direction{direction}, fromTableID{fromTableID}, toTableID{toTableID},
-          partitioningIdx{partitioningIdx}, boundNodeOffsetColumnID{offsetColumnID} {}
+    RelBatchInsertInfo(std::string tableName, std::vector<common::LogicalType> warningColumnTypes,
+        common::table_id_t fromTableID, common::table_id_t toTableID,
+        common::RelDataDirection direction)
+        : BatchInsertInfo{std::move(tableName), std::move(warningColumnTypes)},
+          direction{direction}, fromTableID{fromTableID}, toTableID{toTableID} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
         : BatchInsertInfo{other}, direction{other.direction}, fromTableID{other.fromTableID},
           toTableID{other.toTableID}, partitioningIdx{other.partitioningIdx},
@@ -125,21 +121,15 @@ public:
 
 class KUZU_API RelBatchInsert : public BatchInsert {
 public:
-    RelBatchInsert(std::string tableName, std::unique_ptr<BatchInsertInfo> info,
+    RelBatchInsert(std::unique_ptr<BatchInsertInfo> info,
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
-        std::shared_ptr<BatchInsertSharedState> sharedState, uint32_t id,
+        std::shared_ptr<BatchInsertSharedState> sharedState, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState,
         std::unique_ptr<RelBatchInsertImpl> impl)
-        : BatchInsert{std::move(tableName), std::move(info), std::move(sharedState), id,
-              std::move(printInfo)},
+        : BatchInsert{std::move(info), std::move(sharedState), id, std::move(printInfo)},
           partitionerSharedState{std::move(partitionerSharedState)},
           progressSharedState{std::move(progressSharedState)}, impl(std::move(impl)) {}
-
-    std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<RelBatchInsert>(tableName, info->copy(), partitionerSharedState,
-            sharedState, id, printInfo->copy(), progressSharedState, impl->copy());
-    }
 
     bool isSource() const override { return true; }
 
@@ -150,6 +140,11 @@ public:
     void finalizeInternal(ExecutionContext* context) override;
 
     void updateProgress(const ExecutionContext* context) const;
+
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState, sharedState,
+            id, printInfo->copy(), progressSharedState, impl->copy());
+    }
 
 private:
     void appendNodeGroup(const catalog::RelGroupCatalogEntry& relGroupEntry,

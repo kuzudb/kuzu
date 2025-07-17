@@ -147,26 +147,24 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     // Append RelBatchInsert pipelines.
     // Get tables from storage.
     const auto storageManager = clientContext->getStorageManager();
+    const auto catalog = clientContext->getCatalog();
+    const auto transaction = clientContext->getTransaction();
     auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
                          ->ptrCast<storage::NodeTable>();
     auto nodeTableID = nodeTable->getTableID();
     auto upperRelTableName = HNSWIndexUtils::getUpperGraphTableName(nodeTableID, indexName);
-    auto upperRelTableEntry =
-        clientContext->getCatalog()
-            ->getTableCatalogEntry(clientContext->getTransaction(), upperRelTableName)
-            ->ptrCast<catalog::RelGroupCatalogEntry>();
+    auto upperRelTableEntry = catalog->getTableCatalogEntry(transaction, upperRelTableName)
+                                  ->ptrCast<catalog::RelGroupCatalogEntry>();
     auto upperRelTable = storageManager->getTable(upperRelTableEntry->getSingleRelEntryInfo().oid)
                              ->ptrCast<storage::RelTable>();
     auto lowerRelTableName = HNSWIndexUtils::getLowerGraphTableName(nodeTableID, indexName);
-    auto lowerRelTableEntry =
-        clientContext->getCatalog()
-            ->getTableCatalogEntry(clientContext->getTransaction(), lowerRelTableName)
-            ->ptrCast<catalog::RelGroupCatalogEntry>();
+    auto lowerRelTableEntry = catalog->getTableCatalogEntry(transaction, lowerRelTableName)
+                                  ->ptrCast<catalog::RelGroupCatalogEntry>();
     auto lowerRelTable = storageManager->getTable(lowerRelTableEntry->getSingleRelEntryInfo().oid)
                              ->ptrCast<storage::RelTable>();
     // Initialize partitioner shared state.
     auto& partitionerSharedState = finalizeFuncSharedState->partitionerSharedState;
-    partitionerSharedState->setTables(nodeTable, upperRelTable);
+    partitionerSharedState->setTables(nodeTable, upperRelTable, lowerRelTable);
     logical_type_vec_t callColumnTypes;
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());
@@ -175,37 +173,32 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     // Initialize fTable for BatchInsert.
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    // Figure out column types and IDs to COPY into.
-    std::vector<LogicalType> columnTypes;
-    std::vector<column_id_t> columnIDs;
-    columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
-    columnIDs.push_back(0);                            // NBR_ID COLUMN.
-    for (auto& property : upperRelTableEntry->getProperties()) {
-        columnTypes.push_back(property.getType().copy());
-        columnIDs.push_back(upperRelTableEntry->getColumnID(property.getName()));
-    }
     // Create RelBatchInsert and dummy sink operators.
-    binder::BoundCopyFromInfo upperCopyFromInfo(upperRelTableName, TableType::REL, nullptr, nullptr,
-        {}, {}, nullptr);
-    const auto upperBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(upperRelTable,
-        fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
-    auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
+    const auto upperBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(fTable);
+    auto upperInsertInfo = std::make_unique<RelBatchInsertInfo>(upperRelTableEntry->getName(),
+        std::vector<LogicalType>{} /* warningColumnTypes */, nodeTableID /* fromTableID */,
+        nodeTableID /* toTableID */, RelDataDirection::FWD);
+    auto upperPrintInfo = std::make_unique<RelBatchInsertPrintInfo>(upperRelTableEntry->getName());
+    auto upperProgress = std::make_shared<RelBatchInsertProgressSharedState>();
+    auto upperBatchInsert = std::make_unique<RelBatchInsert>(std::move(upperInsertInfo),
         partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
-        upperCopyFromInfo, logicalOp->getSchema(), common::RelDataDirection::FWD, nodeTableID,
-        nodeTableID, columnIDs, LogicalType::copy(columnTypes), planMapper->getOperatorID(),
+        planMapper->getOperatorID(), std::move(upperPrintInfo), upperProgress,
         std::make_unique<HNSWRelBatchInsert>());
-    binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableName, TableType::REL, nullptr, nullptr,
-        {}, {}, nullptr);
-    const auto lowerBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(lowerRelTable,
-        fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
-    auto copyRelLower = planMapper->createRelBatchInsertOp(clientContext,
+    upperBatchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
+    const auto lowerBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(fTable);
+    auto lowerInsertInfo = std::make_unique<RelBatchInsertInfo>(lowerRelTableEntry->getName(),
+        std::vector<LogicalType>{} /* warningColumnTypes */, nodeTableID /* fromTableID */,
+        nodeTableID /* toTableID */, RelDataDirection::FWD);
+    auto lowerPrintInfo = std::make_unique<RelBatchInsertPrintInfo>(lowerRelTableEntry->getName());
+    auto lowerProgress = std::make_shared<RelBatchInsertProgressSharedState>();
+    auto lowerBatchInsert = std::make_unique<RelBatchInsert>(std::move(lowerInsertInfo),
         partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
-        lowerCopyFromInfo, logicalOp->getSchema(), common::RelDataDirection::FWD, nodeTableID,
-        nodeTableID, columnIDs, LogicalType::copy(columnTypes), planMapper->getOperatorID(),
+        planMapper->getOperatorID(), std::move(lowerPrintInfo), lowerProgress,
         std::make_unique<HNSWRelBatchInsert>());
+    lowerBatchInsert->setDescriptor(std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
     physical_op_vector_t children;
-    children.push_back(std::move(copyRelUpper));
-    children.push_back(std::move(copyRelLower));
+    children.push_back(std::move(upperBatchInsert));
+    children.push_back(std::move(lowerBatchInsert));
     children.push_back(std::move(finalizeHNSWDummySink));
     return planMapper->createFTableScanAligned({}, logicalOp->getSchema(), fTable,
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));

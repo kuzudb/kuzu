@@ -8,6 +8,7 @@
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
+#include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/rel_table.h"
@@ -34,8 +35,9 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     localState->optimisticAllocator =
         context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
     const auto clientContext = context->clientContext;
-    const auto catalogEntry = clientContext->getCatalog()->getTableCatalogEntry(
-        clientContext->getTransaction(), tableName);
+    const auto catalog = clientContext->getCatalog();
+    const auto transaction = clientContext->getTransaction();
+    const auto catalogEntry = catalog->getTableCatalogEntry(transaction, info->tableName);
     const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
     auto tableID = relGroupEntry.getRelEntryInfo(relInfo->fromTableID, relInfo->toTableID)->oid;
     auto nbrTableID = RelDirectionUtils::getNbrTableID(relInfo->direction, relInfo->fromTableID,
@@ -57,34 +59,33 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
 
 void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     const auto relBatchInsertInfo = info->ptrCast<RelBatchInsertInfo>();
-    // If initialization is required
-    if (info->insertColumnIDs.empty()) {
-        const auto clientContext = context->clientContext;
-        const auto catalog = clientContext->getCatalog();
-        const auto transaction = clientContext->getTransaction();
-        const auto catalogEntry = catalog->getTableCatalogEntry(transaction, tableName);
-        const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
-        sharedState->table = partitionerSharedState->relTable;
-        // TODO(Xiyang): rewrite me
-        logical_type_vec_t newColumnTypes;
-        newColumnTypes.push_back(LogicalType::INTERNAL_ID());
-        info->insertColumnIDs.push_back(0);
-        for (auto& property : relGroupEntry.getProperties()) {
-            info->insertColumnIDs.push_back(relGroupEntry.getColumnID(property.getName()));
-            newColumnTypes.push_back(property.getType().copy());
-        }
-        for (auto&& warningDataColumnType : relBatchInsertInfo->columnTypes) {
-            newColumnTypes.push_back(std::move(warningDataColumnType));
-        }
-        relBatchInsertInfo->outputDataColumns.resize(
-            newColumnTypes.size() - relBatchInsertInfo->warningDataColumns.size());
-        std::iota(relBatchInsertInfo->outputDataColumns.begin(),
-            relBatchInsertInfo->outputDataColumns.end(), 0);
-        std::iota(relBatchInsertInfo->warningDataColumns.begin(),
-            relBatchInsertInfo->warningDataColumns.end(),
-            relBatchInsertInfo->outputDataColumns.size());
-        relBatchInsertInfo->columnTypes = std::move(newColumnTypes);
+    const auto clientContext = context->clientContext;
+    const auto catalog = clientContext->getCatalog();
+    const auto transaction = clientContext->getTransaction();
+    const auto catalogEntry = catalog->getTableCatalogEntry(transaction, info->tableName);
+    const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
+    // Init info
+    info->compressionEnabled = clientContext->getStorageManager()->compressionEnabled();
+    auto dataColumnIdx = 0u;
+    // Handle internal id column
+    info->columnTypes.push_back(LogicalType::INTERNAL_ID());
+    info->insertColumnIDs.push_back(0);
+    info->outputDataColumns.push_back(dataColumnIdx++);
+    for (auto& property : relGroupEntry.getProperties()) {
+        info->columnTypes.push_back(property.getType().copy());
+        info->insertColumnIDs.push_back(relGroupEntry.getColumnID(property.getName()));
+        info->outputDataColumns.push_back(dataColumnIdx++);
     }
+    for (auto& type : info->warningColumnTypes) {
+        info->columnTypes.push_back(type.copy());
+        info->warningDataColumns.push_back(dataColumnIdx++);
+    }
+    relBatchInsertInfo->partitioningIdx =
+        relBatchInsertInfo->direction == RelDataDirection::FWD ? 0 : 1;
+    relBatchInsertInfo->boundNodeOffsetColumnID =
+        relBatchInsertInfo->direction == RelDataDirection::FWD ? 0 : 1;
+    // Init shared state
+    sharedState->table = partitionerSharedState->relTable;
     progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
     progressSharedState->partitionsDone = 0;
     progressSharedState->partitionsTotal =

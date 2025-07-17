@@ -9,13 +9,13 @@ namespace vector_extension {
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void HNSWIndexPartitionerSharedState::setTables(storage::NodeTable* nodeTable,
-    storage::RelTable* relTable) {
+    storage::RelTable* upperRelTable, storage::RelTable* lowerRelTable) {
     lowerPartitionerSharedState->srcNodeTable = nodeTable;
     lowerPartitionerSharedState->dstNodeTable = nodeTable;
-    lowerPartitionerSharedState->relTable = relTable;
+    lowerPartitionerSharedState->relTable = lowerRelTable;
     upperPartitionerSharedState->srcNodeTable = nodeTable;
     upperPartitionerSharedState->dstNodeTable = nodeTable;
-    upperPartitionerSharedState->relTable = relTable;
+    upperPartitionerSharedState->relTable = upperRelTable;
 }
 
 void HNSWLayerPartitionerSharedState::setGraph(std::unique_ptr<InMemHNSWGraph> newGraph,
