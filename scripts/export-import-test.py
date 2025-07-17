@@ -73,7 +73,7 @@ def run_entire_test_suite(
     if not os.path.exists(export_path + os.sep):
         # Also build the `json` extension, which is needed for some datasets, like tinysnb_json.
 
-        # Older makefiles did not have the command specified under else
+        # Older Makefiles do not have the `extension-build` rule
         if check_for_extension_build(
             os.path.abspath(os.path.join(base_worktree, "Makefile"))
         ):
