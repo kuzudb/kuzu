@@ -58,7 +58,8 @@ public:
     }
     bool isEmpty() const {
         KU_ASSERT(directedIndices.size() >= 1);
-        RUNTIME_CHECK(for (const auto& index : directedIndices) {
+        RUNTIME_CHECK(for (const auto& index
+                           : directedIndices) {
             KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
         });
         return directedIndices[0].isEmpty();
