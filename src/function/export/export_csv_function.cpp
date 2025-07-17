@@ -104,12 +104,14 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
     std::mutex mtx;
     std::unique_ptr<FileInfo> fileInfo;
     offset_t offset = 0;
+    bool* parallel = nullptr;
 
     ExportCSVSharedState() = default;
 
     void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
             FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
+        parallel = bindData.parallel;
         writeHeader(bindData);
     }
 

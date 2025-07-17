@@ -33,6 +33,7 @@ struct ExportFuncBindData {
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> types;
     std::string fileName;
+    bool* parallel = nullptr;
 
     ExportFuncBindData(std::vector<std::string> columnNames, std::string fileName)
         : columnNames{std::move(columnNames)}, fileName{std::move(fileName)} {}
