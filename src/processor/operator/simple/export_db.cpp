@@ -146,7 +146,8 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     return ss.str();
 }
 
-std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boundFileInfo, const bool& parallel) {
+std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boundFileInfo,
+    const bool& parallel) {
     stringstream ss;
     auto transaction = context->getTransaction();
     const auto catalog = context->getCatalog();

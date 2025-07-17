@@ -74,7 +74,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         exportDatabase->isSchemaOnly(), messageTable, getOperatorID(), std::move(printInfo));
     auto sink = std::make_unique<DummySimpleSink>(messageTable, getOperatorID());
     for (auto child : exportDatabase->getChildren()) {
-        //TODO: Use shared state to let COPYTO physical operator modify exportDB->getParallel();
+        // TODO: Use shared state to let COPYTO physical operator modify exportDB->getParallel();
         sink->addChild(mapOperator(child.get()));
     }
     sink->addChild(std::move(exportDB));
