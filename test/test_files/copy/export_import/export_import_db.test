@@ -41,3 +41,70 @@
 -STATEMENT MATCH (t:test) RETURN t.id, t.prop2, t.prop3, t.prop4;
 ---- 1
 1|B|10|default_value
+
+-CASE ExportDBDropMultipleColumns
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT CREATE NODE TABLE test(id int64, a string, b string, c int64, d string, primary key(id));
+---- ok
+-STATEMENT CREATE (t:test{id:1, a:"one", b:"two", c:3, d:"four"});
+---- ok
+-STATEMENT ALTER TABLE test DROP a;
+---- ok
+-STATEMENT ALTER TABLE test DROP d;
+---- ok
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_multiple_columns";
+---- ok
+#EXPORT_IMPORT_TEST_SPLIT
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_multiple_columns"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_multiple_columns";
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.id, t.b, t.c;
+---- 1
+1|two|3
+
+-CASE ExportDBAddColThenInsert
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT CREATE NODE TABLE test(id int64, name string, primary key(id));
+---- ok
+-STATEMENT CREATE (t:test{id:1, name:"Original"});
+---- ok
+-STATEMENT ALTER TABLE test ADD tag string default "none";
+---- ok
+-STATEMENT CREATE (t:test{id:2, name:"New", tag:"custom"});
+---- ok
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/add_col_insert";
+---- ok
+#EXPORT_IMPORT_TEST_SPLIT
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/add_col_insert"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/add_col_insert";
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.id, t.name, t.tag ORDER BY t.id;
+---- 2
+1|Original|none
+2|New|custom
+
+-CASE ExportDBDropThenAddDifferentType
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT CREATE NODE TABLE test(id int64, name string, isActive bool, primary key(id));
+---- ok
+-STATEMENT CREATE (t:test{id:1, name:"Item", isActive:true});
+---- ok
+-STATEMENT ALTER TABLE test DROP isActive;
+---- ok
+-STATEMENT ALTER TABLE test ADD score double default 99.9;
+---- ok
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_add_diff_type";
+---- ok
+#EXPORT_IMPORT_TEST_SPLIT
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_add_diff_type"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/drop_add_diff_type";
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.id, t.name, t.score;
+-CHECK_ORDER
+-CHECK_PRECISION
+---- 1
+1|Item|99.9
+
