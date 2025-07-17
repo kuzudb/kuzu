@@ -125,10 +125,7 @@ def write_split_testfile(
         new_lines = []
         for line in header.splitlines(keepends=True):
             if line.startswith("-DATASET"):
-                parts = line.strip().split()
-                if len(parts) >= 2:
-                    parts[-1] = "EMPTY"
-                    line = " ".join(parts) + "\n"
+                line = "-DATASET CSV empty"
             new_lines.append(line)
         return "".join(new_lines)
 
