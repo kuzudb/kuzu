@@ -132,8 +132,8 @@ def write_split_testfile(
             new_lines.append(line)
         return "".join(new_lines)
 
-    # Without this I run into an issue where the exported db seems to be
-    # deleted making the import fail. We still do import with the line
+    # This is to handle an issue where the exported db seems to be
+    # deleted making the import fail. DBs are still imported with the line
     # -STATEMENT IMPORT DATABASE ...
     def transform_import_lines(lines):
         result = []
