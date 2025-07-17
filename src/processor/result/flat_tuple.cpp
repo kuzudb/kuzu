@@ -46,18 +46,25 @@ std::string FlatTuple::toString(const std::vector<uint32_t>& colsWidth,
     const std::string& delimiter, const uint32_t maxWidth) {
     std::ostringstream result;
     for (auto i = 0ul; i < values.size(); i++) {
-        std::string value = values[i]->toString();
-        if (value.length() > maxWidth) {
-            value = value.substr(0, maxWidth - 3) + "...";
+        auto value = values[i]->toString();
+        auto fieldLen = 0u;
+        auto cutoff = 0u, cutoffLen = 0u;
+        for (auto iter = 0u; iter < value.length();) {
+            auto width = Utf8Proc::renderWidth(value.c_str(), iter);
+            if (fieldLen + 3 > maxWidth && cutoff == 0) {
+                cutoff = iter;
+                cutoffLen = fieldLen;
+            }
+            fieldLen += width;
+            iter = utf8proc_next_grapheme(value.c_str(), value.length(), iter);
+        }
+        if (fieldLen > maxWidth) {
+            value = value.substr(0, cutoff) + "...";
+            fieldLen = cutoffLen + 3;
         }
         if (colsWidth[i] != 0) {
             value = " " + std::move(value) + " ";
-        }
-        uint32_t fieldLen = 0;
-        uint32_t chrIter = 0;
-        while (chrIter < value.length()) {
-            fieldLen += Utf8Proc::renderWidth(value.c_str(), chrIter);
-            chrIter = utf8proc_next_grapheme(value.c_str(), value.length(), chrIter);
+            fieldLen += 2;
         }
         fieldLen = std::min(fieldLen, maxWidth + 2);
         if (colsWidth[i] != 0) {
