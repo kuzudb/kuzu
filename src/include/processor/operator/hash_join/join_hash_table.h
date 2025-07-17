@@ -26,8 +26,9 @@ public:
     void allocateHashSlots(uint64_t numTuples);
     void buildHashSlots();
 
+    // The tmpHashResultVector may be null if there is only one keyVector
     void probe(const std::vector<common::ValueVector*>& keyVectors, common::ValueVector& hashVector,
-        common::SelectionVector& hashSelVec, common::ValueVector& tmpHashResultVector,
+        common::SelectionVector& hashSelVec, common::ValueVector* tmpHashResultVector,
         uint8_t** probedTuples);
     // All key vectors must be flat. Thus input is a tuple, multiple matches can be found for the
     // given key tuple.

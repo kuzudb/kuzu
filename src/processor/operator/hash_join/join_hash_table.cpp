@@ -127,7 +127,7 @@ void JoinHashTable::buildHashSlots() {
 }
 
 void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVector& hashVector,
-    SelectionVector& hashSelVec, ValueVector& tmpHashResultVector, uint8_t** probedTuples) {
+    SelectionVector& hashSelVec, ValueVector* tmpHashResultVector, uint8_t** probedTuples) {
     KU_ASSERT(keyVectors.size() == keyTypes.size());
     if (getNumEntries() == 0) {
         return;
@@ -141,8 +141,8 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
     for (auto i = 1u; i < keyVectors.size(); i++) {
         hashSelVec.setSelSize(keyVectors[i]->state->getSelVector().getSelSize());
         function::VectorHashFunction::computeHash(*keyVectors[i],
-            keyVectors[i]->state->getSelVector(), tmpHashResultVector, hashSelVec);
-        function::VectorHashFunction::combineHash(hashVector, hashSelVec, tmpHashResultVector,
+            keyVectors[i]->state->getSelVector(), *tmpHashResultVector, hashSelVec);
+        function::VectorHashFunction::combineHash(hashVector, hashSelVec, *tmpHashResultVector,
             hashSelVec, hashVector, hashSelVec);
     }
     for (auto i = 0u; i < hashSelVec.getSelSize(); i++) {
