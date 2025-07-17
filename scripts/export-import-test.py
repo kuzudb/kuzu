@@ -119,8 +119,8 @@ def write_split_testfile(
             for line in lines
         ]
 
-    # We are going to be importing a db, there is no need to
-    # use time on copy statements for a dataset we will soon remove
+    # Copying the dataset here is unnecessary and inefficient because we would
+    # have to remove it shortly after (import requires a fresh db instance).
     def transform_import_header(header):
         new_lines = []
         for line in header.splitlines(keepends=True):
@@ -132,8 +132,8 @@ def write_split_testfile(
             new_lines.append(line)
         return "".join(new_lines)
 
-    # Without this I run into an issue where the exported db seems to be deleted
-    # making the import fail. We still do import with the line
+    # Without this I run into an issue where the exported db seems to be
+    # deleted making the import fail. We still do import with the line
     # -STATEMENT IMPORT DATABASE ...
     def transform_import_lines(lines):
         result = []
