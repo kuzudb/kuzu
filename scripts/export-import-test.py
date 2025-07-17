@@ -187,7 +187,7 @@ def split_tests(root, output_dir, file, db_dir):
             export_lines = []
             import_lines = []
             in_import = False
-            current_case = line[len("-CASE"):].strip()
+            current_case = line[len("-CASE") :].strip()
             in_case = True
             export_lines.append(line + "\n")
             import_lines.append(line + "\n")
@@ -247,7 +247,6 @@ def run_export_specific_tests(
 
 
 def main():
-
     base_worktree = None
     test_worktree = None
     export_path = None
@@ -289,7 +288,9 @@ def main():
         args = parser.parse_args()
 
         if bool(args.dataset_dir) == bool(args.test_dir):
-            raise Exception("You must provide exactly one of --dataset-dir or --test-dir.")
+            raise Exception(
+                "You must provide exactly one of --dataset-dir or --test-dir."
+            )
 
         base_commit = args.base_commit
         test_commit = args.test_commit
