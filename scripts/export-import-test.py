@@ -97,8 +97,7 @@ def run_entire_test_suite(
         os.rename(inprogress_path, export_path + os.sep)
 
     # Append `/` so that datasets can be found correctly
-    export_path += os.sep
-    os.environ["E2E_IMPORT_DB_DIR"] = export_path
+    os.environ["E2E_IMPORT_DB_DIR"] = export_path +  os.sep
     run_command("make test", cwd=test_worktree)
     return 0
 
