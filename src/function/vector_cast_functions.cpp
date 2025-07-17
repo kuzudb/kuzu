@@ -64,7 +64,7 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             inputType = &inputVector->dataType;
             resultType = &resultVector->dataType;
         } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
-                   resultType->getPhysicalType() == PhysicalTypeID::STRUCT) {
+                   resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) {
             // Check if struct type can be cast
             auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
                 inputType->toString(), resultType->toString());
@@ -675,7 +675,7 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     }
     if (minCastCost == UNDEFINED_CAST_COST) {
         throw ConversionException{
-            stringFormat("Cannot cast from {} to {}, target type has no compatible field",
+            stringFormat("Cannot cast from {} to {}, target type has no compatible field.",
                 sourceType.toString(), targetType.toString())};
     }
     const auto& innerType = common::UnionType::getFieldType(targetType, minCostTag);
@@ -706,13 +706,13 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenUnionFunction(const std::s
         const auto& fieldName = UnionType::getFieldName(sourceType, i);
         if (!UnionType::hasField(targetType, fieldName)) {
             throw ConversionException{
-                stringFormat("Cannot cast from {} to {}, target type is missing field '{}'",
+                stringFormat("Cannot cast from {} to {}, target type is missing field '{}'.",
                     sourceType.toString(), targetType.toString(), fieldName)};
         }
         const auto& fieldTypeSrc = UnionType::getFieldType(sourceType, i);
         const auto& fieldTypeDst = UnionType::getFieldType(targetType, fieldName);
         if (!CastFunction::hasImplicitCast(fieldTypeSrc, fieldTypeDst)) {
-            throw ConversionException{stringFormat("Unsupported casting function from {} to {}",
+            throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
                 fieldTypeSrc.toString(), fieldTypeDst.toString())};
         }
         auto dstTag = UnionType::getFieldIdx(targetType, fieldName);
