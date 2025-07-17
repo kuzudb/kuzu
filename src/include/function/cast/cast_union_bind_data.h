@@ -12,12 +12,14 @@ struct CastToUnionBindData : public CastFunctionBindData {
     common::union_field_idx_t targetTag;
     CastFunctionBindData innerBindData;
 
-    CastToUnionBindData(common::union_field_idx_t targetTag, common::LogicalType innerType, common::LogicalType dataType)
+    CastToUnionBindData(common::union_field_idx_t targetTag, common::LogicalType innerType,
+        common::LogicalType dataType)
         : CastFunctionBindData{std::move(dataType)}, targetTag{targetTag},
           innerBindData{CastFunctionBindData(std::move(innerType))} {}
 
     std::unique_ptr<FunctionBindData> copy() const override {
-        return std::make_unique<CastToUnionBindData>(targetTag, innerBindData.resultType.copy(), resultType.copy());
+        return std::make_unique<CastToUnionBindData>(targetTag, innerBindData.resultType.copy(),
+            resultType.copy());
     }
 };
 
