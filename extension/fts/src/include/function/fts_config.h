@@ -43,13 +43,26 @@ struct StopWords {
         const std::string& indexName, const std::string& stopWords);
 };
 
+struct IgnorePattern {
+    static constexpr const char* NAME = "ignore_pattern";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
+    static constexpr const char* DEFAULT_VALUE = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
+
+    static void validate(const std::string& ignorePattern);
+};
+
+struct FTSConfig;
+
 struct CreateFTSConfig {
     std::string stemmer = Stemmer::DEFAULT_VALUE;
     StopWordsTableInfo stopWordsTableInfo;
+    std::string ignorePattern = IgnorePattern::DEFAULT_VALUE;
 
     CreateFTSConfig() = default;
     CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,
         const std::string& indexName, const function::optional_params_t& optionalParams);
+
+    FTSConfig getFTSConfig() const;
 };
 
 struct FTSConfig {
@@ -58,17 +71,17 @@ struct FTSConfig {
     // The original stopwords that the user used when creating the index. This field is only
     // used by show_index.
     std::string stopWordsSource = "";
+    std::string ignorePattern = "";
 
     FTSConfig() = default;
-    FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource)
+    FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource,
+        std::string ignorePattern)
         : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)},
-          stopWordsSource{std::move(stopWordsSource)} {}
+          stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)} {}
 
     void serialize(common::Serializer& serializer) const;
 
     static FTSConfig deserialize(common::Deserializer& deserializer);
-
-    uint64_t getNumBytesForSerialization() const;
 };
 
 struct K {

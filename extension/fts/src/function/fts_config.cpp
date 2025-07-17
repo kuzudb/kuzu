@@ -9,6 +9,7 @@
 #include "common/string_utils.h"
 #include "function/stem.h"
 #include "main/client_context.h"
+#include "re2.h"
 #include "utils/fts_utils.h"
 
 namespace kuzu {
@@ -87,6 +88,16 @@ const std::unordered_set<std::string>& StopWords::getDefaultStopWords() {
     return defaultStopWords;
 };
 
+void IgnorePattern::validate(const std::string& ignorePattern) {
+    const RE2 regexPattern(ignorePattern);
+    if (!regexPattern.ok()) {
+        throw common::BinderException{
+            common::stringFormat("An error occurred while compiling the regex: \"{}\"."
+                                 "\nError: \"{}\".",
+                ignorePattern, regexPattern.error())};
+    }
+}
+
 StopWordsTableInfo StopWords::bind(main::ClientContext& context, common::table_id_t tableID,
     const std::string& indexName, const std::string& stopWords) {
     auto catalog = context.getCatalog();
@@ -130,16 +141,26 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
             value.validateType(StopWords::TYPE);
             stopWordsTableInfo =
                 StopWords::bind(context, tableID, indexName, value.getValue<std::string>());
+        } else if (IgnorePattern::NAME == lowerCaseName) {
+            value.validateType(IgnorePattern::TYPE);
+            ignorePattern = common::StringUtils::getLower(value.getValue<std::string>());
+            IgnorePattern::validate(ignorePattern);
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
         }
     }
 }
 
+FTSConfig CreateFTSConfig::getFTSConfig() const {
+    return FTSConfig{stemmer, stopWordsTableInfo.tableName, stopWordsTableInfo.stopWords,
+        ignorePattern};
+}
+
 void FTSConfig::serialize(common::Serializer& serializer) const {
     serializer.serializeValue(stemmer);
     serializer.serializeValue(stopWordsTableName);
     serializer.serializeValue(stopWordsSource);
+    serializer.serializeValue(ignorePattern);
 }
 
 FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
@@ -147,13 +168,8 @@ FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
     deserializer.deserializeValue(config.stemmer);
     deserializer.deserializeValue(config.stopWordsTableName);
     deserializer.deserializeValue(config.stopWordsSource);
+    deserializer.deserializeValue(config.ignorePattern);
     return config;
-}
-
-// We store the length + the string itself. So the total size is sizeof(length) + string length.
-uint64_t FTSConfig::getNumBytesForSerialization() const {
-    return sizeof(stemmer.size()) + stemmer.size() + sizeof(stopWordsTableName.size()) +
-           stopWordsTableName.size() + sizeof(stopWordsSource.size()) + stopWordsSource.size();
 }
 
 void K::validate(double value) {

@@ -134,6 +134,17 @@ static std::string createStopWordsTable(const ClientContext& context,
     return query;
 }
 
+static std::string formatStrInCypher(const std::string& input) {
+    std::string result;
+    for (char c : input) {
+        if (c == '\\' || c == '\'') {
+            result += '\\';
+        }
+        result += c;
+    }
+    return result;
+}
+
 std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData& bindData) {
     auto ftsBindData = bindData.constPtrCast<CreateFTSBindData>();
     auto tableID = ftsBindData->tableID;
@@ -145,13 +156,16 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     // statements in a single transaction there.
     // Create the tokenize macro.
     std::string query = "";
-    if (!context.getCatalog()->containsMacro(context.getTransaction(), "tokenize")) {
-        query += R"(CREATE MACRO tokenize(query) AS
+    if (!context.getCatalog()->containsMacro(context.getTransaction(),
+            FTSUtils::getTokenizeMacroName(tableID, indexName))) {
+        query += common::stringFormat(R"(CREATE MACRO `{}`(query) AS
                             string_split(lower(regexp_replace(
                             CAST(query as STRING),
-                            '[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\\\/\\|\'"`-]+',
+                            '{}',
                             ' ',
-                            'g')), ' ');)";
+                            'g')), ' ');)",
+            FTSUtils::getTokenizeMacroName(tableID, indexName),
+            formatStrInCypher(ftsBindData->createFTSConfig.ignorePattern));
     }
 
     // Create the stop words table if not exists, or the user is not using the default english
@@ -171,14 +185,14 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
         auto propertyName = tableEntry->getProperty(property).getName();
         query += stringFormat("COPY `{}` FROM "
                               "(MATCH (b:`{}`) "
-                              "WITH tokenize(b.{}) AS tk, OFFSET(ID(b)) AS id "
+                              "WITH `{}`(b.{}) AS tk, OFFSET(ID(b)) AS id "
                               "UNWIND tk AS t "
                               "WITH t AS t1, id AS id1 "
                               "WHERE t1 is NOT NULL AND SIZE(t1) > 0 AND "
                               "NOT EXISTS {MATCH (s:`{}` {sw: t1})} "
                               "RETURN STEM(t1, '{}'), id1);",
-            appearsInfoTableName, tableName, propertyName,
-            ftsBindData->createFTSConfig.stopWordsTableInfo.tableName,
+            appearsInfoTableName, tableName, FTSUtils::getTokenizeMacroName(tableID, indexName),
+            propertyName, ftsBindData->createFTSConfig.stopWordsTableInfo.tableName,
             ftsBindData->createFTSConfig.stemmer);
     }
 
@@ -278,9 +292,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         std::vector<std::string>{InternalCreateFTSFunction::DOC_LEN_PROP_NAME});
     auto numDocs = sharedState.numDocs.load();
     auto avgDocLen = numDocs == 0 ? 0 : static_cast<double>(sharedState.totalLen.load()) / numDocs;
-    auto ftsConfig = FTSConfig{bindData.createFTSConfig.stemmer,
-        bindData.createFTSConfig.stopWordsTableInfo.tableName,
-        bindData.createFTSConfig.stopWordsTableInfo.stopWords};
+    auto ftsConfig = bindData.createFTSConfig.getFTSConfig();
     auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(FTSIndexCatalogEntry::TYPE_NAME,
         bindData.tableID, bindData.indexName, bindData.propertyIDs,
         std::make_unique<FTSIndexAuxInfo>(ftsConfig));

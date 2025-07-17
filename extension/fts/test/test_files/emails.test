@@ -1,0 +1,31 @@
+-DATASET CSV fts-emails
+
+--
+
+-CASE emails
+
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('emails', 'emailsIdx',  ['file', 'message'])
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('emails', 'emailsIdx',  'business meetings') return node.id,score
+---- 3
+2|2.702064
+10|0.496735
+13|0.970411
+-STATEMENT CALL QUERY_FTS_INDEX('emails', 'emailsIdx',  'phone number') return node.id,score
+---- 2
+10|1.486305
+8|0.980953
+
+-STATEMENT CALL CREATE_FTS_INDEX('emails', 'emailsIdx1',  ['file', 'message'], ignore_pattern:='[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|\'\"`\\r\\n-]+')
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('emails', 'emailsIdx1',  'business meetings') return node.id,score
+---- 3
+10|0.521700
+13|0.952888
+2|2.702654
+-STATEMENT CALL QUERY_FTS_INDEX('emails', 'emailsIdx1',  'phone number') return node.id, node.file, score
+---- 3
+10|allen-p/_sent_mail/102.|1.223428
+11|allen-p/_sent_mail/103.|1.568905
+8|allen-p/_sent_mail/1004.|0.795093

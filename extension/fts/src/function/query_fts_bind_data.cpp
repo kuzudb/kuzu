@@ -68,9 +68,9 @@ QueryFTSConfig QueryFTSOptionalParams::getConfig() const {
 
 std::vector<std::string> QueryFTSBindData::getTerms(main::ClientContext& context) const {
     auto queryInStr = ExpressionUtil::evaluateLiteral<std::string>(*query, LogicalType::STRING());
-    FTSUtils::normalizeQuery(queryInStr);
-    auto terms = StringUtils::split(queryInStr, " ");
     auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
+    FTSUtils::normalizeQuery(queryInStr, config.ignorePattern);
+    auto terms = StringUtils::split(queryInStr, " ");
     auto stopWordsTable = context.getStorageManager()
                               ->getTable(context.getCatalog()
                                              ->getTableCatalogEntry(context.getTransaction(),

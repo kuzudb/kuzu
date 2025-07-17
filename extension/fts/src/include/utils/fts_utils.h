@@ -13,7 +13,7 @@ namespace fts_extension {
 
 struct FTSUtils {
 
-    static void normalizeQuery(std::string& query);
+    static void normalizeQuery(std::string& query, const regex::RE2& ignorePattern);
 
     static std::vector<std::string> stemTerms(std::vector<std::string> terms,
         const FTSConfig& config, storage::MemoryManager* mm, storage::NodeTable* stopwordsTable,
@@ -49,6 +49,11 @@ struct FTSUtils {
     static std::string getAppearsInTableName(common::table_id_t tableID,
         const std::string& indexName) {
         return common::stringFormat("{}_appears_in", getInternalTablePrefix(tableID, indexName));
+    }
+
+    static std::string getTokenizeMacroName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return common::stringFormat("{}_tokenize", getInternalTablePrefix(tableID, indexName));
     }
 };
 
