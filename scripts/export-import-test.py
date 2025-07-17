@@ -161,25 +161,25 @@ def split_tests(root, output_dir, file, db_dir):
 
     header = ""
     header_parsed = False
-    current_case_name = None
+    current_case = None
     export_lines = []
     import_lines = []
-    inside_case = False
-    reading_import = False
+    in_case = False
+    in_import = False
     for line in file:
         line = line.rstrip("\n")
-        if not parsedHeader:
+        if not header_parsed:
             header += line + "\n"
             if line.strip() == "--":
-                parsedHeader = True
+                header_parsed = True
             continue
         if line.startswith("-CASE"):
             # this is a spell to skip any cases that do not have a split
-            if current_case_name and reading_import:
-                write_case(
+            if in_case and in_import:
+                write_split_testfile(
                     export_dir,
                     import_dir,
-                    current_case_name,
+                    current_case,
                     header,
                     export_lines,
                     import_lines,
@@ -188,7 +188,7 @@ def split_tests(root, output_dir, file, db_dir):
             export_lines = []
             import_lines = []
             reading_import = False
-            current_case_name = line[len("--CASE") :].strip()
+            current_case_name = line[len("-CASE"):].strip()
             inside_case = True
             export_lines.append(line + "\n")
             import_lines.append(line + "\n")
@@ -202,7 +202,7 @@ def split_tests(root, output_dir, file, db_dir):
             else:
                 export_lines.append(line + "\n")
     if current_case_name and reading_import:
-        write_case(
+        write_split_testfile(
             export_dir,
             import_dir,
             current_case_name,
@@ -303,7 +303,7 @@ def main():
         create_worktree(test_worktree, test_commit, kuzu_root)
 
         if bool(args.dataset_dir):
-            run_entire_test_suite(
+            export_datasets_and_test(
                 kuzu_root,
                 base_worktree,
                 test_worktree,
