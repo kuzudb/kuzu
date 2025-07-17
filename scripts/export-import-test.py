@@ -119,8 +119,7 @@ def write_split_testfile(
             for line in lines
         ]
 
-    # Copying the dataset here is unnecessary and inefficient because we would
-    # have to remove it shortly after (import requires a fresh db instance).
+    # Copying the dataset here is unnecessary as the tests use exported dbs.
     def transform_import_header(header):
         new_lines = []
         for line in header.splitlines(keepends=True):
