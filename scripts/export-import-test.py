@@ -204,6 +204,7 @@ def split_tests(root, output_dir, file, db_dir):
                 import_lines.append(line + "\n")
             else:
                 export_lines.append(line + "\n")
+    # Handle the last case of a file.
     if current_case and in_import:
         write_split_testfile(
             export_dir,
