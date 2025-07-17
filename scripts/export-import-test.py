@@ -136,8 +136,8 @@ def write_case(
     def transform_import_lines(lines):
         result = []
         for line in lines:
-            if line.startswith("-IMPORT DATABASE"):
-                continue  # Skip this line entirely
+            if line.startswith("-IMPORT_DATABASE"):
+                continue
             result.append(line)
         return result
 
