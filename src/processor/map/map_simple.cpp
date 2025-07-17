@@ -59,16 +59,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
-static void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool& parallel)
-{
-    for(size_t i = 0; i < physicalOperator->getNumChildren(); ++i)
-    {
-        if (physicalOperator->getChild(i)->getOperatorType() != PhysicalOperatorType::COPY_TO)
-        {
+static void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool& parallel) {
+    for (size_t i = 0; i < physicalOperator->getNumChildren(); ++i) {
+        if (physicalOperator->getChild(i)->getOperatorType() != PhysicalOperatorType::COPY_TO) {
             mapExportDatabaseHelper(physicalOperator->getChild(i), parallel);
-        }
-        else
-        {
+        } else {
             auto castTo = physicalOperator->getChild(i)->ptrCast<CopyTo>();
             castTo->setParallel(parallel);
         }

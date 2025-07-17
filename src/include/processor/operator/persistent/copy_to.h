@@ -65,7 +65,7 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    void setParallel(bool& parallelflag) const {info.bindData->parallel = &parallelflag;}
+    void setParallel(bool& parallelflag) const { info.bindData->parallel = &parallelflag; }
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<CopyTo>(info.copy(), sharedState, children[0]->copy(), id,
