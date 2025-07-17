@@ -34,6 +34,11 @@ struct CastChildFunctionExecutor {
     }
 };
 
+template<typename EXECUTOR>
+static std::unique_ptr<ScalarFunction> bindCastBetweenUnionFunction(const std::string&, const LogicalType&, const LogicalType&);
+template<typename EXECUTOR>
+static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string&, const LogicalType&, const LogicalType&);
+
 static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
     uint64_t numOfEntries, CastFunctionBindData* dataPtr) {
     const auto* inputType = &inputVector->dataType;
@@ -86,6 +91,22 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
                 resolveNestedVector(inputFieldVectors[i], resultFieldVectors[i].get(), numOfEntries,
                     dataPtr);
             }
+            return;
+        } else if (resultType->getLogicalTypeID() == LogicalTypeID::UNION) {
+            std::unique_ptr<ScalarFunction> func;
+            if (inputType->getLogicalTypeID() == LogicalTypeID::UNION) {
+                func = bindCastBetweenUnionFunction<CastChildFunctionExecutor>("CAST", *inputType, *resultType);
+            } else {
+                func = bindCastToUnionFunction<CastChildFunctionExecutor>("CAST", *inputType, *resultType);
+                if (inputType->getLogicalTypeID() == LogicalTypeID::LIST) {
+                    numOfEntries = ListVector::getDataVectorSize(inputVector.get());
+                    ListVector::resizeDataVector(resultVector, numOfEntries);
+                }
+            }
+            auto bindData = func->bindFunc(ScalarBindFuncInput({}, nullptr, nullptr, {}));
+            bindData->cast<CastFunctionBindData>().numOfEntries = 1;
+            std::vector<std::shared_ptr<ValueVector>> params{inputVector};
+            func->execFunc(params, SelectionVector::fromValueVectors(params), *resultVector, resultVector->getSelVectorPtr(), bindData.get());
             return;
         } else {
             break;
@@ -628,25 +649,27 @@ static CastToUnionBindData::inner_func_t unionCastInner(const LogicalType& src,
     if (src != dst) {
         std::shared_ptr<ScalarFunction> innerCast =
             CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", src, dst);
-        innerFunc = [innerCast](common::ValueVector& inputVector, common::ValueVector& valVector,
-                        common::SelectionVector& selVector, CastFunctionBindData& innerBindData) {
-            std::vector<std::shared_ptr<common::ValueVector>> innerParams{
-                std::shared_ptr<common::ValueVector>(&inputVector, [](common::ValueVector*) {})};
-            innerBindData.numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
-            innerCast->execFunc(innerParams, common::SelectionVector::fromValueVectors(innerParams),
+        innerFunc = [innerCast](ValueVector& inputVector, ValueVector& valVector, uint64_t inputPos, uint64_t resultPos, CastFunctionBindData& innerBindData) {
+            std::vector<std::shared_ptr<ValueVector>> innerParams{
+                std::shared_ptr<ValueVector>(&inputVector, [](ValueVector*) {})};
+            // problem: can sometimes have sel vector, other times not (when executed through resolveNestedVector), not sure of best way to get num of entries when no sel vector
+            if (inputVector.getSelVectorPtr()) {
+                inputVector.getSelVectorPtr()->setRange(inputPos, 1);
+                valVector.getSelVectorPtr()->setRange(resultPos, 1);
+                innerBindData.numOfEntries = 1;
+            }
+            innerCast->execFunc(innerParams, SelectionVector::fromValueVectors(innerParams),
                 valVector, valVector.getSelVectorPtr(), &innerBindData);
         };
     } else {
-        innerFunc = [](common::ValueVector& inputVector, common::ValueVector& valVector,
-                        common::SelectionVector& selVector, CastFunctionBindData&) {
-            for (auto& pos : selVector.getSelectedPositions()) {
-                valVector.copyFromVectorData(pos, &inputVector, pos);
-            }
+        innerFunc = [](ValueVector& inputVector, ValueVector& valVector, uint64_t inputPos, uint64_t resultPos, CastFunctionBindData&) {
+            valVector.copyFromVectorData(inputPos, &inputVector, resultPos);
         };
     }
     return innerFunc;
 }
 
+template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     // source type is not nested, targetType is a union
@@ -672,7 +695,7 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     const auto& innerType = common::UnionType::getFieldType(targetType, minCostTag);
     scalar_func_exec_t execFunc;
     TypeUtils::visit(sourceType, [&execFunc]<typename T>(T) {
-        execFunc = ScalarFunction::UnaryCastUnionExecFunction<T, union_entry_t, CastToUnion>;
+        execFunc = ScalarFunction::UnaryCastUnionExecFunction<T, union_entry_t, CastToUnion, EXECUTOR>;
     });
     auto innerFunc = unionCastInner(sourceType, innerType);
     auto castFunc = std::make_unique<ScalarFunction>(functionName,
@@ -688,6 +711,7 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     return castFunc;
 }
 
+template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastBetweenUnionFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     auto numFieldsSrc = UnionType::getNumFields(sourceType);
@@ -710,7 +734,7 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenUnionFunction(const std::s
             unionCastInner(fieldTypeSrc, fieldTypeDst), fieldTypeDst.copy(), targetType.copy()));
     }
     scalar_func_exec_t execFunc =
-        ScalarFunction::UnaryCastUnionExecFunction<union_entry_t, union_entry_t, CastToUnion>;
+        ScalarFunction::UnaryCastUnionExecFunction<union_entry_t, union_entry_t, CastToUnion, EXECUTOR>;
     auto castFunc = std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, targetType.getLogicalTypeID(),
         execFunc);
@@ -916,12 +940,11 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
             targetType);
     }
     case LogicalTypeID::UNION: {
-        if (!LogicalTypeUtils::isNested(sourceType.getLogicalTypeID())) {
-            return bindCastToUnionFunction(functionName, sourceType, targetType);
-        } else if (sourceType.getLogicalTypeID() == LogicalTypeID::UNION) {
+        if (sourceType.getLogicalTypeID() == LogicalTypeID::UNION) {
             return bindCastBetweenUnionFunction(functionName, sourceType, targetType);
+        } else {
+            return bindCastToUnionFunction(functionName, sourceType, targetType);
         }
-        [[fallthrough]];
     }
     case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY:

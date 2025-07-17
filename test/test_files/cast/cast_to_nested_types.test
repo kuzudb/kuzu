@@ -513,6 +513,23 @@ True
 -STATEMENT RETURN CAST(union_value(f := 123) AS UNION(v STRING, b BOOL, f FLOAT, t INT32))
 ---- 1
 123.000000
+-STATEMENT RETURN CAST(union_value(q := [3, 2, 13, 4]) AS UNION(s STRING, q INT64[]))
+---- 1
+[3,2,13,4]
+
+-CASE CastWithUnionNested
+-STATEMENT RETURN CAST([union_value(a := 4444)] AS UNION(x STRING, a INT64))
+---- 1
+[4444]
+-STATEMENT RETURN CAST([4444] AS UNION(a INT64, x STRING))
+---- 1
+[4444]
+-STATEMENT RETURN CAST([union_value(a := 123)] AS UNION(q STRING, b BOOL, a FLOAT, p INT64)[])
+---- 1
+[123.000000]
+-STATEMENT RETURN CAST([123] AS UNION(a FLOAT)[])
+---- 1
+[123.000000]
 
 -CASE CastToUnionError
 -STATEMENT RETURN CAST(CAST(1282158 AS INT64) AS UNION(a INT32, b INT16, c UINT8, d INT8))
@@ -536,11 +553,12 @@ Conversion exception: Unsupported casting function from INT64 to BOOL
 -STATEMENT RETURN CAST(union_value(q := true) AS UNION(s STRING, q INT64))
 ---- error
 Conversion exception: Unsupported casting function from BOOL to INT64
-
--CASE CastToUnionErrorUnsupported
 -STATEMENT RETURN CAST({a: 42} AS UNION(a INT64))
 ---- error
-Conversion exception: Unsupported casting function from STRUCT(a INT64) to UNION(a INT64).
+Conversion exception: Cannot cast from STRUCT(a INT64) to UNION(a INT64), target type has no compatible field
 -STATEMENT RETURN CAST([false] AS UNION(a INT64))
 ---- error
-Conversion exception: Casting from LIST to UNION is not supported.
+Conversion exception: Cannot cast from BOOL[] to UNION(a INT64), target type has no compatible field
+-STATEMENT RETURN CAST(union_value(q := true) AS UNION(s STRING, q INT64[]))
+---- error
+Conversion exception: Unsupported casting function from BOOL to INT64[]

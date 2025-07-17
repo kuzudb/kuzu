@@ -8,9 +8,8 @@
 namespace kuzu {
 namespace function {
 
-struct CastToUnionBindData : public FunctionBindData {
-    using inner_func_t = std::function<void(common::ValueVector&, common::ValueVector&,
-        common::SelectionVector&, CastFunctionBindData&)>;
+struct CastToUnionBindData : public CastFunctionBindData {
+    using inner_func_t = std::function<void(common::ValueVector&, common::ValueVector&, uint64_t, uint64_t, CastFunctionBindData&)>;
 
     common::union_field_idx_t targetTag;
     inner_func_t innerFunc;
@@ -18,7 +17,7 @@ struct CastToUnionBindData : public FunctionBindData {
 
     CastToUnionBindData(common::union_field_idx_t targetTag, inner_func_t innerFunc,
         common::LogicalType innerType, common::LogicalType dataType)
-        : FunctionBindData{std::move(dataType)}, targetTag{targetTag},
+        : CastFunctionBindData{std::move(dataType)}, targetTag{targetTag},
           innerFunc{std::move(innerFunc)},
           innerBindData{CastFunctionBindData(std::move(innerType))} {}
 
@@ -28,13 +27,13 @@ struct CastToUnionBindData : public FunctionBindData {
     }
 };
 
-struct CastBetweenUnionBindData : public FunctionBindData {
+struct CastBetweenUnionBindData : public CastFunctionBindData {
     std::shared_ptr<std::vector<std::unique_ptr<CastToUnionBindData>>> innerCasts;
 
     CastBetweenUnionBindData(
         const std::shared_ptr<std::vector<std::unique_ptr<CastToUnionBindData>>>& innerCasts,
         common::LogicalType dataType)
-        : FunctionBindData{std::move(dataType)}, innerCasts{innerCasts} {}
+        : CastFunctionBindData{std::move(dataType)}, innerCasts{innerCasts} {}
 
     std::unique_ptr<FunctionBindData> copy() const override {
         return std::make_unique<CastBetweenUnionBindData>(innerCasts, resultType.copy());

@@ -37,36 +37,26 @@ struct CastRelToString {
 
 struct CastToUnion {
     template<typename T>
-    static inline void operation(T&, common::union_entry_t&, common::ValueVector& inputVector,
-        common::ValueVector& resultVector, void* pBindData) {
+    static inline void operation(T, common::ValueVector& inputVector, common::ValueVector& resultVector, uint64_t inputPos, uint64_t resultPos, void* pBindData) {
         auto& bindData = *reinterpret_cast<CastToUnionBindData*>(pBindData);
-        auto* selVector = inputVector.getSelVectorPtr();
-        auto* tagVector = common::UnionVector::getTagVector(&resultVector);
-        auto* valVector = common::UnionVector::getValVector(&resultVector, bindData.targetTag);
-        for (auto& pos : selVector->getSelectedPositions()) {
-            tagVector->setValue<common::union_field_idx_t>(pos, bindData.targetTag);
-        }
-        bindData.innerFunc(inputVector, *valVector, *selVector, bindData.innerBindData);
+        auto& tagVector = *common::UnionVector::getTagVector(&resultVector);
+        auto& valVector = *common::UnionVector::getValVector(&resultVector, bindData.targetTag);
+        tagVector.setValue<common::union_field_idx_t>(resultPos, bindData.targetTag);
+        bindData.innerFunc(inputVector, valVector, inputPos, resultPos, bindData.innerBindData);
     }
 };
 
 template<>
-inline void CastToUnion::operation(common::union_entry_t&, common::union_entry_t&,
-    common::ValueVector& inputVector, common::ValueVector& resultVector, void* pBindData) {
+inline void CastToUnion::operation(union_entry_t, common::ValueVector& inputVector, common::ValueVector& resultVector, uint64_t inputPos, uint64_t resultPos, void* pBindData) {
     auto& bindData = *reinterpret_cast<CastBetweenUnionBindData*>(pBindData);
-    auto* srcTagVector = common::UnionVector::getTagVector(&inputVector);
-    auto* resTagVector = common::UnionVector::getTagVector(&resultVector);
-    auto* selVector = inputVector.getSelVectorPtr();
-    for (auto& pos : selVector->getSelectedPositions()) {
-        auto srcTag = srcTagVector->getValue<common::union_field_idx_t>(pos);
-        auto& innerCastBindData = bindData.innerCasts->operator[](srcTag);
-        resTagVector->setValue<common::union_field_idx_t>(pos, innerCastBindData->targetTag);
-        auto* srcValVector = common::UnionVector::getValVector(&inputVector, srcTag);
-        auto* resValVector =
-            common::UnionVector::getValVector(&resultVector, innerCastBindData->targetTag);
-        innerCastBindData->innerFunc(*srcValVector, *resValVector, *srcValVector->getSelVectorPtr(),
-            innerCastBindData->innerBindData);
-    }
+    auto& srcTagVector = *common::UnionVector::getTagVector(&inputVector);
+    auto& resTagVector = *common::UnionVector::getTagVector(&resultVector);
+    auto srcTag = srcTagVector.getValue<common::union_field_idx_t>(inputPos);
+    auto& innerCastBindData = bindData.innerCasts->operator[](srcTag);
+    resTagVector.setValue<common::union_field_idx_t>(resultPos, innerCastBindData->targetTag);
+    auto& srcValVector = *common::UnionVector::getValVector(&inputVector, srcTag);
+    auto& resValVector = *common::UnionVector::getValVector(&resultVector, innerCastBindData->targetTag);
+    innerCastBindData->innerFunc(srcValVector, resValVector, inputPos, resultPos, innerCastBindData->innerBindData);
 }
 
 struct CastDateToTimestamp {
