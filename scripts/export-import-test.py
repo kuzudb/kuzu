@@ -110,10 +110,12 @@ def write_case(
 ):
     export_path = os.path.join(export_dir, f"{case_name}.test")
     import_path = os.path.join(import_dir, f"{case_name}.test")
+    os.makedirs(export_dir, exist_ok=True)
+    os.makedirs(import_dir, exist_ok=True)
 
     def replace_placeholders(lines):
         return [
-            line.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir + os.sep)
+            line.replace("${KUZU_EXPORT_DB_DIRECTORY}", os.path.join(db_dir, ""))
             for line in lines
         ]
 
@@ -127,8 +129,8 @@ def write_case(
                 if len(parts) >= 2:
                     parts[-1] = "EMPTY"
                     line = " ".join(parts) + "\n"
-                new_lines.append(line)
-            return "".join(new_lines)
+            new_lines.append(line)
+        return "".join(new_lines)
 
     # Without this I run into an issue where the exported db seems to be deleted
     # making the import fail. We still do import with the line
@@ -142,27 +144,23 @@ def write_case(
         return result
 
     with open(export_path, "w") as f:
-        f.write(header.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir + os.sep))
+        f.write(header.replace("${KUZU_EXPORT_DB_DIRECTORY}", os.path.join(db_dir, "")))
         f.writelines(replace_placeholders(export_lines))
 
     with open(import_path, "w") as f:
         f.write(
             transform_import_header(
-                header.replace("${KUZU_EXPORT_DB_DIRECTORY}", db_dir + os.sep)
+                header.replace("${KUZU_EXPORT_DB_DIRECTORY}", os.path.join(db_dir, ""))
             )
         )
         f.writelines(transform_import_lines(replace_placeholders(import_lines)))
 
 
-def split_tests(root, output_dir, file):
+def split_tests(root, output_dir, file, db_dir):
     relative_path = os.path.relpath(file.name, root)
     base_path = os.path.splitext(relative_path)[0]
     export_dir = os.path.abspath(os.path.join(output_dir, "export", base_path))
     import_dir = os.path.abspath(os.path.join(output_dir, "import", base_path))
-    db_dir = os.path.abspath(os.path.join(output_dir, "db"))
-    os.makedirs(export_dir, exist_ok=False)
-    os.makedirs(import_dir, exist_ok=False)
-    os.makedirs(db_dir, exist_ok=False)
 
     header = ""
     parsedHeader = False
@@ -219,11 +217,13 @@ def split_tests(root, output_dir, file):
 
 
 def split_files(test_dir, output_dir):
+    db_dir = os.path.abspath(os.path.join(output_dir, "db"))
+    os.makedirs(db_dir, exist_ok=True)
     for root, dirs, files in os.walk(test_dir):
         for file in files:
             full_path = os.path.join(root, file)
             with open(full_path, "r") as f:
-                split_tests(test_dir, output_dir, f)
+                split_tests(test_dir, output_dir, f, db_dir)
 
 
 def run_export_specific_tests(
