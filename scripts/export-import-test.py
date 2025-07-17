@@ -56,7 +56,7 @@ def run_command(cmd, cwd=None, capture_output=False, check=True):
         return None
 
 
-def run_entire_test_suite(
+def export_datasets_and_test(
     kuzu_root,
     base_worktree,
     test_worktree,
