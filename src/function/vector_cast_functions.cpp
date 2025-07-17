@@ -689,7 +689,8 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
         execFunc);
     auto sharedInnerType = std::make_shared<LogicalType>(innerType.copy());
     auto sharedTargetType = std::make_shared<LogicalType>(targetType.copy());
-    castFunc->bindFunc = [minCostTag, sharedInnerType, sharedTargetType](const ScalarBindFuncInput&) {
+    castFunc->bindFunc = [minCostTag, sharedInnerType, sharedTargetType](
+                             const ScalarBindFuncInput&) {
         return std::make_unique<CastToUnionBindData>(minCostTag, sharedInnerType->copy(),
             sharedTargetType->copy());
     };
