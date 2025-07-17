@@ -134,6 +134,7 @@ public:
     bool isInMemory() const;
 
     static std::string getEnvVariable(const std::string& name);
+    static std::string getUserHomeDir();
 
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase() const;

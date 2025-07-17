@@ -297,7 +297,7 @@ shell-test:
 	$(call run-cmake-release, \
 		-DBUILD_SHELL=TRUE \
 	)
-	cd tools/shell/test && python3 -m pytest -v
+	$(MAKE) -C tools/shell/test test
 
 # Clang-related tools and checks
 

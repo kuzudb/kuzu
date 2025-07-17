@@ -46,13 +46,20 @@ def test_invalid_cast(temp_db) -> None:
         'Error: Conversion exception: Cast failed. Could not convert "****" to INT8.',
     )
 
+
 def test_enter_in_between_input(temp_db) -> None:
     test = ShellTest().add_argument(temp_db)
     test.start()
     test.send_statement("CREATE NODE TABLE Test (id INT64 PRIMARY KEY);")
-    test.send_statement("\x1b[D" * 5) # left arrow
-    test.send_control_statement("j") # ctrl + j
-    assert test.shell_process.expect_exact(["\u2502 Table Test has been created. \u2502", pexpect.EOF]) == 0
+    test.send_statement("\x1b[D" * 5)  # left arrow
+    test.send_control_statement("j")  # ctrl + j
+    assert (
+        test.shell_process.expect_exact(
+            ["\u2502 Table Test has been created. \u2502", pexpect.EOF]
+        )
+        == 0
+    )
+
 
 def test_multiline(temp_db) -> None:
     test = (
@@ -67,21 +74,34 @@ def test_multiline(temp_db) -> None:
     result = test.run()
     result.check_stdout("\u2502 databases rule \u2502")
 
+
 def test_multi_queries_one_line(temp_db) -> None:
     # two successful queries
-    test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a; RETURN "kuzu is cool" AS b;')
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement('RETURN "databases rule" AS a; RETURN "kuzu is cool" AS b;')
+    )
     result = test.run()
     result.check_stdout("\u2502 databases rule \u2502")
     result.check_stdout("\u2502 kuzu is cool \u2502")
 
     # one success one failure
-    test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a; RETURN s;')
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement('RETURN "databases rule" AS a; RETURN s;')
+    )
     result = test.run()
     result.check_stdout("\u2502 databases rule \u2502")
     result.check_stdout("Error: Binder exception: Variable s is not in scope.")
 
     # two failing queries
-    test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" S a; RETURN s;')
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement('RETURN "databases rule" S a; RETURN s;')
+    )
     result = test.run()
     result.check_stdout(
         [
@@ -93,15 +113,29 @@ def test_multi_queries_one_line(temp_db) -> None:
 
 
 def test_row_truncation(temp_db, csv_path) -> None:
-    test = ShellTest().add_argument(temp_db).statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN id;')
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN id;')
+    )
     result = test.run()
     result.check_stdout("(21 tuples, 20 shown)")
-    result.check_stdout(["\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502"])
+    result.check_stdout(
+        [
+            "\u2502  \u00b7    \u2502",
+            "\u2502  \u00b7    \u2502",
+            "\u2502  \u00b7    \u2502",
+        ]
+    )
 
 
 def test_column_truncation(temp_db, csv_path) -> None:
     # width when running test is 80
-    test = ShellTest().add_argument(temp_db).statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN *;')
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN *;')
+    )
     result = test.run()
     result.check_stdout("id")
     result.check_stdout("fname")
@@ -112,7 +146,11 @@ def test_column_truncation(temp_db, csv_path) -> None:
 
     # test column name truncation
     long_name = "a" * 100
-    test = ShellTest().add_argument(temp_db).statement(f'RETURN "databases rule" AS {long_name};')
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(f'RETURN "databases rule" AS {long_name};')
+    )
     result = test.run()
     result.check_stdout(f"\u2502 {long_name[:73]}... \u2502")
     result.check_stdout("\u2502 databases rule")
@@ -149,18 +187,18 @@ def test_kuzurc(temp_db) -> None:
     # confirm that nothing is read on startup
     test = ShellTest().add_argument(temp_db)
     result = test.run()
-    result.check_not_stdout("-- Loading resources from .kuzurc")
+    result.check_not_stdout("-- Processing: .kuzurc")
 
     # create a .kuzurc file
     with open(".kuzurc", "w") as f:
         f.write("CREATE NODE TABLE a(i STRING, PRIMARY KEY(i));\n")
         f.write(":max_rows 1\n")
-    
+
     # confirm that the file is read on startup
     test = ShellTest().add_argument(temp_db).statement("CALL show_tables() RETURN *;")
     result = test.run()
     deleteIfExists(".kuzurc")
-    result.check_stdout("-- Loading resources from .kuzurc")
+    result.check_stdout("-- Processing: .kuzurc")
     result.check_stdout("maxRows set as 1")
     result.check_stdout("a")
 
@@ -175,7 +213,7 @@ def test_kuzurc(temp_db) -> None:
     test = ShellTest().add_argument(temp_db).statement("CALL show_tables() RETURN *;")
     result = test.run()
     deleteIfExists(".kuzurc")
-    result.check_stdout("-- Loading resources from .kuzurc")
+    result.check_stdout("-- Processing: .kuzurc")
     result.check_stdout(
         [
             "Error: Parser exception: Invalid input < S>: expected rule ku_Statements (line: 1, offset: 24)",
@@ -192,8 +230,12 @@ def test_comments(temp_db) -> None:
     test = (
         ShellTest()
         .add_argument(temp_db)
-        .statement('RETURN // testing\n /* test\ntest\ntest */"databases rule" // testing\n AS a\n; // testing')
-        .statement('\x1b[A\r') # run the last command again to make sure comments are still ignored
+        .statement(
+            'RETURN // testing\n /* test\ntest\ntest */"databases rule" // testing\n AS a\n; // testing'
+        )
+        .statement(
+            "\x1b[A\r"
+        )  # run the last command again to make sure comments are still ignored
     )
     result = test.run()
     result.check_stdout("\u2502 databases rule \u2502")
@@ -202,13 +244,20 @@ def test_comments(temp_db) -> None:
 def test_shell_auto_completion(temp_db) -> None:
     test = ShellTest().add_argument(temp_db)
     test.start()
-    test.send_statement("CREATE NODE TABLE coolTable(i STRING, longPropertyName STRING, autoCompleteUINT8 UIN\t")
+    test.send_statement(
+        "CREATE NODE TABLE coolTable(i STRING, longPropertyName STRING, autoCompleteUINT8 UIN\t"
+    )
     test.send_statement("\t")
     test.send_statement("\t")
     test.send_statement("\t")
     test.send_statement(", PRIMARY KEY(i));\n")
-    assert test.shell_process.expect_exact(["\u2502 Table coolTable has been created. \u2502", pexpect.EOF]) == 0
-    
+    assert (
+        test.shell_process.expect_exact(
+            ["\u2502 Table coolTable has been created. \u2502", pexpect.EOF]
+        )
+        == 0
+    )
+
     test.send_statement("ma\t")
     test.send_statement("\t")
     test.send_statement("\t")
@@ -218,13 +267,20 @@ def test_shell_auto_completion(temp_db) -> None:
     test.send_statement(" n.\t")
     test.send_statement("\t")
     test.send_finished_statement(";\r")
-    assert test.shell_process.expect_exact(["\u2502 n.longPropertyName \u2502", pexpect.EOF]) == 0
+    assert (
+        test.shell_process.expect_exact(
+            ["\u2502 n.longPropertyName \u2502", pexpect.EOF]
+        )
+        == 0
+    )
 
     test.send_statement("c\t")
     test.send_statement(" show_t\t")
     test.send_statement("() ret\t")
     test.send_finished_statement(" *;\n")
-    assert test.shell_process.expect_exact(["\u2502 coolTable \u2502", pexpect.EOF]) == 0
+    assert (
+        test.shell_process.expect_exact(["\u2502 coolTable \u2502", pexpect.EOF]) == 0
+    )
 
     test.send_statement("match (a:coolTable)-[]->()-[]->(a:coolTable) ")
     test.send_statement("r")
@@ -232,29 +288,38 @@ def test_shell_auto_completion(temp_db) -> None:
     test.send_finished_statement(";\n")
     assert test.shell_process.expect_exact(["(0 tuples)", pexpect.EOF]) == 0
 
+
 def test_shell_unicode_input(temp_db) -> None:
     test = (
         ShellTest()
         .add_argument(temp_db)
-        .statement('CREATE NODE TABLE IF NOT EXISTS `B\\u00fccher` (title STRING, price INT64, PRIMARY KEY (title));\n') 
-        .statement("CREATE (n:`B\\u00fccher` {title: 'Der Thron der Sieben K\\00f6nigreiche'}) SET n.price = 20;\n")
-        .statement('MATCH (n:B\\u00fccher) RETURN label(n);\n')
-        .statement('return "\\uD83D\\uDE01";\n') # surrogate pair for grinning face emoji
-        .statement('return "\\U0001F601";\n') # grinning face emoji
-        .statement('return "\\uD83D";\n') #  unmatched surrogate pair
-        .statement('return "\\uDE01";\n') # unmatched surrogate pair
-        .statement('return "\\uD83D\\uDBFF";\n') # bad lower surrogate
-        .statement('return "\\u000";\n') # bad unicode codepoint
-        .statement('return "\\u0000";\n') # Null character
-        .statement('return "\\U00110000";\n') # Invalid codepoint
+        .statement(
+            "CREATE NODE TABLE IF NOT EXISTS `B\\u00fccher` (title STRING, price INT64, PRIMARY KEY (title));\n"
+        )
+        .statement(
+            "CREATE (n:`B\\u00fccher` {title: 'Der Thron der Sieben K\\00f6nigreiche'}) SET n.price = 20;\n"
+        )
+        .statement("MATCH (n:B\\u00fccher) RETURN label(n);\n")
+        .statement(
+            'return "\\uD83D\\uDE01";\n'
+        )  # surrogate pair for grinning face emoji
+        .statement('return "\\U0001F601";\n')  # grinning face emoji
+        .statement('return "\\uD83D";\n')  #  unmatched surrogate pair
+        .statement('return "\\uDE01";\n')  # unmatched surrogate pair
+        .statement('return "\\uD83D\\uDBFF";\n')  # bad lower surrogate
+        .statement('return "\\u000";\n')  # bad unicode codepoint
+        .statement('return "\\u0000";\n')  # Null character
+        .statement('return "\\U00110000";\n')  # Invalid codepoint
     )
     result = test.run()
     result.check_stdout("\u2502 B\u00fccher")
-    result.check_stdout("\u2502 \U0001F601") # grinning face emoji
-    result.check_stdout("\u2502 \U0001F601") # grinning face emoji
+    result.check_stdout("\u2502 \U0001f601")  # grinning face emoji
+    result.check_stdout("\u2502 \U0001f601")  # grinning face emoji
     result.check_stdout("Error: Unmatched high surrogate")
     result.check_stdout("Error: Failed to convert codepoint to UTF-8")
     result.check_stdout("Error: Invalid surrogate pair")
-    result.check_stdout("Error: Parser exception: Invalid input <return \">: expected rule oC_RegularQuery (line: 1, offset: 7)")
+    result.check_stdout(
+        'Error: Parser exception: Invalid input <return ">: expected rule oC_RegularQuery (line: 1, offset: 7)'
+    )
     result.check_stdout("Error: Null character not allowed")
     result.check_stdout("Error: Invalid Unicode codepoint")

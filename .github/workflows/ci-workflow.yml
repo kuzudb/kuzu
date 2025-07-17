@@ -1083,10 +1083,9 @@ jobs:
         run: make release NUM_THREADS=$(nproc) USE_STD_FORMAT=1
 
       - name: Test
-        working-directory: tools/shell/test
         run: |
           pip3 install pytest pexpect
-          python3 -m pytest -v .
+          make shell-test
 
   linux-extension-test:
     name: linux extension test
