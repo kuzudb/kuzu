@@ -7,6 +7,8 @@
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_import_db.h"
 #include "planner/operator/simple/logical_use_database.h"
+#include "processor/operator/persistent/copy_to.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/simple/attach_database.h"
 #include "processor/operator/simple/detach_database.h"
 #include "processor/operator/simple/export_db.h"
@@ -57,6 +59,22 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
+static void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool& parallel)
+{
+    for(size_t i = 0; i < physicalOperator->getNumChildren(); ++i)
+    {
+        if (physicalOperator->getChild(i)->getOperatorType() != PhysicalOperatorType::COPY_TO)
+        {
+            mapExportDatabaseHelper(physicalOperator->getChild(i), parallel);
+        }
+        else
+        {
+            auto castTo = physicalOperator->getChild(i)->ptrCast<CopyTo>();
+            castTo->setParallel(parallel);
+        }
+    }
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     const LogicalOperator* logicalOperator) {
     auto exportDatabase = logicalOperator->constPtrCast<LogicalExportDatabase>();
@@ -78,6 +96,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         sink->addChild(mapOperator(child.get()));
     }
     sink->addChild(std::move(exportDB));
+    mapExportDatabaseHelper(sink.get(), exportDB->getParallel());
     return sink;
 }
 
