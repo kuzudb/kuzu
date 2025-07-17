@@ -102,7 +102,7 @@ def export_datasets_and_test(
     return 0
 
 
-def write_case(
+def write_split_testfile(
     export_dir, import_dir, case_name, header, export_lines, import_lines, db_dir
 ):
     export_path = os.path.join(export_dir, f"{case_name}.test")
