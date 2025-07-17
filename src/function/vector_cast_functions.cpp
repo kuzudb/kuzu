@@ -687,11 +687,11 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     auto castFunc = std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, targetType.getLogicalTypeID(),
         execFunc);
-    auto pInnerType = std::make_shared<LogicalType>(innerType.copy());
-    auto pTargetType = std::make_shared<LogicalType>(targetType.copy());
-    castFunc->bindFunc = [minCostTag, pInnerType, pTargetType](const ScalarBindFuncInput&) {
-        return std::make_unique<CastToUnionBindData>(minCostTag, pInnerType->copy(),
-            pTargetType->copy());
+    auto sharedInnerType = std::make_shared<LogicalType>(innerType.copy());
+    auto sharedTargetType = std::make_shared<LogicalType>(targetType.copy());
+    castFunc->bindFunc = [minCostTag, sharedInnerType, sharedTargetType](const ScalarBindFuncInput&) {
+        return std::make_unique<CastToUnionBindData>(minCostTag, sharedInnerType->copy(),
+            sharedTargetType->copy());
     };
     return castFunc;
 }
@@ -723,9 +723,9 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenUnionFunction(const std::s
     auto castFunc = std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, targetType.getLogicalTypeID(),
         execFunc);
-    auto pTargetType = std::make_shared<LogicalType>(targetType.copy());
-    castFunc->bindFunc = [innerCasts, pTargetType](const ScalarBindFuncInput&) {
-        return std::make_unique<CastBetweenUnionBindData>(innerCasts, pTargetType->copy());
+    auto sharedTargetType = std::make_shared<LogicalType>(targetType.copy());
+    castFunc->bindFunc = [innerCasts, sharedTargetType](const ScalarBindFuncInput&) {
+        return std::make_unique<CastBetweenUnionBindData>(innerCasts, sharedTargetType->copy());
     };
     return castFunc;
 }
