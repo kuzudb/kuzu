@@ -12,7 +12,7 @@
 -LOG UnionValueOnNestedType
 -STATEMENT RETURN union_value(a := struct_pack(b := 123))
 ---- 1
-123
+{b: 123}
 -STATEMENT RETURN union_value(a := [12, 34])
 ---- 1
 [12,34]
