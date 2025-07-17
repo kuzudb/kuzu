@@ -21,7 +21,7 @@ public:
     DELETE_COPY_AND_MOVE(LocalStorage);
 
     // Do nothing if the table already exists, otherwise create a new local table.
-    LocalTable* getOrCreateLocalTable(const Table& table);
+    LocalTable* getOrCreateLocalTable(Table& table);
     // Return nullptr if no local table exists.
     LocalTable* getLocalTable(common::table_id_t tableID) const;
 

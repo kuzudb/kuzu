@@ -13,8 +13,7 @@ class MemoryManager;
 
 class LocalNodeTable final : public LocalTable {
 public:
-    LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, const Table& table,
-        MemoryManager& mm);
+    LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, Table& table, MemoryManager& mm);
     DELETE_COPY_AND_MOVE(LocalNodeTable);
 
     bool insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
@@ -43,6 +42,7 @@ public:
         common::sel_t pos, common::offset_t& result) const;
 
     TableStats getStats() const { return nodeGroups.getStats(); }
+    common::offset_t getStartOffset() const { return startOffset; }
 
     static std::vector<common::LogicalType> getNodeTableColumnTypes(
         const catalog::TableCatalogEntry& table);
@@ -52,6 +52,8 @@ private:
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
 
 private:
+    // This is equivalent to the num of committed nodes in the table.
+    common::offset_t startOffset;
     PageCursor overflowCursor;
     std::unique_ptr<OverflowFile> overflowFile;
     OverflowFileHandle* overflowFileHandle;

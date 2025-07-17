@@ -131,13 +131,7 @@ public:
         common::row_idx_t localRowIdx) const {
         return getMinUncommittedNodeOffset(tableID) + localRowIdx;
     }
-    common::offset_t getMinUncommittedNodeOffset(common::table_id_t tableID) const {
-        // The only case that minUncommittedNodeOffsets doesn't track the given tableID is when the
-        // table is newly created within the same transaction, thus the minUncommittedNodeOffsets
-        // should be 0.
-        return minUncommittedNodeOffsets.contains(tableID) ? minUncommittedNodeOffsets.at(tableID) :
-                                                             0;
-    }
+
     void pushCreateDropCatalogEntry(catalog::CatalogSet& catalogSet,
         catalog::CatalogEntry& catalogEntry, bool isInternal, bool skipLoggingToWAL = false);
     void pushAlterCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry,
@@ -151,12 +145,8 @@ public:
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 
-    static Transaction getDummyTransactionFromExistingOne(const Transaction& other);
-
 private:
-    Transaction(TransactionType transactionType, common::transaction_t ID,
-        common::transaction_t startTS,
-        std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets);
+    common::offset_t getMinUncommittedNodeOffset(common::table_id_t tableID) const;
 
 private:
     TransactionType type;
@@ -171,11 +161,6 @@ private:
     LocalCacheManager localCacheManager;
     bool forceCheckpoint;
     std::atomic<bool> hasCatalogChanges;
-
-    // For each node table, we keep track of the minimum uncommitted node offset when the
-    // transaction starts. This is mainly used to assign offsets to local nodes and determine if a
-    // given node is transaction local or not.
-    std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets;
 };
 
 // TODO(bmwinger): These shouldn't need to be exported

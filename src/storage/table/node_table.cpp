@@ -251,7 +251,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
     auto numLocalRows = 0u;
-    if (transaction->getLocalStorage()) {
+    if (transaction && transaction->getLocalStorage()) {
         if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID)) {
             numLocalRows = localTable->getNumTotalRows();
         }
@@ -464,8 +464,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     if (transaction->isUnCommitted(tableID, nodeOffset)) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
         KU_ASSERT(localTable);
-        auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
-        localTable->update(&dummyTrx, updateState);
+        localTable->update(&DUMMY_TRANSACTION, updateState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =
@@ -501,8 +500,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 
     if (transaction->isUnCommitted(tableID, nodeOffset)) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
-        auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
-        isDeleted = localTable->delete_(&dummyTrx, deleteState);
+        isDeleted = localTable->delete_(&DUMMY_TRANSACTION, deleteState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =
@@ -577,7 +575,7 @@ void NodeTable::commit(main::ClientContext* context, TableCatalogEntry* tableEnt
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -727,7 +725,7 @@ void NodeTable::scanIndexColumns(main::ClientContext* context, IndexScanHelper& 
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to

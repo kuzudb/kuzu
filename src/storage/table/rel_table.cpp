@@ -219,8 +219,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
         relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
         KU_ASSERT(localTable);
-        auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
-        localTable->update(&dummyTrx, updateState);
+        localTable->update(&DUMMY_TRANSACTION, updateState);
     } else {
         for (auto& relData : directedRelData) {
             relData->update(transaction,

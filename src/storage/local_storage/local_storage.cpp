@@ -14,7 +14,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-LocalTable* LocalStorage::getOrCreateLocalTable(const Table& table) {
+LocalTable* LocalStorage::getOrCreateLocalTable(Table& table) {
     const auto tableID = table.getTableID();
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
