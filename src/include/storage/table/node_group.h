@@ -79,22 +79,22 @@ struct NodeGroupScanResult {
     }
 };
 
-static auto NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
+static auto NODE_GROUP_SCAN_EMPTY_RESULT = NodeGroupScanResult{};
 
 struct TableScanState;
 class NodeGroup {
 public:
-    NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
-        std::vector<common::LogicalType> dataTypes,
+    NodeGroup(MemoryManager& mm, const common::node_group_idx_t nodeGroupIdx,
+        const bool enableCompression, std::vector<common::LogicalType> dataTypes,
         common::row_idx_t capacity = common::StorageConfig::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
-        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
+        : mm{mm}, nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
           numRows{0}, nextRowToAppend{0}, capacity{capacity}, dataTypes{std::move(dataTypes)} {}
-    NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
-        std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup,
+    NodeGroup(MemoryManager& mm, const common::node_group_idx_t nodeGroupIdx,
+        const bool enableCompression, std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup,
         common::row_idx_t capacity = common::StorageConfig::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
-        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
+        : mm{mm}, nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
           numRows{chunkedNodeGroup->getStartRowIdx() + chunkedNodeGroup->getNumRows()},
           nextRowToAppend{numRows}, capacity{capacity} {
         for (auto i = 0u; i < chunkedNodeGroup->getNumColumns(); i++) {
@@ -103,9 +103,9 @@ public:
         const auto lock = chunkedGroups.lock();
         chunkedGroups.appendGroup(lock, std::move(chunkedNodeGroup));
     }
-    NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
-        common::row_idx_t capacity, NodeGroupDataFormat format)
-        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
+    NodeGroup(MemoryManager& mm, const common::node_group_idx_t nodeGroupIdx,
+        const bool enableCompression, common::row_idx_t capacity, NodeGroupDataFormat format)
+        : mm{mm}, nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
           numRows{0}, nextRowToAppend{0}, capacity{capacity} {}
     virtual ~NodeGroup() = default;
 
@@ -157,8 +157,7 @@ public:
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
 
     bool hasDeletions(const transaction::Transaction* transaction) const;
-    virtual void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState, PageAllocator* pageAllocator,
+    virtual void addColumn(TableAddColumnState& addColumnState, PageAllocator* pageAllocator,
         ColumnStats* newColumnStats);
 
     void applyFuncToChunkedGroups(version_record_handler_op_t func, common::row_idx_t startRow,
@@ -172,8 +171,8 @@ public:
     uint64_t getEstimatedMemoryUsage() const;
 
     virtual void serialize(common::Serializer& serializer);
-    static std::unique_ptr<NodeGroup> deserialize(MemoryManager& memoryManager,
-        common::Deserializer& deSer, const std::vector<common::LogicalType>& columnTypes);
+    static std::unique_ptr<NodeGroup> deserialize(MemoryManager& mm, common::Deserializer& deSer,
+        const std::vector<common::LogicalType>& columnTypes);
 
     common::node_group_idx_t getNumChunkedGroups() const {
         const auto lock = chunkedGroups.lock();
@@ -188,9 +187,9 @@ public:
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
-    template<class TARGETT>
-    const TARGETT& cast() const {
-        return common::ku_dynamic_cast<const TARGETT&>(*this);
+    template<class TARGET>
+    const TARGET& cast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
     bool isVisible(const transaction::Transaction* transaction,
@@ -240,6 +239,7 @@ private:
     common::row_idx_t getStartRowIdxInGroup(const common::UniqLock& lock) const;
 
 protected:
+    MemoryManager& mm;
     common::node_group_idx_t nodeGroupIdx;
     NodeGroupDataFormat format;
     bool enableCompression;

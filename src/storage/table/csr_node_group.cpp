@@ -138,7 +138,7 @@ NodeGroupScanResult CSRNodeGroup::scan(const Transaction* transaction,
         switch (nodeGroupScanState.source) {
         case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
             auto result = scanCommittedPersistent(transaction, relScanState, nodeGroupScanState);
-            if (result == NODE_GROUP_SCAN_EMMPTY_RESULT && csrIndex) {
+            if (result == NODE_GROUP_SCAN_EMPTY_RESULT && csrIndex) {
                 initScanForCommittedInMem(relScanState, nodeGroupScanState);
                 continue;
             }
@@ -147,15 +147,15 @@ NodeGroupScanResult CSRNodeGroup::scan(const Transaction* transaction,
         case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
             relScanState.resetOutVectors();
             const auto result = scanCommittedInMem(transaction, relScanState, nodeGroupScanState);
-            if (result == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+            if (result == NODE_GROUP_SCAN_EMPTY_RESULT) {
                 relScanState.outState->getSelVectorUnsafe().setSelSize(0);
-                return NODE_GROUP_SCAN_EMMPTY_RESULT;
+                return NODE_GROUP_SCAN_EMPTY_RESULT;
             }
             return result;
         }
         case CSRNodeGroupScanSource::NONE: {
             relScanState.outState->getSelVectorUnsafe().setSelSize(0);
-            return NODE_GROUP_SCAN_EMMPTY_RESULT;
+            return NODE_GROUP_SCAN_EMPTY_RESULT;
         }
         default: {
             KU_UNREACHABLE;
@@ -185,7 +185,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWithCache(const Transac
         }
         if (nodeGroupScanState.nextRowToScan == nodeGroupScanState.numTotalRows ||
             tableState.currBoundNodeIdx >= tableState.cachedBoundNodeSelVector.getSelSize()) {
-            return NODE_GROUP_SCAN_EMMPTY_RESULT;
+            return NODE_GROUP_SCAN_EMPTY_RESULT;
         }
         const auto currNodeOffset = tableState.nodeIDVector->readNodeOffset(
             tableState.cachedBoundNodeSelVector[tableState.currBoundNodeIdx]);
@@ -223,7 +223,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWithoutCache(
     const auto offsetInGroup = currNodeOffset % StorageConfig::NODE_GROUP_SIZE;
     const auto csrListLength = nodeGroupScanState.header->getCSRLength(offsetInGroup);
     if (nodeGroupScanState.nextRowToScan == csrListLength) {
-        return NODE_GROUP_SCAN_EMMPTY_RESULT;
+        return NODE_GROUP_SCAN_EMPTY_RESULT;
     }
     const auto startRow = nodeGroupScanState.header->getStartCSROffset(offsetInGroup) +
                           nodeGroupScanState.nextRowToScan;
@@ -240,7 +240,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMem(const Transaction* transact
     RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     while (true) {
         if (tableState.currBoundNodeIdx >= tableState.cachedBoundNodeSelVector.getSelSize()) {
-            return NODE_GROUP_SCAN_EMMPTY_RESULT;
+            return NODE_GROUP_SCAN_EMPTY_RESULT;
         }
         if (nodeGroupScanState.inMemCSRList.rowIndices.empty()) {
             const auto boundNodePos =
@@ -257,7 +257,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMem(const Transaction* transact
             nodeGroupScanState.inMemCSRList.isSequential ?
                 scanCommittedInMemSequential(transaction, tableState, nodeGroupScanState) :
                 scanCommittedInMemRandom(transaction, tableState, nodeGroupScanState);
-        if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+        if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
             tableState.currBoundNodeIdx++;
             nodeGroupScanState.nextRowToScan = 0;
             nodeGroupScanState.inMemCSRList.clear();
@@ -280,7 +280,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction
         StorageUtils::getQuotientRemainder(startRow, StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
     numRows = std::min(numRows, StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - startRowInChunk);
     if (numRows == 0) {
-        return NODE_GROUP_SCAN_EMMPTY_RESULT;
+        return NODE_GROUP_SCAN_EMPTY_RESULT;
     }
     const ChunkedNodeGroup* chunkedGroup = nullptr;
     {
@@ -298,7 +298,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(const Transaction* tr
                                       nodeGroupScanState.nextRowToScan,
         DEFAULT_VECTOR_CAPACITY);
     if (numRows == 0) {
-        return NODE_GROUP_SCAN_EMMPTY_RESULT;
+        return NODE_GROUP_SCAN_EMPTY_RESULT;
     }
     row_idx_t nextRow = 0;
     ChunkedNodeGroup* chunkedGroup = nullptr;
@@ -435,13 +435,13 @@ bool CSRNodeGroup::delete_(const Transaction* transaction, CSRNodeGroupScanSourc
     }
 }
 
-void CSRNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    PageAllocator* pageAllocator, ColumnStats* newColumnStats) {
+void CSRNodeGroup::addColumn(TableAddColumnState& addColumnState, PageAllocator* pageAllocator,
+    ColumnStats* newColumnStats) {
     if (persistentChunkGroup) {
-        persistentChunkGroup->addColumn(transaction, addColumnState, enableCompression,
-            pageAllocator, newColumnStats);
+        persistentChunkGroup->addColumn(mm, addColumnState, enableCompression, pageAllocator,
+            newColumnStats);
     }
-    NodeGroup::addColumn(transaction, addColumnState, pageAllocator, newColumnStats);
+    NodeGroup::addColumn(addColumnState, pageAllocator, newColumnStats);
 }
 
 void CSRNodeGroup::serialize(Serializer& serializer) {

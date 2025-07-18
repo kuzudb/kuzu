@@ -13,8 +13,8 @@ class MemoryManager;
 
 class NodeGroupCollection {
 public:
-    NodeGroupCollection(const std::vector<common::LogicalType>& types, bool enableCompression,
-        ResidencyState residency = ResidencyState::IN_MEMORY,
+    NodeGroupCollection(MemoryManager& mm, const std::vector<common::LogicalType>& types,
+        bool enableCompression, ResidencyState residency = ResidencyState::IN_MEMORY,
         const VersionRecordHandler* versionRecordHandler = nullptr);
 
     void append(const transaction::Transaction* transaction,
@@ -73,8 +73,7 @@ public:
 
     common::column_id_t getNumColumns() const { return types.size(); }
 
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        PageAllocator* pageAllocator = nullptr);
+    void addColumn(TableAddColumnState& addColumnState, PageAllocator* pageAllocator = nullptr);
 
     uint64_t getEstimatedMemoryUsage() const;
 
@@ -111,6 +110,8 @@ private:
     void pushInsertInfo(const transaction::Transaction* transaction, const NodeGroup* nodeGroup,
         common::row_idx_t numRows);
 
+private:
+    MemoryManager& mm;
     bool enableCompression;
     // Num rows in the collection regardless of deletions.
     std::atomic<common::row_idx_t> numTotalRows;

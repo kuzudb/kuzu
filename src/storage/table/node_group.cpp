@@ -3,7 +3,6 @@
 #include "common/assert.h"
 #include "common/types/types.h"
 #include "common/uniq_lock.h"
-#include "main/client_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/enums/residency_state.h"
 #include "storage/storage_utils.h"
@@ -36,7 +35,6 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
     row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
     const auto lock = chunkedGroups.lock();
     const auto numRowsBeforeAppend = getNumRows();
-    auto& mm = *transaction->getClientContext()->getMemoryManager();
     if (chunkedGroups.isEmpty(lock)) {
         chunkedGroups.appendGroup(lock,
             std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
@@ -69,7 +67,6 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
     const row_idx_t startRowIdx, const row_idx_t numRowsToAppend) {
     const auto lock = chunkedGroups.lock();
     const auto numRowsBeforeAppend = getNumRows();
-    auto& mm = *transaction->getClientContext()->getMemoryManager();
     if (chunkedGroups.isEmpty(lock)) {
         chunkedGroups.appendGroup(lock,
             std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
@@ -88,7 +85,7 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
         lastChunkedGroup = chunkedGroups.getLastGroup(lock);
         const auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
             StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows());
-        lastChunkedGroup->append(&DUMMY_TRANSACTION, vectors, startRowIdx + numRowsAppended,
+        lastChunkedGroup->append(transaction, vectors, startRowIdx + numRowsAppended,
             numRowsToAppendInGroup);
         numRowsAppended += numRowsToAppendInGroup;
     }
@@ -179,7 +176,7 @@ NodeGroupScanResult NodeGroup::scan(const Transaction* transaction, TableScanSta
         chunkedGroup->getNumRows() + chunkedGroup->getStartRowIdx()) {
         nodeGroupScanState.chunkedGroupIdx++;
         if (nodeGroupScanState.chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
-            return NODE_GROUP_SCAN_EMMPTY_RESULT;
+            return NODE_GROUP_SCAN_EMPTY_RESULT;
         }
         ChunkedNodeGroup* currentChunkedGroup =
             chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
@@ -351,12 +348,12 @@ bool NodeGroup::hasDeletions(const Transaction* transaction) const {
     return false;
 }
 
-void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    PageAllocator* pageAllocator, ColumnStats* newColumnStats) {
+void NodeGroup::addColumn(TableAddColumnState& addColumnState, PageAllocator* pageAllocator,
+    ColumnStats* newColumnStats) {
     dataTypes.push_back(addColumnState.propertyDefinition.getType().copy());
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, pageAllocator,
+        chunkedGroup->addColumn(mm, addColumnState, enableCompression, pageAllocator,
             newColumnStats);
     }
 }
@@ -527,7 +524,7 @@ void NodeGroup::serialize(Serializer& serializer) {
     }
 }
 
-std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager, Deserializer& deSer,
+std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& mm, Deserializer& deSer,
     const std::vector<LogicalType>& columnTypes) {
     std::string key;
     node_group_idx_t nodeGroupIdx = INVALID_NODE_GROUP_IDX;
@@ -549,21 +546,21 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager, 
     switch (format) {
     case NodeGroupDataFormat::REGULAR: {
         if (hasCheckpointedData) {
-            chunkedNodeGroup = ChunkedNodeGroup::deserialize(memoryManager, deSer);
+            chunkedNodeGroup = ChunkedNodeGroup::deserialize(mm, deSer);
         } else {
-            chunkedNodeGroup = std::make_unique<ChunkedNodeGroup>(memoryManager, columnTypes,
+            chunkedNodeGroup = std::make_unique<ChunkedNodeGroup>(mm, columnTypes,
                 enableCompression, 0, 0, ResidencyState::IN_MEMORY);
         }
-        return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
+        return std::make_unique<NodeGroup>(mm, nodeGroupIdx, enableCompression,
             std::move(chunkedNodeGroup));
     }
     case NodeGroupDataFormat::CSR: {
         if (hasCheckpointedData) {
-            chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(memoryManager, deSer);
-            return std::make_unique<CSRNodeGroup>(nodeGroupIdx, enableCompression,
+            chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(mm, deSer);
+            return std::make_unique<CSRNodeGroup>(mm, nodeGroupIdx, enableCompression,
                 std::move(chunkedNodeGroup));
         } else {
-            return std::make_unique<CSRNodeGroup>(nodeGroupIdx, enableCompression,
+            return std::make_unique<CSRNodeGroup>(mm, nodeGroupIdx, enableCompression,
                 copyVector(columnTypes));
         }
     }

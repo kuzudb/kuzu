@@ -66,7 +66,7 @@ struct KUZU_API ChunkedCSRHeader {
     common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
     common::offset_t getEndCSROffset(common::offset_t nodeOffset) const;
     common::length_t getCSRLength(common::offset_t nodeOffset) const;
-    common::length_t getGapSize(common::length_t length) const;
+    common::length_t getGapSize(common::length_t nodeOffset) const;
 
     bool sanityCheck() const;
     void copyFrom(const ChunkedCSRHeader& other) const;
@@ -127,7 +127,8 @@ public:
     void scanCSRHeader(MemoryManager& memoryManager, CSRNodeGroupCheckpointState& csrState) const;
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, PageAllocator& pageAllocator) const override;
+        transaction::Transaction* transaction, MemoryManager& mm,
+        PageAllocator& pageAllocator) const override;
 
     void flush(PageAllocator& pageAllocator) override;
     void reclaimStorage(PageAllocator& pageAllocator) const override;

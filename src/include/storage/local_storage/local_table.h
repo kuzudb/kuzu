@@ -22,8 +22,7 @@ public:
     virtual bool insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual bool update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;
     virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
-    virtual bool addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState) = 0;
+    virtual bool addColumn(TableAddColumnState& addColumnState) = 0;
     virtual void clear(MemoryManager& mm) = 0;
     virtual common::TableType getTableType() const = 0;
     virtual uint64_t getEstimatedMemUsage() = 0;

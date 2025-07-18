@@ -32,14 +32,14 @@ struct DirectedCSRIndex {
 
 class LocalRelTable final : public LocalTable {
 public:
-    LocalRelTable(const catalog::TableCatalogEntry* tableEntry, const Table& table);
+    LocalRelTable(const catalog::TableCatalogEntry* tableEntry, const Table& table,
+        MemoryManager& mm);
     DELETE_COPY_AND_MOVE(LocalRelTable);
 
     bool insert(transaction::Transaction* transaction, TableInsertState& state) override;
     bool update(transaction::Transaction* transaction, TableUpdateState& state) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& state) override;
-    bool addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState) override;
+    bool addColumn(TableAddColumnState& addColumnState) override;
     uint64_t getEstimatedMemUsage() override;
 
     bool checkIfNodeHasRels(common::ValueVector* srcNodeIDVector,

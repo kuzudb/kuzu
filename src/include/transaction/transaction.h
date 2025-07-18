@@ -101,7 +101,6 @@ public:
     common::transaction_t getStartTS() const { return startTS; }
     common::transaction_t getCommitTS() const { return commitTS; }
     int64_t getCurrentTS() const { return currentTS; }
-    main::ClientContext* getClientContext() const { return clientContext; }
 
     void setForceCheckpoint() { forceCheckpoint = true; }
     bool shouldAppendToUndoBuffer() const {

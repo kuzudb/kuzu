@@ -57,18 +57,17 @@ void InMemoryVersionRecordHandler::rollbackInsert(main::ClientContext* context,
 }
 
 RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
-    const RelGroupCatalogEntry& relGroupEntry, table_id_t tableID, RelDataDirection direction,
+    const RelGroupCatalogEntry& relGroupEntry, Table& table, RelDataDirection direction,
     table_id_t nbrTableID, bool enableCompression)
-    : tableID{tableID}, tableName{relGroupEntry.getName()}, memoryManager{mm},
-      shadowFile{shadowFile}, enableCompression{enableCompression}, direction{direction},
-      multiplicity{relGroupEntry.getMultiplicity(direction)}, persistentVersionRecordHandler(this),
-      inMemoryVersionRecordHandler(this) {
+    : table{table}, mm{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
+      direction{direction}, multiplicity{relGroupEntry.getMultiplicity(direction)},
+      persistentVersionRecordHandler(this), inMemoryVersionRecordHandler(this) {
     initCSRHeaderColumns(dataFH);
     initPropertyColumns(relGroupEntry, nbrTableID, dataFH);
     // default to using the persistent version record handler
     // if we want to use the in-memory handler, we will explicitly pass it into
     // nodeGroups.pushInsertInfo()
-    nodeGroups = std::make_unique<NodeGroupCollection>(getColumnTypes(), enableCompression,
+    nodeGroups = std::make_unique<NodeGroupCollection>(*mm, getColumnTypes(), enableCompression,
         ResidencyState::ON_DISK, &persistentVersionRecordHandler);
 }
 
@@ -77,11 +76,11 @@ void RelTableData::initCSRHeaderColumns(FileHandle* dataFH) {
     auto csrOffsetColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_OFFSET,
         RelDirectionUtils::relDirectionToString(direction));
     csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, LogicalType::UINT64(),
-        dataFH, memoryManager, shadowFile, enableCompression, false /* requireNullColumn */);
+        dataFH, mm, shadowFile, enableCompression, false /* requireNullColumn */);
     auto csrLengthColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_LENGTH,
         RelDirectionUtils::relDirectionToString(direction));
     csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, LogicalType::UINT64(),
-        dataFH, memoryManager, shadowFile, enableCompression, false /* requireNullColumn */);
+        dataFH, mm, shadowFile, enableCompression, false /* requireNullColumn */);
 }
 
 void RelTableData::initPropertyColumns(const RelGroupCatalogEntry& relGroupEntry,
@@ -90,19 +89,19 @@ void RelTableData::initPropertyColumns(const RelGroupCatalogEntry& relGroupEntry
     columns.resize(maxColumnID + 1);
     auto nbrIDColName = StorageUtils::getColumnName("NBR_ID", StorageUtils::ColumnType::DEFAULT,
         RelDirectionUtils::relDirectionToString(direction));
-    auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, dataFH, memoryManager,
-        shadowFile, enableCompression);
+    auto nbrIDColumn =
+        std::make_unique<InternalIDColumn>(nbrIDColName, dataFH, mm, shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
     for (auto& property : relGroupEntry.getProperties()) {
         const auto columnID = relGroupEntry.getColumnID(property.getName());
         const auto colName = StorageUtils::getColumnName(property.getName(),
             StorageUtils::ColumnType::DEFAULT, RelDirectionUtils::relDirectionToString(direction));
         columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(), dataFH,
-            memoryManager, shadowFile, enableCompression);
+            mm, shadowFile, enableCompression);
     }
     // Set common tableID for nbrIDColumn and relIDColumn.
     columns[NBR_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(nbrTableID);
-    columns[REL_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(tableID);
+    columns[REL_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(table.getTableID());
 }
 
 bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVector,
@@ -145,12 +144,11 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
     return isDeleted;
 }
 
-void RelTableData::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    PageAllocator& pageAllocator) {
+void RelTableData::addColumn(TableAddColumnState& addColumnState, PageAllocator& pageAllocator) {
     auto& definition = addColumnState.propertyDefinition;
     columns.push_back(ColumnFactory::createColumn(definition.getName(), definition.getType().copy(),
-        pageAllocator.getDataFH(), memoryManager, shadowFile, enableCompression));
-    nodeGroups->addColumn(transaction, addColumnState, &pageAllocator);
+        pageAllocator.getDataFH(), mm, shadowFile, enableCompression));
+    nodeGroups->addColumn(addColumnState, &pageAllocator);
 }
 
 std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Transaction* transaction,
@@ -168,18 +166,16 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector columnIDs = {REL_ID_COLUMN_ID, ROW_IDX_COLUMN_ID};
     std::vector<const Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
-    auto scanState = std::make_unique<RelTableScanState>(
-        *transaction->getClientContext()->getMemoryManager(), &boundNodeIDVector,
+    auto scanState = std::make_unique<RelTableScanState>(*mm, &boundNodeIDVector,
         std::vector{&scanChunk.getValueVectorMutable(0)}, scanChunk.state, true /*randomLookup*/);
-    auto table = transaction->getClientContext()->getStorageManager()->getTable(tableID);
-    scanState->setToTable(transaction, table, columnIDs, {}, direction);
+    scanState->setToTable(transaction, &table, columnIDs, {}, direction);
     scanState->initState(transaction, getNodeGroup(nodeGroupIdx));
     row_idx_t matchingRowIdx = INVALID_ROW_IDX;
     auto source = CSRNodeGroupScanSource::NONE;
     const auto scannedIDVector = scanState->outputVectors[0];
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
-        if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+        if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
             break;
         }
         for (auto i = 0u; i < scanState->outState->getSelVector().getSelSize(); i++) {
@@ -212,15 +208,13 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector columnIDs = {REL_ID_COLUMN_ID};
     std::vector<const Column*> columns{getColumn(REL_ID_COLUMN_ID)};
-    auto scanState = std::make_unique<RelTableScanState>(
-        *transaction->getClientContext()->getMemoryManager(), srcNodeIDVector,
+    auto scanState = std::make_unique<RelTableScanState>(*mm, srcNodeIDVector,
         std::vector{&scanChunk.getValueVectorMutable(0)}, scanChunk.state, true /*randomLookup*/);
-    auto table = transaction->getClientContext()->getStorageManager()->getTable(tableID);
-    scanState->setToTable(transaction, table, columnIDs, {}, direction);
+    scanState->setToTable(transaction, &table, columnIDs, {}, direction);
     scanState->initState(transaction, getNodeGroup(nodeGroupIdx));
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
-        if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+        if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
             break;
         }
         if (scanState->outState->getSelVector().getSelSize() > 0) {
@@ -262,9 +256,9 @@ void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs,
         checkpointColumnPtrs.push_back(column.get());
     }
 
-    CSRNodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), pageAllocator,
-        memoryManager, csrHeaderColumns.offset.get(), csrHeaderColumns.length.get()};
-    nodeGroups->checkpoint(*memoryManager, state);
+    CSRNodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), pageAllocator, mm,
+        csrHeaderColumns.offset.get(), csrHeaderColumns.length.get()};
+    nodeGroups->checkpoint(*mm, state);
 }
 
 void RelTableData::serialize(Serializer& serializer) const {

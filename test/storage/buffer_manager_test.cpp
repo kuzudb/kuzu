@@ -75,10 +75,10 @@ TEST_F(EmptyBufferManagerTest, TestSpillToDiskMemoryUsage) {
 
     {
         std::vector<std::unique_ptr<ColumnChunk>> chunks;
-        chunks.push_back(std::make_unique<storage::ColumnChunk>(false,
+        chunks.push_back(std::make_unique<ColumnChunk>(*mm, false,
             std::make_unique<ColumnChunkData>(*mm, LogicalType(LogicalTypeID::INT64), 1024, false,
                 ResidencyState::IN_MEMORY, false)));
-        auto chunkedNodeGroup = storage::ChunkedNodeGroup(std::move(chunks), 0);
+        auto chunkedNodeGroup = ChunkedNodeGroup(std::move(chunks), 0);
         chunkedNodeGroup.setUnused(*mm);
         auto memoryWithChunks = bm->getUsedMemory();
         SpillResult memorySpilled{};
@@ -99,10 +99,10 @@ TEST_F(EmptyBufferManagerTest, TestSpillToDiskMemoryUsage) {
     {
         // The memory manager uses the buffer manager for allocations of size TEMP_PAGE_SIZE
         std::vector<std::unique_ptr<ColumnChunk>> chunks;
-        chunks.push_back(std::make_unique<storage::ColumnChunk>(false,
+        chunks.push_back(std::make_unique<ColumnChunk>(*mm, false,
             std::make_unique<ColumnChunkData>(*mm, LogicalType(LogicalTypeID::INT64),
                 TEMP_PAGE_SIZE / sizeof(int64_t), false, ResidencyState::IN_MEMORY, false)));
-        auto chunkedNodeGroup = storage::ChunkedNodeGroup(std::move(chunks), 0);
+        auto chunkedNodeGroup = ChunkedNodeGroup(std::move(chunks), 0);
         chunkedNodeGroup.setUnused(*mm);
         SpillResult memorySpilled{};
         bm->getSpillerOrSkip([&](auto& spiller) {

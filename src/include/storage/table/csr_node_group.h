@@ -169,18 +169,17 @@ static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
 // Transient data are organized similar to normal node groups. Tuples are always appended to the end
 // of `chunkedGroups`. We keep an extra csrIndex to track the vector of row indices for each bound
 // node.
-struct RelTableScanState;
 class CSRNodeGroup final : public NodeGroup {
 public:
     static constexpr PackedCSRInfo DEFAULT_PACKED_CSR_INFO{};
 
-    CSRNodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
-        std::vector<common::LogicalType> dataTypes)
-        : NodeGroup{nodeGroupIdx, enableCompression, std::move(dataTypes), common::INVALID_OFFSET,
-              NodeGroupDataFormat::CSR} {}
-    CSRNodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
-        std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup)
-        : NodeGroup{nodeGroupIdx, enableCompression, common::INVALID_OFFSET,
+    CSRNodeGroup(MemoryManager& mm, const common::node_group_idx_t nodeGroupIdx,
+        const bool enableCompression, std::vector<common::LogicalType> dataTypes)
+        : NodeGroup{mm, nodeGroupIdx, enableCompression, std::move(dataTypes),
+              common::INVALID_OFFSET, NodeGroupDataFormat::CSR} {}
+    CSRNodeGroup(MemoryManager& mm, const common::node_group_idx_t nodeGroupIdx,
+        const bool enableCompression, std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup)
+        : NodeGroup{mm, nodeGroupIdx, enableCompression, common::INVALID_OFFSET,
               NodeGroupDataFormat::CSR},
           persistentChunkGroup{std::move(chunkedNodeGroup)} {
         for (auto i = 0u; i < persistentChunkGroup->getNumColumns(); i++) {
@@ -206,8 +205,8 @@ public:
     bool delete_(const transaction::Transaction* transaction, CSRNodeGroupScanSource source,
         common::row_idx_t rowIdxInGroup);
 
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        PageAllocator* pageAllocator, ColumnStats* newColumnStats) override;
+    void addColumn(TableAddColumnState& addColumnState, PageAllocator* pageAllocator,
+        ColumnStats* newColumnStats) override;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
     void reclaimStorage(PageAllocator& pageAllocator, const common::UniqLock& lock) const override;
