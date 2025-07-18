@@ -1,4 +1,5 @@
 #include <iostream>
+
 #include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
@@ -61,12 +62,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
-void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool* parallel)
-{
-    for(unsigned int i{}; i < physicalOperator->getNumChildren(); ++i)
-    {
-        if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO)
-        {
+void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool* parallel) {
+    for (unsigned int i{}; i < physicalOperator->getNumChildren(); ++i) {
+        if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO) {
             physicalOperator->getChild(i)->ptrCast<CopyTo>()->setParallel(parallel);
         }
         mapExportDatabaseHelper(physicalOperator->getChild(i), parallel);
