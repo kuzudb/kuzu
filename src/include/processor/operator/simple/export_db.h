@@ -31,9 +31,9 @@ public:
     ExportDB(common::FileScanInfo boundFileInfo, bool schemaOnly,
         std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo,
-        const std::shared_ptr<bool>& parallel = std::make_shared<bool>(true))
+        const std::shared_ptr<bool>& canUseParallelCSVReader = std::make_shared<bool>(true))
         : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
-          boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly}, parallel{parallel} {}
+          boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly}, canUseParallelCSVReader{canUseParallelCSVReader} {}
 
     void initGlobalStateInternal(ExecutionContext* context) override;
 
@@ -41,17 +41,17 @@ public:
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<ExportDB>(boundFileInfo.copy(), schemaOnly, messageTable, id,
-            printInfo->copy(), parallel);
+            printInfo->copy(), canUseParallelCSVReader);
     }
-    // TODO(TANVIR) outside of this class parallel should only ever be set to false.
-    // We should instead expose a function ptr which does exactly this and let
-    // the outside class call it.
-    bool* getParallel() { return parallel.get(); }
+    auto setParallelReaderFalse() {
+        auto parallelFalse = [this](){*canUseParallelCSVReader = false;};
+        return parallelFalse;
+    }
 
 private:
     common::FileScanInfo boundFileInfo;
     bool schemaOnly;
-    std::shared_ptr<bool> parallel;
+    std::shared_ptr<bool> canUseParallelCSVReader;
 };
 } // namespace processor
 } // namespace kuzu

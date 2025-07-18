@@ -58,7 +58,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
-void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool* parallel) {
+void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, std::function<void()>parallel) {
     for (unsigned int i{}; i < physicalOperator->getNumChildren(); ++i) {
         if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO) {
             physicalOperator->getChild(i)->ptrCast<CopyTo>()->setParallel(parallel);
@@ -87,7 +87,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>()->getParallel());
+    mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>()->setParallelReaderFalse());
     return sink;
 }
 

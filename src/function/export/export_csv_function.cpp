@@ -46,7 +46,7 @@ static std::string addEscapes(char toEscape, char escape, const std::string& val
 }
 
 static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint8_t* str,
-    uint64_t len, bool& parallel) {
+    uint64_t len, std::function<void()> setParallelReaderFalse) {
     // Check if the string is equal to the null string.
     if (len == strlen(ExportCSVConstants::DEFAULT_NULL_STR) &&
         memcmp(str, ExportCSVConstants::DEFAULT_NULL_STR, len) == 0) {
@@ -55,7 +55,7 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
     static constexpr const char* NEWLINE = "\n\r";
     for (auto i = 0u; i < len; i++) {
         if (str[i] == NEWLINE[0] || str[i] == NEWLINE[1]) {
-            parallel = false;
+            setParallelReaderFalse();
             return true;
         }
         if (str[i] == exportCSVBindData.exportOption.quoteChar ||
@@ -68,10 +68,10 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
 }
 
 static void writeString(BufferWriter* serializer, const ExportFuncBindData& bindData,
-    const uint8_t* strData, uint64_t strLen, bool forceQuote, bool& parallel) {
+    const uint8_t* strData, uint64_t strLen, bool forceQuote, std::function<void()> setParallelReaderFalse) {
     auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
     if (!forceQuote) {
-        forceQuote = requireQuotes(exportCSVBindData, strData, strLen, parallel);
+        forceQuote = requireQuotes(exportCSVBindData, strData, strLen, setParallelReaderFalse);
     }
     if (forceQuote) {
         bool requiresEscape = false;
@@ -109,13 +109,13 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
     std::mutex mtx;
     std::unique_ptr<FileInfo> fileInfo;
     offset_t offset = 0;
-    bool* parallel = nullptr;
+    std::function<void()> setParallelReaderFalse = nullptr;
 
     ExportCSVSharedState() = default;
 
     void init(main::ClientContext& context, const ExportFuncBindData& bindData,
-        bool* parallel) override {
-        this->parallel = parallel;
+        std::function<void()> setParallelReaderFalse) override {
+        this->setParallelReaderFalse = setParallelReaderFalse;
         if (!context.getVFSUnsafe()->fileOrPathExists(bindData.fileName)) {
             context.getVFSUnsafe()->createDir(
                 std::filesystem::path(bindData.fileName).parent_path());
@@ -136,7 +136,7 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
                 auto& name = exportCSVBindData.columnNames[i];
                 writeString(&bufferedSerializer, exportCSVBindData,
                     reinterpret_cast<const uint8_t*>(name.c_str()), name.length(),
-                    false /* forceQuote */, *parallel);
+                    false /* forceQuote */, setParallelReaderFalse);
             }
             bufferedSerializer.writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE);
             writeRows(bufferedSerializer.getBlobData(), bufferedSerializer.getSize());
@@ -199,8 +199,8 @@ static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
 }
 
 static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context,
-    const ExportFuncBindData& bindData, bool* parallel) {
-    sharedState.init(context, bindData, parallel);
+    const ExportFuncBindData& bindData, std::function<void()> setParallelReaderFalse) {
+    sharedState.init(context, bindData, setParallelReaderFalse);
 }
 
 static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocalState& localState,
@@ -241,7 +241,7 @@ static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocal
             writeString(serializer.get(), exportCSVBindData, strValue.getData(), strValue.len,
                 ExportCSVConstants::DEFAULT_FORCE_QUOTE ||
                     inputVectors[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST,
-                *sharedState.parallel);
+                sharedState.setParallelReaderFalse);
         }
         serializer->writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE);
     }
