@@ -1368,11 +1368,11 @@ KUZU_C_API kuzu_state kuzu_node_val_get_property_value_at(kuzu_value* node_val, 
 KUZU_C_API kuzu_state kuzu_node_val_to_string(kuzu_value* node_val, char** out_result);
 /**
  * @brief Returns the internal id value of the rel node value as a kuzu value.
- * @param node_val The node value to return.
+ * @param rel_val The rel value to return.
  * @param[out] out_value The output parameter that will hold the internal id value.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_rel_val_get_id_val(kuzu_value* node_val, kuzu_value* out_value);
+KUZU_C_API kuzu_state kuzu_rel_val_get_id_val(kuzu_value* rel_val, kuzu_value* out_value);
 /**
  * @brief Returns the internal id value of the source node of the given rel value as a kuzu value.
  * @param rel_val The rel value to return.
