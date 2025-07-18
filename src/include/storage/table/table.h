@@ -176,7 +176,7 @@ public:
     virtual void commit(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) = 0;
     virtual bool checkpoint(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
-        storage::PageAllocator& pageAllocator) = 0;
+        PageAllocator& pageAllocator) = 0;
     virtual void rollbackCheckpoint() = 0;
     virtual void reclaimStorage(PageAllocator& pageAllocator) const = 0;
 
@@ -196,8 +196,6 @@ public:
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
     }
-
-    MemoryManager& getMemoryManager() const { return *memoryManager; }
 
     static common::DataChunk constructDataChunk(MemoryManager* mm,
         std::vector<common::LogicalType> types);

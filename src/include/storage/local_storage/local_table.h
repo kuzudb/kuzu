@@ -24,7 +24,7 @@ public:
     virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
     virtual bool addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) = 0;
-    virtual void clear() = 0;
+    virtual void clear(MemoryManager& mm) = 0;
     virtual common::TableType getTableType() const = 0;
     virtual uint64_t getEstimatedMemUsage() = 0;
     virtual common::row_idx_t getNumTotalRows() = 0;

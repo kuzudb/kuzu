@@ -1,9 +1,9 @@
 #include "transaction/transaction.h"
 
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
+#include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
 #include "storage/undo_buffer.h"
@@ -32,12 +32,6 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     localStorage = std::make_unique<storage::LocalStorage>(clientContext);
     undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext.getMemoryManager());
     currentTS = common::Timestamp::getCurrentTimestamp().value;
-    // Note that the use of `this` should be safe here as there is no inheritance.
-    for (const auto entry : clientContext.getCatalog()->getNodeTableEntries(this)) {
-        auto id = entry->getTableID();
-        minUncommittedNodeOffsets[id] =
-            clientContext.getStorageManager()->getTable(id)->getNumTotalRows(this);
-    }
     localWAL = std::make_unique<storage::LocalWAL>(*clientContext.getMemoryManager());
 }
 
@@ -205,16 +199,13 @@ void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,
 
 Transaction::~Transaction() = default;
 
-Transaction::Transaction(TransactionType transactionType, common::transaction_t ID,
-    common::transaction_t startTS,
-    std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets)
-    : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
-      currentTS{INT64_MAX}, clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false},
-      hasCatalogChanges{false}, minUncommittedNodeOffsets{std::move(minUncommittedNodeOffsets)} {}
-
-Transaction Transaction::getDummyTransactionFromExistingOne(const Transaction& other) {
-    return Transaction(TransactionType::DUMMY, DUMMY_TRANSACTION_ID, DUMMY_START_TIMESTAMP,
-        other.minUncommittedNodeOffsets);
+common::offset_t Transaction::getMinUncommittedNodeOffset(common::table_id_t tableID) const {
+    if (localStorage && localStorage->getLocalTable(tableID)) {
+        return localStorage->getLocalTable(tableID)
+            ->cast<storage::LocalNodeTable>()
+            .getStartOffset();
+    }
+    return 0;
 }
 
 Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);

@@ -251,7 +251,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
     auto numLocalRows = 0u;
-    if (transaction->getLocalStorage()) {
+    if (transaction && transaction->getLocalStorage()) {
         if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID)) {
             numLocalRows = localTable->getNumTotalRows();
         }
@@ -464,8 +464,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     if (transaction->isUnCommitted(tableID, nodeOffset)) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
         KU_ASSERT(localTable);
-        auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
-        localTable->update(&dummyTrx, updateState);
+        localTable->update(&DUMMY_TRANSACTION, updateState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =
@@ -501,8 +500,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 
     if (transaction->isUnCommitted(tableID, nodeOffset)) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
-        auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
-        isDeleted = localTable->delete_(&dummyTrx, deleteState);
+        isDeleted = localTable->delete_(&DUMMY_TRANSACTION, deleteState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =
@@ -619,7 +617,7 @@ void NodeTable::commit(main::ClientContext* context, TableCatalogEntry* tableEnt
     }
 
     // 4. Clear local table.
-    localTable->clear();
+    localTable->clear(*context->getMemoryManager());
 }
 
 visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {

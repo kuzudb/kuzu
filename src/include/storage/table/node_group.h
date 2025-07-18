@@ -43,7 +43,6 @@ struct NodeGroupScanState {
     }
 };
 
-class MemoryManager;
 struct NodeGroupCheckpointState {
     std::vector<common::column_id_t> columnIDs;
     std::vector<Column*> columns;

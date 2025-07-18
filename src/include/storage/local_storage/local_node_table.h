@@ -13,7 +13,7 @@ class MemoryManager;
 
 class LocalNodeTable final : public LocalTable {
 public:
-    LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, const Table& table);
+    LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, Table& table, MemoryManager& mm);
     DELETE_COPY_AND_MOVE(LocalNodeTable);
 
     bool insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
@@ -28,7 +28,7 @@ public:
 
     common::TableType getTableType() const override { return common::TableType::NODE; }
 
-    void clear() override;
+    void clear(MemoryManager& mm) override;
 
     common::row_idx_t getNumTotalRows() override { return nodeGroups.getNumTotalRows(); }
     common::node_group_idx_t getNumNodeGroups() const { return nodeGroups.getNumNodeGroups(); }
@@ -42,15 +42,18 @@ public:
         common::sel_t pos, common::offset_t& result) const;
 
     TableStats getStats() const { return nodeGroups.getStats(); }
+    common::offset_t getStartOffset() const { return startOffset; }
 
     static std::vector<common::LogicalType> getNodeTableColumnTypes(
         const catalog::TableCatalogEntry& table);
 
 private:
-    void initLocalHashIndex();
+    void initLocalHashIndex(MemoryManager& mm);
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
 
 private:
+    // This is equivalent to the num of committed nodes in the table.
+    common::offset_t startOffset;
     PageCursor overflowCursor;
     std::unique_ptr<OverflowFile> overflowFile;
     OverflowFileHandle* overflowFileHandle;

@@ -276,8 +276,7 @@ row_idx_t LocalRelTable::findMatchingRow(const Transaction* transaction,
             intersectRows.begin() + endRowToScan};
         const auto scanState = setupLocalTableScanState(scanChunk, currentRowsToCheck);
 
-        auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
-        [[maybe_unused]] auto lookupRes = localNodeGroup->lookupMultiple(&dummyTrx, *scanState);
+        [[maybe_unused]] auto lookupRes = localNodeGroup->lookupMultiple(transaction, *scanState);
         const auto scannedRelIDVector = scanState->outputVectors[0];
         KU_ASSERT(
             scannedRelIDVector->state->getSelVector().getSelSize() == currentRowsToCheck.size());

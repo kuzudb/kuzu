@@ -50,7 +50,7 @@ public:
     static void initializeScan(TableScanState& state);
     bool scan(const transaction::Transaction* transaction, TableScanState& state) const;
 
-    void clear() override {
+    void clear(MemoryManager&) override {
         localNodeGroup.reset();
         for (auto& index : directedIndices) {
             index.clear();

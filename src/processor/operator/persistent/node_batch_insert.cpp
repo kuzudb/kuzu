@@ -97,7 +97,6 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     const auto clientContext = context->clientContext;
     std::optional<ProducerToken> token;
     auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
-    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
     if (nodeLocalState->localIndexBuilder) {
         token = nodeLocalState->localIndexBuilder->getProducerToken();
     }
@@ -123,6 +122,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         nodeLocalState->localIndexBuilder->finishedProducing(nodeLocalState->errorHandler.value());
         nodeLocalState->errorHandler->flushStoredErrors();
     }
+    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
     sharedState->table->cast<NodeTable>().mergeStats(nodeInfo->insertColumnIDs,
         nodeLocalState->stats);
 }
