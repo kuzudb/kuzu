@@ -55,9 +55,11 @@ class CopyTo final : public Sink {
 public:
     CopyTo(CopyToInfo info, std::shared_ptr<function::ExportFuncSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo, std::function<void()> setParallelReaderFalse = nullptr)
+        std::unique_ptr<OPPrintInfo> printInfo,
+        std::function<void()> setParallelReaderFalse = nullptr)
         : Sink{type_, std::move(child), id, std::move(printInfo)}, info{std::move(info)},
-          sharedState{std::move(sharedState)}, setParallelReaderFalse{std::move(setParallelReaderFalse)} {}
+          sharedState{std::move(sharedState)},
+          setParallelReaderFalse{std::move(setParallelReaderFalse)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -67,7 +69,9 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    void setParallel(std::function<void()> setParallelReaderFalse) { this->setParallelReaderFalse = setParallelReaderFalse; }
+    void setParallel(std::function<void()> setParallelReaderFalse) {
+        this->setParallelReaderFalse = setParallelReaderFalse;
+    }
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<CopyTo>(info.copy(), sharedState, children[0]->copy(), id,

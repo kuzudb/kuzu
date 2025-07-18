@@ -33,7 +33,8 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo,
         const std::shared_ptr<bool>& canUseParallelCSVReader = std::make_shared<bool>(true))
         : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
-          boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly}, canUseParallelCSVReader{canUseParallelCSVReader} {}
+          boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly},
+          canUseParallelCSVReader{canUseParallelCSVReader} {}
 
     void initGlobalStateInternal(ExecutionContext* context) override;
 
@@ -44,7 +45,7 @@ public:
             printInfo->copy(), canUseParallelCSVReader);
     }
     auto setParallelReaderFalse() {
-        auto parallelFalse = [this](){*canUseParallelCSVReader = false;};
+        auto parallelFalse = [this]() { *canUseParallelCSVReader = false; };
         return parallelFalse;
     }
 
