@@ -1,3 +1,4 @@
+#include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
@@ -59,14 +60,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
-static void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool* parallel) {
-    for (size_t i = 0; i < physicalOperator->getNumChildren(); ++i) {
-        if (physicalOperator->getChild(i)->getOperatorType() != PhysicalOperatorType::COPY_TO) {
-            mapExportDatabaseHelper(physicalOperator->getChild(i), parallel);
-        } else {
-            auto castTo = physicalOperator->getChild(i)->ptrCast<CopyTo>();
-            castTo->setParallel(parallel);
+void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool* parallel)
+{
+    for(unsigned int i{}; i < physicalOperator->getNumChildren(); ++i)
+    {
+        if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO)
+        {
+            physicalOperator->getChild(i)->ptrCast<CopyTo>();
         }
+        mapExportDatabaseHelper(physicalOperator->getChild(i), parallel);
     }
 }
 
@@ -86,11 +88,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     auto exportDB = std::make_unique<ExportDB>(boundFileInfo->copy(),
         exportDatabase->isSchemaOnly(), messageTable, getOperatorID(), std::move(printInfo));
     auto sink = std::make_unique<DummySimpleSink>(messageTable, getOperatorID());
+    KU_ASSERT_UNCONDITIONAL(sink->getNumChildren() == 0);
     sink->addChild(std::move(exportDB));
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
+<<<<<<< HEAD
     mapExportDatabaseHelper(sink, sink->getChild(0)->ptrCast<ExportDB>()->getParallel());
+=======
+    mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>()->getParallel());
+>>>>>>> 51b513ee4 (wip)
     return sink;
 }
 
