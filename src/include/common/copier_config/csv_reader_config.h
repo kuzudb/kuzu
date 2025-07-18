@@ -46,7 +46,7 @@ struct CSVOption {
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.
-    std::unordered_map<std::string, std::string> toOptionsMap(const bool& parallel = true) const {
+    std::unordered_map<std::string, std::string> toOptionsMap(const bool& parallel) const {
         std::unordered_map<std::string, std::string> result;
         if (!parallel) {
             result["parallel"] = "false";
