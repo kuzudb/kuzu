@@ -3,7 +3,6 @@
 #include "common/assert.h"
 #include "common/types/types.h"
 #include "common/uniq_lock.h"
-#include "main/client_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/enums/residency_state.h"
 #include "storage/storage_utils.h"

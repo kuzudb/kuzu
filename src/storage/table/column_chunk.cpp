@@ -5,7 +5,6 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/vector/value_vector.h"
-#include "main/client_context.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column.h"
 #include "transaction/transaction.h"
