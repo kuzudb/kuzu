@@ -856,13 +856,13 @@ kuzu_state kuzu_node_val_to_string(kuzu_value* node_val, char** out_result) {
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_rel_val_get_id_val(kuzu_value* node_val, kuzu_value* out_value){
-    auto logical_type_id = static_cast<Value*>(node_val->_value)->getDataType().getLogicalTypeID();
+kuzu_state kuzu_rel_val_get_id_val(kuzu_value* rel_val, kuzu_value* out_value) {
+    auto logical_type_id = static_cast<Value*>(rel_val->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::REL) {
         return KuzuError;
     }
     try {
-        auto id_val = RelVal::getIDVal(static_cast<Value*>(node_val->_value));
+        auto id_val = RelVal::getIDVal(static_cast<Value*>(rel_val->_value));
         out_value->_value = id_val;
         out_value->_is_owned_by_cpp = true;
     } catch (Exception& e) {
