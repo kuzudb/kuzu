@@ -1,3 +1,4 @@
+#include <iostream>
 #include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
@@ -60,10 +61,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
-void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool* parallel) {
-    for (unsigned int i{}; i < physicalOperator->getNumChildren(); ++i) {
-        if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO) {
-            physicalOperator->getChild(i)->ptrCast<CopyTo>();
+void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, bool* parallel)
+{
+    for(unsigned int i{}; i < physicalOperator->getNumChildren(); ++i)
+    {
+        if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO)
+        {
+            physicalOperator->getChild(i)->ptrCast<CopyTo>()->setParallel(parallel);
         }
         mapExportDatabaseHelper(physicalOperator->getChild(i), parallel);
     }
@@ -90,6 +94,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
+    std::cout << sink->getChild(0)->ptrCast<ExportDB>()->getParallel() << std::endl;
     mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>()->getParallel());
     return sink;
 }
