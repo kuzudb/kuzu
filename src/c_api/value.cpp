@@ -868,7 +868,7 @@ kuzu_state kuzu_rel_val_get_id_val(kuzu_value* rel_val, kuzu_value* out_value) {
     } catch (Exception& e) {
         return KuzuError;
     }
-    return  KuzuSuccess;
+    return KuzuSuccess;
 }
 
 kuzu_state kuzu_rel_val_get_src_id_val(kuzu_value* rel_val, kuzu_value* out_value) {
