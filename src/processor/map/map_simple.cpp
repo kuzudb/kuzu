@@ -1,6 +1,3 @@
-#include <iostream>
-
-#include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
@@ -11,7 +8,6 @@
 #include "planner/operator/simple/logical_import_db.h"
 #include "planner/operator/simple/logical_use_database.h"
 #include "processor/operator/persistent/copy_to.h"
-#include "processor/operator/physical_operator.h"
 #include "processor/operator/simple/attach_database.h"
 #include "processor/operator/simple/detach_database.h"
 #include "processor/operator/simple/export_db.h"
@@ -92,7 +88,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    std::cout << sink->getChild(0)->ptrCast<ExportDB>()->getParallel() << std::endl;
     mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>()->getParallel());
     return sink;
 }
