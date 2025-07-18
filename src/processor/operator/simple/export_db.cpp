@@ -41,15 +41,11 @@ std::string ExportDBPrintInfo::toString() const {
 }
 
 void ExportDB::initGlobalStateInternal(ExecutionContext* context) {
-    // Directory was already created when data was exported.
-    if (!schemaOnly) {
-        KU_ASSERT(context->clientContext->getVFSUnsafe()->fileOrPathExists(
-            boundFileInfo.filePaths[0], context->clientContext));
-        return;
-    }
     const auto vfs = context->clientContext->getVFSUnsafe();
-    KU_ASSERT(!vfs->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext));
-    vfs->createDir(boundFileInfo.filePaths[0]);
+    if (!vfs->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext))
+    {
+        vfs->createDir(boundFileInfo.filePaths[0]);
+    }
 }
 
 static void writeStringStreamToFile(ClientContext* context, const std::string& ssString,
