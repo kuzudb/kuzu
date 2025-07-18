@@ -30,7 +30,8 @@ class ExportDB final : public SimpleSink {
 public:
     ExportDB(common::FileScanInfo boundFileInfo, bool schemaOnly,
         std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
-        std::unique_ptr<OPPrintInfo> printInfo, const std::shared_ptr<bool>& parallel = std::make_shared<bool>(true))
+        std::unique_ptr<OPPrintInfo> printInfo,
+        const std::shared_ptr<bool>& parallel = std::make_shared<bool>(true))
         : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
           boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly}, parallel{parallel} {}
 
@@ -42,7 +43,7 @@ public:
         return std::make_unique<ExportDB>(boundFileInfo.copy(), schemaOnly, messageTable, id,
             printInfo->copy(), parallel);
     }
-    bool* getParallel() {return parallel.get();}
+    bool* getParallel() { return parallel.get(); }
 
     bool& getParallel() { return parallel; }
     const bool& getParallel() const { return parallel; }
