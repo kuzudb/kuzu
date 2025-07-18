@@ -45,9 +45,6 @@ public:
     }
     bool* getParallel() { return parallel.get(); }
 
-    bool& getParallel() { return parallel; }
-    const bool& getParallel() const { return parallel; }
-
 private:
     common::FileScanInfo boundFileInfo;
     bool schemaOnly;
