@@ -339,7 +339,7 @@ bool OnDiskGraphVertexScanState::next() {
     numNodesToScan = std::min(endOffset - currentOffset, DEFAULT_VECTOR_CAPACITY);
     auto result = tableScanState->scanNext(context.getTransaction(), currentOffset, numNodesToScan);
     currentOffset += result.numRows;
-    return result != NODE_GROUP_SCAN_EMMPTY_RESULT;
+    return result != NODE_GROUP_SCAN_EMPTY_RESULT;
 }
 
 } // namespace graph

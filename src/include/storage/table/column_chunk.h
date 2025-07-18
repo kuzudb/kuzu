@@ -38,11 +38,11 @@ struct ColumnCheckpointState {
 
 class ColumnChunk {
 public:
-    ColumnChunk(MemoryManager& memoryManager, common::LogicalType&& dataType, uint64_t capacity,
+    ColumnChunk(MemoryManager& mm, common::LogicalType&& dataType, uint64_t capacity,
         bool enableCompression, ResidencyState residencyState, bool initializeToZero = true);
-    ColumnChunk(MemoryManager& memoryManager, common::LogicalType&& dataType,
-        bool enableCompression, ColumnChunkMetadata metadata);
-    ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data);
+    ColumnChunk(MemoryManager& mm, common::LogicalType&& dataType, bool enableCompression,
+        ColumnChunkMetadata metadata);
+    ColumnChunk(MemoryManager& mm, bool enableCompression, std::unique_ptr<ColumnChunkData> data);
 
     void initializeScanState(ChunkState& state, const Column* column) const;
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
@@ -61,8 +61,7 @@ public:
         return getResidencyState() == ResidencyState::ON_DISK ? 0 : data->getEstimatedMemoryUsage();
     }
     void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<ColumnChunk> deserialize(MemoryManager& memoryManager,
-        common::Deserializer& deSer);
+    static std::unique_ptr<ColumnChunk> deserialize(MemoryManager& mm, common::Deserializer& deSer);
 
     uint64_t getNumValues() const { return data->getNumValues(); }
     void setNumValues(const uint64_t numValues) const { data->setNumValues(numValues); }
@@ -110,6 +109,7 @@ private:
         common::row_idx_t numRows) const;
 
 private:
+    MemoryManager& mm;
     // TODO(Guodong): This field should be removed. Ideally it shouldn't be cached anywhere in
     // storage structures, instead should be fed into functions needed from ClientContext dbConfig.
     bool enableCompression;

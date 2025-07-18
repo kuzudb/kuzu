@@ -16,6 +16,7 @@ namespace transaction {
 class Transaction;
 }
 namespace storage {
+class Table;
 class MemoryManager;
 class RelTableData;
 
@@ -55,7 +56,7 @@ private:
 class RelTableData {
 public:
     RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
-        const catalog::RelGroupCatalogEntry& relGroupEntry, common::table_id_t tableID,
+        const catalog::RelGroupCatalogEntry& relGroupEntry, Table& table,
         common::RelDataDirection direction, common::table_id_t nbrTableID, bool enableCompression);
 
     bool update(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
@@ -63,8 +64,7 @@ public:
         const common::ValueVector& dataVector) const;
     bool delete_(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
         const common::ValueVector& relIDVector);
-    void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        PageAllocator& pageAllocator);
+    void addColumn(TableAddColumnState& addColumnState, PageAllocator& pageAllocator);
 
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::ValueVector* srcNodeIDVector) const;
@@ -146,9 +146,8 @@ private:
     const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source) const;
 
 private:
-    common::table_id_t tableID;
-    std::string tableName;
-    MemoryManager* memoryManager;
+    Table& table;
+    MemoryManager* mm;
     ShadowFile* shadowFile;
     bool enableCompression;
     PackedCSRInfo packedCSRInfo;

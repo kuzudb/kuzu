@@ -16,23 +16,24 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-ColumnChunk::ColumnChunk(MemoryManager& memoryManager, LogicalType&& dataType, uint64_t capacity,
+ColumnChunk::ColumnChunk(MemoryManager& mm, LogicalType&& dataType, uint64_t capacity,
     bool enableCompression, ResidencyState residencyState, bool initializeToZero)
-    : enableCompression{enableCompression} {
-    data = ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType),
-        enableCompression, capacity, residencyState, true, initializeToZero);
+    : mm{mm}, enableCompression{enableCompression} {
+    data = ColumnChunkFactory::createColumnChunkData(mm, std::move(dataType), enableCompression,
+        capacity, residencyState, true, initializeToZero);
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
 }
 
-ColumnChunk::ColumnChunk(MemoryManager& memoryManager, LogicalType&& dataType,
-    bool enableCompression, ColumnChunkMetadata metadata)
-    : enableCompression{enableCompression} {
-    data = ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType),
-        enableCompression, metadata, true, true);
+ColumnChunk::ColumnChunk(MemoryManager& mm, LogicalType&& dataType, bool enableCompression,
+    ColumnChunkMetadata metadata)
+    : mm{mm}, enableCompression{enableCompression} {
+    data = ColumnChunkFactory::createColumnChunkData(mm, std::move(dataType), enableCompression,
+        metadata, true, true);
 }
 
-ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
-    : enableCompression{enableCompression}, data{std::move(data)} {}
+ColumnChunk::ColumnChunk(MemoryManager& mm, bool enableCompression,
+    std::unique_ptr<ColumnChunkData> data)
+    : mm{mm}, enableCompression{enableCompression}, data{std::move(data)} {}
 
 void ColumnChunk::initializeScanState(ChunkState& state, const Column* column) const {
     data->initializeScanState(state, column);
@@ -221,14 +222,13 @@ void ColumnChunk::serialize(Serializer& serializer) const {
     data->serialize(serializer);
 }
 
-std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(MemoryManager& memoryManager,
-    Deserializer& deSer) {
+std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(MemoryManager& mm, Deserializer& deSer) {
     std::string key;
     bool enableCompression = false;
     deSer.validateDebuggingInfo(key, "enable_compression");
     deSer.deserializeValue<bool>(enableCompression);
-    auto data = ColumnChunkData::deserialize(memoryManager, deSer);
-    return std::make_unique<ColumnChunk>(enableCompression, std::move(data));
+    auto data = ColumnChunkData::deserialize(mm, deSer);
+    return std::make_unique<ColumnChunk>(mm, enableCompression, std::move(data));
 }
 
 row_idx_t ColumnChunk::getNumUpdatedRows(const Transaction* transaction) const {
@@ -238,7 +238,6 @@ row_idx_t ColumnChunk::getNumUpdatedRows(const Transaction* transaction) const {
 std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChunk::scanUpdates(
     const Transaction* transaction) const {
     auto numUpdatedRows = getNumUpdatedRows(transaction);
-    auto& mm = *transaction->getClientContext()->getMemoryManager();
     // TODO(Guodong): Actually for row idx in a column chunk, UINT32 should be enough.
     auto updatedRows = std::make_unique<ColumnChunk>(mm, LogicalType::UINT64(), numUpdatedRows,
         false, ResidencyState::IN_MEMORY);

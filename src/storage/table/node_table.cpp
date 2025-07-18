@@ -50,11 +50,11 @@ NodeGroupScanResult NodeTableScanState::scanNext(Transaction* transaction, offse
     offset_t numNodes) {
     KU_ASSERT(columns.size() == outputVectors.size());
     if (source == TableScanSource::NONE) {
-        return NODE_GROUP_SCAN_EMMPTY_RESULT;
+        return NODE_GROUP_SCAN_EMPTY_RESULT;
     }
     const NodeGroupScanResult scanResult =
         nodeGroup->scan(transaction, *this, startOffset, numNodes);
-    if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+    if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
         return scanResult;
     }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
@@ -128,7 +128,7 @@ std::unique_ptr<NodeTableScanState> UncommittedIndexInserter::initScanState(
 
 bool UncommittedIndexInserter::processScanOutput(main::ClientContext* context,
     NodeGroupScanResult scanResult, const std::vector<ValueVector*>& scannedVectors) {
-    if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+    if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
         return false;
     }
     for (auto i = 0u; i < scanResult.numRows; i++) {
@@ -155,7 +155,7 @@ concept notIndexHashable = !IndexHashable<T>;
 
 bool RollbackPKDeleter::processScanOutput(main::ClientContext* context,
     NodeGroupScanResult scanResult, const std::vector<ValueVector*>& scannedVectors) {
-    if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+    if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
         return false;
     }
     KU_ASSERT(scannedVectors.size() == 1);
@@ -201,7 +201,7 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
     }
     KU_ASSERT(columns.size() == outputVectors.size());
     const NodeGroupScanResult scanResult = nodeGroup->scan(transaction, *this);
-    if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+    if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
         return false;
     }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
@@ -218,8 +218,8 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
 }
 
 NodeTable::NodeTable(const StorageManager* storageManager,
-    const NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager)
-    : Table{nodeTableEntry, storageManager, memoryManager},
+    const NodeTableCatalogEntry* nodeTableEntry, MemoryManager* mm)
+    : Table{nodeTableEntry, storageManager, mm},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyName())},
       versionRecordHandler(this) {
     auto* dataFH = storageManager->getDataFH();
@@ -231,7 +231,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
         columns[columnID] = ColumnFactory::createColumn(columnName, property.getType().copy(),
-            dataFH, memoryManager, shadowFile, enableCompression);
+            dataFH, mm, shadowFile, enableCompression);
     }
     auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
@@ -242,8 +242,8 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         hashIndexType.constraintType == IndexConstraintType::PRIMARY,
         hashIndexType.definitionType == IndexDefinitionType::BUILTIN};
     indexes.push_back(IndexHolder{PrimaryKeyIndex::createNewIndex(indexInfo,
-        storageManager->isInMemory(), *memoryManager, pageAllocator, shadowFile)});
-    nodeGroups = std::make_unique<NodeGroupCollection>(
+        storageManager->isInMemory(), *mm, pageAllocator, shadowFile)});
+    nodeGroups = std::make_unique<NodeGroupCollection>(*mm,
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
         storageManager->getDataFH() ? ResidencyState::ON_DISK : ResidencyState::IN_MEMORY,
         &versionRecordHandler);
@@ -437,7 +437,6 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     }
     if (insertState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
-        KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getLocalWAL();
         wal.logTableInsertion(tableID, TableType::NODE,
             nodeInsertState.nodeIDVector.state->getSelVector().getSelSize(),
@@ -475,7 +474,6 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
     }
     if (updateState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
-        KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getLocalWAL();
         wal.logNodeUpdate(tableID, nodeUpdateState.columnID, nodeOffset,
             &nodeUpdateState.propertyVector);
@@ -514,7 +512,6 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         hasChanges = true;
         if (deleteState.logToWAL && transaction->shouldLogToWAL()) {
             KU_ASSERT(transaction->isWriteTransaction());
-            KU_ASSERT(transaction->getClientContext());
             auto& wal = transaction->getLocalWAL();
             wal.logNodeDeletion(tableID, nodeOffset, &nodeDeleteState.pkVector);
         }
@@ -532,9 +529,9 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
         localTable = transaction->getLocalStorage()->getLocalTable(tableID);
     }
     if (localTable) {
-        localTable->addColumn(transaction, addColumnState);
+        localTable->addColumn(addColumnState);
     }
-    nodeGroups->addColumn(transaction, addColumnState, &pageAllocator);
+    nodeGroups->addColumn(addColumnState, &pageAllocator);
     hasChanges = true;
 }
 
@@ -575,7 +572,7 @@ void NodeTable::commit(main::ClientContext* context, TableCatalogEntry* tableEnt
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -725,7 +722,7 @@ void NodeTable::scanIndexColumns(main::ClientContext* context, IndexScanHelper& 
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to

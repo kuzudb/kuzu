@@ -11,11 +11,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
+NodeGroupCollection::NodeGroupCollection(MemoryManager& mm, const std::vector<LogicalType>& types,
     const bool enableCompression, ResidencyState residency,
     const VersionRecordHandler* versionRecordHandler)
-    : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      residency{residency}, stats{std::span{types}}, versionRecordHandler(versionRecordHandler) {
+    : mm{mm}, enableCompression{enableCompression}, numTotalRows{0},
+      types{LogicalType::copy(types)}, residency{residency}, stats{std::span{types}},
+      versionRecordHandler(versionRecordHandler) {
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         numTotalRows += nodeGroup->getNumRows();
@@ -29,18 +30,17 @@ void NodeGroupCollection::append(const Transaction* transaction,
     for (auto i = 1u; i < vectors.size(); i++) {
         KU_ASSERT(vectors[i]->state->getSelVector().getSelSize() == numRowsToAppend);
     }
-    // TODO(Guodong): Optimize the lock contention here. We should first lock to reserve a set of
-    // rows to append, then append in parallel without locking.
     const auto lock = nodeGroups.lock();
     if (nodeGroups.isEmpty(lock)) {
-        auto newGroup = std::make_unique<NodeGroup>(0, enableCompression, LogicalType::copy(types));
+        auto newGroup =
+            std::make_unique<NodeGroup>(mm, 0, enableCompression, LogicalType::copy(types));
         nodeGroups.appendGroup(lock, std::move(newGroup));
     }
     row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
         auto lastNodeGroup = nodeGroups.getLastGroup(lock);
         if (!lastNodeGroup || lastNodeGroup->isFull()) {
-            auto newGroup = std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
+            auto newGroup = std::make_unique<NodeGroup>(mm, nodeGroups.getNumGroups(lock),
                 enableCompression, LogicalType::copy(types));
             nodeGroups.appendGroup(lock, std::move(newGroup));
         }
@@ -70,7 +70,8 @@ void NodeGroupCollection::append(const Transaction* transaction,
     KU_ASSERT(nodeGroup.getDataTypes().size() == columnIDs.size());
     const auto lock = nodeGroups.lock();
     if (nodeGroups.isEmpty(lock)) {
-        auto newGroup = std::make_unique<NodeGroup>(0, enableCompression, LogicalType::copy(types));
+        auto newGroup =
+            std::make_unique<NodeGroup>(mm, 0, enableCompression, LogicalType::copy(types));
         nodeGroups.appendGroup(lock, std::move(newGroup));
     }
     const auto numChunkedGroupsToAppend = nodeGroup.getNumChunkedGroups();
@@ -82,7 +83,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
         while (numRowsAppendedInChunkedGroup < numRowsToAppendInChunkedGroup) {
             auto lastNodeGroup = nodeGroups.getLastGroup(lock);
             if (!lastNodeGroup || lastNodeGroup->isFull()) {
-                auto newGroup = std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
+                auto newGroup = std::make_unique<NodeGroup>(mm, nodeGroups.getNumGroups(lock),
                     enableCompression, LogicalType::copy(types));
                 nodeGroups.appendGroup(lock, std::move(newGroup));
             }
@@ -112,14 +113,16 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         const auto lock = nodeGroups.lock();
         startOffset = numTotalRows;
         if (nodeGroups.isEmpty(lock)) {
-            nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
-                                             enableCompression, LogicalType::copy(types)));
+            nodeGroups.appendGroup(lock,
+                std::make_unique<NodeGroup>(mm, nodeGroups.getNumGroups(lock), enableCompression,
+                    LogicalType::copy(types)));
         }
         lastNodeGroup = nodeGroups.getLastGroup(lock);
         auto numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
         if (numRowsLeftInLastNodeGroup == 0) {
-            nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
-                                             enableCompression, LogicalType::copy(types)));
+            nodeGroups.appendGroup(lock,
+                std::make_unique<NodeGroup>(mm, nodeGroups.getNumGroups(lock), enableCompression,
+                    LogicalType::copy(types)));
             lastNodeGroup = nodeGroups.getLastGroup(lock);
             numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
         }
@@ -138,7 +141,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
     }
     if (directFlushWhenAppend) {
         chunkedGroup.finalize();
-        auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, pageAllocator);
+        auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, mm, pageAllocator);
 
         // If there are deleted columns that haven't been vacuumed yet,
         // we need to add extra columns to the chunked group
@@ -163,11 +166,11 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(const Transaction* transact
     while (groupIdx >= nodeGroups.getNumGroups(lock)) {
         const auto currentGroupIdx = nodeGroups.getNumGroups(lock);
         nodeGroups.appendGroup(lock, format == NodeGroupDataFormat::REGULAR ?
-                                         std::make_unique<NodeGroup>(currentGroupIdx,
+                                         std::make_unique<NodeGroup>(mm, currentGroupIdx,
                                              enableCompression, LogicalType::copy(types)) :
-                                         std::make_unique<CSRNodeGroup>(currentGroupIdx,
+                                         std::make_unique<CSRNodeGroup>(mm, currentGroupIdx,
                                              enableCompression, LogicalType::copy(types)));
-        // push an insert of size 0 so that we can rollback the creation of this node group if
+        // push an insert of size 0 so that we can roll back the creation of this node group if
         // needed
         pushInsertInfo(transaction, nodeGroups.getLastGroup(lock), 0);
     }
@@ -175,13 +178,13 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(const Transaction* transact
     return nodeGroups.getGroup(lock, groupIdx);
 }
 
-void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
+void NodeGroupCollection::addColumn(TableAddColumnState& addColumnState,
     PageAllocator* pageAllocator) {
     KU_ASSERT((pageAllocator == nullptr) == (residency == ResidencyState::IN_MEMORY));
     const auto lock = nodeGroups.lock();
     auto& newColumnStats = stats.addNewColumn(addColumnState.propertyDefinition.getType());
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->addColumn(transaction, addColumnState, pageAllocator, &newColumnStats);
+        nodeGroup->addColumn(addColumnState, pageAllocator, &newColumnStats);
     }
     types.push_back(addColumnState.propertyDefinition.getType().copy());
 }

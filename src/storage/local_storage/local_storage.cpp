@@ -18,18 +18,18 @@ LocalTable* LocalStorage::getOrCreateLocalTable(Table& table) {
     const auto tableID = table.getTableID();
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
+    auto& mm = *clientContext.getMemoryManager();
     if (!tables.contains(tableID)) {
         switch (table.getTableType()) {
         case TableType::NODE: {
             auto tableEntry = catalog->getTableCatalogEntry(transaction, table.getTableID());
-            tables[tableID] = std::make_unique<LocalNodeTable>(tableEntry, table,
-                *clientContext.getMemoryManager());
+            tables[tableID] = std::make_unique<LocalNodeTable>(tableEntry, table, mm);
         } break;
         case TableType::REL: {
             // We have to fetch the rel group entry from the catalog to based on the relGroupID.
             auto tableEntry =
                 catalog->getTableCatalogEntry(transaction, table.cast<RelTable>().getRelGroupID());
-            tables[tableID] = std::make_unique<LocalRelTable>(tableEntry, table);
+            tables[tableID] = std::make_unique<LocalRelTable>(tableEntry, table, mm);
         } break;
         default:
             KU_UNREACHABLE;

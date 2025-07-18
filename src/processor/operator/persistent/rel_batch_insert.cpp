@@ -135,7 +135,7 @@ static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* t
     relTable.pushInsertInfo(transaction, direction, nodeGroup, chunkedGroup.getNumRows(), source);
     if (isNewNodeGroup) {
         auto flushedChunkedGroup =
-            chunkedGroup.flushAsNewChunkedNodeGroup(transaction, pageAllocator);
+            chunkedGroup.flushAsNewChunkedNodeGroup(transaction, mm, pageAllocator);
 
         // If there are deleted columns that haven't been vacuumed yet
         // we need to add extra columns to the chunked group

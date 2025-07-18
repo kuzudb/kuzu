@@ -103,7 +103,7 @@ class StorageManager;
 class KUZU_API NodeTable final : public Table {
 public:
     NodeTable(const StorageManager* storageManager,
-        const catalog::NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager);
+        const catalog::NodeTableCatalogEntry* nodeTableEntry, MemoryManager* mm);
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 
