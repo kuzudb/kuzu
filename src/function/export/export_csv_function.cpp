@@ -113,11 +113,13 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
 
     ExportCSVSharedState() = default;
 
-    void init(main::ClientContext& context, const ExportFuncBindData& bindData,
-        bool* parallel) override {
-        this->parallel = parallel;
+    void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
+        if (!context.getVFSUnsafe()->fileOrPathExists(bindData.fileName))
+        {
+            context.getVFSUnsafe()->createDir(std::filesystem::path(bindData.fileName).parent_path());
+        }
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
-            FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
+            FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS), &context);
         writeHeader(bindData);
     }
 
