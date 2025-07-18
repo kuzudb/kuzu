@@ -83,7 +83,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     auto exportDB = std::make_unique<ExportDB>(boundFileInfo->copy(),
         exportDatabase->isSchemaOnly(), messageTable, getOperatorID(), std::move(printInfo));
     auto sink = std::make_unique<DummySimpleSink>(messageTable, getOperatorID());
-    KU_ASSERT_UNCONDITIONAL(sink->getNumChildren() == 0);
     sink->addChild(std::move(exportDB));
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
