@@ -26,14 +26,13 @@ struct ExportFuncSharedState {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
-    virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData) = 0;
+    virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData, bool* parallel) = 0;
 };
 
 struct ExportFuncBindData {
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> types;
     std::string fileName;
-    bool* parallel = nullptr;
 
     ExportFuncBindData(std::vector<std::string> columnNames, std::string fileName)
         : columnNames{std::move(columnNames)}, fileName{std::move(fileName)} {}
@@ -62,7 +61,7 @@ using export_init_local_t = std::function<std::unique_ptr<ExportFuncLocalState>(
     main::ClientContext&, const ExportFuncBindData&, std::vector<bool>)>;
 using export_create_shared_t = std::function<std::shared_ptr<ExportFuncSharedState>()>;
 using export_init_shared_t =
-    std::function<void(ExportFuncSharedState&, main::ClientContext&, ExportFuncBindData&)>;
+    std::function<void(ExportFuncSharedState&, main::ClientContext&, ExportFuncBindData&, bool*)>;
 using export_sink_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&,
     const ExportFuncBindData&, std::vector<std::shared_ptr<common::ValueVector>>)>;
 using export_combine_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&)>;

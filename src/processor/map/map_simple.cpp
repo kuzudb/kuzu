@@ -91,7 +91,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
         sink->addChild(mapOperator(child.get()));
     }
     sink->addChild(std::move(exportDB));
-    mapExportDatabaseHelper(sink.get(), exportDB->getParallel());
+    mapExportDatabaseHelper(sink.get(),sink->getChild(sink->getNumChildren() - 1)->ptrCast<ExportDB>()->getParallel());
     return sink;
 }
 
