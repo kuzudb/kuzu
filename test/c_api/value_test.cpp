@@ -1596,6 +1596,12 @@ TEST_F(CApiValueTest, GetRelVal) {
     kuzu_value rel;
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &rel), KuzuSuccess);
     ASSERT_TRUE(rel._is_owned_by_cpp);
+    kuzu_value relIdVal;
+    ASSERT_EQ(kuzu_rel_val_get_id_val(&rel, &relIdVal), KuzuSuccess);
+    kuzu_internal_id_t relInternalID;
+    ASSERT_EQ(kuzu_value_get_internal_id(&relIdVal, &relInternalID), KuzuSuccess);
+    ASSERT_EQ(relInternalID.table_id, 3);
+    ASSERT_EQ(relInternalID.offset, 0);
     kuzu_value relSrcIDVal;
     ASSERT_EQ(kuzu_rel_val_get_src_id_val(&rel, &relSrcIDVal), KuzuSuccess);
     kuzu_internal_id_t relSrcID;
@@ -1618,6 +1624,7 @@ TEST_F(CApiValueTest, GetRelVal) {
     ASSERT_EQ(propertiesSize, 7);
     kuzu_destroy_string(relLabelStr);
     kuzu_value_destroy(&relLabel);
+    kuzu_value_destroy(&relIdVal);
     kuzu_value_destroy(&relSrcIDVal);
     kuzu_value_destroy(&relDstIDVal);
     kuzu_value_destroy(&rel);
