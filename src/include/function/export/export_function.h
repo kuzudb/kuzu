@@ -29,7 +29,7 @@ struct ExportFuncSharedState {
     }
 
     void createDirIfNotExists(main::ClientContext& context, std::filesystem::path path) {
-        if (!context.getVFSUnsafe()->fileOrPathExists(path)) {
+        if (!context.getVFSUnsafe()->fileOrPathExists(std::string(path))) {
             context.getVFSUnsafe()->createDir(path);
         }
     }
