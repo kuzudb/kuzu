@@ -2,6 +2,16 @@
 
 --
 
+-CASE CreateEmptyLabel
+-STATEMENT CREATE (a);
+---- error
+Binder exception: Create node a with empty node labels is not supported.
+-STATEMENT CREATE NODE TABLE N (id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE (a:N {id:0})-[e]->(b:N {id:1});
+---- error
+Binder exception: Cannot find a label for relationship e that connects to all of its neighbour nodes.
+
 -CASE CreateSimple
 -STATEMENT CREATE NODE TABLE test(id INT64, name STRING, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
 ---- ok
