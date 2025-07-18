@@ -98,8 +98,7 @@ struct ExportParquetSharedState : public ExportFuncSharedState {
     void init(main::ClientContext& context, const ExportFuncBindData& bindData,
         std::function<void()> = nullptr) override {
         auto parent = std::filesystem::path(bindData.fileName).parent_path();
-        if (!parent.empty())
-        {
+        if (!parent.empty()) {
             createDirIfNotExists(context, std::filesystem::absolute(parent));
         }
         auto& exportParquetBindData = bindData.constCast<ExportParquetBindData>();
