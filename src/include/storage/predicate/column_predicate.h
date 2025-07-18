@@ -56,7 +56,7 @@ protected:
     common::ExpressionType expressionType;
 };
 
-struct ColumnPredicateUtil {
+struct KUZU_API ColumnPredicateUtil {
     static std::unique_ptr<ColumnPredicate> tryConvert(const binder::Expression& column,
         const binder::Expression& predicate);
 };

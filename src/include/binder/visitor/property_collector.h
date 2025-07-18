@@ -6,7 +6,7 @@ namespace kuzu {
 namespace binder {
 
 // Collect all property expressions for a given statement.
-class PropertyCollector final : public BoundStatementVisitor {
+class KUZU_API PropertyCollector final : public BoundStatementVisitor {
 public:
     expression_vector getProperties() const;
 

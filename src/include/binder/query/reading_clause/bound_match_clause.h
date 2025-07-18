@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundMatchClause final : public BoundReadingClause {
+class KUZU_API BoundMatchClause final : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::MATCH;
 
 public:

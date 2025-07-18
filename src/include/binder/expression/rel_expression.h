@@ -56,7 +56,7 @@ public:
         return dataType.getLogicalTypeID() == common::LogicalTypeID::RECURSIVE_REL;
     }
 
-    bool isMultiLabeled() const override;
+    KUZU_API bool isMultiLabeled() const override;
     bool isBoundByMultiLabeledNode() const {
         return srcNode->isMultiLabeled() || dstNode->isMultiLabeled();
     }
