@@ -40,12 +40,11 @@ std::string ExportDBPrintInfo::toString() const {
     return result;
 }
 
-void ExportDB::initGlobalStateInternal(ExecutionContext* context) 
-{
+void ExportDB::initGlobalStateInternal(ExecutionContext* context) {
     // Directory was already created when data was exported.
-    if (!schemaOnly)
-    {
-        KU_ASSERT(context->clientContext->getVFSUnsafe()->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext));
+    if (!schemaOnly) {
+        KU_ASSERT(context->clientContext->getVFSUnsafe()->fileOrPathExists(
+            boundFileInfo.filePaths[0], context->clientContext));
         return;
     }
     const auto vfs = context->clientContext->getVFSUnsafe();
