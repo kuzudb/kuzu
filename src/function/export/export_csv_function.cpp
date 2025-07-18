@@ -46,13 +46,18 @@ static std::string addEscapes(char toEscape, char escape, const std::string& val
 }
 
 static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint8_t* str,
-    uint64_t len) {
+    uint64_t len, std::function<void()> setParallelReaderFalse) {
     // Check if the string is equal to the null string.
     if (len == strlen(ExportCSVConstants::DEFAULT_NULL_STR) &&
         memcmp(str, ExportCSVConstants::DEFAULT_NULL_STR, len) == 0) {
         return true;
     }
+    static constexpr const char* NEWLINE = "\n\r";
     for (auto i = 0u; i < len; i++) {
+        if (str[i] == NEWLINE[0] || str[i] == NEWLINE[1]) {
+            setParallelReaderFalse();
+            return true;
+        }
         if (str[i] == exportCSVBindData.exportOption.quoteChar ||
             str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[0] ||
             str[i] == exportCSVBindData.exportOption.delimiter) {
@@ -63,10 +68,11 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
 }
 
 static void writeString(BufferWriter* serializer, const ExportFuncBindData& bindData,
-    const uint8_t* strData, uint64_t strLen, bool forceQuote) {
+    const uint8_t* strData, uint64_t strLen, bool forceQuote,
+    std::function<void()> setParallelReaderFalse) {
     auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
     if (!forceQuote) {
-        forceQuote = requireQuotes(exportCSVBindData, strData, strLen);
+        forceQuote = requireQuotes(exportCSVBindData, strData, strLen, setParallelReaderFalse);
     }
     if (forceQuote) {
         bool requiresEscape = false;
@@ -104,12 +110,19 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
     std::mutex mtx;
     std::unique_ptr<FileInfo> fileInfo;
     offset_t offset = 0;
+    std::function<void()> setParallelReaderFalse = nullptr;
 
     ExportCSVSharedState() = default;
 
-    void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
+    void init(main::ClientContext& context, const ExportFuncBindData& bindData,
+        std::function<void()> setParallelReaderFalse) override {
+        this->setParallelReaderFalse = setParallelReaderFalse;
+        auto parent = std::filesystem::path(bindData.fileName).parent_path();
+        if (!parent.empty()) {
+            createDirIfNotExists(context, std::filesystem::absolute(parent));
+        }
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
-            FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
+            FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS), &context);
         writeHeader(bindData);
     }
 
@@ -124,7 +137,7 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
                 auto& name = exportCSVBindData.columnNames[i];
                 writeString(&bufferedSerializer, exportCSVBindData,
                     reinterpret_cast<const uint8_t*>(name.c_str()), name.length(),
-                    false /* forceQuote */);
+                    false /* forceQuote */, setParallelReaderFalse);
             }
             bufferedSerializer.writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE);
             writeRows(bufferedSerializer.getBlobData(), bufferedSerializer.getSize());
@@ -187,11 +200,12 @@ static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
 }
 
 static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context,
-    const ExportFuncBindData& bindData) {
-    sharedState.init(context, bindData);
+    const ExportFuncBindData& bindData, std::function<void()> setParallelReaderFalse) {
+    sharedState.init(context, bindData, setParallelReaderFalse);
 }
 
 static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocalState& localState,
+    const ExportCSVSharedState& sharedState,
     std::vector<std::shared_ptr<ValueVector>> inputVectors) {
     auto& exportCSVLocalState = localState.cast<ExportCSVLocalState>();
     auto& castVectors = localState.castVectors;
@@ -227,7 +241,8 @@ static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocal
             // Note: we need blindly add quotes to LIST.
             writeString(serializer.get(), exportCSVBindData, strValue.getData(), strValue.len,
                 ExportCSVConstants::DEFAULT_FORCE_QUOTE ||
-                    inputVectors[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST);
+                    inputVectors[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST,
+                sharedState.setParallelReaderFalse);
         }
         serializer->writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE);
     }
@@ -237,7 +252,9 @@ static void sinkFunc(ExportFuncSharedState& sharedState, ExportFuncLocalState& l
     const ExportFuncBindData& bindData, std::vector<std::shared_ptr<ValueVector>> inputVectors) {
     auto& exportCSVLocalState = localState.cast<ExportCSVLocalState>();
     auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
-    writeRows(exportCSVBindData, exportCSVLocalState, std::move(inputVectors));
+    auto& exportCSVSharedState = sharedState.cast<ExportCSVSharedState>();
+    writeRows(exportCSVBindData, exportCSVLocalState, exportCSVSharedState,
+        std::move(inputVectors));
     auto& serializer = exportCSVLocalState.serializer;
     if (serializer->getSize() > ExportCSVConstants::DEFAULT_CSV_FLUSH_SIZE) {
         auto& exportCSVSharedState = sharedState.cast<ExportCSVSharedState>();

@@ -1,8 +1,10 @@
 #pragma once
 
 #include "common/case_insensitive_map.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/types/value/value.h"
 #include "function/function.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {
@@ -26,7 +28,14 @@ struct ExportFuncSharedState {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
-    virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData) = 0;
+    void createDirIfNotExists(main::ClientContext& context, const std::filesystem::path& path) {
+        if (!context.getVFSUnsafe()->fileOrPathExists(path.string())) {
+            context.getVFSUnsafe()->createDir(path.string());
+        }
+    }
+
+    virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData,
+        std::function<void()> setParallelReaderFalse) = 0;
 };
 
 struct ExportFuncBindData {
@@ -60,8 +69,8 @@ using export_bind_t =
 using export_init_local_t = std::function<std::unique_ptr<ExportFuncLocalState>(
     main::ClientContext&, const ExportFuncBindData&, std::vector<bool>)>;
 using export_create_shared_t = std::function<std::shared_ptr<ExportFuncSharedState>()>;
-using export_init_shared_t =
-    std::function<void(ExportFuncSharedState&, main::ClientContext&, ExportFuncBindData&)>;
+using export_init_shared_t = std::function<void(ExportFuncSharedState&, main::ClientContext&,
+    ExportFuncBindData&, std::function<void()>)>;
 using export_sink_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&,
     const ExportFuncBindData&, std::vector<std::shared_ptr<common::ValueVector>>)>;
 using export_combine_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&)>;

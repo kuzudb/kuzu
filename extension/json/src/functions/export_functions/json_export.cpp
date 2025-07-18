@@ -32,9 +32,14 @@ struct ExportJSONSharedState : public ExportFuncSharedState {
     std::unique_ptr<FileInfo> fileInfo;
     std::vector<std::string> jsonValues;
 
-    void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
+    void init(main::ClientContext& context, const ExportFuncBindData& bindData,
+        std::function<void()> = nullptr) override {
+        auto parent = std::filesystem::path(bindData.fileName).parent_path();
+        if (!parent.empty()) {
+            createDirIfNotExists(context, std::filesystem::absolute(parent));
+        }
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
-            FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
+            FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS), &context);
     }
 };
 
@@ -47,8 +52,8 @@ static std::unique_ptr<ExportFuncBindData> bindFunc(ExportFuncBindInput& bindInp
 }
 
 static void initSharedState(ExportFuncSharedState& sharedState, main::ClientContext& context,
-    const ExportFuncBindData& bindData) {
-    sharedState.init(context, bindData);
+    const ExportFuncBindData& bindData, std::function<void()> = nullptr) {
+    sharedState.init(context, bindData, nullptr);
 }
 
 static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {

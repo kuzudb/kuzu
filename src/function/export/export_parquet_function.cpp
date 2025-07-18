@@ -95,7 +95,12 @@ struct ExportParquetSharedState : public ExportFuncSharedState {
 
     ExportParquetSharedState() = default;
 
-    void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
+    void init(main::ClientContext& context, const ExportFuncBindData& bindData,
+        std::function<void()> = nullptr) override {
+        auto parent = std::filesystem::path(bindData.fileName).parent_path();
+        if (!parent.empty()) {
+            createDirIfNotExists(context, std::filesystem::absolute(parent));
+        }
         auto& exportParquetBindData = bindData.constCast<ExportParquetBindData>();
         writer = std::make_unique<ParquetWriter>(exportParquetBindData.fileName,
             common::LogicalType::copy(exportParquetBindData.types),
@@ -120,8 +125,8 @@ static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
 }
 
 static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context,
-    const ExportFuncBindData& bindData) {
-    sharedState.init(context, bindData);
+    const ExportFuncBindData& bindData, std::function<void()> = nullptr) {
+    sharedState.init(context, bindData, nullptr);
 }
 
 static std::vector<ValueVector*> extractSharedPtr(

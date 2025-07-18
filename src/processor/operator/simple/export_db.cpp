@@ -42,8 +42,9 @@ std::string ExportDBPrintInfo::toString() const {
 
 void ExportDB::initGlobalStateInternal(ExecutionContext* context) {
     const auto vfs = context->clientContext->getVFSUnsafe();
-    KU_ASSERT(!vfs->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext));
-    vfs->createDir(boundFileInfo.filePaths[0]);
+    if (!vfs->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext)) {
+        vfs->createDir(boundFileInfo.filePaths[0]);
+    }
 }
 
 static void writeStringStreamToFile(ClientContext* context, const std::string& ssString,
@@ -70,12 +71,13 @@ static std::string getTablePropertyDefinitions(const TableCatalogEntry* entry) {
 }
 
 static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* entry,
-    const FileScanInfo* info) {
+    const FileScanInfo* info, const bool& canUseParallelReader) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     // TODO(Ziyi): We should pass fileName from binder phase to here.
     auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns = getTablePropertyDefinitions(entry);
-    auto copyOptionsCypher = CSVOption::toCypher(csvConfig.option.toOptionsMap());
+    auto copyOptionsCypher =
+        CSVOption::toCypher(csvConfig.option.toOptionsMap(canUseParallelReader));
     if (columns.empty()) {
         ss << stringFormat("COPY `{}` FROM \"{}\" {};\n", entry->getName(), fileName,
             copyOptionsCypher);
@@ -86,12 +88,12 @@ static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* en
 }
 
 static void writeCopyRelStatement(stringstream& ss, const ClientContext* context,
-    const TableCatalogEntry* entry, const FileScanInfo* info) {
+    const TableCatalogEntry* entry, const FileScanInfo* info, const bool& canUseParallelReader) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     std::string columns = getTablePropertyDefinitions(entry);
     auto transaction = context->getTransaction();
     const auto catalog = context->getCatalog();
-    auto optionsMap = csvConfig.option.toOptionsMap();
+    auto optionsMap = csvConfig.option.toOptionsMap(canUseParallelReader);
     for (auto& entryInfo : entry->constCast<RelGroupCatalogEntry>().getRelEntryInfos()) {
         auto fromTableName =
             catalog->getTableCatalogEntry(transaction, entryInfo.nodePair.srcTableID)->getName();
@@ -146,16 +148,17 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     return ss.str();
 }
 
-std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boundFileInfo) {
+std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boundFileInfo,
+    const bool& canUseParallelReader) {
     stringstream ss;
     auto transaction = context->getTransaction();
     const auto catalog = context->getCatalog();
     for (const auto& nodeTableEntry :
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
-        writeCopyNodeStatement(ss, nodeTableEntry, boundFileInfo);
+        writeCopyNodeStatement(ss, nodeTableEntry, boundFileInfo, canUseParallelReader);
     }
     for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
-        writeCopyRelStatement(ss, context, entry, boundFileInfo);
+        writeCopyRelStatement(ss, context, entry, boundFileInfo, canUseParallelReader);
     }
     return ss.str();
 }
@@ -183,7 +186,8 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     }
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
-    writeStringStreamToFile(clientContext, getCopyCypher(clientContext, &boundFileInfo),
+    writeStringStreamToFile(clientContext,
+        getCopyCypher(clientContext, &boundFileInfo, *canUseParallelCSVReader),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::COPY_FILE_NAME);
     // write the index.cypher file
     writeStringStreamToFile(clientContext, getIndexCypher(clientContext, boundFileInfo),

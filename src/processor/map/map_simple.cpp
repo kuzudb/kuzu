@@ -7,6 +7,7 @@
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_import_db.h"
 #include "planner/operator/simple/logical_use_database.h"
+#include "processor/operator/persistent/copy_to.h"
 #include "processor/operator/simple/attach_database.h"
 #include "processor/operator/simple/detach_database.h"
 #include "processor/operator/simple/export_db.h"
@@ -57,6 +58,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
+void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, std::function<void()> parallel) {
+    for (unsigned int i{}; i < physicalOperator->getNumChildren(); ++i) {
+        if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO) {
+            physicalOperator->getChild(i)->ptrCast<CopyTo>()->setParallel(parallel);
+        }
+        mapExportDatabaseHelper(physicalOperator->getChild(i), parallel);
+    }
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     const LogicalOperator* logicalOperator) {
     auto exportDatabase = logicalOperator->constPtrCast<LogicalExportDatabase>();
@@ -73,10 +83,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     auto exportDB = std::make_unique<ExportDB>(boundFileInfo->copy(),
         exportDatabase->isSchemaOnly(), messageTable, getOperatorID(), std::move(printInfo));
     auto sink = std::make_unique<DummySimpleSink>(messageTable, getOperatorID());
+    sink->addChild(std::move(exportDB));
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    sink->addChild(std::move(exportDB));
+    mapExportDatabaseHelper(sink.get(),
+        sink->getChild(0)->ptrCast<ExportDB>()->setParallelReaderFalse());
     return sink;
 }
 
