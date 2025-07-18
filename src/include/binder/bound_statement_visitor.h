@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundStatementVisitor {
+class KUZU_API BoundStatementVisitor {
 public:
     BoundStatementVisitor() = default;
     virtual ~BoundStatementVisitor() = default;

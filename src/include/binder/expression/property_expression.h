@@ -22,7 +22,7 @@ private:
         : exists{other.exists}, isPrimaryKey{other.isPrimaryKey} {}
 };
 
-class PropertyExpression final : public Expression {
+class KUZU_API PropertyExpression final : public Expression {
     static constexpr common::ExpressionType expressionType_ = common::ExpressionType::PROPERTY;
 
 public:
