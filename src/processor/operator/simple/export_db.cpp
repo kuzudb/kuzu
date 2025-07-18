@@ -71,7 +71,8 @@ static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* en
     // TODO(Ziyi): We should pass fileName from binder phase to here.
     auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns = getTablePropertyDefinitions(entry);
-    auto copyOptionsCypher = CSVOption::toCypher(csvConfig.option.toOptionsMap(canUseParallelReader));
+    auto copyOptionsCypher =
+        CSVOption::toCypher(csvConfig.option.toOptionsMap(canUseParallelReader));
     if (columns.empty()) {
         ss << stringFormat("COPY `{}` FROM \"{}\" {};\n", entry->getName(), fileName,
             copyOptionsCypher);
@@ -180,7 +181,8 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     }
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
-    writeStringStreamToFile(clientContext, getCopyCypher(clientContext, &boundFileInfo, *canUseParallelCSVReader),
+    writeStringStreamToFile(clientContext,
+        getCopyCypher(clientContext, &boundFileInfo, *canUseParallelCSVReader),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::COPY_FILE_NAME);
     // write the index.cypher file
     writeStringStreamToFile(clientContext, getIndexCypher(clientContext, boundFileInfo),
