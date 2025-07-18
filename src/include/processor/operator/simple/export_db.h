@@ -43,6 +43,9 @@ public:
         return std::make_unique<ExportDB>(boundFileInfo.copy(), schemaOnly, messageTable, id,
             printInfo->copy(), parallel);
     }
+    // TODO(TANVIR) outside of this class parallel should only ever be set to false.
+    // We should instead expose a function ptr which does exactly this and let 
+    // the outside class call it.
     bool* getParallel() { return parallel.get(); }
 
 private:
