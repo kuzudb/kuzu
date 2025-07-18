@@ -26,7 +26,8 @@ struct ExportFuncSharedState {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
-    virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData, bool* parallel) = 0;
+    virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData,
+        bool* parallel) = 0;
 };
 
 struct ExportFuncBindData {
