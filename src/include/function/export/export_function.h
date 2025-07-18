@@ -28,9 +28,9 @@ struct ExportFuncSharedState {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
-    void createDirIfNotExists(main::ClientContext& context, std::filesystem::path path) {
-        if (!context.getVFSUnsafe()->fileOrPathExists(std::string(path))) {
-            context.getVFSUnsafe()->createDir(path);
+    void createDirIfNotExists(main::ClientContext& context, const std::filesystem::path& path) {
+        if (!context.getVFSUnsafe()->fileOrPathExists(path.string())) {
+            context.getVFSUnsafe()->createDir(path.string());
         }
     }
 
