@@ -172,6 +172,10 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
         throw BinderException(
             "Create node " + node->toString() + " with multiple node labels is not supported.");
     }
+    if (node->isEmpty()) {
+        throw BinderException(
+            "Create node " + node->toString() + " with empty node labels is not supported.");
+    }
     KU_ASSERT(node->getNumEntries() == 1);
     auto entry = node->getEntry(0);
     KU_ASSERT(entry->getTableType() == TableType::NODE);
