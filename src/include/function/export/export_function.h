@@ -1,8 +1,11 @@
 #pragma once
 
+#include <filesystem>
 #include "common/case_insensitive_map.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/types/value/value.h"
 #include "function/function.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {
@@ -24,6 +27,12 @@ struct ExportFuncSharedState {
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
+    }
+
+    void createDirIfNotExists(main::ClientContext& context, std::filesystem::path path) {
+        if (!context.getVFSUnsafe()->fileOrPathExists(path)) {
+            context.getVFSUnsafe()->createDir(path);
+        }
     }
 
     virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData,
