@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .torch_geometric_result_converter import TorchGeometricResultConverter
 from .types import Type
@@ -9,13 +9,11 @@ if TYPE_CHECKING:
     import sys
     from collections.abc import Iterator
     from types import TracebackType
-    from typing import Any
 
     import networkx as nx
     import pandas as pd
     import polars as pl
     import pyarrow as pa
-    import torch_geometric.data as geo
 
     from . import _kuzu
 
@@ -24,11 +22,17 @@ if TYPE_CHECKING:
     else:
         from typing_extensions import Self
 
+    # Optional imports for torch_geometric
+    try:
+        import torch_geometric.data as geo
+    except ImportError:
+        geo = None
+
 
 class QueryResult:
     """QueryResult stores the result of a query execution."""
 
-    def __init__(self, connection: _kuzu.Connection, query_result: _kuzu.QueryResult):  # type: ignore[name-defined]
+    def __init__(self, connection: "_kuzu.Connection", query_result: "_kuzu.QueryResult") -> None:  # type: ignore[name-defined]
         """
         Parameters
         ----------
@@ -39,19 +43,20 @@ class QueryResult:
             The underlying C++ query result object from pybind11.
 
         """
-        self.connection = connection
-        self._query_result = query_result
-        self.is_closed = False
-        self.as_dict = False
+        self.connection: "_kuzu.Connection | None" = connection
+        self._query_result: "_kuzu.QueryResult" = query_result
+        self.is_closed: bool = False
+        self.as_dict: bool = False
+        self.columns: list[str] | None = None
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> "Self":
         return self
 
     def __exit__(
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        exc_traceback: TracebackType | None,
+        exc_traceback: "TracebackType | None",
     ) -> None:
         self.close()
 
@@ -95,7 +100,7 @@ class QueryResult:
         """
         self.check_for_query_result_close()
         row = self._query_result.getNext()
-        return _row_to_dict(self.columns, row) if self.as_dict else row
+        return _row_to_dict(self.columns, row) if self.as_dict and self.columns else row
 
     def get_all(self) -> list[list[Any] | dict[str, Any]]:
         """
@@ -117,7 +122,7 @@ class QueryResult:
         list
             Up to `count` rows in the query result.
         """
-        results = []
+        results: list[list[Any] | dict[str, Any]] = []
         while self.has_next() and count > 0:
             results.append(self.get_next())
             count -= 1
@@ -146,7 +151,7 @@ class QueryResult:
             msg = "Query result is closed"
             raise RuntimeError(msg)
 
-    def get_as_df(self) -> pd.DataFrame:
+    def get_as_df(self) -> "pd.DataFrame":
         """
         Get the query result as a Pandas DataFrame.
 
@@ -165,7 +170,7 @@ class QueryResult:
 
         return self._query_result.getAsDF()
 
-    def get_as_pl(self) -> pl.DataFrame:
+    def get_as_pl(self) -> "pl.DataFrame":
         """
         Get the query result as a Polars DataFrame.
 
@@ -189,7 +194,7 @@ class QueryResult:
             data=self.get_as_arrow(chunk_size=-1),
         )
 
-    def get_as_arrow(self, chunk_size: int | None = None) -> pa.Table:
+    def get_as_arrow(self, chunk_size: int | None = None) -> "pa.Table":
         """
         Get the query result as a PyArrow Table.
 
@@ -278,7 +283,7 @@ class QueryResult:
     def get_as_networkx(
         self,
         directed: bool = True,  # noqa: FBT001
-    ) -> nx.MultiGraph | nx.MultiDiGraph:
+    ) -> "nx.MultiGraph | nx.MultiDiGraph":
         """
         Convert the nodes and rels in query result into a NetworkX directed or undirected graph
         with the following rules:
@@ -299,17 +304,17 @@ class QueryResult:
         self.check_for_query_result_close()
         import networkx as nx
 
-        nx_graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
+        nx_graph: "nx.MultiGraph | nx.MultiDiGraph" = nx.MultiDiGraph() if directed else nx.MultiGraph()
         properties_to_extract = self._get_properties_to_extract()
 
         self.reset_iterator()
 
-        nodes = {}
-        rels = {}
-        table_to_label_dict = {}
-        table_primary_key_dict = {}
+        nodes: dict[tuple[int, int], dict[str, Any]] = {}
+        rels: dict[tuple[int, int], dict[str, Any]] = {}
+        table_to_label_dict: dict[int, str] = {}
+        table_primary_key_dict: dict[str, str] = {}
 
-        def encode_node_id(node: dict[str, Any], table_primary_key_dict: dict[str, Any]) -> str:
+        def encode_node_id(node: dict[str, Any], table_primary_key_dict: dict[str, str]) -> str:
             node_label = node["_label"]
             return f"{node_label}_{node[table_primary_key_dict[node_label]]!s}"
 
@@ -319,6 +324,8 @@ class QueryResult:
         # De-duplicate nodes and rels
         while self.has_next():
             row = self.get_next()
+            if isinstance(row, dict):
+                row = list(row.values())
             for i in properties_to_extract:
                 # Skip empty nodes and rels, which may be returned by
                 # OPTIONAL MATCH
@@ -349,11 +356,12 @@ class QueryResult:
             nid = node["_id"]
             node_id = node["_label"] + "_" + str(nid["offset"])
             if node["_label"] not in table_primary_key_dict:
-                props = self.connection._get_node_property_names(node["_label"])
-                for prop_name in props:
-                    if props[prop_name]["is_primary_key"]:
-                        table_primary_key_dict[node["_label"]] = prop_name
-                        break
+                if self.connection is not None:
+                    props = self.connection._get_node_property_names(node["_label"])
+                    for prop_name in props:
+                        if props[prop_name]["is_primary_key"]:
+                            table_primary_key_dict[node["_label"]] = prop_name
+                            break
             node_id = encode_node_id(node, table_primary_key_dict)
             node[node["_label"]] = True
             nx_graph.add_node(node_id, **node)
@@ -372,7 +380,7 @@ class QueryResult:
     def _get_properties_to_extract(self) -> dict[int, tuple[str, str]]:
         column_names = self.get_column_names()
         column_types = self.get_column_data_types()
-        properties_to_extract = {}
+        properties_to_extract: dict[int, tuple[str, str]] = {}
 
         # Iterate over columns and extract nodes and rels, ignoring other columns
         for i in range(len(column_names)):
@@ -386,7 +394,7 @@ class QueryResult:
                 properties_to_extract[i] = (column_type, column_name)
         return properties_to_extract
 
-    def get_as_torch_geometric(self) -> tuple[geo.Data | geo.HeteroData, dict, dict, dict]:  # type: ignore[type-arg]
+    def get_as_torch_geometric(self) -> tuple["geo.Data | geo.HeteroData", dict, dict, dict]:  # type: ignore[type-arg]
         """
         Convert the nodes and rels in query result into a PyTorch Geometric graph representation
         torch_geometric.data.Data or torch_geometric.data.HeteroData.
@@ -476,7 +484,7 @@ class QueryResult:
         self.check_for_query_result_close()
         return self._query_result.getNumTuples()
 
-    def rows_as_dict(self, state=True) -> Self:
+    def rows_as_dict(self, state: bool = True) -> "Self":
         """
         Change the format of the results, such that each row is a dict with the
         column name as a key.
