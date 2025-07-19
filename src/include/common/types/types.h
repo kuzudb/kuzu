@@ -604,7 +604,13 @@ struct KUZU_API UnionType {
 
     static const LogicalType& getFieldType(const LogicalType& type, union_field_idx_t idx);
 
+    static const LogicalType& getFieldType(const LogicalType& type, const std::string& key);
+
     static uint64_t getNumFields(const LogicalType& type);
+
+    static bool hasField(const LogicalType& type, const std::string& key);
+
+    static union_field_idx_t getFieldIdx(const LogicalType& type, const std::string& key);
 };
 
 struct PhysicalTypeUtils {

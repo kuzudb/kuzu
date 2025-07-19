@@ -94,8 +94,7 @@ struct UnaryCastUnionFunctionWrapper {
         uint64_t resultPos, void* dataPtr) {
         auto& inputVector_ = *(common::ValueVector*)inputVector;
         auto& resultVector_ = *(common::ValueVector*)resultVector;
-        FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
-            resultVector_.getValue<RESULT_TYPE>(resultPos), inputVector_, resultVector_, dataPtr);
+        FUNC::operation(OPERAND_TYPE(), inputVector_, resultVector_, inputPos, resultPos, dataPtr);
     }
 };
 
