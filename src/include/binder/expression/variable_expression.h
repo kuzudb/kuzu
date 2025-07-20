@@ -20,10 +20,6 @@ public:
 
     std::string toStringInternal() const override { return variableName; }
 
-    std::unique_ptr<Expression> copy() const override {
-        return std::make_unique<VariableExpression>(dataType.copy(), uniqueName, variableName);
-    }
-
 private:
     std::string variableName;
 };
