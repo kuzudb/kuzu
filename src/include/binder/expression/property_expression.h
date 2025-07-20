@@ -58,7 +58,7 @@ public:
 
     std::string toStringInternal() const override { return rawVariableName + "." + propertyName; }
 
-    std::unique_ptr<Expression> copy() const override {
+    std::unique_ptr<PropertyExpression> copy() const {
         return std::make_unique<PropertyExpression>(*this);
     }
 

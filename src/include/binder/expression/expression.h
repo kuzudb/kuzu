@@ -10,7 +10,6 @@
 #include "common/cast.h"
 #include "common/copy_constructors.h"
 #include "common/enums/expression_type.h"
-#include "common/exception/internal.h"
 #include "common/types/types.h"
 
 namespace kuzu {
@@ -84,10 +83,6 @@ public:
     bool operator==(const Expression& rhs) const { return uniqueName == rhs.uniqueName; }
 
     std::string toString() const { return hasAlias() ? alias : toStringInternal(); }
-
-    virtual std::unique_ptr<Expression> copy() const {
-        throw common::InternalException("Unimplemented expression copy().");
-    }
 
     template<class TARGET>
     TARGET& cast() {
