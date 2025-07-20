@@ -110,8 +110,8 @@ export interface SystemConfig {
 export class Database {
     /**
      * Constructs a new Database instance.
-     * @param databasePath Path to the database directory
-     * @param bufferPoolSize Size of the buffer pool in bytes
+     * @param databasePath Path to the database directory (defaults to ":memory:")
+     * @param bufferManagerSize Size of the buffer manager in bytes
      * @param enableCompression Whether to enable compression
      * @param readOnly Whether to open in read-only mode
      * @param maxDBSize Maximum size of the database in bytes
@@ -120,30 +120,13 @@ export class Database {
      */
     constructor(
         databasePath?: string,
-        bufferPoolSize?: number,
+        bufferManagerSize?: number,
         enableCompression?: boolean,
         readOnly?: boolean,
         maxDBSize?: number,
         autoCheckpoint?: boolean,
         checkpointThreshold?: number
     );
-
-    /**
-     * Constructs a new Database instance with configuration object.
-     * @param databasePath Path to the database directory
-     * @param config Configuration options for the database
-     */
-    constructor(
-        databasePath?: string,
-        config?: SystemConfig
-    );
-
-    /**
-     * Initialize the database asynchronously. Calling this function is optional, as the
-     * database is initialized automatically when the first query is executed.
-     * @param callback Callback to be called when initialization completes
-     */
-    initAsync(callback: Callback): void;
 
     /**
      * Initialize the database. Calling this function is optional, as the
@@ -153,9 +136,22 @@ export class Database {
     init(): Promise<void>;
 
     /**
-     * Close the database and release resources.
+     * Initialize the database synchronously. Calling this function is optional, as the
+     * database is initialized automatically when the first query is executed. This function
+     * may block the main thread, so use it with caution.
      */
-    close(): void;
+    initSync(): void;
+
+    /**
+     * Close the database and release resources.
+     * @returns Promise that resolves when database is closed
+     */
+    close(): Promise<void>;
+
+    /**
+     * Close the database synchronously.
+     */
+    closeSync(): void;
 
     /**
      * Get the version of the Kuzu library.
@@ -165,9 +161,9 @@ export class Database {
 
     /**
      * Get the storage version of the Kuzu library.
-     * @returns The storage version the library
+     * @returns The storage version of the library
      */
-    static getStorageVersion(): bigint;
+    static getStorageVersion(): number;
 }
 
 /**
@@ -177,20 +173,20 @@ export class Connection {
     /**
      * Creates a new connection to the specified database.
      * @param database The database instance to connect to
+     * @param numThreads Optional maximum number of threads for query execution
      */
-    constructor(database: Database);
-
-    /**
-     * Initialize the connection asynchronously.
-     * @param callback Callback to be called when initialization completes
-     */
-    initAsync(callback: Callback): void;
+    constructor(database: Database, numThreads?: number);
 
     /**
      * Initialize the connection.
      * @returns Promise that resolves when initialization completes
      */
     init(): Promise<void>;
+
+    /**
+     * Initialize the connection synchronously. This function may block the main thread, so use it with caution.
+     */
+    initSync(): void;
 
     /**
      * Set the maximum number of threads for query execution.
@@ -200,91 +196,87 @@ export class Connection {
 
     /**
      * Set the query timeout in milliseconds.
-     * @param timeoutInMS Timeout in milliseconds
+     * @param timeoutInMs Timeout in milliseconds
      */
-    setQueryTimeout(timeoutInMS: number): void;
+    setQueryTimeout(timeoutInMs: number): void;
 
     /**
      * Close the connection.
+     * @returns Promise that resolves when connection is closed
      */
-    close(): void;
+    close(): Promise<void>;
 
     /**
-     * Execute a prepared statement asynchronously.
+     * Close the connection synchronously.
+     */
+    closeSync(): void;
+
+    /**
+     * Execute a prepared statement.
      * @param preparedStatement The prepared statement to execute
-     * @param queryResult The query result object to store results
-     * @param params Parameters for the query (as object or entries array)
-     * @param callback Callback to be called when execution completes
+     * @param params Parameters for the query as a plain object
      * @param progressCallback Optional progress callback
+     * @returns Promise that resolves to the query result(s)
      */
-    executeAsync(
+    execute(
         preparedStatement: PreparedStatement,
-        queryResult: QueryResult,
-        params: Record<string, KuzuValue> | [string, KuzuValue][],
-        callback: Callback,
+        params?: Record<string, KuzuValue>,
         progressCallback?: ProgressCallback
-    ): void;
-
-    /**
-     * Execute a raw query string asynchronously.
-     * @param statement The query string to execute
-     * @param queryResult The query result object to store results
-     * @param callback Callback to be called when execution completes
-     * @param progressCallback Optional progress callback
-     */
-    queryAsync(
-        statement: string,
-        queryResult: QueryResult,
-        callback: Callback,
-        progressCallback?: ProgressCallback
-    ): void;
+    ): Promise<QueryResult | QueryResult[]>;
 
     /**
      * Execute a prepared statement synchronously.
      * @param preparedStatement The prepared statement to execute
-     * @param queryResult The query result object to store results
-     * @param params Parameters for the query (as object or entries array)
+     * @param params Parameters for the query as a plain object
+     * @returns The query result(s)
      */
     executeSync(
         preparedStatement: PreparedStatement,
-        queryResult: QueryResult,
-        params: Record<string, KuzuValue> | [string, KuzuValue][]
-    ): void;
+        params?: Record<string, KuzuValue>
+    ): QueryResult | QueryResult[];
 
     /**
-     * Execute a raw query string synchronously.
-     * @param statement The query string to execute
-     * @param queryResult The query result object to store results
+     * Prepare a statement for execution.
+     * @param statement The statement to prepare
+     * @returns Promise that resolves to the prepared statement
      */
-    querySync(statement: string, queryResult: QueryResult): void;
+    prepare(statement: string): Promise<PreparedStatement>;
+
+    /**
+     * Prepare a statement for execution synchronously.
+     * @param statement The statement to prepare
+     * @returns The prepared statement
+     */
+    prepareSync(statement: string): PreparedStatement;
+
+    /**
+     * Execute a query.
+     * @param statement The statement to execute
+     * @param progressCallback Optional progress callback
+     * @returns Promise that resolves to the query result(s)
+     */
+    query(
+        statement: string,
+        progressCallback?: ProgressCallback
+    ): Promise<QueryResult | QueryResult[]>;
+
+    /**
+     * Execute a query synchronously.
+     * @param statement The statement to execute
+     * @returns The query result(s)
+     */
+    querySync(statement: string): QueryResult | QueryResult[];
 }
 
 /**
  * Represents a prepared statement for efficient query execution.
+ * Note: This class is created internally by Connection.prepare() methods.
  */
 export class PreparedStatement {
     /**
-     * Creates a new prepared statement.
-     * @param connection The connection to prepare the statement on
-     * @param query The query string to prepare
+     * Check if the statement was prepared successfully.
+     * @returns True if preparation was successful
      */
-    constructor(connection: Connection, query: string);
-
-    /**
-     * Initialize the prepared statement asynchronously.
-     * @param callback Callback to be called when initialization completes
-     */
-    initAsync(callback: Callback): void;
-
-    /**
-     * Initialize the prepared statement synchronously.
-     */
-    initSync(): void;
-
-    /**
-      * Check if the statement was prepared successfully.
-      * @returns True if preparation was successful
-      */
     isSuccess(): boolean;
 
     /**
@@ -296,10 +288,9 @@ export class PreparedStatement {
 
 /**
  * Represents the results of a query execution.
+ * Note: This class is created internally by Connection query methods.
  */
 export class QueryResult {
-    constructor();
-
     /**
      * Reset the iterator for reading results.
      */
@@ -312,35 +303,16 @@ export class QueryResult {
     hasNext(): boolean;
 
     /**
-     * Check if there are more query result chunks available.
-     * @returns True if more result chunks are available
-     */
-    hasNextQueryResult(): boolean;
-
-    /**
-     * Get the next query result chunk asynchronously.
-     * @param nextQueryResult The result object to store the next chunk
-     * @param callback Callback to be called when the next chunk is ready
-     */
-    getNextQueryResultAsync(nextQueryResult: QueryResult, callback: Callback): void;
-
-    /**
-     * Get the next query result chunk synchronously.
-     * @param nextQueryResult The result object to store the next chunk
-     */
-    getNextQueryResultSync(nextQueryResult: QueryResult): void;
-
-    /**
      * Get the number of tuples (rows) in the result.
      * @returns The number of rows
      */
     getNumTuples(): number;
 
     /**
-     * Get the next row asynchronously.
-     * @param callback Callback receiving the next row or null if no more rows
+     * Get the next row.
+     * @returns Promise that resolves to the next row or null if no more rows
      */
-    getNextAsync(callback: Callback<Record<string, KuzuValue>>): void;
+    getNext(): Promise<Record<string, KuzuValue> | null>;
 
     /**
      * Get the next row synchronously.
@@ -349,10 +321,44 @@ export class QueryResult {
     getNextSync(): Record<string, KuzuValue> | null;
 
     /**
-     * Get the column data types asynchronously.
-     * @param callback Callback receiving the array of data type strings
+     * Iterate through the query result with callback functions.
+     * @param resultCallback Callback function called for each row
+     * @param doneCallback Callback function called when iteration is done
+     * @param errorCallback Callback function called when there is an error
      */
-    getColumnDataTypesAsync(callback: Callback<string[]>): void;
+    each(
+        resultCallback: (row: Record<string, KuzuValue>) => void,
+        doneCallback: () => void,
+        errorCallback: (error: Error) => void
+    ): void;
+
+    /**
+     * Get all rows of the query result.
+     * @returns Promise that resolves to all rows
+     */
+    getAll(): Promise<Record<string, KuzuValue>[]>;
+
+    /**
+     * Get all rows of the query result synchronously.
+     * @returns All rows of the query result
+     */
+    getAllSync(): Record<string, KuzuValue>[];
+
+    /**
+     * Get all rows of the query result with callback functions.
+     * @param resultCallback Callback function called with all rows
+     * @param errorCallback Callback function called when there is an error
+     */
+    all(
+        resultCallback: (rows: Record<string, KuzuValue>[]) => void,
+        errorCallback: (error: Error) => void
+    ): void;
+
+    /**
+     * Get the column data types.
+     * @returns Promise that resolves to array of data type strings
+     */
+    getColumnDataTypes(): Promise<string[]>;
 
     /**
      * Get the column data types synchronously.
@@ -361,10 +367,10 @@ export class QueryResult {
     getColumnDataTypesSync(): string[];
 
     /**
-     * Get the column names asynchronously.
-     * @param callback Callback receiving the array of column names
+     * Get the column names.
+     * @returns Promise that resolves to array of column names
      */
-    getColumnNamesAsync(callback: Callback<string[]>): void;
+    getColumnNames(): Promise<string[]>;
 
     /**
      * Get the column names synchronously.
