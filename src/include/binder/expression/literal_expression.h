@@ -11,8 +11,7 @@ class KUZU_API LiteralExpression final : public Expression {
 
 public:
     LiteralExpression(common::Value value, const std::string& uniqueName)
-        : Expression{type_, value.getDataType().copy(), uniqueName},
-          value{std::move(value)} {}
+        : Expression{type_, value.getDataType().copy(), uniqueName}, value{std::move(value)} {}
 
     bool isNull() const { return value.isNull(); }
 
