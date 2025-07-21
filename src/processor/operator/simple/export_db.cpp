@@ -40,12 +40,7 @@ std::string ExportDBPrintInfo::toString() const {
     return result;
 }
 
-void ExportDB::initGlobalStateInternal(ExecutionContext* context) {
-    const auto vfs = context->clientContext->getVFSUnsafe();
-    if (!vfs->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext)) {
-        vfs->createDir(boundFileInfo.filePaths[0]);
-    }
-}
+void ExportDB::initGlobalStateInternal(ExecutionContext* /*context*/) {}
 
 static void writeStringStreamToFile(ClientContext* context, const std::string& ssString,
     const std::string& path) {
