@@ -166,9 +166,9 @@ public:
         return *columns[columnID];
     }
 
-    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(MemoryManager& mm,
-        transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
-        ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator);
+    // std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(MemoryManager& mm,
+        // transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
+        // ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator);
 
     void commit(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;

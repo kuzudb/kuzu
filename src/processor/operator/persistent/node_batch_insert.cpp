@@ -7,6 +7,7 @@
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table_util.h"
+#include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
 #include "storage/table/chunked_node_group.h"
@@ -38,15 +39,16 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto nodeTableEntry =
-        clientContext->getCatalog()
-            ->getTableCatalogEntry(clientContext->getTransaction(), info->tableName)
-            ->ptrCast<NodeTableCatalogEntry>();
-    auto nodeTable = clientContext->getStorageManager()->getTable(nodeTableEntry->getTableID());
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
+    auto nodeTableEntry = catalog->getTableCatalogEntry(transaction, info->tableName)
+                              ->ptrCast<NodeTableCatalogEntry>();
+    auto storageManager = clientContext->getStorageManager();
+    auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
     const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
     // Init info
-    info->compressionEnabled = clientContext->getStorageManager()->compressionEnabled();
+    info->compressionEnabled = storageManager->compressionEnabled();
     auto dataColumnIdx = 0u;
     for (auto& property : nodeTableEntry->getProperties()) {
         info->columnTypes.push_back(property.getType().copy());
@@ -59,6 +61,9 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     }
     // Init shared state
     auto nodeSharedState = sharedState->ptrCast<NodeBatchInsertSharedState>();
+    nodeSharedState->localTable = transaction->getLocalStorage()
+                                      ->getOrCreateLocalTable(*nodeTable)
+                                      ->ptrCast<LocalNodeTable>();
     nodeSharedState->table = nodeTable;
     nodeSharedState->pkColumnID = pkColumnID;
     nodeSharedState->pkType = pkDefinition.getType().copy();
@@ -197,24 +202,23 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
     MemoryManager* mm, NodeBatchInsertErrorHandler& errorHandler,
     PageAllocator& pageAllocator) const {
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
-    const auto nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
 
     uint64_t nodeOffset{};
     uint64_t numRowsWritten{};
+    bool isFlushed{false};
     {
-        // The chunked group in batch insert may contain extra data to populate error messages
-        // When we append to the table we only want the main data so this class is used to slice the
-        // original chunked group
-        // The slice must be restored even if an exception is thrown to prevent other threads from
-        // reading invalid data
+        // The chunked group in batch insert may contain extra data to populate error messages.
+        // When we append to the table, we only want the main data, so this class is used to slice
+        // the original chunked group. The slice must be restored even if an exception is thrown to
+        // prevent other threads from reading invalid data.
         ChunkedNodeGroup sliceToWriteToDisk{*nodeGroup, info->outputDataColumns};
         FinallyWrapper sliceRestorer{
             [&]() { nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns); }};
-        std::tie(nodeOffset, numRowsWritten) = nodeTable->appendToLastNodeGroup(*mm, transaction,
-            info->insertColumnIDs, sliceToWriteToDisk, pageAllocator);
+        std::tie(nodeOffset, numRowsWritten, isFlushed) = nodeSharedState->localTable->append(
+            transaction, *mm, info->insertColumnIDs, sliceToWriteToDisk, pageAllocator);
     }
 
-    if (indexBuilder) {
+    if (isFlushed && indexBuilder) {
         std::vector<ColumnChunkData*> warningChunkData;
         for (const auto warningDataColumn : info->warningDataColumns) {
             warningChunkData.push_back(&nodeGroup->getColumnChunk(warningDataColumn).getData());
@@ -286,6 +290,7 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     // if the child is a table function call it will have already sent the warnings so this line
     // will do nothing
     context->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(context->queryID);
+    nodeTable.setHasChanges();
 }
 
 void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {

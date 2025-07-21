@@ -20,15 +20,36 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-row_idx_t NodeGroup::append(const Transaction* transaction,
-    const std::vector<column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup,
-    row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
+row_idx_t NodeGroup::append(Transaction* transaction, const std::vector<column_id_t>& columnIDs,
+    ChunkedNodeGroup& chunkedGroup, row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
     KU_ASSERT(numRowsToAppend <= chunkedGroup.getNumRows());
-    std::vector<ColumnChunk*> chunksToAppend(chunkedGroup.getNumColumns());
-    for (auto i = 0u; i < chunkedGroup.getNumColumns(); i++) {
-        chunksToAppend[i] = &chunkedGroup.getColumnChunk(i);
+    switch (chunkedGroup.getResidencyState()) {
+    case ResidencyState::ON_DISK: {
+        std::vector<std::unique_ptr<ColumnChunk>> chunks;
+        chunks.reserve(chunkedGroup.getNumColumns());
+        for (auto i = 0u; i < chunkedGroup.getNumColumns(); i++) {
+            chunks.push_back(chunkedGroup.moveColumnChunk(i));
+        }
+        KU_ASSERT(chunkedGroup.getFormat() == NodeGroupDataFormat::REGULAR);
+        auto flushedChunkedGroup = std::make_unique<ChunkedNodeGroup>(std::move(chunks), 0);
+        auto versionInfo = std::make_unique<VersionInfo>();
+        versionInfo->append(transaction->getID(), 0, chunkedGroup.getNumRows());
+        flushedChunkedGroup->setVersionInfo(std::move(versionInfo));
+        const auto numRowsBeforeAppend = getNumRows();
+        merge(transaction, std::move(flushedChunkedGroup));
+        return numRowsBeforeAppend;
     }
-    return append(transaction, columnIDs, chunksToAppend, startRowIdx, numRowsToAppend);
+    case ResidencyState::IN_MEMORY: {
+        std::vector<ColumnChunk*> chunksToAppend(chunkedGroup.getNumColumns());
+        for (auto i = 0u; i < chunkedGroup.getNumColumns(); i++) {
+            chunksToAppend[i] = &chunkedGroup.getColumnChunk(i);
+        }
+        return append(transaction, columnIDs, chunksToAppend, startRowIdx, numRowsToAppend);
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
 }
 
 row_idx_t NodeGroup::append(const Transaction* transaction,

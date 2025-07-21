@@ -8,7 +8,6 @@
 #include "common/static_vector.h"
 #include "common/types/int128_t.h"
 #include "common/types/types.h"
-#include "processor/execution_context.h"
 #include "processor/operator/persistent/node_batch_insert_error_handler.h"
 #include "storage/index/hash_index.h"
 #include "storage/index/hash_index_utils.h"
@@ -23,7 +22,7 @@ class NodeTable;
 };
 namespace processor {
 
-const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
+constexpr size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 
 constexpr size_t WARNING_DATA_BUFFER_SIZE = 64;
 using OptionalWarningDataBuffer =

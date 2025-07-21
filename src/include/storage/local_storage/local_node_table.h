@@ -16,6 +16,9 @@ public:
     LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, Table& table, MemoryManager& mm);
     DELETE_COPY_AND_MOVE(LocalNodeTable);
 
+    std::tuple<common::offset_t, common::offset_t, bool> append(transaction::Transaction* transaction,
+        MemoryManager& mm, const std::vector<common::column_id_t>& columnIDs,
+        ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator);
     bool insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     bool update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;

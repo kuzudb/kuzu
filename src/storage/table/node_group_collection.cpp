@@ -1,6 +1,7 @@
 #include "storage/table/node_group_collection.h"
 
 #include "common/vector/value_vector.h"
+#include "storage/storage_utils.h"
 #include "storage/table/csr_node_group.h"
 #include "storage/table/table.h"
 #include "transaction/transaction.h"
@@ -22,6 +23,7 @@ NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
     }
 }
 
+// This interface is only used by LocalNodeTable::insert for now.
 void NodeGroupCollection::append(const Transaction* transaction,
     const std::vector<ValueVector*>& vectors) {
     const auto numRowsToAppend = vectors[0]->state->getSelVector().getSelSize();
@@ -29,8 +31,6 @@ void NodeGroupCollection::append(const Transaction* transaction,
     for (auto i = 1u; i < vectors.size(); i++) {
         KU_ASSERT(vectors[i]->state->getSelVector().getSelSize() == numRowsToAppend);
     }
-    // TODO(Guodong): Optimize the lock contention here. We should first lock to reserve a set of
-    // rows to append, then append in parallel without locking.
     const auto lock = nodeGroups.lock();
     if (nodeGroups.isEmpty(lock)) {
         auto newGroup = std::make_unique<NodeGroup>(0, enableCompression, LogicalType::copy(types));
@@ -47,7 +47,6 @@ void NodeGroupCollection::append(const Transaction* transaction,
         lastNodeGroup = nodeGroups.getLastGroup(lock);
         const auto numToAppendInNodeGroup =
             std::min(numRowsToAppend - numRowsAppended, lastNodeGroup->getNumRowsLeftToAppend());
-        lastNodeGroup->moveNextRowToAppend(numToAppendInNodeGroup);
         pushInsertInfo(transaction, lastNodeGroup, numToAppendInNodeGroup);
         numTotalRows += numToAppendInNodeGroup;
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
@@ -56,7 +55,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
     stats.update(vectors);
 }
 
-void NodeGroupCollection::append(const Transaction* transaction,
+void NodeGroupCollection::append(Transaction* transaction,
     const std::vector<column_id_t>& columnIDs, const NodeGroupCollection& other) {
     const auto otherLock = other.nodeGroups.lock();
     for (auto& nodeGroup : other.nodeGroups.getAllGroups(otherLock)) {
@@ -65,7 +64,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
     mergeStats(columnIDs, other.getStats(otherLock));
 }
 
-void NodeGroupCollection::append(const Transaction* transaction,
+void NodeGroupCollection::append(Transaction* transaction,
     const std::vector<column_id_t>& columnIDs, const NodeGroup& nodeGroup) {
     KU_ASSERT(nodeGroup.getDataTypes().size() == columnIDs.size());
     const auto lock = nodeGroups.lock();
@@ -90,7 +89,6 @@ void NodeGroupCollection::append(const Transaction* transaction,
             const auto numToAppendInBatch =
                 std::min(numRowsToAppendInChunkedGroup - numRowsAppendedInChunkedGroup,
                     lastNodeGroup->getNumRowsLeftToAppend());
-            lastNodeGroup->moveNextRowToAppend(numToAppendInBatch);
             pushInsertInfo(transaction, lastNodeGroup, numToAppendInBatch);
             numTotalRows += numToAppendInBatch;
             lastNodeGroup->append(transaction, columnIDs, *chunkedGroupToAppend,
@@ -101,20 +99,25 @@ void NodeGroupCollection::append(const Transaction* transaction,
     }
 }
 
-std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
-    MemoryManager& mm, Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
+std::tuple<offset_t, offset_t, bool> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
+    Transaction* transaction, MemoryManager& mm, offset_t startOffset,
+    const std::vector<column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup,
+    PageAllocator& pageAllocator) {
     NodeGroup* lastNodeGroup = nullptr;
-    offset_t startOffset = 0;
     offset_t numToAppend = 0;
     bool directFlushWhenAppend = false;
     {
         const auto lock = nodeGroups.lock();
-        startOffset = numTotalRows;
         if (nodeGroups.isEmpty(lock)) {
-            nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
-                                             enableCompression, LogicalType::copy(types)));
+            // The first node group needs to accommodate the startOffsetInFirstNodeGroup.
+            auto [_, startOffsetInFirstNodeGroup] =
+                StorageUtils::getNodeGroupIdxAndOffsetInChunk(startOffset);
+            nodeGroups.appendGroup(lock,
+                std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock), enableCompression,
+                    LogicalType::copy(types),
+                    StorageConfig::NODE_GROUP_SIZE - startOffsetInFirstNodeGroup));
         }
+        startOffset += numTotalRows;
         lastNodeGroup = nodeGroups.getLastGroup(lock);
         auto numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
         if (numRowsLeftInLastNodeGroup == 0) {
@@ -124,15 +127,13 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
             numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
         }
         numToAppend = std::min(chunkedGroup.getNumRows(), numRowsLeftInLastNodeGroup);
-        lastNodeGroup->moveNextRowToAppend(numToAppend);
         // If the node group is empty now and the chunked group is full, we can directly flush it.
-        directFlushWhenAppend =
-            numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumRows() == 0;
+        directFlushWhenAppend = numToAppend == numRowsLeftInLastNodeGroup &&
+                                lastNodeGroup->getCapacity() == StorageConfig::NODE_GROUP_SIZE &&
+                                lastNodeGroup->isEmpty();
         pushInsertInfo(transaction, lastNodeGroup, numToAppend);
         numTotalRows += numToAppend;
         if (!directFlushWhenAppend) {
-            // TODO(Guodong): Further optimize on this. Should directly figure out startRowIdx to
-            // start appending into the node group and pass in as param.
             lastNodeGroup->append(transaction, columnIDs, chunkedGroup, 0, numToAppend);
         }
     }
@@ -149,7 +150,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
         lastNodeGroup->merge(transaction, std::move(groupToMerge));
     }
-    return {startOffset, numToAppend};
+    return {startOffset, numToAppend, directFlushWhenAppend};
 }
 
 row_idx_t NodeGroupCollection::getNumTotalRows() const {

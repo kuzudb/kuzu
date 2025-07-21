@@ -19,9 +19,9 @@ public:
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
-    void append(const transaction::Transaction* transaction,
+    void append(transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs, const NodeGroupCollection& other);
-    void append(const transaction::Transaction* transaction,
+    void append(transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs, const NodeGroup& nodeGroup);
 
     // This function only tries to append data into the last node group, and if the last node group
@@ -29,8 +29,9 @@ public:
     // appended.
     // The returned values are the startOffset and numValuesAppended.
     // NOTE: This is specially coded to only be used by NodeBatchInsert for now.
-    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroupAndFlushWhenFull(
-        MemoryManager& mm, transaction::Transaction* transaction,
+    std::tuple<common::offset_t, common::offset_t, bool> appendToLastNodeGroupAndFlushWhenFull(
+        transaction::Transaction* transaction, MemoryManager& mm,
+        common::offset_t startOffset,
         const std::vector<common::column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup,
         PageAllocator& pageAllocator);
 

@@ -57,6 +57,13 @@ offset_t LocalNodeTable::validateUniquenessConstraint(const Transaction* transac
         [&](offset_t offset_) { return isVisible(transaction, offset_); });
 }
 
+std::tuple<offset_t, offset_t, bool> LocalNodeTable::append(Transaction* transaction, MemoryManager& mm,
+    const std::vector<column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup,
+    PageAllocator& pageAllocator) {
+    return nodeGroups.appendToLastNodeGroupAndFlushWhenFull(transaction, mm, startOffset, columnIDs,
+        chunkedGroup, pageAllocator);
+}
+
 bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto nodeOffset = startOffset + nodeGroups.getNumTotalRows();

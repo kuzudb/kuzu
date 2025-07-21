@@ -538,13 +538,13 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
     hasChanges = true;
 }
 
-std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(MemoryManager& mm,
-    Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
-    hasChanges = true;
-    return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(mm, transaction, columnIDs,
-        chunkedGroup, pageAllocator);
-}
+// std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(MemoryManager& mm,
+// Transaction* transaction, const std::vector<column_id_t>& columnIDs,
+// ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
+// hasChanges = true;
+// return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(mm, transaction, columnIDs,
+// chunkedGroup, pageAllocator);
+// }
 
 DataChunk NodeTable::constructDataChunkForColumns(const std::vector<column_id_t>& columnIDs) const {
     std::vector<LogicalType> types;
@@ -575,7 +575,7 @@ void NodeTable::commit(main::ClientContext* context, TableCatalogEntry* tableEnt
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -725,12 +725,15 @@ void NodeTable::scanIndexColumns(main::ClientContext* context, IndexScanHelper& 
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to
         // an exception that is thrown before any chunked groups could be appended to the node group
         if (scanState->nodeGroup->getNumChunkedGroups() > 0) {
+            if (scanState->nodeGroup->isFlushed() && scanHelper.index->getIndexInfo().isPrimary) {
+                continue;
+            }
             scanState->nodeGroupIdx = nodeGroupToScan;
             KU_ASSERT(scanState->nodeGroup);
             scanState->nodeGroup->initializeScanState(context->getTransaction(), *scanState);

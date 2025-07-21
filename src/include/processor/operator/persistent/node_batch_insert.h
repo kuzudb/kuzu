@@ -8,6 +8,9 @@
 #include "storage/stats/table_stats.h"
 #include "storage/table/chunked_node_group.h"
 
+namespace kuzu::storage {
+class LocalNodeTable;
+}
 namespace kuzu {
 namespace storage {
 class MemoryManager;
@@ -55,6 +58,7 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
 };
 
 struct NodeBatchInsertSharedState final : BatchInsertSharedState {
+    storage::LocalNodeTable* localTable;
     // Primary key info
     common::column_id_t pkColumnID;
     common::LogicalType pkType;
@@ -69,7 +73,7 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
     std::unique_ptr<storage::ChunkedNodeGroup> sharedNodeGroup;
 
     explicit NodeBatchInsertSharedState(std::shared_ptr<FactorizedTable> fTable)
-        : BatchInsertSharedState{std::move(fTable)}, pkColumnID{0},
+        : BatchInsertSharedState{std::move(fTable)}, localTable{nullptr}, pkColumnID{0},
           globalIndexBuilder(std::nullopt), tableFuncSharedState{nullptr},
           sharedNodeGroup{nullptr} {}
 

@@ -584,7 +584,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                 } else {
                     if (preparedStatement->getStatementType() == StatementType::COPY_FROM) {
                         // Note: We always force checkpoint for COPY_FROM statement.
-                        getTransaction()->setForceCheckpoint();
+                        // getTransaction()->setForceCheckpoint();
                     }
                     resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
                         executionContext.get());
