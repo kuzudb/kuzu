@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# UV Python integration for Kuzu builds
+# Auto-detects uv Python installation and configures cmake accordingly
+# Usage: ./scripts/uv-make <target>
+
+set -e
+
+# Auto-detect uv Python installation
+UV_PYTHON_PATH=$(uv run which python 2>/dev/null)
+
+if [ -z "$UV_PYTHON_PATH" ]; then
+    echo "Error: Could not find uv Python installation"
+    echo "Make sure you have uv installed and a Python environment active"
+    echo "Try: uv python install 3.13"
+    exit 1
+fi
+
+# Extract the root directory (remove /bin/python from the path)
+UV_PYTHON_ROOT=$(dirname "$(dirname "$UV_PYTHON_PATH")")
+
+# Function to run cmake with uv Python
+run_cmake() {
+    local build_dir="${1:-build}"
+    local extra_flags="${@:2}"
+    
+    echo "Found uv Python at: $UV_PYTHON_PATH"
+    echo "Python root directory: $UV_PYTHON_ROOT"
+    
+    PYTHON_EXECUTABLE="$UV_PYTHON_PATH" \
+    Python_ROOT_DIR="$UV_PYTHON_ROOT" \
+    cmake -B "$build_dir" -S . \
+        -DBUILD_PYTHON=ON \
+        -DPYBIND11_FINDPYTHON=ON \
+        -DPython_ROOT_DIR="$UV_PYTHON_ROOT" \
+        $extra_flags
+    
+    echo "CMake configuration complete. Build directory: $build_dir"
+}
+
+# Function to build
+run_build() {
+    local build_dir="${1:-build}"
+    local num_threads="${NUM_THREADS:-$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)}"
+    echo "Building with uv Python using $num_threads threads..."
+    make -C "$build_dir" -j "$num_threads"
+}
+
+case "${1:-help}" in
+    configure)
+        run_cmake "${2:-build}"
+        ;;
+    build)
+        run_cmake "${2:-build}"
+        run_build "${2:-build}"
+        ;;
+    python)
+        run_cmake "${2:-build}" -DBUILD_SHELL=FALSE
+        local num_threads="${NUM_THREADS:-$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)}"
+        echo "Building Python API with uv Python using $num_threads threads..."
+        make -C "${2:-build}" _kuzu -j "$num_threads"
+        ;;
+    pytest)
+        run_cmake "${2:-build}" -DBUILD_SHELL=FALSE
+        local num_threads="${NUM_THREADS:-$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)}"
+        echo "Building Python API with uv Python using $num_threads threads..."
+        make -C "${2:-build}" _kuzu -j "$num_threads"
+        echo "Running tests with uv Python..."
+        PYTHONPATH=tools/python_api/build uv run python -m pytest -vv tools/python_api/test
+        ;;
+    clean)
+        rm -rf "${2:-build}"
+        echo "Cleaned build directory: ${2:-build}"
+        ;;
+    help|--help|-h|"")
+        echo "UV Python integration for Kuzu builds"
+        echo "Usage: $0 <target> [build_dir]"
+        echo ""
+        echo "Targets:"
+        echo "  configure    - Configure cmake with auto-detected uv Python"
+        echo "  build        - Configure and build everything with uv Python"
+        echo "  python       - Configure and build only Python API with uv Python"
+        echo "  pytest       - Configure, build Python API, and run tests with uv Python"
+        echo "  clean        - Clean build directory"
+        echo "  help         - Show this help"
+        echo ""
+        echo "Examples:"
+        echo "  $0 build              # Build in 'build' directory"
+        echo "  $0 python build-debug # Build Python API in 'build-debug' directory"
+        echo "  $0 pytest             # Build and test Python API"
+        echo ""
+        echo "Environment variables:"
+        echo "  NUM_THREADS           # Number of parallel build threads (default: auto-detect)"
+        echo ""
+        echo "Examples with parallel builds:"
+        echo "  NUM_THREADS=20 $0 build    # Build with 20 threads"
+        echo "  NUM_THREADS=8 $0 python    # Build Python API with 8 threads"
+        ;;
+    *)
+        echo "Unknown target: $1"
+        echo "Run '$0 help' for usage information"
+        exit 1
+        ;;
+esac 
