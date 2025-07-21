@@ -254,7 +254,6 @@ static void sinkFunc(ExportFuncSharedState& sharedState, ExportFuncLocalState& l
         std::move(inputVectors));
     auto& serializer = exportCSVLocalState.serializer;
     if (serializer->getSize() > ExportCSVConstants::DEFAULT_CSV_FLUSH_SIZE) {
-        auto& exportCSVSharedState = sharedState.cast<ExportCSVSharedState>();
         exportCSVSharedState.writeRows(serializer->getBlobData(), serializer->getSize());
         serializer->clear();
     }
