@@ -205,7 +205,6 @@ static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::Client
 static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocalState& localState,
     const ExportCSVSharedState& sharedState,
     std::vector<std::shared_ptr<ValueVector>> inputVectors) {
-    KU_ASSERT_UNCONDITIONAL(sharedState.parallelFlag != nullptr);
     auto& exportCSVLocalState = localState.cast<ExportCSVLocalState>();
     auto& castVectors = localState.castVectors;
     auto& serializer = localState.serializer;
