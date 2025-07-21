@@ -51,7 +51,8 @@ static void initSharedState(ExportFuncSharedState& sharedState, main::ClientCont
     sharedState.init(context, bindData);
 }
 
-static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc(const std::shared_ptr<std::atomic<bool>>& /*parallelFlag*/) {
+static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc(
+    const std::shared_ptr<std::atomic<bool>>& /*parallelFlag*/) {
     return std::make_shared<ExportJSONSharedState>();
 }
 

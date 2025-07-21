@@ -115,7 +115,8 @@ static std::unique_ptr<ExportFuncLocalState> initLocalStateFunc(main::ClientCont
     return std::make_unique<ExportParquetLocalState>(bindData, context, isFlatVec);
 }
 
-static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc(const std::shared_ptr<std::atomic<bool>>& /*parallelFlag*/) {
+static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc(
+    const std::shared_ptr<std::atomic<bool>>& /*parallelFlag*/) {
     return std::make_shared<ExportParquetSharedState>();
 }
 

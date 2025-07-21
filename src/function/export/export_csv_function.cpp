@@ -188,7 +188,8 @@ static std::unique_ptr<ExportFuncLocalState> initLocalStateFunc(main::ClientCont
     return std::make_unique<ExportCSVLocalState>(context, bindData, isFlatVec);
 }
 
-static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc(const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
+static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc(
+    const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
     KU_ASSERT_UNCONDITIONAL(parallelFlag != nullptr);
     return std::make_shared<ExportCSVSharedState>(*parallelFlag);
 }

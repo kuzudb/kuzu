@@ -58,8 +58,7 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<std::atomic<bool>> parallelFlag = nullptr)
         : Sink{type_, std::move(child), id, std::move(printInfo)}, info{std::move(info)},
-          sharedState{std::move(sharedState)},
-          parallelFlag{std::move(parallelFlag)} {}
+          sharedState{std::move(sharedState)}, parallelFlag{std::move(parallelFlag)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
