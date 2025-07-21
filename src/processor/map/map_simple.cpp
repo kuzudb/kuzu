@@ -62,7 +62,6 @@ void mapExportDatabaseHelper(PhysicalOperator* physicalOperator,
     const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
     for (unsigned int i{}; i < physicalOperator->getNumChildren(); ++i) {
         if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO) {
-            KU_ASSERT_UNCONDITIONAL(parallelFlag != nullptr);
             physicalOperator->getChild(i)->ptrCast<CopyTo>()->setParallel(parallelFlag);
         }
         mapExportDatabaseHelper(physicalOperator->getChild(i), parallelFlag);
@@ -90,7 +89,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>()->getParallelFlag());
+    if (boundFileInfo->fileTypeInfo.fileType == common::FileType::CSV)
+    {
+        auto parallelFlag = sink->getChild(0)->ptrCast<ExportDB>()->getParallelFlag();
+        KU_ASSERT_UNCONDITIONAL(parallelFlag != nullptr);
+        mapExportDatabaseHelper(sink.get(), parallelFlag);
+    }
     return sink;
 }
 

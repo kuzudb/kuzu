@@ -68,7 +68,7 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    void setParallel(std::shared_ptr<std::atomic<bool>> parallelFlag) {
+    void setParallel(const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
         this->parallelFlag = parallelFlag;
     }
 

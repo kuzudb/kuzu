@@ -115,6 +115,7 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
 
     void init(main::ClientContext& context, const ExportFuncBindData& bindData,
         const std::shared_ptr<std::atomic<bool>>& parallelFlag) override {
+        KU_ASSERT_UNCONDITIONAL(parallelFlag != nullptr);
         this->parallelFlag = parallelFlag;
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
             FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
@@ -130,7 +131,6 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
                     bufferedSerializer.writeBufferData(exportCSVBindData.exportOption.delimiter);
                 }
                 auto& name = exportCSVBindData.columnNames[i];
-                KU_ASSERT_UNCONDITIONAL(parallelFlag != nullptr);
                 writeString(&bufferedSerializer, exportCSVBindData,
                     reinterpret_cast<const uint8_t*>(name.c_str()), name.length(),
                     false /* forceQuote */, *parallelFlag);
@@ -196,13 +196,14 @@ static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
 }
 
 static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context,
-    const ExportFuncBindData& bindData) {
-    sharedState.init(context, bindData);
+    const ExportFuncBindData& bindData, const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
+    sharedState.init(context, bindData, parallelFlag);
 }
 
 static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocalState& localState,
     const ExportCSVSharedState& sharedState,
     std::vector<std::shared_ptr<ValueVector>> inputVectors) {
+    KU_ASSERT_UNCONDITIONAL(sharedState.parallelFlag != nullptr);
     auto& exportCSVLocalState = localState.cast<ExportCSVLocalState>();
     auto& castVectors = localState.castVectors;
     auto& serializer = localState.serializer;
@@ -220,7 +221,6 @@ static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocal
             break;
         }
     }
-    KU_ASSERT_UNCONDITIONAL(sharedState.parallelFlag != nullptr);
     for (auto i = 0u; i < numRowsToWrite; i++) {
         for (auto j = 0u; j < castVectors.size(); j++) {
             if (j != 0) {

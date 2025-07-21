@@ -48,8 +48,8 @@ static std::unique_ptr<ExportFuncBindData> bindFunc(ExportFuncBindInput& bindInp
 }
 
 static void initSharedState(ExportFuncSharedState& sharedState, main::ClientContext& context,
-    const ExportFuncBindData& bindData) {
-    sharedState.init(context, bindData);
+    const ExportFuncBindData& bindData, const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
+    sharedState.init(context, bindData, parallelFlag);
 }
 
 static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
