@@ -107,6 +107,6 @@ def test_on_off(conn_db_in_mem: ConnDB) -> None:
     row = result.get_next()
     assert row == {"p.name": "Bob", "p.age": 40}
 
-    result.rows_as_dict(False)
+    result.rows_as_dict(state=False)
     row = result.get_next()
     assert row == ["Cole", 20]

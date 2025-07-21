@@ -355,13 +355,12 @@ class QueryResult:
         for node in nodes.values():
             nid = node["_id"]
             node_id = node["_label"] + "_" + str(nid["offset"])
-            if node["_label"] not in table_primary_key_dict:
-                if self.connection is not None:
-                    props = self.connection._get_node_property_names(node["_label"])
-                    for prop_name in props:
-                        if props[prop_name]["is_primary_key"]:
-                            table_primary_key_dict[node["_label"]] = prop_name
-                            break
+            if node["_label"] not in table_primary_key_dict and self.connection is not None:
+                props = self.connection._get_node_property_names(node["_label"])
+                for prop_name in props:
+                    if props[prop_name]["is_primary_key"]:
+                        table_primary_key_dict[node["_label"]] = prop_name
+                        break
             node_id = encode_node_id(node, table_primary_key_dict)
             node[node["_label"]] = True
             nx_graph.add_node(node_id, **node)
@@ -484,7 +483,7 @@ class QueryResult:
         self.check_for_query_result_close()
         return self._query_result.getNumTuples()
 
-    def rows_as_dict(self, state: bool = True) -> "Self":
+    def rows_as_dict(self, *, state: bool = True) -> "Self":
         """
         Change the format of the results, such that each row is a dict with the
         column name as a key.
