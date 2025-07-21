@@ -76,8 +76,7 @@ static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* en
     // TODO(Ziyi): We should pass fileName from binder phase to here.
     auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns = getTablePropertyDefinitions(entry);
-    auto copyOptionsCypher =
-        CSVOption::toCypher(csvConfig.option.toOptionsMap(parallelCopy));
+    auto copyOptionsCypher = CSVOption::toCypher(csvConfig.option.toOptionsMap(parallelCopy));
     if (columns.empty()) {
         ss << stringFormat("COPY `{}` FROM \"{}\" {};\n", entry->getName(), fileName,
             copyOptionsCypher);
