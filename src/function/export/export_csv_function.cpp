@@ -117,7 +117,7 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
         const std::shared_ptr<std::atomic<bool>>& parallelFlag) override {
         this->parallelFlag = parallelFlag;
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
-            FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS), &context);
+            FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
         writeHeader(bindData);
     }
 
