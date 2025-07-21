@@ -89,8 +89,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    if (boundFileInfo->fileTypeInfo.fileType == common::FileType::CSV)
-    {
+    if (boundFileInfo->fileTypeInfo.fileType == common::FileType::CSV) {
         auto parallelFlag = sink->getChild(0)->ptrCast<ExportDB>()->getParallelFlag();
         KU_ASSERT_UNCONDITIONAL(parallelFlag != nullptr);
         mapExportDatabaseHelper(sink.get(), parallelFlag);

@@ -60,8 +60,8 @@ using export_bind_t =
 using export_init_local_t = std::function<std::unique_ptr<ExportFuncLocalState>(
     main::ClientContext&, const ExportFuncBindData&, std::vector<bool>)>;
 using export_create_shared_t = std::function<std::shared_ptr<ExportFuncSharedState>()>;
-using export_init_shared_t =
-    std::function<void(ExportFuncSharedState&, main::ClientContext&, ExportFuncBindData&, const std::shared_ptr<std::atomic<bool>>&)>;
+using export_init_shared_t = std::function<void(ExportFuncSharedState&, main::ClientContext&,
+    ExportFuncBindData&, const std::shared_ptr<std::atomic<bool>>&)>;
 using export_sink_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&,
     const ExportFuncBindData&, std::vector<std::shared_ptr<common::ValueVector>>)>;
 using export_combine_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&)>;
