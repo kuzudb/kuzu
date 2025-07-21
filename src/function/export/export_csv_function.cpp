@@ -46,7 +46,7 @@ static std::string addEscapes(char toEscape, char escape, const std::string& val
 }
 
 static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint8_t* str,
-    uint64_t len, std::atomic<bool>& parallelFlag) {
+    uint64_t len, const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
     // Check if the string is equal to the null string.
     if (len == strlen(ExportCSVConstants::DEFAULT_NULL_STR) &&
         memcmp(str, ExportCSVConstants::DEFAULT_NULL_STR, len) == 0) {
@@ -55,7 +55,10 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
     static constexpr const char* NEWLINE = "\n\r";
     for (auto i = 0u; i < len; i++) {
         if (str[i] == NEWLINE[0] || str[i] == NEWLINE[1]) {
-            parallelFlag.store(false, std::memory_order_relaxed);
+            if (parallelFlag)
+            {
+                parallelFlag->store(false, std::memory_order_relaxed);
+            }
             return true;
         }
         if (str[i] == exportCSVBindData.exportOption.quoteChar ||
@@ -68,7 +71,7 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
 }
 
 static void writeString(BufferWriter* serializer, const ExportFuncBindData& bindData,
-    const uint8_t* strData, uint64_t strLen, bool forceQuote, std::atomic<bool>& parallelFlag) {
+    const uint8_t* strData, uint64_t strLen, bool forceQuote, const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
     auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
     if (!forceQuote) {
         forceQuote = requireQuotes(exportCSVBindData, strData, strLen, parallelFlag);
@@ -115,7 +118,6 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
 
     void init(main::ClientContext& context, const ExportFuncBindData& bindData,
         const std::shared_ptr<std::atomic<bool>>& parallelFlag) override {
-        KU_ASSERT_UNCONDITIONAL(parallelFlag != nullptr);
         this->parallelFlag = parallelFlag;
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
             FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
@@ -133,7 +135,7 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
                 auto& name = exportCSVBindData.columnNames[i];
                 writeString(&bufferedSerializer, exportCSVBindData,
                     reinterpret_cast<const uint8_t*>(name.c_str()), name.length(),
-                    false /* forceQuote */, *parallelFlag);
+                    false /* forceQuote */, parallelFlag);
             }
             bufferedSerializer.writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE);
             writeRows(bufferedSerializer.getBlobData(), bufferedSerializer.getSize());
@@ -239,7 +241,7 @@ static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocal
             writeString(serializer.get(), exportCSVBindData, strValue.getData(), strValue.len,
                 ExportCSVConstants::DEFAULT_FORCE_QUOTE ||
                     inputVectors[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST,
-                *sharedState.parallelFlag);
+                sharedState.parallelFlag);
         }
         serializer->writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE);
     }
