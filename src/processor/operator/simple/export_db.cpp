@@ -71,13 +71,13 @@ static std::string getTablePropertyDefinitions(const TableCatalogEntry* entry) {
 }
 
 static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* entry,
-    const FileScanInfo* info, const bool& canUseParallelReader) {
+    const FileScanInfo* info, const bool& parallelCopy) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     // TODO(Ziyi): We should pass fileName from binder phase to here.
     auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns = getTablePropertyDefinitions(entry);
     auto copyOptionsCypher =
-        CSVOption::toCypher(csvConfig.option.toOptionsMap(canUseParallelReader));
+        CSVOption::toCypher(csvConfig.option.toOptionsMap(parallelCopy));
     if (columns.empty()) {
         ss << stringFormat("COPY `{}` FROM \"{}\" {};\n", entry->getName(), fileName,
             copyOptionsCypher);
@@ -88,12 +88,12 @@ static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* en
 }
 
 static void writeCopyRelStatement(stringstream& ss, const ClientContext* context,
-    const TableCatalogEntry* entry, const FileScanInfo* info, const bool& canUseParallelReader) {
+    const TableCatalogEntry* entry, const FileScanInfo* info, const bool& parallelCopy) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     std::string columns = getTablePropertyDefinitions(entry);
     auto transaction = context->getTransaction();
     const auto catalog = context->getCatalog();
-    auto optionsMap = csvConfig.option.toOptionsMap(canUseParallelReader);
+    auto optionsMap = csvConfig.option.toOptionsMap(parallelCopy);
     for (auto& entryInfo : entry->constCast<RelGroupCatalogEntry>().getRelEntryInfos()) {
         auto fromTableName =
             catalog->getTableCatalogEntry(transaction, entryInfo.nodePair.srcTableID)->getName();
@@ -149,16 +149,16 @@ std::string getSchemaCypher(ClientContext* clientContext) {
 }
 
 std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boundFileInfo,
-    const bool& canUseParallelReader) {
+    const bool& parallelCopy) {
     stringstream ss;
     auto transaction = context->getTransaction();
     const auto catalog = context->getCatalog();
     for (const auto& nodeTableEntry :
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
-        writeCopyNodeStatement(ss, nodeTableEntry, boundFileInfo, canUseParallelReader);
+        writeCopyNodeStatement(ss, nodeTableEntry, boundFileInfo, parallelCopy);
     }
     for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
-        writeCopyRelStatement(ss, context, entry, boundFileInfo, canUseParallelReader);
+        writeCopyRelStatement(ss, context, entry, boundFileInfo, parallelCopy);
     }
     return ss.str();
 }

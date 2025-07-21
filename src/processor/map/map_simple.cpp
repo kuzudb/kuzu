@@ -77,6 +77,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     if (fs->fileOrPathExists(filePath, clientContext)) {
         throw RuntimeException(stringFormat("Directory {} already exists.", filePath));
     }
+    fs->createDir(filePath);
     auto printInfo = std::make_unique<ExportDBPrintInfo>(filePath, boundFileInfo->options);
     auto messageTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());

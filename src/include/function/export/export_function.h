@@ -1,8 +1,5 @@
 #pragma once
 
-#include "common/case_insensitive_map.h"
-#include "common/file_system/virtual_file_system.h"
-#include "common/types/value/value.h"
 #include "function/function.h"
 #include "main/client_context.h"
 
@@ -26,12 +23,6 @@ struct ExportFuncSharedState {
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
-    }
-
-    void createDirIfNotExists(main::ClientContext& context, const std::filesystem::path& path) {
-        if (!context.getVFSUnsafe()->fileOrPathExists(path.string())) {
-            context.getVFSUnsafe()->createDir(path.string());
-        }
     }
 
     virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData,
