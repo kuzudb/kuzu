@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 class QueryResult:
     """QueryResult stores the result of a query execution."""
 
-    def __init__(self, connection: "_kuzu.Connection", query_result: "_kuzu.QueryResult") -> None:  # type: ignore[name-defined]
+    def __init__(self, connection: _kuzu.Connection, query_result: _kuzu.QueryResult) -> None:  # type: ignore[name-defined]
         """
         Parameters
         ----------
@@ -43,20 +43,20 @@ class QueryResult:
             The underlying C++ query result object from pybind11.
 
         """
-        self.connection: "_kuzu.Connection | None" = connection
-        self._query_result: "_kuzu.QueryResult" = query_result
+        self.connection: _kuzu.Connection | None = connection
+        self._query_result: _kuzu.QueryResult = query_result
         self.is_closed: bool = False
         self.as_dict: bool = False
         self.columns: list[str] | None = None
 
-    def __enter__(self) -> "Self":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        exc_traceback: "TracebackType | None",
+        exc_traceback: TracebackType | None,
     ) -> None:
         self.close()
 
@@ -151,7 +151,7 @@ class QueryResult:
             msg = "Query result is closed"
             raise RuntimeError(msg)
 
-    def get_as_df(self) -> "pd.DataFrame":
+    def get_as_df(self) -> pd.DataFrame:
         """
         Get the query result as a Pandas DataFrame.
 
@@ -170,7 +170,7 @@ class QueryResult:
 
         return self._query_result.getAsDF()
 
-    def get_as_pl(self) -> "pl.DataFrame":
+    def get_as_pl(self) -> pl.DataFrame:
         """
         Get the query result as a Polars DataFrame.
 
@@ -194,7 +194,7 @@ class QueryResult:
             data=self.get_as_arrow(chunk_size=-1),
         )
 
-    def get_as_arrow(self, chunk_size: int | None = None) -> "pa.Table":
+    def get_as_arrow(self, chunk_size: int | None = None) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
@@ -283,7 +283,7 @@ class QueryResult:
     def get_as_networkx(
         self,
         directed: bool = True,  # noqa: FBT001
-    ) -> "nx.MultiGraph | nx.MultiDiGraph":
+    ) -> nx.MultiGraph | nx.MultiDiGraph:
         """
         Convert the nodes and rels in query result into a NetworkX directed or undirected graph
         with the following rules:
@@ -304,7 +304,7 @@ class QueryResult:
         self.check_for_query_result_close()
         import networkx as nx
 
-        nx_graph: "nx.MultiGraph | nx.MultiDiGraph" = nx.MultiDiGraph() if directed else nx.MultiGraph()
+        nx_graph: nx.MultiGraph | nx.MultiDiGraph = nx.MultiDiGraph() if directed else nx.MultiGraph()
         properties_to_extract = self._get_properties_to_extract()
 
         self.reset_iterator()
@@ -393,7 +393,7 @@ class QueryResult:
                 properties_to_extract[i] = (column_type, column_name)
         return properties_to_extract
 
-    def get_as_torch_geometric(self) -> tuple["geo.Data | geo.HeteroData", dict, dict, dict]:  # type: ignore[type-arg]
+    def get_as_torch_geometric(self) -> tuple[geo.Data | geo.HeteroData, dict, dict, dict]:  # type: ignore[type-arg]
         """
         Convert the nodes and rels in query result into a PyTorch Geometric graph representation
         torch_geometric.data.Data or torch_geometric.data.HeteroData.
@@ -483,7 +483,7 @@ class QueryResult:
         self.check_for_query_result_close()
         return self._query_result.getNumTuples()
 
-    def rows_as_dict(self, *, state: bool = True) -> "Self":
+    def rows_as_dict(self, *, state: bool = True) -> Self:
         """
         Change the format of the results, such that each row is a dict with the
         column name as a key.
