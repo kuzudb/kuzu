@@ -95,7 +95,7 @@ struct ExportParquetSharedState : public ExportFuncSharedState {
 
     ExportParquetSharedState() = default;
 
-    void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
+    void init(main::ClientContext& context, const ExportFuncBindData& bindData, const std::shared_ptr<std::atomic<bool>>& /*parallelFlag*/) override {
         auto& exportParquetBindData = bindData.constCast<ExportParquetBindData>();
         writer = std::make_unique<ParquetWriter>(exportParquetBindData.fileName,
             common::LogicalType::copy(exportParquetBindData.types),
@@ -115,8 +115,7 @@ static std::unique_ptr<ExportFuncLocalState> initLocalStateFunc(main::ClientCont
     return std::make_unique<ExportParquetLocalState>(bindData, context, isFlatVec);
 }
 
-static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc(
-    const std::shared_ptr<std::atomic<bool>>& /*parallelFlag*/) {
+static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
     return std::make_shared<ExportParquetSharedState>();
 }
 
