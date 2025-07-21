@@ -56,10 +56,10 @@ public:
     CopyTo(CopyToInfo info, std::shared_ptr<function::ExportFuncSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
-        std::function<void()> setParallelReaderFalse = nullptr)
+        std::shared_ptr<std::atomic<bool>> parallelFlag = nullptr)
         : Sink{type_, std::move(child), id, std::move(printInfo)}, info{std::move(info)},
           sharedState{std::move(sharedState)},
-          setParallelReaderFalse{std::move(setParallelReaderFalse)} {}
+          parallelFlag{std::move(parallelFlag)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -69,20 +69,20 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    void setParallel(std::function<void()> setParallelReaderFalse) {
-        this->setParallelReaderFalse = setParallelReaderFalse;
+    void setParallel(std::shared_ptr<std::atomic<bool>> parallelFlag) {
+        this->parallelFlag = parallelFlag;
     }
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<CopyTo>(info.copy(), sharedState, children[0]->copy(), id,
-            printInfo->copy(), setParallelReaderFalse);
+            printInfo->copy(), parallelFlag);
     }
 
 private:
     CopyToInfo info;
     CopyToLocalState localState;
     std::shared_ptr<function::ExportFuncSharedState> sharedState;
-    std::function<void()> setParallelReaderFalse = nullptr;
+    std::shared_ptr<std::atomic<bool>> parallelFlag;
 };
 
 } // namespace processor

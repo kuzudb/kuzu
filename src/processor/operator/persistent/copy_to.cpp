@@ -25,7 +25,7 @@ void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
 }
 
 void CopyTo::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
-    sharedState->init(*context->clientContext, *info.bindData, setParallelReaderFalse);
+    sharedState->init(*context->clientContext, *info.bindData);
 }
 
 void CopyTo::finalize(ExecutionContext* /*context*/) {
