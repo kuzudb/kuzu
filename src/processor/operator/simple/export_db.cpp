@@ -143,19 +143,20 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
 
     std::vector<EntryAndType> allEntries;
+
     for (auto* e : nodeTableEntries) {
         allEntries.push_back({e->constPtrCast<CatalogEntry>(), CatalogEntryType::NODE_TABLE_ENTRY});
     }
+
     for (auto* e : relGroupEntries) {
         allEntries.push_back({e->constPtrCast<CatalogEntry>(), CatalogEntryType::REL_GROUP_ENTRY});
     }
-    for (auto* e : sequenceEntries) {
-        allEntries.push_back({e->constPtrCast<CatalogEntry>(), CatalogEntryType::SEQUENCE_ENTRY});
-    }
+
     std::sort(allEntries.begin(), allEntries.end(),
         [](const EntryAndType& a, const EntryAndType& b) {
             return a.entry->getOID() < b.entry->getOID();
         });
+
     for (const auto& entryWithType : allEntries) {
         switch (entryWithType.type) {
         case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -167,21 +168,21 @@ std::string getSchemaCypher(ClientContext* clientContext) {
                       relTableToCypherInfo)
                << std::endl;
             break;
-        case CatalogEntryType::SEQUENCE_ENTRY:
-            ss << entryWithType.entry->constPtrCast<SequenceCatalogEntry>()->toCypher(
-                      relGroupToCypherInfo)
-               << std::endl;
-            break;
         default:
             KU_UNREACHABLE;
             break;
         }
     }
 
+    for (const auto sequenceEntry : catalog->getSequenceEntries(transaction)) {
+        ss << sequenceEntry->toCypher(relGroupToCypherInfo) << std::endl;
+    }
+
     for (auto macroName : catalog->getMacroNames(transaction)) {
         ss << catalog->getScalarMacroFunction(transaction, macroName)->toCypher(macroName)
            << std::endl;
     }
+
     return ss.str();
 }
 
