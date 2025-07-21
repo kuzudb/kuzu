@@ -55,8 +55,7 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
     static constexpr const char* NEWLINE = "\n\r";
     for (auto i = 0u; i < len; i++) {
         if (str[i] == NEWLINE[0] || str[i] == NEWLINE[1]) {
-            if (parallelFlag)
-            {
+            if (parallelFlag) {
                 parallelFlag->store(false, std::memory_order_relaxed);
             }
             return true;
@@ -71,7 +70,8 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
 }
 
 static void writeString(BufferWriter* serializer, const ExportFuncBindData& bindData,
-    const uint8_t* strData, uint64_t strLen, bool forceQuote, const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
+    const uint8_t* strData, uint64_t strLen, bool forceQuote,
+    const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
     auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
     if (!forceQuote) {
         forceQuote = requireQuotes(exportCSVBindData, strData, strLen, parallelFlag);
