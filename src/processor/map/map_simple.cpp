@@ -82,8 +82,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     auto exportDBChild = sink->getChild(0)->ptrCast<ExportDB>();
     for (auto i = 1u; i < sink->getNumChildren(); ++i) {
         const auto& tableFuncCall = sink->getChild(i);
-        KU_ASSERT_UNCONDITIONAL(tableFuncCall->getChild(0)->getOperatorType() == PhysicalOperatorType::COPY_TO);
-        const auto& [file, parallelFlag] = tableFuncCall->getChild(0)->ptrCast<CopyTo>()->getParallelFlag();
+        KU_ASSERT_UNCONDITIONAL(
+            tableFuncCall->getChild(0)->getOperatorType() == PhysicalOperatorType::COPY_TO);
+        const auto& [file, parallelFlag] =
+            tableFuncCall->getChild(0)->ptrCast<CopyTo>()->getParallelFlag();
         exportDBChild->addToParallelReaderMap(file, parallelFlag);
     }
     return sink;
