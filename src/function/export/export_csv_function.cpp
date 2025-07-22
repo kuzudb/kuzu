@@ -194,13 +194,13 @@ static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
     return std::make_shared<ExportCSVSharedState>();
 }
 
-static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context, const ExportFuncBindData& bindData) {
+static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context,
+    const ExportFuncBindData& bindData) {
     sharedState.init(context, bindData);
 }
 
 static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocalState& localState,
-    ExportCSVSharedState& sharedState,
-    std::vector<std::shared_ptr<ValueVector>> inputVectors) {
+    ExportCSVSharedState& sharedState, std::vector<std::shared_ptr<ValueVector>> inputVectors) {
     auto& exportCSVLocalState = localState.cast<ExportCSVLocalState>();
     auto& castVectors = localState.castVectors;
     auto& serializer = localState.serializer;
@@ -233,7 +233,10 @@ static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocal
             }
             auto strValue = vector->getValue<ku_string_t>(pos);
             // Note: we need blindly add quotes to LIST.
-            writeString(serializer.get(), exportCSVBindData, strValue.getData(), strValue.len, ExportCSVConstants::DEFAULT_FORCE_QUOTE || inputVectors[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST, sharedState.parallelFlag);
+            writeString(serializer.get(), exportCSVBindData, strValue.getData(), strValue.len,
+                ExportCSVConstants::DEFAULT_FORCE_QUOTE ||
+                    inputVectors[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST,
+                sharedState.parallelFlag);
         }
         serializer->writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE);
     }

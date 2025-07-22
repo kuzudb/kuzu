@@ -119,7 +119,8 @@ static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
     return std::make_shared<ExportParquetSharedState>();
 }
 
-static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context, const ExportFuncBindData& bindData) {
+static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context,
+    const ExportFuncBindData& bindData) {
     sharedState.init(context, bindData);
 }
 
