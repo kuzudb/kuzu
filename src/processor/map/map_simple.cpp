@@ -1,4 +1,3 @@
-#include "common/copier_config/file_scan_info.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
