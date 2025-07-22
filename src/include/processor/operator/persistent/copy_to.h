@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+
 #include "function/export/export_function.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
@@ -66,9 +67,9 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    std::pair<std::string, std::atomic<bool>&> getParallelFlag()
-    {
-        return {std::filesystem::path(info.bindData->fileName).filename().string(), sharedState->parallelFlag};
+    std::pair<std::string, std::atomic<bool>&> getParallelFlag() {
+        return {std::filesystem::path(info.bindData->fileName).filename().string(),
+            sharedState->parallelFlag};
     }
 
     std::unique_ptr<PhysicalOperator> copy() override {

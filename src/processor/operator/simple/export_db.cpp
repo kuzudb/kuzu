@@ -64,14 +64,14 @@ static std::string getTablePropertyDefinitions(const TableCatalogEntry* entry) {
 }
 
 static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* entry,
-    const FileScanInfo* info, const std::unordered_map<std::string, const std::atomic<bool>*>& canUseParallelReader) {
+    const FileScanInfo* info,
+    const std::unordered_map<std::string, const std::atomic<bool>*>& canUseParallelReader) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     // TODO(Ziyi): We should pass fileName from binder phase to here.
     auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns = getTablePropertyDefinitions(entry);
     bool useParallelReader = true;
-    if (canUseParallelReader.contains(fileName))
-    {
+    if (canUseParallelReader.contains(fileName)) {
         useParallelReader = canUseParallelReader.at(fileName)->load();
     }
     auto copyOptionsCypher = CSVOption::toCypher(csvConfig.option.toOptionsMap(useParallelReader));
@@ -85,7 +85,8 @@ static void writeCopyNodeStatement(stringstream& ss, const TableCatalogEntry* en
 }
 
 static void writeCopyRelStatement(stringstream& ss, const ClientContext* context,
-    const TableCatalogEntry* entry, const FileScanInfo* info, const std::unordered_map<std::string, const std::atomic<bool>*>& canUseParallelReader) {
+    const TableCatalogEntry* entry, const FileScanInfo* info,
+    const std::unordered_map<std::string, const std::atomic<bool>*>& canUseParallelReader) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     std::string columns = getTablePropertyDefinitions(entry);
     auto transaction = context->getTransaction();
@@ -99,8 +100,7 @@ static void writeCopyRelStatement(stringstream& ss, const ClientContext* context
         auto fileName = stringFormat("{}_{}_{}.{}", entry->getName(), fromTableName, toTableName,
             StringUtils::getLower(info->fileTypeInfo.fileTypeStr));
         bool useParallelReader = true;
-        if (canUseParallelReader.contains(fileName))
-        {
+        if (canUseParallelReader.contains(fileName)) {
             useParallelReader = canUseParallelReader.at(fileName)->load();
         }
         auto copyOptionsMap = csvConfig.option.toOptionsMap(useParallelReader);
