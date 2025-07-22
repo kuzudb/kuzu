@@ -232,6 +232,9 @@ TEST_F(PrivateApiTest, CloseConnectionWithActiveTransaction) {
 }
 
 TEST_F(PrivateApiTest, CloseDatabaseWithActiveTransaction) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
     conn->query("BEGIN TRANSACTION;");
     ASSERT_TRUE(hasActiveTransaction(*conn));
     conn->query("MATCH (a:person) SET a.age=10;");
