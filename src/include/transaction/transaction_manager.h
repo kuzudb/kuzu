@@ -53,22 +53,18 @@ private:
     // This functions locks the mutex to start new transactions.
     common::UniqLock stopNewTransactionsAndWaitUntilAllTransactionsLeave();
 
-    bool hasActiveWriteTransactionNoLock() const { return !activeWriteTransactions.empty(); }
+    bool hasActiveWriteTransactionNoLock() const;
 
     // Note: Used by DBTest::createDB only.
     void setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(uint64_t waitTimeInMicros) {
         checkpointWaitTimeoutInMicros = waitTimeInMicros;
     }
 
-    void clearReadOnlyTransactionNoLock(Transaction* transaction);
-    void clearWriteTransactionNoLock(Transaction* transaction);
-    static void clearTransactionNoLock(
-        std::vector<std::unique_ptr<Transaction>>& activeTransactions, Transaction* transaction);
+    void clearTransactionNoLock(Transaction* transaction);
 
 private:
     storage::WAL& wal;
-    std::vector<std::unique_ptr<Transaction>> activeWriteTransactions;
-    std::vector<std::unique_ptr<Transaction>> activeReadOnlyTransactions;
+    std::vector<std::unique_ptr<Transaction>> activeTransactions;
     common::transaction_t lastTransactionID;
     common::transaction_t lastTimestamp;
     // This mutex is used to ensure thread safety and letting only one public function to be called
