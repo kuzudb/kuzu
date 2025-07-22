@@ -2,7 +2,6 @@
 
 #include "api_test/api_test.h"
 #include "api_test/private_api_test.h"
-#include "common/exception/io.h"
 #include "storage/storage_utils.h"
 #include "storage/wal/wal.h"
 
@@ -216,6 +215,35 @@ TEST_F(PrivateApiTest, CorruptedWALTailTruncated2) {
                            "OR name='test4' RETURN *;");
     ASSERT_TRUE(res->isSuccess());
     ASSERT_EQ(res->getNumTuples(), 3);
+}
+
+TEST_F(PrivateApiTest, CloseConnectionWithActiveTransaction) {
+    conn->query("BEGIN TRANSACTION;");
+    ASSERT_TRUE(hasActiveTransaction(*conn));
+    conn->query("MATCH (a:person) SET a.age=10;");
+    conn.reset();
+    conn = std::make_unique<kuzu::main::Connection>(database.get());
+    conn->query("BEGIN TRANSACTION;");
+    auto res = conn->query("MATCH (a:person) WHERE a.age=10 RETURN COUNT(*) AS count;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto count = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(count, 0); // The previous transaction was rolled back.
+}
+
+TEST_F(PrivateApiTest, CloseDatabaseWithActiveTransaction) {
+    conn->query("BEGIN TRANSACTION;");
+    ASSERT_TRUE(hasActiveTransaction(*conn));
+    conn->query("MATCH (a:person) SET a.age=10;");
+    conn.reset();
+    database.reset();
+    createDBAndConn();
+    conn->query("BEGIN TRANSACTION;");
+    auto res = conn->query("MATCH (a:person) WHERE a.age=10 RETURN COUNT(*) AS count;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto count = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(count, 0); // The previous transaction was rolled back.
 }
 
 class EmptyDBTransactionTest : public EmptyDBTest {

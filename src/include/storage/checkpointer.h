@@ -2,6 +2,7 @@
 
 #include "storage/optimistic_allocator.h"
 #include "storage/page_range.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace catalog {
@@ -44,7 +45,8 @@ public:
 
     void readCheckpoint();
 
-    static bool canAutoCheckpoint(const main::ClientContext& clientContext);
+    static bool canAutoCheckpoint(const main::ClientContext& clientContext,
+        const transaction::Transaction& transaction);
 
 protected:
     virtual bool checkpointStorage();
