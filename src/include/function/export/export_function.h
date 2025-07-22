@@ -26,6 +26,8 @@ struct ExportFuncSharedState {
     }
 
     virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData) = 0;
+
+    std::atomic<bool> parallelFlag = true;
 };
 
 struct ExportFuncBindData {

@@ -1,3 +1,4 @@
+#include "common/copier_config/file_scan_info.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
@@ -7,6 +8,7 @@
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_import_db.h"
 #include "planner/operator/simple/logical_use_database.h"
+#include "processor/operator/persistent/copy_to.h"
 #include "processor/operator/simple/attach_database.h"
 #include "processor/operator/simple/detach_database.h"
 #include "processor/operator/simple/export_db.h"
@@ -60,7 +62,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
 void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, ExportDB* exportDB) {
     for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
         if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO) {
-            // add to map
+            const auto& [file, parallelFlag] = physicalOperator->getChild(i)->ptrCast<CopyTo>()->getParallelFlag();
+            exportDB->addToParallelReaderMap(file, parallelFlag);
         }
         mapExportDatabaseHelper(physicalOperator->getChild(i), exportDB);
     }
@@ -87,7 +90,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>());
+    if (boundFileInfo->fileTypeInfo.fileType == common::FileType::CSV)
+    {
+        mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>());
+    }
     return sink;
 }
 

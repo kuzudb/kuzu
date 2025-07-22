@@ -111,7 +111,6 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
     std::mutex mtx;
     std::unique_ptr<FileInfo> fileInfo;
     offset_t offset = 0;
-    std::atomic<bool> parallelFlag = true;
 
     ExportCSVSharedState() = default;
 

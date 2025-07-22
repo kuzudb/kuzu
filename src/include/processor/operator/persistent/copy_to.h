@@ -1,7 +1,6 @@
 #pragma once
 
 #include <utility>
-
 #include "function/export/export_function.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
@@ -55,9 +54,9 @@ class CopyTo final : public Sink {
 public:
     CopyTo(CopyToInfo info, std::shared_ptr<function::ExportFuncSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo, std::atomic<bool>* parallelFlag = nullptr)
+        std::unique_ptr<OPPrintInfo> printInfo)
         : Sink{type_, std::move(child), id, std::move(printInfo)}, info{std::move(info)},
-          sharedState{std::move(sharedState)}, parallelFlag{parallelFlag} {}
+          sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -67,18 +66,20 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    void setParallel(std::atomic<bool>* parallelFlag) { this->parallelFlag = parallelFlag; }
+    std::pair<std::string, std::atomic<bool>&> getParallelFlag()
+    {
+        return {info.bindData->fileName, sharedState->parallelFlag};
+    }
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<CopyTo>(info.copy(), sharedState, children[0]->copy(), id,
-            printInfo->copy(), parallelFlag);
+            printInfo->copy());
     }
 
 private:
     CopyToInfo info;
     CopyToLocalState localState;
     std::shared_ptr<function::ExportFuncSharedState> sharedState;
-    std::atomic<bool>* parallelFlag = nullptr;
 };
 
 } // namespace processor
