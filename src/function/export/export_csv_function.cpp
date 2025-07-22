@@ -46,7 +46,7 @@ static std::string addEscapes(char toEscape, char escape, const std::string& val
 }
 
 static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint8_t* str,
-    uint64_t len, const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
+    uint64_t len, std::atomic<bool>* parallelFlag) {
     // Check if the string is equal to the null string.
     if (len == strlen(ExportCSVConstants::DEFAULT_NULL_STR) &&
         memcmp(str, ExportCSVConstants::DEFAULT_NULL_STR, len) == 0) {
@@ -71,7 +71,7 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
 
 static void writeString(BufferWriter* serializer, const ExportFuncBindData& bindData,
     const uint8_t* strData, uint64_t strLen, bool forceQuote,
-    const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
+    std::atomic<bool>* parallelFlag) {
     auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
     if (!forceQuote) {
         forceQuote = requireQuotes(exportCSVBindData, strData, strLen, parallelFlag);
@@ -112,12 +112,12 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
     std::mutex mtx;
     std::unique_ptr<FileInfo> fileInfo;
     offset_t offset = 0;
-    std::shared_ptr<std::atomic<bool>> parallelFlag = nullptr;
+    std::atomic<bool>* parallelFlag = nullptr;
 
     ExportCSVSharedState() = default;
 
     void init(main::ClientContext& context, const ExportFuncBindData& bindData,
-        const std::shared_ptr<std::atomic<bool>>& parallelFlag) override {
+        std::atomic<bool>* parallelFlag) override {
         this->parallelFlag = parallelFlag;
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
             FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
@@ -198,7 +198,7 @@ static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
 }
 
 static void initSharedStateFunc(ExportFuncSharedState& sharedState, main::ClientContext& context,
-    const ExportFuncBindData& bindData, const std::shared_ptr<std::atomic<bool>>& parallelFlag) {
+    const ExportFuncBindData& bindData, std::atomic<bool>* parallelFlag) {
     sharedState.init(context, bindData, parallelFlag);
 }
 

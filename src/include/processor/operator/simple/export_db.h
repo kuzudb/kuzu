@@ -43,7 +43,7 @@ public:
         return std::make_unique<ExportDB>(boundFileInfo.copy(), schemaOnly, messageTable, id,
             printInfo->copy(), canUseParallelCSVReader);
     }
-    auto getParallelFlag() { return canUseParallelCSVReader; }
+    auto getParallelFlag() { return canUseParallelCSVReader.get(); }
 
 private:
     common::FileScanInfo boundFileInfo;
