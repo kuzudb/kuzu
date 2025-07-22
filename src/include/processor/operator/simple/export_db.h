@@ -37,8 +37,6 @@ public:
           boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly},
           canUseParallelCSVReader{canUseParallelCSVReader} {}
 
-    void initGlobalStateInternal(ExecutionContext* context) override;
-
     void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
