@@ -7,14 +7,14 @@
 -CASE ExplainEmptyExportSchemaOnly
 -SKIP_WASM
 -SKIP_IN_MEM
--STATEMENT EXPLAIN EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_empty_export_schema_only" (SCHEMA_ONLY=true);
+-STATEMENT PROFILE EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_empty_export_schema_only" (SCHEMA_ONLY=true);
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_empty_export_schema_only"
 
 -CASE ExplainEmptyExport
 -SKIP_WASM
 -SKIP_IN_MEM
--STATEMENT EXPLAIN EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_empty_export"
+-STATEMENT PROFILE EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_empty_export"
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_empty_export"
 
@@ -25,7 +25,7 @@
 ---- ok
 -STATEMENT COPY `mixed-newlines` FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-multiline-quote-tests/mixed-newlines.csv" (PARALLEL=FALSE);
 ---- ok
--STATEMENT EXPLAIN EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_export_schema_only"(SCHEMA_ONLY=true);
+-STATEMENT PROFILE EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_export_schema_only"(SCHEMA_ONLY=true);
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_export_schema_only"
 
@@ -36,6 +36,6 @@
 ---- ok
 -STATEMENT COPY `mixed-newlines` FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-multiline-quote-tests/mixed-newlines.csv" (PARALLEL=FALSE);
 ---- ok
--STATEMENT EXPLAIN EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_export";
+-STATEMENT PROFILE EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_export";
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/explain_export";
