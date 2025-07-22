@@ -6,7 +6,6 @@
 namespace kuzu {
 namespace processor {
 
-
 struct ExportDBSharedState final {
     std::unordered_map<std::string, const std::atomic<bool>*> canUseParallelReader;
 };
