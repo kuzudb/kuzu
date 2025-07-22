@@ -1,6 +1,5 @@
 #pragma once
 
-#include <utility>
 #include "function/export/export_function.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
