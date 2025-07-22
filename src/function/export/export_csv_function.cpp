@@ -70,8 +70,7 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
 }
 
 static void writeString(BufferWriter* serializer, const ExportFuncBindData& bindData,
-    const uint8_t* strData, uint64_t strLen, bool forceQuote,
-    std::atomic<bool>* parallelFlag) {
+    const uint8_t* strData, uint64_t strLen, bool forceQuote, std::atomic<bool>* parallelFlag) {
     auto& exportCSVBindData = bindData.constCast<ExportCSVBindData>();
     if (!forceQuote) {
         forceQuote = requireQuotes(exportCSVBindData, strData, strLen, parallelFlag);
