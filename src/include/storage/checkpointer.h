@@ -2,9 +2,11 @@
 
 #include "storage/optimistic_allocator.h"
 #include "storage/page_range.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+}
 namespace catalog {
 class Catalog;
 }

@@ -54,13 +54,7 @@ void TransactionManager::commit(main::ClientContext& clientContext, Transaction*
     clientContext.cleanUp();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
-        KU_ASSERT(std::ranges::any_of(activeReadOnlyTransactions,
-            [transaction](const auto& activeTransaction) {
-                return activeTransaction->getID() == transaction->getID();
-            }));
-        std::erase_if(activeReadOnlyTransactions, [transaction](const auto& activeTransaction) {
-            return activeTransaction->getID() == transaction->getID();
-        });
+        clearReadOnlyTransactionNoLock(transaction);
     } break;
     case TransactionType::RECOVERY:
     case TransactionType::WRITE: {
@@ -69,13 +63,7 @@ void TransactionManager::commit(main::ClientContext& clientContext, Transaction*
         transaction->commit(&wal);
         auto shouldCheckpoint = transaction->shouldForceCheckpoint() ||
                                 Checkpointer::canAutoCheckpoint(clientContext, *transaction);
-        KU_ASSERT(std::ranges::any_of(activeWriteTransactions.begin(),
-            activeWriteTransactions.end(), [transaction](const auto& activeTransaction) {
-                return activeTransaction->getID() == transaction->getID();
-            }));
-        std::erase_if(activeWriteTransactions, [transaction](const auto& activeTransaction) {
-            return activeTransaction->getID() == transaction->getID();
-        });
+        clearWriteTransactionNoLock(transaction);
         if (shouldCheckpoint) {
             checkpointNoLock(clientContext);
         }
@@ -94,16 +82,12 @@ void TransactionManager::rollback(main::ClientContext& clientContext, Transactio
     clientContext.cleanUp();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
-        std::erase_if(activeReadOnlyTransactions, [transaction](const auto& activeTransaction) {
-            return activeTransaction->getID() == transaction->getID();
-        });
+        clearReadOnlyTransactionNoLock(transaction);
     } break;
     case TransactionType::RECOVERY:
     case TransactionType::WRITE: {
         transaction->rollback(&wal);
-        std::erase_if(activeWriteTransactions, [transaction](const auto& activeTransaction) {
-            return activeTransaction->getID() == transaction->getID();
-        });
+        clearWriteTransactionNoLock(transaction);
     } break;
     default: {
         throw TransactionManagerException("Invalid transaction type to rollback.");
@@ -145,23 +129,11 @@ bool TransactionManager::hasNoActiveTransactions() const {
 }
 
 void TransactionManager::clearReadOnlyTransactionNoLock(Transaction* transaction) {
-    KU_ASSERT(std::ranges::any_of(activeReadOnlyTransactions.begin(),
-        activeReadOnlyTransactions.end(), [transaction](const auto& activeTransaction) {
-            return activeTransaction->getID() == transaction->getID();
-        }));
-    std::erase_if(activeReadOnlyTransactions, [transaction](const auto& activeTransaction) {
-        return activeTransaction->getID() == transaction->getID();
-    });
+    clearTransactionNoLock(activeReadOnlyTransactions, transaction);
 }
 
 void TransactionManager::clearWriteTransactionNoLock(Transaction* transaction) {
-    KU_ASSERT(std::ranges::any_of(activeWriteTransactions.begin(), activeWriteTransactions.end(),
-        [transaction](const auto& activeTransaction) {
-            return activeTransaction->getID() == transaction->getID();
-        }));
-    std::erase_if(activeWriteTransactions, [transaction](const auto& activeTransaction) {
-        return activeTransaction->getID() == transaction->getID();
-    });
+    clearTransactionNoLock(activeWriteTransactions, transaction);
 }
 
 void TransactionManager::clearTransactionNoLock(

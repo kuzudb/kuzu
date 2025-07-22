@@ -9,7 +9,6 @@
 #include "common/serializer/in_mem_file_writer.h"
 #include "extension/extension_manager.h"
 #include "main/db_config.h"
-#include "processor/operator/transaction.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_manager.h"
