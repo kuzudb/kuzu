@@ -60,7 +60,7 @@ private:
         checkpointWaitTimeoutInMicros = waitTimeInMicros;
     }
 
-    void clearTransactionNoLock(Transaction* transaction);
+    void clearTransactionNoLock(common::transaction_t transactionID);
 
 private:
     storage::WAL& wal;

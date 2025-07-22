@@ -54,7 +54,7 @@ void TransactionManager::commit(main::ClientContext& clientContext, Transaction*
     clientContext.cleanUp();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
-        clearTransactionNoLock(transaction);
+        clearTransactionNoLock(transaction->getID());
     } break;
     case TransactionType::RECOVERY:
     case TransactionType::WRITE: {
@@ -63,7 +63,7 @@ void TransactionManager::commit(main::ClientContext& clientContext, Transaction*
         transaction->commit(&wal);
         auto shouldCheckpoint = transaction->shouldForceCheckpoint() ||
                                 Checkpointer::canAutoCheckpoint(clientContext, *transaction);
-        clearTransactionNoLock(transaction);
+        clearTransactionNoLock(transaction->getID());
         if (shouldCheckpoint) {
             checkpointNoLock(clientContext);
         }
@@ -82,12 +82,12 @@ void TransactionManager::rollback(main::ClientContext& clientContext, Transactio
     clientContext.cleanUp();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
-        clearTransactionNoLock(transaction);
+        clearTransactionNoLock(transaction->getID());
     } break;
     case TransactionType::RECOVERY:
     case TransactionType::WRITE: {
         transaction->rollback(&wal);
-        clearTransactionNoLock(transaction);
+        clearTransactionNoLock(transaction->getID());
     } break;
     default: {
         throw TransactionManagerException("Invalid transaction type to rollback.");
@@ -133,13 +133,13 @@ bool TransactionManager::hasActiveWriteTransactionNoLock() const {
         [](const auto& transaction) { return transaction->isWriteTransaction(); });
 }
 
-void TransactionManager::clearTransactionNoLock(Transaction* transaction) {
+void TransactionManager::clearTransactionNoLock(transaction_t transactionID) {
     KU_ASSERT(std::ranges::any_of(activeTransactions.begin(), activeTransactions.end(),
-        [transaction](const auto& activeTransaction) {
-            return activeTransaction->getID() == transaction->getID();
+        [transactionID](const auto& activeTransaction) {
+            return activeTransaction->getID() == transactionID;
         }));
-    std::erase_if(activeTransactions, [transaction](const auto& activeTransaction) {
-        return activeTransaction->getID() == transaction->getID();
+    std::erase_if(activeTransactions, [transactionID](const auto& activeTransaction) {
+        return activeTransaction->getID() == transactionID;
     });
 }
 
