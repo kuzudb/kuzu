@@ -65,8 +65,7 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    std::pair<std::string, std::atomic<bool>&> getParallelFlag()
-    {
+    std::pair<std::string, std::atomic<bool>&> getParallelFlag() {
         return {info.bindData->fileName, sharedState->parallelFlag};
     }
 

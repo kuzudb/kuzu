@@ -62,7 +62,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
 void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, ExportDB* exportDB) {
     for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
         if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO) {
-            const auto& [file, parallelFlag] = physicalOperator->getChild(i)->ptrCast<CopyTo>()->getParallelFlag();
+            const auto& [file, parallelFlag] =
+                physicalOperator->getChild(i)->ptrCast<CopyTo>()->getParallelFlag();
             exportDB->addToParallelReaderMap(file, parallelFlag);
         }
         mapExportDatabaseHelper(physicalOperator->getChild(i), exportDB);
@@ -90,8 +91,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    if (boundFileInfo->fileTypeInfo.fileType == common::FileType::CSV)
-    {
+    if (boundFileInfo->fileTypeInfo.fileType == common::FileType::CSV) {
         mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>());
     }
     return sink;

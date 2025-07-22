@@ -30,9 +30,11 @@ class ExportDB final : public SimpleSink {
 public:
     ExportDB(common::FileScanInfo boundFileInfo, bool schemaOnly,
         std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
-        std::unique_ptr<OPPrintInfo> printInfo, std::unordered_map<std::string, const std::atomic<bool>*> canUseParallelReader = {})
+        std::unique_ptr<OPPrintInfo> printInfo,
+        std::unordered_map<std::string, const std::atomic<bool>*> canUseParallelReader = {})
         : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
-          boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly}, canUseParallelReader{std::move(canUseParallelReader)} {}
+          boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly},
+          canUseParallelReader{std::move(canUseParallelReader)} {}
 
     void executeInternal(ExecutionContext* context) override;
 
