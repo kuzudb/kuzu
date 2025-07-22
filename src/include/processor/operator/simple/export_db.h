@@ -44,7 +44,6 @@ public:
     }
 
     void addToParallelReaderMap(const std::string& file, const std::atomic<bool>& parallelFlag) {
-
         canUseParallelReader.insert({file, &parallelFlag});
     }
 
