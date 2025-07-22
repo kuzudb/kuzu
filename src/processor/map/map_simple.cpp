@@ -7,7 +7,6 @@
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_import_db.h"
 #include "planner/operator/simple/logical_use_database.h"
-#include "processor/operator/persistent/copy_to.h"
 #include "processor/operator/simple/attach_database.h"
 #include "processor/operator/simple/detach_database.h"
 #include "processor/operator/simple/export_db.h"
@@ -58,12 +57,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
-void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, std::atomic<bool>* parallelFlag) {
+void mapExportDatabaseHelper(PhysicalOperator* physicalOperator, ExportDB* exportDB) {
     for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
         if (physicalOperator->getChild(i)->getOperatorType() == PhysicalOperatorType::COPY_TO) {
-            physicalOperator->getChild(i)->ptrCast<CopyTo>()->setParallel(parallelFlag);
+            // add to map
         }
-        mapExportDatabaseHelper(physicalOperator->getChild(i), parallelFlag);
+        mapExportDatabaseHelper(physicalOperator->getChild(i), exportDB);
     }
 }
 
@@ -88,9 +87,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    auto parallelFlag = sink->getChild(0)->ptrCast<ExportDB>()->getParallelFlag();
-    KU_ASSERT_UNCONDITIONAL(parallelFlag != nullptr);
-    mapExportDatabaseHelper(sink.get(), parallelFlag);
+    mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>());
     return sink;
 }
 

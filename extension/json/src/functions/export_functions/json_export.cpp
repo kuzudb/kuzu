@@ -32,8 +32,7 @@ struct ExportJSONSharedState : public ExportFuncSharedState {
     std::unique_ptr<FileInfo> fileInfo;
     std::vector<std::string> jsonValues;
 
-    void init(main::ClientContext& context, const ExportFuncBindData& bindData,
-        std::atomic<bool>* /*parallelFlag*/) override {
+    void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
         fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
             FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
     }
@@ -48,8 +47,8 @@ static std::unique_ptr<ExportFuncBindData> bindFunc(ExportFuncBindInput& bindInp
 }
 
 static void initSharedState(ExportFuncSharedState& sharedState, main::ClientContext& context,
-    const ExportFuncBindData& bindData, std::atomic<bool>* parallelFlag) {
-    sharedState.init(context, bindData, parallelFlag);
+    const ExportFuncBindData& bindData) {
+    sharedState.init(context, bindData);
 }
 
 static std::shared_ptr<ExportFuncSharedState> createSharedStateFunc() {
