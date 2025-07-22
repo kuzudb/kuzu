@@ -91,9 +91,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    if (boundFileInfo->fileTypeInfo.fileType == common::FileType::CSV) {
-        mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>());
-    }
+    mapExportDatabaseHelper(sink.get(), sink->getChild(0)->ptrCast<ExportDB>());
     return sink;
 }
 

@@ -188,7 +188,7 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
     writeStringStreamToFile(clientContext,
-        getCopyCypher(clientContext, &boundFileInfo, canUseParallelReader),
+        getCopyCypher(clientContext, &boundFileInfo, sharedState->canUseParallelReader),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::COPY_FILE_NAME);
     // write the index.cypher file
     writeStringStreamToFile(clientContext, getIndexCypher(clientContext, boundFileInfo),

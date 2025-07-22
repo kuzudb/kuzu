@@ -6,6 +6,11 @@
 namespace kuzu {
 namespace processor {
 
+
+struct ExportDBSharedState final {
+    std::unordered_map<std::string, const std::atomic<bool>*> canUseParallelReader;
+};
+
 struct ExportDBPrintInfo final : OPPrintInfo {
     std::string filePath;
     common::case_insensitive_map_t<common::Value> options;
@@ -31,26 +36,26 @@ public:
     ExportDB(common::FileScanInfo boundFileInfo, bool schemaOnly,
         std::shared_ptr<FactorizedTable> messageTable, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo,
-        std::unordered_map<std::string, const std::atomic<bool>*> canUseParallelReader = {})
+        std::shared_ptr<ExportDBSharedState> sharedState = std::make_shared<ExportDBSharedState>())
         : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
           boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly},
-          canUseParallelReader{std::move(canUseParallelReader)} {}
+          sharedState{std::move(sharedState)} {}
 
     void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<ExportDB>(boundFileInfo.copy(), schemaOnly, messageTable, id,
-            printInfo->copy(), canUseParallelReader);
+            printInfo->copy(), sharedState);
     }
 
     void addToParallelReaderMap(const std::string& file, const std::atomic<bool>& parallelFlag) {
-        canUseParallelReader.insert({file, &parallelFlag});
+        sharedState->canUseParallelReader.insert({file, &parallelFlag});
     }
 
 private:
     common::FileScanInfo boundFileInfo;
     bool schemaOnly;
-    std::unordered_map<std::string, const std::atomic<bool>*> canUseParallelReader;
+    std::shared_ptr<ExportDBSharedState> sharedState = nullptr;
 };
 } // namespace processor
 } // namespace kuzu
