@@ -53,7 +53,7 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
         return true;
     }
     for (auto i = 0u; i < len; i++) {
-        if (str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[0] || 
+        if (str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[0] ||
             str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[1]) {
             if (parallelFlag) {
                 parallelFlag.store(false, std::memory_order_relaxed);
