@@ -4,6 +4,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 # This doesn't affect parent directories.
 add_compile_definitions(KUZU_EXPORTS)
 add_compile_definitions(ANTLR4CPP_STATIC)
+add_subdirectory(auth)
 add_subdirectory(binder)
 add_subdirectory(c_api)
 add_subdirectory(catalog)
