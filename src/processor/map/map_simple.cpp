@@ -7,6 +7,7 @@
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_import_db.h"
 #include "planner/operator/simple/logical_use_database.h"
+#include "processor/operator/persistent/copy_to.h"
 #include "processor/operator/simple/attach_database.h"
 #include "processor/operator/simple/detach_database.h"
 #include "processor/operator/simple/export_db.h"
@@ -57,6 +58,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
+static void exportDatabaseCollectParallelFlags(const std::unique_ptr<DummySimpleSink>& sink) {
+    auto exportDB = sink->getChild(0)->ptrCast<ExportDB>();
+    for (auto i = 1u; i < sink->getNumChildren(); ++i) {
+        const auto& tableFuncCall = sink->getChild(i);
+        KU_ASSERT_UNCONDITIONAL(
+            tableFuncCall->getChild(0)->getOperatorType() == PhysicalOperatorType::COPY_TO);
+        const auto& [file, parallelFlag] =
+            tableFuncCall->getChild(0)->ptrCast<CopyTo>()->getParallelFlag();
+        exportDB->addToParallelReaderMap(file, parallelFlag);
+    }
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     const LogicalOperator* logicalOperator) {
     auto exportDatabase = logicalOperator->constPtrCast<LogicalExportDatabase>();
@@ -67,16 +80,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     if (fs->fileOrPathExists(filePath, clientContext)) {
         throw RuntimeException(stringFormat("Directory {} already exists.", filePath));
     }
+    fs->createDir(filePath);
     auto printInfo = std::make_unique<ExportDBPrintInfo>(filePath, boundFileInfo->options);
     auto messageTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     auto exportDB = std::make_unique<ExportDB>(boundFileInfo->copy(),
         exportDatabase->isSchemaOnly(), messageTable, getOperatorID(), std::move(printInfo));
     auto sink = std::make_unique<DummySimpleSink>(messageTable, getOperatorID());
+    sink->addChild(std::move(exportDB));
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    sink->addChild(std::move(exportDB));
+    exportDatabaseCollectParallelFlags(sink);
     return sink;
 }
 

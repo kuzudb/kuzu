@@ -328,3 +328,17 @@ Binder exception: The 'SCHEMA_ONLY' option must have a BOOL value.
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_quoted_delim/delim-test"
 -STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_quoted_delim/delim-test";
 ---- ok
+
+-CASE ExportImportDBWithMultilineString
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT CREATE NODE TABLE `mixed-newlines`(A STRING, B STRING, PRIMARY KEY(A));
+---- ok
+-STATEMENT COPY `mixed-newlines` FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-multiline-quote-tests/mixed-newlines.csv" (PARALLEL=FALSE);
+---- ok
+-STATEMENT EXPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_special/_multilinestring'(format="csv")
+---- ok
+-IMPORT_DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_special/_multilinestring'
+-STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_special/_multilinestring';
+---- ok
+

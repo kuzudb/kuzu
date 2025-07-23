@@ -1,8 +1,7 @@
 #pragma once
 
-#include "common/case_insensitive_map.h"
-#include "common/types/value/value.h"
 #include "function/function.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {
@@ -27,6 +26,8 @@ struct ExportFuncSharedState {
     }
 
     virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData) = 0;
+
+    std::atomic<bool> parallelFlag = true;
 };
 
 struct ExportFuncBindData {
