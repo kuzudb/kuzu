@@ -55,9 +55,7 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
     for (auto i = 0u; i < len; i++) {
         if (str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[0] ||
             str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[1]) {
-            if (parallelFlag) {
-                parallelFlag.store(false, std::memory_order_relaxed);
-            }
+            parallelFlag.store(false, std::memory_order_relaxed);
             return true;
         }
         if (str[i] == exportCSVBindData.exportOption.quoteChar ||
