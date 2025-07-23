@@ -10,8 +10,7 @@ void LogicalExplain::computeSchema() {
     case ExplainType::PROFILE:
         if (children[0]->getSchema()) {
             copyChildSchema(0);
-        }
-        else {
+        } else {
             createEmptySchema();
         }
         break;
