@@ -135,14 +135,7 @@ public:
 
 protected:
     void createEmptySchema() { schema = std::make_unique<Schema>(); }
-    void copyChildSchema(uint32_t idx) { 
-    if (auto childSchema = children[idx]->getSchema()) {
-        schema = childSchema->copy(); 
-    }
-    else {
-        createEmptySchema();
-    }
-}
+    void copyChildSchema(uint32_t idx) { schema = children[idx]->getSchema()->copy(); }
 
 protected:
     LogicalOperatorType operatorType;
