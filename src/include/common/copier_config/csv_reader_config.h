@@ -48,9 +48,7 @@ struct CSVOption {
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.
     std::unordered_map<std::string, std::string> toOptionsMap(const bool& parallel) const {
         std::unordered_map<std::string, std::string> result;
-        if (!parallel) {
-            result["parallel"] = "false";
-        }
+        result["parallel"] = parallel ? "true" : "false";
         if (setHeader) {
             result["header"] = hasHeader ? "true" : "false";
         }

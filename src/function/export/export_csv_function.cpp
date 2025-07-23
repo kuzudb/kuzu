@@ -52,16 +52,15 @@ static bool requireQuotes(const ExportCSVBindData& exportCSVBindData, const uint
         memcmp(str, ExportCSVConstants::DEFAULT_NULL_STR, len) == 0) {
         return true;
     }
-    static constexpr const char* NEWLINE = "\n\r";
     for (auto i = 0u; i < len; i++) {
-        if (str[i] == NEWLINE[0] || str[i] == NEWLINE[1]) {
+        if (str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[0] || 
+            str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[1]) {
             if (parallelFlag) {
                 parallelFlag.store(false, std::memory_order_relaxed);
             }
             return true;
         }
         if (str[i] == exportCSVBindData.exportOption.quoteChar ||
-            str[i] == ExportCSVConstants::DEFAULT_CSV_NEWLINE[0] ||
             str[i] == exportCSVBindData.exportOption.delimiter) {
             return true;
         }
@@ -133,7 +132,7 @@ struct ExportCSVSharedState : public ExportFuncSharedState {
                     reinterpret_cast<const uint8_t*>(name.c_str()), name.length(),
                     false /* forceQuote */, parallelFlag);
             }
-            bufferedSerializer.writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE);
+            bufferedSerializer.writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE[0]);
             writeRows(bufferedSerializer.getBlobData(), bufferedSerializer.getSize());
         }
     }
@@ -237,7 +236,7 @@ static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocal
                     inputVectors[j]->dataType.getLogicalTypeID() == LogicalTypeID::LIST,
                 sharedState.parallelFlag);
         }
-        serializer->writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE);
+        serializer->writeBufferData(ExportCSVConstants::DEFAULT_CSV_NEWLINE[0]);
     }
 }
 

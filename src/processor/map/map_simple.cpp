@@ -58,6 +58,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
         getOperatorID(), std::move(printInfo));
 }
 
+
+static void exportDatabaseCollectParallelFlags(const std::unique_ptr<DummySimpleSink>& sink) {
+    auto exportDB = sink->getChild(0)->ptrCast<ExportDB>();
+    for (auto i = 1u; i < sink->getNumChildren(); ++i) {
+        const auto& tableFuncCall = sink->getChild(i);
+        KU_ASSERT_UNCONDITIONAL(tableFuncCall->getChild(0)->getOperatorType() == PhysicalOperatorType::COPY_TO);
+        const auto& [file, parallelFlag] =
+            tableFuncCall->getChild(0)->ptrCast<CopyTo>()->getParallelFlag();
+        exportDB->addToParallelReaderMap(file, parallelFlag);
+    }
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     const LogicalOperator* logicalOperator) {
     auto exportDatabase = logicalOperator->constPtrCast<LogicalExportDatabase>();
@@ -79,15 +91,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     for (auto child : exportDatabase->getChildren()) {
         sink->addChild(mapOperator(child.get()));
     }
-    auto exportDBChild = sink->getChild(0)->ptrCast<ExportDB>();
-    for (auto i = 1u; i < sink->getNumChildren(); ++i) {
-        const auto& tableFuncCall = sink->getChild(i);
-        KU_ASSERT_UNCONDITIONAL(
-            tableFuncCall->getChild(0)->getOperatorType() == PhysicalOperatorType::COPY_TO);
-        const auto& [file, parallelFlag] =
-            tableFuncCall->getChild(0)->ptrCast<CopyTo>()->getParallelFlag();
-        exportDBChild->addToParallelReaderMap(file, parallelFlag);
-    }
+    exportDatabaseCollectParallelFlags(sink);
     return sink;
 }
 
