@@ -150,6 +150,7 @@ std::string getSchemaCypher(ClientContext* clientContext) {
         [](const EntryAndType& a, const EntryAndType& b) {
             return a.entry->getOID() < b.entry->getOID();
         });
+
     for (const auto& entryWithType : allEntries) {
         switch (entryWithType.type) {
         case CatalogEntryType::NODE_TABLE_ENTRY:
