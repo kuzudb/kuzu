@@ -43,9 +43,11 @@ Transaction* TransactionManager::beginTransaction(main::ClientContext& clientCon
         activeTransactions.push_back(std::move(transaction));
         return activeTransactions.back().get();
     }
+        // LCOV_EXCL_START
     default: {
         throw TransactionManagerException("Invalid transaction type to begin transaction.");
     }
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -68,9 +70,11 @@ void TransactionManager::commit(main::ClientContext& clientContext, Transaction*
             checkpointNoLock(clientContext);
         }
     } break;
+        // LCOV_EXCL_START
     default: {
         throw TransactionManagerException("Invalid transaction type to commit.");
     }
+        // LCOV_EXCL_STOP
     }
 }
 

@@ -28,10 +28,12 @@ void TransactionContext::beginWriteTransaction() {
 }
 
 void TransactionContext::beginAutoTransaction(bool readOnlyStatement) {
+    // LCOV_EXCL_START
     if (hasActiveTransaction()) {
         throw TransactionManagerException(
             "Cannot start a new transaction while there is an active transaction.");
     }
+    // LCOV_EXCL_STOP
     beginTransactionInternal(
         readOnlyStatement ? TransactionType::READ_ONLY : TransactionType::WRITE);
 }
