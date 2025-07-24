@@ -8,7 +8,11 @@ namespace planner {
 void LogicalExplain::computeSchema() {
     switch (explainType) {
     case ExplainType::PROFILE:
-        copyChildSchema(0);
+        if (children[0]->getSchema()) {
+            copyChildSchema(0);
+        } else {
+            createEmptySchema();
+        }
         break;
     case ExplainType::PHYSICAL_PLAN:
     case ExplainType::LOGICAL_PLAN:
