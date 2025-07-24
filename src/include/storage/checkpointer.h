@@ -4,6 +4,9 @@
 #include "storage/page_range.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+}
 namespace catalog {
 class Catalog;
 }
@@ -44,7 +47,8 @@ public:
 
     void readCheckpoint();
 
-    static bool canAutoCheckpoint(const main::ClientContext& clientContext);
+    static bool canAutoCheckpoint(const main::ClientContext& clientContext,
+        const transaction::Transaction& transaction);
 
 protected:
     virtual bool checkpointStorage();

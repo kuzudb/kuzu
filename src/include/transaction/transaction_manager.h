@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <mutex>
-#include <unordered_set>
 
 #include "common/constants.h"
 #include "common/uniq_lock.h"
@@ -40,10 +39,9 @@ public:
         initCheckpointerFunc = initCheckpointer;
     }
 
-    std::unique_ptr<Transaction> beginTransaction(main::ClientContext& clientContext,
-        TransactionType type);
+    Transaction* beginTransaction(main::ClientContext& clientContext, TransactionType type);
 
-    void commit(main::ClientContext& clientContext);
+    void commit(main::ClientContext& clientContext, Transaction* transaction);
     void rollback(main::ClientContext& clientContext, Transaction* transaction);
 
     void checkpoint(main::ClientContext& clientContext);
@@ -55,22 +53,23 @@ private:
     // This functions locks the mutex to start new transactions.
     common::UniqLock stopNewTransactionsAndWaitUntilAllTransactionsLeave();
 
-    bool hasActiveWriteTransactionNoLock() const { return !activeWriteTransactions.empty(); }
+    bool hasActiveWriteTransactionNoLock() const;
 
     // Note: Used by DBTest::createDB only.
     void setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(uint64_t waitTimeInMicros) {
         checkpointWaitTimeoutInMicros = waitTimeInMicros;
     }
 
+    void clearTransactionNoLock(common::transaction_t transactionID);
+
 private:
     storage::WAL& wal;
-    std::unordered_set<common::transaction_t> activeWriteTransactions;
-    std::unordered_set<common::transaction_t> activeReadOnlyTransactions;
+    std::vector<std::unique_ptr<Transaction>> activeTransactions;
     common::transaction_t lastTransactionID;
     common::transaction_t lastTimestamp;
     // This mutex is used to ensure thread safety and letting only one public function to be called
     // at any time except the stopNewTransactionsAndWaitUntilAllReadTransactionsLeave
-    // function, which needs to let calls to comming and rollback.
+    // function, which needs to let calls to coming and rollback.
     std::mutex mtxForSerializingPublicFunctionCalls;
     std::mutex mtxForStartingNewTransactions;
     uint64_t checkpointWaitTimeoutInMicros = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS;

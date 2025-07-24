@@ -202,20 +202,20 @@ void Checkpointer::rollback() {
     storageManager->rollbackCheckpoint(*catalog);
 }
 
-bool Checkpointer::canAutoCheckpoint(const main::ClientContext& clientContext) {
+bool Checkpointer::canAutoCheckpoint(const main::ClientContext& clientContext,
+    const transaction::Transaction& transaction) {
     if (clientContext.isInMemory()) {
         return false;
     }
     if (!clientContext.getDBConfig()->autoCheckpoint) {
         return false;
     }
-    if (clientContext.getTransaction()->isRecovery()) {
+    if (transaction.isRecovery()) {
         // Recovery transactions are not allowed to trigger auto checkpoint.
         return false;
     }
     auto wal = clientContext.getWAL();
-    const auto expectedSize =
-        clientContext.getTransaction()->getLocalWAL().getSize() + wal->getFileSize();
+    const auto expectedSize = transaction.getLocalWAL().getSize() + wal->getFileSize();
     return expectedSize > clientContext.getDBConfig()->checkpointThreshold;
 }
 

@@ -137,7 +137,7 @@ public:
     virtual void checkpointInMemory() {
         // DO NOTHING.
     };
-    virtual void checkpoint(main::ClientContext*, storage::PageAllocator&) {
+    virtual void checkpoint(main::ClientContext*, PageAllocator&) {
         // DO NOTHING.
     }
     virtual void rollbackCheckpoint() {

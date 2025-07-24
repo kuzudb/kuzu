@@ -635,7 +635,7 @@ ClientContext::TransactionHelper::getAction(bool commitIfNew, bool commitIfAuto)
     return TransactionCommitAction::NOT_COMMIT;
 }
 
-// If there is an active transaction in the context, we execute the function in current active
+// If there is an active transaction in the context, we execute the function in the current active
 // transaction. If there is no active transaction, we start an auto commit transaction.
 void ClientContext::TransactionHelper::runFuncInTransaction(TransactionContext& context,
     const std::function<void()>& fun, bool readOnlyStatement, bool isTransactionStatement,

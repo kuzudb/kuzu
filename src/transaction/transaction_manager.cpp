@@ -15,19 +15,19 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace transaction {
 
-std::unique_ptr<Transaction> TransactionManager::beginTransaction(
-    main::ClientContext& clientContext, TransactionType type) {
+Transaction* TransactionManager::beginTransaction(main::ClientContext& clientContext,
+    TransactionType type) {
     // We acquire the lock for starting new transactions. In case this cannot be acquired, this
     // ensures calls to other public functions are not restricted.
     std::unique_lock publicFunctionLck{mtxForSerializingPublicFunctionCalls};
     std::unique_lock newTransactionLck{mtxForStartingNewTransactions};
-    std::unique_ptr<Transaction> transaction;
     switch (type) {
     case TransactionType::READ_ONLY: {
-        transaction =
+        auto transaction =
             std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
-        activeReadOnlyTransactions.insert(transaction->getID());
-    } break;
+        activeTransactions.push_back(std::move(transaction));
+        return activeTransactions.back().get();
+    }
     case TransactionType::RECOVERY:
     case TransactionType::WRITE: {
         if (!clientContext.getDBConfig()->enableMultiWrites && hasActiveWriteTransactionNoLock()) {
@@ -35,43 +35,46 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
                 "Cannot start a new write transaction in the system. "
                 "Only one write transaction at a time is allowed in the system.");
         }
-        transaction =
+        auto transaction =
             std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
-        activeWriteTransactions.insert(transaction->getID());
-        KU_ASSERT(clientContext.getStorageManager());
         if (transaction->shouldLogToWAL()) {
             transaction->getLocalWAL().logBeginTransaction();
         }
-    } break;
+        activeTransactions.push_back(std::move(transaction));
+        return activeTransactions.back().get();
+    }
+        // LCOV_EXCL_START
     default: {
         throw TransactionManagerException("Invalid transaction type to begin transaction.");
     }
+        // LCOV_EXCL_STOP
     }
-    return transaction;
 }
 
-void TransactionManager::commit(main::ClientContext& clientContext) {
+void TransactionManager::commit(main::ClientContext& clientContext, Transaction* transaction) {
     std::unique_lock lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUp();
-    const auto transaction = clientContext.getTransaction();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
-        activeReadOnlyTransactions.erase(transaction->getID());
+        clearTransactionNoLock(transaction->getID());
     } break;
     case TransactionType::RECOVERY:
     case TransactionType::WRITE: {
         lastTimestamp++;
         transaction->commitTS = lastTimestamp;
         transaction->commit(&wal);
-        activeWriteTransactions.erase(transaction->getID());
-        if (transaction->shouldForceCheckpoint() ||
-            Checkpointer::canAutoCheckpoint(clientContext)) {
+        auto shouldCheckpoint = transaction->shouldForceCheckpoint() ||
+                                Checkpointer::canAutoCheckpoint(clientContext, *transaction);
+        clearTransactionNoLock(transaction->getID());
+        if (shouldCheckpoint) {
             checkpointNoLock(clientContext);
         }
     } break;
+        // LCOV_EXCL_START
     default: {
         throw TransactionManagerException("Invalid transaction type to commit.");
     }
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -83,12 +86,12 @@ void TransactionManager::rollback(main::ClientContext& clientContext, Transactio
     clientContext.cleanUp();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
-        activeReadOnlyTransactions.erase(transaction->getID());
+        clearTransactionNoLock(transaction->getID());
     } break;
     case TransactionType::RECOVERY:
     case TransactionType::WRITE: {
         transaction->rollback(&wal);
-        activeWriteTransactions.erase(transaction->getID());
+        clearTransactionNoLock(transaction->getID());
     } break;
     default: {
         throw TransactionManagerException("Invalid transaction type to rollback.");
@@ -126,7 +129,22 @@ UniqLock TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave
 }
 
 bool TransactionManager::hasNoActiveTransactions() const {
-    return activeWriteTransactions.empty() && activeReadOnlyTransactions.empty();
+    return activeTransactions.empty();
+}
+
+bool TransactionManager::hasActiveWriteTransactionNoLock() const {
+    return std::ranges::any_of(activeTransactions,
+        [](const auto& transaction) { return transaction->isWriteTransaction(); });
+}
+
+void TransactionManager::clearTransactionNoLock(transaction_t transactionID) {
+    KU_ASSERT(std::ranges::any_of(activeTransactions.begin(), activeTransactions.end(),
+        [transactionID](const auto& activeTransaction) {
+            return activeTransaction->getID() == transactionID;
+        }));
+    std::erase_if(activeTransactions, [transactionID](const auto& activeTransaction) {
+        return activeTransaction->getID() == transactionID;
+    });
 }
 
 std::unique_ptr<Checkpointer> TransactionManager::initCheckpointer(
@@ -142,7 +160,11 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // will only return results or error after all threads working on the tasks of a
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
-    auto lockForStartingTransaction = stopNewTransactionsAndWaitUntilAllTransactionsLeave();
+    try {
+        auto lockForStartingTransaction = stopNewTransactionsAndWaitUntilAllTransactionsLeave();
+    } catch (std::exception& e) {
+        throw CheckpointException{e};
+    }
     auto checkpointer = initCheckpointerFunc(clientContext);
     try {
         checkpointer->writeCheckpoint();
