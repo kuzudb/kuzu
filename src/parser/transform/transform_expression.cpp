@@ -230,18 +230,29 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
     CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
-    auto result = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
-    if (ctx.FACTORIAL()) { // Factorial has a higher precedence
-        auto raw = result->toString() + "!";
-        result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
-            std::move(result), std::move(raw));
-    }
-    if (!ctx.MINUS().empty()) {
-        for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
-            auto raw = "-" + result->toString();
-            result = std::make_unique<ParsedFunctionExpression>(NegateFunction::name,
-                std::move(result), std::move(raw));
+    if (ctx.oC_PropertyOrLabelsExpression() || !ctx.oC_Literal()->oC_NumberLiteral())
+    {
+        auto result = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
+        if (ctx.FACTORIAL()) { // Factorial has a higher precedence
+            auto raw = result->toString() + "!";
+            result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
+                                                                std::move(result), std::move(raw));
         }
+        if (!ctx.MINUS().empty()) {
+            for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
+                auto raw = "-" + result->toString();
+                result = std::make_unique<ParsedFunctionExpression>(NegateFunction::name,
+                                                                    std::move(result), std::move(raw));
+            }
+        }
+        return result;
+    }
+    KU_ASSERT_UNCONDITIONAL(ctx.oC_Literal()->oC_NumberLiteral());
+    auto result = transformNumberLiteral(*ctx.oC_Literal()->oC_NumberLiteral(), ctx.MINUS().size());
+    if (ctx.FACTORIAL()) {
+        auto raw = result->toString() + "!";
+        return std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
+                                                            std::move(result), std::move(raw));
     }
     return result;
 }
@@ -349,17 +360,36 @@ std::unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpression(
     CypherParser::OC_PropertyOrLabelsExpressionContext& ctx) {
-    auto atom = transformAtom(*ctx.oC_Atom());
+    std::unique_ptr<ParsedExpression> partialAtom = nullptr;
+    if (ctx.oC_Parameter()) {
+        partialAtom = transformParameterExpression(*ctx.oC_Parameter());
+    } else if (ctx.oC_CaseExpression()) {
+        partialAtom = transformCaseExpression(*ctx.oC_CaseExpression());
+    } else if (ctx.oC_ParenthesizedExpression()) {
+        partialAtom = transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
+    } else if (ctx.oC_FunctionInvocation()) {
+        partialAtom = transformFunctionInvocation(*ctx.oC_FunctionInvocation());
+    } else if (ctx.oC_PathPatterns()) {
+        partialAtom = transformPathPattern(*ctx.oC_PathPatterns());
+    } else if (ctx.oC_ExistCountSubquery()) {
+        partialAtom = transformExistCountSubquery(*ctx.oC_ExistCountSubquery());
+    } else if (ctx.oC_Quantifier()) {
+        partialAtom = transformOcQuantifier(*ctx.oC_Quantifier());
+    } else {
+        KU_ASSERT(ctx.oC_Variable());
+        partialAtom = std::make_unique<ParsedVariableExpression>(transformVariable(*ctx.oC_Variable()),
+            ctx.getText());
+    }
     if (!ctx.oC_PropertyLookup().empty()) {
         auto lookUpCtx = ctx.oC_PropertyLookup(0);
-        auto result = createPropertyExpression(*lookUpCtx, std::move(atom));
+        auto result = createPropertyExpression(*lookUpCtx, std::move(partialAtom));
         for (auto i = 1u; i < ctx.oC_PropertyLookup().size(); ++i) {
             lookUpCtx = ctx.oC_PropertyLookup(i);
             result = createPropertyExpression(*lookUpCtx, std::move(result));
         }
         return result;
     }
-    return atom;
+    return partialAtom;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomContext& ctx) {
@@ -389,7 +419,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_At
 std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
     CypherParser::OC_LiteralContext& ctx) {
     if (ctx.oC_NumberLiteral()) {
-        return transformNumberLiteral(*ctx.oC_NumberLiteral());
+        return transformNumberLiteral(*ctx.oC_NumberLiteral(), 0);
     } else if (ctx.oC_BooleanLiteral()) {
         return transformBooleanLiteral(*ctx.oC_BooleanLiteral());
     } else if (ctx.StringLiteral()) {
@@ -628,12 +658,12 @@ ParsedCaseAlternative Transformer::transformCaseAlternative(
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformNumberLiteral(
-    CypherParser::OC_NumberLiteralContext& ctx) {
+    CypherParser::OC_NumberLiteralContext& ctx, int minus) {
     if (ctx.oC_IntegerLiteral()) {
-        return transformIntegerLiteral(*ctx.oC_IntegerLiteral());
+        return transformIntegerLiteral(*ctx.oC_IntegerLiteral(), minus);
     } else {
         KU_ASSERT(ctx.oC_DoubleLiteral());
-        return transformDoubleLiteral(*ctx.oC_DoubleLiteral());
+        return transformDoubleLiteral(*ctx.oC_DoubleLiteral(), minus);
     }
 }
 
@@ -648,8 +678,9 @@ std::string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNa
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
-    CypherParser::OC_IntegerLiteralContext& ctx) {
+    CypherParser::OC_IntegerLiteralContext& ctx, int minus) {
     auto text = ctx.DecimalInteger()->getText();
+    text = std::string(minus%2, '-') + text;
     ku_string_t literal{text.c_str(), text.length()};
     int64_t result = 0;
     if (function::CastString::tryCast(literal, result)) {
@@ -661,9 +692,10 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
-    CypherParser::OC_DoubleLiteralContext& ctx) {
+    CypherParser::OC_DoubleLiteralContext& ctx, int minus) {
     auto text = ctx.ExponentDecimalReal() ? ctx.ExponentDecimalReal()->getText() :
                                             ctx.RegularDecimalReal()->getText();
+    text = std::string(minus%2, '-') + text;
     ku_string_t literal{text.c_str(), text.length()};
     double result = 0;
     function::CastString::operation(literal, result);
