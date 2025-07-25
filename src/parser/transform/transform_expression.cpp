@@ -5,7 +5,6 @@
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
 #include "parser/expression/parsed_case_expression.h"
-#include "parser/expression/parsed_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_lambda_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
