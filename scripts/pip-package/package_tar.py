@@ -48,7 +48,7 @@ if __name__ == "__main__":
         )
 
         with tarfile.open(os.path.join(tempdir, "kuzu-source.tar")) as tar:
-            tar.extractall(path=os.path.join(tempdir, "kuzu-source"))
+            tar.extractall(path=os.path.join(tempdir, "kuzu-source"), filter=None)
 
         os.remove(os.path.join(tempdir, "kuzu-source.tar"))
 
