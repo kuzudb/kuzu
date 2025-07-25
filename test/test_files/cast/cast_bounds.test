@@ -62,4 +62,3 @@ Overflow exception: Value 128 is not within INT8 range
 -STATEMENT RETURN CAST(-129 AS INT8)
 ---- error
 Overflow exception: Value -129 is not within INT8 range
-

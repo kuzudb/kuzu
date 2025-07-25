@@ -114,26 +114,43 @@ int128_t Int128_t::divModPositive(int128_t lhs, uint64_t rhs, uint64_t& remainde
 }
 
 std::string Int128_t::ToString(int128_t input) {
-    uint64_t remainder = 0;
-    std::string result;
+    bool isMin = (input.high == INT64_MIN && input.low == 0);
     bool negative = input.high < 0;
+
+    if (isMin) {
+
+        uint64_t remainder = 0;
+        int128_t quotient = divModPositive(input, 10, remainder);
+
+        std::string result = ToString(quotient);
+
+        result += static_cast<char>('0' + remainder);
+
+        return "-" + result;
+    }
+
     if (negative) {
         negateInPlace(input);
     }
-    while (true) {
-        if (!input.low && !input.high) {
-            break;
-        }
+
+    std::string result;
+    uint64_t remainder = 0;
+
+    while (input.high != 0 || input.low != 0) {
         input = divModPositive(input, 10, remainder);
         result = std::string(1, '0' + remainder) + std::move(result);
     }
+
     if (result.empty()) {
         result = "0";
     }
+
     return negative ? "-" + result : result;
 }
 
 bool Int128_t::addInPlace(int128_t& lhs, int128_t rhs) {
+    bool lhsPositive = lhs.high >= 0;
+    bool rhsPositive = rhs.high >= 0;
     int overflow = lhs.low + rhs.low < lhs.low;
     if (rhs.high >= 0) {
         if (lhs.high > INT64_MAX - rhs.high - overflow) {
@@ -147,7 +164,7 @@ bool Int128_t::addInPlace(int128_t& lhs, int128_t rhs) {
         lhs.high = lhs.high + rhs.high + overflow;
     }
     lhs.low += rhs.low;
-    if (lhs.high == INT64_MIN && lhs.low == 0) {
+    if (lhsPositive && rhsPositive && lhs.high == INT64_MIN && lhs.low == 0) {
         return false;
     }
     return true;
