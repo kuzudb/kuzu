@@ -184,14 +184,14 @@ private:
         CypherParser::OC_CaseExpressionContext& ctx);
     ParsedCaseAlternative transformCaseAlternative(CypherParser::OC_CaseAlternativeContext& ctx);
     std::unique_ptr<ParsedExpression> transformNumberLiteral(
-        CypherParser::OC_NumberLiteralContext& ctx);
+        CypherParser::OC_NumberLiteralContext& ctx, bool negative);
     std::unique_ptr<ParsedExpression> transformProperty(
         CypherParser::OC_PropertyExpressionContext& ctx);
     std::string transformPropertyKeyName(CypherParser::OC_PropertyKeyNameContext& ctx);
     std::unique_ptr<ParsedExpression> transformIntegerLiteral(
-        CypherParser::OC_IntegerLiteralContext& ctx);
+        CypherParser::OC_IntegerLiteralContext& ctx, bool negative);
     std::unique_ptr<ParsedExpression> transformDoubleLiteral(
-        CypherParser::OC_DoubleLiteralContext& ctx);
+        CypherParser::OC_DoubleLiteralContext& ctx, bool negative);
 
     // Transform ddl.
     std::unique_ptr<Statement> transformAlterTable(CypherParser::KU_AlterTableContext& ctx);
