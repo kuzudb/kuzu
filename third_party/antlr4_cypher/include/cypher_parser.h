@@ -2408,10 +2408,6 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_LiteralContext *oC_Literal();
     OC_ParameterContext *oC_Parameter();
-    std::vector<antlr4::tree::TerminalNode *> MINUS();
-    antlr4::tree::TerminalNode* MINUS(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
     OC_CaseExpressionContext *oC_CaseExpression();
     OC_ParenthesizedExpressionContext *oC_ParenthesizedExpression();
     OC_FunctionInvocationContext *oC_FunctionInvocation();
@@ -2419,6 +2415,10 @@ public:
     OC_ExistCountSubqueryContext *oC_ExistCountSubquery();
     OC_VariableContext *oC_Variable();
     OC_QuantifierContext *oC_Quantifier();
+    std::vector<antlr4::tree::TerminalNode *> MINUS();
+    antlr4::tree::TerminalNode* MINUS(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
 
    
   };
@@ -2476,14 +2476,14 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_NumberLiteralContext *oC_NumberLiteral();
     antlr4::tree::TerminalNode *StringLiteral();
-    std::vector<antlr4::tree::TerminalNode *> MINUS();
-    antlr4::tree::TerminalNode* MINUS(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
     OC_BooleanLiteralContext *oC_BooleanLiteral();
     antlr4::tree::TerminalNode *NULL_();
     OC_ListLiteralContext *oC_ListLiteral();
     KU_StructLiteralContext *kU_StructLiteral();
+    std::vector<antlr4::tree::TerminalNode *> MINUS();
+    antlr4::tree::TerminalNode* MINUS(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
 
    
   };
