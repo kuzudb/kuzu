@@ -231,13 +231,15 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
     CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
 
-    if (ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal() && ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral())
-    {
-        auto result = transformNumberLiteral(*ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral(), ctx.MINUS().size());
+    if (ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal() &&
+        ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral()) {
+        auto result = transformNumberLiteral(
+            *ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral(),
+            ctx.MINUS().size());
         if (ctx.FACTORIAL()) { // Factorial has a higher precedence
-        auto raw = result->toString() + "!";
-        result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
-            std::move(result), std::move(raw));
+            auto raw = result->toString() + "!";
+            result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
+                std::move(result), std::move(raw));
         }
         return result;
     }
@@ -662,7 +664,7 @@ std::string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNa
 std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx, int minus) {
     auto text = ctx.DecimalInteger()->getText();
-    text = std::string(minus%2, '-') + text;
+    text = std::string(minus % 2, '-') + text;
     ku_string_t literal{text.c_str(), text.length()};
     int64_t result = 0;
     if (function::CastString::tryCast(literal, result)) {
@@ -677,7 +679,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx, int minus) {
     auto text = ctx.ExponentDecimalReal() ? ctx.ExponentDecimalReal()->getText() :
                                             ctx.RegularDecimalReal()->getText();
-    text = std::string(minus%2, '-') + text;
+    text = std::string(minus % 2, '-') + text;
     ku_string_t literal{text.c_str(), text.length()};
     double result = 0;
     function::CastString::operation(literal, result);
