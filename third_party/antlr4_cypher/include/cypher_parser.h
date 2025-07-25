@@ -2379,7 +2379,6 @@ public:
     OC_UnaryAddSubtractOrFactorialExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_PropertyOrLabelsExpressionContext *oC_PropertyOrLabelsExpression();
-    OC_LiteralContext *oC_Literal();
     std::vector<antlr4::tree::TerminalNode *> MINUS();
     antlr4::tree::TerminalNode* MINUS(size_t i);
     antlr4::tree::TerminalNode *FACTORIAL();
@@ -2395,14 +2394,7 @@ public:
   public:
     OC_PropertyOrLabelsExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    OC_ParameterContext *oC_Parameter();
-    OC_CaseExpressionContext *oC_CaseExpression();
-    OC_ParenthesizedExpressionContext *oC_ParenthesizedExpression();
-    OC_FunctionInvocationContext *oC_FunctionInvocation();
-    OC_PathPatternsContext *oC_PathPatterns();
-    OC_ExistCountSubqueryContext *oC_ExistCountSubquery();
-    OC_VariableContext *oC_Variable();
-    OC_QuantifierContext *oC_Quantifier();
+    OC_AtomContext *oC_Atom();
     std::vector<OC_PropertyLookupContext *> oC_PropertyLookup();
     OC_PropertyLookupContext* oC_PropertyLookup(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();

@@ -230,29 +230,30 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
     CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
-    if (ctx.oC_PropertyOrLabelsExpression() || !ctx.oC_Literal()->oC_NumberLiteral())
+
+    if (ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal() && ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral())
     {
-        auto result = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
+        auto result = transformNumberLiteral(*ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral(), ctx.MINUS().size());
         if (ctx.FACTORIAL()) { // Factorial has a higher precedence
-            auto raw = result->toString() + "!";
-            result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
-                                                                std::move(result), std::move(raw));
-        }
-        if (!ctx.MINUS().empty()) {
-            for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
-                auto raw = "-" + result->toString();
-                result = std::make_unique<ParsedFunctionExpression>(NegateFunction::name,
-                                                                    std::move(result), std::move(raw));
-            }
+        auto raw = result->toString() + "!";
+        result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
+            std::move(result), std::move(raw));
         }
         return result;
     }
-    KU_ASSERT_UNCONDITIONAL(ctx.oC_Literal()->oC_NumberLiteral());
-    auto result = transformNumberLiteral(*ctx.oC_Literal()->oC_NumberLiteral(), ctx.MINUS().size());
-    if (ctx.FACTORIAL()) {
+
+    auto result = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
+    if (ctx.FACTORIAL()) { // Factorial has a higher precedence
         auto raw = result->toString() + "!";
-        return std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
-                                                            std::move(result), std::move(raw));
+        result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
+            std::move(result), std::move(raw));
+    }
+    if (!ctx.MINUS().empty()) {
+        for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
+            auto raw = "-" + result->toString();
+            result = std::make_unique<ParsedFunctionExpression>(NegateFunction::name,
+                std::move(result), std::move(raw));
+        }
     }
     return result;
 }
@@ -360,36 +361,17 @@ std::unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpression(
     CypherParser::OC_PropertyOrLabelsExpressionContext& ctx) {
-    std::unique_ptr<ParsedExpression> partialAtom = nullptr;
-    if (ctx.oC_Parameter()) {
-        partialAtom = transformParameterExpression(*ctx.oC_Parameter());
-    } else if (ctx.oC_CaseExpression()) {
-        partialAtom = transformCaseExpression(*ctx.oC_CaseExpression());
-    } else if (ctx.oC_ParenthesizedExpression()) {
-        partialAtom = transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
-    } else if (ctx.oC_FunctionInvocation()) {
-        partialAtom = transformFunctionInvocation(*ctx.oC_FunctionInvocation());
-    } else if (ctx.oC_PathPatterns()) {
-        partialAtom = transformPathPattern(*ctx.oC_PathPatterns());
-    } else if (ctx.oC_ExistCountSubquery()) {
-        partialAtom = transformExistCountSubquery(*ctx.oC_ExistCountSubquery());
-    } else if (ctx.oC_Quantifier()) {
-        partialAtom = transformOcQuantifier(*ctx.oC_Quantifier());
-    } else {
-        KU_ASSERT(ctx.oC_Variable());
-        partialAtom = std::make_unique<ParsedVariableExpression>(transformVariable(*ctx.oC_Variable()),
-            ctx.getText());
-    }
+    auto atom = transformAtom(*ctx.oC_Atom());
     if (!ctx.oC_PropertyLookup().empty()) {
         auto lookUpCtx = ctx.oC_PropertyLookup(0);
-        auto result = createPropertyExpression(*lookUpCtx, std::move(partialAtom));
+        auto result = createPropertyExpression(*lookUpCtx, std::move(atom));
         for (auto i = 1u; i < ctx.oC_PropertyLookup().size(); ++i) {
             lookUpCtx = ctx.oC_PropertyLookup(i);
             result = createPropertyExpression(*lookUpCtx, std::move(result));
         }
         return result;
     }
-    return partialAtom;
+    return atom;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomContext& ctx) {

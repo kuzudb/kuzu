@@ -512,11 +512,10 @@ MINUS : '-' ;
 FACTORIAL : '!' ;
 
 oC_UnaryAddSubtractOrFactorialExpression
-    : ( MINUS SP? )* (oC_PropertyOrLabelsExpression | oC_Literal) (SP? FACTORIAL)? ;
+    : ( MINUS SP? )* oC_PropertyOrLabelsExpression (SP? FACTORIAL)? ;
 
 oC_PropertyOrLabelsExpression
-    : (oC_Parameter | oC_CaseExpression | oC_ParenthesizedExpression | oC_FunctionInvocation | oC_PathPatterns | oC_ExistCountSubquery | oC_Variable | oC_Quantifier) ( SP? oC_PropertyLookup )* ;
-        
+    : oC_Atom ( SP? oC_PropertyLookup )* ;
 
 oC_Atom
     : oC_Literal
