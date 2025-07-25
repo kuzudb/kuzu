@@ -43,7 +43,7 @@ jobs:
       - name: Build Wheels
         env:
           CIBW_ARCHS_WINDOWS: AMD64
-          CIBW_SKIP: pp* cp36*
+          CIBW_SKIP: pp* cp36* cp314*
           CIBW_BUILD_VERBOSITY: 3
           NUM_THREADS: 40
         shell: cmd
