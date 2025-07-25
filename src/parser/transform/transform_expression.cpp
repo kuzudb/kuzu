@@ -394,7 +394,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
     CypherParser::OC_LiteralContext& ctx) {
     if (ctx.oC_NumberLiteral()) {
         return transformNumberLiteral(*ctx.oC_NumberLiteral());
-    } 
+    }
 
     std::unique_ptr<ParsedExpression> result = nullptr;
     if (ctx.oC_BooleanLiteral()) {
@@ -683,7 +683,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     auto text = ctx.ExponentDecimalReal() ? ctx.ExponentDecimalReal()->getText() :
                                             ctx.RegularDecimalReal()->getText();
     for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
-    text = "-" + text;
+        text = "-" + text;
     }
     ku_string_t literal{text.c_str(), text.length()};
     double result = 0;
