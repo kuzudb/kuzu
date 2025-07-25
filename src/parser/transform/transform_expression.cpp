@@ -665,7 +665,7 @@ std::string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNa
 std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
     auto text = ctx.DecimalInteger()->getText();
-    for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
+    if (ctx.MINUS().size() % 2) {
         text = "-" + text;
     }
     ku_string_t literal{text.c_str(), text.length()};
@@ -682,7 +682,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
     auto text = ctx.ExponentDecimalReal() ? ctx.ExponentDecimalReal()->getText() :
                                             ctx.RegularDecimalReal()->getText();
-    for ([[maybe_unused]] auto& _ : ctx.MINUS()) {
+    if (ctx.MINUS().size() % 2) {
         text = "-" + text;
     }
     ku_string_t literal{text.c_str(), text.length()};
