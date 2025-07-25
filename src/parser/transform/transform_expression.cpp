@@ -231,13 +231,15 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
     CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
 
-    if (ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal() && ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral())
-    {
-        auto result = transformNumberLiteral(*ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral(), ctx.MINUS().size() % 2 == 1);
+    if (ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal() &&
+        ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral()) {
+        auto result = transformNumberLiteral(
+            *ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral(),
+            ctx.MINUS().size() % 2 == 1);
         if (ctx.FACTORIAL()) {
-        auto raw = result->toString() + "!";
-        result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
-            std::move(result), std::move(raw));
+            auto raw = result->toString() + "!";
+            result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
+                std::move(result), std::move(raw));
         }
         return result;
     }
@@ -662,8 +664,8 @@ std::string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNa
 std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx, const bool negative) {
     auto text = ctx.DecimalInteger()->getText();
-    if (negative){
-        text= '-'+text;
+    if (negative) {
+        text = '-' + text;
     }
     ku_string_t literal{text.c_str(), text.length()};
     int64_t result = 0;
@@ -679,8 +681,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx, const bool negative) {
     auto text = ctx.ExponentDecimalReal() ? ctx.ExponentDecimalReal()->getText() :
                                             ctx.RegularDecimalReal()->getText();
-    if (negative){
-        text= '-'+text;
+    if (negative) {
+        text = '-' + text;
     }
     ku_string_t literal{text.c_str(), text.length()};
     double result = 0;
