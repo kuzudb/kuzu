@@ -30,30 +30,16 @@ jobs:
           mkdir wheelhouse
           python.exe package_tar.py kuzu.tar.gz
 
-      # Manually set up cibuildwheel instead of importing their
-      # action since there seems to be an issue with quoting
-      # --only when inputs.only is empty.
-      # See https://github.com/pypa/cibuildwheel/blob/main/action.yml
-      - uses: actions/setup-python@v5
-        id: python
-        with:
-          python-version: "3.7 - 3.12"
-          update-environment: false
-
-      - name: Build Wheels
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.22
         env:
-          CIBW_ARCHS_WINDOWS: AMD64
-          CIBW_SKIP: pp* cp36*
+          CIBW_SKIP: pp*
+          CIBW_ARCHS_MACOS: arm64
           CIBW_BUILD_VERBOSITY: 3
-          NUM_THREADS: 40
-        shell: cmd
-        working-directory: ./scripts/pip-package/
-        run:
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-
-          pipx run --spec cibuildwheel cibuildwheel
-          "kuzu.tar.gz"
-          --output-dir "wheelhouse"
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+        with:
+          package-dir: ./scripts/pip-package/kuzu.tar.gz
+          output-dir: ./scripts/pip-package/wheelhouse
 
       - uses: actions/upload-artifact@v4
         with:
