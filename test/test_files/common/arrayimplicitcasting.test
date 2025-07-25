@@ -11,7 +11,7 @@ Binder exception: Expression 4.500000 has data type DOUBLE but expected UINT64. 
 Overflow exception: Value -3 is not within UINT64 range
 -STATEMENT call threads=-3.5
 ---- error
-Binder exception: Expression NEGATE(3.500000) has data type DOUBLE but expected UINT64. Implicit cast is not supported.
+Binder exception: Expression -3.500000 has data type DOUBLE but expected UINT64. Implicit cast is not supported.
 -STATEMENT call timeout=1000.5
 ---- error
 Binder exception: Expression 1000.500000 has data type DOUBLE but expected UINT64. Implicit cast is not supported.

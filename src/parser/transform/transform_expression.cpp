@@ -231,15 +231,13 @@ std::unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactorialExpression(
     CypherParser::OC_UnaryAddSubtractOrFactorialExpressionContext& ctx) {
 
-    if (ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal() &&
-        ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral()) {
-        auto result = transformNumberLiteral(
-            *ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral(),
-            ctx.MINUS().size());
-        if (ctx.FACTORIAL()) { // Factorial has a higher precedence
-            auto raw = result->toString() + "!";
-            result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
-                std::move(result), std::move(raw));
+    if (ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal() && ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral())
+    {
+        auto result = transformNumberLiteral(*ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral(), ctx.MINUS().size());
+        if (ctx.FACTORIAL()) {
+        auto raw = result->toString() + "!";
+        result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
+            std::move(result), std::move(raw));
         }
         return result;
     }
