@@ -233,7 +233,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactor
 
     if (ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal() && ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral())
     {
-        auto result = transformNumberLiteral(*ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral(), ctx.MINUS().size());
+        auto result = transformNumberLiteral(*ctx.oC_PropertyOrLabelsExpression()->oC_Atom()->oC_Literal()->oC_NumberLiteral(), ctx.MINUS().size() % 2 == 1);
         if (ctx.FACTORIAL()) {
         auto raw = result->toString() + "!";
         result = std::make_unique<ParsedFunctionExpression>(FactorialFunction::name,
@@ -401,7 +401,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_At
 std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
     CypherParser::OC_LiteralContext& ctx) {
     if (ctx.oC_NumberLiteral()) {
-        return transformNumberLiteral(*ctx.oC_NumberLiteral(), 0);
+        return transformNumberLiteral(*ctx.oC_NumberLiteral(), false /*negative*/);
     } else if (ctx.oC_BooleanLiteral()) {
         return transformBooleanLiteral(*ctx.oC_BooleanLiteral());
     } else if (ctx.StringLiteral()) {
@@ -640,12 +640,12 @@ ParsedCaseAlternative Transformer::transformCaseAlternative(
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformNumberLiteral(
-    CypherParser::OC_NumberLiteralContext& ctx, int minus) {
+    CypherParser::OC_NumberLiteralContext& ctx, const bool negative) {
     if (ctx.oC_IntegerLiteral()) {
-        return transformIntegerLiteral(*ctx.oC_IntegerLiteral(), minus);
+        return transformIntegerLiteral(*ctx.oC_IntegerLiteral(), negative);
     } else {
         KU_ASSERT(ctx.oC_DoubleLiteral());
-        return transformDoubleLiteral(*ctx.oC_DoubleLiteral(), minus);
+        return transformDoubleLiteral(*ctx.oC_DoubleLiteral(), negative);
     }
 }
 
@@ -660,9 +660,11 @@ std::string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNa
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
-    CypherParser::OC_IntegerLiteralContext& ctx, int minus) {
+    CypherParser::OC_IntegerLiteralContext& ctx, const bool negative) {
     auto text = ctx.DecimalInteger()->getText();
-    text = std::string(minus % 2, '-') + text;
+    if (negative){
+        text= '-'+text;
+    }
     ku_string_t literal{text.c_str(), text.length()};
     int64_t result = 0;
     if (function::CastString::tryCast(literal, result)) {
@@ -674,10 +676,12 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
-    CypherParser::OC_DoubleLiteralContext& ctx, int minus) {
+    CypherParser::OC_DoubleLiteralContext& ctx, const bool negative) {
     auto text = ctx.ExponentDecimalReal() ? ctx.ExponentDecimalReal()->getText() :
                                             ctx.RegularDecimalReal()->getText();
-    text = std::string(minus % 2, '-') + text;
+    if (negative){
+        text= '-'+text;
+    }
     ku_string_t literal{text.c_str(), text.length()};
     double result = 0;
     function::CastString::operation(literal, result);
