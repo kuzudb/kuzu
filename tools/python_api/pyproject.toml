@@ -2,7 +2,7 @@
 name = "kuzu"
 description = "Highly scalable, extremely fast, easy-to-use embeddable graph database"
 readme = "README.md"
-license = MIT
+license = "MIT"
 keywords = ["graph", "database"]
 version = "0.0.1"
 
