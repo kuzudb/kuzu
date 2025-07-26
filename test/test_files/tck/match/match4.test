@@ -215,6 +215,4 @@ Parser exception: Invalid input <MATCH (a:A)            MATCH (a)-[:LIKES..>: ex
            MATCH (a)-[:LIKES*-2]->(c)
            RETURN c.name;
 ---- error
-Parser exception: Invalid input <MATCH (a:A)           MATCH (a)-[:LIKES*->: expected rule oC_SingleQuery (line: 1, offset: 40)
-"MATCH (a:A)           MATCH (a)-[:LIKES*-2]->(c)            RETURN c.name;"
-                                         ^
+Conversion exception: Cast failed. Could not convert "-2" to UINT32.

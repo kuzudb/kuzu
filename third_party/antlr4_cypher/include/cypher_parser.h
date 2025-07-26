@@ -2379,11 +2379,8 @@ public:
     OC_UnaryAddSubtractOrFactorialExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_PropertyOrLabelsExpressionContext *oC_PropertyOrLabelsExpression();
-    std::vector<antlr4::tree::TerminalNode *> MINUS();
-    antlr4::tree::TerminalNode* MINUS(size_t i);
     antlr4::tree::TerminalNode *FACTORIAL();
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *SP();
 
    
   };
@@ -2418,6 +2415,10 @@ public:
     OC_ExistCountSubqueryContext *oC_ExistCountSubquery();
     OC_VariableContext *oC_Variable();
     OC_QuantifierContext *oC_Quantifier();
+    std::vector<antlr4::tree::TerminalNode *> MINUS();
+    antlr4::tree::TerminalNode* MINUS(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
 
    
   };
@@ -2479,6 +2480,10 @@ public:
     antlr4::tree::TerminalNode *NULL_();
     OC_ListLiteralContext *oC_ListLiteral();
     KU_StructLiteralContext *kU_StructLiteral();
+    std::vector<antlr4::tree::TerminalNode *> MINUS();
+    antlr4::tree::TerminalNode* MINUS(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
 
    
   };
@@ -2789,6 +2794,10 @@ public:
     OC_IntegerLiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *DecimalInteger();
+    std::vector<antlr4::tree::TerminalNode *> MINUS();
+    antlr4::tree::TerminalNode* MINUS(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
 
    
   };
@@ -2800,6 +2809,10 @@ public:
     OC_DoubleLiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *ExponentDecimalReal();
+    std::vector<antlr4::tree::TerminalNode *> MINUS();
+    antlr4::tree::TerminalNode* MINUS(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *RegularDecimalReal();
 
    

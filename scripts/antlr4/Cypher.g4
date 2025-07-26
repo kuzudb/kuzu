@@ -751,21 +751,14 @@ MINUS : '-' ;
 FACTORIAL : '!' ;
 
 oC_UnaryAddSubtractOrFactorialExpression
-    : ( MINUS SP? )* oC_PropertyOrLabelsExpression (SP? FACTORIAL)? ;
+    : oC_PropertyOrLabelsExpression (SP? FACTORIAL)? ;
 
 oC_PropertyOrLabelsExpression
     : oC_Atom ( SP? oC_PropertyLookup )* ;
 
 oC_Atom
     : oC_Literal
-        | oC_Parameter
-        | oC_CaseExpression
-        | oC_ParenthesizedExpression
-        | oC_FunctionInvocation
-        | oC_PathPatterns
-        | oC_ExistCountSubquery
-        | oC_Variable
-        | oC_Quantifier
+        | ( MINUS SP? )* (oC_Parameter | oC_CaseExpression | oC_ParenthesizedExpression | oC_FunctionInvocation | oC_PathPatterns | oC_ExistCountSubquery | oC_Variable | oC_Quantifier)
         ;
 
 oC_Quantifier
@@ -783,11 +776,7 @@ oC_IdInColl
 
 oC_Literal
     : oC_NumberLiteral
-        | StringLiteral
-        | oC_BooleanLiteral
-        | NULL
-        | oC_ListLiteral
-        | kU_StructLiteral
+        | ( MINUS SP? )* (StringLiteral | oC_BooleanLiteral | NULL | oC_ListLiteral | kU_StructLiteral)
         ;
 
 oC_BooleanLiteral
@@ -870,7 +859,7 @@ oC_PropertyKeyName
     : oC_SchemaName ;
 
 oC_IntegerLiteral
-    : DecimalInteger ;
+    : ( MINUS SP? )* DecimalInteger ;
 
 DecimalInteger
     : ZeroDigit
@@ -916,8 +905,8 @@ ZeroDigit
     : '0' ;
 
 oC_DoubleLiteral
-    : ExponentDecimalReal
-        | RegularDecimalReal
+    : ( MINUS SP? )* ExponentDecimalReal
+        | ( MINUS SP? )* RegularDecimalReal
         ;
 
 ExponentDecimalReal
