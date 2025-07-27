@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "common/api.h"
 #include "kuzu_fwd.h"
@@ -11,6 +12,17 @@
 
 namespace kuzu {
 namespace main {
+
+class StatementParameterManager {
+public:
+    StatementParameterManager() = default;
+
+
+
+private:
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> parameters;
+    std::unordered_set<std::string> usedParameters;
+};
 
 /**
  * @brief A prepared statement is a parameterized query which can avoid planning the same query for
@@ -37,8 +49,11 @@ public:
      */
     KUZU_API bool isReadOnly() const;
 
-    std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
-        return parameterMap;
+    // std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
+    //     return parameterMap;
+    // }
+    StatementParameterManager& getParameterManagerUnsafe() {
+        return parameterManager;
     }
 
     common::StatementType getStatementType() const;
@@ -56,7 +71,7 @@ private:
     bool useInternalCatalogEntry = false;
     std::string errMsg;
     PreparedSummary preparedSummary;
-    std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
+    StatementParameterManager parameterManager = {};
     std::unique_ptr<binder::BoundStatementResult> statementResult;
     std::unique_ptr<planner::LogicalPlan> logicalPlan;
     std::shared_ptr<parser::Statement> parsedStatement;

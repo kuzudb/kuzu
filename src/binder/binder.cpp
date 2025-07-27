@@ -269,13 +269,5 @@ TableFunction Binder::getScanFunction(const FileTypeInfo& typeInfo,
     return *func->ptrCast<TableFunction>();
 }
 
-void Binder::validateAllInputParametersParsed() const {
-    for (const auto& [name, _] : expressionBinder.parameterMap) {
-        if (!expressionBinder.parsedParameters.contains(name)) {
-            throw Exception("Parameter " + name + " not found.");
-        }
-    }
-}
-
 } // namespace binder
 } // namespace kuzu

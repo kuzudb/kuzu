@@ -441,9 +441,9 @@ std::unique_ptr<PreparedStatement> ClientContext::preparedStatementWithError(
     return preparedStatement;
 }
 
-void ClientContext::bindParametersNoLock(const PreparedStatement* preparedStatement,
+void ClientContext::bindParametersNoLock(const PreparedStatement& preparedStatement,
     const std::unordered_map<std::string, std::unique_ptr<Value>>& inputParams) {
-    auto& parameterMap = preparedStatement->parameterMap;
+    // auto& parameterMap = preparedStatement->parameterMap;
     for (auto& [name, value] : inputParams) {
         if (!parameterMap.contains(name)) {
             throw Exception("Parameter " + name + " not found.");
@@ -529,8 +529,6 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
                     binder.setInputParameters(*inputParams);
                 }
                 const auto boundStatement = binder.bind(*preparedStatement->parsedStatement);
-                binder.validateAllInputParametersParsed();
-                preparedStatement->parameterMap = binder.getParameterMap();
                 preparedStatement->statementResult = std::make_unique<BoundStatementResult>(
                     boundStatement->getStatementResult()->copy());
                 // planning
