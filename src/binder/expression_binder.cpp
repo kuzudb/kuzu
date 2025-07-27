@@ -21,7 +21,7 @@ namespace kuzu {
 namespace binder {
 
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
-    const parser::ParsedExpression& parsedExpression) {
+    const ParsedExpression& parsedExpression) {
     // Normally u can only reference an existing expression through alias which is a parsed
     // VARIABLE expression.
     // An exception is order by binding, e.g. RETURN a, COUNT(*) ORDER BY COUNT(*)
@@ -33,17 +33,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     auto collector = ParsedParamExprCollector();
     collector.visit(&parsedExpression);
     if (collector.hasParamExprs()) {
-        bool allParamExist = true;
-        for (auto& parsedExpr : collector.getParamExprs()) {
-            auto name = parsedExpr->constCast<ParsedParameterExpression>().getParameterName();
-            if (!parameterMap.contains(name)) {
-                auto value = std::make_shared<Value>(Value::createNullValue());
-                parameterMap.insert({name, value});
-                parsedParameters.insert(name);
-                allParamExist = false;
-            }
-        }
-        if (!allParamExist) {
+        if (parameterMap.empty()) { // First time of prepare
             auto expr = std::make_shared<ParameterExpression>(binder->getUniqueExpressionName(""),
                 Value::createNullValue());
             if (parsedExpression.hasAlias()) {
