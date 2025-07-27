@@ -99,13 +99,11 @@ public:
      */
     KUZU_API void setQueryTimeOut(uint64_t timeoutInMS);
 
-    // Note: this function throws exception if creating scalar function fails.
     template<typename TR, typename... Args>
     void createScalarFunction(std::string name, TR (*udfFunc)(Args...)) {
         addScalarFunction(name, function::UDF::getFunction<TR, Args...>(name, udfFunc));
     }
 
-    // Note: this function throws exception if creating scalar function fails.
     template<typename TR, typename... Args>
     void createScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypes,
         common::LogicalTypeID returnType, TR (*udfFunc)(Args...)) {
@@ -135,22 +133,12 @@ public:
     ClientContext* getClientContext() { return clientContext.get(); };
 
 private:
-    std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
-
-    std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
-
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> params,
         std::pair<std::string, T> arg, std::pair<std::string, Args>... args) {
         return clientContext->executeWithParams(preparedStatement, std::move(params), arg, args...);
     }
-
-    void bindParametersNoLock(PreparedStatement* preparedStatement,
-        const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
-
-    std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
-        PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
 
     KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
     KUZU_API void removeScalarFunction(std::string name);

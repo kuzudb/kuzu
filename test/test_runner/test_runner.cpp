@@ -362,7 +362,8 @@ std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(const std::stri
     Connection& conn) {
     const auto preparedStatement = conn.prepare(query);
     KU_ASSERT(preparedStatement->isSuccess());
-    return std::move(preparedStatement->logicalPlan);
+    auto cachedStatement = conn.getClientContext()->getCachedPreparedStatementManager().getCachedStatement(preparedStatement->getName());
+    return std::move(cachedStatement->logicalPlan);
 }
 
 } // namespace testing

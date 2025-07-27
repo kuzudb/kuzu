@@ -21,7 +21,7 @@ namespace kuzu {
 namespace binder {
 
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
-    const parser::ParsedExpression& parsedExpression) {
+    const ParsedExpression& parsedExpression) {
     // Normally u can only reference an existing expression through alias which is a parsed
     // VARIABLE expression.
     // An exception is order by binding, e.g. RETURN a, COUNT(*) ORDER BY COUNT(*)

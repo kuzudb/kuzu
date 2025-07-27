@@ -64,6 +64,7 @@ src/include/main/db_config.h
 src/include/main/kuzu.h
 src/include/main/kuzu_fwd.h
 src/include/main/prepared_statement.h
+src/include/main/prepared_statement_manager.h
 src/include/main/query_result.h
 src/include/main/query_summary.h
 src/include/main/storage_driver.h
