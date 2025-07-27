@@ -237,8 +237,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformUnaryAddSubtractOrFactor
         // Try parse -number as a signed literal. This is to avoid
         // -170141183460469231731687303715884105728 being parsed as
         // 170141183460469231731687303715884105728 and cause overflow
-        result = transformNumberLiteral(
-            *atomCtx->oC_Literal()->oC_NumberLiteral(),
+        result = transformNumberLiteral(*atomCtx->oC_Literal()->oC_NumberLiteral(),
             ctx.MINUS().size() % 2 == 1);
     } else {
         result = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
