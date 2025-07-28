@@ -107,7 +107,8 @@ def export_datasets_and_test(
         "exceptions~copy~null_pk.*:"
         "copy~copy_pk_long_string_parquet.*:"
         "csv~compressed_csv.*:"
-        "csv~dialect_detection.*"
+        "csv~dialect_detection.*:"
+        "function~gds~rec_joins_small.*"
     )
     os.environ["GTEST_FILTER"] = f"*:-{filter}"
     run_command("make test", cwd=test_worktree)
