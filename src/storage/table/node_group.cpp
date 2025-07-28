@@ -221,7 +221,8 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
                       numRowsToScan) == NodeGroupScanResult(startOffsetInGroup, numRowsToScan));
         return NodeGroupScanResult{startOffsetInGroup, numRowsToScan};
     }
-    return scanInternal(chunkedGroups.lock(), transaction, state, startOffsetInGroup, numRowsToScan);
+    return scanInternal(chunkedGroups.lock(), transaction, state, startOffsetInGroup,
+        numRowsToScan);
 }
 
 NodeGroupScanResult NodeGroup::scanInternal(const UniqLock& lock, Transaction* transaction,
