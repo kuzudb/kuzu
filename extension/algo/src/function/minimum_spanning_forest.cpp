@@ -177,7 +177,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         {
             const auto& [v1, u1, w1] = e1;
             const auto& [v2, u2, w2] = e2;
-            return std::tie(w1, u1, v1) < std::tie(w2, u2, v2);
+            return std::tie(w1, u1, v1) > std::tie(w2, u2, v2);
         };
 
 
