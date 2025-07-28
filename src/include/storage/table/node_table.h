@@ -61,7 +61,7 @@ struct KUZU_API NodeTableUpdateState : TableUpdateState {
     NodeTableUpdateState(common::column_id_t columnID, common::ValueVector& nodeIDVector,
         common::ValueVector& propertyVector)
         : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector} {}
-    
+
     NodeTableUpdateState(const NodeTableUpdateState&) = delete;
 };
 
