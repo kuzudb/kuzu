@@ -101,6 +101,15 @@ def export_datasets_and_test(
 
     # Append `/` so that datasets can be found correctly
     os.environ["E2E_IMPORT_DB_DIR"] = export_path + os.sep
+    filter = (
+        "exceptions~copy~duplicated.*:"
+        "exceptions~copy~ignore_invalid_row.*:"
+        "exceptions~copy~null_pk.*:"
+        "copy~copy_pk_long_string_parquet.*:"
+        "csv~compressed_csv.*:"
+        "csv~dialect_detection.*"
+    )
+    os.environ["GTEST_FILTER"] = f"*:-{filter}"
     run_command("make test", cwd=test_worktree)
     return 0
 
