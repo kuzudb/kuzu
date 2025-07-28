@@ -7,7 +7,7 @@ pyarrow~=20.0
 pybind11~=2.13
 pytest
 pytest-asyncio~=1.0
-setuptools~=70.2
+setuptools~=80.9
 
 # required for lint/formatting
 ruff==0.11.12
