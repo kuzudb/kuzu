@@ -39,6 +39,7 @@ public:
         : SimpleSink{type_, std::move(messageTable), id, std::move(printInfo)},
           boundFileInfo{std::move(boundFileInfo)}, schemaOnly{schemaOnly},
           sharedState{std::move(sharedState)} {}
+
     void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
