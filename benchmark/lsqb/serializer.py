@@ -144,7 +144,7 @@ def serialize(dataset_name, dataset_path, serialized_graph_path):
     shutil.rmtree(serialized_graph_path, ignore_errors=True)
     os.mkdir(serialized_graph_path)
 
-    db = kuzu.Database(os.path.join(serialized_graph_path, "kuzu.db"))
+    db = kuzu.Database(os.path.join(serialized_graph_path, "db.kuzu"))
     conn = kuzu.Connection(db)
     logging.info("Successfully connected")
 
