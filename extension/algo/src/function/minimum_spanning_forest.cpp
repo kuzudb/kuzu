@@ -8,6 +8,8 @@
 #include "function/algo_function.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_object_manager.h"
+#include "function/gds/gds_utils.h"
+#include "function/gds/gds_vertex_compute.h"
 #include "function/table/bind_input.h"
 #include "processor/execution_context.h"
 
@@ -21,6 +23,43 @@ using namespace kuzu::function;
 
 namespace kuzu {
 namespace algo_extension {
+
+
+class WriteResultsMSF final : public GDSResultVertexCompute {
+public:
+    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState, std::vector<std::vector<std::pair<offset_t, int64_t>>>& final)
+        : GDSResultVertexCompute{mm, sharedState}, finalResults{final} {
+        nodeIDVector = createVector(LogicalType::INTERNAL_ID());
+        toIDVector = createVector(LogicalType::INTERNAL_ID());
+        weightVector = createVector(LogicalType::INT64());
+    }
+
+    void beginOnTableInternal(table_id_t /*tableID*/) override {}
+
+    void vertexCompute(const offset_t startOffset, const offset_t endOffset, const table_id_t tableID) override {
+        for(auto i = startOffset; i < endOffset; ++i)
+        {
+            for(auto j = 0u; j < finalResults[i].size(); ++j)
+            {
+                const auto nodeID = nodeID_t{i, tableID};
+                nodeIDVector->setValue<nodeID_t>(0, nodeID);
+                toIDVector->setValue<nodeID_t>(0, nodeID_t{finalResults[i][j].first, tableID});
+                weightVector->setValue<offset_t>(0, finalResults[i][j].second);
+                localFT->append(vectors);
+            }
+        }
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<WriteResultsMSF>(mm, sharedState, finalResults);
+    }
+
+private:
+    std::vector<std::vector<std::pair<offset_t, int64_t>>>& finalResults;
+    std::unique_ptr<ValueVector> nodeIDVector;
+    std::unique_ptr<ValueVector> toIDVector;
+    std::unique_ptr<ValueVector> weightVector;
+};
 
 struct MSFConfig final : public GDSConfig {
     std::string weight_property;
@@ -63,7 +102,7 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     return config;
 }
 
-static offset_t find(offset_t u, ku_vector_t<offset_t>& parents)
+static offset_t find(const offset_t& u, ku_vector_t<offset_t>& parents)
 {
     while(parents[u] != parents[parents[u]])
     {
@@ -72,7 +111,7 @@ static offset_t find(offset_t u, ku_vector_t<offset_t>& parents)
     return parents[u];
 }
 
-static void mergeComponents(offset_t pu, offset_t pv, ku_vector_t<offset_t>& parents, ku_vector_t<uint64_t>& rank)
+static void mergeComponents(const offset_t& pu, const offset_t& pv, ku_vector_t<offset_t>& parents, ku_vector_t<uint64_t>& rank)
 {
     KU_ASSERT_UNCONDITIONAL(pu != pv);
     if (rank[pu] == rank[pv])
@@ -143,8 +182,15 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
 
     std::make_heap(edges.begin(), edges.end(), cmp);
-    ku_vector_t<std::tuple<offset_t, offset_t, int64_t>> forest(mm);
-    while(!edges.empty() && forest.size() != numNodes - 1)
+    // Cannot be init as done below. MmAllocator' has been explicitly marked deleted here
+    // ku_vector_t<ku_vector_t<std::pair<offset_t, int64_t>>> forest(mm);
+    // for(int i = 0; i < numNodes; ++i)
+    //{
+    //  forest.emplace_back({mm});
+    //}
+    std::vector<std::vector<std::pair<offset_t, int64_t>>> forest(numNodes);
+    offset_t numEdges = 0;
+    while(!edges.empty() && numEdges != numNodes - 1)
     {
         std::pop_heap(edges.begin(), edges.end(), cmp);
         const auto [u, v, w] = edges.back();
@@ -153,13 +199,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         auto pv = find(v, parents);
         if (pu != pv)
         {
-            forest.push_back({u, v, w});
+            ++numEdges;
+            forest[u].push_back({v, w});
+            forest[v].push_back({u, w});
             mergeComponents(pu, pv, parents, rank);
         }
     }
 
-    // todo(format output)
-    const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.finalEdges);
+    const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, forest);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
 
     sharedState->factorizedTablePool.mergeLocalTables();
