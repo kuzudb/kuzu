@@ -102,12 +102,22 @@ def export_datasets_and_test(
     # Append `/` so that datasets can be found correctly
     os.environ["E2E_IMPORT_DB_DIR"] = export_path + os.sep
     filter = (
+        # These tests fail due to a difference in query id.
+        # Suspect this to be caused by using import db query instead of
+        # copying the dataset manually with DDL/DML queries.
         "exceptions~copy~duplicated.*:"
         "exceptions~copy~ignore_invalid_row.*:"
         "exceptions~copy~null_pk.*:"
+        # This script does not handle tests that use the
+        # CSV_TO_PARQUET feature of the testing framework.
         "copy~copy_pk_long_string_parquet.*:"
+        # These tests use a dataset that does not define a schema.cypher file.
+        # There is no import to test against; if we do not filter
+        # these tests fail on import.
         "csv~compressed_csv.*:"
         "csv~dialect_detection.*:"
+        # TODO(Tanvir) We must order node & rel by offset before this test can
+        # pass.
         "function~gds~rec_joins_small.*"
     )
     os.environ["GTEST_FILTER"] = f"*:-{filter}"
