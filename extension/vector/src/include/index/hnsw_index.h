@@ -106,6 +106,12 @@ public:
     static std::vector<NodeWithDistance> popTopK(max_node_priority_queue_t& result,
         common::length_t k);
 
+    std::unique_ptr<UpdateState> initUpdateState(main::ClientContext* /*context*/,
+        common::column_id_t /*columnID*/, storage::visible_func /*isVisible*/) override {
+        throw common::RuntimeException{"Cannot set property vec in table embeddings because it is "
+                                       "used in one or more indexes. Try delete and then insert."};
+    }
+
     std::unique_ptr<DeleteState> initDeleteState(const transaction::Transaction* /*transaction*/,
         storage::MemoryManager* /*mm*/, storage::visible_func /*isVisible*/) override {
         return std::make_unique<DeleteState>();

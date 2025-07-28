@@ -13,6 +13,8 @@ IndexStorageInfo::~IndexStorageInfo() = default;
 
 Index::InsertState::~InsertState() = default;
 
+Index::UpdateState::~UpdateState() = default;
+
 Index::DeleteState::~DeleteState() = default;
 
 Index::~Index() = default;

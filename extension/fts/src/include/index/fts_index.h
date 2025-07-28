@@ -40,6 +40,12 @@ public:
     void insert(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
         const std::vector<common::ValueVector*>& indexVectors, InsertState& insertState) override;
 
+    std::unique_ptr<UpdateState> initUpdateState(main::ClientContext* context,
+        common::column_id_t columnID, storage::visible_func isVisible) override;
+
+    void update(transaction::Transaction* transaction, const common::ValueVector& nodeIDVector,
+        common::ValueVector& propertyVector, UpdateState& updateState) override;
+
     std::unique_ptr<DeleteState> initDeleteState(const transaction::Transaction* transaction,
         storage::MemoryManager* mm, storage::visible_func isVisible) override;
 
