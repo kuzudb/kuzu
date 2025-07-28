@@ -474,7 +474,6 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         throw RuntimeException("Cannot update pk.");
     }
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
-    auto nodeIDVectorState = nodeUpdateState.nodeIDVector.state;
     for (auto i = 0u; i < indexes.size(); i++) {
         auto index = indexes[i].getIndex();
         if (index->isPrimary()) {

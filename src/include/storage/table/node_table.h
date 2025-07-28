@@ -46,8 +46,8 @@ struct KUZU_API NodeTableInsertState : public TableInsertState {
     const common::ValueVector& pkVector;
     std::vector<std::unique_ptr<Index::InsertState>> indexInsertStates;
 
-    explicit NodeTableInsertState(common::ValueVector& nodeIDVector,
-        const common::ValueVector& pkVector, std::vector<common::ValueVector*> propertyVectors)
+    NodeTableInsertState(common::ValueVector& nodeIDVector, const common::ValueVector& pkVector,
+        std::vector<common::ValueVector*> propertyVectors)
         : TableInsertState{std::move(propertyVectors)}, nodeIDVector{nodeIDVector},
           pkVector{pkVector} {}
 
@@ -61,6 +61,8 @@ struct KUZU_API NodeTableUpdateState : TableUpdateState {
     NodeTableUpdateState(common::column_id_t columnID, common::ValueVector& nodeIDVector,
         common::ValueVector& propertyVector)
         : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector} {}
+    
+    NodeTableUpdateState(const NodeTableUpdateState&) = delete;
 };
 
 struct KUZU_API NodeTableDeleteState : TableDeleteState {

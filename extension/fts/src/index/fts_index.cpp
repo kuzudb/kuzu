@@ -135,12 +135,11 @@ void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
 
 std::unique_ptr<Index::UpdateState> FTSIndex::initUpdateState(main::ClientContext* context,
     column_id_t columnID, storage::visible_func isVisible) {
-    auto transaction = context->getTransaction();
     auto ftsUpdateState =
         std::make_unique<FTSUpdateState>(context, internalTableInfo, indexInfo.columnIDs, columnID);
     ftsUpdateState->ftsInsertState = initInsertState(context, isVisible);
     ftsUpdateState->ftsDeleteState =
-        initDeleteState(transaction, context->getMemoryManager(), isVisible);
+        initDeleteState(context->getTransaction(), context->getMemoryManager(), isVisible);
     return ftsUpdateState;
 }
 
