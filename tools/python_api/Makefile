@@ -21,8 +21,7 @@ endif
 
 requirements: .venv ## Install/update Python dev packages
 	@unset CONDA_PREFIX \
-	&& $(VENV_BIN)/python -m pip install -U uv \
-	&& $(VENV_BIN)/uv pip install --upgrade -r requirements_dev.txt
+	&& $(VENV_BIN) pip install --upgrade -r requirements_dev.txt
 
 pytest: requirements
 ifeq ($(OS),Windows_NT)
