@@ -6,12 +6,12 @@ This script migrates Kuzu databases between different versions by:
 1. Setting up isolated Python environments for each Kuzu version
 2. Exporting data from the source database using the old version
 3. Importing data into the target database using the new version
-4. If overwrite is enabled target database will replace source database and source database will have the prefix _old
+4. If overwrite is enabled target database will replace source database and source database will have the prefix _old with version info
 5. If delete-old is enabled target database will be renamed to source database and source database will be deleted
 
 Usage Examples:
     # Basic migration from 0.9.0 to 0.11.0
-    python kuzu_migrate.py --old-version 0.9.0 --new-version 0.11.0 --old-db /path/to/old/database --new-db /path/to/new/database
+    python migrate-kuzu-db.py --old-version 0.9.0 --new-version 0.11.0 --old-db /path/to/old/database --new-db /path/to/new/database
 
 Requirements:
 - Python 3.7+
@@ -51,12 +51,11 @@ def read_kuzu_storage_version(kuzu_db_path: str) -> int:
     if os.path.isdir(kuzu_db_path):
         kuzu_version_file_path = os.path.join(kuzu_db_path, "catalog.kz")
         if not os.path.isfile(kuzu_version_file_path):
-            raise FileExistsError("Kuzu catalog.kz file does not exist")
+            raise FileNotFoundError("Kuzu catalog.kz file does not exist")
     else:
         kuzu_version_file_path = kuzu_db_path
 
     with open(kuzu_version_file_path, "rb") as f:
-        # Skip the 3-byte magic "KUZ" and one byte of padding
         f.seek(4)
         # Read the next 8 bytes as a little-endian unsigned 64-bit integer
         data = f.read(8)
@@ -69,7 +68,7 @@ def read_kuzu_storage_version(kuzu_db_path: str) -> int:
     if kuzu_version_mapping.get(version_code):
         return kuzu_version_mapping[version_code]
     else:
-        ValueError("Could not map version_code to proper Kuzu version.")
+        raise ValueError("Could not map version_code to proper Kuzu version.")
 
 
 def ensure_env(version: str, export_dir) -> str:
@@ -106,7 +105,7 @@ def run_migration_step(python_exe: str, db_path: str, cypher: str):
 import kuzu
 db = kuzu.Database(r"{db_path}")
 conn = kuzu.Connection(db)
-conn.execute(r\"\"\"{cypher}\"\"\")
+conn.execute(f\"\"\"{cypher}\"\"\")
 """
     proc = subprocess.run([python_exe, "-c", snippet], capture_output=True, text=True)
     if proc.returncode != 0:
@@ -118,6 +117,11 @@ def kuzu_migration(new_db, old_db, new_version, old_version=None, overwrite=None
     """
     Main migration function that handles the complete migration process.
     """
+    if new_db == old_db:
+        raise ValueError(
+            "The new database path cannot be the same as the old database path. Please provide a different path for the new database."
+        )
+
     print(f"🔄 Migrating Kuzu database from {old_version} to {new_version}", file=sys.stderr)
     print(f"📂 Source: {old_db}", file=sys.stderr)
     print("", file=sys.stderr)
