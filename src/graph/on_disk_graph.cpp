@@ -329,10 +329,7 @@ bool OnDiskGraphVertexScanState::next() {
     if (currentOffset >= endOffsetExclusive) {
         return false;
     }
-    if (currentOffset < endOffsetExclusive &&
-        StorageUtils::getNodeGroupIdx(currentOffset) != tableScanState->nodeGroupIdx) {
-        startScan(currentOffset, endOffsetExclusive);
-    }
+    startScan(currentOffset, endOffsetExclusive);
 
     auto endOffset = std::min(endOffsetExclusive,
         StorageUtils::getStartOffsetOfNodeGroup(tableScanState->nodeGroupIdx + 1));

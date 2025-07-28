@@ -140,7 +140,7 @@ public:
         TableScanState& state) const;
 
     virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state,
-        common::offset_t startOffset, common::offset_t numRowsToScan) const;
+        common::offset_t startOffsetInGroup, common::offset_t numRowsToScan) const;
 
     bool lookup(const transaction::Transaction* transaction, const TableScanState& state,
         common::sel_t posInSel = 0) const;
@@ -232,7 +232,7 @@ private:
         const std::vector<const Column*>& columns) const;
 
     virtual NodeGroupScanResult scanInternal(const common::UniqLock& lock,
-        transaction::Transaction* transaction, TableScanState& state, common::offset_t startOffset,
+        transaction::Transaction* transaction, TableScanState& state, common::offset_t startOffsetInGroup,
         common::offset_t numRowsToScan) const;
 
     common::row_idx_t getStartRowIdxInGroupNoLock() const;
