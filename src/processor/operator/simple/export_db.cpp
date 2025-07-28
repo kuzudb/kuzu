@@ -137,7 +137,6 @@ std::string getSchemaCypher(ClientContext* clientContext) {
 
     auto nodeTableEntries = catalog->getNodeTableEntries(transaction, false);
     auto relGroupEntries = catalog->getRelGroupEntries(transaction, false);
-    auto sequenceEntries = catalog->getSequenceEntries(transaction);
     ToCypherInfo toCypherInfo;
     RelGroupToCypherInfo relTableToCypherInfo{clientContext};
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
