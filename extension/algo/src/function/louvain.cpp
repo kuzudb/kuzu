@@ -1,5 +1,3 @@
-#include <cmath>
-
 #include "binder/binder.h"
 #include "common/exception/runtime.h"
 #include "common/in_mem_gds_utils.h"
