@@ -105,7 +105,7 @@ def run_migration_step(python_exe: str, db_path: str, cypher: str):
 import kuzu
 db = kuzu.Database(r"{db_path}")
 conn = kuzu.Connection(db)
-conn.execute(f\"\"\"{cypher}\"\"\")
+conn.execute(r\"\"\"{cypher}\"\"\")
 """
     proc = subprocess.run([python_exe, "-c", snippet], capture_output=True, text=True)
     if proc.returncode != 0:
