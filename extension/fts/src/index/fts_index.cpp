@@ -116,6 +116,9 @@ void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
         auto pos = nodeIDVector.state->getSelVector()[i];
         DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable, indexVectors, pos,
             ftsInsertState.updateVectors.mm};
+        if (docInfo.termInfos.size() == 0) {
+            break;
+        }
         auto insertedDocID = insertToDocTable(transaction, ftsInsertState,
             nodeIDVector.getValue<nodeID_t>(pos), docInfo.docLen);
         totalInsertedDocLen += docInfo.docLen;
@@ -145,8 +148,8 @@ std::unique_ptr<Index::UpdateState> FTSIndex::initUpdateState(main::ClientContex
 
 void FTSIndex::update(Transaction* transaction, const common::ValueVector& nodeIDVector,
     ValueVector& propertyVector, UpdateState& updateState) {
-    auto nodeToUpdate = nodeIDVector.getValue<nodeID_t>(nodeIDVector.state->getSelVector()[0]);
     auto& ftsUpdateState = updateState.cast<FTSUpdateState>();
+    auto nodeToUpdate = nodeIDVector.getValue<nodeID_t>(nodeIDVector.state->getSelVector()[0]);
     delete_(transaction, nodeIDVector, *ftsUpdateState.ftsDeleteState);
 
     auto& indexTableScanState = ftsUpdateState.indexTableState.scanState;

@@ -53,6 +53,24 @@
 3|0.259121
 4|0.677307
 
+-CASE FTSWithMerge
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CREATE NODE TABLE IF NOT EXISTS E (uuid STRING PRIMARY KEY,name STRING);
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('E', 'index', ['name']);
+---- ok
+-STATEMENT MERGE (n:E {uuid: 'xxx'}) ON CREATE SET n.name = 'yyy' RETURN n.uuid;
+---- 1
+xxx
+-STATEMENT MERGE (n:E {uuid: 'xxx'}) SET n.name = 'zzz' RETURN n.uuid,n.name;
+---- 1
+xxx|zzz
+-STATEMENT CALL QUERY_FTS_INDEX('E', 'index', 'yyy') RETURN node.uuid, score
+---- 0
+-STATEMENT CALL QUERY_FTS_INDEX('E', 'index', 'zzz') RETURN node.uuid, score
+---- 1
+xxx|0.124939
+
 -CASE UpdateNewlyInsertedNodeInTrx
 -SKIP
 -LOAD_DYNAMIC_EXTENSION fts

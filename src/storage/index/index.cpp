@@ -19,6 +19,11 @@ Index::DeleteState::~DeleteState() = default;
 
 Index::~Index() = default;
 
+bool Index::isBuiltOnColumn(common::column_id_t columnID) const {
+    auto it = std::find(indexInfo.columnIDs.begin(), indexInfo.columnIDs.end(), columnID);
+    return it != indexInfo.columnIDs.end();
+}
+
 void IndexInfo::serialize(common::Serializer& ser) const {
     ser.write<std::string>(name);
     ser.write<std::string>(indexType);

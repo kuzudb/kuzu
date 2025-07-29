@@ -78,7 +78,8 @@ FTSUpdateState::FTSUpdateState(main::ClientContext* context, FTSInternalTableInf
     : dataChunkState{DataChunkState::getSingleValueDataChunkState()},
       nodeIDVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunkState},
       indexTableState{context->getMemoryManager(), context->getTransaction(), tableInfo, columnIDs,
-          nodeIDVector, dataChunkState} {
+          nodeIDVector, dataChunkState},
+      columnIdxWithUpdate{UINT32_MAX} {
     for (auto i = 0u; i < columnIDs.size(); i++) {
         if (columnIDs[i] == colIdxWithUpdate) {
             columnIdxWithUpdate = i;

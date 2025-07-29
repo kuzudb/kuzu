@@ -169,6 +169,8 @@ public:
         return std::span(storageInfoBuffer.get(), storageInfoBufferSize);
     }
     const IndexStorageInfo& getStorageInfo() const { return *storageInfo; }
+    bool isBuiltOnColumn(common::column_id_t columnID) const;
+
     virtual void serialize(common::Serializer& ser) const;
 
     template<typename TARGET>

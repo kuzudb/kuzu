@@ -63,6 +63,10 @@ struct KUZU_API NodeTableUpdateState : TableUpdateState {
         : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector} {}
 
     NodeTableUpdateState(const NodeTableUpdateState&) = delete;
+
+    bool needToUpdateIndex(common::idx_t idx) const {
+        return idx < indexUpdateState.size() && indexUpdateState[idx] != nullptr;
+    }
 };
 
 struct KUZU_API NodeTableDeleteState : TableDeleteState {
