@@ -15,6 +15,7 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
     case LogicalTypeID::LIST: {
         return targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::LIST;
     }
+    case LogicalTypeID::UNION:
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
         return sourceTypeID == targetTypeID;
@@ -28,13 +29,18 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
 }
 
 bool CastArrayHelper::containsListToArray(const LogicalType& srcType, const LogicalType& dstType) {
-    if ((srcType.getLogicalTypeID() == LogicalTypeID::LIST ||
-            srcType.getLogicalTypeID() == LogicalTypeID::ARRAY) &&
-        dstType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
+    auto srcTypeID = srcType.getLogicalTypeID();
+    auto dstTypeID = dstType.getLogicalTypeID();
+
+    if ((srcTypeID == LogicalTypeID::LIST || srcTypeID == LogicalTypeID::ARRAY) && dstTypeID == LogicalTypeID::ARRAY) {
         return true;
     }
 
-    if (checkCompatibleNestedTypes(srcType.getLogicalTypeID(), dstType.getLogicalTypeID())) {
+    if (srcTypeID == LogicalTypeID::UNION || dstTypeID == LogicalTypeID::UNION) {
+        return false;
+    }
+
+    if (checkCompatibleNestedTypes(srcTypeID, dstTypeID)) {
         switch (srcType.getPhysicalType()) {
         case PhysicalTypeID::LIST: {
             return containsListToArray(ListType::getChildType(srcType),

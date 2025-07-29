@@ -36,35 +36,15 @@ struct CastRelToString {
 };
 
 struct CastToUnion {
-    static void unionCastInner(common::ValueVector& inputVector, common::ValueVector& valVector,
-        uint64_t inputPos, uint64_t resultPos, CastFunctionBindData& innerBindData);
-
     template<typename T>
-    static inline void operation(T, common::ValueVector& inputVector,
-        common::ValueVector& resultVector, uint64_t inputPos, uint64_t resultPos, void* pBindData) {
+    static inline void operation(T, common::ValueVector& inputVector, common::ValueVector& resultVector, uint64_t, uint64_t resultPos, void* pBindData) {
         auto& bindData = *reinterpret_cast<CastToUnionBindData*>(pBindData);
         auto& tagVector = *common::UnionVector::getTagVector(&resultVector);
         auto& valVector = *common::UnionVector::getValVector(&resultVector, bindData.targetTag);
         tagVector.setValue<common::union_field_idx_t>(resultPos, bindData.targetTag);
-        unionCastInner(inputVector, valVector, inputPos, resultPos, bindData.innerBindData);
+        bindData.innerFunc(inputVector, valVector, *inputVector.getSelVectorPtr());
     }
 };
-
-template<>
-inline void CastToUnion::operation(common::union_entry_t, common::ValueVector& inputVector,
-    common::ValueVector& resultVector, uint64_t inputPos, uint64_t resultPos, void* pBindData) {
-    auto& bindData = *reinterpret_cast<CastBetweenUnionBindData*>(pBindData);
-    auto& srcTagVector = *common::UnionVector::getTagVector(&inputVector);
-    auto& resTagVector = *common::UnionVector::getTagVector(&resultVector);
-    auto srcTag = srcTagVector.getValue<common::union_field_idx_t>(inputPos);
-    auto& innerCastBindData = bindData.innerCasts->operator[](srcTag);
-    resTagVector.setValue<common::union_field_idx_t>(resultPos, innerCastBindData->targetTag);
-    auto& srcValVector = *common::UnionVector::getValVector(&inputVector, srcTag);
-    auto& resValVector =
-        *common::UnionVector::getValVector(&resultVector, innerCastBindData->targetTag);
-    unionCastInner(srcValVector, resValVector, inputPos, resultPos,
-        innerCastBindData->innerBindData);
-}
 
 struct CastDateToTimestamp {
     template<typename T>
