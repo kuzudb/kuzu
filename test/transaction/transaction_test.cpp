@@ -253,6 +253,7 @@ class EmptyDBTransactionTest : public EmptyDBTest {
 protected:
     void SetUp() override {
         EmptyDBTest::SetUp();
+        systemConfig->bufferPoolSize = 400 * 1024 * 1024; // 100 MB
         createDBAndConn();
     }
 
@@ -578,4 +579,190 @@ TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipDeletions) {
     ASSERT_EQ(res->getNumTuples(), 1);
     auto finalCount = res->getNext()->getValue(0)->getValue<int64_t>();
     ASSERT_EQ(finalCount, 0);
+}
+
+static void updateNodes(uint64_t startID, uint64_t num, kuzu::main::Database& database) {
+    auto conn = std::make_unique<kuzu::main::Connection>(&database);
+    conn->query("CALL debug_enable_multi_writes=true;");
+    for (uint64_t i = 0; i < num; ++i) {
+        auto id = startID + i;
+        auto newName = stringFormat("UPerson{}", id);
+        auto res = conn->query(stringFormat("MATCH (n:test) WHERE n.id = {} SET n.name = '{}';", id, newName));
+        ASSERT_TRUE(res->isSuccess())
+            << "Failed to update test" << id << ": " << res->getErrorMessage();
+    }
+}
+
+TEST_F(EmptyDBTransactionTest, ConcurrentNodeUpdates) {
+    conn->query("CALL debug_enable_multi_writes=true;");
+    auto numThreads = 4;
+    auto numUpdatesPerThread = 3000;
+    auto numTotalNodes = numThreads * numUpdatesPerThread;
+
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+
+    // First insert all nodes
+    for (auto i = 0; i < numTotalNodes; ++i) {
+        auto res = conn->query(stringFormat("CREATE (:test {id: {}, name: 'Person{}'});", i, i));
+        ASSERT_TRUE(res->isSuccess());
+    }
+
+    // Verify initial state
+    auto res = conn->query("MATCH (a:test) RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto initialCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(initialCount, numTotalNodes);
+
+    // Update concurrently
+    std::vector<std::thread> threads;
+    for (auto i = 0; i < numThreads; ++i) {
+        threads.emplace_back(updateNodes, i * numUpdatesPerThread, numUpdatesPerThread,
+            std::ref(*database));
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // Verify all nodes were updated
+    res = conn->query("MATCH (a:test) WHERE a.name STARTS WITH 'UPerson' RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto updatedCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(updatedCount, numTotalNodes);
+}
+
+static void updateRelationships(uint64_t startID, uint64_t num, kuzu::main::Database& database) {
+    auto conn = std::make_unique<kuzu::main::Connection>(&database);
+    conn->query("CALL debug_enable_multi_writes=true;");
+    for (auto i = 0u; i < num; ++i) {
+        auto fromID = startID + i;
+        auto toID = (startID + i + 1) % (num * 4);
+        auto newWeight = 10.0 + (i % 5) * 2.0;
+        auto res = conn->query(stringFormat("MATCH (a:person)-[r:knows]->(b:person) WHERE a.id = {} AND b.id = {} SET r.weight = {};",
+            fromID, toID, newWeight));
+        ASSERT_TRUE(res->isSuccess())
+            << "Failed to update relationship from " << fromID << " to " << toID << ": " << res->getErrorMessage();
+    }
+}
+
+TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipUpdates) {
+    conn->query("CALL debug_enable_multi_writes=true;");
+    auto numThreads = 4;
+    auto numUpdatesPerThread = 1500;
+    auto numTotalUpdates = numThreads * numUpdatesPerThread;
+
+    conn->query("CREATE NODE TABLE person(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE REL TABLE knows(FROM person TO person, weight DOUBLE);");
+
+    // Create nodes
+    for (auto i = 0; i < numTotalUpdates; ++i) {
+        auto res = conn->query(stringFormat("CREATE (:person {id: {}, name: 'Person{}'});", i, i));
+        ASSERT_TRUE(res->isSuccess());
+    }
+
+    // Create relationships
+    for (auto i = 0; i < numTotalUpdates; ++i) {
+        auto fromID = i;
+        auto toID = (i + 1) % numTotalUpdates;
+        auto weight = 1.0 + (i % 10) * 0.1;
+        auto res = conn->query(stringFormat("MATCH (a:person), (b:person) WHERE a.id = {} AND b.id = {} CREATE (a)-[:knows {weight: {}}]->(b);",
+            fromID, toID, weight));
+        ASSERT_TRUE(res->isSuccess());
+    }
+
+    // Verify initial relationships
+    auto res = conn->query("MATCH ()-[r:knows]->() RETURN COUNT(r) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto initialCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(initialCount, numTotalUpdates);
+
+    // Update relationships concurrently
+    std::vector<std::thread> threads;
+    for (auto i = 0; i < numThreads; ++i) {
+        threads.emplace_back(updateRelationships, i * numUpdatesPerThread, numUpdatesPerThread,
+            std::ref(*database));
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // Verify all relationships were updated (all weights should be >= 10.0)
+    res = conn->query("MATCH ()-[r:knows]->() WHERE r.weight >= 10.0 RETURN COUNT(r) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto updatedCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(updatedCount, numTotalUpdates);
+}
+
+static void updateMixedTypeNodes(uint64_t startID, uint64_t num, kuzu::main::Database& database) {
+    auto conn = std::make_unique<kuzu::main::Connection>(&database);
+    conn->query("CALL debug_enable_multi_writes=true;");
+    for (auto i = 0u; i < num; ++i) {
+        auto id = startID + i;
+        auto newScore = 100.0 + (id % 20);
+        auto newActive = (id % 3 == 0) ? "false" : "true";
+        auto newName = stringFormat("UpdatedUser{}", id);
+        auto res = conn->query(stringFormat("MATCH (n:mixed_test) WHERE n.id = {} SET n.score = {}, n.active = {}, n.name = '{}';",
+            id, newScore, newActive, newName));
+        ASSERT_TRUE(res->isSuccess())
+            << "Failed to update mixed_test" << id << ": " << res->getErrorMessage();
+    }
+}
+
+TEST_F(EmptyDBTransactionTest, ConcurrentMixedTypeUpdates) {
+    conn->query("CALL debug_enable_multi_writes=true;");
+    auto numThreads = 4;
+    auto numUpdatesPerThread = 2500;
+    auto numTotalNodes = numThreads * numUpdatesPerThread;
+
+    conn->query("CREATE NODE TABLE mixed_test(id INT64 PRIMARY KEY, score DOUBLE, active BOOLEAN, name STRING);");
+
+    // First insert all nodes with initial values
+    for (auto i = 0; i < numTotalNodes; ++i) {
+        auto score = 95.5 + (i % 10);
+        auto isActive = (i % 2 == 0) ? "true" : "false";
+        auto res = conn->query(stringFormat("CREATE (:mixed_test {id: {}, score: {}, active: {}, name: 'User{}'});",
+            i, score, isActive, i));
+        ASSERT_TRUE(res->isSuccess());
+    }
+
+    // Verify initial state
+    auto res = conn->query("MATCH (a:mixed_test) RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto initialCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(initialCount, numTotalNodes);
+
+    // Update concurrently
+    std::vector<std::thread> threads;
+    for (auto i = 0; i < numThreads; ++i) {
+        threads.emplace_back(updateMixedTypeNodes, i * numUpdatesPerThread, numUpdatesPerThread,
+            std::ref(*database));
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // Verify all nodes were updated
+    res = conn->query("MATCH (a:mixed_test) WHERE a.name STARTS WITH 'UpdatedUser' RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto updatedCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(updatedCount, numTotalNodes);
+
+    // Verify score updates (all should be >= 100.0)
+    res = conn->query("MATCH (a:mixed_test) WHERE a.score >= 100.0 RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto scoreUpdatedCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(scoreUpdatedCount, numTotalNodes);
+
+    // Verify boolean updates (distribution should be different from initial)
+    res = conn->query("MATCH (a:mixed_test) WHERE a.active = false RETURN COUNT(a) AS FALSE_COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto falseCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(falseCount, 3334);
 }
