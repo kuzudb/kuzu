@@ -700,21 +700,21 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     });
     CastToUnionBindData::inner_func_t innerFunc;
     if (sourceType == innerType) {
-        innerFunc = [](ValueVector& inputVector, ValueVector& valVector,
-                        SelectionVector& selVector) {
+        innerFunc = [](ValueVector* inputVector, ValueVector& valVector,
+                        SelectionVector* selVector) {
             // can use just inputPos / resultPos instead
-            for (auto& pos : selVector.getSelectedPositions()) {
-                valVector.copyFromVectorData(pos, &inputVector, pos);
+            for (auto& pos : selVector->getSelectedPositions()) {
+                valVector.copyFromVectorData(pos, inputVector, pos);
             }
         };
     } else {
         std::shared_ptr<ScalarFunction> innerCast =
             CastFunction::bindCastFunction("CAST", sourceType, innerType);
-        innerFunc = [innerCast](ValueVector& inputVector, ValueVector& valVector,
-                        SelectionVector& selVector) {
+        innerFunc = [innerCast](ValueVector* inputVector, ValueVector& valVector,
+                        SelectionVector* selVector) {
             // can we just use inputPos / resultPos and not the entire sel vector?
-            auto input = std::shared_ptr<ValueVector>(&inputVector, [](ValueVector*) {});
-            innerCast->execFunc({input}, {&selVector}, valVector, &selVector, nullptr);
+            auto input = std::shared_ptr<ValueVector>(inputVector, [](ValueVector*) {});
+            innerCast->execFunc({input}, {selVector}, valVector, selVector, nullptr);
         };
     }
     auto castFunc = std::make_unique<ScalarFunction>(functionName,

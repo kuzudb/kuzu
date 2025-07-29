@@ -9,7 +9,7 @@ namespace function {
 
 struct CastToUnionBindData : public CastFunctionBindData {
     using inner_func_t =
-        std::function<void(common::ValueVector&, common::ValueVector&, common::SelectionVector&)>;
+        std::function<void(common::ValueVector*, common::ValueVector&, common::SelectionVector*)>;
 
     common::union_field_idx_t targetTag;
     inner_func_t innerFunc;
