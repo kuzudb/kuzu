@@ -12,7 +12,7 @@ using namespace kuzu::transaction;
 TEST_F(PrivateApiTest, TransactionModes) {
     // Test initially connections are in AUTO_COMMIT mode.
     ASSERT_EQ(TransactionMode::AUTO, getTransactionMode(*conn));
-    // Test beginning a transaction (first in read only mode) sets mode to MANUAL automatically.
+    // Test beginning a transaction (first in read-only mode) sets mode to MANUAL automatically.
     conn->query("BEGIN TRANSACTION READ ONLY;");
     ASSERT_EQ(TransactionMode::MANUAL, getTransactionMode(*conn));
     // Test commit automatically switches the mode to AUTO_COMMIT read transaction
@@ -465,4 +465,117 @@ TEST_F(EmptyDBTransactionTest, ConcurrentComplexRelationshipInsertions) {
     ASSERT_EQ(res->getNumTuples(), 1);
     auto verifiedCount = res->getNext()->getValue(0)->getValue<int64_t>();
     ASSERT_EQ(verifiedCount, numTotalInsertions / 3);
+}
+
+static void deleteNodes(uint64_t startID, uint64_t num, kuzu::main::Database& database) {
+    auto conn = std::make_unique<kuzu::main::Connection>(&database);
+    conn->query("CALL debug_enable_multi_writes=true;");
+    for (uint64_t i = 0; i < num; ++i) {
+        auto id = startID + i;
+        auto res = conn->query(stringFormat("MATCH (n:test) WHERE n.id = {} DELETE n;", id));
+        ASSERT_TRUE(res->isSuccess())
+            << "Failed to delete test" << id << ": " << res->getErrorMessage();
+    }
+}
+
+TEST_F(EmptyDBTransactionTest, ConcurrentNodeDeletions) {
+    conn->query("CALL debug_enable_multi_writes=true;");
+    auto numThreads = 4;
+    auto numDeletionsPerThread = 5000;
+    auto numTotalNodes = numThreads * numDeletionsPerThread;
+    
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    
+    // First insert all nodes
+    for (auto i = 0; i < numTotalNodes; ++i) {
+        auto res = conn->query(stringFormat("CREATE (:test {id: {}, name: 'Person{}'});", i, i));
+        ASSERT_TRUE(res->isSuccess());
+    }
+    
+    // Verify all nodes were inserted
+    auto res = conn->query("MATCH (a:test) RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto initialCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(initialCount, numTotalNodes);
+    
+    // Now delete concurrently
+    std::vector<std::thread> threads;
+    for (auto i = 0; i < numThreads; ++i) {
+        threads.emplace_back(deleteNodes, i * numDeletionsPerThread, numDeletionsPerThread,
+            std::ref(*database));
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    
+    // Verify all nodes were deleted
+    res = conn->query("MATCH (a:test) RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto finalCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(finalCount, 0);
+}
+
+static void deleteRelationships(uint64_t startID, uint64_t num, kuzu::main::Database& database) {
+    auto conn = std::make_unique<kuzu::main::Connection>(&database);
+    conn->query("CALL debug_enable_multi_writes=true;");
+    for (auto i = 0u; i < num; ++i) {
+        auto fromID = startID + i;
+        auto toID = (startID + i + 1) % (num * 4);
+        auto res = conn->query(stringFormat("MATCH (a:person)-[r:knows]->(b:person) WHERE a.id = {} AND b.id = {} DELETE r;",
+            fromID, toID));
+        ASSERT_TRUE(res->isSuccess())
+            << "Failed to delete relationship from " << fromID << " to " << toID << ": " << res->getErrorMessage();
+    }
+}
+
+TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipDeletions) {
+    conn->query("CALL debug_enable_multi_writes=true;");
+    auto numThreads = 4;
+    auto numDeletionsPerThread = 1500;
+    auto numTotalDeletions = numThreads * numDeletionsPerThread;
+    
+    conn->query("CREATE NODE TABLE person(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE REL TABLE knows(FROM person TO person, weight DOUBLE);");
+    
+    // Create nodes
+    for (auto i = 0; i < numTotalDeletions; ++i) {
+        auto res = conn->query(stringFormat("CREATE (:person {id: {}, name: 'Person{}'});", i, i));
+        ASSERT_TRUE(res->isSuccess());
+    }
+    
+    // Create relationships
+    for (auto i = 0; i < numTotalDeletions; ++i) {
+        auto fromID = i;
+        auto toID = (i + 1) % numTotalDeletions;
+        auto weight = 1.0 + (i % 10) * 0.1;
+        auto res = conn->query(stringFormat("MATCH (a:person), (b:person) WHERE a.id = {} AND b.id = {} CREATE (a)-[:knows {weight: {}}]->(b);",
+            fromID, toID, weight));
+        ASSERT_TRUE(res->isSuccess());
+    }
+    
+    // Verify initial relationships
+    auto res = conn->query("MATCH ()-[r:knows]->() RETURN COUNT(r) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto initialCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(initialCount, numTotalDeletions);
+    
+    // Delete relationships concurrently
+    std::vector<std::thread> threads;
+    for (auto i = 0; i < numThreads; ++i) {
+        threads.emplace_back(deleteRelationships, i * numDeletionsPerThread, numDeletionsPerThread,
+            std::ref(*database));
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    
+    // Verify all relationships were deleted
+    res = conn->query("MATCH ()-[r:knows]->() RETURN COUNT(r) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto finalCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(finalCount, 0);
 }
