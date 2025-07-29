@@ -91,8 +91,11 @@ void StructColumn::writeInternal(ColumnChunkData& persistentChunk, SegmentState&
     }
 }
 
-void StructColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) const {
+std::vector<std::unique_ptr<ColumnChunkData>> StructColumn::checkpointSegment(
+    ColumnCheckpointState&& checkpointState) const {
     auto& persistentStructChunk = checkpointState.persistentData.cast<StructChunkData>();
+    // TODO(bmwinger): need to handle child columns as a group so they get split together
+    /*
     for (auto i = 0u; i < childColumns.size(); i++) {
         std::vector<SegmentCheckpointState> childSegmentCheckpointStates;
         for (const auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
@@ -105,7 +108,10 @@ void StructColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) co
             std::move(childSegmentCheckpointStates)));
     }
     Column::checkpointNullData(checkpointState);
+    */
+    auto result = Column::checkpointSegment(std::move(checkpointState));
     persistentStructChunk.syncNumValues();
+    return result;
 }
 
 } // namespace storage

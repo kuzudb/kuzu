@@ -322,7 +322,8 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const SegmentState& state,
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
 
-void ListColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) const {
+std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
+    ColumnCheckpointState&& checkpointState) const {
     auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
     const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
     // First, check if we can checkpoint list data chunk in place.
@@ -357,8 +358,7 @@ void ListColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) cons
     if (!listDataCanCheckpointInPlace) {
         // If we cannot checkpoint list data chunk in place, we need to checkpoint the whole chunk
         // out of place.
-        checkpointColumnChunkOutOfPlace(chunkState, checkpointState);
-        return;
+        return checkpointColumnChunkOutOfPlace(chunkState, checkpointState);
     }
 
     // In place checkpoint for list data.
@@ -411,6 +411,7 @@ void ListColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) cons
                   persistentListChunk.getSizeColumnChunk()->getNumValues());
 
     persistentListChunk.syncNumValues();
+    return {};
 }
 
 } // namespace storage

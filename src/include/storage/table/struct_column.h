@@ -23,7 +23,8 @@ public:
         common::offset_t offsetInSegment, const ColumnChunkData& data, common::offset_t dataOffset,
         common::length_t numValues) const override;
 
-    void checkpointSegment(ColumnCheckpointState&& checkpointState) const override;
+    std::vector<std::unique_ptr<ColumnChunkData>> checkpointSegment(
+        ColumnCheckpointState&& checkpointState) const override;
 
 protected:
     void scanSegment(const SegmentState& state, ColumnChunkData* resultChunk,

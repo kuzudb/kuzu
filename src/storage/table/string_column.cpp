@@ -106,10 +106,12 @@ void StringColumn::writeInternal(ColumnChunkData& persistentChunk, SegmentState&
         dstOffsetInSegment + numValues - 1, minWritten, maxWritten);
 }
 
-void StringColumn::checkpointSegment(ColumnCheckpointState&& checkpointState) const {
+std::vector<std::unique_ptr<ColumnChunkData>> StringColumn::checkpointSegment(
+    ColumnCheckpointState&& checkpointState) const {
     auto& persistentData = checkpointState.persistentData;
-    Column::checkpointSegment(std::move(checkpointState));
+    auto result = Column::checkpointSegment(std::move(checkpointState));
     persistentData.syncNumValues();
+    return result;
 }
 
 void StringColumn::scanSegment(const SegmentState& state, offset_t startOffsetInChunk,
