@@ -181,15 +181,15 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     } 
 
     static const auto& cmp = [&](const auto& e1, const auto& e2) {
-            const auto& [v1, u1, w1] = e1;
-            const auto& [v2, u2, w2] = e2;
-            return std::tie(w1, v1, u1) < std::tie(w2, v2, u2);
+            const auto& [u1, v1, w1] = e1;
+            const auto& [u2, v2, w2] = e2;
+            return std::tie(w1, u1, v1) < std::tie(w2, u2, v2);
         };
 
     std::sort(state.edges.begin(), state.edges.end(), cmp);
     offset_t numEdges = 0;
     for(auto i = 0u; i < state.edges.size() && numEdges != numNodes - 1; ++i) {
-        const auto [u, v, w] = state.edges[i];
+        const auto& [u, v, w] = state.edges[i];
         auto pu = find(u, state.parents);
         auto pv = find(v, state.parents);
         if (pu != pv) {
