@@ -71,6 +71,33 @@ xxx|zzz
 ---- 1
 xxx|0.124939
 
+-CASE UpdateNodesWithEdges
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-STATEMENT CREATE REL TABLE relates(from book to book)
+---- ok
+-STATEMENT match (b:Book {ID: 3}), (b1:Book {ID:4}) create (b)-[:relates]->(b1)
+---- ok
+-STATEMENT match (b:Book {ID: 2}), (b1:Book {ID:1}) create (b)-[:relates]->(b1)
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'machine') RETURN node.ID, score
+---- 1
+2|0.827832
+-STATEMENT match (b:Book {ID: 1}) SET b.title = 'this is a book about machine'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'machine') RETURN node.ID, score
+---- 2
+1|0.380211
+2|0.522790
+-STATEMENT match (b:Book {ID: 4}) SET b.abstract = 'this is another book about machine'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'machine') RETURN node.ID, score
+---- 3
+1|0.229149
+2|0.317169
+4|0.256143
+
 -CASE UpdateNewlyInsertedNodeInTrx
 -SKIP
 -LOAD_DYNAMIC_EXTENSION fts
