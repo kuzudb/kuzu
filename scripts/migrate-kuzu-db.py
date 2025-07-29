@@ -108,7 +108,7 @@ conn.execute(r\"\"\"{cypher}\"\"\")
 """
     proc = subprocess.run([python_exe, "-c", snippet], capture_output=True, text=True)
     if proc.returncode != 0:
-        print(f"[ERROR] {cypher} failed:\n{proc.stderr}", file=sys.stderr)
+        print(f"Error: query failed:\n{cypher}\n{proc.stderr}", file=sys.stderr)
         sys.exit(proc.returncode)
 
 
