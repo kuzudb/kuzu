@@ -58,8 +58,8 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             resultVector = ListVector::getDataVector(resultVector);
             inputType = &inputVector->dataType;
             resultType = &resultVector->dataType;
-        } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
-                   resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) {
+        } else if ((inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
+                   resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) || CastArrayHelper::isUnionSpecialCast(*inputType, *resultType)) {
             // Check if struct type can be cast
             auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
                 inputType->toString(), resultType->toString());
@@ -919,7 +919,7 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
             targetType);
     }
     case LogicalTypeID::UNION: {
-        if (sourceType.getLogicalTypeID() != LogicalTypeID::UNION) {
+        if (sourceType.getLogicalTypeID() != LogicalTypeID::UNION && !CastArrayHelper::isUnionSpecialCast(sourceType, targetType)) {
             return bindCastToUnionFunction(functionName, sourceType, targetType);
         }
         [[fallthrough]];

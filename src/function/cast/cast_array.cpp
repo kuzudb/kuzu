@@ -18,7 +18,7 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
     case LogicalTypeID::UNION:
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
-        return sourceTypeID == targetTypeID;
+        return sourceTypeID == targetTypeID || targetTypeID == LogicalTypeID::UNION;
     }
     case LogicalTypeID::ARRAY: {
         return targetTypeID == LogicalTypeID::LIST || targetTypeID == LogicalTypeID::ARRAY;
@@ -26,6 +26,18 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
     default:
         return false;
     }
+}
+
+bool CastArrayHelper::isUnionSpecialCast(const LogicalType& srcType, const LogicalType& dstType) {
+    if (srcType.getLogicalTypeID() != LogicalTypeID::STRUCT || dstType.getLogicalTypeID() != LogicalTypeID::UNION || !StructType::hasField(srcType, "tag")) {
+        return false;
+    }
+    for (auto& field : StructType::getFields(srcType)) {
+        if (!UnionType::hasField(dstType, field.getName()) || UnionType::getFieldType(dstType, field.getName()) != field.getType()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool CastArrayHelper::containsListToArray(const LogicalType& srcType, const LogicalType& dstType) {
@@ -37,7 +49,7 @@ bool CastArrayHelper::containsListToArray(const LogicalType& srcType, const Logi
         return true;
     }
 
-    if (srcTypeID == LogicalTypeID::UNION || dstTypeID == LogicalTypeID::UNION) {
+    if (!isUnionSpecialCast(srcType, dstType) && (srcTypeID == LogicalTypeID::UNION || dstTypeID == LogicalTypeID::UNION)) {
         return false;
     }
 

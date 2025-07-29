@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 #include "function/cast/cast_function_bind_data.h"
 #include "function/function.h"
