@@ -23,7 +23,8 @@ public:
         common::offset_t offsetInSegment, const ColumnChunkData& data, common::offset_t dataOffset,
         common::length_t numValues) const override;
 
-    void checkpointSegment(ColumnCheckpointState&& checkpointState,
+    std::vector<std::unique_ptr<ColumnChunkData>> checkpointSegment(
+        ColumnCheckpointState&& checkpointState,
         PageAllocator& pageAllocator) const override;
 
 protected:

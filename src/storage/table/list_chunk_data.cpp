@@ -20,18 +20,16 @@ ListChunkData::ListChunkData(MemoryManager& memoryManager, LogicalType dataType,
     bool enableCompression, ResidencyState residencyState)
     : ColumnChunkData{memoryManager, std::move(dataType), capacity, enableCompression,
           residencyState, true /*hasNullData*/} {
-    offsetColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(memoryManager, LogicalType::UINT64(),
-            enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
-    sizeColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(memoryManager, LogicalType::UINT32(),
-            enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
+    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        LogicalType::UINT64(), enableCompression, capacity, residencyState, false /*hasNull*/);
+    sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        LogicalType::UINT32(), enableCompression, capacity, residencyState, false /*hasNull*/);
     if (ListColumn::disableCompressionOnData(this->dataType)) {
         enableCompression = false;
     }
     dataColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
         ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */,
-        ResidencyState::IN_MEMORY);
+        residencyState);
     checkOffsetSortedAsc = false;
     KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
               this->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
