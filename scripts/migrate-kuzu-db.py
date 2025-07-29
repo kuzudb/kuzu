@@ -78,7 +78,7 @@ def ensure_env(version: str, export_dir) -> str:
     base = os.path.join(kuzu_envs_dir, version)
     py_bin = os.path.join(base, "bin", "python")
     # If environment already exists clean it
-    if os.path.isfile(py_bin):
+    if os.path.isdir(base):
         shutil.rmtree(base)
 
     print(f"→ Setting up venv for Kuzu {version}...", file=sys.stderr)
