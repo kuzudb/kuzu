@@ -37,7 +37,8 @@ struct CastRelToString {
 
 struct CastToUnion {
     template<typename T>
-    static inline void operation(T, common::ValueVector& inputVector, common::ValueVector& resultVector, uint64_t, uint64_t resultPos, void* pBindData) {
+    static inline void operation(T, common::ValueVector& inputVector,
+        common::ValueVector& resultVector, uint64_t, uint64_t resultPos, void* pBindData) {
         auto& bindData = *reinterpret_cast<CastToUnionBindData*>(pBindData);
         auto& tagVector = *common::UnionVector::getTagVector(&resultVector);
         auto& valVector = *common::UnionVector::getValVector(&resultVector, bindData.targetTag);

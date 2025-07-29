@@ -32,7 +32,8 @@ bool CastArrayHelper::containsListToArray(const LogicalType& srcType, const Logi
     auto srcTypeID = srcType.getLogicalTypeID();
     auto dstTypeID = dstType.getLogicalTypeID();
 
-    if ((srcTypeID == LogicalTypeID::LIST || srcTypeID == LogicalTypeID::ARRAY) && dstTypeID == LogicalTypeID::ARRAY) {
+    if ((srcTypeID == LogicalTypeID::LIST || srcTypeID == LogicalTypeID::ARRAY) &&
+        dstTypeID == LogicalTypeID::ARRAY) {
         return true;
     }
 
