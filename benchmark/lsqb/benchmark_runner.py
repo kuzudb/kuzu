@@ -126,7 +126,7 @@ def run_query(conn, query_spec):
 
 
 def run_kuzu(sf, serialized_graph_path, num_threads):
-    db = kuzu.Database(serialized_graph_path)
+    db = kuzu.Database(os.path.join(serialized_graph_path, "db.kuzu"))
     conn = kuzu.Connection(db, num_threads=num_threads)
     if timeout is not None:
         conn.set_query_timeout(timeout)
