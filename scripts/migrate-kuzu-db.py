@@ -90,7 +90,7 @@ def ensure_env(version: str, export_dir) -> str:
     # Create venv
     # NOTE: Running python in debug mode can cause issues with creating a virtual environment from that python instance
     subprocess.run([sys.executable, "-m", "venv", base], check=True)
-    # Install the specific Kùzu version
+    # Install the specific Kuzu version
     subprocess.run([py_bin, "-m", "pip", "install", "--upgrade", "pip"], check=True)
     subprocess.run([py_bin, "-m", "pip", "install", f"kuzu=={version}"], check=True)
     return py_bin
