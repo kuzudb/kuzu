@@ -394,13 +394,23 @@ void ColumnChunk::checkpoint(Column& column,
                     startOffsetInSegment, state.numRows - startRowInChunk});
             }
         }
-        column.checkpointSegment(
+        auto segmentEnd = segmentStart + segment->getNumValues();
+        // If the segment was split during checkpointing we need to insert the new segments into the
+        // ColumnChunk
+        // TODO(bmwinger): how do we track the position?
+        auto newSegments = column.checkpointSegment(
             ColumnCheckpointState(*segment, std::move(segmentCheckpointStates)), pageAllocator);
-        segmentStart += segment->getNumValues();
+        if (!newSegments.empty()) {
+            auto oldSize = data.size();
+            data.resize(data.size() - 1 + newSegments.size());
+            std::move_backward(data.begin() + i, data.begin() + oldSize, data.end());
+            for (size_t j = 0; j < newSegments.size(); j++) {
+                data[i + j] = std::move(newSegments[j]);
+            }
+            i += newSegments.size();
+        }
+        segmentStart = segmentEnd;
     }
-    // TODO: Split segments if they are too large
-    // For simple compression types we can estimate if a segment will need to be split
-    // For complex ones we can build the segment in memory and split it if it is too large
 }
 
 } // namespace storage

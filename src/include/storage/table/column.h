@@ -18,6 +18,7 @@ class PageAllocator;
 
 class ColumnChunk;
 class Column {
+    static constexpr uint64_t MAX_SEGMENT_SIZE = 256 * 1024;
     friend class StringColumn;
     friend class StructColumn;
     friend class ListColumn;
@@ -94,7 +95,10 @@ public:
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
-    virtual void checkpointSegment(ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const;
+    // Return value is the new segments if segment splitting occurs during an out of place
+    // checkpoint
+    virtual std::vector<std::unique_ptr<ColumnChunkData>> checkpointSegment(
+        ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const;
 
 protected:
     virtual void scanSegment(const SegmentState& state, common::offset_t startOffsetInSegment,
@@ -128,13 +132,15 @@ protected:
     void checkpointNullData(const ColumnCheckpointState& checkpointState,
         PageAllocator& pageAllocator) const;
 
-    void checkpointColumnChunkOutOfPlace(const SegmentState& state,
-        const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const;
+    std::vector<std::unique_ptr<ColumnChunkData>> checkpointColumnChunkOutOfPlace(
+        const SegmentState& state, const ColumnCheckpointState& checkpointState, PageAllocator &pageAllocator) const;
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
         return val >= start && val < end;
     }
+
+    std::vector<std::unique_ptr<ColumnChunkData>> splitSegment(ColumnChunkData&& segment) const;
 
 protected:
     std::string name;

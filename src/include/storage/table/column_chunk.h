@@ -17,6 +17,7 @@ class Column;
 
 struct ChunkCheckpointState {
     std::unique_ptr<ColumnChunkData> chunkData;
+    // Start offset in the column chunk of the beginning of the chunk data
     common::row_idx_t startRow;
     common::length_t numRows;
 

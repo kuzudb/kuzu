@@ -2,13 +2,16 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <memory>
 
 #include "common/assert.h"
 #include "common/null_mask.h"
+#include "common/system_config.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
+#include "storage/enums/residency_state.h"
 #include "storage/file_handle.h"
 #include "storage/page_allocator.h"
 #include "storage/page_manager.h"
@@ -434,21 +437,60 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState,
         pageAllocator);
 }
 
-void Column::checkpointColumnChunkOutOfPlace(const SegmentState& state,
-    const ColumnCheckpointState& checkpointState, PageAllocator &pageAllocator) const {
+std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOfPlace(
+    const SegmentState& state, const ColumnCheckpointState& checkpointState, PageAllocator &pageAllocator) const {
     const auto numRows = std::max(checkpointState.endRowIdxToWrite, state.metadata.numValues);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     KU_ASSERT(checkpointState.persistentData.getNumValues() == 0);
     scanSegment(state, &checkpointState.persistentData, 0, state.metadata.numValues);
     state.reclaimAllocatedPages(pageAllocator);
+    // TODO(bmwinger): for simple compression types, we can predict whether or not we will need to
+    // split the segment and avoid having to re-write it multiple times
     for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
         checkpointState.persistentData.write(&segmentCheckpointState.chunkData,
             segmentCheckpointState.startRowInData, segmentCheckpointState.offsetInSegment,
             segmentCheckpointState.numRows);
     }
     checkpointState.persistentData.finalize();
+    // TODO(bmwinger): this should use the on-disk size, not the in-memory size
+    if (checkpointState.persistentData.getEstimatedMemoryUsage() > MAX_SEGMENT_SIZE) {
+        auto newSegments = splitSegment(std::move(checkpointState.persistentData));
+        for (auto& segment : newSegments) {
+            segment->flush(pageAllocator);
+        }
+        return newSegments;
+    }
     checkpointState.persistentData.flush(pageAllocator);
+    return {};
+}
+
+std::vector<std::unique_ptr<ColumnChunkData>> Column::splitSegment(
+    ColumnChunkData&& segment) const {
+    // FIXME(bmwinger): we either need to split recursively, or detect individual values which bring
+    // the size above MAX_SEGMENT_SIZE, since this will still sometimes produce segments larger than
+    // MAX_SEGMENT_SIZE
+    auto targetSize = std::min(segment.getEstimatedMemoryUsage() / 2, MAX_SEGMENT_SIZE / 2);
+    std::vector<std::unique_ptr<ColumnChunkData>> newSegments;
+    uint64_t pos = 0;
+    // Initial capacity should not exceed one page.
+    uint64_t initialCapacity =
+        KUZU_PAGE_SIZE / std::max(getDataTypeSizeInChunk(segment.getDataType()), 64u);
+    while (pos < segment.getNumValues()) {
+        std::unique_ptr<ColumnChunkData> newSegment =
+            ColumnChunkFactory::createColumnChunkData(segment.getMemoryManager(),
+                segment.getDataType().copy(), segment.isCompressionEnabled(), initialCapacity,
+                ResidencyState::IN_MEMORY, segment.hasNullData());
+
+        while (pos < segment.getNumValues() && newSegment->getEstimatedMemoryUsage() < targetSize) {
+            if (newSegment->getNumValues() == newSegment->getCapacity()) {
+                newSegment->resize(newSegment->getCapacity() * 2);
+            }
+            newSegment->append(&segment, pos++, 1);
+        }
+        newSegments.push_back(std::move(newSegment));
+    }
+    return newSegments;
 }
 
 bool Column::canCheckpointInPlace(const SegmentState& state,
@@ -474,7 +516,8 @@ bool Column::canCheckpointInPlace(const SegmentState& state,
     return true;
 }
 
-void Column::checkpointSegment(ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const {
+std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointSegment(
+    ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const {
     SegmentState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     if (canCheckpointInPlace(chunkState, checkpointState)) {
@@ -491,8 +534,9 @@ void Column::checkpointSegment(ColumnCheckpointState&& checkpointState, PageAllo
             checkpointState.persistentData.getMetadata().compMeta.floatMetadata()->exceptionCount =
                 chunkState.metadata.compMeta.floatMetadata()->exceptionCount;
         }
+        return {};
     } else {
-        checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator);
+        return checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator);
     }
 }
 
