@@ -27,11 +27,11 @@ namespace algo_extension {
 
 class WriteResultsMSF final : public GDSResultVertexCompute {
 public:
-    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState, std::vector<std::vector<std::pair<offset_t, int64_t>>>& final)
+    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState, std::vector<std::vector<std::pair<offset_t, relID_t>>>& final)
         : GDSResultVertexCompute{mm, sharedState}, finalResults{final} {
-        nodeIDVector = createVector(LogicalType::INTERNAL_ID());
+        srcIDVector = createVector(LogicalType::INTERNAL_ID());
         toIDVector = createVector(LogicalType::INTERNAL_ID());
-        weightVector = createVector(LogicalType::INT64());
+        relIDVector = createVector(LogicalType::INTERNAL_ID());
     }
 
     void beginOnTableInternal(table_id_t /*tableID*/) override {}
@@ -40,9 +40,9 @@ public:
         for(auto i = startOffset; i < endOffset; ++i) {
             for(auto j = 0u; j < finalResults[i].size(); ++j) {
                 const auto nodeID = nodeID_t{i, tableID};
-                nodeIDVector->setValue<nodeID_t>(0, nodeID);
+                srcIDVector->setValue<nodeID_t>(0, nodeID);
                 toIDVector->setValue<nodeID_t>(0, nodeID_t{finalResults[i][j].first, tableID});
-                weightVector->setValue<offset_t>(0, finalResults[i][j].second);
+                relIDVector->setValue<nodeID_t>(0, finalResults[i][j].second);
                 localFT->append(vectors);
             }
         }
@@ -53,10 +53,10 @@ public:
     }
 
 private:
-    std::vector<std::vector<std::pair<offset_t, int64_t>>>& finalResults;
-    std::unique_ptr<ValueVector> nodeIDVector;
+    std::vector<std::vector<std::pair<offset_t, relID_t>>>& finalResults;
+    std::unique_ptr<ValueVector> srcIDVector;
     std::unique_ptr<ValueVector> toIDVector;
-    std::unique_ptr<ValueVector> weightVector;
+    std::unique_ptr<ValueVector> relIDVector;
 };
 
 struct MSFConfig final : public GDSConfig {
@@ -125,7 +125,7 @@ static void mergeComponents(const offset_t& pu, const offset_t& pv, ku_vector_t<
 }
 
 struct KruskalState {
-    ku_vector_t<std::tuple<offset_t, offset_t, int64_t>> edges;
+    ku_vector_t<std::tuple<offset_t, offset_t, relID_t, int64_t>> edges;
     ku_vector_t<offset_t> parents;
     ku_vector_t<uint64_t> rank;
 
@@ -137,7 +137,7 @@ struct KruskalState {
     //  forest.emplace_back({mm});
     //}
     // This may not be needed.
-    std::vector<std::vector<std::pair<offset_t, int64_t>>> forest;
+    std::vector<std::vector<std::pair<offset_t, relID_t>>> forest;
     KruskalState(storage::MemoryManager* mm, uint64_t numNodes) : edges{mm}, parents{mm, numNodes}, rank{mm, numNodes}, forest{numNodes} {
         // parents[i] = i;
         std::iota(parents.begin(), parents.end(), 0);
@@ -157,11 +157,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
     auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
     auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
-    if (!nbrTables[0].relGroupEntry->containsProperty(config.weight_property))
-    {
+    if (!nbrTables[0].relGroupEntry->containsProperty(config.weight_property)) {
         throw RuntimeException("Cannot find property " + config.weight_property);
     }
-    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {config.weight_property});
+    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {InternalKeyword::ID, config.weight_property});
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalState state(mm, numNodes);
@@ -174,28 +173,28 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
                 if (nbrId == nodeId) {
                     return;
                 }
-                auto weight = propertyVectors[0]->template getValue<int64_t>(i);
-                state.edges.push_back({nodeId, nbrId, weight});
+                auto relId = propertyVectors[0]->template getValue<relID_t>(i);
+                auto weight = propertyVectors[1]->template getValue<int64_t>(i);
+                state.edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
     } 
 
     static const auto& cmp = [&](const auto& e1, const auto& e2) {
-            const auto& [u1, v1, w1] = e1;
-            const auto& [u2, v2, w2] = e2;
-            return std::tie(w1, u1, v1) < std::tie(w2, u2, v2);
+            const auto& [u1, v1, r1, w1] = e1;
+            const auto& [u2, v2, r2, w2] = e2;
+            return std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
         };
 
     std::sort(state.edges.begin(), state.edges.end(), cmp);
     offset_t numEdges = 0;
     for(auto i = 0u; i < state.edges.size() && numEdges != numNodes - 1; ++i) {
-        const auto& [u, v, w] = state.edges[i];
+        const auto& [u, v, r, _] = state.edges[i];
         auto pu = find(u, state.parents);
         auto pv = find(v, state.parents);
         if (pu != pv) {
             ++numEdges;
-            state.forest[u].push_back({v, w});
-            state.forest[v].push_back({u, w});
+            state.forest[u].push_back({v, r});
             mergeComponents(pu, pv, state.parents, state.rank);
         }
     }
@@ -220,8 +219,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
-    columns.push_back(input->binder->createVariable("TO", LogicalType::INTERNAL_ID()));
-    columns.push_back(input->binder->createVariable("WEIGHT", LogicalType::INT64()));
+    columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
+    columns.push_back(input->binder->createVariable("REL", LogicalType::INTERNAL_ID()));
     return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput, std::make_unique<MSFOptionalParams>(input->optionalParamsLegacy));
 }
 
