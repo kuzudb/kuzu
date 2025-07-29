@@ -73,8 +73,8 @@ def read_kuzu_storage_version(kuzu_db_path: str) -> int:
 
 def ensure_env(version: str, export_dir) -> str:
     """
-    Create (if needed) a venv at .kuzu_envs/{version} and install kuzu=={version}.
-    Returns the path to the venv's python executable.
+    Creates a venv at `{export_dir}/.kuzu_envs/{version}` and installs` kuzu=={version}`
+    Returns the venv's python executable path.
     """
     # Use temp directory to create venv
     kuzu_envs_dir = os.path.join(export_dir, ".kuzu_envs")
