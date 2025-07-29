@@ -98,8 +98,7 @@ def ensure_env(version: str, export_dir) -> str:
 
 def run_migration_step(python_exe: str, db_path: str, cypher: str):
     """
-    Uses the given python_exe to execute a short snippet that
-    connects to the Kùzu database and runs a Cypher command.
+    Uses `python_exe` to connect to the Kuzu database at `db_path` and run the `cypher` query.
     """
     snippet = f"""
 import kuzu
