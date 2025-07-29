@@ -79,10 +79,6 @@ void Transaction::rollback(storage::WAL*) {
     hasCatalogChanges = false;
 }
 
-uint64_t Transaction::getEstimatedMemUsage() const {
-    return localStorage->getEstimatedMemUsage() + undoBuffer->getMemUsage();
-}
-
 bool Transaction::isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const {
     return localStorage && localStorage->getLocalTable(tableID) &&
            nodeOffset >= getMinUncommittedNodeOffset(tableID);

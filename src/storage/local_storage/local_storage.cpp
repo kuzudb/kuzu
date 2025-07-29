@@ -93,13 +93,5 @@ void LocalStorage::rollback() {
         bufferManager);
 }
 
-uint64_t LocalStorage::getEstimatedMemUsage() const {
-    uint64_t totalMemUsage = 0;
-    for (const auto& [_, localTable] : tables) {
-        totalMemUsage += localTable->getEstimatedMemUsage();
-    }
-    return totalMemUsage;
-}
-
 } // namespace storage
 } // namespace kuzu

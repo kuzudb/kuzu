@@ -30,8 +30,6 @@ public:
     void commit();
     void rollback();
 
-    uint64_t getEstimatedMemUsage() const;
-
 private:
     main::ClientContext& clientContext;
     std::unordered_map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
