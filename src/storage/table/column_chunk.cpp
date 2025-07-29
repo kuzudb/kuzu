@@ -384,8 +384,8 @@ void ColumnChunk::checkpoint(Column& column,
                 state.startRow + state.numRows > segmentStart) {
                 auto startOffsetInSegment = state.startRow - segmentStart;
                 uint64_t startRowInChunk = 0;
-                if (state.startRow > segmentStart) {
-                    startRowInChunk = state.startRow - segmentStart;
+                if (state.startRow < segmentStart) {
+                    startRowInChunk = segmentStart - state.startRow;
                 }
                 segmentCheckpointStates.push_back({*state.chunkData, startRowInChunk,
                     startOffsetInSegment, state.numRows - startRowInChunk});
