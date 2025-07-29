@@ -2,12 +2,12 @@
 """
 Kuzu Database Migration Script
 
-This script migrates Kuzu databases between different versions by:
-1. Setting up isolated Python environments for each Kuzu version
-2. Exporting data from the source database using the old version
-3. Importing data into the target database using the new version
-4. If overwrite is enabled target database will replace source database and source database will have the prefix _old with version info
-5. If delete-old is enabled target database will be renamed to source database and source database will be deleted
+This script help migrate Kuzu databases between versions.
+- Sets up isolated Python environments for each Kuzu version
+- Exports data from the source database using the old version
+- Imports data into the target database using the new version
+- If `overwrite` is enabled, the target database will replace the source database and the source database will be backed up with an `_old` suffix
+- If `delete-old` is enabled, the source database will be deleted
 
 Usage Examples:
     # Basic migration from 0.9.0 to 0.11.0
