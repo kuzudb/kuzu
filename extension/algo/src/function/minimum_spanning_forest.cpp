@@ -169,7 +169,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
     KruskalState state(mm, numNodes);
 
-    // collect graph
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
@@ -187,16 +186,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     static const auto& cmp = [&](const auto& e1, const auto& e2) {
             const auto& [v1, u1, w1] = e1;
             const auto& [v2, u2, w2] = e2;
-            return std::tie(w1, v1, u1) > std::tie(w2, v2, u2);
+            return std::tie(w1, v1, u1) < std::tie(w2, v2, u2);
         };
 
-
-    std::make_heap(state.edges.begin(), state.edges.end(), cmp);
+    std::sort(state.edges.begin(), state.edges.end(), cmp);
     offset_t numEdges = 0;
-    while(!state.edges.empty() && numEdges != numNodes - 1) {
-        std::pop_heap(state.edges.begin(), state.edges.end(), cmp);
-        const auto [u, v, w] = state.edges.back();
-        state.edges.pop_back();
+    for(auto i = 0u; i < state.edges.size() && numEdges != numNodes - 1; ++i) {
+        const auto [u, v, w] = state.edges[i];
         auto pu = find(u, state.parents);
         auto pv = find(v, state.parents);
         if (pu != pv) {
@@ -206,7 +202,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             mergeComponents(pu, pv, state.parents, state.rank);
         }
     }
-
     const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.forest);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
 
