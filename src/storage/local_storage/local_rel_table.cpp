@@ -144,18 +144,6 @@ bool LocalRelTable::addColumn(TableAddColumnState& addColumnState) {
     return true;
 }
 
-uint64_t LocalRelTable::getEstimatedMemUsage() {
-    // Estimation of fwdIndex and bwdIndex is rough.
-    if (!localNodeGroup) {
-        return 0;
-    }
-    auto estimatedMemUsage = localNodeGroup->getEstimatedMemoryUsage();
-    for (const auto& directedIndex : directedIndices) {
-        estimatedMemUsage += directedIndex.index.size() * sizeof(offset_t);
-    }
-    return estimatedMemUsage;
-}
-
 bool LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector,
     RelDataDirection direction) const {
     KU_ASSERT(srcNodeIDVector->state->isFlat());

@@ -12,7 +12,6 @@ namespace storage {
 class BaseHashIndexLocalStorage {
 public:
     virtual ~BaseHashIndexLocalStorage() = default;
-    virtual uint64_t getEstimatedMemUsage() = 0;
 };
 
 enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT_EXIST };
@@ -90,10 +89,6 @@ public:
     void reserveInserts(uint64_t newEntries) { localInsertions.reserve(newEntries); }
 
     const InMemHashIndex<T>& getInsertions() { return localInsertions; }
-
-    uint64_t getEstimatedMemUsage() override {
-        return localInsertions.getEstimatedMemUsage() + localDeletions.size() * sizeof(OwnedType);
-    }
 
 private:
     // When the storage type is string, allow the key type to be string_view with a custom hash
@@ -194,8 +189,6 @@ public:
         common::ku_dynamic_cast<HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
             ->deleteKey(key);
     }
-
-    uint64_t getEstimatedMemUsage() { return localIndex->getEstimatedMemUsage(); }
 
 private:
     common::PhysicalTypeID keyDataTypeID;

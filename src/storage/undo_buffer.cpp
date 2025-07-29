@@ -175,14 +175,6 @@ void UndoBuffer::rollback(ClientContext* context) const {
     });
 }
 
-uint64_t UndoBuffer::getMemUsage() const {
-    uint64_t totalMemUsage = 0;
-    for (const auto& buffer : memoryBuffers) {
-        totalMemUsage += buffer.getSize();
-    }
-    return totalMemUsage;
-}
-
 void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     transaction_t commitTS) {
     switch (recordType) {
