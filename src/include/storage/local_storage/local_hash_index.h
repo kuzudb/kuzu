@@ -30,6 +30,7 @@ public:
         : localDeletions{}, localInsertions{memoryManager, handle} {}
     HashIndexLocalLookupState lookup(KeyType key, common::offset_t& result,
         visible_func isVisible) {
+        std::shared_lock sLock{mtx};
         if (localDeletions.contains(key)) {
             return HashIndexLocalLookupState::KEY_DELETED;
         }
@@ -40,14 +41,19 @@ public:
     }
 
     void deleteKey(KeyType key) {
+        std::unique_lock xLock{mtx};
         if (!localInsertions.deleteKey(key)) {
             localDeletions.insert(static_cast<OwnedType>(key));
         }
     }
 
-    bool discard(KeyType key) { return localInsertions.deleteKey(key); }
+    bool discard(KeyType key) {
+        std::unique_lock xLock{mtx};
+        return localInsertions.deleteKey(key);
+    }
 
     bool insert(OwnedType&& key, common::offset_t value, visible_func isVisible) {
+        std::unique_lock xLock{mtx};
         auto iter = localDeletions.find(key);
         if (iter != localDeletions.end()) {
             localDeletions.erase(iter);
@@ -56,45 +62,74 @@ public:
     }
 
     void reserveSpaceForAppend(uint32_t numNewEntries) {
+        std::unique_lock xLock{mtx};
+        reserveSpaceForAppendNoLock(numNewEntries);
+    }
+
+    void reserveSpaceForAppendNoLock(uint32_t numNewEntries) {
         localInsertions.reserveSpaceForAppend(numNewEntries);
     }
 
     bool append(OwnedType&& key, common::offset_t value, visible_func isVisible) {
+        std::unique_lock xLock{mtx};
+        return appendNoLock(std::move(key), value, isVisible);
+    }
+
+    bool appendNoLock(OwnedType&& key, common::offset_t value, visible_func isVisible) {
         return localInsertions.append(std::move(key), value, isVisible);
     }
 
     size_t append(IndexBuffer<OwnedType>& buffer, uint64_t bufferOffset, visible_func isVisible) {
+        std::unique_lock xLock{mtx};
+        return appendNoLock(buffer, bufferOffset, isVisible);
+    }
+
+    size_t appendNoLock(IndexBuffer<OwnedType>& buffer, uint64_t bufferOffset,
+        visible_func isVisible) {
         return localInsertions.append(buffer, bufferOffset, isVisible);
     }
 
-    bool hasUpdates() const { return !(localInsertions.empty() && localDeletions.empty()); }
+    bool hasUpdates() {
+        std::shared_lock sLock{mtx};
+        return !(localInsertions.empty() && localDeletions.empty());
+    }
 
-    int64_t getNetInserts() const {
+    int64_t getNetInserts() {
+        std::shared_lock sLock{mtx};
         return static_cast<int64_t>(localInsertions.size()) - localDeletions.size();
     }
 
     void clear() {
+        std::unique_lock xLock{mtx};
         localInsertions.clear();
         localDeletions.clear();
     }
 
     void applyLocalChanges(const std::function<void(KeyType)>& deleteOp,
         const std::function<void(const InMemHashIndex<T>&)>& insertOp) {
+        std::shared_lock sLock{mtx};
         for (auto& key : localDeletions) {
             deleteOp(key);
         }
         insertOp(localInsertions);
     }
 
-    void reserveInserts(uint64_t newEntries) { localInsertions.reserve(newEntries); }
+    void reserveInserts(uint64_t newEntries) {
+        std::unique_lock xLock{mtx};
+        localInsertions.reserve(newEntries);
+    }
 
-    const InMemHashIndex<T>& getInsertions() { return localInsertions; }
+    bool tryLock() { return mtx.try_lock(); }
+    std::unique_lock<std::shared_mutex> adoptLock() {
+        return std::unique_lock{mtx, std::adopt_lock};
+    }
 
 private:
     // When the storage type is string, allow the key type to be string_view with a custom hash
     // function
     using hash_function = std::conditional_t<std::is_same_v<OwnedType, std::string>,
         common::StringUtils::string_hash, std::hash<T>>;
+    std::shared_mutex mtx;
     std::unordered_set<OwnedType, hash_function, std::equal_to<>> localDeletions;
     InMemHashIndex<T> localInsertions;
 };

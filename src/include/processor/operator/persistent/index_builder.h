@@ -8,7 +8,6 @@
 #include "common/static_vector.h"
 #include "common/types/int128_t.h"
 #include "common/types/types.h"
-#include "processor/execution_context.h"
 #include "processor/operator/persistent/node_batch_insert_error_handler.h"
 #include "storage/index/hash_index.h"
 #include "storage/index/hash_index_utils.h"
@@ -23,7 +22,7 @@ class NodeTable;
 };
 namespace processor {
 
-const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
+constexpr size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 
 constexpr size_t WARNING_DATA_BUFFER_SIZE = 64;
 using OptionalWarningDataBuffer =
@@ -63,7 +62,6 @@ public:
 private:
     void maybeConsumeIndex(size_t index, NodeBatchInsertErrorHandler& errorHandler);
 
-    std::array<std::mutex, storage::NUM_HASH_INDEXES> mutexes;
     storage::NodeTable* nodeTable;
 
     template<typename T>
@@ -141,13 +139,13 @@ public:
     explicit IndexBuilderSharedState(transaction::Transaction* transaction,
         storage::NodeTable* nodeTable)
         : globalQueues{transaction, nodeTable}, nodeTable(nodeTable) {}
-    inline void consume(NodeBatchInsertErrorHandler& errorHandler) {
+    void consume(NodeBatchInsertErrorHandler& errorHandler) {
         return globalQueues.consume(errorHandler);
     }
 
-    inline void addProducer() { producers.fetch_add(1, std::memory_order_relaxed); }
+    void addProducer() { producers.fetch_add(1, std::memory_order_relaxed); }
     void quitProducer();
-    inline bool isDone() { return done.load(std::memory_order_relaxed); }
+    bool isDone() const { return done.load(std::memory_order_relaxed); }
 
 private:
     IndexBuilderGlobalQueues globalQueues;
