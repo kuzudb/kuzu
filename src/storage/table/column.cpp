@@ -200,6 +200,9 @@ void Column::scanSegment(const SegmentState& state, offset_t startOffsetInSegmen
         nullColumn->scanSegment(*state.nullState, startOffsetInSegment, numValuesToScan,
             resultVector, offsetInVector);
     }
+    if (getDataTypeSizeInChunk(dataType) == 0) {
+        return;
+    }
     if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {
         columnReadWriter->readCompressedValuesToVector(state, resultVector, offsetInVector,
             startOffsetInSegment, numValuesToScan, readToVectorFunc);
