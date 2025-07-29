@@ -99,7 +99,6 @@ xxx|0.124939
 4|0.256143
 
 -CASE UpdateNewlyInsertedNodeInTrx
--SKIP
 -LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
@@ -108,20 +107,16 @@ xxx|0.124939
 -STATEMENT CREATE (b:Book {title: 'an introduction', author: 'newton', abstract: 'this book introduces basic of quantum chemistry'})
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
----- 5
-0|0.278929
-2|0.628438
-3|0.180524
-4|0.629144
-5|0.252900
+---- 3
+0|0.633806
+2|0.914412
+5|0.467504
 -STATEMENT MATCH (b:Book) WHERE b.ID = 5 set b.title = 'an introduction to the quantum chemistry world'
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
----- 5
-0|0.278929
-2|0.628438
-3|0.180524
-4|0.629144
-5|0.252900
+---- 3
+0|0.643814
+2|0.930351
+5|0.582099
 -STATEMENT COMMIT
 ---- ok
