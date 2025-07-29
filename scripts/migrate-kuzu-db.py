@@ -13,11 +13,6 @@ Usage Examples:
     # Basic migration from 0.9.0 to 0.11.0
     python migrate-kuzu-db.py --old-version 0.9.0 --new-version 0.11.0 --old-db /path/to/old/database --new-db /path/to/new/database
 
-Requirements:
-- Python 3.7+
-- Internet connection (to download Kuzu packages)
-- Sufficient disk space for virtual environments and temporary exports
-
 Notes:
 - Can only be used to migrate to newer Kuzu versions, from 0.11.0 onwards
 """
@@ -121,8 +116,8 @@ def kuzu_migration(new_db, old_db, new_version, old_version=None, overwrite=None
             "The new database path cannot be the same as the old database path. Please provide a different path for the new database."
         )
 
-    print(f"🔄 Migrating Kuzu database from {old_version} to {new_version}", file=sys.stderr)
-    print(f"📂 Source: {old_db}", file=sys.stderr)
+    print(f"Migrating Kuzu database from {old_version} to {new_version}", file=sys.stderr)
+    print(f"Source: {old_db}", file=sys.stderr)
     print("", file=sys.stderr)
 
     # If version of old kuzu db is not provided try to determine it based on file info
@@ -174,12 +169,12 @@ def kuzu_migration(new_db, old_db, new_version, old_version=None, overwrite=None
             os.remove(lock_file)
         rename_databases(old_db, old_version, new_db, delete_old)
 
-    print("✅ Kuzu graph database migration finished successfully!")
+    print("Kuzu graph database migration finished successfully!")
 
 
 def rename_databases(old_db: str, old_version: str, new_db: str, delete_old: bool):
     """
-    When overwrite is enabled, back up the original old_db (file with .lock and .wal or directory)
+    When overwrite is enabled, back up the original old_db (file with .shadow and .wal or directory)
     by renaming it to *_old, and replace it with the newly imported new_db files.
 
     When delete_old is enabled replace the old database with the new one and delete old database
@@ -192,7 +187,7 @@ def rename_databases(old_db: str, old_version: str, new_db: str, delete_old: boo
 
     if os.path.isfile(old_db):
         # File-based database: handle main file and accompanying lock/WAL
-        for ext in ["", ".wal"]:
+        for ext in ["", ".wal", ".shadow"]:
             src = old_db + ext
             dst = backup_base + ext
             if os.path.exists(src):
@@ -214,7 +209,7 @@ def rename_databases(old_db: str, old_version: str, new_db: str, delete_old: boo
         sys.exit(1)
 
     # Now move new files into place
-    for ext in ["", ".wal"]:
+    for ext in ["", ".wal", ".shadow"]:
         src_new = new_db + ext
         dst_new = os.path.join(base_dir, name + ext)
         if os.path.exists(src_new):
