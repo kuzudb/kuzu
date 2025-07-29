@@ -52,15 +52,16 @@ NodeGroupScanResult NodeTableScanState::scanNext(Transaction* transaction, offse
     if (source == TableScanSource::NONE) {
         return NODE_GROUP_SCAN_EMPTY_RESULT;
     }
-    const NodeGroupScanResult scanResult =
-        nodeGroup->scan(transaction, *this, startOffset, numNodes);
-    if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
-        return scanResult;
-    }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto tableID = table->getTableID();
     if (source == TableScanSource::UNCOMMITTED) {
         nodeGroupStartOffset = transaction->getUncommittedOffset(tableID, nodeGroupStartOffset);
+    }
+    auto startOffsetInGroup = startOffset - nodeGroupStartOffset;
+    const NodeGroupScanResult scanResult =
+        nodeGroup->scan(transaction, *this, startOffsetInGroup, numNodes);
+    if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
+        return scanResult;
     }
     for (auto i = 0u; i < scanResult.numRows; i++) {
         nodeIDVector->setValue(i,
@@ -285,8 +286,7 @@ void NodeTable::initScanState(Transaction* transaction, TableScanState& scanStat
 
 void NodeTable::initScanState(Transaction* transaction, TableScanState& scanState,
     table_id_t tableID, offset_t startOffset) const {
-    if (transaction->isUnCommitted(tableID, startOffset) &&
-        transaction->getLocalStorage()->getLocalTable(tableID)) {
+    if (transaction->isUnCommitted(tableID, startOffset)) {
         scanState.source = TableScanSource::UNCOMMITTED;
         scanState.nodeGroupIdx =
             StorageUtils::getNodeGroupIdx(transaction->getLocalRowIdx(tableID, startOffset));
@@ -311,8 +311,7 @@ bool NodeTable::lookup(const Transaction* transaction, const TableScanState& sca
     }
     const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
     const offset_t rowIdxInGroup =
-        transaction->isUnCommitted(tableID, nodeOffset) &&
-                transaction->getLocalStorage()->getLocalTable(tableID) ?
+        transaction->isUnCommitted(tableID, nodeOffset) ?
             transaction->getLocalRowIdx(tableID, nodeOffset) -
                 StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) :
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);

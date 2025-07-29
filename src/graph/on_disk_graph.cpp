@@ -329,13 +329,15 @@ bool OnDiskGraphVertexScanState::next() {
     if (currentOffset >= endOffsetExclusive) {
         return false;
     }
-    if (currentOffset < endOffsetExclusive &&
-        StorageUtils::getNodeGroupIdx(currentOffset) != tableScanState->nodeGroupIdx) {
-        startScan(currentOffset, endOffsetExclusive);
-    }
+    startScan(currentOffset, endOffsetExclusive);
 
+    auto startOffsetOfNextGroup =
+        StorageUtils::getStartOffsetOfNodeGroup(tableScanState->nodeGroupIdx + 1);
     auto endOffset = std::min(endOffsetExclusive,
-        StorageUtils::getStartOffsetOfNodeGroup(tableScanState->nodeGroupIdx + 1));
+        tableScanState->source == TableScanSource::COMMITTED ?
+            startOffsetOfNextGroup :
+            startOffsetOfNextGroup + context.getTransaction()->getUncommittedOffset(
+                                         tableScanState->table->getTableID(), currentOffset));
     numNodesToScan = std::min(endOffset - currentOffset, DEFAULT_VECTOR_CAPACITY);
     auto result = tableScanState->scanNext(context.getTransaction(), currentOffset, numNodesToScan);
     currentOffset += result.numRows;

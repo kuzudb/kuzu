@@ -42,12 +42,14 @@ public:
 
 public:
     std::unique_ptr<graph::OnDiskGraph> graph;
-    main::ClientContext* context;
-    catalog::Catalog* catalog;
-    bool fwdStorageOnly;
+    main::ClientContext* context = nullptr;
+    catalog::Catalog* catalog = nullptr;
+    bool fwdStorageOnly = false;
 };
 
-class VertexScanTest : public PrivateApiTest {
+class VertexScanTest : public RelScanTest {};
+
+class EmptyVertexScanTest : public PrivateApiTest {
 public:
     void SetUp() override { PrivateApiTest::SetUp(); }
 
@@ -89,8 +91,7 @@ TEST_F(RelScanTest, ScanFwd) {
                              common::offset_vec_t expectedBwdRelOffsets) {
         common::offset_vec_t resultNodeOffsets;
         std::vector<nodeID_t> expectedNodes;
-        std::transform(expectedNodeOffsets.begin(), expectedNodeOffsets.end(),
-            std::back_inserter(expectedNodes),
+        std::ranges::transform(expectedNodeOffsets, std::back_inserter(expectedNodes),
             [&](auto offset) { return nodeID_t{offset, tableID}; });
 
         common::offset_vec_t resultRelOffsets;
@@ -152,29 +153,30 @@ TEST_F(RelScanTest, ScanFwd) {
     compare(2, {0, 1, 3}, {6, 7, 8}, {1, 4, 11});
 }
 
-TEST_F(RelScanTest, ScanVertexProperties) {
+TEST_F(VertexScanTest, ScanVertexProperties) {
     auto entry = catalog->getTableCatalogEntry(context->getTransaction(), "person");
     std::vector<std::string> properties = {"fname", "height"};
 
     auto scanState = graph->prepareVertexScan(entry, properties);
-    const auto compare = [&](offset_t startNodeOffset, offset_t endNodeOffset,
-                             std::vector<std::tuple<offset_t, std::string, float>> expectedNames) {
-        std::vector<std::tuple<offset_t, std::string, float>> results;
-        for (auto chunk : graph->scanVertices(startNodeOffset, endNodeOffset, *scanState)) {
-            for (size_t i = 0; i < chunk.size(); i++) {
-                results.push_back(std::make_tuple(chunk.getNodeIDs()[i].offset,
-                    chunk.getProperties<common::ku_string_t>(0)[i].getAsString(),
-                    chunk.getProperties<float>(1)[i]));
-            };
-        }
-        ASSERT_EQ(results, expectedNames);
-    };
+    const auto compare =
+        [&](offset_t startNodeOffset, offset_t endNodeOffset,
+            const std::vector<std::tuple<offset_t, std::string, float>>& expectedNames) {
+            std::vector<std::tuple<offset_t, std::string, float>> results;
+            for (auto chunk : graph->scanVertices(startNodeOffset, endNodeOffset, *scanState)) {
+                for (size_t i = 0; i < chunk.size(); i++) {
+                    results.push_back(std::make_tuple(chunk.getNodeIDs()[i].offset,
+                        chunk.getProperties<common::ku_string_t>(0)[i].getAsString(),
+                        chunk.getProperties<float>(1)[i]));
+                }
+            }
+            ASSERT_EQ(results, expectedNames);
+        };
     compare(0, 3, {{0, "Alice", 1.731}, {1, "Bob", 0.99}, {2, "Carol", 1.0}});
     compare(1, 3, {{1, "Bob", 0.99}, {2, "Carol", 1.0}});
     compare(2, 4, {{2, "Carol", 1.0}, {3, "Dan", 1.3}});
 }
 
-TEST_F(VertexScanTest, ScanVertexProperties) {
+TEST_F(EmptyVertexScanTest, ScanVertexProperties) {
     auto res = conn->query("CREATE NODE TABLE account(id INT64 PRIMARY KEY);");
     ASSERT_TRUE(res->isSuccess());
     conn->query("CALL threads=1;");
@@ -218,7 +220,7 @@ TEST_F(VertexScanTest, ScanVertexProperties) {
     compare(24444, 29889);
 }
 
-TEST_F(VertexScanTest, ScanVertexPropertiesAfterDeletionReInsert) {
+TEST_F(EmptyVertexScanTest, ScanVertexPropertiesAfterDeletionReInsert) {
     if (inMemMode) {
         GTEST_SKIP();
     }
@@ -289,6 +291,51 @@ TEST_F(VertexScanTest, ScanVertexPropertiesAfterDeletionReInsert) {
         }
     }
     ASSERT_EQ(idx, 20000);
+}
+
+TEST_F(EmptyVertexScanTest, ScanVertexPropertiesDuringTransaction) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    auto res = conn->query("CREATE NODE TABLE account(id INT64 PRIMARY KEY);");
+    ASSERT_TRUE(res->isSuccess());
+    conn->query("CALL threads=1;");
+    res = conn->query("UNWIND range(0, 10000) AS i CREATE (a:account {ID: i});");
+    ASSERT_TRUE(res->isSuccess());
+    conn->query("BEGIN TRANSACTION");
+    res = conn->query("UNWIND range(10001, 20000) AS i CREATE (a:account {ID: i});");
+    ASSERT_TRUE(res->isSuccess());
+
+    context = getClientContext(*conn);
+    catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
+    std::vector<catalog::TableCatalogEntry*> nodeEntries;
+    for (auto& entry : catalog->getNodeTableEntries(transaction)) {
+        nodeEntries.push_back(entry);
+    }
+    auto entry = graph::NativeGraphEntry(nodeEntries, {});
+    graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
+
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), "account");
+    std::vector<std::string> properties = {"id"};
+    auto scanState = graph->prepareVertexScan(tableEntry, properties);
+    const auto compare = [&](offset_t startNode, offset_t endNode) {
+        common::idx_t idx = 0;
+        for (auto chunk : graph->scanVertices(startNode, endNode, *scanState)) {
+            for (auto i = 0u; i < chunk.size(); i++) {
+                auto nodeID = chunk.getNodeIDs()[i];
+                auto id = chunk.getProperties<int64_t>(0)[i];
+                ASSERT_EQ(nodeID.offset, idx + startNode);
+                ASSERT_EQ(id, idx + startNode);
+                idx++;
+            }
+        }
+        ASSERT_EQ(idx, endNode - startNode);
+    };
+
+    compare(0, 1000);
+    compare(1, 20000);
+    conn->query("COMMIT");
 }
 
 } // namespace testing
