@@ -141,9 +141,6 @@ struct KruskalState {
     KruskalState(storage::MemoryManager* mm, uint64_t numNodes) : edges{mm}, parents{mm, numNodes}, rank{mm, numNodes}, forest{numNodes} {
         // parents[i] = i;
         std::iota(parents.begin(), parents.end(), 0);
-        for(auto& r : rank) {
-            r = 0;
-        }
     }
 };
 
