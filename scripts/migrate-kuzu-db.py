@@ -35,6 +35,16 @@ kuzu_version_mapping = {
     39: "0.11.0",
 }
 
+minimum_kuzu_migration_version = "0.11.0"
+
+def kuzu_version_comparison(version: str, target: str) -> bool:
+    """Return True if Kuzu *v* is greater or equal to target version"""
+    # Transform version string to version tuple to use in version tuple comparison
+    # NOTE: If version info contains non digit info (like dev release info 0.11.0.dev1) set the value of the non digit
+    # tuple part to be 0 (transform it to 0.11.0.0)
+    target = tuple(int(part) if part.isdigit() else 0 for part in target.split('.'))
+    current = tuple(int(part) if part.isdigit() else 0 for part in version.split('.'))
+    return current >= target
 
 def read_kuzu_storage_version(kuzu_db_path: str) -> int:
     """
@@ -115,6 +125,9 @@ def kuzu_migration(new_db, old_db, new_version, old_version=None, overwrite=None
         raise ValueError(
             "The new database path cannot be the same as the old database path. Please provide a different path for the new database."
         )
+
+    if not kuzu_version_comparison(version=new_version, target=minimum_kuzu_migration_version):
+        raise ValueError(f"New version for kuzu is not supported, has to be equal or higher than version: {minimum_kuzu_migration_version}")
 
     print(f"Migrating Kuzu database from {old_version} to {new_version}", file=sys.stderr)
     print(f"Source: {old_db}", file=sys.stderr)
