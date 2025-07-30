@@ -36,11 +36,10 @@ struct CastChildFunctionExecutor {
 
 static union_field_idx_t findUnionMinCostTag(const LogicalType&, const LogicalType&);
 
-static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
+static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector, uint64_t numOfEntries,
     CastFunctionBindData* dataPtr) {
     const auto* inputType = &inputVector->dataType;
     const auto* resultType = &resultVector->dataType;
-    auto& numOfEntries = dataPtr->numOfEntries;
     while (true) {
         if ((inputType->getPhysicalType() == PhysicalTypeID::LIST ||
                 inputType->getPhysicalType() == PhysicalTypeID::ARRAY) &&
@@ -87,13 +86,13 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             auto inputFieldVectors = StructVector::getFieldVectors(inputVector.get());
             auto resultFieldVectors = StructVector::getFieldVectors(resultVector);
             for (auto i = 0u; i < inputFieldVectors.size(); i++) {
-                resolveNestedVector(inputFieldVectors[i], resultFieldVectors[i].get(), dataPtr);
+                resolveNestedVector(inputFieldVectors[i], resultFieldVectors[i].get(), numOfEntries, dataPtr);
             }
             return;
         } else if (resultType->getLogicalTypeID() == LogicalTypeID::UNION) {
-            std::map<union_field_idx_t, union_field_idx_t> tagMap;
             if (inputType->getLogicalTypeID() == LogicalTypeID::UNION) {
                 auto numFieldsSrc = UnionType::getNumFields(*inputType);
+                std::vector<union_field_idx_t> tagMap(numFieldsSrc);
                 for (auto i = 0u; i < numFieldsSrc; ++i) {
                     const auto& fieldName = UnionType::getFieldName(*inputType, i);
                     if (!UnionType::hasField(*resultType, fieldName)) {
@@ -110,10 +109,9 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
                     }
                     auto dstTag = UnionType::getFieldIdx(*resultType, fieldName);
                     tagMap[i] = dstTag;
-                    std::shared_ptr<ValueVector> srcValVector(
-                        UnionVector::getValVector(inputVector.get(), i), [](ValueVector*) {});
+                    auto srcValVector = UnionVector::getSharedValVector(inputVector.get(), i);
                     auto resValVector = UnionVector::getValVector(resultVector, dstTag);
-                    resolveNestedVector(srcValVector, resValVector, dataPtr);
+                    resolveNestedVector(srcValVector, resValVector, numOfEntries, dataPtr);
                 }
                 auto srcTagVector = UnionVector::getTagVector(inputVector.get());
                 auto resTagVector = UnionVector::getTagVector(resultVector);
@@ -141,6 +139,7 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             *resultType)
                         ->execFunc;
         std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
+        dataPtr->numOfEntries = numOfEntries;
         func(childParams, SelectionVector::fromValueVectors(childParams), *resultVector,
             resultVector->getSelVectorPtr(), (void*)dataPtr);
     } else {
@@ -170,7 +169,7 @@ static void nestedTypesCastExecFunction(
     auto& selVector = *inputVectorSelVector;
     auto bindData = CastFunctionBindData(result.dataType.copy());
     bindData.numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
-    resolveNestedVector(inputVector, &result, &bindData);
+    resolveNestedVector(inputVector, &result, bindData.numOfEntries, &bindData);
     if (inputVector->state->isFlat()) {
         resultSelVector->setToFiltered();
         (*resultSelVector)[0] = (*inputVectorSelVector)[0];
