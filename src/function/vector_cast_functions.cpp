@@ -36,8 +36,8 @@ struct CastChildFunctionExecutor {
 
 static union_field_idx_t findUnionMinCostTag(const LogicalType&, const LogicalType&);
 
-static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector, uint64_t numOfEntries,
-    CastFunctionBindData* dataPtr) {
+static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
+    uint64_t numOfEntries, CastFunctionBindData* dataPtr) {
     const auto* inputType = &inputVector->dataType;
     const auto* resultType = &resultVector->dataType;
     while (true) {
@@ -86,7 +86,8 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             auto inputFieldVectors = StructVector::getFieldVectors(inputVector.get());
             auto resultFieldVectors = StructVector::getFieldVectors(resultVector);
             for (auto i = 0u; i < inputFieldVectors.size(); i++) {
-                resolveNestedVector(inputFieldVectors[i], resultFieldVectors[i].get(), numOfEntries, dataPtr);
+                resolveNestedVector(inputFieldVectors[i], resultFieldVectors[i].get(), numOfEntries,
+                    dataPtr);
             }
             return;
         } else if (resultType->getLogicalTypeID() == LogicalTypeID::UNION) {
