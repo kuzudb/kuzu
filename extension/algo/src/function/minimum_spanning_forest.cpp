@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/assert.h"
@@ -27,21 +28,23 @@ namespace algo_extension {
 
 class WriteResultsMSF final : public GDSResultVertexCompute {
 public:
-    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState, ku_vector_t<std::tuple<offset_t, offset_t, relID_t>>& final)
+    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState, ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& final)
         : GDSResultVertexCompute{mm, sharedState}, finalResults{final} {
         srcIDVector = createVector(LogicalType::INTERNAL_ID());
         dstIDVector = createVector(LogicalType::INTERNAL_ID());
         relIDVector = createVector(LogicalType::INTERNAL_ID());
+        forestIDVector = createVector(LogicalType::UINT64());
     }
 
     void beginOnTableInternal(table_id_t /*tableID*/) override {}
 
     void vertexCompute(const offset_t startOffset, const offset_t endOffset, const table_id_t tableID) override {
         for(auto i = startOffset; i < endOffset; ++i) {
-            const auto& [u, v, r] = finalResults[i];
+            const auto& [u, v, r, f] = finalResults[i];
             srcIDVector->setValue<nodeID_t>(0, nodeID_t{u, tableID});
             dstIDVector->setValue<nodeID_t>(0, nodeID_t{v, tableID});
-            relIDVector->setValue<nodeID_t>(0, r);
+            relIDVector->setValue<relID_t>(0, r);
+            forestIDVector->setValue<offset_t>(0, f);
             localFT->append(vectors);
         }
     }
@@ -51,10 +54,11 @@ public:
     }
 
 private:
-    ku_vector_t<std::tuple<offset_t, offset_t, relID_t>>& finalResults;
+    ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& finalResults;
     std::unique_ptr<ValueVector> srcIDVector;
     std::unique_ptr<ValueVector> dstIDVector;
     std::unique_ptr<ValueVector> relIDVector;
+    std::unique_ptr<ValueVector> forestIDVector;
 };
 
 struct MSFConfig final : public GDSConfig {
@@ -97,6 +101,9 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     return config;
 }
 
+// find and mergeComponents implement DSU to track vertices and their associated
+// components such that we do not add a cycle to our forest. 
+// https://en.wikipedia.org/wiki/Disjoint-set_data_structure
 static offset_t find(const offset_t& u, ku_vector_t<offset_t>& parents)
 {
     while(parents[u] != parents[parents[u]]) {
@@ -126,7 +133,7 @@ struct KruskalState {
     ku_vector_t<std::tuple<offset_t, offset_t, relID_t, double>> edges;
     ku_vector_t<offset_t> parents;
     ku_vector_t<uint64_t> rank;
-    ku_vector_t<std::tuple<offset_t, offset_t, relID_t>> forest;
+    ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>> forest;
     KruskalState(storage::MemoryManager* mm, uint64_t numNodes) : edges{mm}, parents{mm, numNodes}, rank{mm, numNodes}, forest{mm} {
         // parents[i] = i;
         std::iota(parents.begin(), parents.end(), 0);
@@ -183,9 +190,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         auto pv = find(v, state.parents);
         if (pu != pv) {
             ++numEdges;
-            state.forest.push_back({u, v, r});
+            state.forest.push_back({u, v, r, UINT64_MAX});
             mergeComponents(pu, pv, state.parents, state.rank);
         }
+    }
+    // Assign each rel a forest id. In this case we use the node id
+    // of the parent of the component u is associated with.
+    for(auto& [u, v, r, f] : state.forest) {
+        f = find(u, state.parents);
     }
     const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.forest);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute, state.forest.size());
@@ -208,6 +220,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("REL", LogicalType::INTERNAL_ID()));
+    columns.push_back(input->binder->createVariable("FOREST_ID", LogicalType::UINT64()));
     return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput, std::make_unique<MSFOptionalParams>(input->optionalParamsLegacy));
 }
 
