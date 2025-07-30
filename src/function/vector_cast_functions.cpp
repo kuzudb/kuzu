@@ -711,7 +711,8 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     }
     auto castFunc = std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, targetType.getLogicalTypeID(),
-        ScalarFunction::UnaryCastExecFunction<void, void, CastToUnion, UnaryFunctionExecutor, UnaryCastUnionFunctionWrapper>);
+        ScalarFunction::UnaryCastExecFunction<void, void, CastToUnion, UnaryFunctionExecutor,
+            UnaryCastUnionFunctionWrapper>);
     castFunc->bindFunc = [minCostTag, innerFunc, &targetType](const ScalarBindFuncInput&) {
         return std::make_unique<CastToUnionBindData>(minCostTag, innerFunc, targetType.copy());
     };
