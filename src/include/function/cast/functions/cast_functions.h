@@ -43,7 +43,8 @@ struct CastToUnion {
         auto& tagVector = *common::UnionVector::getTagVector(&resultVector);
         auto& valVector = *common::UnionVector::getValVector(&resultVector, bindData.targetTag);
         tagVector.setValue<common::union_field_idx_t>(resultPos, bindData.targetTag);
-        bindData.innerFunc(&inputVector, valVector, inputVector.getSelVectorPtr(), inputPos, resultPos);
+        bindData.innerFunc(&inputVector, valVector, inputVector.getSelVectorPtr(), inputPos,
+            resultPos);
     }
 };
 

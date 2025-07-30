@@ -701,7 +701,8 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     });
     CastToUnionBindData::inner_func_t innerFunc;
     if (sourceType == innerType) {
-        innerFunc = [](ValueVector* inputVector, ValueVector& valVector, SelectionVector*, uint64_t inputPos, uint64_t resultPos) {
+        innerFunc = [](ValueVector* inputVector, ValueVector& valVector, SelectionVector*,
+                        uint64_t inputPos, uint64_t resultPos) {
             valVector.copyFromVectorData(inputPos, inputVector, resultPos);
         };
     } else {
