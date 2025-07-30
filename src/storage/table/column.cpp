@@ -467,12 +467,13 @@ std::vector<std::unique_ptr<ColumnChunkData>> Column::splitSegment(
     auto targetSize = std::min(segment.getEstimatedMemoryUsage() / 2, MAX_SEGMENT_SIZE / 2);
     std::vector<std::unique_ptr<ColumnChunkData>> newSegments;
     uint64_t pos = 0;
+    // Initial capacity should not exceed one page.
+    uint64_t initialCapacity =
+        KUZU_PAGE_SIZE / std::max(getDataTypeSizeInChunk(segment.getDataType()), 64u);
     while (pos < segment.getNumValues()) {
         std::unique_ptr<ColumnChunkData> newSegment =
             ColumnChunkFactory::createColumnChunkData(segment.getMemoryManager(),
-                segment.getDataType().copy(), segment.isCompressionEnabled(),
-                KUZU_PAGE_SIZE / getDataTypeSizeInChunk(
-                                     segment.getDataType()) /*capacity not exceeding one page*/,
+                segment.getDataType().copy(), segment.isCompressionEnabled(), initialCapacity,
                 ResidencyState::IN_MEMORY, segment.hasNullData());
 
         while (pos < segment.getNumValues() && newSegment->getEstimatedMemoryUsage() < targetSize) {
