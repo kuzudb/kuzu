@@ -156,7 +156,8 @@ public:
                 if (lookupInPersistentIndex(transaction, key, result, isVisible)) {
                     return i - bufferOffset;
                 } else {
-                    numValuesInserted += localStorage->appendNoLock(std::move(key), value, isVisible);
+                    numValuesInserted +=
+                        localStorage->appendNoLock(std::move(key), value, isVisible);
                 }
             }
             return numValuesInserted;
