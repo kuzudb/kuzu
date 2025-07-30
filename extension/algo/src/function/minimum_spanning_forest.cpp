@@ -152,12 +152,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
     auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
     auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
-    if (!nbrTables[0].relGroupEntry->containsProperty(config.weight_property)) {
-        throw RuntimeException("Cannot find property: " + config.weight_property);
-    }
-    if (!LogicalTypeUtils::isNumerical(nbrTables[0].relGroupEntry->getProperty(config.weight_property).getType())) {
-        throw RuntimeException("Provided weight property is not numerical: " + config.weight_property);
-    }
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {InternalKeyword::ID, config.weight_property});
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
@@ -217,13 +211,21 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     if (graphEntry.relInfos.size() != 1) {
         throw BinderException(std::string(MinimumSpanningForest::name) + " only supports operations on one edge table.");
     }
+    auto optionalParams = make_unique<MSFOptionalParams>(input->optionalParamsLegacy);
+    auto config = optionalParams->getConfig()->constCast<MSFConfig>();
+    if (!graphEntry.relInfos[0].entry->containsProperty(config.weight_property)) {
+        throw BinderException("Cannot find property: " + config.weight_property);
+    }
+    if (!LogicalTypeUtils::isNumerical(graphEntry.relInfos[0].entry->getProperty(config.weight_property).getType())) {
+        throw BinderException("Provided weight property is not numerical: " + config.weight_property);
+    }
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("REL", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("FOREST_ID", LogicalType::UINT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput, std::make_unique<MSFOptionalParams>(input->optionalParamsLegacy));
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput, std::move(optionalParams));
 }
 
 function_set MinimumSpanningForest::getFunctionSet() {
