@@ -27,10 +27,10 @@ namespace algo_extension {
 
 class WriteResultsMSF final : public GDSResultVertexCompute {
 public:
-    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState, std::vector<std::vector<std::pair<offset_t, relID_t>>>& final)
+    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState, ku_vector_t<std::tuple<offset_t, offset_t, relID_t>>& final)
         : GDSResultVertexCompute{mm, sharedState}, finalResults{final} {
         srcIDVector = createVector(LogicalType::INTERNAL_ID());
-        toIDVector = createVector(LogicalType::INTERNAL_ID());
+        dstIDVector = createVector(LogicalType::INTERNAL_ID());
         relIDVector = createVector(LogicalType::INTERNAL_ID());
     }
 
@@ -38,13 +38,11 @@ public:
 
     void vertexCompute(const offset_t startOffset, const offset_t endOffset, const table_id_t tableID) override {
         for(auto i = startOffset; i < endOffset; ++i) {
-            for(auto j = 0u; j < finalResults[i].size(); ++j) {
-                const auto nodeID = nodeID_t{i, tableID};
-                srcIDVector->setValue<nodeID_t>(0, nodeID);
-                toIDVector->setValue<nodeID_t>(0, nodeID_t{finalResults[i][j].first, tableID});
-                relIDVector->setValue<nodeID_t>(0, finalResults[i][j].second);
-                localFT->append(vectors);
-            }
+            const auto& [u, v, r] = finalResults[i];
+            srcIDVector->setValue<nodeID_t>(0, nodeID_t{u, tableID});
+            dstIDVector->setValue<nodeID_t>(0, nodeID_t{v, tableID});
+            relIDVector->setValue<nodeID_t>(0, r);
+            localFT->append(vectors);
         }
     }
 
@@ -53,9 +51,9 @@ public:
     }
 
 private:
-    std::vector<std::vector<std::pair<offset_t, relID_t>>>& finalResults;
+    ku_vector_t<std::tuple<offset_t, offset_t, relID_t>>& finalResults;
     std::unique_ptr<ValueVector> srcIDVector;
-    std::unique_ptr<ValueVector> toIDVector;
+    std::unique_ptr<ValueVector> dstIDVector;
     std::unique_ptr<ValueVector> relIDVector;
 };
 
@@ -125,20 +123,11 @@ static void mergeComponents(const offset_t& pu, const offset_t& pv, ku_vector_t<
 }
 
 struct KruskalState {
-    ku_vector_t<std::tuple<offset_t, offset_t, relID_t, int64_t>> edges;
+    ku_vector_t<std::tuple<offset_t, offset_t, relID_t, double>> edges;
     ku_vector_t<offset_t> parents;
     ku_vector_t<uint64_t> rank;
-
-
-    // Cannot represent 2d vector with ku_vector_t. MmAllocator' has been explicitly marked deleted here
-    // ku_vector_t<ku_vector_t<std::pair<offset_t, int64_t>>> forest(mm);
-    // for(int i = 0; i < numNodes; ++i)
-    //{
-    //  forest.emplace_back({mm});
-    //}
-    // This may not be needed.
-    std::vector<std::vector<std::pair<offset_t, relID_t>>> forest;
-    KruskalState(storage::MemoryManager* mm, uint64_t numNodes) : edges{mm}, parents{mm, numNodes}, rank{mm, numNodes}, forest{numNodes} {
+    ku_vector_t<std::tuple<offset_t, offset_t, relID_t>> forest;
+    KruskalState(storage::MemoryManager* mm, uint64_t numNodes) : edges{mm}, parents{mm, numNodes}, rank{mm, numNodes}, forest{mm} {
         // parents[i] = i;
         std::iota(parents.begin(), parents.end(), 0);
     }
@@ -174,7 +163,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
                     return;
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
-                auto weight = propertyVectors[1]->template getValue<int64_t>(i);
+                auto weight = propertyVectors[1]->template getValue<double>(i);
                 state.edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
@@ -194,7 +183,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         auto pv = find(v, state.parents);
         if (pu != pv) {
             ++numEdges;
-            state.forest[u].push_back({v, r});
+            state.forest.push_back({u, v, r});
             mergeComponents(pu, pv, state.parents, state.rank);
         }
     }
