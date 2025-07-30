@@ -15,6 +15,7 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
     case LogicalTypeID::LIST: {
         return targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::LIST;
     }
+    case LogicalTypeID::UNION:
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
         return sourceTypeID == targetTypeID || targetTypeID == LogicalTypeID::UNION;
@@ -27,14 +28,36 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
     }
 }
 
+bool CastArrayHelper::isUnionSpecialCast(const LogicalType& srcType, const LogicalType& dstType) {
+    if (srcType.getLogicalTypeID() != LogicalTypeID::STRUCT ||
+        dstType.getLogicalTypeID() != LogicalTypeID::UNION ||
+        !StructType::hasField(srcType, "tag")) {
+        return false;
+    }
+    for (auto& field : StructType::getFields(srcType)) {
+        if (!UnionType::hasField(dstType, field.getName()) ||
+            UnionType::getFieldType(dstType, field.getName()) != field.getType()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool CastArrayHelper::containsListToArray(const LogicalType& srcType, const LogicalType& dstType) {
-    if ((srcType.getLogicalTypeID() == LogicalTypeID::LIST ||
-            srcType.getLogicalTypeID() == LogicalTypeID::ARRAY) &&
-        dstType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
+    auto srcTypeID = srcType.getLogicalTypeID();
+    auto dstTypeID = dstType.getLogicalTypeID();
+
+    if ((srcTypeID == LogicalTypeID::LIST || srcTypeID == LogicalTypeID::ARRAY) &&
+        dstTypeID == LogicalTypeID::ARRAY) {
         return true;
     }
 
-    if (checkCompatibleNestedTypes(srcType.getLogicalTypeID(), dstType.getLogicalTypeID())) {
+    if (!isUnionSpecialCast(srcType, dstType) &&
+        (srcTypeID == LogicalTypeID::UNION || dstTypeID == LogicalTypeID::UNION)) {
+        return false;
+    }
+
+    if (checkCompatibleNestedTypes(srcTypeID, dstTypeID)) {
         switch (srcType.getPhysicalType()) {
         case PhysicalTypeID::LIST: {
             return containsListToArray(ListType::getChildType(srcType),

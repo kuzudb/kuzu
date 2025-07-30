@@ -208,9 +208,24 @@ const LogicalType& UnionType::getFieldType(const LogicalType& type, union_field_
     return StructType::getFieldType(type, getInternalFieldIdx(idx));
 }
 
+const LogicalType& UnionType::getFieldType(const LogicalType& type, const std::string& key) {
+    KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
+    return StructType::getFieldType(type, key);
+}
+
 uint64_t UnionType::getNumFields(const LogicalType& type) {
     KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
     return StructType::getNumFields(type) - 1;
+}
+
+bool UnionType::hasField(const LogicalType& type, const std::string& key) {
+    KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
+    return StructType::hasField(type, key);
+}
+
+union_field_idx_t UnionType::getFieldIdx(const LogicalType& type, const std::string& key) {
+    KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
+    return StructType::getFieldIdx(type, key) - 1; // inverse of getInternalFieldIdx
 }
 
 std::string PhysicalTypeUtils::toString(PhysicalTypeID physicalType) {
