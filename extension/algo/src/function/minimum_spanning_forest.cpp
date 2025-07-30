@@ -188,10 +188,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         }
     }
     const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.forest);
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
-
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute, state.forest.size());
     sharedState->factorizedTablePool.mergeLocalTables();
-
     return 0;
 }
 
