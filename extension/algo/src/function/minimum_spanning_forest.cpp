@@ -1,4 +1,3 @@
-#include <cstdint>
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/assert.h"
@@ -154,7 +153,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
     auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
     if (!nbrTables[0].relGroupEntry->containsProperty(config.weight_property)) {
-        throw RuntimeException("Cannot find property " + config.weight_property);
+        throw RuntimeException("Cannot find property: " + config.weight_property);
+    }
+    if (!LogicalTypeUtils::isNumerical(nbrTables[0].relGroupEntry->getProperty(config.weight_property).getType())) {
+        throw RuntimeException("Provided weight property is not numerical: " + config.weight_property);
     }
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {InternalKeyword::ID, config.weight_property});
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
