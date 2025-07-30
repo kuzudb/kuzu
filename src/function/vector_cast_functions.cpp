@@ -701,30 +701,24 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     });
     CastToUnionBindData::inner_func_t innerFunc;
     if (sourceType == innerType) {
-        innerFunc = [](ValueVector* inputVector, ValueVector& valVector,
-                        SelectionVector* selVector) {
-            // can use just inputPos / resultPos instead
-            for (auto& pos : selVector->getSelectedPositions()) {
-                valVector.copyFromVectorData(pos, inputVector, pos);
-            }
+        innerFunc = [](ValueVector* inputVector, ValueVector& valVector, SelectionVector*, uint64_t inputPos, uint64_t resultPos) {
+            valVector.copyFromVectorData(inputPos, inputVector, resultPos);
         };
     } else {
         std::shared_ptr<ScalarFunction> innerCast =
             CastFunction::bindCastFunction("CAST", sourceType, innerType);
         innerFunc = [innerCast](ValueVector* inputVector, ValueVector& valVector,
-                        SelectionVector* selVector) {
-            // can we just use inputPos / resultPos and not the entire sel vector?
+                        SelectionVector* selVector, uint64_t, uint64_t) {
+            // Can we just use inputPos / resultPos and not the entire sel vector?
             auto input = std::shared_ptr<ValueVector>(inputVector, [](ValueVector*) {});
-            innerCast->execFunc({input}, {selVector}, valVector, selVector, nullptr);
+            innerCast->execFunc({input}, {selVector}, valVector, selVector, nullptr /* dataPtr */);
         };
     }
     auto castFunc = std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, targetType.getLogicalTypeID(),
         execFunc);
-    auto sharedTargetType = std::make_shared<LogicalType>(targetType.copy());
-    castFunc->bindFunc = [minCostTag, innerFunc, sharedTargetType](const ScalarBindFuncInput&) {
-        return std::make_unique<CastToUnionBindData>(minCostTag, innerFunc,
-            sharedTargetType->copy());
+    castFunc->bindFunc = [minCostTag, innerFunc, &targetType](const ScalarBindFuncInput&) {
+        return std::make_unique<CastToUnionBindData>(minCostTag, innerFunc, targetType.copy());
     };
     return castFunc;
 }
