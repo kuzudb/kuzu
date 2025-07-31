@@ -1019,8 +1019,8 @@ void OnDiskHNSWIndex::shrinkForNode(Transaction* transaction, common::offset_t o
     insertState.relDeleteState->srcNodeIDVector.setValue(0,
         common::nodeID_t{offset, indexInfo.tableID});
     auto& relTable = isUpperLayer ? *upperRelTable : *lowerRelTable;
-    relTable.detachDelete(transaction, common::RelDataDirection::FWD,
-        insertState.relDeleteState.get());
+    insertState.relDeleteState->detachDeleteDirection = common::RelDataDirection::FWD;
+    relTable.detachDelete(transaction, insertState.relDeleteState.get());
     // Perform the actual shrinking and insertion of shrinked rels.
     uint16_t newSize = 0;
     for (auto i = 1u; i < nbrs.size(); i++) {
