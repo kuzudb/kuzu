@@ -77,6 +77,5 @@ struct MinimumSpanningForest {
     static function::function_set getFunctionSet();
 };
 
-
 } // namespace algo_extension
 } // namespace kuzu

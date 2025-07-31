@@ -24,10 +24,10 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace algo_extension {
 
-
 class WriteResultsMSF final : public GDSResultVertexCompute {
 public:
-    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState, ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& final)
+    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
+        ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& final)
         : GDSResultVertexCompute{mm, sharedState}, finalResults{final} {
         srcIDVector = createVector(LogicalType::INTERNAL_ID());
         dstIDVector = createVector(LogicalType::INTERNAL_ID());
@@ -37,8 +37,9 @@ public:
 
     void beginOnTableInternal(table_id_t /*tableID*/) override {}
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset, const table_id_t tableID) override {
-        for(auto i = startOffset; i < endOffset; ++i) {
+    void vertexCompute(const offset_t startOffset, const offset_t endOffset,
+        const table_id_t tableID) override {
+        for (auto i = startOffset; i < endOffset; ++i) {
             const auto& [u, v, r, f] = finalResults[i];
             srcIDVector->setValue<nodeID_t>(0, nodeID_t{u, tableID});
             dstIDVector->setValue<nodeID_t>(0, nodeID_t{v, tableID});
@@ -77,8 +78,7 @@ struct MSFOptionalParams final : public GDSOptionalParams {
     }
 };
 
-MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams)
-{
+MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams) {
     static constexpr const char* WEIGHTPROPERTY = "weight_property";
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
@@ -95,35 +95,33 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     if (weightProperty == nullptr) {
         throw RuntimeException("No parameter specifying the weight\n");
     }
-    config->weight_property = ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
+    config->weight_property =
+        ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
 
     return config;
 }
 
 // find and mergeComponents implement DSU to track vertices and their associated
-// components such that we do not add a cycle to our forest. 
+// components such that we do not add a cycle to our forest.
 // https://en.wikipedia.org/wiki/Disjoint-set_data_structure
-static offset_t find(const offset_t& u, ku_vector_t<offset_t>& parents)
-{
-    while(parents[u] != parents[parents[u]]) {
+static offset_t find(const offset_t& u, ku_vector_t<offset_t>& parents) {
+    while (parents[u] != parents[parents[u]]) {
         parents[u] = parents[parents[u]];
     }
     return parents[u];
 }
 
-static void mergeComponents(const offset_t& pu, const offset_t& pv, ku_vector_t<offset_t>& parents, ku_vector_t<uint64_t>& rank)
-{
+static void mergeComponents(const offset_t& pu, const offset_t& pv, ku_vector_t<offset_t>& parents,
+    ku_vector_t<uint64_t>& rank) {
     KU_ASSERT_UNCONDITIONAL(pu != pv);
     if (rank[pu] == rank[pv]) {
         auto newParent = std::min(pu, pv);
         auto newChild = std::max(pu, pv);
         parents[newChild] = newParent;
         rank[newParent]++;
-    }
-    else if (rank[pu] < rank[pv]) {
+    } else if (rank[pu] < rank[pv]) {
         parents[pu] = pv;
-    }
-    else {
+    } else {
         parents[pv] = pu;
     }
 }
@@ -133,12 +131,12 @@ struct KruskalState {
     ku_vector_t<offset_t> parents;
     ku_vector_t<uint64_t> rank;
     ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>> forest;
-    KruskalState(storage::MemoryManager* mm, uint64_t numNodes) : edges{mm}, parents{mm, numNodes}, rank{mm, numNodes}, forest{mm} {
+    KruskalState(storage::MemoryManager* mm, uint64_t numNodes)
+        : edges{mm}, parents{mm, numNodes}, rank{mm, numNodes}, forest{mm} {
         // parents[i] = i;
         std::iota(parents.begin(), parents.end(), 0);
     }
 };
-
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto clientContext = input.context->clientContext;
@@ -152,7 +150,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
     auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
     auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
-    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {InternalKeyword::ID, config.weight_property});
+    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
+        nbrInfo.dstTableID, {InternalKeyword::ID, config.weight_property});
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalState state(mm, numNodes);
@@ -170,17 +169,17 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
                 state.edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
-    } 
+    }
 
     static const auto& cmp = [&](const auto& e1, const auto& e2) {
-            const auto& [u1, v1, r1, w1] = e1;
-            const auto& [u2, v2, r2, w2] = e2;
-            return std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
-        };
+        const auto& [u1, v1, r1, w1] = e1;
+        const auto& [u2, v2, r2, w2] = e2;
+        return std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
+    };
 
     std::sort(state.edges.begin(), state.edges.end(), cmp);
     offset_t numEdges = 0;
-    for(auto i = 0u; i < state.edges.size() && numEdges != numNodes - 1; ++i) {
+    for (auto i = 0u; i < state.edges.size() && numEdges != numNodes - 1; ++i) {
         const auto& [u, v, r, _] = state.edges[i];
         auto pu = find(u, state.parents);
         auto pv = find(v, state.parents);
@@ -192,11 +191,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     }
     // Assign each rel a forest id. In this case we use the node id
     // of the parent of the component u is associated with.
-    for(auto& [u, v, r, f] : state.forest) {
+    for (auto& [u, v, r, f] : state.forest) {
         f = find(u, state.parents);
     }
     const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.forest);
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute, state.forest.size());
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute,
+        state.forest.size());
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
@@ -206,18 +206,22 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto graphName = input->getLiteralVal<std::string>(0);
     auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
     if (graphEntry.nodeInfos.size() != 1) {
-        throw BinderException(std::string(MinimumSpanningForest::name) + " only supports operations on one node table.");
+        throw BinderException(std::string(MinimumSpanningForest::name) +
+                              " only supports operations on one node table.");
     }
     if (graphEntry.relInfos.size() != 1) {
-        throw BinderException(std::string(MinimumSpanningForest::name) + " only supports operations on one edge table.");
+        throw BinderException(std::string(MinimumSpanningForest::name) +
+                              " only supports operations on one edge table.");
     }
     auto optionalParams = make_unique<MSFOptionalParams>(input->optionalParamsLegacy);
     auto config = optionalParams->getConfig()->constCast<MSFConfig>();
     if (!graphEntry.relInfos[0].entry->containsProperty(config.weight_property)) {
         throw BinderException("Cannot find property: " + config.weight_property);
     }
-    if (!LogicalTypeUtils::isNumerical(graphEntry.relInfos[0].entry->getProperty(config.weight_property).getType())) {
-        throw BinderException("Provided weight property is not numerical: " + config.weight_property);
+    if (!LogicalTypeUtils::isNumerical(
+            graphEntry.relInfos[0].entry->getProperty(config.weight_property).getType())) {
+        throw BinderException(
+            "Provided weight property is not numerical: " + config.weight_property);
     }
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     expression_vector columns;
@@ -225,7 +229,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("REL", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("FOREST_ID", LogicalType::UINT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput, std::move(optionalParams));
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+        std::move(optionalParams));
 }
 
 function_set MinimumSpanningForest::getFunctionSet() {

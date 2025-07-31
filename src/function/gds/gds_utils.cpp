@@ -126,7 +126,8 @@ static void runVertexComputeInternal(const TableCatalogEntry* currentEntry,
         return;
     }
     if (!maxOffset.has_value()) {
-        maxOffset = graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
+        maxOffset = graph->getMaxOffset(context->clientContext->getTransaction(),
+            currentEntry->getTableID());
     }
     auto sharedState = task->getSharedState();
     sharedState->morselDispatcher.init(maxOffset.value());
@@ -135,7 +136,8 @@ static void runVertexComputeInternal(const TableCatalogEntry* currentEntry,
 }
 
 void GDSUtils::runVertexCompute(ExecutionContext* context, GDSDensityState densityState,
-    Graph* graph, VertexCompute& vc, const std::vector<std::string>& propertiesToScan, std::optional<offset_t> maxOffset) {
+    Graph* graph, VertexCompute& vc, const std::vector<std::string>& propertiesToScan,
+    std::optional<offset_t> maxOffset) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     for (const auto& nodeInfo : graph->getGraphEntry()->nodeInfos) {
