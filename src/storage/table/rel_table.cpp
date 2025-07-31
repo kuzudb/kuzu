@@ -268,8 +268,8 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     return isDeleted;
 }
 
-void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
-    RelTableDeleteState* deleteState) {
+void RelTable::detachDelete(Transaction* transaction, RelTableDeleteState* deleteState) {
+    auto direction = deleteState->detachDeleteDirection;
     if (std::ranges::count(getStorageDirections(), direction) == 0) {
         throw RuntimeException(
             stringFormat("Cannot delete edges of direction {} from table {} as they do not exist.",

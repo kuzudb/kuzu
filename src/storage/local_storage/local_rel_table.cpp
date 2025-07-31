@@ -111,15 +111,31 @@ bool LocalRelTable::delete_(Transaction* transaction, TableDeleteState& state) {
     const auto& deleteState = state.cast<RelTableDeleteState>();
 
     std::vector<row_idx_vec_t*> rowIndicesToDeleteFrom;
-    for (auto& directedIndex : directedIndices) {
-        const auto& nodeIDVector = deleteState.getBoundNodeIDVector(directedIndex.direction);
+    auto& directedIndex =
+        directedIndices[RelDirectionUtils::relDirectionToKeyIdx(deleteState.detachDeleteDirection)];
+    auto& reverseDirectedIndex = directedIndices[RelDirectionUtils::relDirectionToKeyIdx(
+        RelDirectionUtils::getOppositeDirection(deleteState.detachDeleteDirection))];
+    std::vector<std::pair<DirectedCSRIndex&, ValueVector&>> directedIndicesAndNodeIDVectors;
+    auto directedIndexPos =
+        RelDirectionUtils::relDirectionToKeyIdx(deleteState.detachDeleteDirection);
+    if (directedIndexPos < directedIndices.size()) {
+        directedIndicesAndNodeIDVectors.emplace_back(directedIndex, deleteState.srcNodeIDVector);
+    }
+    auto reverseDirectedIndexPos = RelDirectionUtils::relDirectionToKeyIdx(
+        RelDirectionUtils::getOppositeDirection(deleteState.detachDeleteDirection));
+    if (reverseDirectedIndexPos < directedIndices.size()) {
+        directedIndicesAndNodeIDVectors.emplace_back(reverseDirectedIndex,
+            deleteState.dstNodeIDVector);
+    }
+    for (auto& [csrIndex, nodeIDVector] : directedIndicesAndNodeIDVectors) {
         KU_ASSERT(nodeIDVector.state->getSelVector().getSelSize() == 1);
         auto nodePos = nodeIDVector.state->getSelVector()[0];
         if (nodeIDVector.isNull(nodePos)) {
             return false;
         }
         auto nodeOffset = nodeIDVector.readNodeOffset(nodePos);
-        rowIndicesToDeleteFrom.push_back(&directedIndex.index[nodeOffset]);
+        KU_ASSERT(csrIndex.index.contains(nodeOffset));
+        rowIndicesToDeleteFrom.push_back(&csrIndex.index[nodeOffset]);
     }
 
     const auto relIDPos = deleteState.relIDVector.state->getSelVector()[0];

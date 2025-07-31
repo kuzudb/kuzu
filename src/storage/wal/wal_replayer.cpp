@@ -423,7 +423,8 @@ void WALReplayer::replayRelDetachDeletionRecord(const WALRecord& walRecord) cons
     relIDVector->setState(anchorState);
     const auto deleteState = std::make_unique<RelTableDeleteState>(
         *deletionRecord.ownedSrcNodeIDVector, *dstNodeIDVector, *relIDVector);
-    table.detachDelete(clientContext.getTransaction(), deletionRecord.direction, deleteState.get());
+    deleteState->detachDeleteDirection = deletionRecord.direction;
+    table.detachDelete(clientContext.getTransaction(), deleteState.get());
 }
 
 void WALReplayer::replayRelUpdateRecord(const WALRecord& walRecord) const {

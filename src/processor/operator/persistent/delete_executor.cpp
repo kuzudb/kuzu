@@ -44,10 +44,12 @@ void NodeTableDeleteInfo::deleteFromRelTable(Transaction* transaction,
 void NodeTableDeleteInfo::detachDeleteFromRelTable(Transaction* transaction,
     RelTableDeleteState* detachDeleteState) const {
     for (auto& relTable : fwdRelTables) {
-        relTable->detachDelete(transaction, RelDataDirection::FWD, detachDeleteState);
+        detachDeleteState->detachDeleteDirection = RelDataDirection::FWD;
+        relTable->detachDelete(transaction, detachDeleteState);
     }
     for (auto& relTable : bwdRelTables) {
-        relTable->detachDelete(transaction, RelDataDirection::BWD, detachDeleteState);
+        detachDeleteState->detachDeleteDirection = RelDataDirection::BWD;
+        relTable->detachDelete(transaction, detachDeleteState);
     }
 }
 

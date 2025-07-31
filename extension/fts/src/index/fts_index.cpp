@@ -314,7 +314,8 @@ void FTSIndex::deleteFromAppearsInTable(Transaction* transaction, FTSDeleteState
     ftsDeleteState.updateVectors.dstIDVector.state = dataChunk;
     ftsDeleteState.updateVectors.idVector.state = dataChunk;
     ftsDeleteState.updateVectors.srcIDVector.setValue(0, docID);
-    internalTableInfo.appearsInfoTable->detachDelete(transaction, RelDataDirection::BWD,
+    ftsDeleteState.appearsInTableDeleteState.detachDeleteDirection = RelDataDirection::BWD;
+    internalTableInfo.appearsInfoTable->detachDelete(transaction,
         &ftsDeleteState.appearsInTableDeleteState);
 }
 
