@@ -284,6 +284,7 @@ TEST_F(EmptyDBTransactionTest, DatabaseFilesAfterCheckpoint) {
     conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
 }
 
+#ifndef __SINGLE_THREADED__
 static void insertNodes(uint64_t startID, uint64_t num, kuzu::main::Database& database) {
     auto conn = std::make_unique<kuzu::main::Connection>(&database);
     for (uint64_t i = 0; i < num; ++i) {
@@ -295,6 +296,9 @@ static void insertNodes(uint64_t startID, uint64_t num, kuzu::main::Database& da
 }
 
 TEST_F(EmptyDBTransactionTest, ConcurrentNodeInsertions) {
+    if (systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
     conn->query("CALL debug_enable_multi_writes=true;");
     auto numThreads = 4;
     auto numInsertsPerThread = 10000;
@@ -336,6 +340,9 @@ static void insertNodesWithMixedTypes(uint64_t startID, uint64_t num,
 }
 
 TEST_F(EmptyDBTransactionTest, ConcurrentNodeInsertionsMixedTypes) {
+    if (systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
     conn->query("CALL debug_enable_multi_writes=true;");
     auto numThreads = 4;
     auto numInsertsPerThread = 5000;
@@ -379,6 +386,9 @@ static void insertRelationships(uint64_t startID, uint64_t num, kuzu::main::Data
 }
 
 TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipInsertions) {
+    if (systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
     conn->query("CALL debug_enable_multi_writes=true;");
     auto numThreads = 4;
     auto numInsertsPerThread = 2000;
@@ -434,6 +444,9 @@ static void insertComplexRelationships(uint64_t startID, uint64_t num,
 }
 
 TEST_F(EmptyDBTransactionTest, ConcurrentComplexRelationshipInsertions) {
+    if (systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
     conn->query("CALL debug_enable_multi_writes=true;");
     auto numThreads = 3;
     auto numInsertsPerThread = 1500;
@@ -475,3 +488,4 @@ TEST_F(EmptyDBTransactionTest, ConcurrentComplexRelationshipInsertions) {
     auto verifiedCount = res->getNext()->getValue(0)->getValue<int64_t>();
     ASSERT_EQ(verifiedCount, numTotalInsertions / 3);
 }
+#endif
