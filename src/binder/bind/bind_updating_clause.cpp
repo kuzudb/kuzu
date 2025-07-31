@@ -307,10 +307,10 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(const ParsedExpression* column,
             continue;
         }
         auto propertyID = entry->getPropertyID(property.getPropertyName());
-        if (catalog->containsIndex(transaction, entry->getTableID(), propertyID)) {
+        if (catalog->containsUnloadedIndex(transaction, entry->getTableID(), propertyID)) {
             throw BinderException(
                 stringFormat("Cannot set property {} in table {} because it is used in one or more "
-                             "indexes. Try delete and then insert.",
+                             "indexes which is unloaded.",
                     property.getPropertyName(), entry->getName()));
         }
     }

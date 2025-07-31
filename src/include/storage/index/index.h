@@ -101,6 +101,14 @@ public:
         }
     };
 
+    struct UpdateState {
+        virtual ~UpdateState();
+        template<typename TARGET>
+        TARGET& cast() {
+            return common::ku_dynamic_cast<TARGET&>(*this);
+        }
+    };
+
     Index(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storageInfo)
         : indexInfo{std::move(indexInfo)}, storageInfo{std::move(storageInfo)},
           storageInfoBuffer{nullptr}, storageInfoBufferSize{0}, loaded{true} {}
@@ -123,6 +131,15 @@ public:
     virtual void insert(transaction::Transaction*, const common::ValueVector&,
         const std::vector<common::ValueVector*>&, InsertState&) {
         // DO NOTHING.
+    }
+    virtual std::unique_ptr<UpdateState> initUpdateState(main::ClientContext* /*context*/,
+        common::column_id_t /*columnID*/, visible_func /*isVisible*/) {
+        KU_UNREACHABLE;
+    }
+    virtual void update(transaction::Transaction* /*transaction*/,
+        const common::ValueVector& /*nodeIDVector*/, common::ValueVector& /*propertyVector*/,
+        UpdateState& /*updateState*/) {
+        KU_UNREACHABLE;
     }
     virtual std::unique_ptr<DeleteState> initDeleteState(
         const transaction::Transaction* transaction, MemoryManager* mm, visible_func isVisible) = 0;
@@ -152,6 +169,8 @@ public:
         return std::span(storageInfoBuffer.get(), storageInfoBufferSize);
     }
     const IndexStorageInfo& getStorageInfo() const { return *storageInfo; }
+    bool isBuiltOnColumn(common::column_id_t columnID) const;
+
     virtual void serialize(common::Serializer& ser) const;
 
     template<typename TARGET>

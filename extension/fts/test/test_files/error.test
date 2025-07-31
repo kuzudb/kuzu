@@ -154,9 +154,6 @@ Catalog exception: function DROP_FTS_INDEX is not defined. This function exists 
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx', ['name'])
 ---- ok
 -RELOADDB
--STATEMENT MATCH (a:Student) SET a.name = 'X';
----- error
-Binder exception: Cannot set property name in table STUDENT because it is used in one or more indexes. Try delete and then insert.
 -STATEMENT CREATE (:Student {id:0, name:'Alice'});
 ---- error
 Binder exception: Trying to insert into an index on table STUDENT but its extension is not loaded.

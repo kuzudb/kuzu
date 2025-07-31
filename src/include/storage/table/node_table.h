@@ -46,8 +46,8 @@ struct KUZU_API NodeTableInsertState : public TableInsertState {
     const common::ValueVector& pkVector;
     std::vector<std::unique_ptr<Index::InsertState>> indexInsertStates;
 
-    explicit NodeTableInsertState(common::ValueVector& nodeIDVector,
-        const common::ValueVector& pkVector, std::vector<common::ValueVector*> propertyVectors)
+    NodeTableInsertState(common::ValueVector& nodeIDVector, const common::ValueVector& pkVector,
+        std::vector<common::ValueVector*> propertyVectors)
         : TableInsertState{std::move(propertyVectors)}, nodeIDVector{nodeIDVector},
           pkVector{pkVector} {}
 
@@ -56,10 +56,17 @@ struct KUZU_API NodeTableInsertState : public TableInsertState {
 
 struct KUZU_API NodeTableUpdateState : TableUpdateState {
     common::ValueVector& nodeIDVector;
+    std::vector<std::unique_ptr<Index::UpdateState>> indexUpdateState;
 
     NodeTableUpdateState(common::column_id_t columnID, common::ValueVector& nodeIDVector,
         common::ValueVector& propertyVector)
         : TableUpdateState{columnID, propertyVector}, nodeIDVector{nodeIDVector} {}
+
+    NodeTableUpdateState(const NodeTableUpdateState&) = delete;
+
+    bool needToUpdateIndex(common::idx_t idx) const {
+        return idx < indexUpdateState.size() && indexUpdateState[idx] != nullptr;
+    }
 };
 
 struct KUZU_API NodeTableDeleteState : TableDeleteState {
@@ -125,6 +132,7 @@ public:
 
     void initInsertState(main::ClientContext* context, TableInsertState& insertState) override;
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
+    void initUpdateState(main::ClientContext* context, TableUpdateState& updateState);
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 

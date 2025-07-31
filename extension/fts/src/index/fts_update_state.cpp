@@ -73,5 +73,20 @@ FTSDeleteState::FTSDeleteState(MemoryManager* mm, const Transaction* transaction
     appearsInTableDeleteState.logToWAL = false;
 }
 
+FTSUpdateState::FTSUpdateState(main::ClientContext* context, FTSInternalTableInfo& tableInfo,
+    std::vector<common::column_id_t> columnIDs, common::column_id_t colIdxWithUpdate)
+    : dataChunkState{DataChunkState::getSingleValueDataChunkState()},
+      nodeIDVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunkState},
+      indexTableState{context->getMemoryManager(), context->getTransaction(), tableInfo, columnIDs,
+          nodeIDVector, dataChunkState},
+      columnIdxWithUpdate{UINT32_MAX} {
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        if (columnIDs[i] == colIdxWithUpdate) {
+            columnIdxWithUpdate = i;
+            break;
+        }
+    }
+}
+
 } // namespace fts_extension
 } // namespace kuzu

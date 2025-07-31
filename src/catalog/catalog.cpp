@@ -340,6 +340,20 @@ bool Catalog::containsIndex(const Transaction* transaction, table_id_t tableID,
     return false;
 }
 
+bool Catalog::containsUnloadedIndex(const Transaction* transaction, common::table_id_t tableID,
+    common::property_id_t propertyID) const {
+    for (auto& [_, entry] : indexes->getEntries(transaction)) {
+        auto indexEntry = entry->ptrCast<IndexCatalogEntry>();
+        if (indexEntry->getTableID() != tableID || !indexEntry->containsPropertyID(propertyID)) {
+            continue;
+        }
+        if (!indexEntry->isLoaded()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Catalog::dropAllIndexes(Transaction* transaction, table_id_t tableID) {
     for (auto catalogEntry : indexes->getEntries(transaction)) {
         auto& indexCatalogEntry = catalogEntry.second->constCast<IndexCatalogEntry>();

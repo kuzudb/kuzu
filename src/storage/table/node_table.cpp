@@ -444,6 +444,22 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     hasChanges = true;
 }
 
+void NodeTable::initUpdateState(main::ClientContext* context, TableUpdateState& updateState) {
+    auto& nodeUpdateState = updateState.cast<NodeTableUpdateState>();
+    nodeUpdateState.indexUpdateState.resize(indexes.size());
+    for (auto i = 0u; i < indexes.size(); i++) {
+        auto& indexHolder = indexes[i];
+        auto index = indexHolder.getIndex();
+        if (index->isPrimary() || !index->isBuiltOnColumn(nodeUpdateState.columnID)) {
+            nodeUpdateState.indexUpdateState[i] = nullptr;
+            continue;
+        }
+        nodeUpdateState.indexUpdateState[i] =
+            index->initUpdateState(context, nodeUpdateState.columnID,
+                [&](offset_t offset) { return isVisible(context->getTransaction(), offset); });
+    }
+}
+
 void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
     // NOTE: We assume all inputs are flattened now. This is to simplify the implementation.
     // We should optimize this to take unflattened input later.
@@ -459,6 +475,14 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         throw RuntimeException("Cannot update pk.");
     }
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
+    for (auto i = 0u; i < indexes.size(); i++) {
+        auto index = indexes[i].getIndex();
+        if (!nodeUpdateState.needToUpdateIndex(i)) {
+            continue;
+        }
+        index->update(transaction, nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector,
+            *nodeUpdateState.indexUpdateState[i]);
+    }
     if (transaction->isUnCommitted(tableID, nodeOffset)) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
         KU_ASSERT(localTable);

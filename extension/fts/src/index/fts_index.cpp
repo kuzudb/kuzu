@@ -116,6 +116,9 @@ void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
         auto pos = nodeIDVector.state->getSelVector()[i];
         DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable, indexVectors, pos,
             ftsInsertState.updateVectors.mm};
+        if (docInfo.termInfos.size() == 0) {
+            break;
+        }
         auto insertedDocID = insertToDocTable(transaction, ftsInsertState,
             nodeIDVector.getValue<nodeID_t>(pos), docInfo.docLen);
         totalInsertedDocLen += docInfo.docLen;
@@ -131,6 +134,33 @@ void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
     ftsStorageInfo.numDocs += numInsertedDocs;
     ftsStorageInfo.numCheckpointedNodes =
         nodeIDVector.getValue<nodeID_t>(nodeIDVector.state->getSelVector()[0]).offset + 1;
+}
+
+std::unique_ptr<Index::UpdateState> FTSIndex::initUpdateState(main::ClientContext* context,
+    column_id_t columnID, storage::visible_func isVisible) {
+    auto ftsUpdateState =
+        std::make_unique<FTSUpdateState>(context, internalTableInfo, indexInfo.columnIDs, columnID);
+    ftsUpdateState->ftsInsertState = initInsertState(context, isVisible);
+    ftsUpdateState->ftsDeleteState =
+        initDeleteState(context->getTransaction(), context->getMemoryManager(), isVisible);
+    return ftsUpdateState;
+}
+
+void FTSIndex::update(Transaction* transaction, const common::ValueVector& nodeIDVector,
+    ValueVector& propertyVector, UpdateState& updateState) {
+    auto& ftsUpdateState = updateState.cast<FTSUpdateState>();
+    auto nodeToUpdate = nodeIDVector.getValue<nodeID_t>(nodeIDVector.state->getSelVector()[0]);
+    delete_(transaction, nodeIDVector, *ftsUpdateState.ftsDeleteState);
+
+    auto& indexTableScanState = ftsUpdateState.indexTableState.scanState;
+    ftsUpdateState.nodeIDVector.setValue(0, nodeToUpdate);
+    internalTableInfo.table->initScanState(transaction, *indexTableScanState, nodeToUpdate.tableID,
+        nodeToUpdate.offset);
+    internalTableInfo.table->lookup(transaction, *indexTableScanState);
+    ftsUpdateState.indexTableState.indexVectors[ftsUpdateState.columnIdxWithUpdate] =
+        &propertyVector;
+    insert(transaction, nodeIDVector, ftsUpdateState.indexTableState.indexVectors,
+        *ftsUpdateState.ftsInsertState);
 }
 
 std::unique_ptr<Index::DeleteState> FTSIndex::initDeleteState(const Transaction* transaction,

@@ -63,5 +63,17 @@ struct FTSDeleteState final : storage::Index::DeleteState {
         FTSInternalTableInfo& tableInfo, std::vector<common::column_id_t> columnIDs);
 };
 
+struct FTSUpdateState final : storage::Index::UpdateState {
+    std::shared_ptr<common::DataChunkState> dataChunkState;
+    common::ValueVector nodeIDVector;
+    IndexTableState indexTableState;
+    common::idx_t columnIdxWithUpdate;
+    std::unique_ptr<storage::Index::InsertState> ftsInsertState;
+    std::unique_ptr<storage::Index::DeleteState> ftsDeleteState;
+
+    FTSUpdateState(main::ClientContext* context, FTSInternalTableInfo& tableInfo,
+        std::vector<common::column_id_t> columnIDs, common::column_id_t colIdxWithUpdate);
+};
+
 } // namespace fts_extension
 } // namespace kuzu

@@ -1,0 +1,122 @@
+-DATASET CSV fts-basic
+
+--
+
+-CASE Basic
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'quantum machine') RETURN node.id, score;
+---- 2
+0|0.857996
+2|0.827832
+-STATEMENT MATCH (b:Book) WHERE b.ID = 3 set b.title = 'quantum physics math'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
+---- 3
+0|0.545231
+2|0.833550
+3|0.348882
+-STATEMENT MATCH (b:Book) WHERE b.ID = 4 set b.abstract = 'this is a book introducing quantum machine knowledge'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
+---- 4
+0|0.337694
+2|0.529887
+3|0.217162
+4|0.596854
+
+-STATEMENT CREATE (b:Book {title: 'an introduction', author: 'newton', abstract: 'this book introduces basic of quantum chemistry'})
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
+---- 5
+0|0.274887
+2|0.618392
+3|0.175746
+4|0.613436
+5|0.203796
+-STATEMENT MATCH (b:Book) WHERE b.ID = 5 set b.title = 'an introduction to the quantum chemistry world'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
+---- 5
+0|0.278929
+2|0.628438
+3|0.180524
+4|0.629144
+5|0.252900
+-STATEMENT MERGE (b:Book {ID: 5}) ON MATCH SET b.title = 'none', b.abstract = 'none'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
+---- 4
+0|0.416641
+2|0.595372
+3|0.259121
+4|0.677307
+
+-CASE FTSWithMerge
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CREATE NODE TABLE IF NOT EXISTS E (uuid STRING PRIMARY KEY,name STRING);
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('E', 'index', ['name']);
+---- ok
+-STATEMENT MERGE (n:E {uuid: 'xxx'}) ON CREATE SET n.name = 'yyy' RETURN n.uuid;
+---- 1
+xxx
+-STATEMENT MERGE (n:E {uuid: 'xxx'}) SET n.name = 'zzz' RETURN n.uuid,n.name;
+---- 1
+xxx|zzz
+-STATEMENT CALL QUERY_FTS_INDEX('E', 'index', 'yyy') RETURN node.uuid, score
+---- 0
+-STATEMENT CALL QUERY_FTS_INDEX('E', 'index', 'zzz') RETURN node.uuid, score
+---- 1
+xxx|0.124939
+
+-CASE UpdateNodesWithEdges
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-STATEMENT CREATE REL TABLE relates(from book to book)
+---- ok
+-STATEMENT match (b:Book {ID: 3}), (b1:Book {ID:4}) create (b)-[:relates]->(b1)
+---- ok
+-STATEMENT match (b:Book {ID: 2}), (b1:Book {ID:1}) create (b)-[:relates]->(b1)
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'machine') RETURN node.ID, score
+---- 1
+2|0.827832
+-STATEMENT match (b:Book {ID: 1}) SET b.title = 'this is a book about machine'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'machine') RETURN node.ID, score
+---- 2
+1|0.380211
+2|0.522790
+-STATEMENT match (b:Book {ID: 4}) SET b.abstract = 'this is another book about machine'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'machine') RETURN node.ID, score
+---- 3
+1|0.229149
+2|0.317169
+4|0.256143
+
+-CASE UpdateNewlyInsertedNodeInTrx
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (b:Book {title: 'an introduction', author: 'newton', abstract: 'this book introduces basic of quantum chemistry'})
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
+---- 3
+0|0.633806
+2|0.914412
+5|0.467504
+-STATEMENT MATCH (b:Book) WHERE b.ID = 5 set b.title = 'an introduction to the quantum chemistry world'
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
+---- 3
+0|0.643814
+2|0.930351
+5|0.582099
+-STATEMENT COMMIT
+---- ok

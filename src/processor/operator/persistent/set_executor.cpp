@@ -51,6 +51,7 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
     info.evaluator->evaluate();
     auto updateState = std::make_unique<storage::NodeTableUpdateState>(tableInfo.columnID,
         *info.nodeIDVector, *info.columnDataVector);
+    tableInfo.table->initUpdateState(context->clientContext, *updateState);
     tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.nodeIDVector, info.columnVector, info.columnDataVector);
@@ -72,6 +73,7 @@ void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
     auto& tableInfo = tableInfos.at(nodeID.tableID);
     auto updateState = std::make_unique<storage::NodeTableUpdateState>(tableInfo.columnID,
         *info.nodeIDVector, *info.columnDataVector);
+    tableInfo.table->initUpdateState(context->clientContext, *updateState);
     tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.nodeIDVector, info.columnVector, info.columnDataVector);
