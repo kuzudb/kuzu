@@ -26,13 +26,13 @@ public:
     void detachDeleteNode(std::string_view nodeTable, std::string_view relTable, int64_t nodeID);
 };
 
-void RelDeleteTest::detachDeleteNode(std::string_view nodeTableName, std::string_view relTableName,
+void RelDeleteTest::detachDeleteNode(std::string_view nodeTable, std::string_view relTable,
     int64_t idOfNode) {
     auto* catalog = database->getCatalog();
     const auto& knowsTableEntry =
         catalog
             ->getTableCatalogEntry(conn->getClientContext()->getTransaction(),
-                std::string{relTableName})
+                std::string{relTable})
             ->constCast<catalog::RelGroupCatalogEntry>();
     auto& knowsTable = conn->getClientContext()
                            ->getStorageManager()
@@ -42,8 +42,8 @@ void RelDeleteTest::detachDeleteNode(std::string_view nodeTableName, std::string
     // get internal id of node
     common::internalID_t nodeID;
     {
-        auto result = conn->query(common::stringFormat("match (p:{}) where p.id = {} return id(p)",
-            nodeTableName, idOfNode));
+        auto result = conn->query(
+            common::stringFormat("match (p:{}) where p.id = {} return id(p)", nodeTable, idOfNode));
         ASSERT_EQ(1, result->getNumColumns());
         ASSERT_EQ(1, result->getNumTuples());
         nodeID = result->getNext()->getValue(0)->getValue<common::internalID_t>();
@@ -66,8 +66,8 @@ void RelDeleteTest::detachDeleteNode(std::string_view nodeTableName, std::string
         *dstNodeIDVector, *relIDVector);
 
     // perform delete
-    knowsTable.detachDelete(conn->getClientContext()->getTransaction(),
-        common::RelDataDirection::FWD, detachDeleteState.get());
+    detachDeleteState->detachDeleteDirection = common::RelDataDirection::FWD;
+    knowsTable.detachDelete(conn->getClientContext()->getTransaction(), detachDeleteState.get());
 }
 
 // Delete all edges attached to a node without deleting the node
