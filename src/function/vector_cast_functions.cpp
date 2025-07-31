@@ -689,16 +689,10 @@ static union_field_idx_t findUnionMinCostTag(const LogicalType& sourceType,
     return minCostTag;
 }
 
-template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     auto minCostTag = findUnionMinCostTag(sourceType, targetType);
     const auto& innerType = common::UnionType::getFieldType(targetType, minCostTag);
-    scalar_func_exec_t execFunc;
-    TypeUtils::visit(sourceType, [&execFunc]<typename T>(T) {
-        execFunc =
-            ScalarFunction::UnaryCastUnionExecFunction<T, union_entry_t, CastToUnion, EXECUTOR>;
-    });
     CastToUnionBindData::inner_func_t innerFunc;
     if (sourceType == innerType) {
         innerFunc = [](ValueVector* inputVector, ValueVector& valVector, SelectionVector*,
@@ -717,7 +711,8 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
     }
     auto castFunc = std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, targetType.getLogicalTypeID(),
-        execFunc);
+        ScalarFunction::UnaryCastExecFunction<void, void, CastToUnion, UnaryFunctionExecutor,
+            UnaryCastUnionFunctionWrapper>);
     castFunc->bindFunc = [minCostTag, innerFunc, &targetType](const ScalarBindFuncInput&) {
         return std::make_unique<CastToUnionBindData>(minCostTag, innerFunc, targetType.copy());
     };
