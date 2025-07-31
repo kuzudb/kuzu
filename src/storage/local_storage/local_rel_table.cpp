@@ -116,8 +116,17 @@ bool LocalRelTable::delete_(Transaction* transaction, TableDeleteState& state) {
     auto& reverseDirectedIndex = directedIndices[RelDirectionUtils::relDirectionToKeyIdx(
         RelDirectionUtils::getOppositeDirection(deleteState.detachDeleteDirection))];
     std::vector<std::pair<DirectedCSRIndex&, ValueVector&>> directedIndicesAndNodeIDVectors;
-    directedIndicesAndNodeIDVectors.emplace_back(directedIndex, deleteState.srcNodeIDVector);
-    directedIndicesAndNodeIDVectors.emplace_back(reverseDirectedIndex, deleteState.dstNodeIDVector);
+    auto directedIndexPos =
+        RelDirectionUtils::relDirectionToKeyIdx(deleteState.detachDeleteDirection);
+    if (directedIndexPos < directedIndices.size()) {
+        directedIndicesAndNodeIDVectors.emplace_back(directedIndex, deleteState.srcNodeIDVector);
+    }
+    auto reverseDirectedIndexPos = RelDirectionUtils::relDirectionToKeyIdx(
+        RelDirectionUtils::getOppositeDirection(deleteState.detachDeleteDirection));
+    if (reverseDirectedIndexPos < directedIndices.size()) {
+        directedIndicesAndNodeIDVectors.emplace_back(reverseDirectedIndex,
+            deleteState.dstNodeIDVector);
+    }
     for (auto& [csrIndex, nodeIDVector] : directedIndicesAndNodeIDVectors) {
         KU_ASSERT(nodeIDVector.state->getSelVector().getSelSize() == 1);
         auto nodePos = nodeIDVector.state->getSelVector()[0];
