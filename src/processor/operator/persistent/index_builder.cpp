@@ -55,22 +55,24 @@ void IndexBuilderGlobalQueues::consume(NodeBatchInsertErrorHandler& errorHandler
 
 void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index,
     NodeBatchInsertErrorHandler& errorHandler) {
-    if (!mutexes[index].try_lock()) {
+    auto& pkIndex = nodeTable->getPKIndex()->cast<PrimaryKeyIndex>();
+    if (!pkIndex.tryLockTypedIndex(index)) {
         return;
     }
 
     std::visit(
         [&](auto&& queues) {
             using T = std::decay_t<decltype(queues.type)>;
-            std::unique_lock lck{mutexes[index], std::adopt_lock};
+            auto lck = pkIndex.adoptLockOfTypedIndex(index);
             IndexBufferWithWarningData<T> bufferWithWarningData;
             while (queues.array[index].pop(bufferWithWarningData)) {
                 auto& buffer = bufferWithWarningData.indexBuffer;
                 auto& warningDataBuffer = bufferWithWarningData.warningDataBuffer;
                 uint64_t insertBufferOffset = 0;
                 while (insertBufferOffset < buffer.size()) {
-                    auto numValuesInserted = nodeTable->appendPKWithIndexPos(transaction, buffer,
-                        insertBufferOffset, index);
+                    auto numValuesInserted = pkIndex.appendWithIndexPosNoLock(transaction, buffer,
+                        insertBufferOffset, index,
+                        [&](offset_t offset) { return nodeTable->isVisible(transaction, offset); });
                     if (numValuesInserted < buffer.size() - insertBufferOffset) {
                         const auto& erroneousEntry = buffer[insertBufferOffset + numValuesInserted];
                         OptionalWarningSourceData erroneousEntryWarningData;
