@@ -671,7 +671,8 @@ common::offset_t OnDiskHNSWIndex::searchNNInUpperLayer(const EmbeddingHandle& qu
             metricFunc(queryVector.getPtr(), currNodeVector.getPtr(), embeddings->getDimension());
     }
     const auto scanState = searchState.upperGraph->prepareRelScan(*searchState.upperRelTableEntry,
-        hnswStorageInfo.upperRelTableID, indexInfo.tableID, {} /* relProperties */, true /*randomLookup*/);
+        hnswStorageInfo.upperRelTableID, indexInfo.tableID, {} /* relProperties */,
+        true /*randomLookup*/);
     while (minDist < lastMinDist) {
         lastMinDist = minDist;
         auto neighborItr = searchState.upperGraph->scanFwd(
@@ -704,8 +705,8 @@ void OnDiskHNSWIndex::initLayerSearchState(Transaction* transaction, HNSWSearchS
         isUpperLayer ? searchState.upperRelTableEntry : searchState.lowerRelTableEntry;
     const auto relTableID =
         isUpperLayer ? hnswStorageInfo.upperRelTableID : hnswStorageInfo.lowerRelTableID;
-    searchState.nbrScanState =
-        hnswGraph->prepareRelScan(*relEntry, relTableID, indexInfo.tableID, {} /* relProperties */, true /*randomLookup*/);
+    searchState.nbrScanState = hnswGraph->prepareRelScan(*relEntry, relTableID, indexInfo.tableID,
+        {} /* relProperties */, true /*randomLookup*/);
     searchState.searchType = getFilteredSearchType(transaction, searchState);
     if (searchState.searchType == SearchType::BLIND_TWO_HOP ||
         searchState.searchType == SearchType::DIRECTED_TWO_HOP) {
@@ -956,7 +957,8 @@ void OnDiskHNSWIndex::createRels(Transaction* transaction, common::offset_t offs
     const auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
     const auto relTableID =
         isUpperLayer ? hnswStorageInfo.upperRelTableID : hnswStorageInfo.lowerRelTableID;
-    const auto scanState = graph->prepareRelScan(*relTableEntry, relTableID, indexInfo.tableID, {}, true /*randomLookup*/);
+    const auto scanState = graph->prepareRelScan(*relTableEntry, relTableID, indexInfo.tableID, {},
+        true /*randomLookup*/);
     const auto itr = graph->scanFwd(common::nodeID_t{offset, indexInfo.tableID}, *scanState);
     const auto numRels = itr.count();
     if (numRels > static_cast<uint64_t>(maxDegree)) {
@@ -985,7 +987,8 @@ void OnDiskHNSWIndex::shrinkForNode(Transaction* transaction, common::offset_t o
                                            storageInfo->cast<HNSWStorageInfo>().lowerRelTableID;
     const auto relTableEntry =
         isUpperLayer ? searchState.upperRelTableEntry : searchState.lowerRelTableEntry;
-    const auto scanState = graph->prepareRelScan(*relTableEntry, relTableID, indexInfo.tableID, {}, true /*randomLookup*/);
+    const auto scanState = graph->prepareRelScan(*relTableEntry, relTableID, indexInfo.tableID, {},
+        true /*randomLookup*/);
     auto itr = graph->scanFwd(common::nodeID_t{offset, indexInfo.tableID}, *scanState);
     std::vector<common::offset_t> nbrOffsets;
     for (const auto& neighborChunk : itr) {
