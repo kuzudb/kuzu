@@ -289,8 +289,8 @@ def test_param(conn_db_readwrite: ConnDB) -> None:
 def test_param_error4(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
     with pytest.raises(
-            RuntimeError,
-            match="Runtime exception: Cannot convert Python object to Kuzu value : INT8  is incompatible with TIMESTAMP",
+        RuntimeError,
+        match="Runtime exception: Cannot convert Python object to Kuzu value : INT8  is incompatible with TIMESTAMP",
     ):
         conn.execute(
             "MATCH (a:person {workedHours: $1}) RETURN COUNT(*);", {"1": [1, 2, datetime.datetime(2023, 3, 25)]}
@@ -336,5 +336,5 @@ def test_null_handling(conn_db_readwrite: ConnDB) -> None:
         },
     )
     assert result.has_next()
-    result.get_next()[0] = '1c4e35a9-c6cb-4517-971f-37f209c71e64'
+    result.get_next()[0] = "1c4e35a9-c6cb-4517-971f-37f209c71e64"
     assert not result.has_next()
