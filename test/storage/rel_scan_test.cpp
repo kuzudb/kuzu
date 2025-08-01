@@ -69,7 +69,7 @@ TEST_F(RelScanTest, ScanFwd) {
     auto relTableID =
         relEntry->ptrCast<catalog::RelGroupCatalogEntry>()->getSingleRelEntryInfo().oid;
     auto scanState = graph->prepareRelScan(*relEntry, relTableID, nodeEntry->getTableID(),
-        {common::InternalKeyword::ID, "date"});
+        {common::InternalKeyword::ID, "date"}, true);
 
     std::unordered_map<offset_t, date_t> expectedDates = {
         {0, Date::fromDate(2021, 6, 30)},
