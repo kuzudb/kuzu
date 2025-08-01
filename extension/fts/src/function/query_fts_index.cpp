@@ -243,7 +243,8 @@ private:
 
 class GetPKVertexCompute final : public VertexCompute {
 public:
-    GetPKVertexCompute(std::unordered_map<std::string, offset_t>& offsetMap) : offsetMap{offsetMap} {}
+    GetPKVertexCompute(std::unordered_map<std::string, offset_t>& offsetMap)
+        : offsetMap{offsetMap} {}
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         auto terms = chunk.getProperties<ku_string_t>(0);
         for (auto i = 0u; i < chunk.size(); ++i) {
@@ -253,6 +254,7 @@ public:
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<GetPKVertexCompute>(offsetMap);
     }
+
 private:
     std::unordered_map<std::string, offset_t>& offsetMap;
 };
@@ -327,10 +329,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& termsEntry = graphEntry->nodeInfos[0].entry->constCast<catalog::NodeTableCatalogEntry>();
     auto terms = qFTSBindData->getTerms(*input.context->clientContext);
 
-    // Get all primary key names (i.e. terms) from the terms table and get list of offsets to get DFs from
+    // Get all primary key names (i.e. terms) from the terms table and get list of offsets to get
+    // DFs from
     std::unordered_map<std::string, offset_t> offsetMap;
     auto pkVc = GetPKVertexCompute{offsetMap};
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pkVc, graphEntry->nodeInfos[0].entry, std::vector<std::string>{"term"});
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pkVc,
+        graphEntry->nodeInfos[0].entry, std::vector<std::string>{"term"});
     std::vector<offset_t> offsets;
     for (auto& queryTerm : terms) {
         if (FTSUtils::hasWildcardPattern(queryTerm)) {
