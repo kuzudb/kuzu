@@ -46,7 +46,7 @@ struct StopWords {
 struct IgnorePattern {
     static constexpr const char* NAME = "ignore_pattern";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
-    static constexpr const char* DEFAULT_VALUE = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
+    static constexpr const char* DEFAULT_VALUE = "[0-9!@#$%^&()_+={}\\[\\]:;<>,.~\\/\\|'\"`-]+";
 
     static void validate(const std::string& ignorePattern);
 };

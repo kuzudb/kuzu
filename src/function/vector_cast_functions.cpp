@@ -218,7 +218,6 @@ static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType&
 }
 
 static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& dstType) {
-    // srcType is either non-nested or a union
     if (srcType.getLogicalTypeID() == LogicalTypeID::UNION) {
         auto numFieldsSrc = UnionType::getNumFields(srcType);
         for (auto i = 0u; i < numFieldsSrc; ++i) {
