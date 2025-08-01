@@ -18,6 +18,7 @@
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 #include "processor/execution_context.h"
+#include "re2.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "utils/fts_utils.h"
@@ -240,6 +241,22 @@ private:
     std::unique_ptr<QFTSOutputWriter> writer;
 };
 
+class GetPKVertexCompute final : public VertexCompute {
+public:
+    GetPKVertexCompute(std::unordered_map<std::string, offset_t>& offsetMap) : offsetMap{offsetMap} {}
+    void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
+        auto terms = chunk.getProperties<ku_string_t>(0);
+        for (auto i = 0u; i < chunk.size(); ++i) {
+            offsetMap[terms[i].getAsString()] = i;
+        }
+    }
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<GetPKVertexCompute>(offsetMap);
+    }
+private:
+    std::unordered_map<std::string, offset_t>& offsetMap;
+};
+
 static constexpr char SCORE_PROP_NAME[] = "score";
 static constexpr char DOC_FREQUENCY_PROP_NAME[] = "df";
 static constexpr char TERM_FREQUENCY_PROP_NAME[] = "tf";
@@ -247,7 +264,7 @@ static constexpr char DOC_LEN_PROP_NAME[] = "len";
 static constexpr char DOC_ID_PROP_NAME[] = "docID";
 
 static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& context,
-    const catalog::NodeTableCatalogEntry& termsEntry, const std::vector<std::string>& terms) {
+    const catalog::NodeTableCatalogEntry& termsEntry, const std::vector<offset_t>& offsets) {
     auto storageManager = context.getStorageManager();
     auto tableID = termsEntry.getTableID();
     auto& termsNodeTable = storageManager->getTable(tableID)->cast<NodeTable>();
@@ -266,12 +283,7 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
         NodeTableScanState(nodeIDVector, std::vector{dfVector}, dataChunk.state);
     nodeTableScanState.setToTable(context.getTransaction(), &termsNodeTable, {dfColumnID}, {});
     std::unordered_map<offset_t, uint64_t> dfs;
-    for (auto& term : terms) {
-        termsVector.setValue(0, term);
-        offset_t offset = 0;
-        if (!termsNodeTable.lookupPK(tx, &termsVector, 0 /* vectorPos */, offset)) {
-            continue;
-        }
+    for (auto& offset : offsets) {
         auto nodeID = nodeID_t{offset, tableID};
         nodeIDVector->setValue(0, nodeID);
         termsNodeTable.initScanState(tx, nodeTableScanState, tableID, offset);
@@ -314,7 +326,27 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto qFTSBindData = input.bindData->constPtrCast<QueryFTSBindData>();
     auto& termsEntry = graphEntry->nodeInfos[0].entry->constCast<catalog::NodeTableCatalogEntry>();
     auto terms = qFTSBindData->getTerms(*input.context->clientContext);
-    auto dfs = getDFs(*input.context->clientContext, termsEntry, terms);
+
+    // Get all primary key names (i.e. terms) from the terms table and get list of offsets to get DFs from
+    std::unordered_map<std::string, offset_t> offsetMap;
+    auto pkVc = GetPKVertexCompute{offsetMap};
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pkVc, graphEntry->nodeInfos[0].entry, std::vector<std::string>{"term"});
+    std::vector<offset_t> offsets;
+    for (auto& queryTerm : terms) {
+        if (FTSUtils::hasWildcardPattern(queryTerm)) {
+            RE2::GlobalReplace(&queryTerm, "\\*", ".*");
+            RE2::GlobalReplace(&queryTerm, "\\?", ".");
+            for (auto& [docsTerm, offset] : offsetMap) {
+                if (RE2::FullMatch(docsTerm, queryTerm)) {
+                    offsets.push_back(offset);
+                }
+            }
+        } else if (offsetMap.contains(queryTerm)) {
+            offsets.push_back(offsetMap[queryTerm]);
+        }
+    }
+    auto dfs = getDFs(*input.context->clientContext, termsEntry, offsets);
+
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
