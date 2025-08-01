@@ -62,12 +62,14 @@ private:
 };
 
 struct MSFConfig final : public GDSConfig {
-    std::string weight_property;
+    std::string weightProperty;
+    bool maxForest=false;
     MSFConfig() = default;
 };
 
 struct MSFOptionalParams final : public GDSOptionalParams {
     std::shared_ptr<Expression> weightProperty;
+    std::shared_ptr<Expression> maxForest;
 
     explicit MSFOptionalParams(const expression_vector& optionalParams);
 
@@ -80,10 +82,13 @@ struct MSFOptionalParams final : public GDSOptionalParams {
 
 MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams) {
     static constexpr const char* WEIGHTPROPERTY = "weight_property";
+    static constexpr const char* MAXFOREST = "max_forest";
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == WEIGHTPROPERTY) {
             weightProperty = optionalParam;
+        } else if (paramName == MAXFOREST) {
+            maxForest = optionalParam;
         } else {
             throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
         }
@@ -95,9 +100,12 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     if (weightProperty == nullptr) {
         throw RuntimeException("No parameter specifying the weight\n");
     }
-    config->weight_property =
+    config->weightProperty =
         ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
-
+    if (maxForest != nullptr) {
+        config->maxForest = 
+            ExpressionUtil::evaluateLiteral<bool>(*maxForest, LogicalType::BOOL());
+    }
     return config;
 }
 
@@ -152,7 +160,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
     auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
-        nbrInfo.dstTableID, {InternalKeyword::ID, config.weight_property}, false);
+        nbrInfo.dstTableID, {InternalKeyword::ID, config.weightProperty}, false);
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalState state(mm, numNodes);
@@ -172,10 +180,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         }
     }
 
-    static const auto& cmp = [&](const auto& e1, const auto& e2) {
+    const auto& cmp = [&](const auto& e1, const auto& e2) {
         const auto& [u1, v1, r1, w1] = e1;
         const auto& [u2, v2, r2, w2] = e2;
-        return std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
+        return config.maxForest ?
+            std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
+            std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
     };
 
     std::sort(state.edges.begin(), state.edges.end(), cmp);
@@ -216,13 +226,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
     auto optionalParams = make_unique<MSFOptionalParams>(input->optionalParamsLegacy);
     auto config = optionalParams->getConfig()->constCast<MSFConfig>();
-    if (!graphEntry.relInfos[0].entry->containsProperty(config.weight_property)) {
-        throw BinderException("Cannot find property: " + config.weight_property);
+    if (!graphEntry.relInfos[0].entry->containsProperty(config.weightProperty)) {
+        throw BinderException("Cannot find property: " + config.weightProperty);
     }
     if (!LogicalTypeUtils::isNumerical(
-            graphEntry.relInfos[0].entry->getProperty(config.weight_property).getType())) {
+            graphEntry.relInfos[0].entry->getProperty(config.weightProperty).getType())) {
         throw BinderException(
-            "Provided weight property is not numerical: " + config.weight_property);
+            "Provided weight property is not numerical: " + config.weightProperty);
     }
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     expression_vector columns;
