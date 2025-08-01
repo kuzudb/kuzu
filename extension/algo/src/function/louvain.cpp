@@ -488,7 +488,7 @@ void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph*
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
-        nbrInfo.dstTableID, {}, false);
+        nbrInfo.dstTableID, {}, false /*randomLookup=*/);
 
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         state.initNextNode(nodeId);

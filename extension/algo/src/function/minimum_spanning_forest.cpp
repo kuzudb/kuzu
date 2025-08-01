@@ -159,7 +159,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
     auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
-        nbrInfo.dstTableID, {InternalKeyword::ID, config.weightProperty}, false);
+        nbrInfo.dstTableID, {InternalKeyword::ID, config.weightProperty}, false /*randomLookup*/);
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalState state(mm, numNodes);

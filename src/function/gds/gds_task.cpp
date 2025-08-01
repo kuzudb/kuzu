@@ -43,7 +43,7 @@ void FrontierTask::run() {
     auto numActiveNodes = 0u;
     auto graph = info.graph;
     auto scanState = graph->prepareRelScan(*info.relGroupEntry, info.getRelTableID(),
-        info.getNbrTableID(), info.propertiesToScan, true);
+        info.getNbrTableID(), info.propertiesToScan, true /*randomLookup=*/);
     auto ec = info.edgeCompute.copy();
     auto boundTableID = info.getBoundTableID();
     switch (info.direction) {
@@ -89,7 +89,7 @@ void FrontierTask::runSparse() {
     auto numActiveNodes = 0u;
     auto graph = info.graph;
     auto scanState = graph->prepareRelScan(*info.relGroupEntry, info.getRelTableID(),
-        info.getNbrTableID(), info.propertiesToScan, true);
+        info.getNbrTableID(), info.propertiesToScan, true /*randomLookup*/);
     auto ec = info.edgeCompute.copy();
     auto boundTableID = info.getBoundTableID();
     switch (info.direction) {
