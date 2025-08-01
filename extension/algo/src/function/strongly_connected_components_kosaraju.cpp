@@ -93,7 +93,7 @@ public:
         auto nbrInfo = nbrInfos[0];
         KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
         scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
-            nbrInfo.dstTableID, {});
+            nbrInfo.dstTableID, {}, true);
     }
 
     void compute(const offset_t maxOffset, NodeOffsetMaskMap* map, ExecutionContext* context) {
