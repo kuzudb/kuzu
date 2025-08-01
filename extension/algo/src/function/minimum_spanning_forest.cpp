@@ -63,7 +63,7 @@ private:
 
 struct MSFConfig final : public GDSConfig {
     std::string weightProperty;
-    bool maxForest=false;
+    bool maxForest = false;
     MSFConfig() = default;
 };
 
@@ -103,8 +103,7 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     config->weightProperty =
         ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
     if (maxForest != nullptr) {
-        config->maxForest = 
-            ExpressionUtil::evaluateLiteral<bool>(*maxForest, LogicalType::BOOL());
+        config->maxForest = ExpressionUtil::evaluateLiteral<bool>(*maxForest, LogicalType::BOOL());
     }
     return config;
 }
@@ -183,9 +182,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto& cmp = [&](const auto& e1, const auto& e2) {
         const auto& [u1, v1, r1, w1] = e1;
         const auto& [u2, v2, r2, w2] = e2;
-        return config.maxForest ?
-            std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
-            std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
+        return config.maxForest ? std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
+                                  std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
     };
 
     std::sort(state.edges.begin(), state.edges.end(), cmp);
