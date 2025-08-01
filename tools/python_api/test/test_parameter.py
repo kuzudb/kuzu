@@ -289,8 +289,8 @@ def test_param(conn_db_readwrite: ConnDB) -> None:
 def test_param_error4(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
     with pytest.raises(
-        RuntimeError,
-        match="Runtime exception: Cannot convert Python object to Kuzu value : INT8  is incompatible with TIMESTAMP",
+            RuntimeError,
+            match="Runtime exception: Cannot convert Python object to Kuzu value : INT8  is incompatible with TIMESTAMP",
     ):
         conn.execute(
             "MATCH (a:person {workedHours: $1}) RETURN COUNT(*);", {"1": [1, 2, datetime.datetime(2023, 3, 25)]}
@@ -308,3 +308,33 @@ def test_dict_conversion(conn_db_readwrite: ConnDB) -> None:
     # Interpret as STRUCT since the number of elements in key and value doesn't match.
     result = conn.execute("RETURN $st", {"st": {"key": [1, 2], "value": [3, 7, 98, 4]}})
     assert result.get_next() == [{"key": [1, 2], "value": [3, 7, 98, 4]}]
+
+
+def test_null_handling(conn_db_readwrite: ConnDB) -> None:
+    conn, _ = conn_db_readwrite
+    result = conn.execute(
+        """
+        UNWIND $edges AS edge
+            WITH edge, size(edge.fact_embedding) AS score
+            ORDER BY score DESC
+            LIMIT $limit
+            RETURN edge.uuid;
+        """,
+        {
+            "edges": [
+                {
+                    "uuid": "1c4e35a9-c6cb-4517-971f-37f209c71e64",
+                    "fact_embedding": [
+                        -0.010113425552845001,
+                        -0.01922552101314068,
+                        0.007402684073895216,
+                    ],
+                    "expired_at": None,
+                }
+            ],
+            "limit": 10,
+        },
+    )
+    assert result.has_next()
+    result.get_next()[0] = '1c4e35a9-c6cb-4517-971f-37f209c71e64'
+    assert not result.has_next()
