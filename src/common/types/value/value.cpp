@@ -932,6 +932,14 @@ bool Value::allowTypeChange() const {
         }
         return false;
     }
+    case LogicalTypeID::STRUCT: {
+        for (auto i = 0u; i < childrenSize; ++i) {
+            if (children[i]->allowTypeChange()) {
+                return true;
+            }
+        }
+        return false;
+    }
     case LogicalTypeID::MAP: {
         if (childrenSize == 0) {
             return true;

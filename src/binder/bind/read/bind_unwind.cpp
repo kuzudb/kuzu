@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 
@@ -33,6 +34,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
                 LogicalType::LIST(LogicalType::STRING()));
         } else {
             ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
+            boundExpression = expressionBinder.implicitCastIfNecessary(boundExpression,
+                LogicalTypeUtils::purgeAny(boundExpression->dataType, LogicalType::STRING()));
             alias = createVariable(aliasName, ListType::getChildType(boundExpression->dataType));
         }
     } else {
