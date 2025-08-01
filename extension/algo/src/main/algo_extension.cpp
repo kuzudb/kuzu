@@ -21,6 +21,7 @@ void AlgoExtension::load(main::ClientContext* context) {
     ExtensionUtils::addTableFunc<KCoreDecompositionFunction>(db);
     ExtensionUtils::addTableFuncAlias<KCoreDecompositionAliasFunction>(db);
     ExtensionUtils::addTableFunc<LouvainFunction>(db);
+    ExtensionUtils::addTableFunc<MinimumSpanningForest>(db);
 }
 
 } // namespace algo_extension

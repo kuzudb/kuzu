@@ -1,5 +1,3 @@
-#include <cmath>
-
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
@@ -494,8 +492,8 @@ void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph*
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
-    const auto scanState =
-        graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
+    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
+        nbrInfo.dstTableID, {}, false /*randomLookup=*/);
 
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         state.initNextNode(nodeId);
