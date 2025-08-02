@@ -70,6 +70,9 @@ void WAL::initWriter(main::ClientContext* context) {
     fileInfo = vfs->openFile(walPath,
         FileOpenFlags(FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::READ_ONLY | FileFlags::WRITE),
         context);
+    // A previous unclean exit may have left non-durable contents in the WAL, so make our best
+    // effort at ensuring that we're recovering durable WAL entries.
+    fileInfo->syncFile();
     writer = std::make_shared<BufferedFileWriter>(*fileInfo);
     // WAL should always be APPEND only. We don't want to overwrite the file as it may still
     // contain records not replayed. This can happen if checkpoint is not triggered before the
