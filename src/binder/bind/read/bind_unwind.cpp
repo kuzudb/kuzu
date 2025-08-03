@@ -33,6 +33,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
                 LogicalType::LIST(LogicalType::STRING()));
         } else {
             ExpressionUtil::validateDataType(*boundExpression, LogicalTypeID::LIST);
+            boundExpression = expressionBinder.implicitCastIfNecessary(boundExpression,
+                LogicalTypeUtils::purgeAny(boundExpression->dataType, LogicalType::STRING()));
             alias = createVariable(aliasName, ListType::getChildType(boundExpression->dataType));
         }
     } else {
