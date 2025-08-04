@@ -115,6 +115,7 @@ private:
     bool enableCompression;
     std::unique_ptr<ColumnChunkData> data;
     // Update versions.
+    mutable std::shared_mutex updateInfoMtx;
     std::unique_ptr<UpdateInfo> updateInfo;
 };
 
