@@ -1,18 +1,32 @@
 #include "main/prepared_statement.h"
 
-#include "binder/bound_statement_result.h" // IWYU pragma: keep (used to avoid error in destructor)
-#include "common/enums/statement_type.h"
+#include "binder/expression/expression.h" // IWYU pragma: keep
 #include "common/exception/binder.h"
 #include "common/types/value/value.h"
-#include "planner/operator/logical_plan.h"
+#include "planner/operator/logical_plan.h" // IWYU pragma: keep
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace main {
 
-bool PreparedStatement::isTransactionStatement() const {
-    return preparedSummary.statementType == StatementType::TRANSACTION;
+CachedPreparedStatement::CachedPreparedStatement() = default;
+CachedPreparedStatement::~CachedPreparedStatement() = default;
+
+std::vector<std::string> CachedPreparedStatement::getColumnNames() const {
+    std::vector<std::string> names;
+    for (auto& column : columns) {
+        names.push_back(column->toString());
+    }
+    return names;
+}
+
+std::vector<LogicalType> CachedPreparedStatement::getColumnTypes() const {
+    std::vector<LogicalType> types;
+    for (auto& column : columns) {
+        types.push_back(column->getDataType().copy());
+    }
+    return types;
 }
 
 bool PreparedStatement::isSuccess() const {
@@ -27,12 +41,8 @@ bool PreparedStatement::isReadOnly() const {
     return readOnly;
 }
 
-bool PreparedStatement::isProfile() const {
-    return logicalPlan->isProfile();
-}
-
 StatementType PreparedStatement::getStatementType() const {
-    return parsedStatement->getStatementType();
+    return preparedSummary.statementType;
 }
 
 void PreparedStatement::validateExecuteParam(const std::string& paramName,
@@ -50,6 +60,14 @@ void PreparedStatement::validateExecuteParam(const std::string& paramName,
 }
 
 PreparedStatement::~PreparedStatement() = default;
+
+std::unique_ptr<PreparedStatement> PreparedStatement::getPreparedStatementWithError(
+    const std::string& errorMessage) {
+    auto preparedStatement = std::make_unique<PreparedStatement>();
+    preparedStatement->success = false;
+    preparedStatement->errMsg = errorMessage;
+    return preparedStatement;
+}
 
 } // namespace main
 } // namespace kuzu

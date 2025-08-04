@@ -9,10 +9,11 @@
 #include "common/types/value/value.h"
 #include "function/table/scan_replacement.h"
 #include "main/client_config.h"
+#include "main/prepared_statement_manager.h"
+#include "main/query_result.h"
 #include "parser/statement.h"
 #include "prepared_statement.h"
 #include "processor/warning_context.h"
-#include "query_result.h"
 #include "transaction/transaction_context.h"
 
 namespace kuzu {
@@ -83,9 +84,12 @@ public:
     // Client config
     const ClientConfig* getClientConfig() const { return &clientConfig; }
     ClientConfig* getClientConfigUnsafe() { return &clientConfig; }
-    const DBConfig* getDBConfig() const { return &dbConfig; }
-    DBConfig* getDBConfigUnsafe() { return &dbConfig; }
+
+    // Database config
+    const DBConfig* getDBConfig() const;
+    DBConfig* getDBConfigUnsafe() const;
     common::Value getCurrentSetting(const std::string& optionName) const;
+
     // Timer and timeout
     void interrupt() { activeQuery.interrupted = true; }
     bool interrupted() const { return activeQuery.interrupted; }
@@ -113,12 +117,13 @@ public:
         const std::string& objectName) const;
     std::unique_ptr<function::ScanReplacementData> tryReplaceByHandle(
         function::scan_replace_handle_t handle) const;
+
     // Extension
     void setExtensionOption(std::string name, common::Value value);
     const ExtensionOption* getExtensionOption(std::string optionName) const;
     std::string getExtensionDir() const;
 
-    // Database component getters.
+    // Getters.
     std::string getDatabasePath() const;
     Database* getDatabase() const { return localDatabase; }
     common::TaskScheduler* getTaskScheduler() const;
@@ -131,6 +136,10 @@ public:
     transaction::TransactionManager* getTransactionManagerUnsafe() const;
     common::VirtualFileSystem* getVFSUnsafe() const;
     common::RandomEngine* getRandomEngine() const;
+    const CachedPreparedStatementManager& getCachedPreparedStatementManager() const {
+        return cachedPreparedStatementManager;
+    }
+
     bool isInMemory() const;
 
     static std::string getEnvVariable(const std::string& name);
@@ -187,17 +196,17 @@ private:
             const std::function<void()>& fun, bool readOnlyStatement, bool isTransactionStatement,
             TransactionCommitAction action);
     };
-
-    static std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
-    static std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
-    static void bindParametersNoLock(const PreparedStatement* preparedStatement,
-        const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
-    void validateTransaction(const PreparedStatement& preparedStatement) const;
+    void validateTransaction(bool readOnly, bool requireTransaction) const;
 
     std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
 
-    std::unique_ptr<PreparedStatement> prepareNoLock(
-        std::shared_ptr<parser::Statement> parsedStatement, bool shouldCommitNewTransaction,
+    struct PrepareResult {
+        std::unique_ptr<PreparedStatement> preparedStatement;
+        std::unique_ptr<CachedPreparedStatement> cachedPreparedStatement;
+    };
+
+    PrepareResult prepareNoLock(std::shared_ptr<parser::Statement> parsedStatement,
+        bool shouldCommitNewTransaction,
         std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams =
             std::nullopt);
 
@@ -212,6 +221,7 @@ private:
     }
 
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
+        CachedPreparedStatement* cachedPreparedStatement,
         std::optional<uint64_t> queryID = std::nullopt);
 
     std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
@@ -222,12 +232,13 @@ private:
     std::unique_ptr<QueryResult> handleFailedExecution(std::optional<uint64_t> queryID,
         const std::exception& e) const;
 
+    std::mutex mtx;
     // Client side configurable settings.
     ClientConfig clientConfig;
-    // Database configurable settings.
-    DBConfig& dbConfig;
     // Current query.
     ActiveQuery activeQuery;
+    // Cache prepare statement.
+    CachedPreparedStatementManager cachedPreparedStatementManager;
     // Transaction context.
     std::unique_ptr<transaction::TransactionContext> transactionContext;
     // Replace external object as pointer Value;
@@ -246,7 +257,6 @@ private:
     processor::WarningContext warningContext;
     // Graph entries
     std::unique_ptr<graph::GraphEntrySet> graphEntrySet;
-    std::mutex mtx;
     // Whether the query can access internal tables/sequences or not.
     bool useInternalCatalogEntry_ = false;
     // Whether the transaction should be rolled back on destruction. If the parent database is

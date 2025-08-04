@@ -111,8 +111,6 @@ public:
      */
     KUZU_API void resetIterator();
 
-    processor::FactorizedTable* getTable() { return factorizedTable.get(); }
-
     /**
      * @brief Returns the arrow schema of the query result.
      * @return datatypes of the columns as an arrow schema
@@ -134,6 +132,10 @@ public:
      * If converting to another arrow type, this this is usually handled automatically.
      */
     KUZU_API std::unique_ptr<ArrowArray> getNextArrowChunk(int64_t chunkSize);
+
+    processor::FactorizedTable* getTable() { return factorizedTable.get(); }
+
+    static std::unique_ptr<QueryResult> getQueryResultWithError(const std::string& errorMessage);
 
 private:
     void setColumnHeader(std::vector<std::string> columnNames,

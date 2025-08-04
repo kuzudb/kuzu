@@ -50,7 +50,7 @@ void ActiveQuery::reset() {
 }
 
 ClientContext::ClientContext(Database* database)
-    : dbConfig{database->dbConfig}, localDatabase{database}, warningContext(&clientConfig) {
+    : localDatabase{database}, warningContext(&clientConfig) {
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<RandomEngine>();
     remoteDatabase = nullptr;
@@ -79,6 +79,14 @@ ClientContext::~ClientContext() {
     if (getTransaction()) {
         getDatabase()->transactionManager->rollback(*this, getTransaction());
     }
+}
+
+const DBConfig* ClientContext::getDBConfig() const {
+    return &getDatabase()->dbConfig;
+}
+
+DBConfig* ClientContext::getDBConfigUnsafe() const {
+    return &getDatabase()->dbConfig;
 }
 
 uint64_t ClientContext::getTimeoutRemainingInMS() const {
@@ -333,10 +341,10 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
     try {
         parsedStatements = parseQuery(query);
     } catch (std::exception& exception) {
-        return preparedStatementWithError(exception.what());
+        return PreparedStatement::getPreparedStatementWithError(exception.what());
     }
     if (parsedStatements.size() > 1) {
-        return preparedStatementWithError(
+        return PreparedStatement::getPreparedStatementWithError(
             "Connection Exception: We do not support prepare multiple statements.");
     }
 
@@ -346,10 +354,27 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
     for (auto& [key, value] : inputParams) {
         inputParamsTmp.insert(std::make_pair(key, std::make_shared<Value>(*value)));
     }
-    auto result = prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/,
-        std::move(inputParamsTmp));
+    auto [preparedStatement, cachedStatement] = prepareNoLock(parsedStatements[0],
+        true /*shouldCommitNewTransaction*/, std::move(inputParamsTmp));
+    preparedStatement->cachedPreparedStatementName =
+        cachedPreparedStatementManager.addStatement(std::move(cachedStatement));
     useInternalCatalogEntry_ = false;
-    return result;
+    return std::move(preparedStatement);
+}
+
+static void bindParametersNoLock(PreparedStatement& preparedStatement,
+    const std::unordered_map<std::string, std::unique_ptr<Value>>& inputParams) {
+    auto& parameterMap = preparedStatement.getParameterMapUnsafe();
+    for (auto& [name, value] : inputParams) {
+        if (!parameterMap.contains(name)) {
+            throw Exception("Parameter " + name + " not found.");
+        }
+        preparedStatement.validateExecuteParam(name, value.get());
+        // The much more natural `parameterMap.at(name) = std::move(v)` fails.
+        // The reason is that other parts of the code rely on the existing Value object to be
+        // modified in-place, not replaced in this map.
+        *parameterMap.at(name) = std::move(*value);
+    }
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
@@ -358,25 +383,34 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
     // make sense to pass the map as a const reference.
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
-        return queryResultWithError(preparedStatement->errMsg);
+        return QueryResult::getQueryResultWithError(preparedStatement->errMsg);
     }
     try {
-        bindParametersNoLock(preparedStatement, inputParams);
+        bindParametersNoLock(*preparedStatement, inputParams);
     } catch (std::exception& e) {
-        return queryResultWithError(e.what());
+        return QueryResult::getQueryResultWithError(e.what());
     }
+    auto name = preparedStatement->getName();
+    // LCOV_EXCL_START
+    // The following should never happen. But we still throw just in case.
+    if (!cachedPreparedStatementManager.containsStatement(name)) {
+        return QueryResult::getQueryResultWithError(
+            stringFormat("Cannot find prepared statement with name {}.", name));
+    }
+    // LCOV_EXCL_STOP
+    auto cachedStatement = cachedPreparedStatementManager.getCachedStatement(name);
     // rebind
-    KU_ASSERT(preparedStatement->parsedStatement != nullptr);
-    const auto rebindPreparedStatement = prepareNoLock(preparedStatement->parsedStatement,
-        false /*shouldCommitNewTransaction*/, preparedStatement->parameterMap);
+    auto [newPreparedStatement, newCachedStatement] =
+        prepareNoLock(cachedStatement->parsedStatement, false /*shouldCommitNewTransaction*/,
+            preparedStatement->parameterMap);
     useInternalCatalogEntry_ = false;
-    return executeNoLock(rebindPreparedStatement.get(), queryID);
+    return executeNoLock(newPreparedStatement.get(), newCachedStatement.get(), queryID);
 }
 
-std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement,
+std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
     std::optional<uint64_t> queryID) {
     lock_t lck{mtx};
-    return queryNoLock(queryStatement, queryID);
+    return queryNoLock(query, queryID);
 }
 
 std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
@@ -385,14 +419,16 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
     try {
         parsedStatements = parseQuery(query);
     } catch (std::exception& exception) {
-        return queryResultWithError(exception.what());
+        return QueryResult::getQueryResultWithError(exception.what());
     }
     std::unique_ptr<QueryResult> queryResult;
     QueryResult* lastResult = nullptr;
     double internalCompilingTime = 0.0, internalExecutionTime = 0.0;
     for (const auto& statement : parsedStatements) {
-        auto preparedStatement = prepareNoLock(statement, false /*shouldCommitNewTransaction*/);
-        auto currentQueryResult = executeNoLock(preparedStatement.get(), queryID);
+        auto [preparedStatement, cachedStatement] =
+            prepareNoLock(statement, false /*shouldCommitNewTransaction*/);
+        auto currentQueryResult =
+            executeNoLock(preparedStatement.get(), cachedStatement.get(), queryID);
         if (!currentQueryResult->isSuccess()) {
             if (!lastResult) {
                 queryResult = std::move(currentQueryResult);
@@ -422,39 +458,6 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
     }
     useInternalCatalogEntry_ = false;
     return queryResult;
-}
-
-std::unique_ptr<QueryResult> ClientContext::queryResultWithError(std::string_view errMsg) {
-    auto queryResult = std::make_unique<QueryResult>();
-    queryResult->success = false;
-    queryResult->errMsg = errMsg;
-    queryResult->nextQueryResult = nullptr;
-    queryResult->queryResultIterator = QueryResult::QueryResultIterator{queryResult.get()};
-    return queryResult;
-}
-
-std::unique_ptr<PreparedStatement> ClientContext::preparedStatementWithError(
-    std::string_view errMsg) {
-    auto preparedStatement = std::make_unique<PreparedStatement>();
-    preparedStatement->success = false;
-    preparedStatement->errMsg = errMsg;
-    return preparedStatement;
-}
-
-void ClientContext::bindParametersNoLock(const PreparedStatement* preparedStatement,
-    const std::unordered_map<std::string, std::unique_ptr<Value>>& inputParams) {
-    auto& parameterMap = preparedStatement->parameterMap;
-    for (auto& [name, value] : inputParams) {
-        if (!parameterMap.contains(name)) {
-            throw Exception("Parameter " + name + " not found.");
-        }
-        preparedStatement->validateExecuteParam(name, value.get());
-        auto expectParam = parameterMap.at(name);
-        // The much more natural `parameterMap.at(name) = std::move(v)` fails.
-        // The reason is that other parts of the code rely on the existing Value object to be
-        // modified in-place, not replaced in this map.
-        *parameterMap.at(name) = std::move(*value);
-    }
 }
 
 std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_view query) {
@@ -493,21 +496,23 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
     return statements;
 }
 
-void ClientContext::validateTransaction(const PreparedStatement& preparedStatement) const {
-    if (!canExecuteWriteQuery() && !preparedStatement.isReadOnly()) {
+void ClientContext::validateTransaction(bool readOnly, bool requireTransaction) const {
+    if (!canExecuteWriteQuery() && !readOnly) {
         throw ConnectionException("Cannot execute write operations in a read-only database!");
     }
-    if (preparedStatement.parsedStatement->requireTransaction() &&
-        transactionContext->hasActiveTransaction()) {
+    if (requireTransaction && transactionContext->hasActiveTransaction()) {
         KU_ASSERT(!transactionContext->isAutoTransaction());
-        transactionContext->validateManualTransaction(preparedStatement.readOnly);
+        transactionContext->validateManualTransaction(readOnly);
     }
 }
 
-std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
+ClientContext::PrepareResult ClientContext::prepareNoLock(
     std::shared_ptr<Statement> parsedStatement, bool shouldCommitNewTransaction,
     std::optional<std::unordered_map<std::string, std::shared_ptr<Value>>> inputParams) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
+    auto cachedStatement = std::make_unique<CachedPreparedStatement>();
+    cachedStatement->parsedStatement = parsedStatement;
+    cachedStatement->useInternalCatalogEntry = useInternalCatalogEntry_;
     auto prepareTimer = TimeMetric(true /* enable */);
     prepareTimer.start();
     try {
@@ -518,9 +523,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             true /* readOnly */, false /* */,
             TransactionHelper::TransactionCommitAction::COMMIT_IF_NEW);
         preparedStatement->readOnly = readWriteAnalyzer.isReadOnly();
-        preparedStatement->parsedStatement = std::move(parsedStatement);
-        validateTransaction(*preparedStatement);
-
+        validateTransaction(preparedStatement->readOnly, parsedStatement->requireTransaction());
         TransactionHelper::runFuncInTransaction(
             *transactionContext,
             [&]() -> void {
@@ -528,38 +531,35 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
                 if (inputParams) {
                     binder.setInputParameters(*inputParams);
                 }
-                const auto boundStatement = binder.bind(*preparedStatement->parsedStatement);
+                const auto boundStatement = binder.bind(*parsedStatement);
                 binder.validateAllInputParametersParsed();
                 preparedStatement->parameterMap = binder.getParameterMap();
-                preparedStatement->statementResult = std::make_unique<BoundStatementResult>(
-                    boundStatement->getStatementResult()->copy());
-                // planning
+                cachedStatement->columns = boundStatement->getStatementResult()->getColumns();
                 auto planner = Planner(this);
                 auto bestPlan = planner.planStatement(*boundStatement);
-                // optimizing
                 optimizer::Optimizer::optimize(&bestPlan, this, planner.getCardinalityEstimator());
-                preparedStatement->logicalPlan = std::make_unique<LogicalPlan>(bestPlan);
+                cachedStatement->logicalPlan = std::make_unique<LogicalPlan>(std::move(bestPlan));
             },
-            preparedStatement->isReadOnly(), preparedStatement->isTransactionStatement(),
+            preparedStatement->isReadOnly(),
+            preparedStatement->getStatementType() == StatementType::TRANSACTION,
             TransactionHelper::getAction(shouldCommitNewTransaction,
                 false /*shouldCommitAutoTransaction*/));
     } catch (std::exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
     }
-    preparedStatement->useInternalCatalogEntry = useInternalCatalogEntry_;
     prepareTimer.stop();
     preparedStatement->preparedSummary.compilingTime =
-        preparedStatement->parsedStatement->getParsingTime() + prepareTimer.getElapsedTimeMS();
-    return preparedStatement;
+        parsedStatement->getParsingTime() + prepareTimer.getElapsedTimeMS();
+    return {std::move(preparedStatement), std::move(cachedStatement)};
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* preparedStatement,
-    std::optional<uint64_t> queryID) {
+    CachedPreparedStatement* cachedStatement, std::optional<uint64_t> queryID) {
     if (!preparedStatement->isSuccess()) {
-        return queryResultWithError(preparedStatement->errMsg);
+        return QueryResult::getQueryResultWithError(preparedStatement->errMsg);
     }
-    useInternalCatalogEntry_ = preparedStatement->useInternalCatalogEntry;
+    useInternalCatalogEntry_ = cachedStatement->useInternalCatalogEntry;
     this->resetActiveQuery();
     this->startTimer();
     auto executingTimer = TimeMetric(true /* enable */);
@@ -567,22 +567,23 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     std::shared_ptr<FactorizedTable> resultFT;
     std::unique_ptr<QueryResult> queryResult;
     try {
+        bool isTransactionStatement =
+            preparedStatement->getStatementType() == StatementType::TRANSACTION;
         TransactionHelper::runFuncInTransaction(
             *transactionContext,
             [&]() -> void {
                 const auto profiler = std::make_unique<Profiler>();
-                profiler->enabled = preparedStatement->isProfile();
+                profiler->enabled = cachedStatement->logicalPlan->isProfile();
                 if (!queryID) {
                     queryID = localDatabase->getNextQueryID();
                 }
                 const auto executionContext =
                     std::make_unique<ExecutionContext>(profiler.get(), this, *queryID);
                 auto mapper = PlanMapper(executionContext.get());
-                const auto physicalPlan =
-                    mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get(),
-                        preparedStatement->statementResult->getColumns());
+                const auto physicalPlan = mapper.mapLogicalPlanToPhysical(
+                    cachedStatement->logicalPlan.get(), cachedStatement->columns);
                 queryResult = std::make_unique<QueryResult>(preparedStatement->preparedSummary);
-                if (preparedStatement->isTransactionStatement()) {
+                if (isTransactionStatement) {
                     resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
                         executionContext.get());
                 } else {
@@ -594,9 +595,9 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                         executionContext.get());
                 }
             },
-            preparedStatement->isReadOnly(), preparedStatement->isTransactionStatement(),
+            preparedStatement->isReadOnly(), isTransactionStatement,
             TransactionHelper::getAction(true /*shouldCommitNewTransaction*/,
-                !preparedStatement->isTransactionStatement() /*shouldCommitAutoTransaction*/));
+                !isTransactionStatement /*shouldCommitAutoTransaction*/));
     } catch (std::exception& e) {
         useInternalCatalogEntry_ = false;
         return handleFailedExecution(queryID, e);
@@ -605,8 +606,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         [](auto& spiller) { spiller.clearFile(); });
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-    const auto sResult = preparedStatement->statementResult.get();
-    queryResult->setColumnHeader(sResult->getColumnNames(), sResult->getColumnTypes());
+    queryResult->setColumnHeader(cachedStatement->getColumnNames(),
+        cachedStatement->getColumnTypes());
     queryResult->initResultTableAndIterator(std::move(resultFT));
     return queryResult;
 }
@@ -618,7 +619,7 @@ std::unique_ptr<QueryResult> ClientContext::handleFailedExecution(std::optional<
     if (queryID.has_value()) {
         progressBar->endProgress(queryID.value());
     }
-    return queryResultWithError(e.what());
+    return QueryResult::getQueryResultWithError(e.what());
 }
 
 ClientContext::TransactionHelper::TransactionCommitAction
@@ -662,12 +663,12 @@ void ClientContext::TransactionHelper::runFuncInTransaction(TransactionContext& 
 }
 
 bool ClientContext::canExecuteWriteQuery() const {
-    if (dbConfig.readOnly) {
+    if (getDBConfig()->readOnly) {
         return false;
     }
     // Note: we can only attach a remote kuzu database in read-only mode and only one
     // remote kuzu database can be attached.
-    const auto dbManager = localDatabase->databaseManager.get();
+    const auto dbManager = getDatabaseManager();
     for (const auto& attachedDB : dbManager->getAttachedDatabases()) {
         if (attachedDB->getDBType() == ATTACHED_KUZU_DB_TYPE) {
             return false;

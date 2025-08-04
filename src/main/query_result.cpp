@@ -177,5 +177,14 @@ std::unique_ptr<ArrowArray> QueryResult::getNextArrowChunk(int64_t chunkSize) {
     return data;
 }
 
+std::unique_ptr<QueryResult> QueryResult::getQueryResultWithError(const std::string& errorMessage) {
+    auto queryResult = std::make_unique<QueryResult>();
+    queryResult->success = false;
+    queryResult->errMsg = errorMessage;
+    queryResult->nextQueryResult = nullptr;
+    queryResult->queryResultIterator = QueryResultIterator{queryResult.get()};
+    return queryResult;
+}
+
 } // namespace main
 } // namespace kuzu
