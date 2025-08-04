@@ -42,7 +42,7 @@ public:
         bool enableCompression, ResidencyState residencyState, bool initializeToZero = true);
     ColumnChunk(MemoryManager& mm, common::LogicalType&& dataType, bool enableCompression,
         ColumnChunkMetadata metadata);
-    ColumnChunk(MemoryManager& mm, bool enableCompression, std::unique_ptr<ColumnChunkData> data);
+    ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data);
 
     void initializeScanState(ChunkState& state, const Column* column) const;
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
@@ -68,10 +68,7 @@ public:
 
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction) const;
 
-    std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> scanUpdates(
-        const transaction::Transaction* transaction) const;
-
-    void setData(std::unique_ptr<ColumnChunkData> data) { this->data = std::move(data); }
+    void setData(std::unique_ptr<ColumnChunkData> data_) { this->data = std::move(data_); }
     // Functions to access the in memory data.
     ColumnChunkData& getData() const { return *data; }
     const ColumnChunkData& getConstData() const { return *data; }
@@ -82,40 +79,28 @@ public:
     bool isCompressionEnabled() const { return enableCompression; }
 
     ResidencyState getResidencyState() const { return data->getResidencyState(); }
-    bool hasUpdates() const { return updateInfo != nullptr; }
+    bool hasUpdates() const { return updateInfo.isSet(); }
     bool hasUpdates(const transaction::Transaction* transaction, common::row_idx_t startRow,
         common::length_t numRows) const;
     // These functions should only work on in-memory and temporary column chunks.
     void resetToEmpty() const { data->resetToEmpty(); }
     void resetToAllNull() const { data->resetToAllNull(); }
     void resize(uint64_t newSize) const { data->resize(newSize); }
-    void resetUpdateInfo() {
-        if (updateInfo) {
-            updateInfo.reset();
-        }
-    }
+    void resetUpdateInfo() { updateInfo.reset(); }
 
     void loadFromDisk() { data->loadFromDisk(); }
     SpillResult spillToDisk() { return data->spillToDisk(); }
 
-    MergedColumnChunkStats getMergedColumnChunkStats(
-        const transaction::Transaction* transaction) const;
+    MergedColumnChunkStats getMergedColumnChunkStats() const;
 
     void reclaimStorage(PageAllocator& pageAllocator) const;
 
 private:
-    void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,
-        common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned,
-        common::row_idx_t numRows) const;
-
-private:
-    MemoryManager& mm;
     // TODO(Guodong): This field should be removed. Ideally it shouldn't be cached anywhere in
     // storage structures, instead should be fed into functions needed from ClientContext dbConfig.
     bool enableCompression;
     std::unique_ptr<ColumnChunkData> data;
-    // Update versions.
-    std::unique_ptr<UpdateInfo> updateInfo;
+    UpdateInfo updateInfo;
 };
 
 } // namespace storage

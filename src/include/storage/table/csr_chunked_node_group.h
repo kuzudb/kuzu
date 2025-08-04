@@ -127,8 +127,7 @@ public:
     void scanCSRHeader(MemoryManager& memoryManager, CSRNodeGroupCheckpointState& csrState) const;
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, MemoryManager& mm,
-        PageAllocator& pageAllocator) const override;
+        transaction::Transaction* transaction, PageAllocator& pageAllocator) const override;
 
     void flush(PageAllocator& pageAllocator) override;
     void reclaimStorage(PageAllocator& pageAllocator) const override;
