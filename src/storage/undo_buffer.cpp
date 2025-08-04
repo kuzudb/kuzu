@@ -223,6 +223,7 @@ void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* rec
 
 void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t commitTS) {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
+    std::unique_lock lock{undoRecord.vectorUpdateInfo->mutex};
     undoRecord.vectorUpdateInfo->version = commitTS;
 }
 

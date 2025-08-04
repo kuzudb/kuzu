@@ -52,6 +52,7 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
         KU_UNREACHABLE;
     }
     }
+    std::shared_lock updateInfoLock{updateInfoMtx};
     if (!updateInfo) {
         return;
     }
@@ -65,18 +66,21 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
         const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
         const auto endOffset = idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
         const auto numRowsInVector = endOffset - startOffset;
-        if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, idx);
-            vectorInfo && vectorInfo->numRowsUpdated > 0) {
-            for (auto i = 0u; i < numRowsInVector; i++) {
-                if (const auto itr = std::find_if(vectorInfo->rowsInVector.begin(),
-                        vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated,
-                        [i, startOffset](auto row) { return row == i + startOffset; });
-                    itr != vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated) {
-                    vectorInfo->data->lookup(itr - vectorInfo->rowsInVector.begin(), output,
-                        posInVector + i);
+        updateInfo->scanFromVectorInfo(transaction, idx,
+            [&](const VectorUpdateInfo& vectorInfo) -> void {
+                if (vectorInfo.numRowsUpdated == 0) {
+                    return;
                 }
-            }
-        }
+                for (auto i = 0u; i < numRowsInVector; i++) {
+                    if (const auto itr = std::find_if(vectorInfo.rowsInVector.begin(),
+                            vectorInfo.rowsInVector.begin() + vectorInfo.numRowsUpdated,
+                            [i, startOffset](auto row) { return row == i + startOffset; });
+                        itr != vectorInfo.rowsInVector.begin() + vectorInfo.numRowsUpdated) {
+                        vectorInfo.data->lookup(itr - vectorInfo.rowsInVector.begin(), output,
+                            posInVector + i);
+                    }
+                }
+            });
         posInVector += numRowsInVector;
         idx++;
     }
@@ -117,11 +121,13 @@ template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(const Transa
 
 bool ColumnChunk::hasUpdates(const Transaction* transaction, row_idx_t startRow,
     length_t numRows) const {
+    std::shared_lock updateInfoLock{updateInfoMtx};
     return updateInfo && updateInfo->hasUpdates(transaction, startRow, numRows);
 }
 
 void ColumnChunk::scanCommittedUpdates(const Transaction* transaction, ColumnChunkData& output,
     offset_t startOffsetInOutput, row_idx_t startRowScanned, row_idx_t numRows) const {
+    std::shared_lock updateInfoLock{updateInfoMtx};
     if (!updateInfo) {
         return;
     }
@@ -133,28 +139,30 @@ void ColumnChunk::scanCommittedUpdates(const Transaction* transaction, ColumnChu
     while (vectorIdx <= endVectorIdx) {
         const auto startRow = vectorIdx == startVectorIdx ? startRowInVector : 0;
         const auto endRow = vectorIdx == endVectorIdx ? endRowInVector : DEFAULT_VECTOR_CAPACITY;
-        // const auto numRowsInVector = endRow - startRow;
-        const auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx);
-        if (vectorInfo && vectorInfo->numRowsUpdated > 0) {
-            if (vectorIdx != startVectorIdx && vectorIdx != endVectorIdx) {
-                for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
-                    output.write(vectorInfo->data.get(), i,
-                        startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
-                            vectorInfo->rowsInVector[i] - startRowScanned,
-                        1);
+        updateInfo->scanFromVectorInfo(transaction, vectorIdx,
+            [&](const VectorUpdateInfo& vectorInfo) {
+                if (vectorInfo.numRowsUpdated == 0) {
+                    return;
                 }
-            } else {
-                for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
-                    const auto rowInVecUpdated = vectorInfo->rowsInVector[i];
-                    if (rowInVecUpdated >= startRow && rowInVecUpdated < endRow) {
-                        output.write(vectorInfo->data.get(), i,
+                if (vectorIdx != startVectorIdx && vectorIdx != endVectorIdx) {
+                    for (auto i = 0u; i < vectorInfo.numRowsUpdated; i++) {
+                        output.write(vectorInfo.data.get(), i,
                             startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
-                                rowInVecUpdated - startRowScanned,
+                                vectorInfo.rowsInVector[i] - startRowScanned,
                             1);
                     }
+                } else {
+                    for (auto i = 0u; i < vectorInfo.numRowsUpdated; i++) {
+                        const auto rowInVecUpdated = vectorInfo.rowsInVector[i];
+                        if (rowInVecUpdated >= startRow && rowInVecUpdated < endRow) {
+                            output.write(vectorInfo.data.get(), i,
+                                startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
+                                    rowInVecUpdated - startRowScanned,
+                                1);
+                        }
+                    }
                 }
-            }
-        }
+            });
         vectorIdx++;
     }
 }
@@ -169,17 +177,19 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
         state.column->lookupValue(state, rowInChunk, &output, posInOutputVector);
     } break;
     }
+    std::shared_lock updateInfoLock{updateInfoMtx};
     if (updateInfo) {
         auto [vectorIdx, rowInVector] =
             StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
-        if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx)) {
-            for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
-                if (vectorInfo->rowsInVector[i] == rowInVector) {
-                    vectorInfo->data->lookup(i, output, posInOutputVector);
-                    return;
+        updateInfo->scanFromVectorInfo(transaction, vectorIdx,
+            [&](const VectorUpdateInfo& vectorInfo) {
+                for (auto i = 0u; i < vectorInfo.numRowsUpdated; i++) {
+                    if (vectorInfo.rowsInVector[i] == rowInVector) {
+                        vectorInfo.data->lookup(i, output, posInOutputVector);
+                        return;
+                    }
                 }
-            }
-        }
+            });
     }
 }
 
@@ -190,6 +200,7 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
         return;
     }
     data->updateStats(&values, values.state->getSelVector());
+    std::unique_lock updateInfoLock{updateInfoMtx};
     if (!updateInfo) {
         updateInfo = std::make_unique<UpdateInfo>();
     }
@@ -203,13 +214,13 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
 MergedColumnChunkStats ColumnChunk::getMergedColumnChunkStats(
     const Transaction* transaction) const {
     auto baseStats = data->getMergedColumnChunkStats();
+    std::shared_lock updateInfoLock{updateInfoMtx};
     if (updateInfo) {
         for (idx_t i = 0; i < updateInfo->getNumVectors(); ++i) {
-            const auto* vectorInfo = updateInfo->getVectorInfo(transaction, i);
-            if (vectorInfo) {
-                baseStats.merge(vectorInfo->data->getMergedColumnChunkStats(),
+            updateInfo->scanFromVectorInfo(transaction, i, [&](const VectorUpdateInfo& vectorInfo) {
+                baseStats.merge(vectorInfo.data->getMergedColumnChunkStats(),
                     getDataType().getPhysicalType());
-            }
+            });
         }
     }
     return baseStats;
@@ -231,6 +242,7 @@ std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(MemoryManager& mm, Deseria
 }
 
 row_idx_t ColumnChunk::getNumUpdatedRows(const Transaction* transaction) const {
+    std::shared_lock updateInfoLock{updateInfoMtx};
     return updateInfo ? updateInfo->getNumUpdatedRows(transaction) : 0;
 }
 
@@ -242,20 +254,21 @@ std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChun
         false, ResidencyState::IN_MEMORY);
     auto updatedData = std::make_unique<ColumnChunk>(mm, getDataType().copy(), numUpdatedRows,
         false, ResidencyState::IN_MEMORY);
+    std::shared_lock updateInfoLock{updateInfoMtx};
     const auto numUpdateVectors = updateInfo->getNumVectors();
     row_idx_t numAppendedRows = 0;
     for (auto vectorIdx = 0u; vectorIdx < numUpdateVectors; vectorIdx++) {
-        const auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx);
-        if (!vectorInfo) {
-            continue;
-        }
-        const row_idx_t startRowIdx = vectorIdx * DEFAULT_VECTOR_CAPACITY;
-        for (auto rowIdx = 0u; rowIdx < vectorInfo->numRowsUpdated; rowIdx++) {
-            updatedRows->getData().setValue<row_idx_t>(
-                vectorInfo->rowsInVector[rowIdx] + startRowIdx, numAppendedRows++);
-        }
-        updatedData->getData().append(vectorInfo->data.get(), 0, vectorInfo->numRowsUpdated);
-        KU_ASSERT(updatedData->getData().getNumValues() == updatedRows->getData().getNumValues());
+        updateInfo->scanFromVectorInfo(transaction, vectorIdx,
+            [&](const VectorUpdateInfo& vectorInfo) {
+                const row_idx_t startRowIdx = vectorIdx * DEFAULT_VECTOR_CAPACITY;
+                for (auto rowIdx = 0u; rowIdx < vectorInfo.numRowsUpdated; rowIdx++) {
+                    updatedRows->getData().setValue<row_idx_t>(
+                        vectorInfo.rowsInVector[rowIdx] + startRowIdx, numAppendedRows++);
+                }
+                updatedData->getData().append(vectorInfo.data.get(), 0, vectorInfo.numRowsUpdated);
+                KU_ASSERT(
+                    updatedData->getData().getNumValues() == updatedRows->getData().getNumValues());
+            });
     }
     return {std::move(updatedRows), std::move(updatedData)};
 }

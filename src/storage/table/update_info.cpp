@@ -18,6 +18,7 @@ VectorUpdateInfo* UpdateInfo::update(MemoryManager& memoryManager, const Transac
     const idx_t vectorIdx, const sel_t rowIdxInVector, const ValueVector& values) {
     auto& vectorUpdateInfo = getOrCreateVectorInfo(memoryManager, transaction, vectorIdx,
         rowIdxInVector, values.dataType);
+    std::unique_lock lock{vectorUpdateInfo.mutex};
     // Check if the row is already updated in this transaction. Overwrite if so.
     idx_t idxInUpdateData = INVALID_IDX;
     for (auto i = 0u; i < vectorUpdateInfo.numRowsUpdated; i++) {
@@ -38,12 +39,18 @@ VectorUpdateInfo* UpdateInfo::update(MemoryManager& memoryManager, const Transac
     return &vectorUpdateInfo;
 }
 
+// TODO: rework this function to avoid returning pointer.
 VectorUpdateInfo* UpdateInfo::getVectorInfo(const Transaction* transaction, idx_t idx) const {
-    if (idx >= vectorsInfo.size() || !vectorsInfo[idx]) {
-        return nullptr;
+    VectorUpdateInfo* current = nullptr;
+    {
+        std::shared_lock lock{mtx};
+        if (idx >= vectorsInfo.size() || !vectorsInfo[idx]) {
+            return nullptr;
+        }
+        current = vectorsInfo[idx].get();
     }
-    auto current = vectorsInfo[idx].get();
     while (current) {
+        std::shared_lock vectorLock{current->mutex};
         if (current->version == transaction->getID()) {
             KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
             return current;
@@ -54,15 +61,41 @@ VectorUpdateInfo* UpdateInfo::getVectorInfo(const Transaction* transaction, idx_
         }
         current = current->getPrev();
     }
-    return nullptr;
+    return current;
+}
+
+void UpdateInfo::scanFromVectorInfo(const Transaction* transaction, idx_t idx,
+    std::function<void(const VectorUpdateInfo&)> func) const {
+    VectorUpdateInfo* current = nullptr;
+    {
+        std::shared_lock lock{mtx};
+        if (idx >= vectorsInfo.size() || !vectorsInfo[idx]) {
+            return;
+        }
+        current = vectorsInfo[idx].get();
+    }
+    while (current) {
+        std::shared_lock vectorLock{current->mutex};
+        if (current->version == transaction->getID()) {
+            KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
+            func(*current);
+            return;
+        }
+        if (current->version <= transaction->getStartTS()) {
+            KU_ASSERT(current->version < Transaction::START_TRANSACTION_ID);
+            func(*current);
+            return;
+        }
+        current = current->getPrev();
+    }
 }
 
 row_idx_t UpdateInfo::getNumUpdatedRows(const Transaction* transaction) const {
     row_idx_t numUpdatedRows = 0u;
+    std::shared_lock lock{mtx};
     for (auto i = 0u; i < vectorsInfo.size(); i++) {
-        if (const auto vectorInfo = getVectorInfo(transaction, i)) {
-            numUpdatedRows += vectorInfo->numRowsUpdated;
-        }
+        scanFromVectorInfo(transaction, i,
+            [&](const VectorUpdateInfo& info) { numUpdatedRows += info.numRowsUpdated; });
     }
     return numUpdatedRows;
 }
@@ -73,28 +106,33 @@ bool UpdateInfo::hasUpdates(const Transaction* transaction, row_idx_t startRow,
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, rowInEndVector] =
         StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
+    std::shared_lock lock{mtx};
+    bool hasUpdates = false;
     for (idx_t vectorIdx = startVector; vectorIdx <= endVectorIdx; ++vectorIdx) {
-        const auto updateVector = getVectorInfo(transaction, vectorIdx);
-        if (!updateVector || updateVector->numRowsUpdated == 0) {
-            continue;
-        }
-        const auto startRowInVector = (vectorIdx == startVector) ? rowInStartVector : 0;
-        const auto endRowInVector =
-            (vectorIdx == endVectorIdx) ? rowInEndVector : DEFAULT_VECTOR_CAPACITY;
-        for (auto row = startRowInVector; row <= endRowInVector; row++) {
-            if (std::any_of(updateVector->rowsInVector.begin(),
-                    updateVector->rowsInVector.begin() + updateVector->numRowsUpdated,
-                    [&](row_idx_t updatedRow) { return row == updatedRow; })) {
-                return true;
+        scanFromVectorInfo(transaction, vectorIdx, [&](const VectorUpdateInfo& info) {
+            if (info.numRowsUpdated == 0) {
+                return;
             }
-        }
+            const auto startRowInVector = (vectorIdx == startVector) ? rowInStartVector : 0;
+            const auto endRowInVector =
+                (vectorIdx == endVectorIdx) ? rowInEndVector : DEFAULT_VECTOR_CAPACITY;
+            for (auto row = startRowInVector; row <= endRowInVector; row++) {
+                if (std::any_of(info.rowsInVector.begin(),
+                        info.rowsInVector.begin() + info.numRowsUpdated,
+                        [&](row_idx_t updatedRow) { return row == updatedRow; })) {
+                    hasUpdates = true;
+                    return;
+                }
+            }
+        });
     }
-    return false;
+    return hasUpdates;
 }
 
 VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(MemoryManager& memoryManager,
     const Transaction* transaction, idx_t vectorIdx, sel_t rowIdxInVector,
     const LogicalType& dataType) {
+    std::unique_lock lock{mtx};
     if (vectorIdx >= vectorsInfo.size()) {
         vectorsInfo.resize(vectorIdx + 1);
     }
@@ -106,6 +144,7 @@ VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(MemoryManager& memoryManager
     auto* current = vectorsInfo[vectorIdx].get();
     VectorUpdateInfo* info = nullptr;
     while (current) {
+        std::unique_lock vectorLock{current->mutex};
         if (current->version == transaction->getID()) {
             // Same transaction.
             KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
