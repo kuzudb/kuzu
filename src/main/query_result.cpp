@@ -186,6 +186,5 @@ std::unique_ptr<QueryResult> QueryResult::getQueryResultWithError(const std::str
     return queryResult;
 }
 
-
 } // namespace main
 } // namespace kuzu

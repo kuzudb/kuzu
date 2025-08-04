@@ -1,9 +1,9 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <memory>
 
 #include "common/api.h"
 #include "query_summary.h"
@@ -61,15 +61,14 @@ public:
         return parameterMap;
     }
 
-    std::string getName() const {
-        return cachedPreparedStatementName;
-    }
+    std::string getName() const { return cachedPreparedStatementName; }
 
     common::StatementType getStatementType() const;
 
     void validateExecuteParam(const std::string& paramName, common::Value* param) const;
 
-    static std::unique_ptr<PreparedStatement> getPreparedStatementWithError(const std::string& errorMessage);
+    static std::unique_ptr<PreparedStatement> getPreparedStatementWithError(
+        const std::string& errorMessage);
 
 private:
     bool success = true;

@@ -8,13 +8,13 @@
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/table/scan_replacement.h"
+#include "main/client_config.h"
+#include "main/prepared_statement_manager.h"
+#include "main/query_result.h"
 #include "parser/statement.h"
 #include "prepared_statement.h"
 #include "processor/warning_context.h"
 #include "transaction/transaction_context.h"
-#include "main/client_config.h"
-#include "main/query_result.h"
-#include "main/prepared_statement_manager.h"
 
 namespace kuzu {
 namespace parser {
@@ -61,8 +61,6 @@ struct ActiveQuery {
 
     void reset();
 };
-
-
 
 /**
  * @brief Contain client side configuration. We make profiler associated per query, so the profiler
@@ -207,8 +205,8 @@ private:
         std::unique_ptr<CachedPreparedStatement> cachedPreparedStatement;
     };
 
-    PrepareResult prepareNoLock(
-        std::shared_ptr<parser::Statement> parsedStatement, bool shouldCommitNewTransaction,
+    PrepareResult prepareNoLock(std::shared_ptr<parser::Statement> parsedStatement,
+        bool shouldCommitNewTransaction,
         std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams =
             std::nullopt);
 
@@ -223,7 +221,8 @@ private:
     }
 
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
-        CachedPreparedStatement* cachedPreparedStatement, std::optional<uint64_t> queryID = std::nullopt);
+        CachedPreparedStatement* cachedPreparedStatement,
+        std::optional<uint64_t> queryID = std::nullopt);
 
     std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
         std::optional<uint64_t> queryID = std::nullopt);

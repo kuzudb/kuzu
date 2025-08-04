@@ -1,8 +1,8 @@
 #pragma once
 
-#include <unordered_map>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <unordered_map>
 
 namespace kuzu {
 namespace main {
@@ -16,9 +16,7 @@ public:
 
     std::string addStatement(std::unique_ptr<CachedPreparedStatement> statement);
 
-    bool containsStatement(const std::string& name) const {
-        return statementMap.contains(name);
-    }
+    bool containsStatement(const std::string& name) const { return statementMap.contains(name); }
 
     CachedPreparedStatement* getCachedStatement(const std::string& name) const;
 
@@ -28,5 +26,5 @@ private:
     std::unordered_map<std::string, std::unique_ptr<CachedPreparedStatement>> statementMap;
 };
 
-}
-}
+} // namespace main
+} // namespace kuzu

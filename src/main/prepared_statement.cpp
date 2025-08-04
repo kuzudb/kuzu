@@ -1,8 +1,8 @@
 #include "main/prepared_statement.h"
 
+#include "binder/expression/expression.h" // IWYU pragma: keep
 #include "common/exception/binder.h"
 #include "common/types/value/value.h"
-#include "binder/expression/expression.h" // IWYU pragma: keep
 #include "planner/operator/logical_plan.h" // IWYU pragma: keep
 
 using namespace kuzu::common;
@@ -68,7 +68,6 @@ std::unique_ptr<PreparedStatement> PreparedStatement::getPreparedStatementWithEr
     preparedStatement->errMsg = errorMessage;
     return preparedStatement;
 }
-
 
 } // namespace main
 } // namespace kuzu

@@ -1,7 +1,7 @@
 #include "main/prepared_statement_manager.h"
 
-#include "main/prepared_statement.h"
 #include "common/assert.h"
+#include "main/prepared_statement.h"
 
 namespace kuzu {
 namespace main {
@@ -25,5 +25,5 @@ CachedPreparedStatement* CachedPreparedStatementManager::getCachedStatement(
     return statementMap.at(name).get();
 }
 
-}
-}
+} // namespace main
+} // namespace kuzu
