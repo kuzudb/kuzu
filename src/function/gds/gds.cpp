@@ -141,8 +141,8 @@ NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context,
 }
 
 std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput& bindInput,
-    const std::vector<TableCatalogEntry*>& nodeEntries) {
-    std::string nodeColumnName = NODE_COLUMN_NAME;
+    const std::vector<TableCatalogEntry*>& nodeEntries, const std::optional<std::string>& name) {
+    std::string nodeColumnName = name.value_or(NODE_COLUMN_NAME);
     if (!bindInput.yieldVariables.empty()) {
         nodeColumnName = bindColumnName(bindInput.yieldVariables[0], nodeColumnName);
     }
