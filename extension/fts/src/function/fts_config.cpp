@@ -165,6 +165,7 @@ void FTSConfig::serialize(common::Serializer& serializer) const {
     serializer.serializeValue(stopWordsTableName);
     serializer.serializeValue(stopWordsSource);
     serializer.serializeValue(ignorePattern);
+    serializer.serializeValue(ignorePatternQuery);
 }
 
 FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
@@ -173,6 +174,7 @@ FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
     deserializer.deserializeValue(config.stopWordsTableName);
     deserializer.deserializeValue(config.stopWordsSource);
     deserializer.deserializeValue(config.ignorePattern);
+    deserializer.deserializeValue(config.ignorePatternQuery);
     return config;
 }
 

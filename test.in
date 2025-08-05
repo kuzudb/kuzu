@@ -1,0 +1,27 @@
+LOAD "/Users/05st/Projects/kuzudb/kuzu/extension/fts/build/libfts.kuzu_extension";
+CREATE NODE TABLE Book (ID SERIAL PRIMARY KEY, abstract STRING, title STRING);
+CREATE (b:Book {
+  abstract: 'An exploration of quantum mechanics.',
+  title: 'The Quantum World'
+});
+CREATE (b:Book {
+  abstract: 'A magic journey through time and space.',
+  title: 'Chronicles of the Universe'
+});
+CREATE (b:Book {
+  abstract: 'An introduction to machine learning techniques.',
+  title: 'Learning Machines'
+});
+CREATE (b:Book {
+  abstract: 'A deep dive into the quantumic history of ancient civilizations.',
+  title: 'Echoes of the Past'
+});
+CREATE (b:Book {
+  abstract: 'A fantasy tale of dragons and magic.', title: 'The Dragon\'s Call'
+});
+CALL CREATE_FTS_INDEX(
+    'Book',
+    'book_index',
+    ['abstract', 'title']
+);
+CALL QUERY_FTS_INDEX('Book', 'book_index', 'quantum history tale') RETURN node.title, score ORDER BY score DESC;
