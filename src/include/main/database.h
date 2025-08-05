@@ -13,10 +13,6 @@
 #include "kuzu_fwd.h"
 #include "main/db_config.h"
 namespace kuzu {
-namespace auth {
-class AuthMethod;
-class AuthManager;
-} // namespace auth
 namespace common {
 class FileSystem;
 enum class LogicalTypeID : uint8_t;
@@ -128,10 +124,6 @@ public:
     KUZU_API void registerStorageExtension(std::string name,
         std::unique_ptr<storage::StorageExtension> storageExtension);
 
-    KUZU_API void registerAuthManager(std::unique_ptr<auth::AuthManager> authManager);
-
-    KUZU_API void registerAuthMethod(std::unique_ptr<auth::AuthMethod> authMethod);
-
     KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
         common::Value defaultValue, bool isConfidential = false);
 
@@ -195,7 +187,6 @@ private:
     std::unique_ptr<extension::ExtensionManager> extensionManager;
     QueryIDGenerator queryIDGenerator;
     std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
-    std::unique_ptr<auth::AuthManager> authManager;
     std::vector<std::unique_ptr<extension::TransformerExtension>> transformerExtensions;
     std::vector<std::unique_ptr<extension::BinderExtension>> binderExtensions;
     std::vector<std::unique_ptr<extension::PlannerExtension>> plannerExtensions;

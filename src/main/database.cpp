@@ -1,7 +1,5 @@
 #include "main/database.h"
 
-#include "auth/auth_manager.h"
-#include "auth/auth_method.h"
 #include "extension/binder_extension.h"
 #include "extension/extension_manager.h"
 #include "extension/mapper_extension.h"
@@ -158,14 +156,6 @@ void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {
 void Database::registerStorageExtension(std::string name,
     std::unique_ptr<StorageExtension> storageExtension) {
     extensionManager->registerStorageExtension(std::move(name), std::move(storageExtension));
-}
-
-void Database::registerAuthManager(std::unique_ptr<auth::AuthManager> authManager_) {
-    this->authManager = std::move(authManager_);
-}
-
-void Database::registerAuthMethod(std::unique_ptr<auth::AuthMethod> authMethod_) {
-    authManager->registerAuthMethod(std::move(authMethod_));
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
