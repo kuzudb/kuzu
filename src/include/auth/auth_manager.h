@@ -20,6 +20,8 @@ public:
 
     virtual bool hasAccess(AuthToken authToken, common::StatementType statementType) const;
 
+    virtual void createUser();
+
 protected:
     std::vector<std::unique_ptr<AuthMethod>> authMethods;
 };

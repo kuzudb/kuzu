@@ -29,5 +29,9 @@ bool AuthManager::hasAccess(AuthToken authToken, common::StatementType statement
     return true;
 }
 
+void AuthManager::createUser() {
+    KU_UNREACHABLE;
+}
+
 } // namespace auth
 } // namespace kuzu

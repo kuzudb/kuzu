@@ -246,6 +246,7 @@ oC_Cypher
 
 oC_Statement
     : oC_Query
+        | kU_CreateUser
         | kU_CreateNodeTable
         | kU_CreateRelTable
         | kU_CreateSequence
@@ -362,6 +363,11 @@ kU_SequenceOptions
         | kU_MaxValue
         | kU_StartWith
         | kU_Cycle;
+
+USER: ( 'U' | 'u' ) ( 'S' | 's' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
+
+kU_CreateUser
+    : CREATE SP USER SP oC_Variable;
 
 kU_IncrementBy : INCREMENT SP ( BY SP )? MINUS? oC_IntegerLiteral ;
 

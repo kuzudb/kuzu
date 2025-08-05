@@ -34,6 +34,7 @@ enum class PhysicalOperatorType : uint8_t {
     DUMMY_SIMPLE_SINK,
     EMPTY_RESULT,
     EXPORT_DATABASE,
+    EXTENSION_CLAUSE,
     FILTER,
     FLATTEN,
     HASH_JOIN_BUILD,

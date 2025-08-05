@@ -14,8 +14,9 @@
 #include "main/db_config.h"
 namespace kuzu {
 namespace auth {
+class AuthMethod;
 class AuthManager;
-}
+} // namespace auth
 namespace common {
 class FileSystem;
 enum class LogicalTypeID : uint8_t;
@@ -32,6 +33,10 @@ struct Function;
 namespace extension {
 struct ExtensionUtils;
 class ExtensionManager;
+class TransformerExtension;
+class BinderExtension;
+class PlannerExtension;
+class MapperExtension;
 } // namespace extension
 
 namespace storage {
@@ -125,8 +130,29 @@ public:
 
     KUZU_API void registerAuthManager(std::unique_ptr<auth::AuthManager> authManager);
 
+    KUZU_API void registerAuthMethod(std::unique_ptr<auth::AuthMethod> authMethod);
+
     KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
         common::Value defaultValue, bool isConfidential = false);
+
+    KUZU_API void addTransformerExtension(
+        std::unique_ptr<extension::TransformerExtension> transformerExtension);
+
+    std::vector<extension::TransformerExtension*> getTransformerExtensions();
+
+    KUZU_API void addBinderExtension(
+        std::unique_ptr<extension::BinderExtension> transformerExtension);
+
+    std::vector<extension::BinderExtension*> getBinderExtensions();
+
+    KUZU_API void addPlannerExtension(
+        std::unique_ptr<extension::PlannerExtension> plannerExtension);
+
+    std::vector<extension::PlannerExtension*> getPlannerExtensions();
+
+    KUZU_API void addMapperExtension(std::unique_ptr<extension::MapperExtension> mapperExtension);
+
+    std::vector<extension::MapperExtension*> getMapperExtensions();
 
     KUZU_API catalog::Catalog* getCatalog() { return catalog.get(); }
 
@@ -170,6 +196,10 @@ private:
     QueryIDGenerator queryIDGenerator;
     std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
     std::unique_ptr<auth::AuthManager> authManager;
+    std::vector<std::unique_ptr<extension::TransformerExtension>> transformerExtensions;
+    std::vector<std::unique_ptr<extension::BinderExtension>> binderExtensions;
+    std::vector<std::unique_ptr<extension::PlannerExtension>> plannerExtensions;
+    std::vector<std::unique_ptr<extension::MapperExtension>> mapperExtensions;
 };
 
 } // namespace main

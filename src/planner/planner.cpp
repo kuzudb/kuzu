@@ -1,6 +1,7 @@
 #include "planner/planner.h"
 
 #include "main/client_context.h"
+#include "main/database.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -54,7 +55,8 @@ void PropertyExprCollection::clear() {
 }
 
 Planner::Planner(main::ClientContext* clientContext)
-    : clientContext{clientContext}, cardinalityEstimator{clientContext}, context{} {}
+    : clientContext{clientContext}, cardinalityEstimator{clientContext}, context{},
+      plannerExtensions{clientContext->getDatabase()->getPlannerExtensions()} {}
 
 LogicalPlan Planner::planStatement(const BoundStatement& statement) {
     switch (statement.getStatementType()) {
@@ -114,6 +116,9 @@ LogicalPlan Planner::planStatement(const BoundStatement& statement) {
     }
     case StatementType::USE_DATABASE: {
         return planUseDatabase(statement);
+    }
+    case StatementType::EXTENSION_CLAUSE: {
+        return planExtensionClause(statement);
     }
     default:
         KU_UNREACHABLE;
