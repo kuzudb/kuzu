@@ -403,7 +403,8 @@ static std::string getParamVal(const TableFuncBindInput& input, idx_t idx) {
         input.getParam(idx)->constCast<LiteralExpression>());
 }
 
-static std::vector<std::string> getQueryTerms(const binder::Expression& query, catalog::IndexCatalogEntry& entry, main::ClientContext& context, bool isConjunctive) {
+static std::vector<std::string> getQueryTerms(const binder::Expression& query,
+    catalog::IndexCatalogEntry& entry, main::ClientContext& context, bool isConjunctive) {
     auto queryInStr = ExpressionUtil::evaluateLiteral<std::string>(query, LogicalType::STRING());
     auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
     FTSUtils::normalizeQuery(queryInStr, config.ignorePatternQuery);
@@ -459,9 +460,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto& ftsIndex = index.value()->cast<FTSIndex>();
     auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
     auto optionalParams = QueryFTSOptionalParams{context, input->optionalParamsLegacy};
-    auto queryTerms = getQueryTerms(*query, *ftsIndexEntry, *context, optionalParams.getConfig().isConjunctive);
+    auto queryTerms =
+        getQueryTerms(*query, *ftsIndexEntry, *context, optionalParams.getConfig().isConjunctive);
     auto bindData = std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry),
-        nodeOutput, *ftsIndexEntry, std::move(optionalParams), ftsStorageInfo.numDocs, ftsStorageInfo.avgDocLen, std::move(queryTerms));
+        nodeOutput, *ftsIndexEntry, std::move(optionalParams), ftsStorageInfo.numDocs,
+        ftsStorageInfo.avgDocLen, std::move(queryTerms));
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
 }

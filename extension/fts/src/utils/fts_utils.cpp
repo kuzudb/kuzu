@@ -57,7 +57,9 @@ bool FTSUtils::hasWildcardPattern(const std::string& term) {
     return false;
 }
 
-std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms, const FTSConfig& config, MemoryManager* mm, NodeTable* stopwordsTable, Transaction* tx, bool isConjunctive, bool isQuery) {
+std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
+    const FTSConfig& config, MemoryManager* mm, NodeTable* stopwordsTable, Transaction* tx,
+    bool isConjunctive, bool isQuery) {
     if (config.stemmer == "none") {
         return terms;
     }
