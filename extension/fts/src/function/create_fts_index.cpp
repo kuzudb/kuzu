@@ -162,7 +162,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                             string_split(lower(regexp_replace(
                             CAST(query as STRING),
                             '{}',
-                            '',
+                            ' ',
                             'g')), ' ');)",
             FTSUtils::getTokenizeMacroName(tableID, indexName),
             formatStrInCypher(ftsBindData->createFTSConfig.ignorePattern));

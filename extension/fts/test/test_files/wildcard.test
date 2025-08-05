@@ -29,6 +29,7 @@ The Dragon's Call
 
 -CASE WildcardInDocs
 
+-LOAD_DYNAMIC_EXTENSION fts
 -STATEMENT CREATE (:Book { abstract: 'This book is a te?s*t', title: 'Abcdefg' });
 ---- ok
 -STATEMENT CREATE (:Book { abstract: 'The his*to?ry of computing', title: 'Computers' });
