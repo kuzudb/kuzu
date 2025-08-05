@@ -265,8 +265,10 @@ static constexpr char TERM_FREQUENCY_PROP_NAME[] = "tf";
 static constexpr char DOC_LEN_PROP_NAME[] = "len";
 static constexpr char DOC_ID_PROP_NAME[] = "docID";
 
-static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& context, processor::ExecutionContext* executionContext, graph::Graph* graph,
-    catalog::TableCatalogEntry* termsEntry, std::vector<std::string>& queryTerms, bool hasWildcardQueryTerm) {
+static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& context,
+    processor::ExecutionContext* executionContext, graph::Graph* graph,
+    catalog::TableCatalogEntry* termsEntry, std::vector<std::string>& queryTerms,
+    bool hasWildcardQueryTerm) {
     auto storageManager = context.getStorageManager();
     auto tableID = termsEntry->getTableID();
     auto& termsNodeTable = storageManager->getTable(tableID)->cast<NodeTable>();
@@ -288,7 +290,8 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
     if (hasWildcardQueryTerm) {
         std::unordered_map<std::string, offset_t> offsetMap;
         auto pkVc = GetTermsVertexCompute{offsetMap};
-        GDSUtils::runVertexCompute(executionContext, GDSDensityState::DENSE, graph, pkVc, termsEntry, std::vector<std::string>{"term"});
+        GDSUtils::runVertexCompute(executionContext, GDSDensityState::DENSE, graph, pkVc,
+            termsEntry, std::vector<std::string>{"term"});
         for (auto& queryTerm : queryTerms) {
             if (FTSUtils::hasWildcardPattern(queryTerm)) {
                 RE2::GlobalReplace(&queryTerm, "\\*", ".*");
@@ -355,7 +358,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& qFTSBindData = *input.bindData->constPtrCast<QueryFTSBindData>();
     auto termsEntry = graphEntry->nodeInfos[0].entry;
     auto queryTerms = qFTSBindData.queryTerms;
-    auto dfs = getDFs(clientContext, input.context, graph, termsEntry, queryTerms, qFTSBindData.hasWildcardQueryTerm);
+    auto dfs = getDFs(clientContext, input.context, graph, termsEntry, queryTerms,
+        qFTSBindData.hasWildcardQueryTerm);
 
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
@@ -423,7 +427,9 @@ static std::pair<std::vector<std::string>, bool> getQueryTerms(const binder::Exp
                                                  config.stopWordsTableName)
                                              ->getTableID())
                               ->ptrCast<NodeTable>();
-    std::vector<std::string> stemmedTerms = FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config, context.getMemoryManager(), stopWordsTable, context.getTransaction(), isConjunctive, true);
+    std::vector<std::string> stemmedTerms = FTSUtils::stemTerms(terms,
+        entry.getAuxInfo().cast<FTSIndexAuxInfo>().config, context.getMemoryManager(),
+        stopWordsTable, context.getTransaction(), isConjunctive, true);
     for (auto& term : terms) {
         if (FTSUtils::hasWildcardPattern(term)) {
             return {std::move(stemmedTerms), true};

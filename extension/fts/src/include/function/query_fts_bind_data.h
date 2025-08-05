@@ -36,7 +36,8 @@ struct QueryFTSBindData final : function::GDSBindData {
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(docs)}, entry{entry},
           optionalParams{std::move(optionalParams)},
           outputTableID{nodeOutput->constCast<binder::NodeExpression>().getTableIDs()[0]},
-          numDocs{numDocs}, avgDocLen{avgDocLen}, queryTerms{std::move(queryTerms)}, hasWildcardQueryTerm{hasWildcardQueryTerm} {
+          numDocs{numDocs}, avgDocLen{avgDocLen}, queryTerms{std::move(queryTerms)},
+          hasWildcardQueryTerm{hasWildcardQueryTerm} {
         auto& nodeExpr = nodeOutput->constCast<binder::NodeExpression>();
         KU_ASSERT(nodeExpr.getNumEntries() == 1);
         outputTableID = nodeExpr.getEntry(0)->getTableID();
@@ -44,7 +45,8 @@ struct QueryFTSBindData final : function::GDSBindData {
     QueryFTSBindData(const QueryFTSBindData& other)
         : GDSBindData{other}, entry{other.entry}, optionalParams{other.optionalParams},
           outputTableID{other.outputTableID}, numDocs{other.numDocs}, avgDocLen{other.avgDocLen},
-          queryTerms{std::vector(other.queryTerms)}, hasWildcardQueryTerm{other.hasWildcardQueryTerm} {}
+          queryTerms{std::vector(other.queryTerms)},
+          hasWildcardQueryTerm{other.hasWildcardQueryTerm} {}
 
     QueryFTSConfig getConfig() const { return optionalParams.getConfig(); }
 
