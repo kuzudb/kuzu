@@ -77,5 +77,11 @@ struct MinimumSpanningForest {
     static function::function_set getFunctionSet();
 };
 
+struct MinimumSpanningAliasForest {
+    using alias = MinimumSpanningForest;
+
+    static constexpr const char* name = "MSF";
+};
+
 } // namespace algo_extension
 } // namespace kuzu
