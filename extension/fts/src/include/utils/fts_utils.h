@@ -19,7 +19,7 @@ struct FTSUtils {
 
     static std::vector<std::string> stemTerms(std::vector<std::string> terms,
         const FTSConfig& config, storage::MemoryManager* mm, storage::NodeTable* stopwordsTable,
-        transaction::Transaction* tx, bool isConjunctive);
+        transaction::Transaction* tx, bool isConjunctive, bool isQuery);
 
     static std::string getDefaultStopWordsTableName() {
         return common::stringFormat("default_english_stopwords");

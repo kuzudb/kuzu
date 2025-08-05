@@ -15,7 +15,7 @@ The Quantum World|An exploration of quantum mechanics.
 ---- 1
 The Quantum World|An exploration of quantum mechanics.
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', '*') RETURN node.title ORDER BY score DESC;
----- 6
+---- 5
 Echoes of the Past
 Chronicles of the Universe
 The Dragon's Call

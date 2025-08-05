@@ -327,16 +327,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto graphEntry = graph->getGraphEntry();
     auto qFTSBindData = input.bindData->constPtrCast<QueryFTSBindData>();
     auto& termsEntry = graphEntry->nodeInfos[0].entry->constCast<catalog::NodeTableCatalogEntry>();
-    auto terms = qFTSBindData->getTerms(*input.context->clientContext);
+    auto queryTerms = qFTSBindData->queryTerms;
 
-    // Get all primary key names (i.e. terms) from the terms table and get list of offsets to get
-    // DFs from
     std::unordered_map<std::string, offset_t> offsetMap;
     auto pkVc = GetPKVertexCompute{offsetMap};
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pkVc,
         graphEntry->nodeInfos[0].entry, std::vector<std::string>{"term"});
     std::vector<offset_t> offsets;
-    for (auto& queryTerm : terms) {
+    for (auto& queryTerm : queryTerms) {
         if (FTSUtils::hasWildcardPattern(queryTerm)) {
             RE2::GlobalReplace(&queryTerm, "\\*", ".*");
             RE2::GlobalReplace(&queryTerm, "\\?", ".");
@@ -374,7 +372,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
     // Do vertex compute to calculate the score for doc with the length property.
     auto mm = clientContext->getMemoryManager();
-    auto numUniqueTerms = getNumUniqueTerms(terms);
+    auto numUniqueTerms = getNumUniqueTerms(queryTerms);
     auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData->getConfig(),
         *qFTSBindData, numUniqueTerms, *sharedState);
     auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState, std::move(writer));
@@ -403,6 +401,21 @@ static std::string getParamVal(const TableFuncBindInput& input, idx_t idx) {
     }
     return ExpressionUtil::getLiteralValue<std::string>(
         input.getParam(idx)->constCast<LiteralExpression>());
+}
+
+static std::vector<std::string> getQueryTerms(const binder::Expression& query, catalog::IndexCatalogEntry& entry, main::ClientContext& context, bool isConjunctive) {
+    auto queryInStr = ExpressionUtil::evaluateLiteral<std::string>(query, LogicalType::STRING());
+    auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
+    FTSUtils::normalizeQuery(queryInStr, config.ignorePatternQuery);
+    auto terms = StringUtils::split(queryInStr, " ");
+    auto stopWordsTable = context.getStorageManager()
+                              ->getTable(context.getCatalog()
+                                             ->getTableCatalogEntry(context.getTransaction(),
+                                                 config.stopWordsTableName)
+                                             ->getTableID())
+                              ->ptrCast<NodeTable>();
+    return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
+        context.getMemoryManager(), stopWordsTable, context.getTransaction(), isConjunctive, true);
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
@@ -445,10 +458,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     KU_ASSERT(index.has_value());
     auto& ftsIndex = index.value()->cast<FTSIndex>();
     auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
+    auto optionalParams = QueryFTSOptionalParams{context, input->optionalParamsLegacy};
+    auto queryTerms = getQueryTerms(*query, *ftsIndexEntry, *context, optionalParams.getConfig().isConjunctive);
     auto bindData = std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry),
-        nodeOutput, std::move(query), *ftsIndexEntry,
-        QueryFTSOptionalParams{context, input->optionalParamsLegacy}, ftsStorageInfo.numDocs,
-        ftsStorageInfo.avgDocLen);
+        nodeOutput, *ftsIndexEntry, std::move(optionalParams), ftsStorageInfo.numDocs, ftsStorageInfo.avgDocLen, std::move(queryTerms));
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
 }

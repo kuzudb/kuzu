@@ -21,31 +21,29 @@ struct QueryFTSOptionalParams {
 };
 
 struct QueryFTSBindData final : function::GDSBindData {
-    std::shared_ptr<binder::Expression> query;
     const catalog::IndexCatalogEntry& entry;
     QueryFTSOptionalParams optionalParams;
     common::table_id_t outputTableID;
     common::idx_t numDocs;
     double avgDocLen;
+    std::vector<std::string> queryTerms;
 
     QueryFTSBindData(binder::expression_vector columns, graph::NativeGraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> docs, std::shared_ptr<binder::Expression> query,
+        std::shared_ptr<binder::Expression> docs,
         const catalog::IndexCatalogEntry& entry, QueryFTSOptionalParams optionalParams,
-        common::idx_t numDocs, double avgDocLen)
+        common::idx_t numDocs, double avgDocLen, std::vector<std::string> queryTerms)
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(docs)},
-          query{std::move(query)}, entry{entry}, optionalParams{std::move(optionalParams)},
+          entry{entry}, optionalParams{std::move(optionalParams)},
           outputTableID{nodeOutput->constCast<binder::NodeExpression>().getTableIDs()[0]},
-          numDocs{numDocs}, avgDocLen{avgDocLen} {
+          numDocs{numDocs}, avgDocLen{avgDocLen}, queryTerms{std::move(queryTerms)} {
         auto& nodeExpr = nodeOutput->constCast<binder::NodeExpression>();
         KU_ASSERT(nodeExpr.getNumEntries() == 1);
         outputTableID = nodeExpr.getEntry(0)->getTableID();
     }
     QueryFTSBindData(const QueryFTSBindData& other)
-        : GDSBindData{other}, query{other.query}, entry{other.entry},
+        : GDSBindData{other}, entry{other.entry},
           optionalParams{other.optionalParams}, outputTableID{other.outputTableID},
-          numDocs{other.numDocs}, avgDocLen{other.avgDocLen} {}
-
-    std::vector<std::string> getTerms(main::ClientContext& context) const;
+          numDocs{other.numDocs}, avgDocLen{other.avgDocLen}, queryTerms{std::vector(other.queryTerms)} {}
 
     QueryFTSConfig getConfig() const { return optionalParams.getConfig(); }
 
