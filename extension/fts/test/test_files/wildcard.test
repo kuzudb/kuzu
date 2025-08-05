@@ -1,0 +1,36 @@
+-DATASET CSV fts-basic
+
+--
+
+-CASE Wildcard
+
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'm?c*n*') RETURN node.title, node.abstract, score ORDER BY score DESC;
+---- 2
+Learning Machines|An introduction to machine learning techniques.|0.896951
+The Quantum World|An exploration of quantum mechanics.|0.694848
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', '*n*u?') RETURN node.title, node.abstract, score ORDER BY score DESC;
+---- 1
+The Quantum World|An exploration of quantum mechanics.|0.944021
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', '*') RETURN node.title ORDER BY score DESC;
+---- 6
+Echoes of the Past
+Chronicles of the Universe
+The Dragon's Call
+Learning Machines
+The Quantum World
+Abcdefg
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', '??????') RETURN node.title ORDER BY score DESC;
+---- 3
+The Quantum World
+Learning Machines
+The Dragon's Call
+
+# Wildcard symbols are ignored properly in docs
+-STATEMENT CREATE (:Book { abstract: 'This book is a te?s*t', title: 'Abcdefg' });
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'title']);
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'test') RETURN node.title, node.abstract;
+---- 1
+Abcdefg|This book is a te?s*t
