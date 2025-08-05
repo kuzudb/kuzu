@@ -241,9 +241,9 @@ private:
     std::unique_ptr<QFTSOutputWriter> writer;
 };
 
-class GetPKVertexCompute final : public VertexCompute {
+class GetTermsVertexCompute final : public VertexCompute {
 public:
-    explicit GetPKVertexCompute(std::unordered_map<std::string, offset_t>& offsetMap)
+    explicit GetTermsVertexCompute(std::unordered_map<std::string, offset_t>& offsetMap)
         : offsetMap{offsetMap} {}
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         auto terms = chunk.getProperties<ku_string_t>(0);
@@ -252,7 +252,7 @@ public:
         }
     }
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<GetPKVertexCompute>(offsetMap);
+        return std::make_unique<GetTermsVertexCompute>(offsetMap);
     }
 
 private:
@@ -265,13 +265,13 @@ static constexpr char TERM_FREQUENCY_PROP_NAME[] = "tf";
 static constexpr char DOC_LEN_PROP_NAME[] = "len";
 static constexpr char DOC_ID_PROP_NAME[] = "docID";
 
-static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& context,
-    const catalog::NodeTableCatalogEntry& termsEntry, const std::vector<offset_t>& offsets) {
+static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& context, processor::ExecutionContext* executionContext, graph::Graph* graph,
+    catalog::TableCatalogEntry* termsEntry, std::vector<std::string>& queryTerms, bool hasWildcardQueryTerm) {
     auto storageManager = context.getStorageManager();
-    auto tableID = termsEntry.getTableID();
+    auto tableID = termsEntry->getTableID();
     auto& termsNodeTable = storageManager->getTable(tableID)->cast<NodeTable>();
     auto tx = context.getTransaction();
-    auto dfColumnID = termsEntry.getColumnID(DOC_FREQUENCY_PROP_NAME);
+    auto dfColumnID = termsEntry->getColumnID(DOC_FREQUENCY_PROP_NAME);
     std::vector<LogicalType> vectorTypes;
     vectorTypes.push_back(LogicalType::INTERNAL_ID());
     vectorTypes.push_back(LogicalType::UINT64());
@@ -284,6 +284,33 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
     auto nodeTableScanState =
         NodeTableScanState(nodeIDVector, std::vector{dfVector}, dataChunk.state);
     nodeTableScanState.setToTable(context.getTransaction(), &termsNodeTable, {dfColumnID}, {});
+    std::vector<offset_t> offsets;
+    if (hasWildcardQueryTerm) {
+        std::unordered_map<std::string, offset_t> offsetMap;
+        auto pkVc = GetTermsVertexCompute{offsetMap};
+        GDSUtils::runVertexCompute(executionContext, GDSDensityState::DENSE, graph, pkVc, termsEntry, std::vector<std::string>{"term"});
+        for (auto& queryTerm : queryTerms) {
+            if (FTSUtils::hasWildcardPattern(queryTerm)) {
+                RE2::GlobalReplace(&queryTerm, "\\*", ".*");
+                RE2::GlobalReplace(&queryTerm, "\\?", ".");
+                for (auto& [docsTerm, offset] : offsetMap) {
+                    if (RE2::FullMatch(docsTerm, queryTerm)) {
+                        offsets.push_back(offset);
+                    }
+                }
+            } else if (offsetMap.contains(queryTerm)) {
+                offsets.push_back(offsetMap[queryTerm]);
+            }
+        }
+    } else {
+        for (auto& queryTerm : queryTerms) {
+            termsVector.setValue(0, queryTerm);
+            offset_t offset = 0;
+            if (termsNodeTable.lookupPK(tx, &termsVector, 0 /* vectorPos */, offset)) {
+                offsets.push_back(offset);
+            }
+        }
+    }
     std::unordered_map<offset_t, uint64_t> dfs;
     for (auto& offset : offsets) {
         auto nodeID = nodeID_t{offset, tableID};
@@ -320,34 +347,15 @@ static void initFrontier(FrontierPair& frontierPair, table_id_t termsTableID,
 }
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
-    auto clientContext = input.context->clientContext;
-    auto transaction = clientContext->getTransaction();
+    auto& clientContext = *input.context->clientContext;
+    auto transaction = clientContext.getTransaction();
     auto sharedState = input.sharedState->ptrCast<QFTSSharedState>();
     auto graph = sharedState->graph.get();
     auto graphEntry = graph->getGraphEntry();
-    auto qFTSBindData = input.bindData->constPtrCast<QueryFTSBindData>();
-    auto& termsEntry = graphEntry->nodeInfos[0].entry->constCast<catalog::NodeTableCatalogEntry>();
-    auto queryTerms = qFTSBindData->queryTerms;
-
-    std::unordered_map<std::string, offset_t> offsetMap;
-    auto pkVc = GetPKVertexCompute{offsetMap};
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pkVc,
-        graphEntry->nodeInfos[0].entry, std::vector<std::string>{"term"});
-    std::vector<offset_t> offsets;
-    for (auto& queryTerm : queryTerms) {
-        if (FTSUtils::hasWildcardPattern(queryTerm)) {
-            RE2::GlobalReplace(&queryTerm, "\\*", ".*");
-            RE2::GlobalReplace(&queryTerm, "\\?", ".");
-            for (auto& [docsTerm, offset] : offsetMap) {
-                if (RE2::FullMatch(docsTerm, queryTerm)) {
-                    offsets.push_back(offset);
-                }
-            }
-        } else if (offsetMap.contains(queryTerm)) {
-            offsets.push_back(offsetMap[queryTerm]);
-        }
-    }
-    auto dfs = getDFs(*input.context->clientContext, termsEntry, offsets);
+    auto& qFTSBindData = *input.bindData->constPtrCast<QueryFTSBindData>();
+    auto termsEntry = graphEntry->nodeInfos[0].entry;
+    auto queryTerms = qFTSBindData.queryTerms;
+    auto dfs = getDFs(clientContext, input.context, graph, termsEntry, queryTerms, qFTSBindData.hasWildcardQueryTerm);
 
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
@@ -357,9 +365,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(std::move(currentFrontier),
         std::move(nextFrontier));
-    auto termsTableID = termsEntry.getTableID();
+    auto termsTableID = termsEntry->getTableID();
     initFrontier(*frontierPair, termsTableID, dfs);
-    auto storageManager = clientContext->getStorageManager();
+    auto storageManager = clientContext.getStorageManager();
     frontierPair->setActiveNodesForNextIter();
 
     node_id_map_t<ScoreInfo> scores;
@@ -371,10 +379,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         {TERM_FREQUENCY_PROP_NAME});
 
     // Do vertex compute to calculate the score for doc with the length property.
-    auto mm = clientContext->getMemoryManager();
+    auto mm = clientContext.getMemoryManager();
     auto numUniqueTerms = getNumUniqueTerms(queryTerms);
-    auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData->getConfig(),
-        *qFTSBindData, numUniqueTerms, *sharedState);
+    auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData.getConfig(),
+        qFTSBindData, numUniqueTerms, *sharedState);
     auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState, std::move(writer));
     auto vertexPropertiesToScan = std::vector<std::string>{DOC_LEN_PROP_NAME, DOC_ID_PROP_NAME};
     auto docsEntry = graphEntry->nodeInfos[1].entry;
@@ -403,7 +411,7 @@ static std::string getParamVal(const TableFuncBindInput& input, idx_t idx) {
         input.getParam(idx)->constCast<LiteralExpression>());
 }
 
-static std::vector<std::string> getQueryTerms(const binder::Expression& query,
+static std::pair<std::vector<std::string>, bool> getQueryTerms(const binder::Expression& query,
     catalog::IndexCatalogEntry& entry, main::ClientContext& context, bool isConjunctive) {
     auto queryInStr = ExpressionUtil::evaluateLiteral<std::string>(query, LogicalType::STRING());
     auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
@@ -415,8 +423,13 @@ static std::vector<std::string> getQueryTerms(const binder::Expression& query,
                                                  config.stopWordsTableName)
                                              ->getTableID())
                               ->ptrCast<NodeTable>();
-    return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
-        context.getMemoryManager(), stopWordsTable, context.getTransaction(), isConjunctive, true);
+    std::vector<std::string> stemmedTerms = FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config, context.getMemoryManager(), stopWordsTable, context.getTransaction(), isConjunctive, true);
+    for (auto& term : terms) {
+        if (FTSUtils::hasWildcardPattern(term)) {
+            return {std::move(stemmedTerms), true};
+        }
+    }
+    return {std::move(stemmedTerms), false};
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
@@ -460,11 +473,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto& ftsIndex = index.value()->cast<FTSIndex>();
     auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
     auto optionalParams = QueryFTSOptionalParams{context, input->optionalParamsLegacy};
-    auto queryTerms =
+    auto [queryTerms, hasWildcardQueryTerm] =
         getQueryTerms(*query, *ftsIndexEntry, *context, optionalParams.getConfig().isConjunctive);
     auto bindData = std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry),
         nodeOutput, *ftsIndexEntry, std::move(optionalParams), ftsStorageInfo.numDocs,
-        ftsStorageInfo.avgDocLen, std::move(queryTerms));
+        ftsStorageInfo.avgDocLen, std::move(queryTerms), hasWildcardQueryTerm);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
 }
