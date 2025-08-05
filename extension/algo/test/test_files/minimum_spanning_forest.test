@@ -76,7 +76,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') YIELD node, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN node.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+-STATEMENT CALL MSF('Graph', weight_property:='weight') YIELD node, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN node.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- 9
 0|1|5|0
 0|2|6|0
