@@ -147,8 +147,7 @@ std::shared_ptr<Expression> GDSFunction::bindRelOutput(const TableFuncBindInput&
     if (!bindInput.yieldVariables.empty()) {
         relColumnName = bindColumnName(bindInput.yieldVariables[yieldVariableOffset.value_or(0)], relColumnName);
     }
-    bindInput.binder->createNonRecursiveQueryRel(relColumnName, relEntries, srcNode, dstNode, RelDirectionType::SINGLE);
-    auto node = bindInput.binder->createQueryNode(relColumnName, relEntries);
+    auto node = bindInput.binder->createNonRecursiveQueryRel(relColumnName, relEntries, srcNode, dstNode, RelDirectionType::SINGLE);
     bindInput.binder->addToScope(relColumnName, node);
     return node;
 }
@@ -211,16 +210,32 @@ void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& rea
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    auto nodeOutput = bindData->output[0]->ptrCast<NodeExpression>();
-    KU_ASSERT(nodeOutput != nullptr);
-    planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
-    auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
-    if (scanPlan.isEmpty()) {
-        return;
+    {
+        auto nodeOutput = bindData->output[0]->ptrCast<NodeExpression>();
+        KU_ASSERT(nodeOutput != nullptr);
+        planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
+        auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
+        if (scanPlan.isEmpty()) {
+            return;
+        }
+        expression_vector joinConditions;
+        joinConditions.push_back(nodeOutput->getInternalID());
+        planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
     }
-    expression_vector joinConditions;
-    joinConditions.push_back(nodeOutput->getInternalID());
-    planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
+
+    {
+        auto nodeOutput = bindData->output[1]->ptrCast<NodeExpression>();
+        KU_ASSERT(nodeOutput != nullptr);
+        planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
+        auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
+        if (scanPlan.isEmpty()) {
+            return;
+        }
+        expression_vector joinConditions;
+        joinConditions.push_back(nodeOutput->getInternalID());
+        planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
+    }
+
 }
 
 std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planMapper,
