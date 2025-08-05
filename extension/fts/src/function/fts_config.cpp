@@ -144,7 +144,11 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
         } else if (IgnorePattern::NAME == lowerCaseName) {
             value.validateType(IgnorePattern::TYPE);
             ignorePattern = common::StringUtils::getLower(value.getValue<std::string>());
+            ignorePatternQuery = ignorePattern;
+            common::StringUtils::replaceAll(ignorePatternQuery, "*", "");
+            common::StringUtils::replaceAll(ignorePatternQuery, "?", "");
             IgnorePattern::validate(ignorePattern);
+            IgnorePattern::validate(ignorePatternQuery);
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
         }
@@ -153,7 +157,7 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
 
 FTSConfig CreateFTSConfig::getFTSConfig() const {
     return FTSConfig{stemmer, stopWordsTableInfo.tableName, stopWordsTableInfo.stopWords,
-        ignorePattern};
+        ignorePattern, ignorePatternQuery};
 }
 
 void FTSConfig::serialize(common::Serializer& serializer) const {

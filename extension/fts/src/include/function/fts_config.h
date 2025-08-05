@@ -46,7 +46,8 @@ struct StopWords {
 struct IgnorePattern {
     static constexpr const char* NAME = "ignore_pattern";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
-    static constexpr const char* DEFAULT_VALUE = "[0-9!@#$%^&()_+={}\\[\\]:;<>,.~\\/\\|'\"`-]+";
+    static constexpr const char* DEFAULT_VALUE = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
+    static constexpr const char* DEFAULT_VALUE_QUERY = "[0-9!@#$%^&()_+={}\\[\\]:;<>,.~\\/\\|'\"`-]+";
 
     static void validate(const std::string& ignorePattern);
 };
@@ -57,6 +58,7 @@ struct CreateFTSConfig {
     std::string stemmer = Stemmer::DEFAULT_VALUE;
     StopWordsTableInfo stopWordsTableInfo;
     std::string ignorePattern = IgnorePattern::DEFAULT_VALUE;
+    std::string ignorePatternQuery = IgnorePattern::DEFAULT_VALUE_QUERY;
 
     CreateFTSConfig() = default;
     CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,
@@ -72,12 +74,13 @@ struct FTSConfig {
     // used by show_index.
     std::string stopWordsSource = "";
     std::string ignorePattern = "";
+    std::string ignorePatternQuery = "";
 
     FTSConfig() = default;
     FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource,
-        std::string ignorePattern)
+        std::string ignorePattern, std::string ignorePatternQuery)
         : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)},
-          stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)} {}
+          stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)}, ignorePatternQuery{std::move(ignorePatternQuery)} {}
 
     void serialize(common::Serializer& serializer) const;
 
