@@ -142,10 +142,10 @@ NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context,
 }
 
 std::shared_ptr<Expression> GDSFunction::bindRelOutput(const TableFuncBindInput& bindInput,
-    const std::vector<TableCatalogEntry*>& relEntries, std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode, const std::optional<std::string>& name) {
+    const std::vector<TableCatalogEntry*>& relEntries, std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode, const std::optional<std::string>& name, const std::optional<size_t>& yieldVariableOffset) {
     std::string relColumnName = name.value_or(REL_COLUMN_NAME);
     if (!bindInput.yieldVariables.empty()) {
-        relColumnName = bindColumnName(bindInput.yieldVariables[0], relColumnName);
+        relColumnName = bindColumnName(bindInput.yieldVariables[yieldVariableOffset.value_or(0)], relColumnName);
     }
     bindInput.binder->createNonRecursiveQueryRel(relColumnName, relEntries, srcNode, dstNode, RelDirectionType::SINGLE);
     auto node = bindInput.binder->createQueryNode(relColumnName, relEntries);
@@ -154,10 +154,10 @@ std::shared_ptr<Expression> GDSFunction::bindRelOutput(const TableFuncBindInput&
 }
 
 std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput& bindInput,
-    const std::vector<TableCatalogEntry*>& nodeEntries, const std::optional<std::string>& name) {
+    const std::vector<TableCatalogEntry*>& nodeEntries, const std::optional<std::string>& name, const std::optional<size_t>& yieldVariableOffset) {
     std::string nodeColumnName = name.value_or(NODE_COLUMN_NAME);
     if (!bindInput.yieldVariables.empty()) {
-        nodeColumnName = bindColumnName(bindInput.yieldVariables[0], nodeColumnName);
+        nodeColumnName = bindColumnName(bindInput.yieldVariables[yieldVariableOffset.value_or(0)], nodeColumnName);
     }
     auto node = bindInput.binder->createQueryNode(nodeColumnName, nodeEntries);
     bindInput.binder->addToScope(nodeColumnName, node);
@@ -211,7 +211,7 @@ void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& rea
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    auto nodeOutput = bindData->nodeOutput->ptrCast<NodeExpression>();
+    auto nodeOutput = bindData->output[0]->ptrCast<NodeExpression>();
     KU_ASSERT(nodeOutput != nullptr);
     planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
     auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);

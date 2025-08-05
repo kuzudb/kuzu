@@ -92,9 +92,9 @@ public:
     static graph::NativeGraphEntry bindGraphEntry(main::ClientContext& context,
         const graph::ParsedNativeGraphEntry& parsedGraphEntry);
     static std::shared_ptr<binder::Expression> bindNodeOutput(const TableFuncBindInput& bindInput,
-        const std::vector<catalog::TableCatalogEntry*>& nodeEntries, const std::optional<std::string>& name = std::nullopt);
+        const std::vector<catalog::TableCatalogEntry*>& nodeEntries, const std::optional<std::string>& name = std::nullopt, const std::optional<size_t>& yieldVariableOffset = std::nullopt);
     static std::shared_ptr<binder::Expression> bindRelOutput(const TableFuncBindInput& bindInput,
-         const std::vector<catalog::TableCatalogEntry*>& nodeEntries, std::shared_ptr<binder::NodeExpression> srcNode, std::shared_ptr<binder::NodeExpression> dstNode, const std::optional<std::string>& name = std::nullopt);
+         const std::vector<catalog::TableCatalogEntry*>& nodeEntries, std::shared_ptr<binder::NodeExpression> srcNode, std::shared_ptr<binder::NodeExpression> dstNode, const std::optional<std::string>& name = std::nullopt, const std::optional<size_t>& yieldVariableOffset = std::nullopt);
     static std::string bindColumnName(const parser::YieldVariable& yieldVariable,
         std::string expressionName);
 
