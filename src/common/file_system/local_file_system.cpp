@@ -133,7 +133,7 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, Fil
         throw IOException(stringFormat("Cannot open file {}: {}", fullPath, posixErrMessage()));
     }
     if (flags.lockType != FileLockType::NO_LOCK) {
-        struct flock fl {};
+        struct flock fl{};
         memset(&fl, 0, sizeof fl);
         fl.l_type = flags.lockType == FileLockType::READ_LOCK ? F_RDLCK : F_WRLCK;
         fl.l_whence = SEEK_SET;
@@ -446,14 +446,36 @@ void LocalFileSystem::writeFile(FileInfo& fileInfo, const uint8_t* buffer, uint6
 void LocalFileSystem::syncFile(const FileInfo& fileInfo) const {
     auto localFileInfo = fileInfo.constPtrCast<LocalFileInfo>();
 #if defined(_WIN32)
-    // Note that `FlushFileBuffers` returns 0 when fail, while `fsync` returns 0 when succeed.
+    // Note that `FlushFileBuffers` returns 0 when fails, while `fsync` returns 0 when succeeds.
     if (FlushFileBuffers((HANDLE)localFileInfo->handle) == 0) {
         auto error = GetLastError();
         throw IOException(stringFormat("Failed to sync file {}. Error {}: {}", fileInfo.path, error,
             std::system_category().message(error)));
     }
 #else
-    if (fsync(localFileInfo->fd) != 0) {
+#if HAVE_FULLFSYNC
+    // Try F_FULLFSYNC first on macOS/iOS, which is required to guarantee durability past power
+    // failures.
+    if (fcntl(localFileInfo->fd, F_FULLFSYNC) == 0) {
+        return;
+    }
+    if (errno != ENOTSUP && errno != EINVAL) {
+        // LCOV_EXCL_START
+        if (errno == EIO) {
+            throw IOException("Fatal error: fsync failed!");
+        }
+        throw IOException(
+            stringFormat("Failed to sync file {}: {}", fileInfo.path, posixErrMessage()));
+        // LCOV_EXCL_STOP
+    }
+#endif
+    bool syncSuccess = false;
+#if HAVE_FDATASYNC
+    syncSuccess = fdatasync(localFileInfo->fd) == 0; // Only sync file data + essential metadata.
+#else
+    syncSuccess = fsync(localFileInfo->fd) == 0; // Sync file data + all metadata.
+#endif
+    if (!syncSuccess) {
         throw IOException(stringFormat("Failed to sync file {}.", fileInfo.path));
     }
 #endif
@@ -515,7 +537,7 @@ uint64_t LocalFileSystem::getFileSize(const FileInfo& fileInfo) const {
     }
     return size.QuadPart;
 #else
-    struct stat s {};
+    struct stat s{};
     if (fstat(localFileInfo->fd, &s) == -1) {
         throw IOException(stringFormat("Cannot read size of file. path: {} - Error {}: {}",
             fileInfo.path, errno, posixErrMessage()));
