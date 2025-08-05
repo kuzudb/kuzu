@@ -158,7 +158,7 @@ VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(MemoryManager& memoryManager
                 }
             }
         }
-        current = current->next;
+        current = current->prev.get();
     }
     if (!info) {
         // Create a new version here.
@@ -168,14 +168,15 @@ VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(MemoryManager& memoryManager
         newInfo->prev = std::move(vectorsInfo[vectorIdx]);
         vectorsInfo[vectorIdx] = std::move(newInfo);
         info = vectorsInfo[vectorIdx].get();
-        if (info->prev) {
-            // Copy the data from the previous version.
-            for (auto i = 0u; i < info->prev->numRowsUpdated; i++) {
-                info->rowsInVector[i] = info->prev->rowsInVector[i];
-            }
-            info->data->append(info->prev->data.get(), 0, info->prev->numRowsUpdated);
-            info->numRowsUpdated = info->prev->numRowsUpdated;
-        }
+        // TODO: Should first scan committed. then merge updates.
+        // if (info->prev) {
+        //     // Copy the data from the previous version.
+        //     for (auto i = 0u; i < info->prev->numRowsUpdated; i++) {
+        //         info->rowsInVector[i] = info->prev->rowsInVector[i];
+        //     }
+        //     info->data->append(info->prev->data.get(), 0, info->prev->numRowsUpdated);
+        //     info->numRowsUpdated = info->prev->numRowsUpdated;
+        // }
     }
     return *info;
 }

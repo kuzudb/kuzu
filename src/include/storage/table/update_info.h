@@ -42,6 +42,7 @@ struct VectorUpdateInfo {
         std::unique_lock lock{mutex};
         return std::move(prev);
     }
+    std::unique_ptr<VectorUpdateInfo> movePrevNoLock() { return std::move(prev); }
     void setPrev(std::unique_ptr<VectorUpdateInfo> prev) {
         std::unique_lock lock{mutex};
         this->prev = std::move(prev);
@@ -58,6 +59,7 @@ struct VectorUpdateInfo {
         std::shared_lock lock{mutex};
         return next;
     }
+    VectorUpdateInfo* getNextNoLock() const { return next; }
 };
 
 class UpdateInfo {

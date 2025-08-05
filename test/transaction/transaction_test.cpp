@@ -538,4 +538,258 @@ TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipUpdates) {
     auto updatedCount = res->getNext()->getValue(0)->getValue<int64_t>();
     ASSERT_EQ(updatedCount, numTotalUpdates);
 }
+
+static void updateNodesWithMixedTransactions(uint64_t startID, uint64_t num, bool shouldCommit,
+    kuzu::main::Database& database) {
+    auto conn = std::make_unique<kuzu::main::Connection>(&database);
+    conn->query("BEGIN TRANSACTION;");
+    for (uint64_t i = 0; i < num; ++i) {
+        auto id = startID + i;
+        auto newName = stringFormat("TxPerson{}", id);
+        auto res = conn->query(
+            stringFormat("MATCH (n:test) WHERE n.id = {} SET n.name = '{}';", id, newName));
+        ASSERT_TRUE(res->isSuccess())
+            << "Failed to update test" << id << ": " << res->getErrorMessage();
+    }
+    if (shouldCommit) {
+        conn->query("COMMIT;");
+    } else {
+        conn->query("ROLLBACK;");
+    }
+}
+
+static void updateRelationshipsWithMixedTransactions(uint64_t startID, uint64_t num,
+    bool shouldCommit, kuzu::main::Database& database) {
+    auto conn = std::make_unique<kuzu::main::Connection>(&database);
+    conn->query("BEGIN TRANSACTION;");
+    for (auto i = 0u; i < num; ++i) {
+        auto fromID = startID + i;
+        auto toID = (startID + i + 1) % (num * 4);
+        auto newWeight = 20.0 + (i % 3) * 5.0;
+        auto res = conn->query(stringFormat("MATCH (a:person)-[r:knows]->(b:person) WHERE a.id = "
+                                            "{} AND b.id = {} SET r.weight = {};",
+            fromID, toID, newWeight));
+        ASSERT_TRUE(res->isSuccess()) << "Failed to update relationship from " << fromID << " to "
+                                      << toID << ": " << res->getErrorMessage();
+    }
+    if (shouldCommit) {
+        conn->query("COMMIT;");
+    } else {
+        conn->query("ROLLBACK;");
+    }
+}
+
+static void mixedOperationsWithTransactions(uint64_t startID, uint64_t num, bool shouldCommit,
+    kuzu::main::Database& database) {
+    auto conn = std::make_unique<kuzu::main::Connection>(&database);
+    conn->query("BEGIN TRANSACTION;");
+
+    for (auto i = 0u; i < num; ++i) {
+        auto id = startID + i;
+
+        if (i % 3 == 0) {
+            auto newNodeID = id + 100000;
+            auto res = conn->query(stringFormat("CREATE (:test {id: {}, name: 'NewPerson{}'});",
+                newNodeID, newNodeID));
+            ASSERT_TRUE(res->isSuccess()) << "Failed to insert new node " << newNodeID
+                                          << ": " << res->getErrorMessage();
+        } else if (i % 3 == 1) {
+            auto newName = stringFormat("MixedPerson{}", id);
+            auto res = conn->query(
+                stringFormat("MATCH (n:test) WHERE n.id = {} SET n.name = '{}';", id, newName));
+            ASSERT_TRUE(res->isSuccess()) << "Failed to update node " << id
+                                          << ": " << res->getErrorMessage();
+        } else {
+            auto res = conn->query(stringFormat("MATCH (n:test) WHERE n.id = {} DELETE n;", id));
+            ASSERT_TRUE(res->isSuccess()) << "Failed to delete node " << id
+                                          << ": " << res->getErrorMessage();
+        }
+    }
+
+    if (shouldCommit) {
+        conn->query("COMMIT;");
+    } else {
+        conn->query("ROLLBACK;");
+    }
+}
+
+TEST_F(EmptyDBTransactionTest, ConcurrentNodeUpdatesWithMixedTransactions) {
+    if (systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL debug_enable_multi_writes=true;");
+    auto numThreads = 3;
+    auto numUpdatesPerThread = 10;
+    auto numTotalNodes = numThreads * numUpdatesPerThread;
+
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+
+    // Insert initial nodes
+    for (auto i = 0; i < numTotalNodes; ++i) {
+        auto res = conn->query(stringFormat("CREATE (:test {id: {}, name: 'Person{}'});", i, i));
+        ASSERT_TRUE(res->isSuccess());
+    }
+
+    // Verify initial state
+    auto res = conn->query("MATCH (a:test) RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto initialCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(initialCount, numTotalNodes);
+
+    // Update concurrently with mixed transactions (half commit, half rollback)
+    std::vector<std::thread> threads;
+    for (auto i = 0; i < numThreads; ++i) {
+        bool shouldCommit = (i % 2 == 0); // Even threads commit, odd threads rollback
+        threads.emplace_back(updateNodesWithMixedTransactions, i * numUpdatesPerThread,
+            numUpdatesPerThread, shouldCommit, std::ref(*database));
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // Verify only committed transactions persisted (half of the updates)
+    auto r = conn->query("MATCH (a:test) WHERE a.name STARTS WITH 'TxPerson' RETURN a");
+    std::cout << r->toString() << std::endl;
+    res = conn->query("MATCH (a:test) WHERE a.name STARTS WITH 'TxPerson' RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto committedCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(committedCount, 10);
+
+    // Verify rollback transactions didn't persist
+    res = conn->query("MATCH (a:test) WHERE a.name STARTS WITH 'Person' RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto originalCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(originalCount, numTotalNodes / 2);
+}
+
+TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipUpdatesWithMixedTransactions) {
+    if (systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL debug_enable_multi_writes=true;");
+    auto numThreads = 4;
+    auto numUpdatesPerThread = 1000;
+    auto numTotalUpdates = numThreads * numUpdatesPerThread;
+
+    conn->query("CREATE NODE TABLE person(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE REL TABLE knows(FROM person TO person, weight DOUBLE);");
+
+    // Create nodes
+    for (auto i = 0; i < numTotalUpdates; ++i) {
+        auto res = conn->query(stringFormat("CREATE (:person {id: {}, name: 'Person{}'});", i, i));
+        ASSERT_TRUE(res->isSuccess());
+    }
+
+    // Create relationships with initial weights
+    for (auto i = 0; i < numTotalUpdates; ++i) {
+        auto fromID = i;
+        auto toID = (i + 1) % numTotalUpdates;
+        auto weight = 5.0 + (i % 5) * 0.1;
+        auto res = conn->query(stringFormat("MATCH (a:person), (b:person) WHERE a.id = {} AND b.id "
+                                            "= {} CREATE (a)-[:knows {weight: {}}]->(b);",
+            fromID, toID, weight));
+        ASSERT_TRUE(res->isSuccess());
+    }
+
+    // Verify initial relationships
+    auto res = conn->query("MATCH ()-[r:knows]->() RETURN COUNT(r) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto initialCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(initialCount, numTotalUpdates);
+
+    // Update relationships with mixed transactions
+    std::vector<std::thread> threads;
+    for (auto i = 0; i < numThreads; ++i) {
+        bool shouldCommit = (i % 3 != 0); // 2/3 commit, 1/3 rollback
+        threads.emplace_back(updateRelationshipsWithMixedTransactions, i * numUpdatesPerThread,
+            numUpdatesPerThread, shouldCommit, std::ref(*database));
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // Verify committed updates (weights >= 20.0) - should be 2/3 of total
+    res = conn->query("MATCH ()-[r:knows]->() WHERE r.weight >= 20.0 RETURN COUNT(r) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto committedCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    auto expectedCommitted = (numTotalUpdates * 2) / 3;
+    ASSERT_EQ(committedCount, expectedCommitted);
+
+    // Verify original weights still exist for rolled back transactions
+    res = conn->query("MATCH ()-[r:knows]->() WHERE r.weight < 10.0 RETURN COUNT(r) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto originalCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(originalCount, numTotalUpdates / 3);
+}
+
+TEST_F(EmptyDBTransactionTest, ConcurrentMixedOperationsWithTransactions) {
+    if (systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL debug_enable_multi_writes=true;");
+    auto numThreads = 6;
+    auto numOpsPerThread = 900;
+    auto numTotalOps = numThreads * numOpsPerThread;
+
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+
+    // Insert initial nodes (more than we'll operate on to handle deletes)
+    for (auto i = 0; i < numTotalOps; ++i) {
+        auto res = conn->query(stringFormat("CREATE (:test {id: {}, name: 'Person{}'});", i, i));
+        ASSERT_TRUE(res->isSuccess());
+    }
+
+    // Verify initial state
+    auto res = conn->query("MATCH (a:test) RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto initialCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(initialCount, numTotalOps);
+
+    // Perform mixed operations with different transaction outcomes
+    std::vector<std::thread> threads;
+    for (auto i = 0; i < numThreads; ++i) {
+        bool shouldCommit = (i % 2 == 0); // Half commit, half rollback
+        threads.emplace_back(mixedOperationsWithTransactions, i * numOpsPerThread, numOpsPerThread,
+            shouldCommit, std::ref(*database));
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // Count final nodes - original count plus committed insertions minus committed deletions
+    res = conn->query("MATCH (a:test) RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto finalCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    
+    // Expected: original nodes + committed new nodes - committed deleted nodes
+    // Each committed thread does: numOpsPerThread/3 inserts, numOpsPerThread/3 updates, numOpsPerThread/3 deletes
+    auto committedThreads = numThreads / 2;
+    auto expectedInserts = committedThreads * (numOpsPerThread / 3);
+    auto expectedDeletes = committedThreads * (numOpsPerThread / 3);
+    auto expectedFinalCount = initialCount + expectedInserts - expectedDeletes;
+    ASSERT_EQ(finalCount, expectedFinalCount);
+
+    // Verify committed updates exist
+    res = conn->query("MATCH (a:test) WHERE a.name STARTS WITH 'MixedPerson' RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto updatedCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    auto expectedUpdates = committedThreads * (numOpsPerThread / 3);
+    ASSERT_EQ(updatedCount, expectedUpdates);
+
+    // Verify committed new nodes exist
+    res = conn->query("MATCH (a:test) WHERE a.name STARTS WITH 'NewPerson' RETURN COUNT(a) AS COUNT;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 1);
+    auto newCount = res->getNext()->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(newCount, expectedInserts);
+}
 #endif
