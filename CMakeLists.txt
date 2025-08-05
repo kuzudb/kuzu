@@ -397,7 +397,7 @@ if(BUILD_KUZU)
 
 include_directories(
     src/include
-    ${CMAKE_BINARY_DIR}/src/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
 )
 
 add_subdirectory(src)
