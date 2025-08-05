@@ -38,8 +38,7 @@ std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view quer
     auto cypherLexer = CypherLexer(&inputStream);
     cypherLexer.removeErrorListeners();
     cypherLexer.addErrorListener(&parserErrorListener);
-    auto tokens =
-        CommonTokenStream(&cypherLexer);
+    auto tokens = CommonTokenStream(&cypherLexer);
     tokens.fill();
 
     auto kuzuCypherParser = KuzuCypherParser(&tokens);
