@@ -47,7 +47,8 @@ struct IgnorePattern {
     static constexpr const char* NAME = "ignore_pattern";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
     static constexpr const char* DEFAULT_VALUE = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
-    static constexpr const char* DEFAULT_VALUE_QUERY = "[0-9!@#$%^&()_+={}\\[\\]:;<>,.~\\/\\|'\"`-]+";
+    static constexpr const char* DEFAULT_VALUE_QUERY =
+        "[0-9!@#$%^&()_+={}\\[\\]:;<>,.~\\/\\|'\"`-]+";
 
     static void validate(const std::string& ignorePattern);
 };
@@ -80,7 +81,8 @@ struct FTSConfig {
     FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource,
         std::string ignorePattern, std::string ignorePatternQuery)
         : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)},
-          stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)}, ignorePatternQuery{std::move(ignorePatternQuery)} {}
+          stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)},
+          ignorePatternQuery{std::move(ignorePatternQuery)} {}
 
     void serialize(common::Serializer& serializer) const;
 
