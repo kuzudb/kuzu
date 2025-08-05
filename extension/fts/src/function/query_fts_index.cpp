@@ -243,7 +243,7 @@ private:
 
 class GetPKVertexCompute final : public VertexCompute {
 public:
-    GetPKVertexCompute(std::unordered_map<std::string, offset_t>& offsetMap)
+    explicit GetPKVertexCompute(std::unordered_map<std::string, offset_t>& offsetMap)
         : offsetMap{offsetMap} {}
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         auto terms = chunk.getProperties<ku_string_t>(0);
