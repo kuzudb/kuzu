@@ -1,5 +1,7 @@
 #include "binder/binder.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/node_expression.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
@@ -276,14 +278,19 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         throw BinderException(
             "Provided weight property is not numerical: " + config.weightProperty);
     }
-    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "src");
+    auto srcnodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "src");
+    auto dstnodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "dst");
+    auto relOutput = GDSFunction::bindRelOutput(*input, 
+                                                graphEntry.getRelEntries(), 
+                                                std::dynamic_pointer_cast<NodeExpression>(srcnodeOutput),
+                                                std::dynamic_pointer_cast<NodeExpression>(dstnodeOutput)
+                                                );
     expression_vector columns;
-    columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
-    columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
-    columns.push_back(input->binder->createVariable("REL", LogicalType::INTERNAL_ID()));
+    columns.push_back(srcnodeOutput->constCast<NodeExpression>().getInternalID());
+    columns.push_back(dstnodeOutput->constCast<NodeExpression>().getInternalID());
+    columns.push_back(relOutput->constCast<RelExpression>().getInternalID());
     columns.push_back(input->binder->createVariable("FOREST_ID", LogicalType::UINT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
-        std::move(optionalParams));
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), expression_vector{srcnodeOutput, dstnodeOutput, relOutput}, std::move(optionalParams));
 }
 
 function_set MinimumSpanningForest::getFunctionSet() {

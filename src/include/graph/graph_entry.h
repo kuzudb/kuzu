@@ -35,6 +35,8 @@ struct KUZU_API NativeGraphEntry {
 
     std::vector<common::table_id_t> getNodeTableIDs() const;
     std::vector<catalog::TableCatalogEntry*> getNodeEntries() const;
+    std::vector<catalog::TableCatalogEntry*> getRelEntries() const;
+
 
     const NativeGraphEntryTableInfo& getRelInfo(common::table_id_t tableID) const;
 

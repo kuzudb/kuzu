@@ -79,9 +79,9 @@ std::unique_ptr<GDSConfig> LouvainOptionalParams::getConfig() const {
 
 struct LouvainBindData final : public GDSBindData {
     LouvainBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
-        std::shared_ptr<Expression> nodeOutput,
+        expression_vector output,
         std::unique_ptr<LouvainOptionalParams> optionalParams)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput),
+        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(output),
               std::move(optionalParams)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -677,7 +677,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     columns.push_back(nodeOutput->constPtrCast<NodeExpression>()->getInternalID());
     columns.push_back(input->binder->createVariable(LOUVAIN_ID_COLUMN_NAME, LogicalType::INT64()));
-    return std::make_unique<LouvainBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+    return std::make_unique<LouvainBindData>(std::move(columns), std::move(graphEntry), expression_vector{nodeOutput},
         std::make_unique<LouvainOptionalParams>(input->optionalParamsLegacy));
 }
 

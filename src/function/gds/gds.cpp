@@ -1,6 +1,7 @@
 #include "function/gds/gds.h"
 
 #include "binder/binder.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
@@ -138,6 +139,18 @@ NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context,
         }
     }
     return result;
+}
+
+std::shared_ptr<Expression> GDSFunction::bindRelOutput(const TableFuncBindInput& bindInput,
+    const std::vector<TableCatalogEntry*>& relEntries, std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode, const std::optional<std::string>& name) {
+    std::string relColumnName = name.value_or(REL_COLUMN_NAME);
+    if (!bindInput.yieldVariables.empty()) {
+        relColumnName = bindColumnName(bindInput.yieldVariables[0], relColumnName);
+    }
+    bindInput.binder->createNonRecursiveQueryRel(relColumnName, relEntries, srcNode, dstNode, RelDirectionType::SINGLE);
+    auto node = bindInput.binder->createQueryNode(relColumnName, relEntries);
+    bindInput.binder->addToScope(relColumnName, node);
+    return node;
 }
 
 std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput& bindInput,
