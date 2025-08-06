@@ -147,9 +147,9 @@ std::shared_ptr<Expression> GDSFunction::bindRelOutput(const TableFuncBindInput&
     if (!bindInput.yieldVariables.empty()) {
         relColumnName = bindColumnName(bindInput.yieldVariables[yieldVariableOffset.value_or(0)], relColumnName);
     }
-    auto node = bindInput.binder->createNonRecursiveQueryRel(relColumnName, relEntries, srcNode, dstNode, RelDirectionType::SINGLE);
-    bindInput.binder->addToScope(relColumnName, node);
-    return node;
+    auto rel = bindInput.binder->createNonRecursiveQueryRel(relColumnName, relEntries, srcNode, dstNode, RelDirectionType::SINGLE);
+    bindInput.binder->addToScope(relColumnName, rel);
+    return rel;
 }
 
 std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput& bindInput,
