@@ -253,14 +253,16 @@ public:
         auto nodeIds = chunk.getNodeIDs();
         for (auto& queryTerm : queryTerms) {
             if (queryTerm.index() == 0) {
+                std::string& queryString = std::get<0>(queryTerm);
                 for (auto i = 0u; i < chunk.size(); ++i) {
-                    if (std::get<0>(queryTerm) == terms[i].getAsString()) {
+                    if (queryString == terms[i].getAsString()) {
                         resDfs[nodeIds[i].offset] = dfs[i];
                     }
                 }
             } else {
+                RE2& regex = *std::get<1>(queryTerm);
                 for (auto i = 0u; i < chunk.size(); ++i) {
-                    if (RE2::FullMatch(terms[i].getAsString(), *std::get<1>(queryTerm))) {
+                    if (RE2::FullMatch(terms[i].getAsString(), regex)) {
                         resDfs[nodeIds[i].offset] = dfs[i];
                     }
                     break;
