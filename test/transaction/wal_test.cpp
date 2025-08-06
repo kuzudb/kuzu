@@ -243,7 +243,7 @@ TEST_F(WalTest, ReadOnlyRecoveryFromExistingWAL) {
     auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
     ASSERT_TRUE(std::filesystem::exists(walFilePath));
     ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
-    
+
     // Restart in read-only mode
     systemConfig->readOnly = true;
     createDBAndConn();
@@ -266,10 +266,10 @@ TEST_F(WalTest, ReadOnlyRecoveryFromCorruptedWALTail) {
     auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
     ASSERT_TRUE(std::filesystem::exists(walFilePath));
     ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 10);
-    
+
     // Truncate the last 10 bytes of the WAL file to simulate corruption
     std::filesystem::resize_file(walFilePath, std::filesystem::file_size(walFilePath) - 10);
-    
+
     // Restart in read-only mode
     systemConfig->readOnly = true;
     createDBAndConn();
@@ -291,14 +291,14 @@ TEST_F(WalTest, ReadOnlyRecoveryWithShadowFile) {
     conn->query("COMMIT;");
     auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
     auto shadowFilePath = kuzu::storage::StorageUtils::getShadowFilePath(databasePath);
-    
+
     // Create a shadow file (simulating checkpoint in progress)
     std::ofstream file(shadowFilePath);
     file << "shadow file content";
     file.close();
     ASSERT_TRUE(std::filesystem::exists(walFilePath));
     ASSERT_TRUE(std::filesystem::exists(shadowFilePath));
-    
+
     // Restart in read-only mode
     systemConfig->readOnly = true;
     createDBAndConn();
@@ -320,10 +320,10 @@ TEST_F(WalTest, ReadOnlyRecoveryEmptyWALFile) {
     auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
     ASSERT_TRUE(std::filesystem::exists(walFilePath));
     ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
-    
+
     // Make WAL file empty
     std::filesystem::resize_file(walFilePath, 0);
-    
+
     // Restart in read-only mode
     systemConfig->readOnly = true;
     createDBAndConn();
@@ -343,11 +343,11 @@ TEST_F(WalTest, ReadOnlyRecoveryNoWALFile) {
     auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
     ASSERT_TRUE(std::filesystem::exists(walFilePath));
     ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
-    
+
     // Remove WAL file
     std::filesystem::remove(walFilePath);
     ASSERT_FALSE(std::filesystem::exists(walFilePath));
-    
+
     // Restart in read-only mode
     systemConfig->readOnly = true;
     createDBAndConn();
