@@ -324,7 +324,19 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    for(const auto& i : std::vector<int>{0, 1})
+    auto relOutput = bindData->output[2]->ptrCast<RelExpression>();
+    KU_ASSERT(relOutput != nullptr);
+    auto scanPlan = LogicalPlan();
+    auto boundNode = relOutput->getSrcNode();
+    auto nbrNode = relOutput->getDstNode();
+    const auto extendDir = ExtendDirection::FWD;
+    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, scanPlan);
+    planner->appendExtend(boundNode, nbrNode, std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, planner->getProperties(*relOutput), scanPlan);
+    expression_vector joinConditions;
+    joinConditions.push_back(relOutput->getInternalID());
+    planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
+
+    for(auto i = 0u; i < 2; ++i)
     {
         auto nodeOutput  = bindData->output[i]->ptrCast<NodeExpression>();
         KU_ASSERT(nodeOutput != nullptr);
@@ -337,17 +349,6 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
         }
     }
     
-    auto relOutput = bindData->output[2]->ptrCast<RelExpression>();
-    KU_ASSERT(relOutput != nullptr);
-    auto scanPlan = LogicalPlan();
-    auto boundNode = relOutput->getSrcNode();
-    auto nbrNode = relOutput->getDstNode();
-    const auto extendDir = ExtendDirection::FWD;
-    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, scanPlan);
-    planner->appendExtend(boundNode, nbrNode, std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, planner->getProperties(*relOutput), scanPlan);
-    expression_vector joinConditions;
-    joinConditions.push_back(relOutput->getInternalID());
-    planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
 }
 
 function_set MinimumSpanningForest::getFunctionSet() {
