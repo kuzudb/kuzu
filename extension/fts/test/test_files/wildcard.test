@@ -26,6 +26,11 @@ The Quantum World
 The Quantum World
 Learning Machines
 The Dragon's Call
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'h*t?ry history machine e*r*') RETURN node.title ORDER BY score DESC;
+---- 3
+Echoes of the Past
+Learning Machines
+The Quantum World
 
 -CASE WildcardInDocs
 
