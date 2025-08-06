@@ -800,6 +800,7 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *USER();
     OC_VariableContext *oC_Variable();
+    KU_IfNotExistsContext *kU_IfNotExists();
 
    
   };

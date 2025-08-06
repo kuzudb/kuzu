@@ -367,7 +367,7 @@ kU_SequenceOptions
 USER: ( 'U' | 'u' ) ( 'S' | 's' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
 
 kU_CreateUser
-    : CREATE SP USER SP oC_Variable;
+    : CREATE SP USER SP (kU_IfNotExists SP)? oC_Variable;
 
 kU_IncrementBy : INCREMENT SP ( BY SP )? MINUS? oC_IntegerLiteral ;
 
