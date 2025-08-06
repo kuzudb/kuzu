@@ -410,8 +410,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuDatabaseDestroy(JNIEnv* env, j
  * All Connection native functions
  */
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuConnectionInit(JNIEnv* env, jclass,
-    jobject db) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuConnectionInit(JNIEnv* env, jclass, jobject db) {
 
     try {
         Database* conn_db = getDatabase(env, db);
@@ -438,8 +437,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuConnectionDestroy(JNIEnv* env,
     }
 }
 
-JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuConnectionSetMaxNumThreadForExec(
-    JNIEnv* env, jclass, jobject thisConn, jlong numThreads) {
+JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuConnectionSetMaxNumThreadForExec(JNIEnv* env,
+    jclass, jobject thisConn, jlong numThreads) {
     try {
         Connection* conn = getConnection(env, thisConn);
         uint64_t threads = static_cast<uint64_t>(numThreads);
@@ -451,8 +450,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuConnectionSetMaxNumThreadForEx
     }
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuConnectionGetMaxNumThreadForExec(
-    JNIEnv* env, jclass, jobject thisConn) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuConnectionGetMaxNumThreadForExec(JNIEnv* env,
+    jclass, jobject thisConn) {
     try {
         Connection* conn = getConnection(env, thisConn);
         uint64_t threads = conn->getMaxNumThreadForExec();
@@ -523,8 +522,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuConnectionExecute(JNIEnv* e
             return nullptr;
         }
 
-        jobject ret =
-            createJavaObject(env, queryResult, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
+        jobject ret = createJavaObject(env, queryResult, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
         return ret;
     } catch (const Exception& e) {
         throwJNIException(env, e.what());
@@ -546,8 +544,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuConnectionInterrupt(JNIEnv* en
     }
 }
 
-JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuConnectionSetQueryTimeout(JNIEnv* env,
-    jclass, jobject thisConn, jlong timeoutInMs) {
+JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuConnectionSetQueryTimeout(JNIEnv* env, jclass,
+    jobject thisConn, jlong timeoutInMs) {
     try {
         Connection* conn = getConnection(env, thisConn);
         uint64_t timeout = static_cast<uint64_t>(timeoutInMs);
@@ -563,8 +561,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuConnectionSetQueryTimeout(JNIE
  * All PreparedStatement native functions
  */
 
-JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuPreparedStatementDestroy(JNIEnv* env,
-    jclass, jobject thisPS) {
+JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuPreparedStatementDestroy(JNIEnv* env, jclass,
+    jobject thisPS) {
     try {
         PreparedStatement* ps = getPreparedStatement(env, thisPS);
         delete ps;
@@ -575,8 +573,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuPreparedStatementDestroy(JNIEn
     }
 }
 
-JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuPreparedStatementIsSuccess(
-    JNIEnv* env, jclass, jobject thisPS) {
+JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuPreparedStatementIsSuccess(JNIEnv* env,
+    jclass, jobject thisPS) {
     try {
         PreparedStatement* ps = getPreparedStatement(env, thisPS);
         return static_cast<jboolean>(ps->isSuccess());
@@ -588,8 +586,8 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuPreparedStatementIsSuccess
     return jboolean();
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuPreparedStatementGetErrorMessage(
-    JNIEnv* env, jclass, jobject thisPS) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuPreparedStatementGetErrorMessage(JNIEnv* env,
+    jclass, jobject thisPS) {
     try {
         PreparedStatement* ps = getPreparedStatement(env, thisPS);
         std::string errorMessage = ps->getErrorMessage();
@@ -619,8 +617,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuQueryResultDestroy(JNIEnv* env
     }
 }
 
-JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuQueryResultIsSuccess(JNIEnv* env,
-    jclass, jobject thisQR) {
+JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuQueryResultIsSuccess(JNIEnv* env, jclass,
+    jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         return static_cast<jboolean>(qr->isSuccess());
@@ -632,8 +630,8 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuQueryResultIsSuccess(JNIEn
     return jboolean();
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetErrorMessage(
-    JNIEnv* env, jclass, jobject thisQR) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetErrorMessage(JNIEnv* env, jclass,
+    jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         std::string errorMessage = qr->getErrorMessage();
@@ -647,8 +645,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetErrorMessage(
     return jstring();
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNumColumns(JNIEnv* env,
-    jclass, jobject thisQR) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNumColumns(JNIEnv* env, jclass,
+    jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         return static_cast<jlong>(qr->getNumColumns());
@@ -660,8 +658,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNumColumns(JNIE
     return jlong();
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetColumnName(JNIEnv* env,
-    jclass, jobject thisQR, jlong index) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetColumnName(JNIEnv* env, jclass,
+    jobject thisQR, jlong index) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         auto columnNames = qr->getColumnNames();
@@ -680,8 +678,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetColumnName(JN
     return jstring();
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetColumnDataType(
-    JNIEnv* env, jclass, jobject thisQR, jlong index) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetColumnDataType(JNIEnv* env,
+    jclass, jobject thisQR, jlong index) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         auto columnDataTypes = qr->getColumnDataTypes();
@@ -706,8 +704,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetColumnDataTyp
     return jobject();
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNumTuples(JNIEnv* env,
-    jclass, jobject thisQR) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNumTuples(JNIEnv* env, jclass,
+    jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         return static_cast<jlong>(qr->getNumTuples());
@@ -719,8 +717,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNumTuples(JNIEn
     return jlong();
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetQuerySummary(
-    JNIEnv* env, jclass, jobject thisQR) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetQuerySummary(JNIEnv* env, jclass,
+    jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         auto querySummary = qr->getQuerySummary();
@@ -739,8 +737,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetQuerySummary(
     return jobject();
 }
 
-JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuQueryResultHasNext(JNIEnv* env,
-    jclass, jobject thisQR) {
+JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuQueryResultHasNext(JNIEnv* env, jclass,
+    jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         return static_cast<jboolean>(qr->hasNext());
@@ -773,8 +771,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNext(JNIEnv* 
     return jobject();
 }
 
-JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuQueryResultHasNextQueryResult(
-    JNIEnv* env, jclass, jobject thisQR) {
+JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuQueryResultHasNextQueryResult(JNIEnv* env,
+    jclass, jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         return qr->hasNextQueryResult();
@@ -786,8 +784,8 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuQueryResultHasNextQueryRes
     return jboolean();
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNextQueryResult(
-    JNIEnv* env, jclass, jobject thisQR) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNextQueryResult(JNIEnv* env,
+    jclass, jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         auto queryResult = qr->getNextQueryResult();
@@ -795,8 +793,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNextQueryResu
             return nullptr;
         }
 
-        jobject ret =
-            createJavaObject(env, queryResult, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
+        jobject ret = createJavaObject(env, queryResult, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
         env->SetBooleanField(ret, J_C_QueryResult_F_isOwnedByCPP, static_cast<jboolean>(true));
         return ret;
     } catch (const Exception& e) {
@@ -807,8 +804,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuQueryResultGetNextQueryResu
     return jobject();
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuQueryResultToString(JNIEnv* env,
-    jclass, jobject thisQR) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuQueryResultToString(JNIEnv* env, jclass,
+    jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         std::string resultString = qr->toString();
@@ -822,8 +819,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuQueryResultToString(JNIEnv*
     return jstring();
 }
 
-JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuQueryResultResetIterator(JNIEnv* env,
-    jclass, jobject thisQR) {
+JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuQueryResultResetIterator(JNIEnv* env, jclass,
+    jobject thisQR) {
     try {
         QueryResult* qr = getQueryResult(env, thisQR);
         qr->resetIterator();
@@ -906,8 +903,8 @@ struct JavaAPIHelper {
 };
 } // namespace kuzu::common
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuDataTypeCreate(JNIEnv* env, jclass,
-    jobject id, jobject childType, jlong numElementsInArray) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuDataTypeCreate(JNIEnv* env, jclass, jobject id,
+    jobject childType, jlong numElementsInArray) {
     try {
         jint fieldValue = env->GetIntField(id, J_C_DataTypeID_F_value);
 
@@ -918,10 +915,10 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuDataTypeCreate(JNIEnv* env, j
             dataType = new LogicalType(logicalTypeID);
         } else {
             auto childTypePty = getDataType(env, childType)->copy();
-            auto extraTypeInfo = numElementsInArray > 0 ?
-                                     std::make_unique<ArrayTypeInfo>(std::move(childTypePty),
-                                         numElementsInArray) :
-                                     std::make_unique<ListTypeInfo>(std::move(childTypePty));
+            auto extraTypeInfo =
+                numElementsInArray > 0 ?
+                    std::make_unique<ArrayTypeInfo>(std::move(childTypePty), numElementsInArray) :
+                    std::make_unique<ListTypeInfo>(std::move(childTypePty));
             dataType = JavaAPIHelper::createLogicalType(logicalTypeID, std::move(extraTypeInfo));
         }
         uint64_t address = reinterpret_cast<uint64_t>(dataType);
@@ -994,8 +991,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuDataTypeGetId(JNIEnv* env, 
     return jobject();
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuDataTypeGetChildType(JNIEnv* env,
-    jclass, jobject thisDT) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuDataTypeGetChildType(JNIEnv* env, jclass,
+    jobject thisDT) {
     try {
         auto* parentType = getDataType(env, thisDT);
         LogicalType childType;
@@ -1017,8 +1014,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuDataTypeGetChildType(JNIEnv
     return jobject();
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuDataTypeGetNumElementsInArray(
-    JNIEnv* env, jclass, jobject thisDT) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuDataTypeGetNumElementsInArray(JNIEnv* env,
+    jclass, jobject thisDT) {
     try {
         auto* dt = getDataType(env, thisDT);
         if (dt->getLogicalTypeID() != LogicalTypeID::ARRAY) {
@@ -1050,8 +1047,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuValueCreateNull(JNIEnv* env
     return jobject();
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuValueCreateNullWithDataType(
-    JNIEnv* env, jclass, jobject dataType) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuValueCreateNullWithDataType(JNIEnv* env,
+    jclass, jobject dataType) {
     try {
         auto* dt = getDataType(env, dataType);
         Value* v = new Value(Value::createNullValue(*dt));
@@ -1078,8 +1075,8 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzuValueIsNull(JNIEnv* env, j
     return jboolean();
 }
 
-JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuValueSetNull(JNIEnv* env, jclass,
-    jobject thisV, jboolean isNull) {
+JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuValueSetNull(JNIEnv* env, jclass, jobject thisV,
+    jboolean isNull) {
     try {
         Value* v = getValue(env, thisV);
         v->setNull(static_cast<bool>(isNull));
@@ -1216,8 +1213,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuValueClone(JNIEnv* env, jcl
     return jobject();
 }
 
-JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuValueCopy(JNIEnv* env, jclass,
-    jobject thisValue, jobject otherValue) {
+JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuValueCopy(JNIEnv* env, jclass, jobject thisValue,
+    jobject otherValue) {
     try {
         Value* thisV = getValue(env, thisValue);
         Value* otherV = getValue(env, otherValue);
@@ -1241,8 +1238,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzuValueDestroy(JNIEnv* env, jcla
     }
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuCreateList___3Lcom_kuzudb_Value_2(
-    JNIEnv* env, jclass, jobjectArray listValues) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuCreateList___3Lcom_kuzudb_Value_2(JNIEnv* env,
+    jclass, jobjectArray listValues) {
     try {
         jsize len = env->GetArrayLength(listValues);
         if (len == 0) {
@@ -1299,8 +1296,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuValueGetListSize(JNIEnv* env,
     return jlong();
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuValueGetListElement(JNIEnv* env,
-    jclass, jobject thisValue, jlong index) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuValueGetListElement(JNIEnv* env, jclass,
+    jobject thisValue, jlong index) {
     try {
         Value* v = getValue(env, thisValue);
         uint64_t idx = static_cast<uint64_t>(index);
@@ -1535,8 +1532,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuNodeValGetId(JNIEnv* env, j
     return jobject();
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuNodeValGetLabelName(JNIEnv* env,
-    jclass, jobject thisNV) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuNodeValGetLabelName(JNIEnv* env, jclass,
+    jobject thisNV) {
     try {
         auto* nv = getValue(env, thisNV);
         auto labelVal = NodeVal::getLabelVal(nv);
@@ -1553,8 +1550,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuNodeValGetLabelName(JNIEnv*
     return jstring();
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuNodeValGetPropertySize(JNIEnv* env,
-    jclass, jobject thisNV) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuNodeValGetPropertySize(JNIEnv* env, jclass,
+    jobject thisNV) {
     try {
         auto* nv = getValue(env, thisNV);
         auto size = NodeVal::getNumProperties(nv);
@@ -1567,8 +1564,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuNodeValGetPropertySize(JNIEnv
     return jlong();
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuNodeValGetPropertyNameAt(
-    JNIEnv* env, jclass, jobject thisNV, jlong index) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuNodeValGetPropertyNameAt(JNIEnv* env, jclass,
+    jobject thisNV, jlong index) {
     try {
         auto* nv = getValue(env, thisNV);
         std::string propertyName = NodeVal::getPropertyName(nv, index);
@@ -1581,8 +1578,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuNodeValGetPropertyNameAt(
     return jstring();
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuNodeValGetPropertyValueAt(
-    JNIEnv* env, jclass, jobject thisNV, jlong index) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuNodeValGetPropertyValueAt(JNIEnv* env, jclass,
+    jobject thisNV, jlong index) {
     try {
         auto* nv = getValue(env, thisNV);
         auto propertyValue = NodeVal::getPropertyVal(nv, index);
@@ -1669,8 +1666,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuRelValGetDstId(JNIEnv* env,
     return jobject();
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuRelValGetLabelName(JNIEnv* env,
-    jclass, jobject thisRV) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuRelValGetLabelName(JNIEnv* env, jclass,
+    jobject thisRV) {
     try {
         auto* rv = getValue(env, thisRV);
         auto labelVal = RelVal::getLabelVal(rv);
@@ -1687,8 +1684,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuRelValGetLabelName(JNIEnv* 
     return jstring();
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuRelValGetPropertySize(JNIEnv* env,
-    jclass, jobject thisRV) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuRelValGetPropertySize(JNIEnv* env, jclass,
+    jobject thisRV) {
     try {
         auto* rv = getValue(env, thisRV);
         auto size = RelVal::getNumProperties(rv);
@@ -1701,8 +1698,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzuRelValGetPropertySize(JNIEnv*
     return jlong();
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuRelValGetPropertyNameAt(
-    JNIEnv* env, jclass, jobject thisRV, jlong index) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuRelValGetPropertyNameAt(JNIEnv* env, jclass,
+    jobject thisRV, jlong index) {
     try {
         auto* rv = getValue(env, thisRV);
         std::string name = RelVal::getPropertyName(rv, index);
@@ -1715,8 +1712,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuRelValGetPropertyNameAt(
     return jstring();
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuRelValGetPropertyValueAt(
-    JNIEnv* env, jclass, jobject thisRV, jlong index) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuRelValGetPropertyValueAt(JNIEnv* env, jclass,
+    jobject thisRV, jlong index) {
     try {
         auto* rv = getValue(env, thisRV);
         uint64_t idx = static_cast<uint64_t>(index);
@@ -1827,8 +1824,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuCreateStruct(JNIEnv* env, j
     return jobject();
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuValueGetStructFieldName(JNIEnv* env,
-    jclass, jobject thisSV, jlong index) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzuValueGetStructFieldName(JNIEnv* env, jclass,
+    jobject thisSV, jlong index) {
     try {
         auto* sv = getValue(env, thisSV);
         const auto& dataType = sv->getDataType();
