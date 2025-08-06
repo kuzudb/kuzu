@@ -47,6 +47,7 @@ private:
 
     std::unique_ptr<common::FileInfo> openWALFile() const;
     void syncWALFile(const common::FileInfo& fileInfo) const;
+    void truncateWALFile(common::FileInfo& fileInfo, uint64_t size) const;
 
 private:
     main::ClientContext& clientContext;

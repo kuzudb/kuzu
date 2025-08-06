@@ -79,6 +79,9 @@ void WALReplayer::replay() const {
                 auto walRecord = WALRecord::deserialize(deserializer, clientContext);
                 replayWALRecord(*walRecord);
             }
+            // After replaying all the records, we should truncate the WAL file to the last
+            // COMMIT/CHECKPOINT record.
+            truncateWALFile(*fileInfo, offsetDeserialized);
         }
     } catch (const std::exception&) {
         if (clientContext.getTransactionContext()->hasActiveTransaction()) {
@@ -477,13 +480,6 @@ void WALReplayer::removeFileIfExists(const std::string& path) const {
     }
 }
 
-void WALReplayer::syncWALFile(const FileInfo& fileInfo) const {
-    if (clientContext.getStorageManager()->isReadOnly()) {
-        return;
-    }
-    fileInfo.syncFile();
-}
-
 std::unique_ptr<FileInfo> WALReplayer::openWALFile() const {
     auto flag = FileFlags::READ_ONLY;
     if (!clientContext.getStorageManager()->isReadOnly()) {
@@ -491,6 +487,23 @@ std::unique_ptr<FileInfo> WALReplayer::openWALFile() const {
                                   // so that we can sync it.
     }
     return clientContext.getVFSUnsafe()->openFile(walPath, FileOpenFlags(flag));
+}
+
+void WALReplayer::syncWALFile(const FileInfo& fileInfo) const {
+    if (clientContext.getStorageManager()->isReadOnly()) {
+        return;
+    }
+    fileInfo.syncFile();
+}
+
+void WALReplayer::truncateWALFile(FileInfo& fileInfo, uint64_t size) const {
+    if (clientContext.getStorageManager()->isReadOnly()) {
+        return;
+    }
+    if (fileInfo.getFileSize() > size) {
+        fileInfo.truncate(size);
+        fileInfo.syncFile();
+    }
 }
 
 } // namespace storage
