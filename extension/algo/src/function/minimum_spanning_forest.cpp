@@ -342,8 +342,8 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     const auto extendDir = ExtendDirection::FWD;
     planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, scanPlan);
     auto relProperties = planner->getProperties(*relOutput);
-    planner->appendExtend(boundNode, nbrNode, std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, relProperties, scanPlan);
     relProperties.push_back(relOutput->getInternalID());
+    planner->appendExtend(boundNode, nbrNode, std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, relProperties, scanPlan);
     planner->appendProjection(relProperties, scanPlan);
     expression_vector joinConditions;
     joinConditions.push_back(relOutput->getInternalID());
