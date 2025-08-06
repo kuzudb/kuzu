@@ -110,14 +110,10 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
 
 class KruskalState {
 public:
-    KruskalState(storage::MemoryManager* mm, offset_t numNodes)
-        : edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
-          rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
-        // parents[i] = i;
-        std::iota(parents.begin(), parents.end(), 0);
-    }
-    void getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId,
-        NbrScanState* const scanState);
+
+    KruskalState(storage::MemoryManager* mm, offset_t numNodes);
+
+    void getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId, NbrScanState* const scanState);
 
     void kruskalPreprocess(const bool& maxForest);
 
@@ -147,8 +143,14 @@ private:
     ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>> forest;
 };
 
-void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId,
-    NbrScanState* const scanState) {
+KruskalState::KruskalState(storage::MemoryManager* mm, offset_t numNodes)
+    : edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
+    rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
+    // parents[i] = i;
+    std::iota(parents.begin(), parents.end(), 0);
+}
+
+void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId, NbrScanState* const scanState) {
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
