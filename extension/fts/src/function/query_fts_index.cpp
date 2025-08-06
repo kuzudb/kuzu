@@ -314,9 +314,9 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
             RE2::GlobalReplace(&queryTerm, "\\*", ".*");
             RE2::GlobalReplace(&queryTerm, "\\?", ".");
             hasWildcardQueryTerm = true;
-            vcQueryTerms.push_back(std::make_unique<RE2>(queryTerm));
+            vcQueryTerms.emplace_back(std::in_place_type<std::unique_ptr<RE2>>, std::make_unique<RE2>(queryTerm));
         } else {
-            vcQueryTerms.push_back(queryTerm);
+            vcQueryTerms.emplace_back(std::in_place_type<std::string>, queryTerm);
         }
     }
     if (hasWildcardQueryTerm) {
