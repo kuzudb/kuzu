@@ -300,15 +300,17 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
     std::unordered_map<offset_t, uint64_t> dfs;
     std::vector<std::pair<std::string&, bool>> vcQueryTerms;
     vcQueryTerms.reserve(queryTerms.size());
+    bool hasWildcardQueryTerm = false;
     for (auto& queryTerm : queryTerms) {
         bool checkWc = FTSUtils::hasWildcardPattern(queryTerm);
         vcQueryTerms.push_back({queryTerm, checkWc});
         if (checkWc) {
             RE2::GlobalReplace(&queryTerm, "\\*", ".*");
             RE2::GlobalReplace(&queryTerm, "\\?", ".");
+            hasWildcardQueryTerm = true;
         }
     }
-    if (!vcQueryTerms.empty()) {
+    if (hasWildcardQueryTerm) {
         auto matchVc = MatchTermsVertexCompute{dfs, vcQueryTerms};
         GDSUtils::runVertexCompute(executionContext, GDSDensityState::DENSE, graph, matchVc,
             termsEntry, std::vector<std::string>{"term", DOC_FREQUENCY_PROP_NAME});
