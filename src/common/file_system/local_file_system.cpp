@@ -453,7 +453,7 @@ void LocalFileSystem::syncFile(const FileInfo& fileInfo) const {
             std::system_category().message(error)));
     }
 #else
-#if HAVE_FULLFSYNC
+#if HAS_FULLFSYNC
     // Try F_FULLFSYNC first on macOS/iOS, which is required to guarantee durability past power
     // failures.
     if (fcntl(localFileInfo->fd, F_FULLFSYNC) == 0) {
@@ -470,7 +470,7 @@ void LocalFileSystem::syncFile(const FileInfo& fileInfo) const {
     }
 #endif
     bool syncSuccess = false;
-#if HAVE_FDATASYNC
+#if HAS_FDATASYNC
     syncSuccess = fdatasync(localFileInfo->fd) == 0; // Only sync file data + essential metadata.
 #else
     syncSuccess = fsync(localFileInfo->fd) == 0; // Sync file data + all metadata.

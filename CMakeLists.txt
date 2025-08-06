@@ -131,6 +131,23 @@ message(STATUS "KUZU_NODE_GROUP_SIZE_LOG2: ${KUZU_NODE_GROUP_SIZE_LOG2}")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/src/include/common/system_config.h @ONLY)
 
+include(CheckCXXSymbolExists)
+check_cxx_symbol_exists(F_FULLFSYNC "fcntl.h" HAS_FULLFSYNC)
+check_cxx_symbol_exists(fdatasync "unistd.h" HAS_FDATASYNC)
+if(HAS_FULLFSYNC)
+    message(STATUS "✓ F_FULLFSYNC will be used on this platform")
+    add_compile_definitions(HAS_FULLFSYNC)
+else()
+    message(STATUS "✗ F_FULLFSYNC not available")
+endif()
+
+if(HAS_FDATASYNC)
+    message(STATUS "✓ fdatasync will be used on this platform")
+    add_compile_definitions(HAS_FDATASYNC)
+else()
+    message(STATUS "✗ fdatasync not available, using fsync fallback")
+endif()
+
 if(MSVC)
     # Required for M_PI on Windows
     add_compile_definitions(_USE_MATH_DEFINES)
