@@ -97,7 +97,8 @@ MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams) {
 std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     auto config = std::make_unique<MSFConfig>();
     if (weightProperty != nullptr) {
-        config->weightProperty = ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
+        config->weightProperty =
+            ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
     }
     if (maxForest != nullptr) {
         config->maxForest = ExpressionUtil::evaluateLiteral<bool>(*maxForest, LogicalType::BOOL());
@@ -110,7 +111,7 @@ public:
     KruskalState(storage::MemoryManager* mm, offset_t numNodes);
 
     void getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId,
-    NbrScanState* const scanState, const bool& weightProperty);
+        NbrScanState* const scanState, const bool& weightProperty);
 
     void kruskalPreprocess(const bool& maxForest);
 
@@ -159,7 +160,8 @@ void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const 
                     return;
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
-                auto weight = weightProperty ? propertyVectors[1]->template getValue<double>(i) : DEFAULTWEIGHT;
+                auto weight = weightProperty ? propertyVectors[1]->template getValue<double>(i) :
+                                               DEFAULTWEIGHT;
                 edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
@@ -264,10 +266,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
     auto optionalParams = make_unique<MSFOptionalParams>(input->optionalParamsLegacy);
     auto config = optionalParams->getConfig()->constCast<MSFConfig>();
-    if (!config.weightProperty.empty() && !graphEntry.relInfos[0].entry->containsProperty(config.weightProperty)) {
+    if (!config.weightProperty.empty() &&
+        !graphEntry.relInfos[0].entry->containsProperty(config.weightProperty)) {
         throw BinderException("Cannot find property: " + config.weightProperty);
     }
-    if (!config.weightProperty.empty() && !LogicalTypeUtils::isNumerical(
+    if (!config.weightProperty.empty() &&
+        !LogicalTypeUtils::isNumerical(
             graphEntry.relInfos[0].entry->getProperty(config.weightProperty).getType())) {
         throw BinderException(
             "Provided weight property is not numerical: " + config.weightProperty);
