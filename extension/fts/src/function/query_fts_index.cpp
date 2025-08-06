@@ -265,7 +265,6 @@ public:
                     if (RE2::FullMatch(terms[i].getAsString(), regex)) {
                         resDfs[nodeIds[i].offset] = dfs[i];
                     }
-                    break;
                 }
             }
         }
