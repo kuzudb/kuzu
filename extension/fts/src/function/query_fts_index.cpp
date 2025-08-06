@@ -243,7 +243,8 @@ private:
 
 class MatchTermsVertexCompute final : public VertexCompute {
 public:
-    explicit MatchTermsVertexCompute(std::unordered_map<offset_t, uint64_t>& resDfs, std::vector<std::pair<std::string&, bool>>& queryTerms)
+    explicit MatchTermsVertexCompute(std::unordered_map<offset_t, uint64_t>& resDfs,
+        std::vector<std::pair<std::string&, bool>>& queryTerms)
         : resDfs{resDfs}, queryTerms{queryTerms} {}
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         auto terms = chunk.getProperties<ku_string_t>(0);
@@ -264,6 +265,7 @@ public:
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<MatchTermsVertexCompute>(resDfs, queryTerms);
     }
+
 private:
     std::unordered_map<offset_t, uint64_t>& resDfs;
     std::vector<std::pair<std::string&, bool>>& queryTerms;
@@ -458,7 +460,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto& ftsIndex = index.value()->cast<FTSIndex>();
     auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
     auto bindData = std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry),
-        nodeOutput, std::move(query), *ftsIndexEntry, QueryFTSOptionalParams{context, input->optionalParamsLegacy}, ftsStorageInfo.numDocs,
+        nodeOutput, std::move(query), *ftsIndexEntry,
+        QueryFTSOptionalParams{context, input->optionalParamsLegacy}, ftsStorageInfo.numDocs,
         ftsStorageInfo.avgDocLen);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
