@@ -324,7 +324,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    for(auto i : std::vector<int>{0, 1})
+    for(const auto& i : std::vector<int>{0, 1})
     {
         auto nodeOutput  = bindData->output[i]->ptrCast<NodeExpression>();
         KU_ASSERT(nodeOutput != nullptr);
