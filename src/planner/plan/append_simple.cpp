@@ -12,7 +12,6 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop.h"
-#include "extension/bound_extension_clause.h"
 #include "extension/planner_extension.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"

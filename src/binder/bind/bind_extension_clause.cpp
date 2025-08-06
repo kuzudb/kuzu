@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "parser/extension_statement.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

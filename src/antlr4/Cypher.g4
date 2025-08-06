@@ -764,6 +764,7 @@ kU_NonReservedKeywords
         | FROM
         | TO
         | YIELD
+        | USER
         ;
 
 UnescapedSymbolicName

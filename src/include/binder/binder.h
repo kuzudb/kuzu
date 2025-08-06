@@ -69,7 +69,7 @@ class Binder {
     friend class ExpressionBinder;
 
 public:
-    Binder(main::ClientContext* clientContext,
+    explicit Binder(main::ClientContext* clientContext,
         std::vector<extension::BinderExtension*> binderExtensions = {})
         : lastExpressionId{0}, scope{}, expressionBinder{this, clientContext},
           clientContext{clientContext}, binderExtensions{std::move(binderExtensions)} {}

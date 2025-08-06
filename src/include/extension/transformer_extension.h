@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "parser/statement.h"
 
 namespace antlr4 {
