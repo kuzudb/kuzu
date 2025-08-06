@@ -11,7 +11,6 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/table/bind_input.h"
-#include "graph/graph.h"
 #include "processor/execution_context.h"
 
 using namespace std;
