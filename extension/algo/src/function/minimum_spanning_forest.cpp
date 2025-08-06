@@ -146,7 +146,8 @@ struct KruskalState {
     }
 };
 
-static void getGraph(KruskalState& state, Graph* const graph, const offset_t& numNodes, const table_id_t& tableId, NbrScanState* const scanState) {
+static void getGraph(KruskalState& state, Graph* const graph, const offset_t& numNodes,
+    const table_id_t& tableId, NbrScanState* const scanState) {
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
@@ -163,13 +164,12 @@ static void getGraph(KruskalState& state, Graph* const graph, const offset_t& nu
     }
 }
 
-static void kruskalPreprocess(KruskalState& state, const bool& maxForest)
-{
+static void kruskalPreprocess(KruskalState& state, const bool& maxForest) {
     const auto& cmp = [&](const auto& e1, const auto& e2) {
         const auto& [u1, v1, r1, w1] = e1;
         const auto& [u2, v2, r2, w2] = e2;
         return maxForest ? std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
-                                  std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
+                           std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
     };
     std::sort(state.edges.begin(), state.edges.end(), cmp);
 }
@@ -215,9 +215,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     KruskalState state(mm, numNodes);
     getGraph(state, graph, numNodes, tableId, scanState.get());
     kruskalPreprocess(state, config.maxForest);
-    kruskalCompute(state, numNodes); 
+    kruskalCompute(state, numNodes);
     assignForestIds(state);
-    
+
     const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.forest);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute,
         state.forest.size());
