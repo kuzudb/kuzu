@@ -2,7 +2,6 @@
 #include "binder/expression/expression_util.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"
-#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "common/types/types.h"
 #include "function/algo_function.h"
@@ -97,11 +96,9 @@ MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams) {
 
 std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     auto config = std::make_unique<MSFConfig>();
-    if (weightProperty == nullptr) {
-        throw RuntimeException("No parameter specifying the weight\n");
+    if (weightProperty != nullptr) {
+        config->weightProperty = ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
     }
-    config->weightProperty =
-        ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
     if (maxForest != nullptr) {
         config->maxForest = ExpressionUtil::evaluateLiteral<bool>(*maxForest, LogicalType::BOOL());
     }
@@ -113,7 +110,7 @@ public:
     KruskalState(storage::MemoryManager* mm, offset_t numNodes);
 
     void getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId,
-        NbrScanState* const scanState);
+    NbrScanState* const scanState, const bool& weightProperty);
 
     void kruskalPreprocess(const bool& maxForest);
 
@@ -130,6 +127,7 @@ public:
     offset_t getForestSize() const { return forest.size(); };
 
 private:
+    static constexpr double DEFAULTWEIGHT = 1;
     // find and mergeComponents implement DSU to track vertices and their associated
     // components such that we do not add a cycle to our forest.
     // https://en.wikipedia.org/wiki/Disjoint-set_data_structure
@@ -151,7 +149,7 @@ KruskalState::KruskalState(storage::MemoryManager* mm, offset_t numNodes)
 }
 
 void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId,
-    NbrScanState* const scanState) {
+    NbrScanState* const scanState, const bool& weightProperty) {
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
@@ -161,7 +159,7 @@ void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const 
                     return;
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
-                auto weight = propertyVectors[1]->template getValue<double>(i);
+                auto weight = weightProperty ? propertyVectors[1]->template getValue<double>(i) : DEFAULTWEIGHT;
                 edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
@@ -231,12 +229,16 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
     auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
     auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
+    std::vector<std::string> relProps = {InternalKeyword::ID};
+    if (!config.weightProperty.empty()) {
+        relProps.push_back(config.weightProperty);
+    }
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
-        nbrInfo.dstTableID, {InternalKeyword::ID, config.weightProperty}, false /*randomLookup*/);
+        nbrInfo.dstTableID, relProps, false /*randomLookup*/);
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalState state(mm, numNodes);
-    state.getGraph(graph, numNodes, tableId, scanState.get());
+    state.getGraph(graph, numNodes, tableId, scanState.get(), !config.weightProperty.empty());
     state.kruskalPreprocess(config.maxForest);
     state.kruskalCompute(numNodes);
     state.assignForestIds();
@@ -262,10 +264,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
     auto optionalParams = make_unique<MSFOptionalParams>(input->optionalParamsLegacy);
     auto config = optionalParams->getConfig()->constCast<MSFConfig>();
-    if (!graphEntry.relInfos[0].entry->containsProperty(config.weightProperty)) {
+    if (!config.weightProperty.empty() && !graphEntry.relInfos[0].entry->containsProperty(config.weightProperty)) {
         throw BinderException("Cannot find property: " + config.weightProperty);
     }
-    if (!LogicalTypeUtils::isNumerical(
+    if (!config.weightProperty.empty() && !LogicalTypeUtils::isNumerical(
             graphEntry.relInfos[0].entry->getProperty(config.weightProperty).getType())) {
         throw BinderException(
             "Provided weight property is not numerical: " + config.weightProperty);

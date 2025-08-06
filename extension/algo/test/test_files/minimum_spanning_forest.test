@@ -128,39 +128,6 @@
 7|8|10|5
 8|9|3|5
 
--CASE InvalidWeightProperty
--LOAD_DYNAMIC_EXTENSION algo
--STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
----- ok
--STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
----- ok
--STATEMENT CREATE (u0:Node {id: 0}),
-            (u1:Node {id: 1}),
-            (u2:Node {id: 2}),
-            (u3:Node {id: 3}),
-            (u4:Node {id: 4}),
-            (u5:Node {id: 5}),
-            (u6:Node {id: 6}),
-            (u7:Node {id: 7}),
-            (u8:Node {id: 8}),
-            (u9:Node {id: 9}),
-            (u0)-[:Edge {weight: 5}]->(u1),
-            (u0)-[:Edge {weight: 6}]->(u2),
-            (u1)-[:Edge {weight: 8}]->(u2),
-            (u2)-[:Edge {weight: 3}]->(u3),
-            (u3)-[:Edge {weight: 3}]->(u4),
-            (u5)-[:Edge {weight: 10}]->(u6),
-            (u5)-[:Edge {weight: 10}]->(u7),
-            (u6)-[:Edge {weight: 3}]->(u7),
-            (u7)-[:Edge {weight: 10}]->(u8),
-            (u8)-[:Edge {weight: 3}]->(u9);
----- ok
--STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
----- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
----- error
-Binder exception: Provided weight property is not numerical: weight
-
 -CASE NoEdges
 -LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
@@ -285,7 +252,7 @@ Binder exception: Provided weight property is not numerical: weight
 7|8|10|0
 8|9|3|0
 
--CASE MaxForest
+-CASE MinVSMaxVSUnweightedForest
 -LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
@@ -338,3 +305,39 @@ Binder exception: Provided weight property is not numerical: weight
 5|7|10
 7|8|10
 8|9|3
+-STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph') YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight;
+---- 9
+0|2|6
+1|2|8
+2|3|3
+2|5|15
+3|4|3
+4|9|2
+5|6|10
+5|7|10
+8|9|3
+
+
+-CASE InvalidWeightProperty
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- error
+Binder exception: Provided weight property is not numerical: weight
+
+-CASE PropertyDoesNotExist
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='height') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- error
+Binder exception: Cannot find property: height
