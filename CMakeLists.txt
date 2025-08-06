@@ -129,7 +129,7 @@ if(NOT KUZU_NODE_GROUP_SIZE_LOG2)
 endif()
 message(STATUS "KUZU_NODE_GROUP_SIZE_LOG2: ${KUZU_NODE_GROUP_SIZE_LOG2}")
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/src/include/common/system_config.h @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/src/include/common/system_config.h @ONLY)
 
 include(CheckCXXSymbolExists)
 check_cxx_symbol_exists(F_FULLFSYNC "fcntl.h" HAS_FULLFSYNC)
@@ -414,7 +414,7 @@ if(BUILD_KUZU)
 
 include_directories(
     src/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    ${CMAKE_CURRENT_BINARY_DIR}/src/include
 )
 
 add_subdirectory(src)
