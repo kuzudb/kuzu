@@ -24,9 +24,6 @@ void Schema::insertToScope(const std::shared_ptr<Expression>& expression, f_grou
 
 void Schema::insertToGroupAndScope(const std::shared_ptr<Expression>& expression,
     f_group_pos groupPos) {
-    if (expressionNameToGroupPos.contains(expression->getUniqueName())) {
-        return;
-    }
     KU_ASSERT(!expressionNameToGroupPos.contains(expression->getUniqueName())); 
     expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
     groups[groupPos]->insertExpression(expression);

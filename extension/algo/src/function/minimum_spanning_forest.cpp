@@ -324,18 +324,6 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    auto relOutput = bindData->output[2]->ptrCast<RelExpression>();
-    KU_ASSERT(relOutput != nullptr);
-    auto scanPlan = LogicalPlan();
-    auto boundNode = relOutput->getSrcNode();
-    auto nbrNode = relOutput->getDstNode();
-    const auto extendDir = ExtendDirection::FWD;
-    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, scanPlan);
-    planner->appendExtend(boundNode, nbrNode, std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, planner->getProperties(*relOutput), scanPlan);
-    expression_vector joinConditions;
-    joinConditions.push_back(relOutput->getInternalID());
-    planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
-
     for(auto i = 0u; i < 2; ++i)
     {
         auto nodeOutput  = bindData->output[i]->ptrCast<NodeExpression>();
@@ -348,6 +336,21 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
             planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
         }
     }
+
+    auto relOutput = bindData->output[2]->ptrCast<RelExpression>();
+    KU_ASSERT(relOutput != nullptr);
+    auto scanPlan = LogicalPlan();
+    auto boundNode = relOutput->getSrcNode();
+    auto nbrNode = relOutput->getDstNode();
+    const auto extendDir = ExtendDirection::FWD;
+    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, scanPlan);
+    auto relProperties = planner->getProperties(*relOutput);
+    planner->appendExtend(boundNode, nbrNode, std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, relProperties, scanPlan);
+    relProperties.push_back(relOutput->getInternalID());
+    planner->appendProjection(relProperties, scanPlan);
+    expression_vector joinConditions;
+    joinConditions.push_back(relOutput->getInternalID());
+    planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
     
 }
 
