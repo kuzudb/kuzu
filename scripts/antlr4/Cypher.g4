@@ -366,8 +366,6 @@ kU_SequenceOptions
         | kU_StartWith
         | kU_Cycle;
 
-USER: ( 'U' | 'u' ) ( 'S' | 's' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
-
 kU_CreateUser
     : CREATE SP USER SP (kU_IfNotExists SP)? oC_Variable;
 
