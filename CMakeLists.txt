@@ -129,7 +129,7 @@ if(NOT KUZU_NODE_GROUP_SIZE_LOG2)
 endif()
 message(STATUS "KUZU_NODE_GROUP_SIZE_LOG2: ${KUZU_NODE_GROUP_SIZE_LOG2}")
 
-configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_BINARY_DIR}/src/include/common/system_config.h @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/src/include/common/system_config.h @ONLY)
 
 if(MSVC)
     # Required for M_PI on Windows
@@ -397,7 +397,7 @@ if(BUILD_KUZU)
 
 include_directories(
     src/include
-    ${CMAKE_BINARY_DIR}/src/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
 )
 
 add_subdirectory(src)

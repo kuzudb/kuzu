@@ -10,6 +10,10 @@
 #include "parser/query/graph_pattern/pattern_element.h"
 
 namespace kuzu {
+namespace extension {
+class BinderExtension;
+}
+
 namespace parser {
 class ProjectionBody;
 class ReturnClause;
@@ -64,9 +68,10 @@ class Binder {
     friend class ExpressionBinder;
 
 public:
-    explicit Binder(main::ClientContext* clientContext)
+    explicit Binder(main::ClientContext* clientContext,
+        std::vector<extension::BinderExtension*> binderExtensions = {})
         : lastExpressionId{0}, scope{}, expressionBinder{this, clientContext},
-          clientContext{clientContext} {}
+          clientContext{clientContext}, binderExtensions{std::move(binderExtensions)} {}
 
     KUZU_API std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -151,6 +156,7 @@ public:
     static std::unique_ptr<BoundStatement> bindAttachDatabase(const parser::Statement& statement);
     static std::unique_ptr<BoundStatement> bindDetachDatabase(const parser::Statement& statement);
     static std::unique_ptr<BoundStatement> bindUseDatabase(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindExtensionClause(const parser::Statement& statement);
 
     /*** bind scan source ***/
     std::unique_ptr<BoundBaseScanSource> bindScanSource(const parser::BaseScanSource* source,
@@ -329,6 +335,7 @@ private:
     BinderScope scope;
     ExpressionBinder expressionBinder;
     main::ClientContext* clientContext;
+    std::vector<extension::BinderExtension*> binderExtensions;
 };
 
 } // namespace binder

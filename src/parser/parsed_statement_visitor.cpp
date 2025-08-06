@@ -68,6 +68,9 @@ void StatementVisitor::visit(const Statement& statement) {
     case StatementType::STANDALONE_CALL_FUNCTION: {
         visitStandaloneCallFunction(statement);
     } break;
+    case StatementType::EXTENSION_CLAUSE: {
+        visitExtensionClause(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }

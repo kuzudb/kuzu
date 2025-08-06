@@ -29,6 +29,10 @@ struct Function;
 namespace extension {
 struct ExtensionUtils;
 class ExtensionManager;
+class TransformerExtension;
+class BinderExtension;
+class PlannerExtension;
+class MapperExtension;
 } // namespace extension
 
 namespace storage {
@@ -123,6 +127,25 @@ public:
     KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
         common::Value defaultValue, bool isConfidential = false);
 
+    KUZU_API void addTransformerExtension(
+        std::unique_ptr<extension::TransformerExtension> transformerExtension);
+
+    std::vector<extension::TransformerExtension*> getTransformerExtensions();
+
+    KUZU_API void addBinderExtension(
+        std::unique_ptr<extension::BinderExtension> transformerExtension);
+
+    std::vector<extension::BinderExtension*> getBinderExtensions();
+
+    KUZU_API void addPlannerExtension(
+        std::unique_ptr<extension::PlannerExtension> plannerExtension);
+
+    std::vector<extension::PlannerExtension*> getPlannerExtensions();
+
+    KUZU_API void addMapperExtension(std::unique_ptr<extension::MapperExtension> mapperExtension);
+
+    std::vector<extension::MapperExtension*> getMapperExtensions();
+
     KUZU_API catalog::Catalog* getCatalog() { return catalog.get(); }
 
     const DBConfig& getConfig() const { return dbConfig; }
@@ -164,6 +187,10 @@ private:
     std::unique_ptr<extension::ExtensionManager> extensionManager;
     QueryIDGenerator queryIDGenerator;
     std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
+    std::vector<std::unique_ptr<extension::TransformerExtension>> transformerExtensions;
+    std::vector<std::unique_ptr<extension::BinderExtension>> binderExtensions;
+    std::vector<std::unique_ptr<extension::PlannerExtension>> plannerExtensions;
+    std::vector<std::unique_ptr<extension::MapperExtension>> mapperExtensions;
 };
 
 } // namespace main

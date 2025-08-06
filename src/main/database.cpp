@@ -1,6 +1,10 @@
 #include "main/database.h"
 
+#include "extension/binder_extension.h"
 #include "extension/extension_manager.h"
+#include "extension/mapper_extension.h"
+#include "extension/planner_extension.h"
+#include "extension/transformer_extension.h"
 #include "main/client_context.h"
 #include "main/database_manager.h"
 #include "storage/buffer_manager/buffer_manager.h"
@@ -159,6 +163,56 @@ void Database::addExtensionOption(std::string name, LogicalTypeID type, Value de
     bool isConfidential) {
     extensionManager->addExtensionOption(std::move(name), type, std::move(defaultValue),
         isConfidential);
+}
+
+void Database::addTransformerExtension(
+    std::unique_ptr<extension::TransformerExtension> transformerExtension) {
+    transformerExtensions.push_back(std::move(transformerExtension));
+}
+
+std::vector<extension::TransformerExtension*> Database::getTransformerExtensions() {
+    std::vector<extension::TransformerExtension*> transformers;
+    for (auto& transformerExtension : transformerExtensions) {
+        transformers.push_back(transformerExtension.get());
+    }
+    return transformers;
+}
+
+void Database::addBinderExtension(
+    std::unique_ptr<extension::BinderExtension> transformerExtension) {
+    binderExtensions.push_back(std::move(transformerExtension));
+}
+
+std::vector<extension::BinderExtension*> Database::getBinderExtensions() {
+    std::vector<extension::BinderExtension*> binders;
+    for (auto& binderExtension : binderExtensions) {
+        binders.push_back(binderExtension.get());
+    }
+    return binders;
+}
+
+void Database::addPlannerExtension(std::unique_ptr<extension::PlannerExtension> plannerExtension) {
+    plannerExtensions.push_back(std::move(plannerExtension));
+}
+
+std::vector<extension::PlannerExtension*> Database::getPlannerExtensions() {
+    std::vector<extension::PlannerExtension*> planners;
+    for (auto& plannerExtension : plannerExtensions) {
+        planners.push_back(plannerExtension.get());
+    }
+    return planners;
+}
+
+void Database::addMapperExtension(std::unique_ptr<extension::MapperExtension> mapperExtension) {
+    mapperExtensions.push_back(std::move(mapperExtension));
+}
+
+std::vector<extension::MapperExtension*> Database::getMapperExtensions() {
+    std::vector<extension::MapperExtension*> mappers;
+    for (auto& mapperExtension : mapperExtensions) {
+        mappers.push_back(mapperExtension.get());
+    }
+    return mappers;
 }
 
 std::vector<StorageExtension*> Database::getStorageExtensions() {

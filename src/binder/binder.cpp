@@ -82,6 +82,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::USE_DATABASE: {
         boundStatement = bindUseDatabase(statement);
     } break;
+    case StatementType::EXTENSION_CLAUSE: {
+        boundStatement = bindExtensionClause(statement);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
