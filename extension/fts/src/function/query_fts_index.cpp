@@ -251,21 +251,19 @@ public:
         auto terms = chunk.getProperties<ku_string_t>(0);
         auto dfs = chunk.getProperties<uint64_t>(1);
         auto nodeIds = chunk.getNodeIDs();
-        for (auto i = 0u; i < chunk.size(); ++i) {
-            for (auto& queryTerm : queryTerms) {
-                switch (queryTerm.index()) {
-                case 0: {
+        for (auto& queryTerm : queryTerms) {
+            if (queryTerm.index() == 0) {
+                for (auto i = 0u; i < chunk.size(); ++i) {
                     if (std::get<0>(queryTerm) == terms[i].getAsString()) {
                         resDfs[nodeIds[i].offset] = dfs[i];
                     }
-                    break;
                 }
-                case 1: {
+            } else {
+                for (auto i = 0u; i < chunk.size(); ++i) {
                     if (RE2::FullMatch(terms[i].getAsString(), *std::get<1>(queryTerm))) {
                         resDfs[nodeIds[i].offset] = dfs[i];
                     }
                     break;
-                }
                 }
             }
         }
