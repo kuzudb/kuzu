@@ -324,8 +324,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    for(auto i = 0u; i < 2; ++i)
-    {
+    for(auto i = 0u; i < 2; ++i) {
         auto nodeOutput  = bindData->output[i]->ptrCast<NodeExpression>();
         KU_ASSERT(nodeOutput != nullptr);
         planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
@@ -351,7 +350,6 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     expression_vector joinConditions;
     joinConditions.push_back(relOutput->getInternalID());
     planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
-    
 }
 
 function_set MinimumSpanningForest::getFunctionSet() {
