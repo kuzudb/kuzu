@@ -244,7 +244,8 @@ private:
 using VcQueryTerm = std::variant<std::string, std::unique_ptr<RE2>>;
 class MatchTermsVertexCompute final : public VertexCompute {
 public:
-    explicit MatchTermsVertexCompute(std::unordered_map<offset_t, uint64_t>& resDfs, std::vector<VcQueryTerm>& queryTerms)
+    explicit MatchTermsVertexCompute(std::unordered_map<offset_t, uint64_t>& resDfs,
+        std::vector<VcQueryTerm>& queryTerms)
         : resDfs{resDfs}, queryTerms{queryTerms} {}
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         auto terms = chunk.getProperties<ku_string_t>(0);
@@ -253,18 +254,18 @@ public:
         for (auto i = 0u; i < chunk.size(); ++i) {
             for (auto& queryTerm : queryTerms) {
                 switch (queryTerm.index()) {
-                    case 0: {
-                        if (std::get<0>(queryTerm) == terms[i].getAsString()) {
-                            resDfs[nodeIds[i].offset] = dfs[i];
-                        }
-                        break;
+                case 0: {
+                    if (std::get<0>(queryTerm) == terms[i].getAsString()) {
+                        resDfs[nodeIds[i].offset] = dfs[i];
                     }
-                    case 1: {
-                        if (RE2::FullMatch(terms[i].getAsString(), *std::get<1>(queryTerm))) {
-                            resDfs[nodeIds[i].offset] = dfs[i];
-                        }
-                        break;
+                    break;
+                }
+                case 1: {
+                    if (RE2::FullMatch(terms[i].getAsString(), *std::get<1>(queryTerm))) {
+                        resDfs[nodeIds[i].offset] = dfs[i];
                     }
+                    break;
+                }
                 }
             }
         }
