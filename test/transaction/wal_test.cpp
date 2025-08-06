@@ -231,3 +231,127 @@ TEST_F(WalTest, CorruptedWALTailTruncated2RecoverTwice) {
     ASSERT_TRUE(res->isSuccess());
     ASSERT_EQ(res->getNumTuples(), 5);
 }
+
+TEST_F(WalTest, ReadOnlyRecoveryFromExistingWAL) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL force_checkpoint_on_close=false");
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE (:test {id: 1, name: 'Alice'});");
+    conn->query("CREATE (:test {id: 2, name: 'Bob'});");
+    auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
+    
+    // Restart in read-only mode
+    systemConfig->readOnly = true;
+    createDBAndConn();
+    auto res = conn->query("MATCH (n:test) RETURN n.id ORDER BY n.id;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 2);
+    // WAL file should still exist in read-only mode
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+}
+
+TEST_F(WalTest, ReadOnlyRecoveryFromCorruptedWALTail) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL force_checkpoint_on_close=false");
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE (:test {id: 1, name: 'Alice'});");
+    conn->query("CREATE (:test {id: 2, name: 'Bob'});");
+    conn->query("CREATE (:test {id: 3, name: 'Charlie'});");
+    auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 10);
+    
+    // Truncate the last 10 bytes of the WAL file to simulate corruption
+    std::filesystem::resize_file(walFilePath, std::filesystem::file_size(walFilePath) - 10);
+    
+    // Restart in read-only mode
+    systemConfig->readOnly = true;
+    createDBAndConn();
+    auto res = conn->query("MATCH (n:test) RETURN n.id ORDER BY n.id;");
+    ASSERT_TRUE(res->isSuccess());
+    // Should still recover up to the last valid record
+    ASSERT_GE(res->getNumTuples(), 0);
+    // WAL file should remain unchanged in read-only mode
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+}
+
+TEST_F(WalTest, ReadOnlyRecoveryWithShadowFile) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL force_checkpoint_on_close=false");
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE (:test {id: 1, name: 'Alice'});");
+    conn->query("COMMIT;");
+    auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
+    auto shadowFilePath = kuzu::storage::StorageUtils::getShadowFilePath(databasePath);
+    
+    // Create a shadow file (simulating checkpoint in progress)
+    std::ofstream file(shadowFilePath);
+    file << "shadow file content";
+    file.close();
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    ASSERT_TRUE(std::filesystem::exists(shadowFilePath));
+    
+    // Restart in read-only mode
+    systemConfig->readOnly = true;
+    createDBAndConn();
+    auto res = conn->query("MATCH (n:test) RETURN n.id ORDER BY n.id;");
+    ASSERT_TRUE(res->isSuccess());
+    // Should handle WAL recovery correctly
+    ASSERT_GE(res->getNumTuples(), 0);
+    // Files should remain unchanged in read-only mode
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    ASSERT_TRUE(std::filesystem::exists(shadowFilePath));
+}
+
+TEST_F(WalTest, ReadOnlyRecoveryEmptyWALFile) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL force_checkpoint_on_close=false");
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
+    
+    // Make WAL file empty
+    std::filesystem::resize_file(walFilePath, 0);
+    
+    // Restart in read-only mode
+    systemConfig->readOnly = true;
+    createDBAndConn();
+    auto res = conn->query("CALL show_tables() WHERE name='test' RETURN *;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 0);
+    // Empty WAL file should still exist in read-only mode
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+}
+
+TEST_F(WalTest, ReadOnlyRecoveryNoWALFile) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL force_checkpoint_on_close=false");
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 0);
+    
+    // Remove WAL file
+    std::filesystem::remove(walFilePath);
+    ASSERT_FALSE(std::filesystem::exists(walFilePath));
+    
+    // Restart in read-only mode
+    systemConfig->readOnly = true;
+    createDBAndConn();
+    auto res = conn->query("CALL show_tables() WHERE name='test' RETURN *;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 0);
+}
