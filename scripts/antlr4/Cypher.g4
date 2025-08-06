@@ -236,6 +236,8 @@ SINGLE : ( 'S' | 's' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'G' | 'g' ) ( 'L' | 'l' ) (
 
 YIELD : ( 'Y' | 'y' ) ( 'I' | 'i' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'D' | 'd' ) ;
 
+USER : ( 'U' | 'u' ) ( 'S' | 's' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
+
 
 
 ku_Statements
@@ -1003,6 +1005,7 @@ kU_NonReservedKeywords
         | FROM
         | TO
         | YIELD
+        | USER
         ;
 
 UnescapedSymbolicName

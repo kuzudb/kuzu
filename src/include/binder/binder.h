@@ -6,7 +6,6 @@
 #include "binder/query/query_graph.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/file_scan_info.h"
-#include "extension/binder_extension.h"
 #include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 

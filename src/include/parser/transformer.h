@@ -44,18 +44,14 @@ public:
     void registerTransformExtension(
         std::unique_ptr<extension::TransformerExtension> transformerExtension);
 
-    static std::string transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral);
-
-    static std::string transformVariable(CypherParser::OC_VariableContext& ctx);
-
-    static std::string transformSymbolicName(CypherParser::OC_SymbolicNameContext& ctx);
-
-private:
     std::unique_ptr<Statement> transformStatement(CypherParser::OC_StatementContext& ctx);
 
     std::unique_ptr<ParsedExpression> transformWhere(CypherParser::OC_WhereContext& ctx);
 
+    static std::string transformVariable(CypherParser::OC_VariableContext& ctx);
     std::string transformSchemaName(CypherParser::OC_SchemaNameContext& ctx);
+    static std::string transformSymbolicName(CypherParser::OC_SymbolicNameContext& ctx);
+    static std::string transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral);
 
     // Transform copy statement.
     std::unique_ptr<Statement> transformCopyTo(CypherParser::KU_CopyTOContext& ctx);
