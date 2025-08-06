@@ -27,8 +27,8 @@ namespace algo_extension {
 class WriteResultsMSF final : public GDSResultVertexCompute {
 public:
     WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
-        ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& final)
-        : GDSResultVertexCompute{mm, sharedState}, finalResults{final} {
+        const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& finalResults)
+        : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
         srcIDVector = createVector(LogicalType::INTERNAL_ID());
         dstIDVector = createVector(LogicalType::INTERNAL_ID());
         relIDVector = createVector(LogicalType::INTERNAL_ID());
@@ -54,7 +54,7 @@ public:
     }
 
 private:
-    ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& finalResults;
+    const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& finalResults;
     std::unique_ptr<ValueVector> srcIDVector;
     std::unique_ptr<ValueVector> dstIDVector;
     std::unique_ptr<ValueVector> relIDVector;
@@ -108,46 +108,45 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     return config;
 }
 
-// find and mergeComponents implement DSU to track vertices and their associated
-// components such that we do not add a cycle to our forest.
-// https://en.wikipedia.org/wiki/Disjoint-set_data_structure
-static offset_t find(const offset_t& u, ku_vector_t<offset_t>& parents) {
-    while (parents[u] != parents[parents[u]]) {
-        parents[u] = parents[parents[u]];
-    }
-    return parents[u];
-}
+class KruskalState {
+public:
 
-static void mergeComponents(const offset_t& pu, const offset_t& pv, ku_vector_t<offset_t>& parents,
-    ku_vector_t<uint64_t>& rank) {
-    KU_ASSERT_UNCONDITIONAL(pu != pv);
-    if (rank[pu] == rank[pv]) {
-        auto newParent = std::min(pu, pv);
-        auto newChild = std::max(pu, pv);
-        parents[newChild] = newParent;
-        rank[newParent]++;
-    } else if (rank[pu] < rank[pv]) {
-        parents[pu] = pv;
-    } else {
-        parents[pv] = pu;
+    KruskalState(storage::MemoryManager* mm, offset_t numNodes)
+        : edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
+        rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
+        // parents[i] = i;
+        std::iota(parents.begin(), parents.end(), 0);
     }
-}
+    void getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId, NbrScanState* const scanState);
 
-struct KruskalState {
+    void kruskalPreprocess(const bool& maxForest);
+
+    void kruskalCompute(const offset_t& numNodes);
+
+    // Assign each rel a forest id. In this case we use the node id
+    // of the parent of the component u is associated with.
+    void assignForestIds();
+
+    const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& getForest() const {return forest;};
+
+    offset_t getForestSize() const {return forest.size();};
+
+private:
+
+    // find and mergeComponents implement DSU to track vertices and their associated
+    // components such that we do not add a cycle to our forest.
+    // https://en.wikipedia.org/wiki/Disjoint-set_data_structure
+    offset_t find(const offset_t& u);
+
+    void mergeComponents(const offset_t& pu, const offset_t& pv);
+
     ku_vector_t<std::tuple<offset_t, offset_t, relID_t, double>> edges;
     ku_vector_t<offset_t> parents;
     ku_vector_t<uint64_t> rank;
     ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>> forest;
-    KruskalState(storage::MemoryManager* mm, offset_t numNodes)
-        : edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
-          rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
-        // parents[i] = i;
-        std::iota(parents.begin(), parents.end(), 0);
-    }
 };
 
-static void getGraph(KruskalState& state, Graph* const graph, const offset_t& numNodes,
-    const table_id_t& tableId, NbrScanState* const scanState) {
+void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId, NbrScanState* const scanState) {
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
@@ -158,41 +157,61 @@ static void getGraph(KruskalState& state, Graph* const graph, const offset_t& nu
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
                 auto weight = propertyVectors[1]->template getValue<double>(i);
-                state.edges.push_back({nodeId, nbrId, relId, weight});
+                edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
     }
 }
 
-static void kruskalPreprocess(KruskalState& state, const bool& maxForest) {
+void KruskalState::kruskalPreprocess(const bool& maxForest)
+{
     const auto& cmp = [&](const auto& e1, const auto& e2) {
         const auto& [u1, v1, r1, w1] = e1;
         const auto& [u2, v2, r2, w2] = e2;
         return maxForest ? std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
                            std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
     };
-    std::sort(state.edges.begin(), state.edges.end(), cmp);
+    std::sort(edges.begin(), edges.end(), cmp);
 }
 
-static void kruskalCompute(KruskalState& state, const offset_t& numNodes) {
+void KruskalState::kruskalCompute(const offset_t& numNodes) {
     offset_t numEdges = 0;
-    for (auto i = 0u; i < state.edges.size() && numEdges != numNodes - 1; ++i) {
-        const auto& [u, v, r, _] = state.edges[i];
-        auto pu = find(u, state.parents);
-        auto pv = find(v, state.parents);
+    for (auto i = 0u; i < edges.size() && numEdges != numNodes - 1; ++i) {
+        const auto& [u, v, r, _] = edges[i];
+        auto pu = find(u);
+        auto pv = find(v);
         if (pu != pv) {
             ++numEdges;
-            state.forest.push_back({u, v, r, UINT64_MAX});
-            mergeComponents(pu, pv, state.parents, state.rank);
+            forest.push_back({u, v, r, UINT64_MAX});
+            mergeComponents(pu, pv);
         }
     }
 }
 
-// Assign each rel a forest id. In this case we use the node id
-// of the parent of the component u is associated with.
-static void assignForestIds(KruskalState& state) {
-    for (auto& [u, v, r, f] : state.forest) {
-        f = find(u, state.parents);
+void KruskalState::assignForestIds() {
+    for (auto& [u, v, r, f] : forest) {
+        f = find(u);
+    }
+}
+
+offset_t KruskalState::find(const offset_t& u) {
+    while (parents[u] != parents[parents[u]]) {
+        parents[u] = parents[parents[u]];
+    }
+    return parents[u];
+}
+
+void KruskalState::mergeComponents(const offset_t& pu, const offset_t& pv) {
+    KU_ASSERT_UNCONDITIONAL(pu != pv);
+    if (rank[pu] == rank[pv]) {
+        auto newParent = std::min(pu, pv);
+        auto newChild = std::max(pu, pv);
+        parents[newChild] = newParent;
+        rank[newParent]++;
+    } else if (rank[pu] < rank[pv]) {
+        parents[pu] = pv;
+    } else {
+        parents[pv] = pu;
     }
 }
 
@@ -213,14 +232,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalState state(mm, numNodes);
-    getGraph(state, graph, numNodes, tableId, scanState.get());
-    kruskalPreprocess(state, config.maxForest);
-    kruskalCompute(state, numNodes);
-    assignForestIds(state);
-
-    const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.forest);
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute,
-        state.forest.size());
+    state.getGraph(graph, numNodes, tableId, scanState.get());
+    state.kruskalPreprocess(config.maxForest);
+    state.kruskalCompute(numNodes); 
+    state.assignForestIds();
+    
+    const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.getForest());
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute, state.getForestSize());
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
