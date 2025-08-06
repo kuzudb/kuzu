@@ -241,23 +241,30 @@ private:
     std::unique_ptr<QFTSOutputWriter> writer;
 };
 
+using VcQueryTerm = std::variant<std::string, std::unique_ptr<RE2>>;
 class MatchTermsVertexCompute final : public VertexCompute {
 public:
-    explicit MatchTermsVertexCompute(std::unordered_map<offset_t, uint64_t>& resDfs,
-        std::vector<std::pair<std::string&, bool>>& queryTerms)
+    explicit MatchTermsVertexCompute(std::unordered_map<offset_t, uint64_t>& resDfs, std::vector<VcQueryTerm>& queryTerms)
         : resDfs{resDfs}, queryTerms{queryTerms} {}
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         auto terms = chunk.getProperties<ku_string_t>(0);
         auto dfs = chunk.getProperties<uint64_t>(1);
         auto nodeIds = chunk.getNodeIDs();
         for (auto i = 0u; i < chunk.size(); ++i) {
-            for (auto& [queryTerm, hasWildcard] : queryTerms) {
-                if (hasWildcard) {
-                    if (RE2::FullMatch(terms[i].getAsString(), queryTerm)) {
-                        resDfs[nodeIds[i].offset] = dfs[i];
+            for (auto& queryTerm : queryTerms) {
+                switch (queryTerm.index()) {
+                    case 0: {
+                        if (std::get<0>(queryTerm) == terms[i].getAsString()) {
+                            resDfs[nodeIds[i].offset] = dfs[i];
+                        }
+                        break;
                     }
-                } else if (queryTerm == terms[i].getAsString()) {
-                    resDfs[nodeIds[i].offset] = dfs[i];
+                    case 1: {
+                        if (RE2::FullMatch(terms[i].getAsString(), *std::get<1>(queryTerm))) {
+                            resDfs[nodeIds[i].offset] = dfs[i];
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -268,7 +275,7 @@ public:
 
 private:
     std::unordered_map<offset_t, uint64_t>& resDfs;
-    std::vector<std::pair<std::string&, bool>>& queryTerms;
+    std::vector<VcQueryTerm>& queryTerms;
 };
 
 static constexpr char SCORE_PROP_NAME[] = "score";
@@ -298,16 +305,18 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
         NodeTableScanState(nodeIDVector, std::vector{dfVector}, dataChunk.state);
     nodeTableScanState.setToTable(context.getTransaction(), &termsNodeTable, {dfColumnID}, {});
     std::unordered_map<offset_t, uint64_t> dfs;
-    std::vector<std::pair<std::string&, bool>> vcQueryTerms;
+    std::vector<VcQueryTerm> vcQueryTerms;
     vcQueryTerms.reserve(queryTerms.size());
     bool hasWildcardQueryTerm = false;
     for (auto& queryTerm : queryTerms) {
         bool checkWc = FTSUtils::hasWildcardPattern(queryTerm);
-        vcQueryTerms.push_back({queryTerm, checkWc});
         if (checkWc) {
             RE2::GlobalReplace(&queryTerm, "\\*", ".*");
             RE2::GlobalReplace(&queryTerm, "\\?", ".");
             hasWildcardQueryTerm = true;
+            vcQueryTerms.push_back(std::make_unique<RE2>(queryTerm));
+        } else {
+            vcQueryTerms.push_back(queryTerm);
         }
     }
     if (hasWildcardQueryTerm) {
