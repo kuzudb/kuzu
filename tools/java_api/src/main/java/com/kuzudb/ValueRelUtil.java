@@ -14,7 +14,7 @@ public class ValueRelUtil {
      */
     public static InternalID getID(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_rel_val_get_id(value);
+        return Native.kuzuRelValGetId(value);
     }
 
     /**
@@ -26,7 +26,7 @@ public class ValueRelUtil {
      */
     public static InternalID getSrcID(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_rel_val_get_src_id(value);
+        return Native.kuzuRelValGetSrcId(value);
     }
 
     /**
@@ -38,7 +38,7 @@ public class ValueRelUtil {
      */
     public static InternalID getDstID(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_rel_val_get_dst_id(value);
+        return Native.kuzuRelValGetDstId(value);
     }
 
     /**
@@ -50,7 +50,7 @@ public class ValueRelUtil {
      */
     public static String getLabelName(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_rel_val_get_label_name(value);
+        return Native.kuzuRelValGetLabelName(value);
     }
 
     /**
@@ -62,7 +62,7 @@ public class ValueRelUtil {
      */
     public static long getPropertySize(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_rel_val_get_property_size(value);
+        return Native.kuzuRelValGetPropertySize(value);
     }
 
     /**
@@ -75,7 +75,7 @@ public class ValueRelUtil {
      */
     public static String getPropertyNameAt(Value value, long index) {
         value.checkNotDestroyed();
-        return Native.kuzu_rel_val_get_property_name_at(value, index);
+        return Native.kuzuRelValGetPropertyNameAt(value, index);
     }
 
     /**
@@ -88,7 +88,7 @@ public class ValueRelUtil {
      */
     public static Value getPropertyValueAt(Value value, long index) {
         value.checkNotDestroyed();
-        return Native.kuzu_rel_val_get_property_value_at(value, index);
+        return Native.kuzuRelValGetPropertyValueAt(value, index);
     }
 
     /**
@@ -100,6 +100,6 @@ public class ValueRelUtil {
      */
     public static String toString(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_rel_val_to_string(value);
+        return Native.kuzuRelValToString(value);
     }
 }

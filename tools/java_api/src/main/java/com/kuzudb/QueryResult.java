@@ -40,7 +40,7 @@ public class QueryResult implements AutoCloseable {
     private void destroy() {
         checkNotDestroyed();
         if (!isOwnedByCPP) {
-            Native.kuzu_query_result_destroy(this);
+            Native.kuzuQueryResultDestroy(this);
             destroyed = true;
         }
     }
@@ -53,7 +53,7 @@ public class QueryResult implements AutoCloseable {
      */
     public boolean isSuccess() {
         checkNotDestroyed();
-        return Native.kuzu_query_result_is_success(this);
+        return Native.kuzuQueryResultIsSuccess(this);
     }
 
     /**
@@ -64,7 +64,7 @@ public class QueryResult implements AutoCloseable {
      */
     public String getErrorMessage() {
         checkNotDestroyed();
-        return Native.kuzu_query_result_get_error_message(this);
+        return Native.kuzuQueryResultGetErrorMessage(this);
     }
 
     /**
@@ -75,7 +75,7 @@ public class QueryResult implements AutoCloseable {
      */
     public long getNumColumns() {
         checkNotDestroyed();
-        return Native.kuzu_query_result_get_num_columns(this);
+        return Native.kuzuQueryResultGetNumColumns(this);
     }
 
     /**
@@ -87,7 +87,7 @@ public class QueryResult implements AutoCloseable {
      */
     public String getColumnName(long index) {
         checkNotDestroyed();
-        return Native.kuzu_query_result_get_column_name(this, index);
+        return Native.kuzuQueryResultGetColumnName(this, index);
     }
 
     /**
@@ -99,7 +99,7 @@ public class QueryResult implements AutoCloseable {
      */
     public DataType getColumnDataType(long index) {
         checkNotDestroyed();
-        return Native.kuzu_query_result_get_column_data_type(this, index);
+        return Native.kuzuQueryResultGetColumnDataType(this, index);
     }
 
     /**
@@ -110,7 +110,7 @@ public class QueryResult implements AutoCloseable {
      */
     public long getNumTuples() {
         checkNotDestroyed();
-        return Native.kuzu_query_result_get_num_tuples(this);
+        return Native.kuzuQueryResultGetNumTuples(this);
     }
 
     /**
@@ -121,7 +121,7 @@ public class QueryResult implements AutoCloseable {
      */
     public QuerySummary getQuerySummary() {
         checkNotDestroyed();
-        return Native.kuzu_query_result_get_query_summary(this);
+        return Native.kuzuQueryResultGetQuerySummary(this);
     }
 
     /**
@@ -132,7 +132,7 @@ public class QueryResult implements AutoCloseable {
      */
     public boolean hasNext() {
         checkNotDestroyed();
-        return Native.kuzu_query_result_has_next(this);
+        return Native.kuzuQueryResultHasNext(this);
     }
 
     /**
@@ -146,7 +146,7 @@ public class QueryResult implements AutoCloseable {
      */
     public FlatTuple getNext() {
         checkNotDestroyed();
-        return Native.kuzu_query_result_get_next(this);
+        return Native.kuzuQueryResultGetNext(this);
     }
 
     /**
@@ -157,7 +157,7 @@ public class QueryResult implements AutoCloseable {
      */
     public boolean hasNextQueryResult() {
         checkNotDestroyed();
-        return Native.kuzu_query_result_has_next_query_result(this);
+        return Native.kuzuQueryResultHasNextQueryResult(this);
     }
 
     /**
@@ -168,7 +168,7 @@ public class QueryResult implements AutoCloseable {
      */
     public QueryResult getNextQueryResult() {
         checkNotDestroyed();
-        return Native.kuzu_query_result_get_next_query_result(this);
+        return Native.kuzuQueryResultGetNextQueryResult(this);
     }
 
     /**
@@ -180,7 +180,7 @@ public class QueryResult implements AutoCloseable {
         if (destroyed)
             return "QueryResult has been destroyed.";
         else
-            return Native.kuzu_query_result_to_string(this);
+            return Native.kuzuQueryResultToString(this);
     }
 
     /**
@@ -190,6 +190,6 @@ public class QueryResult implements AutoCloseable {
      */
     public void resetIterator() {
         checkNotDestroyed();
-        Native.kuzu_query_result_reset_iterator(this);
+        Native.kuzuQueryResultResetIterator(this);
     }
 }

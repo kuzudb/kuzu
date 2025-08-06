@@ -11,7 +11,7 @@ public class Version {
      * @return The version of the Kuzu.
      */
     public static String getVersion() {
-        return Native.kuzu_get_version();
+        return Native.kuzuGetVersion();
     }
 
     /**
@@ -20,6 +20,6 @@ public class Version {
      * @return The storage version of the Kuzu.
      */
     public static long getStorageVersion() {
-        return Native.kuzu_get_storage_version();
+        return Native.kuzuGetStorageVersion();
     }
 }

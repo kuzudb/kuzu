@@ -13,7 +13,7 @@ public class ValueNodeUtil {
      */
     public static InternalID getID(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_node_val_get_id(value);
+        return Native.kuzuNodeValGetId(value);
     }
 
     /**
@@ -25,7 +25,7 @@ public class ValueNodeUtil {
      */
     public static String getLabelName(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_node_val_get_label_name(value);
+        return Native.kuzuNodeValGetLabelName(value);
     }
 
     /**
@@ -37,7 +37,7 @@ public class ValueNodeUtil {
      */
     public static long getPropertySize(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_node_val_get_property_size(value);
+        return Native.kuzuNodeValGetPropertySize(value);
     }
 
     /**
@@ -50,7 +50,7 @@ public class ValueNodeUtil {
      */
     public static String getPropertyNameAt(Value value, long index) {
         value.checkNotDestroyed();
-        return Native.kuzu_node_val_get_property_name_at(value, index);
+        return Native.kuzuNodeValGetPropertyNameAt(value, index);
     }
 
     /**
@@ -63,7 +63,7 @@ public class ValueNodeUtil {
      */
     public static Value getPropertyValueAt(Value value, long index) {
         value.checkNotDestroyed();
-        return Native.kuzu_node_val_get_property_value_at(value, index);
+        return Native.kuzuNodeValGetPropertyValueAt(value, index);
     }
 
     /**
@@ -75,6 +75,6 @@ public class ValueNodeUtil {
      */
     public static String toString(Value value) {
         value.checkNotDestroyed();
-        return Native.kuzu_node_val_to_string(value);
+        return Native.kuzuNodeValToString(value);
     }
 }

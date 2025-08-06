@@ -25,7 +25,7 @@ public class KuzuList implements AutoCloseable {
      * @param values: the array to construct the list from
      */
     public KuzuList(Value[] values) {
-        listVal = Native.kuzu_create_list(values);
+        listVal = Native.kuzuCreateList(values);
     }
 
     /**
@@ -34,7 +34,7 @@ public class KuzuList implements AutoCloseable {
      * @param numElements: the size of the list to construct
      */
     public KuzuList(DataType type, long numElements) {
-        listVal = Native.kuzu_create_list(type, numElements);
+        listVal = Native.kuzuCreateList(type, numElements);
     }
 
     /**
@@ -45,7 +45,7 @@ public class KuzuList implements AutoCloseable {
      */
     public long getListSize() {
         listVal.checkNotDestroyed();
-        return Native.kuzu_value_get_list_size(listVal);
+        return Native.kuzuValueGetListSize(listVal);
     }
 
     /**
@@ -57,7 +57,7 @@ public class KuzuList implements AutoCloseable {
      */
     public Value getListElement(long index) {
         listVal.checkNotDestroyed();
-        return Native.kuzu_value_get_list_element(listVal, index);
+        return Native.kuzuValueGetListElement(listVal, index);
     }
 
     /**

@@ -45,7 +45,7 @@ public class KuzuStruct implements AutoCloseable {
         for (Value value : fieldValues) {
             value.checkNotDestroyed();
         }
-        structVal = Native.kuzu_create_struct(fieldNames, fieldValues);
+        structVal = Native.kuzuCreateStruct(fieldNames, fieldValues);
     }
 
     /**
@@ -67,7 +67,7 @@ public class KuzuStruct implements AutoCloseable {
         for (Value value : fieldValues) {
             value.checkNotDestroyed();
         }
-        structVal = Native.kuzu_create_struct(fieldNames, fieldValues);
+        structVal = Native.kuzuCreateStruct(fieldNames, fieldValues);
     }
 
     /**
@@ -78,7 +78,7 @@ public class KuzuStruct implements AutoCloseable {
         if (structVal == null) {
             return 0;
         }
-        return Native.kuzu_value_get_list_size(structVal);
+        return Native.kuzuValueGetListSize(structVal);
     }
 
     /**
@@ -92,7 +92,7 @@ public class KuzuStruct implements AutoCloseable {
         if (structVal == null) {
             return -1;
         }
-        return Native.kuzu_value_get_struct_index(structVal, fieldName);
+        return Native.kuzuValueGetStructIndex(structVal, fieldName);
     }
 
     /**
@@ -106,7 +106,7 @@ public class KuzuStruct implements AutoCloseable {
         if (structVal == null) {
             return null;
         }
-        return Native.kuzu_value_get_struct_field_name(structVal, index);
+        return Native.kuzuValueGetStructFieldName(structVal, index);
     }
 
     /**
@@ -137,7 +137,7 @@ public class KuzuStruct implements AutoCloseable {
         if (index < 0 || index >= getNumFields()) {
             return null;
         }
-        return Native.kuzu_value_get_list_element(structVal, index);
+        return Native.kuzuValueGetListElement(structVal, index);
     }
 
     /**

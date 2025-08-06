@@ -60,7 +60,7 @@ public class Native {
             String lib_path = lib_file.toAbsolutePath().toString();
             System.load(lib_path);
             if (os_name.equals("linux")) {
-                kuzu_native_reload_library(lib_path);
+                kuzuNativeReloadLibrary(lib_path);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -70,171 +70,171 @@ public class Native {
     // Hack: Reload the native library again in JNI bindings to work around the
     // extension loading issue on Linux as System.load() does not set
     // `RTLD_GLOBAL` flag and there is no way to set it in Java.
-    protected static native void kuzu_native_reload_library(String lib_path);
+    protected static native void kuzuNativeReloadLibrary(String libPath);
 
     // Database
-    protected static native long kuzu_database_init(String database_path, long buffer_pool_size,
-            boolean enable_compression, boolean read_only, long max_db_size, boolean auto_checkpoint,
-            long checkpoint_threshold);
+    protected static native long kuzuDatabaseInit(String databasePath, long bufferPoolSize,
+            boolean enableCompression, boolean readOnly, long maxDbSize, boolean autoCheckpoint,
+            long checkpointThreshold);
 
-    protected static native void kuzu_database_destroy(Database db);
+    protected static native void kuzuDatabaseDestroy(Database db);
 
-    protected static native void kuzu_database_set_logging_level(String logging_level);
+    protected static native void kuzuDatabaseSetLoggingLevel(String loggingLevel);
 
     // Connection
-    protected static native long kuzu_connection_init(Database database);
+    protected static native long kuzuConnectionInit(Database database);
 
-    protected static native void kuzu_connection_destroy(Connection connection);
+    protected static native void kuzuConnectionDestroy(Connection connection);
 
-    protected static native void kuzu_connection_set_max_num_thread_for_exec(
-            Connection connection, long num_threads);
+    protected static native void kuzuConnectionSetMaxNumThreadForExec(
+            Connection connection, long numThreads);
 
-    protected static native long kuzu_connection_get_max_num_thread_for_exec(Connection connection);
+    protected static native long kuzuConnectionGetMaxNumThreadForExec(Connection connection);
 
-    protected static native QueryResult kuzu_connection_query(Connection connection, String query);
+    protected static native QueryResult kuzuConnectionQuery(Connection connection, String query);
 
-    protected static native PreparedStatement kuzu_connection_prepare(
+    protected static native PreparedStatement kuzuConnectionPrepare(
             Connection connection, String query);
 
-    protected static native QueryResult kuzu_connection_execute(
-            Connection connection, PreparedStatement prepared_statement, Map<String, Value> param);
+    protected static native QueryResult kuzuConnectionExecute(
+            Connection connection, PreparedStatement preparedStatement, Map<String, Value> param);
 
-    protected static native void kuzu_connection_interrupt(Connection connection);
+    protected static native void kuzuConnectionInterrupt(Connection connection);
 
-    protected static native void kuzu_connection_set_query_timeout(
-            Connection connection, long timeout_in_ms);
+    protected static native void kuzuConnectionSetQueryTimeout(
+            Connection connection, long timeoutInMs);
 
     // PreparedStatement
-    protected static native void kuzu_prepared_statement_destroy(PreparedStatement prepared_statement);
+    protected static native void kuzuPreparedStatementDestroy(PreparedStatement preparedStatement);
 
-    protected static native boolean kuzu_prepared_statement_is_success(PreparedStatement prepared_statement);
+    protected static native boolean kuzuPreparedStatementIsSuccess(PreparedStatement preparedStatement);
 
-    protected static native String kuzu_prepared_statement_get_error_message(
-            PreparedStatement prepared_statement);
+    protected static native String kuzuPreparedStatementGetErrorMessage(
+            PreparedStatement preparedStatement);
 
     // QueryResult
-    protected static native void kuzu_query_result_destroy(QueryResult query_result);
+    protected static native void kuzuQueryResultDestroy(QueryResult queryResult);
 
-    protected static native boolean kuzu_query_result_is_success(QueryResult query_result);
+    protected static native boolean kuzuQueryResultIsSuccess(QueryResult queryResult);
 
-    protected static native String kuzu_query_result_get_error_message(QueryResult query_result);
+    protected static native String kuzuQueryResultGetErrorMessage(QueryResult queryResult);
 
-    protected static native long kuzu_query_result_get_num_columns(QueryResult query_result);
+    protected static native long kuzuQueryResultGetNumColumns(QueryResult queryResult);
 
-    protected static native String kuzu_query_result_get_column_name(QueryResult query_result, long index);
+    protected static native String kuzuQueryResultGetColumnName(QueryResult queryResult, long index);
 
-    protected static native DataType kuzu_query_result_get_column_data_type(
-            QueryResult query_result, long index);
+    protected static native DataType kuzuQueryResultGetColumnDataType(
+            QueryResult queryResult, long index);
 
-    protected static native long kuzu_query_result_get_num_tuples(QueryResult query_result);
+    protected static native long kuzuQueryResultGetNumTuples(QueryResult queryResult);
 
-    protected static native QuerySummary kuzu_query_result_get_query_summary(QueryResult query_result);
+    protected static native QuerySummary kuzuQueryResultGetQuerySummary(QueryResult queryResult);
 
-    protected static native boolean kuzu_query_result_has_next(QueryResult query_result);
+    protected static native boolean kuzuQueryResultHasNext(QueryResult queryResult);
 
-    protected static native FlatTuple kuzu_query_result_get_next(QueryResult query_result);
+    protected static native FlatTuple kuzuQueryResultGetNext(QueryResult queryResult);
 
-    protected static native boolean kuzu_query_result_has_next_query_result(QueryResult query_result);
+    protected static native boolean kuzuQueryResultHasNextQueryResult(QueryResult queryResult);
 
-    protected static native QueryResult kuzu_query_result_get_next_query_result(QueryResult query_result);
+    protected static native QueryResult kuzuQueryResultGetNextQueryResult(QueryResult queryResult);
 
-    protected static native String kuzu_query_result_to_string(QueryResult query_result);
+    protected static native String kuzuQueryResultToString(QueryResult queryResult);
 
-    protected static native void kuzu_query_result_reset_iterator(QueryResult query_result);
+    protected static native void kuzuQueryResultResetIterator(QueryResult queryResult);
 
     // FlatTuple
-    protected static native void kuzu_flat_tuple_destroy(FlatTuple flat_tuple);
+    protected static native void kuzuFlatTupleDestroy(FlatTuple flatTuple);
 
-    protected static native Value kuzu_flat_tuple_get_value(FlatTuple flat_tuple, long index);
+    protected static native Value kuzuFlatTupleGetValue(FlatTuple flatTuple, long index);
 
-    protected static native String kuzu_flat_tuple_to_string(FlatTuple flat_tuple);
+    protected static native String kuzuFlatTupleToString(FlatTuple flatTuple);
 
     // DataType
-    protected static native long kuzu_data_type_create(
-            DataTypeID id, DataType child_type, long num_elements_in_array);
+    protected static native long kuzuDataTypeCreate(
+            DataTypeID id, DataType childType, long numElementsInArray);
 
-    protected static native DataType kuzu_data_type_clone(DataType data_type);
+    protected static native DataType kuzuDataTypeClone(DataType dataType);
 
-    protected static native void kuzu_data_type_destroy(DataType data_type);
+    protected static native void kuzuDataTypeDestroy(DataType dataType);
 
-    protected static native boolean kuzu_data_type_equals(DataType data_type1, DataType data_type2);
+    protected static native boolean kuzuDataTypeEquals(DataType dataType1, DataType dataType2);
 
-    protected static native DataTypeID kuzu_data_type_get_id(DataType data_type);
+    protected static native DataTypeID kuzuDataTypeGetId(DataType dataType);
 
-    protected static native DataType kuzu_data_type_get_child_type(DataType data_type);
+    protected static native DataType kuzuDataTypeGetChildType(DataType dataType);
 
-    protected static native long kuzu_data_type_get_num_elements_in_array(DataType data_type);
+    protected static native long kuzuDataTypeGetNumElementsInArray(DataType dataType);
 
     // Value
-    protected static native Value kuzu_value_create_null();
+    protected static native Value kuzuValueCreateNull();
 
-    protected static native Value kuzu_value_create_null_with_data_type(DataType data_type);
+    protected static native Value kuzuValueCreateNullWithDataType(DataType dataType);
 
-    protected static native boolean kuzu_value_is_null(Value value);
+    protected static native boolean kuzuValueIsNull(Value value);
 
-    protected static native void kuzu_value_set_null(Value value, boolean is_null);
+    protected static native void kuzuValueSetNull(Value value, boolean isNull);
 
-    protected static native Value kuzu_value_create_default(DataType data_type);
+    protected static native Value kuzuValueCreateDefault(DataType dataType);
 
-    protected static native <T> long kuzu_value_create_value(T val);
+    protected static native <T> long kuzuValueCreateValue(T val);
 
-    protected static native Value kuzu_value_clone(Value value);
+    protected static native Value kuzuValueClone(Value value);
 
-    protected static native void kuzu_value_copy(Value value, Value other);
+    protected static native void kuzuValueCopy(Value value, Value other);
 
-    protected static native void kuzu_value_destroy(Value value);
+    protected static native void kuzuValueDestroy(Value value);
 
-    protected static native Value kuzu_create_map(Value[] keys, Value[] values);
+    protected static native Value kuzuCreateMap(Value[] keys, Value[] values);
 
-    protected static native Value kuzu_create_list(Value[] values);
+    protected static native Value kuzuCreateList(Value[] values);
 
-    protected static native Value kuzu_create_list(DataType type, long numElements);
+    protected static native Value kuzuCreateList(DataType type, long numElements);
 
-    protected static native long kuzu_value_get_list_size(Value value);
+    protected static native long kuzuValueGetListSize(Value value);
 
-    protected static native Value kuzu_value_get_list_element(Value value, long index);
+    protected static native Value kuzuValueGetListElement(Value value, long index);
 
-    protected static native DataType kuzu_value_get_data_type(Value value);
+    protected static native DataType kuzuValueGetDataType(Value value);
 
-    protected static native <T> T kuzu_value_get_value(Value value);
+    protected static native <T> T kuzuValueGetValue(Value value);
 
-    protected static native String kuzu_value_to_string(Value value);
+    protected static native String kuzuValueToString(Value value);
 
-    protected static native InternalID kuzu_node_val_get_id(Value node_val);
+    protected static native InternalID kuzuNodeValGetId(Value nodeVal);
 
-    protected static native String kuzu_node_val_get_label_name(Value node_val);
+    protected static native String kuzuNodeValGetLabelName(Value nodeVal);
 
-    protected static native long kuzu_node_val_get_property_size(Value node_val);
+    protected static native long kuzuNodeValGetPropertySize(Value nodeVal);
 
-    protected static native String kuzu_node_val_get_property_name_at(Value node_val, long index);
+    protected static native String kuzuNodeValGetPropertyNameAt(Value nodeVal, long index);
 
-    protected static native Value kuzu_node_val_get_property_value_at(Value node_val, long index);
+    protected static native Value kuzuNodeValGetPropertyValueAt(Value nodeVal, long index);
 
-    protected static native String kuzu_node_val_to_string(Value node_val);
+    protected static native String kuzuNodeValToString(Value nodeVal);
 
-    protected static native InternalID kuzu_rel_val_get_id(Value rel_val);
+    protected static native InternalID kuzuRelValGetId(Value relVal);
 
-    protected static native InternalID kuzu_rel_val_get_src_id(Value rel_val);
+    protected static native InternalID kuzuRelValGetSrcId(Value relVal);
 
-    protected static native InternalID kuzu_rel_val_get_dst_id(Value rel_val);
+    protected static native InternalID kuzuRelValGetDstId(Value relVal);
 
-    protected static native String kuzu_rel_val_get_label_name(Value rel_val);
+    protected static native String kuzuRelValGetLabelName(Value relVal);
 
-    protected static native long kuzu_rel_val_get_property_size(Value rel_val);
+    protected static native long kuzuRelValGetPropertySize(Value relVal);
 
-    protected static native String kuzu_rel_val_get_property_name_at(Value rel_val, long index);
+    protected static native String kuzuRelValGetPropertyNameAt(Value relVal, long index);
 
-    protected static native Value kuzu_rel_val_get_property_value_at(Value rel_val, long index);
+    protected static native Value kuzuRelValGetPropertyValueAt(Value relVal, long index);
 
-    protected static native String kuzu_rel_val_to_string(Value rel_val);
+    protected static native String kuzuRelValToString(Value relVal);
 
-    protected static native Value kuzu_create_struct(String[] fieldNames, Value[] fieldValues);
+    protected static native Value kuzuCreateStruct(String[] fieldNames, Value[] fieldValues);
 
-    protected static native String kuzu_value_get_struct_field_name(Value struct_val, long index);
+    protected static native String kuzuValueGetStructFieldName(Value structVal, long index);
 
-    protected static native long kuzu_value_get_struct_index(Value struct_val, String field_name);
+    protected static native long kuzuValueGetStructIndex(Value structVal, String fieldName);
 
-    protected static native String kuzu_get_version();
+    protected static native String kuzuGetVersion();
 
-    protected static native long kuzu_get_storage_version();
+    protected static native long kuzuGetStorageVersion();
 }
