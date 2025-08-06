@@ -1,7 +1,6 @@
 #include "function/gds/gds.h"
 
 #include "binder/binder.h"
-#include "binder/expression/rel_expression.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"

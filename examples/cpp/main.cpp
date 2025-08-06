@@ -7,11 +7,14 @@ int main() {
     auto database = std::make_unique<Database>("" /* fill db path */);
     auto connection = std::make_unique<Connection>(database.get());
 
-    connection->query("create node table Node(id int128 primary key);");
-    connection->query("create rel table Edge(FROM Node to Node, weight int64);");
-    connection->query("load algo;");
-    connection->query("call project_graph('Graph', ['Node'], ['Edge']);");
-    auto result = connection->query("CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') return *;");
+    // Create schema.
+    connection->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));");
+    // Create nodes.
+    connection->query("CREATE (:Person {name: 'Alice', age: 25});");
+    connection->query("CREATE (:Person {name: 'Bob', age: 30});");
+
+    // Execute a simple query.
+    auto result = connection->query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;");
     // Print query result.
     std::cout << result->toString();
 }

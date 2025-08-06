@@ -1,7 +1,5 @@
 #include "binder/binder.h"
-#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/node_expression.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"

@@ -37,7 +37,6 @@ struct KUZU_API NativeGraphEntry {
     std::vector<catalog::TableCatalogEntry*> getNodeEntries() const;
     std::vector<catalog::TableCatalogEntry*> getRelEntries() const;
 
-
     const NativeGraphEntryTableInfo& getRelInfo(common::table_id_t tableID) const;
 
     void setRelPredicate(std::shared_ptr<binder::Expression> predicate);
