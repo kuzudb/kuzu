@@ -34,7 +34,7 @@ public class FlatTuple implements AutoCloseable {
      */
     private void destroy() {
         checkNotDestroyed();
-        Native.kuzu_flat_tuple_destroy(this);
+        Native.kuzuFlatTupleDestroy(this);
         destroyed = true;
     }
 
@@ -47,7 +47,7 @@ public class FlatTuple implements AutoCloseable {
      */
     public Value getValue(long index) {
         checkNotDestroyed();
-        return Native.kuzu_flat_tuple_get_value(this, index);
+        return Native.kuzuFlatTupleGetValue(this, index);
     }
 
     /**
@@ -59,6 +59,6 @@ public class FlatTuple implements AutoCloseable {
         if (destroyed)
             return null;
         else
-            return Native.kuzu_flat_tuple_to_string(this);
+            return Native.kuzuFlatTupleToString(this);
     }
 }

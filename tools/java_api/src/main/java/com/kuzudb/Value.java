@@ -15,7 +15,7 @@ public class Value implements AutoCloseable {
      */
     public <T> Value(T val) {
         checkNotDestroyed();
-        v_ref = Native.kuzu_value_create_value(val);
+        v_ref = Native.kuzuValueCreateValue(val);
     }
 
     /**
@@ -24,7 +24,7 @@ public class Value implements AutoCloseable {
      * @return The null Value.
      */
     public static Value createNull() {
-        return Native.kuzu_value_create_null();
+        return Native.kuzuValueCreateNull();
     }
 
     /**
@@ -33,7 +33,7 @@ public class Value implements AutoCloseable {
      * @param data_type: The data type of the null Value.
      */
     public static Value createNullWithDataType(DataType data_type) {
-        return Native.kuzu_value_create_null_with_data_type(data_type);
+        return Native.kuzuValueCreateNullWithDataType(data_type);
     }
 
     /**
@@ -43,7 +43,7 @@ public class Value implements AutoCloseable {
      * @return The default Value.
      */
     public static Value createDefault(DataType data_type) {
-        return Native.kuzu_value_create_default(data_type);
+        return Native.kuzuValueCreateDefault(data_type);
     }
 
     /**
@@ -78,7 +78,7 @@ public class Value implements AutoCloseable {
     private void destroy() {
         checkNotDestroyed();
         if (!isOwnedByCPP) {
-            Native.kuzu_value_destroy(this);
+            Native.kuzuValueDestroy(this);
             destroyed = true;
         }
     }
@@ -91,7 +91,7 @@ public class Value implements AutoCloseable {
      */
     public boolean isNull() {
         checkNotDestroyed();
-        return Native.kuzu_value_is_null(this);
+        return Native.kuzuValueIsNull(this);
     }
 
     /**
@@ -102,7 +102,7 @@ public class Value implements AutoCloseable {
      */
     public void setNull(boolean flag) {
         checkNotDestroyed();
-        Native.kuzu_value_set_null(this, flag);
+        Native.kuzuValueSetNull(this, flag);
     }
 
     /**
@@ -113,7 +113,7 @@ public class Value implements AutoCloseable {
      */
     public void copy(Value other) {
         checkNotDestroyed();
-        Native.kuzu_value_copy(this, other);
+        Native.kuzuValueCopy(this, other);
     }
 
     /**
@@ -125,7 +125,7 @@ public class Value implements AutoCloseable {
         if (destroyed)
             return null;
         else
-            return Native.kuzu_value_clone(this);
+            return Native.kuzuValueClone(this);
     }
 
     /**
@@ -136,7 +136,7 @@ public class Value implements AutoCloseable {
      */
     public <T> T getValue() {
         checkNotDestroyed();
-        return Native.kuzu_value_get_value(this);
+        return Native.kuzuValueGetValue(this);
     }
 
     /**
@@ -147,7 +147,7 @@ public class Value implements AutoCloseable {
      */
     public DataType getDataType() {
         checkNotDestroyed();
-        return Native.kuzu_value_get_data_type(this);
+        return Native.kuzuValueGetDataType(this);
     }
 
     /**
@@ -159,6 +159,6 @@ public class Value implements AutoCloseable {
         if (destroyed)
             return "Value has been destroyed.";
         else
-            return Native.kuzu_value_to_string(this);
+            return Native.kuzuValueToString(this);
     }
 }

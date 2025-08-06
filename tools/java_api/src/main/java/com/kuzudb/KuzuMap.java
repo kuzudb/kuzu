@@ -35,14 +35,14 @@ public class KuzuMap implements AutoCloseable {
             mapVal = null;
             return;
         }
-        mapVal = Native.kuzu_create_map(keys, values);
+        mapVal = Native.kuzuCreateMap(keys, values);
     }
 
     private Value getMapKeyOrValue(long index, boolean isKey) {
         if (index < 0 || index >= getNumFields()) {
             return null;
         }
-        Value structValue = Native.kuzu_value_get_list_element(mapVal, index);
+        Value structValue = Native.kuzuValueGetListElement(mapVal, index);
         Value keyOrValue = new KuzuList(structValue).getListElement(isKey ? 0 : 1);
         structValue.close();
         return keyOrValue;
@@ -56,7 +56,7 @@ public class KuzuMap implements AutoCloseable {
         if (mapVal == null) {
             return 0;
         }
-        return Native.kuzu_value_get_list_size(mapVal);
+        return Native.kuzuValueGetListSize(mapVal);
     }
 
     /**

@@ -34,7 +34,7 @@ public class Database implements AutoCloseable {
         this.buffer_size = 0;
         this.max_db_size = 0;
         this.checkpointThreshold = -1;
-        db_ref = Native.kuzu_database_init(databasePath, 0, true, false, max_db_size, autoCheckpoint,
+        db_ref = Native.kuzuDatabaseInit(databasePath, 0, true, false, max_db_size, autoCheckpoint,
                 checkpointThreshold);
     }
 
@@ -69,7 +69,7 @@ public class Database implements AutoCloseable {
         this.max_db_size = maxDBSize;
         this.autoCheckpoint = autoCheckpoint;
         this.checkpointThreshold = checkpointThreshold;
-        db_ref = Native.kuzu_database_init(databasePath, bufferPoolSize, enableCompression, readOnly, maxDBSize,
+        db_ref = Native.kuzuDatabaseInit(databasePath, bufferPoolSize, enableCompression, readOnly, maxDBSize,
                 autoCheckpoint, checkpointThreshold);
     }
 
@@ -103,7 +103,7 @@ public class Database implements AutoCloseable {
      */
     private void destroy() {
         checkNotDestroyed();
-        Native.kuzu_database_destroy(this);
+        Native.kuzuDatabaseDestroy(this);
         destroyed = true;
     }
 }
