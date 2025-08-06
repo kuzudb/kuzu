@@ -11,6 +11,7 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/table/bind_input.h"
+#include "graph/graph.h"
 #include "processor/execution_context.h"
 
 using namespace std;
@@ -146,6 +147,56 @@ struct KruskalState {
     }
 };
 
+static void getGraph(KruskalState& state, Graph* const graph, const offset_t& numNodes, const table_id_t& tableId, NbrScanState* const scanState) {
+    for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
+        const nodeID_t nextNodeId = {nodeId, tableId};
+        for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
+            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+                auto nbrId = neighbors[i].offset;
+                if (nbrId == nodeId) {
+                    return;
+                }
+                auto relId = propertyVectors[0]->template getValue<relID_t>(i);
+                auto weight = propertyVectors[1]->template getValue<double>(i);
+                state.edges.push_back({nodeId, nbrId, relId, weight});
+            });
+        }
+    }
+}
+
+static void kruskalPreprocess(KruskalState& state, const bool& maxForest)
+{
+    const auto& cmp = [&](const auto& e1, const auto& e2) {
+        const auto& [u1, v1, r1, w1] = e1;
+        const auto& [u2, v2, r2, w2] = e2;
+        return maxForest ? std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
+                                  std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
+    };
+    std::sort(state.edges.begin(), state.edges.end(), cmp);
+}
+
+static void kruskalCompute(KruskalState& state, const offset_t& numNodes) {
+    offset_t numEdges = 0;
+    for (auto i = 0u; i < state.edges.size() && numEdges != numNodes - 1; ++i) {
+        const auto& [u, v, r, _] = state.edges[i];
+        auto pu = find(u, state.parents);
+        auto pv = find(v, state.parents);
+        if (pu != pv) {
+            ++numEdges;
+            state.forest.push_back({u, v, r, UINT64_MAX});
+            mergeComponents(pu, pv, state.parents, state.rank);
+        }
+    }
+}
+
+// Assign each rel a forest id. In this case we use the node id
+// of the parent of the component u is associated with.
+static void assignForestIds(KruskalState& state) {
+    for (auto& [u, v, r, f] : state.forest) {
+        f = find(u, state.parents);
+    }
+}
+
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
@@ -163,46 +214,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalState state(mm, numNodes);
-
-    for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
-        const nodeID_t nextNodeId = {nodeId, tableId};
-        for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
-                auto nbrId = neighbors[i].offset;
-                if (nbrId == nodeId) {
-                    return;
-                }
-                auto relId = propertyVectors[0]->template getValue<relID_t>(i);
-                auto weight = propertyVectors[1]->template getValue<double>(i);
-                state.edges.push_back({nodeId, nbrId, relId, weight});
-            });
-        }
-    }
-
-    const auto& cmp = [&](const auto& e1, const auto& e2) {
-        const auto& [u1, v1, r1, w1] = e1;
-        const auto& [u2, v2, r2, w2] = e2;
-        return config.maxForest ? std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
-                                  std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
-    };
-
-    std::sort(state.edges.begin(), state.edges.end(), cmp);
-    offset_t numEdges = 0;
-    for (auto i = 0u; i < state.edges.size() && numEdges != numNodes - 1; ++i) {
-        const auto& [u, v, r, _] = state.edges[i];
-        auto pu = find(u, state.parents);
-        auto pv = find(v, state.parents);
-        if (pu != pv) {
-            ++numEdges;
-            state.forest.push_back({u, v, r, UINT64_MAX});
-            mergeComponents(pu, pv, state.parents, state.rank);
-        }
-    }
-    // Assign each rel a forest id. In this case we use the node id
-    // of the parent of the component u is associated with.
-    for (auto& [u, v, r, f] : state.forest) {
-        f = find(u, state.parents);
-    }
+    getGraph(state, graph, numNodes, tableId, scanState.get());
+    kruskalPreprocess(state, config.maxForest);
+    kruskalCompute(state, numNodes); 
+    assignForestIds(state);
+    
     const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.forest);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute,
         state.forest.size());
