@@ -44,8 +44,7 @@ void WALReplayer::replay() const {
         return;
     }
     // If the WAL file exists, we need to replay it.
-    auto fileInfo =
-        clientContext.getVFSUnsafe()->openFile(walPath, FileOpenFlags(FileFlags::READ_ONLY));
+    auto fileInfo = openWALFile();
     // Check if the wal file is empty. If so, we do not need to replay anything.
     if (fileInfo->getFileSize() == 0) {
         removeWALAndShadowFiles();
@@ -55,7 +54,7 @@ void WALReplayer::replay() const {
     }
     // A previous unclean exit may have left non-durable contents in the WAL, so before we start
     // replaying the WAL records, make a best-effort attempt at ensuring the WAL is fully durable.
-    fileInfo->syncFile();
+    syncWALFile(*fileInfo);
     // Start replaying the WAL records.
     try {
         // First, we dry run the replay to find out the offset of the last record that was
@@ -476,6 +475,22 @@ void WALReplayer::removeFileIfExists(const std::string& path) const {
     if (vfs->fileOrPathExists(path, &clientContext)) {
         vfs->removeFileIfExists(path);
     }
+}
+
+void WALReplayer::syncWALFile(const FileInfo& fileInfo) const {
+    if (clientContext.getStorageManager()->isReadOnly()) {
+        return;
+    }
+    fileInfo.syncFile();
+}
+
+std::unique_ptr<FileInfo> WALReplayer::openWALFile() const {
+    auto flag = FileFlags::READ_ONLY;
+    if (!clientContext.getStorageManager()->isReadOnly()) {
+        flag |= FileFlags::WRITE; // The write flag here is to ensure the file is opened with O_RDWR
+                                  // so that we can sync it.
+    }
+    return clientContext.getVFSUnsafe()->openFile(walPath, FileOpenFlags(flag));
 }
 
 } // namespace storage
