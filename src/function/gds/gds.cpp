@@ -5,7 +5,6 @@
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "common/enums/extend_direction.h"
 #include "common/exception/binder.h"
 #include "graph/graph_entry_set.h"
 #include "graph/on_disk_graph.h"
@@ -211,32 +210,16 @@ void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& rea
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    //TODO(Tanvir) Refactor this to only apply for MSF.
-    {
-        auto nodeOutput = bindData->output[0]->ptrCast<NodeExpression>();
-        KU_ASSERT(nodeOutput != nullptr);
-        planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
-        auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
-        if (scanPlan.isEmpty()) {
-            return;
-        }
-        expression_vector joinConditions;
-        joinConditions.push_back(nodeOutput->getInternalID());
-        planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
+    auto nodeOutput = bindData->output[0]->ptrCast<NodeExpression>();
+    KU_ASSERT(nodeOutput != nullptr);
+    planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
+    auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
+    if (scanPlan.isEmpty()) {
+        return;
     }
-
-    {
-        auto nodeOutput = bindData->output[1]->ptrCast<NodeExpression>();
-        KU_ASSERT(nodeOutput != nullptr);
-        planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
-        auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
-        if (scanPlan.isEmpty()) {
-            return;
-        }
-        expression_vector joinConditions;
-        joinConditions.push_back(nodeOutput->getInternalID());
-        planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
-    }
+    expression_vector joinConditions;
+    joinConditions.push_back(nodeOutput->getInternalID());
+    planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
 }
 
 std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planMapper,

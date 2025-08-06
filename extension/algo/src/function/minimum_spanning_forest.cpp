@@ -2,6 +2,7 @@
 #include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/node_expression.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
@@ -12,6 +13,8 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/table/bind_input.h"
+#include "planner/operator/logical_table_function_call.h"
+#include "planner/planner.h"
 #include "processor/execution_context.h"
 
 using namespace std;
@@ -21,6 +24,7 @@ using namespace kuzu::processor;
 using namespace kuzu::storage;
 using namespace kuzu::graph;
 using namespace kuzu::function;
+using namespace kuzu::planner;
 
 namespace kuzu {
 namespace algo_extension {
@@ -295,6 +299,57 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), expression_vector{srcnodeOutput, dstnodeOutput, relOutput}, std::move(optionalParams));
 }
 
+
+static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingClause,
+    expression_vector predicates, LogicalPlan& plan) {
+    auto& call = readingClause.constCast<BoundTableFunctionCall>();
+    auto bindData = call.getBindData()->constPtrCast<GDSBindData>();
+    auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
+    
+    std::vector<std::shared_ptr<LogicalOperator>> nodeMaskPlanRoots;
+    for (auto& nodeInfo : bindData->graphEntry.nodeInfos) {
+        if (nodeInfo.predicate == nullptr) {
+            continue;
+        }
+        auto& node = nodeInfo.nodeOrRel->constCast<NodeExpression>();
+        planner->getCardinliatyEstimatorUnsafe().init(node);
+        auto p = planner->getNodeSemiMaskPlan(SemiMaskTargetType::GDS_GRAPH_NODE, node,
+            nodeInfo.predicate);
+        nodeMaskPlanRoots.push_back(p.getLastOperator());
+    }
+
+    for (auto root : nodeMaskPlanRoots) {
+        op->addChild(root);
+    }
+    op->computeFactorizedSchema();
+    planner->planReadOp(std::move(op), predicates, plan);
+
+    for(auto i : std::vector<int>{0, 1})
+    {
+        auto nodeOutput  = bindData->output[i]->ptrCast<NodeExpression>();
+        KU_ASSERT(nodeOutput != nullptr);
+        planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
+        auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
+        if (!scanPlan.isEmpty()) {
+            expression_vector joinConditions;
+            joinConditions.push_back(nodeOutput->getInternalID());
+            planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
+        }
+    }
+    
+    auto relOutput = bindData->output[2]->ptrCast<RelExpression>();
+    KU_ASSERT(relOutput != nullptr);
+    auto scanPlan = LogicalPlan();
+    auto boundNode = relOutput->getSrcNode();
+    auto nbrNode = relOutput->getDstNode();
+    const auto extendDir = ExtendDirection::FWD;
+    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, scanPlan);
+    planner->appendExtend(boundNode, nbrNode, std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, planner->getProperties(*relOutput), scanPlan);
+    expression_vector joinConditions;
+    joinConditions.push_back(relOutput->getInternalID());
+    planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
+}
+
 function_set MinimumSpanningForest::getFunctionSet() {
     function_set result;
     auto func = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::ANY});
@@ -303,7 +358,7 @@ function_set MinimumSpanningForest::getFunctionSet() {
     func->initSharedStateFunc = GDSFunction::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = [] { return false; };
-    func->getLogicalPlanFunc = GDSFunction::getLogicalPlan;
+    func->getLogicalPlanFunc = getLogicalPlan;
     func->getPhysicalPlanFunc = GDSFunction::getPhysicalPlan;
     result.push_back(std::move(func));
     return result;
