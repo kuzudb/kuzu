@@ -110,14 +110,14 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
 
 class KruskalState {
 public:
-
     KruskalState(storage::MemoryManager* mm, offset_t numNodes)
         : edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
-        rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
+          rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
         // parents[i] = i;
         std::iota(parents.begin(), parents.end(), 0);
     }
-    void getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId, NbrScanState* const scanState);
+    void getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId,
+        NbrScanState* const scanState);
 
     void kruskalPreprocess(const bool& maxForest);
 
@@ -127,12 +127,13 @@ public:
     // of the parent of the component u is associated with.
     void assignForestIds();
 
-    const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& getForest() const {return forest;};
+    const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& getForest() const {
+        return forest;
+    };
 
-    offset_t getForestSize() const {return forest.size();};
+    offset_t getForestSize() const { return forest.size(); };
 
 private:
-
     // find and mergeComponents implement DSU to track vertices and their associated
     // components such that we do not add a cycle to our forest.
     // https://en.wikipedia.org/wiki/Disjoint-set_data_structure
@@ -146,7 +147,8 @@ private:
     ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>> forest;
 };
 
-void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId, NbrScanState* const scanState) {
+void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId,
+    NbrScanState* const scanState) {
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
@@ -163,8 +165,7 @@ void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const 
     }
 }
 
-void KruskalState::kruskalPreprocess(const bool& maxForest)
-{
+void KruskalState::kruskalPreprocess(const bool& maxForest) {
     const auto& cmp = [&](const auto& e1, const auto& e2) {
         const auto& [u1, v1, r1, w1] = e1;
         const auto& [u2, v2, r2, w2] = e2;
@@ -234,11 +235,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     KruskalState state(mm, numNodes);
     state.getGraph(graph, numNodes, tableId, scanState.get());
     state.kruskalPreprocess(config.maxForest);
-    state.kruskalCompute(numNodes); 
+    state.kruskalCompute(numNodes);
     state.assignForestIds();
-    
+
     const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.getForest());
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute, state.getForestSize());
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute,
+        state.getForestSize());
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
