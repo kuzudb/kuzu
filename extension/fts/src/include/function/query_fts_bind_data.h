@@ -45,7 +45,7 @@ struct QueryFTSBindData final : function::GDSBindData {
           optionalParams{other.optionalParams}, outputTableID{other.outputTableID},
           numDocs{other.numDocs}, avgDocLen{other.avgDocLen} {}
 
-    std::vector<std::string> getTerms(main::ClientContext& context) const;
+    std::vector<std::string> getQueryTerms(main::ClientContext& context) const;
 
     QueryFTSConfig getConfig() const { return optionalParams.getConfig(); }
 

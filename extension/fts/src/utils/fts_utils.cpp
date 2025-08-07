@@ -48,9 +48,18 @@ StopWordsChecker::StopWordsChecker(MemoryManager* mm, NodeTable* stopwordsTable,
     }
 }
 
+bool FTSUtils::hasWildcardPattern(const std::string& term) {
+    for (auto& c : term) {
+        if (c == '*' || c == '?') {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
     const FTSConfig& config, MemoryManager* mm, NodeTable* stopwordsTable, Transaction* tx,
-    bool isConjunctive) {
+    bool isConjunctive, bool isQuery) {
     if (config.stemmer == "none") {
         return terms;
     }
@@ -61,6 +70,10 @@ std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
         config.stopWordsSource == StopWords::DEFAULT_VALUE};
     for (auto& term : terms) {
         if (isConjunctive && checker.isStopWord(term)) {
+            continue;
+        }
+        if (isQuery && hasWildcardPattern(term)) {
+            result.push_back(term);
             continue;
         }
         auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),

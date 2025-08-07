@@ -78,7 +78,7 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
         auto termsInContent =
             StringUtils::split(content, " " /* delimiter */, true /* ignoreEmptyStringParts */);
         termsInContent = FTSUtils::stemTerms(termsInContent, config, mm, stopWordsTable,
-            transaction, true /* isConjunctive */);
+            transaction, true /* isConjunctive */, false /* isQuery */);
         // TODO(Ziyi): StringUtils::split() has a bug which doesn't ignore empty parts even
         // ignoreEmptyStringParts is set to true.
         for (auto& term : termsInContent) {

@@ -15,9 +15,11 @@ struct FTSUtils {
 
     static void normalizeQuery(std::string& query, const regex::RE2& ignorePattern);
 
+    static bool hasWildcardPattern(const std::string& term);
+
     static std::vector<std::string> stemTerms(std::vector<std::string> terms,
         const FTSConfig& config, storage::MemoryManager* mm, storage::NodeTable* stopwordsTable,
-        transaction::Transaction* tx, bool isConjunctive);
+        transaction::Transaction* tx, bool isConjunctive, bool isQuery);
 
     static std::string getDefaultStopWordsTableName() {
         return common::stringFormat("default_english_stopwords");

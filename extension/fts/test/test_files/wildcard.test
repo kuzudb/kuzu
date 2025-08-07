@@ -1,0 +1,53 @@
+-DATASET CSV fts-basic
+
+--
+
+-CASE WildcardBasic
+
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'title']);
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'm?c*n*') RETURN node.title, node.abstract ORDER BY score DESC;
+---- 2
+Learning Machines|An introduction to machine learning techniques.
+The Quantum World|An exploration of quantum mechanics.
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', '*n*u?') RETURN node.title, node.abstract ORDER BY score DESC;
+---- 1
+The Quantum World|An exploration of quantum mechanics.
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', '*') RETURN node.title ORDER BY score DESC;
+---- 5
+Echoes of the Past
+Chronicles of the Universe
+The Dragon's Call
+Learning Machines
+The Quantum World
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', '??????') RETURN node.title ORDER BY score DESC;
+---- 3
+The Quantum World
+Learning Machines
+The Dragon's Call
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'h*t?ry history machine e*r*') RETURN node.title ORDER BY score DESC;
+---- 3
+Echoes of the Past
+Learning Machines
+The Quantum World
+
+-CASE WildcardInDocs
+
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CREATE (:Book { abstract: 'This book is a test?ax*alphabetical?', title: 'Abcdefg' });
+---- ok
+-STATEMENT CREATE (:Book { abstract: 'The hiory*?story*a?b?c of computing', title: 'Computers' });
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'title']);
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'test') RETURN node.title, node.abstract;
+---- 1
+Abcdefg|This book is a test?ax*alphabetical?
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'alphabet') RETURN node.title, node.abstract;
+---- 1
+Abcdefg|This book is a test?ax*alphabetical?
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'history story') RETURN node.title, node.abstract;
+---- 2
+Echoes of the Past|A deep dive into the history of ancient civilizations.
+Computers|The hiory*?story*a?b?c of computing
