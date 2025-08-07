@@ -169,7 +169,7 @@ void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const 
 }
 
 void KruskalState::sortEdges(const bool& maxForest) {
-    const auto& cmp = [&](const auto& e1, const auto& e2) {
+    const auto& compareFn = [&](const auto& e1, const auto& e2) {
         const auto& [u1, v1, r1, w1] = e1;
         const auto& [u2, v2, r2, w2] = e2;
         return maxForest ? std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
