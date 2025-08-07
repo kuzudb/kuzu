@@ -28,9 +28,9 @@ namespace algo_extension {
 using resultEdge = std::tuple<offset_t, offset_t, relID_t, offset_t>;
 using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 
-class WriteResultsVC final : public GDSResultVertexCompute {
+class WriteResultsSF final : public GDSResultVertexCompute {
 public:
-    WriteResultsVC(MemoryManager* mm, GDSFuncSharedState* sharedState,
+    WriteResultsSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
         const ku_vector_t<resultEdge>& finalResults)
         : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
         srcIDVector = createVector(LogicalType::INTERNAL_ID());
@@ -54,7 +54,7 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WriteResultsVC>(mm, sharedState, finalResults);
+        return std::make_unique<WriteResultsSF>(mm, sharedState, finalResults);
     }
 
 private:
@@ -252,7 +252,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     compute.run();
     compute.assignForestIds();
 
-    const auto writeResultsVC = make_unique<WriteResultsVC>(mm, sharedState, compute.getForest());
+    const auto writeResultsVC = make_unique<WriteResultsSF>(mm, sharedState, compute.getForest());
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *writeResultsVC,
         compute.getForestSize());
     sharedState->factorizedTablePool.mergeLocalTables();
