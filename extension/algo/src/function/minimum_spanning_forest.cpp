@@ -146,7 +146,6 @@ private:
 KruskalState::KruskalState(storage::MemoryManager* mm, offset_t numNodes)
     : edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
       rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
-    // parents[i] = i;
     std::iota(parents.begin(), parents.end(), 0);
 }
 
