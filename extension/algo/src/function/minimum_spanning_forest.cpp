@@ -23,7 +23,12 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace algo_extension {
 
-class WriteResultsMSF final : public GDSResultVertexCompute {
+// resultEdge: (src_id, dst_id, rel_id, forest_id)
+// weightedEdge: (src_id, dst_id, rel_id, weight)
+using resultEdge = std::tuple<offset_t, offset_t, relID_t, offset_t>;
+using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
+
+class WriteResultsVC final : public GDSResultVertexCompute {
 public:
     WriteResultsVC(MemoryManager* mm, GDSFuncSharedState* sharedState,
         const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& finalResults)
@@ -49,11 +54,11 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WriteResultsMSF>(mm, sharedState, finalResults);
+        return std::make_unique<WriteResultsVC>(mm, sharedState, finalResults);
     }
 
 private:
-    const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& finalResults;
+    const ku_vector_t<resultEdge>& finalResults;
     std::unique_ptr<ValueVector> srcIDVector;
     std::unique_ptr<ValueVector> dstIDVector;
     std::unique_ptr<ValueVector> relIDVector;
@@ -106,16 +111,16 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     return config;
 }
 
-class KruskalState {
+class KruskalCompute {
 public:
-    KruskalState(storage::MemoryManager* mm, offset_t numNodes);
+    KruskalCompute(storage::MemoryManager* mm, offset_t numNodes);
 
-    void getGraph(Graph* graph, const offset_t& numNodes, const table_id_t& tableId,
+    void initEdges(Graph* graph, const table_id_t& tableId,
         NbrScanState* const scanState, const bool& weightProperty);
 
-    void kruskalPreprocess(const bool& maxForest);
+    void sortEdges(const bool& maxForest);
 
-    void kruskalCompute(const offset_t& numNodes);
+    void run();
 
     // Assigns each edge an ID of the tree it belongs to. The ID internally is the final component
     // ID that the src node of each edge belongs to in the disjoint set data structure used in the
@@ -138,20 +143,21 @@ private:
     // component.
     void mergeComponents(const offset_t& pu, const offset_t& pv);
 
-    ku_vector_t<std::tuple<offset_t, offset_t, relID_t, double>> edges;
+    const offset_t numNodes;
+    ku_vector_t<weightedEdge> edges;
     ku_vector_t<offset_t> parents;
     ku_vector_t<uint64_t> rank;
-    ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>> forest;
+    ku_vector_t<resultEdge> forest;
 };
 
-KruskalState::KruskalState(storage::MemoryManager* mm, offset_t numNodes)
-    : edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
+KruskalCompute::KruskalCompute(storage::MemoryManager* mm, offset_t numNodes)
+    : numNodes{numNodes}, edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
       rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
     // Mark all vertices as belonging to their own components.
     std::iota(parents.begin(), parents.end(), 0);
 }
 
-void KruskalState::getGraph(Graph* graph, const offset_t& numNodes, const table_id_t& tableId,
+void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
     NbrScanState* const scanState, const bool& weightProperty) {
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
@@ -171,7 +177,7 @@ void KruskalState::getGraph(Graph* graph, const offset_t& numNodes, const table_
     }
 }
 
-void KruskalState::sortEdges(const bool& maxForest) {
+void KruskalCompute::sortEdges(const bool& maxForest) {
     const auto& compareFn = [&](const auto& e1, const auto& e2) {
         const auto& [u1, v1, r1, w1] = e1;
         const auto& [u2, v2, r2, w2] = e2;
@@ -181,12 +187,12 @@ void KruskalState::sortEdges(const bool& maxForest) {
     std::ranges::sort(edges, compareFn);
 }
 
-void KruskalState::kruskalCompute(const offset_t& numNodes) {
+void KruskalCompute::run() {
     offset_t numEdges = 0;
     for (auto i = 0u; i < edges.size() && numEdges != numNodes - 1; ++i) {
         const auto& [u, v, r, _] = edges[i];
-        auto pu = find(u);
-        auto pv = find(v);
+        auto pu = findComponent(u);
+        auto pv = findComponent(v);
         if (pu != pv) {
             ++numEdges;
             forest.push_back({u, v, r, UINT64_MAX});
@@ -195,20 +201,20 @@ void KruskalState::kruskalCompute(const offset_t& numNodes) {
     }
 }
 
-void KruskalState::assignForestIds() {
+void KruskalCompute::assignForestIds() {
     for (auto& [u, v, r, f] : forest) {
-        f = find(u);
+        f = findComponent(u);
     }
 }
 
-offset_t KruskalState::find(const offset_t& u) {
+offset_t KruskalCompute::findComponent(const offset_t& u) {
     while (parents[u] != parents[parents[u]]) {
         parents[u] = parents[parents[u]];
     }
     return parents[u];
 }
 
-void KruskalState::mergeComponents(const offset_t& pu, const offset_t& pv) {
+void KruskalCompute::mergeComponents(const offset_t& pu, const offset_t& pv) {
     KU_ASSERT_UNCONDITIONAL(pu != pv);
     if (rank[pu] == rank[pv]) {
         auto newParent = std::min(pu, pv);
@@ -248,9 +254,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     compute.run();
     compute.assignForestIds();
 
-    const auto writeResultsVC = make_unique<WriteResultsVC>(mm, sharedState, state.getForest());
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute,
-        state.getForestSize());
+    const auto writeResultsVC = make_unique<WriteResultsVC>(mm, sharedState, compute.getForest());
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *writeResultsVC,
+        compute.getForestSize());
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
@@ -279,7 +285,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         throw BinderException(
             "Provided weight property is not numerical: " + config.weightProperty);
     }
-    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "SRC");
+    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "src");
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
