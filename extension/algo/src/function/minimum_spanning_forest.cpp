@@ -25,7 +25,7 @@ namespace algo_extension {
 
 class WriteResultsMSF final : public GDSResultVertexCompute {
 public:
-    WriteResultsMSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
+    WriteResultsVC(MemoryManager* mm, GDSFuncSharedState* sharedState,
         const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& finalResults)
         : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
         srcIDVector = createVector(LogicalType::INTERNAL_ID());
