@@ -175,7 +175,7 @@ void KruskalState::sortEdges(const bool& maxForest) {
         return maxForest ? std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
                            std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
     };
-    std::sort(edges.begin(), edges.end(), cmp);
+    std::ranges::sort(edges, compareFn);
 }
 
 void KruskalState::kruskalCompute(const offset_t& numNodes) {
