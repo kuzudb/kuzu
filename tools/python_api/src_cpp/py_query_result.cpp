@@ -9,6 +9,7 @@
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
+#include "common/arrow/arrow_row_batch.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
 
@@ -286,35 +287,39 @@ py::object PyQueryResult::getAsDF() {
     return QueryResultConverter(queryResult).toDF();
 }
 
-bool PyQueryResult::getNextArrowChunk(const std::vector<kuzu::common::LogicalType>& types,
-    const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize) {
-    if (!queryResult->hasNext()) {
-        return false;
+void PyQueryResult::getNextArrowChunk(const std::vector<LogicalType>& types,
+    const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize, bool fallbackExtensionTypes) {
+    auto rowBatch = std::make_unique<ArrowRowBatch>(copyVector(types), chunkSize, fallbackExtensionTypes);
+    auto rowBatchSize = 0u;
+    while (rowBatchSize < chunkSize) {
+        if (!queryResult->hasNext()) {
+            break;
+        }
+        auto tuple = queryResult->getNext();
+        rowBatch->append(*tuple);
+        rowBatchSize++;
     }
-    ArrowArray data{};
-    ArrowConverter::toArrowArray(*queryResult, &data, chunkSize);
-
+    auto data = rowBatch->toArray();
     auto batchImportFunc = importCache->pyarrow.lib.RecordBatch._import_from_c();
-
-    auto schema = ArrowConverter::toArrowSchema(types, names);
+    auto schema = ArrowConverter::toArrowSchema(types, names, fallbackExtensionTypes);
     batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)schema.get()));
-    return true;
 }
 
-py::object PyQueryResult::getArrowChunks(const std::vector<kuzu::common::LogicalType>& types,
-    const std::vector<std::string>& names, std::int64_t chunkSize) {
+py::object PyQueryResult::getArrowChunks(const std::vector<LogicalType>& types,
+    const std::vector<std::string>& names, std::int64_t chunkSize, bool fallbackExtensionTypes) {
     py::list batches;
-    while (getNextArrowChunk(types, names, batches, chunkSize)) {}
+    while (queryResult->hasNext()) {
+        getNextArrowChunk(types, names, batches, chunkSize, fallbackExtensionTypes);
+    }
     return batches;
 }
 
 kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize,
     bool fallbackExtensionTypes) {
-    ArrowConverter::fallbackExtensionTypes = fallbackExtensionTypes;
     auto types = queryResult->getColumnDataTypes();
     auto names = queryResult->getColumnNames();
-    py::list batches = getArrowChunks(types, names, chunkSize);
-    auto schema = ArrowConverter::toArrowSchema(types, names);
+    py::list batches = getArrowChunks(types, names, chunkSize, fallbackExtensionTypes);
+    auto schema = ArrowConverter::toArrowSchema(types, names, fallbackExtensionTypes);
     auto fromBatchesFunc = importCache->pyarrow.lib.Table.from_batches();
     auto schemaImportFunc = importCache->pyarrow.lib.Schema._import_from_c();
     auto schemaObj = schemaImportFunc((std::uint64_t)schema.get());

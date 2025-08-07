@@ -30,7 +30,12 @@ namespace common {
 class RandomEngine;
 class TaskScheduler;
 class ProgressBar;
+class VirtualFileSystem;
 } // namespace common
+
+namespace catalog {
+class Catalog;
+}
 
 namespace extension {
 class ExtensionManager;
@@ -43,6 +48,10 @@ class TableFunctionCall;
 
 namespace graph {
 class GraphEntrySet;
+}
+
+namespace storage {
+class StorageManager;
 }
 
 namespace main {
@@ -166,13 +175,18 @@ public:
 
     void cleanUp();
 
-    // Query.
+    struct ArrowInfo {
+        bool asArrow = false;
+        int64_t chunkSize = 1000;
+
+        ArrowInfo(bool asArrow, int64_t chunkSize) : asArrow(asArrow), chunkSize(chunkSize) {}
+    };
+    std::unique_ptr<QueryResult> query(std::string_view queryStatement,
+        std::optional<uint64_t> queryID = std::nullopt, ArrowInfo arrowInfo = {false, 1000});
     std::unique_ptr<PreparedStatement> prepareWithParams(std::string_view query,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams = {});
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
-        std::optional<uint64_t> queryID = std::nullopt);
-    std::unique_ptr<QueryResult> query(std::string_view queryStatement,
         std::optional<uint64_t> queryID = std::nullopt);
 
 private:
@@ -222,10 +236,9 @@ private:
 
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
         CachedPreparedStatement* cachedPreparedStatement,
-        std::optional<uint64_t> queryID = std::nullopt);
-
+        std::optional<uint64_t> queryID = std::nullopt, ArrowInfo arrowInfo = {false, 1000});
     std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
-        std::optional<uint64_t> queryID = std::nullopt);
+        std::optional<uint64_t> queryID = std::nullopt, ArrowInfo arrowInfo = {false, 1000});
 
     bool canExecuteWriteQuery() const;
 

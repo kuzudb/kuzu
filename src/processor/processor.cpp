@@ -2,6 +2,7 @@
 
 #include "common/task_system/progress_bar.h"
 #include "processor/operator/sink.h"
+#include "processor/physical_plan.h"
 #include "processor/processor_task.h"
 
 using namespace kuzu::common;
@@ -9,6 +10,7 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
 #if defined(__APPLE__)
 QueryProcessor::QueryProcessor(uint64_t numThreads, uint32_t threadQos) {
     taskScheduler = std::make_unique<TaskScheduler>(numThreads, threadQos);
@@ -32,9 +34,10 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalP
         decomposePlanIntoTask(sink->getChild(i), task.get(), context);
     }
     initTask(task.get());
-    context->clientContext->getProgressBar()->startProgress(context->queryID);
+    auto progressBar = context->clientContext->getProgressBar();
+    progressBar->startProgress(context->queryID);
     taskScheduler->scheduleTaskAndWaitOrError(task, context);
-    context->clientContext->getProgressBar()->endProgress(context->queryID);
+    progressBar->endProgress(context->queryID);
     return sink->getResultFTable();
 }
 

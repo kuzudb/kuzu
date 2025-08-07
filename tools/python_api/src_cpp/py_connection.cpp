@@ -16,6 +16,7 @@
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
 #include "pyarrow/pyarrow_scan.h"
+#include "main/query_result/materialized_query_result.h"
 
 using namespace kuzu::common;
 using namespace kuzu;
@@ -221,11 +222,12 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         if (!result->isSuccess()) {
             throw std::runtime_error(result->getErrorMessage());
         }
-        auto table = result->getTable();
-        auto tableSchema = table->getTableSchema();
+        KU_ASSERT(result->getType() == QueryResultType::FTABLE);
+        auto& table = result->constCast<MaterializedQueryResult>().getFactorizedTable();
+        auto tableSchema = table.getTableSchema();
         if (tableSchema->getColumn(0)->isFlat() && !tableSchema->getColumn(1)->isFlat()) {
-            for (auto i = 0u; i < table->getNumTuples(); ++i) {
-                auto tuple = table->getTuple(i);
+            for (auto i = 0u; i < table.getNumTuples(); ++i) {
+                auto tuple = table.getTuple(i);
                 auto overflowValue = (overflow_value_t*)(tuple + tableSchema->getColOffset(1));
                 for (auto j = 0u; j < overflowValue->numElements; ++j) {
                     srcBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(0));
@@ -237,8 +239,8 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
                 dstBuffer += overflowValue->numElements;
             }
         } else if (tableSchema->getColumn(1)->isFlat() && !tableSchema->getColumn(0)->isFlat()) {
-            for (auto i = 0u; i < table->getNumTuples(); ++i) {
-                auto tuple = table->getTuple(i);
+            for (auto i = 0u; i < table.getNumTuples(); ++i) {
+                auto tuple = table.getTuple(i);
                 auto overflowValue = (overflow_value_t*)(tuple + tableSchema->getColOffset(0));
                 for (auto j = 0u; j < overflowValue->numElements; ++j) {
                     srcBuffer[j] = ((int64_t*)overflowValue->value)[j];

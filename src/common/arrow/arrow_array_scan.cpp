@@ -2,6 +2,7 @@
 #include "common/exception/runtime.h"
 #include "common/types/interval_t.h"
 #include "common/types/types.h"
+#include "common/types/int128_t.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
