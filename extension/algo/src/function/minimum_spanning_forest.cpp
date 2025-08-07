@@ -276,7 +276,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         throw BinderException(
             "Provided weight property is not numerical: " + config.weightProperty);
     }
-    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "src");
+    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "SRC");
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
