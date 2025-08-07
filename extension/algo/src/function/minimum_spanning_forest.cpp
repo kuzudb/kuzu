@@ -31,7 +31,7 @@ using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 class WriteResultsVC final : public GDSResultVertexCompute {
 public:
     WriteResultsVC(MemoryManager* mm, GDSFuncSharedState* sharedState,
-        const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& finalResults)
+        const ku_vector_t<resultEdge>& finalResults)
         : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
         srcIDVector = createVector(LogicalType::INTERNAL_ID());
         dstIDVector = createVector(LogicalType::INTERNAL_ID());
@@ -127,7 +127,7 @@ public:
     // computation.
     void assignForestIds();
 
-    const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& getForest() const {
+    const ku_vector_t<resultEdge>& getForest() const {
         return forest;
     };
 
