@@ -44,11 +44,11 @@ public:
     void vertexCompute(const offset_t startOffset, const offset_t endOffset,
         const table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            const auto& [u, v, r, f] = finalResults[i];
-            srcIDVector->setValue<nodeID_t>(0, nodeID_t{u, tableID});
-            dstIDVector->setValue<nodeID_t>(0, nodeID_t{v, tableID});
-            relIDVector->setValue<relID_t>(0, r);
-            forestIDVector->setValue<offset_t>(0, f);
+            const auto& [srcId, dstId, relId, forestId] = finalResults[i];
+            srcIDVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID});
+            dstIDVector->setValue<nodeID_t>(0, nodeID_t{dstId, tableID});
+            relIDVector->setValue<relID_t>(0, relId);
+            forestIDVector->setValue<offset_t>(0, forestId);
             localFT->append(vectors);
         }
     }
@@ -135,11 +135,11 @@ private:
     static constexpr double DEFAULTWEIGHT = 1;
     // Returns the component ID that `nodeID` belong to. Implemented using a Disjoint-set data
     // structure (DSU).
-    offset_t findComponent(const offset_t& u);
+    offset_t findComponent(const offset_t& nodeId);
 
     // Merges all nodes within the components indicated by `srcCompID` and `dstCompID` into a single
     // component.
-    void mergeComponents(const offset_t& pu, const offset_t& pv);
+    void mergeComponents(const offset_t& pSrcId, const offset_t& pDstId);
 
     const offset_t numNodes;
     ku_vector_t<weightedEdge> edges;
@@ -188,41 +188,41 @@ void KruskalCompute::sortEdges(const bool& maxForest) {
 void KruskalCompute::run() {
     offset_t numEdges = 0;
     for (auto i = 0u; i < edges.size() && numEdges != numNodes - 1; ++i) {
-        const auto& [u, v, r, _] = edges[i];
-        auto pu = findComponent(u);
-        auto pv = findComponent(v);
-        if (pu != pv) {
+        const auto& [srcId, dstId, relId, _] = edges[i];
+        auto pSrcId = findComponent(srcId);
+        auto pDstId = findComponent(dstId);
+        if (pSrcId != pDstId) {
             ++numEdges;
-            forest.push_back({u, v, r, UINT64_MAX});
-            mergeComponents(pu, pv);
+            forest.push_back({srcId, dstId, relId, UINT64_MAX});
+            mergeComponents(pSrcId, pDstId);
         }
     }
 }
 
 void KruskalCompute::assignForestIds() {
-    for (auto& [u, v, r, f] : forest) {
-        f = findComponent(u);
+    for (auto& [srcId, dstId, relId, forestId] : forest) {
+        forestId = findComponent(srcId);
     }
 }
 
-offset_t KruskalCompute::findComponent(const offset_t& u) {
-    while (parents[u] != parents[parents[u]]) {
-        parents[u] = parents[parents[u]];
+offset_t KruskalCompute::findComponent(const offset_t& nodeId) {
+    while (parents[nodeId] != parents[parents[nodeId]]) {
+        parents[nodeId] = parents[parents[nodeId]];
     }
-    return parents[u];
+    return parents[nodeId];
 }
 
-void KruskalCompute::mergeComponents(const offset_t& pu, const offset_t& pv) {
-    KU_ASSERT_UNCONDITIONAL(pu != pv);
-    if (rank[pu] == rank[pv]) {
-        auto newParent = std::min(pu, pv);
-        auto newChild = std::max(pu, pv);
+void KruskalCompute::mergeComponents(const offset_t& pSrcId, const offset_t& pDstId) {
+    KU_ASSERT_UNCONDITIONAL(pSrcId != pDstId);
+    if (rank[pSrcId] == rank[pDstId]) {
+        auto newParent = std::min(pSrcId, pDstId);
+        auto newChild = std::max(pSrcId, pDstId);
         parents[newChild] = newParent;
         rank[newParent]++;
-    } else if (rank[pu] < rank[pv]) {
-        parents[pu] = pv;
+    } else if (rank[pSrcId] < rank[pDstId]) {
+        parents[pSrcId] = pDstId;
     } else {
-        parents[pv] = pu;
+        parents[pDstId] = pSrcId;
     }
 }
 
