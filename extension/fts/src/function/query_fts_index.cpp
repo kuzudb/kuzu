@@ -410,7 +410,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto& ftsIndex = index.value()->cast<FTSIndex>();
     auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
     auto bindData = std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry),
-        nodeOutput, std::move(query), *ftsIndexEntry,
+        expression_vector{nodeOutput}, std::move(query), *ftsIndexEntry,
         QueryFTSOptionalParams{context, input->optionalParamsLegacy}, ftsStorageInfo.numDocs,
         ftsStorageInfo.avgDocLen);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
@@ -425,7 +425,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    auto nodeOutput = bindData->nodeOutput->ptrCast<NodeExpression>();
+    auto nodeOutput = bindData->output[0]->ptrCast<NodeExpression>();
     KU_ASSERT(nodeOutput != nullptr);
     planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
     auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);

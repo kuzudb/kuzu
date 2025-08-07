@@ -75,9 +75,9 @@ std::unique_ptr<GDSConfig> PageRankOptionalParams::getConfig() const {
 
 struct PageRankBindData final : public GDSBindData {
     PageRankBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
-        std::shared_ptr<Expression> nodeOutput,
+        expression_vector output,
         std::unique_ptr<PageRankOptionalParams> optionalParams)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput),
+        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(output),
               std::move(optionalParams)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -337,7 +337,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable(RANK_COLUMN_NAME, LogicalType::DOUBLE()));
-    return std::make_unique<PageRankBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+    return std::make_unique<PageRankBindData>(std::move(columns), std::move(graphEntry), expression_vector{nodeOutput},
         std::make_unique<PageRankOptionalParams>(input->optionalParamsLegacy));
 }
 

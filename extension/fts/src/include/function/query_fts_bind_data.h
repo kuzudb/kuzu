@@ -29,14 +29,14 @@ struct QueryFTSBindData final : function::GDSBindData {
     double avgDocLen;
 
     QueryFTSBindData(binder::expression_vector columns, graph::NativeGraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> docs, std::shared_ptr<binder::Expression> query,
+        binder::expression_vector docs, std::shared_ptr<binder::Expression> query,
         const catalog::IndexCatalogEntry& entry, QueryFTSOptionalParams optionalParams,
         common::idx_t numDocs, double avgDocLen)
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(docs)},
           query{std::move(query)}, entry{entry}, optionalParams{std::move(optionalParams)},
-          outputTableID{nodeOutput->constCast<binder::NodeExpression>().getTableIDs()[0]},
+          outputTableID{docs[0]->constCast<binder::NodeExpression>().getTableIDs()[0]},
           numDocs{numDocs}, avgDocLen{avgDocLen} {
-        auto& nodeExpr = nodeOutput->constCast<binder::NodeExpression>();
+        auto& nodeExpr = output[0]->constCast<binder::NodeExpression>();
         KU_ASSERT(nodeExpr.getNumEntries() == 1);
         outputTableID = nodeExpr.getEntry(0)->getTableID();
     }

@@ -36,6 +36,14 @@ std::vector<TableCatalogEntry*> NativeGraphEntry::getNodeEntries() const {
     return result;
 }
 
+std::vector<TableCatalogEntry*> NativeGraphEntry::getRelEntries() const {
+    std::vector<TableCatalogEntry*> result;
+    for (auto& info : relInfos) {
+        result.push_back(info.entry);
+    }
+    return result;
+}
+
 const NativeGraphEntryTableInfo& NativeGraphEntry::getRelInfo(table_id_t tableID) const {
     for (auto& info : relInfos) {
         if (info.entry->getTableID() == tableID) {
