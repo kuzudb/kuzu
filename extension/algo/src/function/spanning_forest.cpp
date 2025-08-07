@@ -50,13 +50,13 @@ struct MSFOptionalParams final : public GDSOptionalParams {
 };
 
 MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams) {
-    static constexpr const char* WEIGHTPROPERTY = "weight_property";
-    static constexpr const char* MAXFOREST = "max_forest";
+    static constexpr const char* WEIGHT_PROPERTY = "weight_property";
+    static constexpr const char* MAX_FOREST = "max_forest";
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
-        if (paramName == WEIGHTPROPERTY) {
+        if (paramName == WEIGHT_PROPERTY) {
             weightProperty = optionalParam;
-        } else if (paramName == MAXFOREST) {
+        } else if (paramName == MAX_FOREST) {
             maxForest = optionalParam;
         } else {
             throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
@@ -99,7 +99,7 @@ public:
     offset_t getForestSize() const { return forest.size(); };
 
 private:
-    static constexpr double DEFAULTWEIGHT = 1;
+    static constexpr double DEFAULT_WEIGHT = 1;
     // Returns the component ID that `nodeID` belong to. Implemented using a Disjoint-set data
     // structure (DSU).
     offset_t findComponent(const offset_t& nodeId);
@@ -135,7 +135,7 @@ void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
                 auto weight = weightProperty ? propertyVectors[1]->template getValue<double>(i) :
-                                               DEFAULTWEIGHT;
+                                               DEFAULT_WEIGHT;
                 edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
