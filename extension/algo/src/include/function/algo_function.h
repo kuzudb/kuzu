@@ -71,16 +71,16 @@ struct LouvainFunction {
     static function::function_set getFunctionSet();
 };
 
-struct MinimumSpanningForest {
-    static constexpr const char* name = "MINIMUM_SPANNING_FOREST";
+struct SpanningForest {
+    static constexpr const char* name = "SPANNING_FOREST";
 
     static function::function_set getFunctionSet();
 };
 
-struct MinimumSpanningAliasForest {
-    using alias = MinimumSpanningForest;
+struct SpanningForestAliasFunction {
+    using alias = SpanningForest ;
 
-    static constexpr const char* name = "MSF";
+    static constexpr const char* name = "SF";
 };
 
 } // namespace algo_extension

@@ -33,7 +33,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- 9
 0|1|5|0
 0|2|6|0
@@ -46,7 +46,7 @@
 8|9|3|0
 
 
--CASE AnotherBasicTest
+-CASE ALIASTEST
 -LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
@@ -76,7 +76,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MSF('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+-STATEMENT CALL SF('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- 9
 0|1|5|0
 0|2|6|0
@@ -117,7 +117,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- 8
 0|1|5|0
 0|2|6|0
@@ -147,7 +147,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- 0
 
 -CASE MultiEdges
@@ -187,7 +187,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- 9
 0|1|5|0
 0|2|6|0
@@ -240,7 +240,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- 9
 0|1|5|0
 0|2|6|0
@@ -283,7 +283,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight', max_forest:=false) YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight;
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', max_forest:=false) YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight;
 ---- 9
 0|1|5
 0|2|6
@@ -294,7 +294,7 @@
 6|7|3
 7|8|10
 8|9|3
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight', max_forest:=true) YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight;
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', max_forest:=true) YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight;
 ---- 9
 0|2|6
 1|2|8
@@ -305,7 +305,7 @@
 5|7|10
 7|8|10
 8|9|3
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph') YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight;
+-STATEMENT CALL SPANNING_FOREST('Graph') YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight;
 ---- 9
 0|2|6
 1|2|8
@@ -326,7 +326,7 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- error
 Binder exception: Provided weight property is not numerical: weight
 
@@ -338,6 +338,6 @@ Binder exception: Provided weight property is not numerical: weight
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL MINIMUM_SPANNING_FOREST('Graph', weight_property:='height') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height') YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- error
 Binder exception: Cannot find property: height

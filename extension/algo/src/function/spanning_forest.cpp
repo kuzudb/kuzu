@@ -264,11 +264,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto graphName = input->getLiteralVal<std::string>(0);
     auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
     if (graphEntry.nodeInfos.size() != 1) {
-        throw BinderException(std::string(MinimumSpanningForest::name) +
+        throw BinderException(std::string(SpanningForest::name) +
                               " only supports operations on one node table.");
     }
     if (graphEntry.relInfos.size() != 1) {
-        throw BinderException(std::string(MinimumSpanningForest::name) +
+        throw BinderException(std::string(SpanningForest::name) +
                               " only supports operations on one edge table.");
     }
     auto optionalParams = make_unique<MSFOptionalParams>(input->optionalParamsLegacy);
@@ -293,7 +293,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         std::move(optionalParams));
 }
 
-function_set MinimumSpanningForest::getFunctionSet() {
+function_set SpanningForest::getFunctionSet() {
     function_set result;
     auto func = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::ANY});
     func->bindFunc = bindFunc;
