@@ -130,7 +130,8 @@ public:
 
 private:
     static constexpr double DEFAULTWEIGHT = 1;
-    // Returns the component ID that `nodeID` belong to. Implemented using a Disjoint-set data structure (DSU).
+    // Returns the component ID that `nodeID` belong to. Implemented using a Disjoint-set data
+    // structure (DSU).
     offset_t findComponent(const offset_t& u);
 
     void mergeComponents(const offset_t& pu, const offset_t& pv);
