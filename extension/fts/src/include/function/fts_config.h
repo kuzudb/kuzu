@@ -47,6 +47,7 @@ struct IgnorePattern {
     static constexpr const char* NAME = "ignore_pattern";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
     static constexpr const char* DEFAULT_VALUE = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
+    // We store a second ignore pattern for queries to not replace on wildcard characters
     static constexpr const char* DEFAULT_VALUE_QUERY =
         "[0-9!@#$%^&()_+={}\\[\\]:;<>,.~\\/\\|'\"`-]+";
 

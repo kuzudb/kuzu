@@ -241,17 +241,18 @@ private:
     std::unique_ptr<QFTSOutputWriter> writer;
 };
 
-using VcQueryTerm = std::variant<std::string, std::unique_ptr<RE2>>;
+using VCQueryTerm = std::variant<std::string, std::unique_ptr<RE2>>;
 class MatchTermsVertexCompute final : public VertexCompute {
 public:
     explicit MatchTermsVertexCompute(std::unordered_map<offset_t, uint64_t>& resDfs,
-        std::vector<VcQueryTerm>& queryTerms)
+        std::vector<VCQueryTerm>& queryTerms)
         : resDfs{resDfs}, queryTerms{queryTerms} {}
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         auto terms = chunk.getProperties<ku_string_t>(0);
         auto dfs = chunk.getProperties<uint64_t>(1);
         auto nodeIds = chunk.getNodeIDs();
         for (auto& queryTerm : queryTerms) {
+            // queryTerm.index() is 0 for string, 1 for unique_ptr<RE2>
             if (queryTerm.index() == 0) {
                 std::string& queryString = std::get<0>(queryTerm);
                 for (auto i = 0u; i < chunk.size(); ++i) {
@@ -275,7 +276,7 @@ public:
 
 private:
     std::unordered_map<offset_t, uint64_t>& resDfs;
-    std::vector<VcQueryTerm>& queryTerms;
+    std::vector<VCQueryTerm>& queryTerms;
 };
 
 static constexpr char SCORE_PROP_NAME[] = "score";
@@ -305,7 +306,7 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
         NodeTableScanState(nodeIDVector, std::vector{dfVector}, dataChunk.state);
     nodeTableScanState.setToTable(context.getTransaction(), &termsNodeTable, {dfColumnID}, {});
     std::unordered_map<offset_t, uint64_t> dfs;
-    std::vector<VcQueryTerm> vcQueryTerms;
+    std::vector<VCQueryTerm> vcQueryTerms;
     vcQueryTerms.reserve(queryTerms.size());
     bool hasWildcardQueryTerm = false;
     for (auto& queryTerm : queryTerms) {

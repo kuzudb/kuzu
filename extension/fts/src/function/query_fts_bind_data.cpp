@@ -79,7 +79,7 @@ std::vector<std::string> QueryFTSBindData::getQueryTerms(main::ClientContext& co
                               ->ptrCast<NodeTable>();
     return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
         context.getMemoryManager(), stopWordsTable, context.getTransaction(),
-        getConfig().isConjunctive, true);
+        getConfig().isConjunctive, true /* isQuery */);
 }
 
 } // namespace fts_extension
