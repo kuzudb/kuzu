@@ -127,9 +127,7 @@ public:
     // computation.
     void assignForestIds();
 
-    const ku_vector_t<resultEdge>& getForest() const {
-        return forest;
-    };
+    const ku_vector_t<resultEdge>& getForest() const { return forest; };
 
     offset_t getForestSize() const { return forest.size(); };
 
