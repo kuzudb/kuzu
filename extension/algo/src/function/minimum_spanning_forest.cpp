@@ -239,11 +239,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         nbrInfo.dstTableID, relProps, false /*randomLookup*/);
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
-    KruskalState state(mm, numNodes);
-    state.getGraph(graph, numNodes, tableId, scanState.get(), !config.weightProperty.empty());
-    state.kruskalPreprocess(config.maxForest);
-    state.kruskalCompute(numNodes);
-    state.assignForestIds();
+    KruskalCompute compute(mm, numNodes);
+    compute.initEdges(graph, tableId, scanState.get(), !config.weightProperty.empty());
+    compute.sortEdges(config.maxForest);
+    compute.run();
+    compute.assignForestIds();
 
     const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.getForest());
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute,
