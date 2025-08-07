@@ -286,7 +286,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
     KruskalCompute compute(mm, numNodes);
     compute.initEdges(graph, tableId, scanState.get(), !config.weightProperty.empty());
-    compute.sortEdges(config.variant);
+    // We do not need to sort if no weight property is provided.
+    if (!config.weightProperty.empty())
+    {
+        compute.sortEdges(config.variant);
+    }
     compute.run();
     compute.assignForestIds();
 
