@@ -3,6 +3,7 @@
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 #include "common/types/types.h"
 #include "function/algo_function.h"
@@ -32,10 +33,10 @@ using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 // CONFIG
 
 // Stores optional arguments as expressions rather than concrete values.
-// This allows deferring evaluation of parameters until runtime
+// This allows deferring evaluation of parameters until runtime.
 struct SFOptionalParams final : public GDSOptionalParams {
     std::shared_ptr<Expression> weightProperty;
-    std::shared_ptr<Expression> maxForest;
+    std::shared_ptr<Expression> variant;
 
     explicit SFOptionalParams(const expression_vector& optionalParams);
 
@@ -48,23 +49,25 @@ struct SFOptionalParams final : public GDSOptionalParams {
 
 SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams) {
     static constexpr const char* WEIGHT_PROPERTY = "weight_property";
-    static constexpr const char* MAX_FOREST = "max_forest";
+    static constexpr const char* VARIANT = "variant";
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == WEIGHT_PROPERTY) {
             weightProperty = optionalParam;
-        } else if (paramName == MAX_FOREST) {
-            maxForest = optionalParam;
+        } else if (paramName == VARIANT) {
+            variant = optionalParam;
         } else {
-            throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
+            throw RuntimeException{stringFormat("Unknown optional argument: {}", optionalParam->getAlias())};
         }
     }
 }
 
 // Final configuration struct used to parameterize the SF configuration at execution time.
 struct SFConfig final : public GDSConfig {
+    static constexpr const char * MAX_VARIENT = "max";
+    static constexpr const char * MIN_VARIENT = "min";
     std::string weightProperty;
-    bool maxForest = false;
+    std::string variant = MIN_VARIENT;
     SFConfig() = default;
 };
 
@@ -74,8 +77,12 @@ std::unique_ptr<GDSConfig> SFOptionalParams::getConfig() const {
         config->weightProperty =
             ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
     }
-    if (maxForest != nullptr) {
-        config->maxForest = ExpressionUtil::evaluateLiteral<bool>(*maxForest, LogicalType::BOOL());
+    if (variant != nullptr) {
+        config->variant = ExpressionUtil::evaluateLiteral<std::string>(*variant, LogicalType::STRING());
+        StringUtils::toLower(config->variant);
+        if (config->variant != SFConfig::MIN_VARIENT && config->variant != SFConfig::MAX_VARIENT) {
+            throw RuntimeException{stringFormat("Variant arguments expects {} or {}. Got: {}", SFConfig::MAX_VARIENT, SFConfig::MIN_VARIENT, config->variant)};
+        }
     }
     return config;
 }
@@ -93,7 +100,7 @@ public:
 
     // We must process edges in a particular order to get either a minimum or maximum
     // spanning forest.
-    void sortEdges(const bool& maxForest);
+    void sortEdges(const std::string& variant);
 
     // Implements the core of Kruskal's algorithm. We iterate over our edge
     // list, adding an edge to our forest if it does not create a cycle.
@@ -152,11 +159,11 @@ void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
     }
 }
 
-void KruskalCompute::sortEdges(const bool& maxForest) {
+void KruskalCompute::sortEdges(const std::string& variant) {
     const auto& compareFn = [&](const auto& e1, const auto& e2) {
         const auto& [srcId1, dstId1, relId1, weight1] = e1;
         const auto& [srcId2, dstId2, relId2, weight2] = e2;
-        return maxForest ? std::tie(weight1, srcId1, dstId1, relId1) >
+        return variant == SFConfig::MAX_VARIENT ? std::tie(weight1, srcId1, dstId1, relId1) >
                                std::tie(weight2, srcId2, dstId2, relId2) :
                            std::tie(weight1, srcId1, dstId1, relId1) <
                                std::tie(weight2, srcId2, dstId2, relId2);
@@ -258,13 +265,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto config = SFBindData->getConfig()->constCast<SFConfig>();
     if (!config.weightProperty.empty() &&
         !nbrInfo.relGroupEntry->containsProperty(config.weightProperty)) {
-        throw RuntimeException("Cannot find property: " + config.weightProperty);
+        throw RuntimeException{stringFormat("Cannot find property: {}", config.weightProperty)};
     }
     if (!config.weightProperty.empty() &&
         !LogicalTypeUtils::isNumerical(
             nbrInfo.relGroupEntry->getProperty(config.weightProperty).getType())) {
-        throw RuntimeException(
-            "Provided weight property is not numerical: " + config.weightProperty);
+        throw RuntimeException{stringFormat("Provided weight property is not numerical: {}", config.weightProperty)};
     }
     std::vector<std::string> relProps = {InternalKeyword::ID};
     if (!config.weightProperty.empty()) {
@@ -276,7 +282,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
     KruskalCompute compute(mm, numNodes);
     compute.initEdges(graph, tableId, scanState.get(), !config.weightProperty.empty());
-    compute.sortEdges(config.maxForest);
+    compute.sortEdges(config.variant);
     compute.run();
     compute.assignForestIds();
 
@@ -297,7 +303,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
     if (graphEntry.relInfos.size() != 1) {
         throw BinderException(
-            std::string(SpanningForest::name) + " only supports operations on one edge table.");
+            std::string(SpanningForest::name) + " only supports operations on one rel table.");
     }
     expression_vector columns;
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "src");

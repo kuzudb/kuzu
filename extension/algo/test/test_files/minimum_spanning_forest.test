@@ -301,7 +301,7 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', max_forest:=false) 
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min') 
 YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst 
 MATCH ()-[r]->() WHERE ID(r) = rel 
 RETURN src.id AS src, n.id AS dst, r.weight as weight;
@@ -315,7 +315,7 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight;
 6|7|3
 7|8|10
 8|9|3
--STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', max_forest:=true) 
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max') 
 YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst 
 MATCH ()-[r]->() WHERE ID(r) = rel 
 RETURN src.id AS src, n.id AS dst, r.weight as weight;
@@ -374,3 +374,52 @@ MATCH ()-[r]->() WHERE ID(r) = rel
 RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- error
 Runtime exception: Cannot find property: height
+
+-CASE MultipleNodeTables
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE NODE TABLE Node2(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node', 'Node2'], ['Edge']);
+---- ok
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height') 
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- error
+Binder exception: SPANNING_FOREST only supports operations on one node table.
+
+-CASE MultipleRelTables
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CREATE REL TABLE Edge2(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge', 'Edge2']);
+---- ok
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height') 
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- error
+Binder exception: SPANNING_FOREST only supports operations on one rel table.
+
+-CASE BadVariant
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height', variant:='medium') 
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- error
+Runtime exception: Variant arguments expects max or min. Got: medium
