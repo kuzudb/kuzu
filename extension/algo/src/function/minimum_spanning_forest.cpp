@@ -156,6 +156,7 @@ void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const 
             chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
                 if (nbrId == nodeId) {
+                    // Ignore self loops.
                     return;
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
