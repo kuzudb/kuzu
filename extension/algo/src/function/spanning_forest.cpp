@@ -2,6 +2,7 @@
 #include "binder/expression/expression_util.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"
+#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "common/types/types.h"
 #include "function/algo_function.h"
@@ -30,29 +31,22 @@ using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 
 // CONFIG
 
-// House optional arguments for configuration as primitives.
-struct MSFConfig final : public GDSConfig {
-    std::string weightProperty;
-    bool maxForest = false;
-    MSFConfig() = default;
-};
-
-// House optional arguments for configuration as expressions.
-struct MSFOptionalParams final : public GDSOptionalParams {
+// Stores optional arguments as expressions rather than concrete values.
+// This allows deferring evaluation of parameters until runtime
+struct SFOptionalParams final : public GDSOptionalParams {
     std::shared_ptr<Expression> weightProperty;
     std::shared_ptr<Expression> maxForest;
 
-    explicit MSFOptionalParams(const expression_vector& optionalParams);
+    explicit SFOptionalParams(const expression_vector& optionalParams);
 
     std::unique_ptr<GDSConfig> getConfig() const override;
 
     std::unique_ptr<GDSOptionalParams> copy() const override {
-        return std::make_unique<MSFOptionalParams>(*this);
+        return std::make_unique<SFOptionalParams>(*this);
     }
 };
 
-// Collect optional argument expressions.
-MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams) {
+SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams) {
     static constexpr const char* WEIGHT_PROPERTY = "weight_property";
     static constexpr const char* MAX_FOREST = "max_forest";
     for (auto& optionalParam : optionalParams) {
@@ -67,9 +61,15 @@ MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams) {
     }
 }
 
-// Attempt to evaluate optional argument expressions.
-std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
-    auto config = std::make_unique<MSFConfig>();
+// Final configuration struct used to parameterize the SF configuration at execution time.
+struct SFConfig final : public GDSConfig {
+    std::string weightProperty;
+    bool maxForest = false;
+    SFConfig() = default;
+};
+
+std::unique_ptr<GDSConfig> SFOptionalParams::getConfig() const {
+    auto config = std::make_unique<SFConfig>();
     if (weightProperty != nullptr) {
         config->weightProperty =
             ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
@@ -254,8 +254,18 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
-    auto MSFBindData = input.bindData->constPtrCast<GDSBindData>();
-    auto config = MSFBindData->getConfig()->constCast<MSFConfig>();
+    auto SFBindData = input.bindData->constPtrCast<GDSBindData>();
+    auto config = SFBindData->getConfig()->constCast<SFConfig>();
+    if (!config.weightProperty.empty() &&
+        !nbrInfo.relGroupEntry->containsProperty(config.weightProperty)) {
+        throw RuntimeException("Cannot find property: " + config.weightProperty);
+    }
+    if (!config.weightProperty.empty() &&
+        !LogicalTypeUtils::isNumerical(
+            nbrInfo.relGroupEntry->getProperty(config.weightProperty).getType())) {
+        throw RuntimeException(
+            "Provided weight property is not numerical: " + config.weightProperty);
+    }
     std::vector<std::string> relProps = {InternalKeyword::ID};
     if (!config.weightProperty.empty()) {
         relProps.push_back(config.weightProperty);
@@ -289,26 +299,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         throw BinderException(
             std::string(SpanningForest::name) + " only supports operations on one edge table.");
     }
-    auto optionalParams = make_unique<MSFOptionalParams>(input->optionalParamsLegacy);
-    auto config = optionalParams->getConfig()->constCast<MSFConfig>();
-    if (!config.weightProperty.empty() &&
-        !graphEntry.relInfos[0].entry->containsProperty(config.weightProperty)) {
-        throw BinderException("Cannot find property: " + config.weightProperty);
-    }
-    if (!config.weightProperty.empty() &&
-        !LogicalTypeUtils::isNumerical(
-            graphEntry.relInfos[0].entry->getProperty(config.weightProperty).getType())) {
-        throw BinderException(
-            "Provided weight property is not numerical: " + config.weightProperty);
-    }
-    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "src");
     expression_vector columns;
+    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "src");
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("REL", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("FOREST_ID", LogicalType::UINT64()));
     return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
-        std::move(optionalParams));
+        make_unique<SFOptionalParams>(input->optionalParamsLegacy));
 }
 
 function_set SpanningForest::getFunctionSet() {

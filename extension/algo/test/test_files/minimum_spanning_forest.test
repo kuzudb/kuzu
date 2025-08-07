@@ -358,7 +358,7 @@ YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst
 MATCH ()-[r]->() WHERE ID(r) = rel 
 RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- error
-Binder exception: Provided weight property is not numerical: weight
+Runtime exception: Provided weight property is not numerical: weight
 
 -CASE PropertyDoesNotExist
 -LOAD_DYNAMIC_EXTENSION algo
@@ -373,4 +373,4 @@ YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst
 MATCH ()-[r]->() WHERE ID(r) = rel 
 RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- error
-Binder exception: Cannot find property: height
+Runtime exception: Cannot find property: height
