@@ -1,3 +1,5 @@
+add_subdirectory(query_result)
+
 add_library(kuzu_main
         OBJECT
         attached_database.cpp

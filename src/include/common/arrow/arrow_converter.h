@@ -20,14 +20,14 @@ struct ArrowSchemaHolder {
     std::vector<std::unique_ptr<char[]>> ownedTypeNames;
 };
 
-struct ArrowConverter {
+class ArrowConverter {
 public:
     static std::unique_ptr<ArrowSchema> toArrowSchema(const std::vector<LogicalType>& dataTypes,
         const std::vector<std::string>& columnNames);
     static void toArrowArray(main::QueryResult& queryResult, ArrowArray* out_array,
         std::int64_t chunkSize);
 
-    static common::LogicalType fromArrowSchema(const ArrowSchema* schema);
+    static LogicalType fromArrowSchema(const ArrowSchema* schema);
     static void fromArrowArray(const ArrowSchema* schema, const ArrowArray* array,
         ValueVector& outputVector, ArrowNullMaskTree* mask, uint64_t srcOffset, uint64_t dstOffset,
         uint64_t count);

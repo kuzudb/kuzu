@@ -12,6 +12,7 @@
 #include "common/database_lifecycle_manager.h"
 #include "kuzu_fwd.h"
 #include "main/db_config.h"
+
 namespace kuzu {
 namespace common {
 class FileSystem;

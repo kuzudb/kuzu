@@ -6,9 +6,9 @@
 #include "common/arrow/arrow.h"
 #include "common/database_lifecycle_manager.h"
 #include "common/types/types.h"
-#include "kuzu_fwd.h"
 #include "processor/result/flat_tuple.h"
 #include "query_summary.h"
+
 namespace kuzu {
 namespace main {
 
@@ -18,27 +18,6 @@ namespace main {
 class QueryResult {
     friend class Connection;
     friend class ClientContext;
-    class QueryResultIterator {
-    private:
-        QueryResult* currentResult;
-
-    public:
-        QueryResultIterator() = default;
-
-        explicit QueryResultIterator(QueryResult* startResult) : currentResult(startResult) {}
-
-        void operator++() {
-            if (currentResult) {
-                currentResult = currentResult->nextQueryResult.get();
-            }
-        }
-
-        bool isEnd() const { return currentResult == nullptr; }
-
-        bool hasNextQueryResult() const { return currentResult->nextQueryResult != nullptr; }
-
-        QueryResult* getCurrentResult() const { return currentResult; }
-    };
 
 public:
     /**
@@ -133,7 +112,7 @@ public:
      */
     KUZU_API std::unique_ptr<ArrowArray> getNextArrowChunk(int64_t chunkSize);
 
-    processor::FactorizedTable* getTable() { return factorizedTable.get(); }
+    // processor::FactorizedTable* getTable() { return factorizedTable.get(); }
 
     static std::unique_ptr<QueryResult> getQueryResultWithError(const std::string& errorMessage);
 
@@ -147,25 +126,39 @@ private:
     void checkDatabaseClosedOrThrow() const;
 
 private:
-    // execution status
+    class QueryResultIterator {
+    public:
+        QueryResultIterator() = default;
+
+        explicit QueryResultIterator(QueryResult* startResult) : currentResult(startResult) {}
+
+        void operator++() {
+            if (currentResult) {
+                currentResult = currentResult->nextQueryResult.get();
+            }
+        }
+
+        bool isEnd() const { return currentResult == nullptr; }
+
+        bool hasNextQueryResult() const { return currentResult->nextQueryResult != nullptr; }
+
+        QueryResult* getCurrentResult() const { return currentResult; }
+
+    private:
+        QueryResult* currentResult;
+    };
+
     bool success = true;
     std::string errMsg;
 
     // header information
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> columnDataTypes;
-    // data
-    std::shared_ptr<processor::FactorizedTable> factorizedTable;
-    std::unique_ptr<processor::FlatTupleIterator> iterator;
-    std::shared_ptr<processor::FlatTuple> tuple;
 
-    // execution statistics
-    std::unique_ptr<QuerySummary> querySummary;
+    QuerySummary querySummary;
 
-    // query iterator
     QueryResultIterator queryResultIterator;
 
-    // database life cycle manager
     std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
 };
 

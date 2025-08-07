@@ -6,8 +6,6 @@ namespace kuzu {
 namespace common {
 
 struct ku_list_t {
-
-public:
     ku_list_t() : size{0}, overflowPtr{0} {}
     ku_list_t(uint64_t size, uint64_t overflowPtr) : size{size}, overflowPtr{overflowPtr} {}
 

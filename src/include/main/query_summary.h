@@ -1,9 +1,12 @@
 #pragma once
 
 #include "common/api.h"
-#include "kuzu_fwd.h"
 
 namespace kuzu {
+namespace common {
+enum class StatementType;
+}
+
 namespace main {
 
 /**
@@ -19,7 +22,6 @@ struct PreparedSummary { // NOLINT(*-pro-type-member-init)
  */
 class QuerySummary {
     friend class ClientContext;
-    friend class benchmark::Benchmark;
 
 public:
     /**
@@ -32,6 +34,7 @@ public:
     KUZU_API double getExecutionTime() const;
 
     void incrementCompilingTime(double increment);
+
     void incrementExecutionTime(double increment);
 
     void setPreparedSummary(PreparedSummary preparedSummary_);
