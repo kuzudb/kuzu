@@ -110,7 +110,7 @@ class KruskalState {
 public:
     KruskalState(storage::MemoryManager* mm, offset_t numNodes);
 
-    void getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId,
+    void getGraph(Graph* graph, const offset_t& numNodes, const table_id_t& tableId,
         NbrScanState* const scanState, const bool& weightProperty);
 
     void kruskalPreprocess(const bool& maxForest);
@@ -148,7 +148,7 @@ KruskalState::KruskalState(storage::MemoryManager* mm, offset_t numNodes)
     std::iota(parents.begin(), parents.end(), 0);
 }
 
-void KruskalState::getGraph(Graph* const graph, const offset_t& numNodes, const table_id_t& tableId,
+void KruskalState::getGraph(Graph* graph, const offset_t& numNodes, const table_id_t& tableId,
     NbrScanState* const scanState, const bool& weightProperty) {
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         const nodeID_t nextNodeId = {nodeId, tableId};
