@@ -78,7 +78,7 @@ struct SpanningForest {
 };
 
 struct SpanningForestAliasFunction {
-    using alias = SpanningForest ;
+    using alias = SpanningForest;
 
     static constexpr const char* name = "SF";
 };

@@ -264,12 +264,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto graphName = input->getLiteralVal<std::string>(0);
     auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
     if (graphEntry.nodeInfos.size() != 1) {
-        throw BinderException(std::string(SpanningForest::name) +
-                              " only supports operations on one node table.");
+        throw BinderException(
+            std::string(SpanningForest::name) + " only supports operations on one node table.");
     }
     if (graphEntry.relInfos.size() != 1) {
-        throw BinderException(std::string(SpanningForest::name) +
-                              " only supports operations on one edge table.");
+        throw BinderException(
+            std::string(SpanningForest::name) + " only supports operations on one edge table.");
     }
     auto optionalParams = make_unique<MSFOptionalParams>(input->optionalParamsLegacy);
     auto config = optionalParams->getConfig()->constCast<MSFConfig>();
