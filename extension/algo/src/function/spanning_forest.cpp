@@ -310,7 +310,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             std::string(SpanningForest::name) + " only supports operations on one rel table.");
     }
     expression_vector columns;
-    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "src");
+    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "SRC");
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("REL", LogicalType::INTERNAL_ID()));
