@@ -245,7 +245,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     compute.run();
     compute.assignForestIds();
 
-    const auto vertexCompute = make_unique<WriteResultsMSF>(mm, sharedState, state.getForest());
+    const auto writeResultsVC = make_unique<WriteResultsVC>(mm, sharedState, state.getForest());
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute,
         state.getForestSize());
     sharedState->factorizedTablePool.mergeLocalTables();
