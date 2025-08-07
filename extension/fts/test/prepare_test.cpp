@@ -35,8 +35,8 @@ TEST_F(ApiTest, PrepareFTSTest) {
         conn->prepare("CALL QUERY_FTS_INDEX('person', 'personIdx', $1) RETURN node.ID, score;");
     result = conn->execute(prepared.get());
     ASSERT_FALSE(result->isSuccess());
-    ASSERT_EQ(result->getErrorMessage(),
-        "Runtime exception: The query is a parameter expression. Please assign it a value.");
+    ASSERT_EQ(result->getErrorMessage(), "Runtime exception: The expression: '$1' is a parameter "
+                                         "expression. Please assign it a value.");
 
     // Table name can't be a parameter expression.
     prepared =
@@ -45,6 +45,89 @@ TEST_F(ApiTest, PrepareFTSTest) {
     ASSERT_FALSE(result->isSuccess());
     ASSERT_EQ(result->getErrorMessage(),
         "Binder exception: The table and index name must be literal expressions.");
+
+    // TOP-K can be a parameter expression.
+    prepared = conn->prepare(
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', top:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("3"), 1));
+    ASSERT_TRUE(result->isSuccess());
+
+    prepared = conn->prepare(
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', top:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("3"), std::string("1")));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(), "Binder exception: Expression 1 has data type STRING but "
+                                         "expected UINT64. Implicit cast is not supported.");
+
+    prepared = conn->prepare(
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', top:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get());
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(), "Runtime exception: The expression: 'top' is a parameter "
+                                         "expression. Please assign it a value.");
+
+    // K can be a parameter expression.
+    prepared = conn->prepare(
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', k:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("3"), 0.29));
+    ASSERT_TRUE(result->isSuccess());
+
+    prepared = conn->prepare(
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', k:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("3"), std::string("0.77")));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(),
+        "Binder exception: Expression 0.77 has data type STRING but "
+        "expected DOUBLE. Implicit cast is not supported.");
+
+    prepared = conn->prepare(
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', k:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get());
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(), "Runtime exception: The expression: 'k' is a parameter "
+                                         "expression. Please assign it a value.");
+
+    // B can be a parameter expression.
+    prepared = conn->prepare(
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', b:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("3"), 0.88));
+    ASSERT_TRUE(result->isSuccess());
+
+    prepared = conn->prepare(
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', k:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("3"), std::string("0.99")));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(),
+        "Binder exception: Expression 0.99 has data type STRING but "
+        "expected DOUBLE. Implicit cast is not supported.");
+
+    prepared = conn->prepare(
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', b:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get());
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(), "Runtime exception: The expression: 'b' is a parameter "
+                                         "expression. Please assign it a value.");
+
+    // conjunctive can be a parameter expression.
+    prepared = conn->prepare("CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', "
+                             "conjunctive:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("3"), true));
+    ASSERT_TRUE(result->isSuccess());
+
+    prepared = conn->prepare("CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', "
+                             "conjunctive:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("3"), 5));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(), "Binder exception: Expression 5 has data type INT32 but "
+                                         "expected BOOL. Implicit cast is not supported.");
+
+    prepared = conn->prepare("CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice', "
+                             "conjunctive:=$3) RETURN node.ID, score;");
+    result = conn->execute(prepared.get());
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(),
+        "Runtime exception: The expression: 'conjunctive' is a parameter "
+        "expression. Please assign it a value.");
 }
 
 } // namespace testing

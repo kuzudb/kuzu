@@ -486,22 +486,35 @@ T ExpressionUtil::getExpressionVal(const Expression& expr, const Value& value,
 }
 
 template<typename T>
-T ExpressionUtil::evaluateLiteral(const Expression& expression, const common::LogicalType& type,
+T ExpressionUtil::evaluateLiteral(main::ClientContext* context,
+    std::shared_ptr<Expression> expression, const common::LogicalType& type,
     validate_param_func<T> validateParamFunc) {
-    if (!canEvaluateAsLiteral(expression)) {
+    if (!canEvaluateAsLiteral(*expression)) {
         std::string errMsg;
-        switch (expression.expressionType) {
+        switch (expression->expressionType) {
         case ExpressionType::PARAMETER: {
-            errMsg = "The query is a parameter expression. Please assign it a value.";
+            errMsg = common::stringFormat(
+                "The expression: '{}' is a parameter expression. Please assign it a value.",
+                expression->toString());
         } break;
         default: {
-            errMsg = "The query must be a parameter/literal expression.";
+            errMsg =
+                common::stringFormat("The expression: '{}' must be a parameter/literal expression.",
+                    expression->toString());
+            ;
         } break;
         }
         throw RuntimeException{errMsg};
     }
-    auto value = evaluateAsLiteralValue(expression);
-    return getExpressionVal(expression, value, type, validateParamFunc);
+    if (expression->getDataType() != type) {
+        binder::Binder binder{context};
+        auto literalExpr = std::make_shared<LiteralExpression>(
+            ExpressionUtil::evaluateAsLiteralValue(*expression), expression->getUniqueName());
+        expression = binder.getExpressionBinder()->implicitCast(literalExpr, type.copy());
+        expression = binder.getExpressionBinder()->foldExpression(expression);
+    }
+    auto value = evaluateAsLiteralValue(*expression);
+    return getExpressionVal(*expression, value, type, validateParamFunc);
 }
 
 std::shared_ptr<Expression> ExpressionUtil::applyImplicitCastingIfNecessary(
@@ -532,20 +545,24 @@ template KUZU_API bool ExpressionUtil::getExpressionVal(const Expression& expr,
     validate_param_func<bool> validateParamFunc);
 
 template KUZU_API std::string ExpressionUtil::evaluateLiteral<std::string>(
-    const Expression& expression, const LogicalType& type,
-    validate_param_func<std::string> validateParamFunc);
+    main::ClientContext* context, std::shared_ptr<Expression> expression,
+    const common::LogicalType& type, validate_param_func<std::string> validateParamFunc);
 
-template KUZU_API double ExpressionUtil::evaluateLiteral<double>(const Expression& expression,
-    const LogicalType& type, validate_param_func<double> validateParamFunc);
+template KUZU_API double ExpressionUtil::evaluateLiteral<double>(main::ClientContext* context,
+    std::shared_ptr<Expression> expression, const LogicalType& type,
+    validate_param_func<double> validateParamFunc);
 
-template KUZU_API int64_t ExpressionUtil::evaluateLiteral<int64_t>(const Expression& expression,
-    const LogicalType& type, validate_param_func<int64_t> validateParamFunc);
+template KUZU_API int64_t ExpressionUtil::evaluateLiteral<int64_t>(main::ClientContext* context,
+    std::shared_ptr<Expression> expression, const LogicalType& type,
+    validate_param_func<int64_t> validateParamFunc);
 
-template KUZU_API bool ExpressionUtil::evaluateLiteral<bool>(const Expression& expression,
-    const LogicalType& type, validate_param_func<bool> validateParamFunc);
+template KUZU_API bool ExpressionUtil::evaluateLiteral<bool>(main::ClientContext* context,
+    std::shared_ptr<Expression> expression, const LogicalType& type,
+    validate_param_func<bool> validateParamFunc);
 
-template KUZU_API uint64_t ExpressionUtil::evaluateLiteral<uint64_t>(const Expression& expression,
-    const LogicalType& type, validate_param_func<uint64_t> validateParamFunc);
+template KUZU_API uint64_t ExpressionUtil::evaluateLiteral<uint64_t>(main::ClientContext* context,
+    std::shared_ptr<Expression> expression, const LogicalType& type,
+    validate_param_func<uint64_t> validateParamFunc);
 
 } // namespace binder
 } // namespace kuzu

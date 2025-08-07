@@ -82,11 +82,13 @@ struct QFTSTopKSharedState : public QFTSSharedState {
     };
     std::priority_queue<DocScore, std::vector<DocScore>, PriorityQueueComp> minHeap;
     std::mutex mtx;
-    uint64_t topK;
+    uint64_t topK = UINT64_MAX;
 
     QFTSTopKSharedState(std::shared_ptr<processor::FactorizedTable> fTable,
-        std::unique_ptr<graph::Graph> graph, uint64_t topK, common::table_id_t outputTableID)
-        : QFTSSharedState{std::move(fTable), std::move(graph), outputTableID}, topK{topK} {}
+        std::unique_ptr<graph::Graph> graph, common::table_id_t outputTableID)
+        : QFTSSharedState{std::move(fTable), std::move(graph), outputTableID} {}
+
+    void setTopK(uint64_t topK_) { topK = topK_; }
 
     void addDocScore(std::vector<ValueVector*> /*vectors*/,
         processor::FactorizedTable& /*localTable*/, DocScore docScore) override {
@@ -158,21 +160,19 @@ struct QFTSEdgeCompute final : EdgeCompute {
 class QFTSOutputWriter {
 public:
     QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
-        QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms,
-        QFTSSharedState& sharedState);
+        const QueryFTSBindData& bindData, uint64_t numUniqueTerms, QFTSSharedState& sharedState);
 
     void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
         int64_t docsID);
 
     std::unique_ptr<QFTSOutputWriter> copy() {
-        return std::make_unique<QFTSOutputWriter>(scores, mm, config, bindData, numUniqueTerms,
+        return std::make_unique<QFTSOutputWriter>(scores, mm, bindData, numUniqueTerms,
             sharedState);
     }
 
 private:
     const node_id_map_t<ScoreInfo>& scores;
     MemoryManager* mm;
-    QueryFTSConfig config;
     const QueryFTSBindData& bindData;
     uint64_t numUniqueTerms;
     QFTSSharedState& sharedState;
@@ -180,15 +180,15 @@ private:
 };
 
 QFTSOutputWriter::QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
-    QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms,
-    QFTSSharedState& sharedState)
-    : scores{scores}, mm{mm}, config{config}, bindData{bindData}, numUniqueTerms{numUniqueTerms},
+    const QueryFTSBindData& bindData, uint64_t numUniqueTerms, QFTSSharedState& sharedState)
+    : scores{scores}, mm{mm}, bindData{bindData}, numUniqueTerms{numUniqueTerms},
       sharedState{sharedState}, scoreFtInsertState{} {}
 
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
     int64_t docsID) {
-    auto k = config.k;
-    auto b = config.b;
+    auto& qFTSOptionalParams = bindData.optionalParams->constCast<QueryFTSOptionalParams>();
+    auto k = qFTSOptionalParams.k.getParamVal();
+    auto b = qFTSOptionalParams.b.getParamVal();
 
     if (!scores.contains(docNodeID)) {
         return;
@@ -197,7 +197,8 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
     double score = 0;
     // If the query is conjunctive, the numbers of distinct terms in the doc and the number of
     // distinct terms in the query must be equal to each other.
-    if (config.isConjunctive && scoreInfo.scoreData.size() != numUniqueTerms) {
+    if (bindData.optionalParams->constCast<QueryFTSOptionalParams>().conjunctive.getParamVal() &&
+        scoreInfo.scoreData.size() != numUniqueTerms) {
         return;
     }
     auto auxInfo = bindData.entry.getAuxInfo().cast<FTSIndexAuxInfo>();
@@ -374,10 +375,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto graphEntry = graph->getGraphEntry();
     auto& qFTSBindData = *input.bindData->constPtrCast<QueryFTSBindData>();
     auto termsEntry = graphEntry->nodeInfos[0].entry;
-
     auto queryTerms = qFTSBindData.getQueryTerms(clientContext);
     auto dfs = getDFs(clientContext, input.context, graph, termsEntry, queryTerms);
-
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
@@ -402,8 +401,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     // Do vertex compute to calculate the score for doc with the length property.
     auto mm = clientContext.getMemoryManager();
     auto numUniqueTerms = getNumUniqueTerms(queryTerms);
-    auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData.getConfig(),
-        qFTSBindData, numUniqueTerms, *sharedState);
+    auto writer =
+        std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData, numUniqueTerms, *sharedState);
     auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState, std::move(writer));
     auto vertexPropertiesToScan = std::vector<std::string>{DOC_LEN_PROP_NAME, DOC_ID_PROP_NAME};
     auto docsEntry = graphEntry->nodeInfos[1].entry;
@@ -474,8 +473,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
     auto bindData = std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry),
         nodeOutput, std::move(query), *ftsIndexEntry,
-        QueryFTSOptionalParams{context, input->optionalParamsLegacy}, ftsStorageInfo.numDocs,
-        ftsStorageInfo.avgDocLen);
+        std::make_unique<QueryFTSOptionalParams>(input->optionalParamsLegacy),
+        ftsStorageInfo.numDocs, ftsStorageInfo.avgDocLen);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
 }
@@ -506,13 +505,13 @@ std::shared_ptr<TableFuncSharedState> initSharedState(const TableFuncInitSharedS
     auto bindData = input.bindData->constPtrCast<QueryFTSBindData>();
     auto graph = std::make_unique<graph::OnDiskGraph>(input.context->clientContext,
         bindData->graphEntry.copy());
-    auto topK = bindData->getConfig().topK;
-    if (bindData->getConfig().topK == INVALID_TOP_K) {
+    if (!bindData->optionalParams->constCast<QueryFTSOptionalParams>().topK.isSet()) {
+        // The user does not give a topK parameter, skip topK optimization.
         return std::make_shared<QFTSSharedState>(bindData->getResultTable(), std::move(graph),
             bindData->outputTableID);
     } else {
         return std::make_shared<QFTSTopKSharedState>(bindData->getResultTable(), std::move(graph),
-            topK, bindData->outputTableID);
+            bindData->outputTableID);
     }
 }
 

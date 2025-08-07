@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binder/expression/expression.h"
+#include "function/config/max_iterations_config.h"
 #include "function/gds/gds.h"
 
 namespace kuzu {
@@ -13,18 +14,6 @@ struct CCConfig final : public function::GDSConfig {
 };
 
 static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
-
-struct CCOptionalParams final : public function::GDSOptionalParams {
-    std::shared_ptr<binder::Expression> maxIteration;
-
-    explicit CCOptionalParams(const binder::expression_vector& optionalParams);
-
-    std::unique_ptr<function::GDSConfig> getConfig() const override;
-
-    std::unique_ptr<GDSOptionalParams> copy() const override {
-        return std::make_unique<CCOptionalParams>(*this);
-    }
-};
 
 } // namespace algo_extension
 } // namespace kuzu
