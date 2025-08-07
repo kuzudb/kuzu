@@ -30,12 +30,14 @@ using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 
 // CONFIG
 
+// House optional arguments for configuration as primitives.
 struct MSFConfig final : public GDSConfig {
     std::string weightProperty;
     bool maxForest = false;
     MSFConfig() = default;
 };
 
+// House optional arguments for configuration as expressions.
 struct MSFOptionalParams final : public GDSOptionalParams {
     std::shared_ptr<Expression> weightProperty;
     std::shared_ptr<Expression> maxForest;
@@ -49,6 +51,7 @@ struct MSFOptionalParams final : public GDSOptionalParams {
     }
 };
 
+// Collect optional argument expressions.
 MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams) {
     static constexpr const char* WEIGHT_PROPERTY = "weight_property";
     static constexpr const char* MAX_FOREST = "max_forest";
@@ -64,6 +67,7 @@ MSFOptionalParams::MSFOptionalParams(const expression_vector& optionalParams) {
     }
 }
 
+// Attempt to evaluate optional argument expressions.
 std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     auto config = std::make_unique<MSFConfig>();
     if (weightProperty != nullptr) {
@@ -78,15 +82,21 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
 
 // COMPUTE
 
+// Houses the data structures and methods required to run Kruskal's Algorithm.
 class KruskalCompute {
 public:
     KruskalCompute(storage::MemoryManager* mm, offset_t numNodes);
 
+    // Creates an in memory representation of the graph. (Required for sorting).
     void initEdges(Graph* graph, const table_id_t& tableId, NbrScanState* const scanState,
         const bool& weightProperty);
 
+    // We must process edges in a particular order to get either a minimum or maximum
+    // spanning forest.
     void sortEdges(const bool& maxForest);
 
+    // Implements the core of Kruskal's algorithm. We iterate over our edge
+    // list, adding an edge to our forest if it does not create a cycle.
     void run();
 
     // Assigns each edge an ID of the tree it belongs to. The ID internally is the final component
