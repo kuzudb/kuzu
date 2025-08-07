@@ -177,10 +177,10 @@ void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
 
 void KruskalCompute::sortEdges(const bool& maxForest) {
     const auto& compareFn = [&](const auto& e1, const auto& e2) {
-        const auto& [u1, v1, r1, w1] = e1;
-        const auto& [u2, v2, r2, w2] = e2;
-        return maxForest ? std::tie(w1, u1, v1, r1) > std::tie(w2, u2, v2, r2) :
-                           std::tie(w1, u1, v1, r1) < std::tie(w2, u2, v2, r2);
+        const auto& [srcId1, dstId1, relId1, weight1] = e1;
+        const auto& [srcId2, dstId2, relId2, weight2] = e2;
+        return maxForest ? std::tie(weight1, srcId1, dstId1, relId1) > std::tie(weight2, srcId2, dstId2, relId2) :
+                           std::tie(weight1, srcId1, dstId1, relId1) < std::tie(weight2, srcId2, dstId2, relId2);
     };
     std::ranges::sort(edges, compareFn);
 }
