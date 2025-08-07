@@ -179,8 +179,10 @@ void KruskalCompute::sortEdges(const bool& maxForest) {
     const auto& compareFn = [&](const auto& e1, const auto& e2) {
         const auto& [srcId1, dstId1, relId1, weight1] = e1;
         const auto& [srcId2, dstId2, relId2, weight2] = e2;
-        return maxForest ? std::tie(weight1, srcId1, dstId1, relId1) > std::tie(weight2, srcId2, dstId2, relId2) :
-                           std::tie(weight1, srcId1, dstId1, relId1) < std::tie(weight2, srcId2, dstId2, relId2);
+        return maxForest ? std::tie(weight1, srcId1, dstId1, relId1) >
+                               std::tie(weight2, srcId2, dstId2, relId2) :
+                           std::tie(weight1, srcId1, dstId1, relId1) <
+                               std::tie(weight2, srcId2, dstId2, relId2);
     };
     std::ranges::sort(edges, compareFn);
 }
