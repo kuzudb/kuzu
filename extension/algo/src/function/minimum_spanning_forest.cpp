@@ -132,7 +132,7 @@ private:
     // find and mergeComponents implement DSU to track vertices and their associated
     // components such that we do not add a cycle to our forest.
     // https://en.wikipedia.org/wiki/Disjoint-set_data_structure
-    offset_t find(const offset_t& u);
+    offset_t findComponent(const offset_t& u);
 
     void mergeComponents(const offset_t& pu, const offset_t& pv);
 
