@@ -130,9 +130,7 @@ public:
 
 private:
     static constexpr double DEFAULTWEIGHT = 1;
-    // find and mergeComponents implement DSU to track vertices and their associated
-    // components such that we do not add a cycle to our forest.
-    // https://en.wikipedia.org/wiki/Disjoint-set_data_structure
+    // Returns the component ID that `nodeID` belong to. Implemented using a Disjoint-set data structure (DSU).
     offset_t findComponent(const offset_t& u);
 
     void mergeComponents(const offset_t& pu, const offset_t& pv);
