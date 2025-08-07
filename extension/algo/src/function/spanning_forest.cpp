@@ -200,8 +200,8 @@ void KruskalCompute::mergeComponents(const offset_t& pSrcId, const offset_t& pDs
 class WriteResultsSF final : public GDSResultVertexCompute {
 public:
     WriteResultsSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
-                   const ku_vector_t<resultEdge>& finalResults)
-    : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
+        const ku_vector_t<resultEdge>& finalResults)
+        : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
         srcIDVector = createVector(LogicalType::INTERNAL_ID());
         dstIDVector = createVector(LogicalType::INTERNAL_ID());
         relIDVector = createVector(LogicalType::INTERNAL_ID());
@@ -211,7 +211,7 @@ public:
     void beginOnTableInternal(table_id_t /*tableID*/) override {}
 
     void vertexCompute(const offset_t startOffset, const offset_t endOffset,
-                       const table_id_t tableID) override {
+        const table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             const auto& [srcId, dstId, relId, forestId] = finalResults[i];
             srcIDVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID});
