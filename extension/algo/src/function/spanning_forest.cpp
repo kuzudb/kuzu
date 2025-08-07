@@ -57,15 +57,16 @@ SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams) {
         } else if (paramName == VARIANT) {
             variant = optionalParam;
         } else {
-            throw RuntimeException{stringFormat("Unknown optional argument: {}", optionalParam->getAlias())};
+            throw RuntimeException{
+                stringFormat("Unknown optional argument: {}", optionalParam->getAlias())};
         }
     }
 }
 
 // Final configuration struct used to parameterize the SF configuration at execution time.
 struct SFConfig final : public GDSConfig {
-    static constexpr const char * MAX_VARIENT = "max";
-    static constexpr const char * MIN_VARIENT = "min";
+    static constexpr const char* MAX_VARIENT = "max";
+    static constexpr const char* MIN_VARIENT = "min";
     std::string weightProperty;
     std::string variant = MIN_VARIENT;
     SFConfig() = default;
@@ -78,10 +79,12 @@ std::unique_ptr<GDSConfig> SFOptionalParams::getConfig() const {
             ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
     }
     if (variant != nullptr) {
-        config->variant = ExpressionUtil::evaluateLiteral<std::string>(*variant, LogicalType::STRING());
+        config->variant =
+            ExpressionUtil::evaluateLiteral<std::string>(*variant, LogicalType::STRING());
         StringUtils::toLower(config->variant);
         if (config->variant != SFConfig::MIN_VARIENT && config->variant != SFConfig::MAX_VARIENT) {
-            throw RuntimeException{stringFormat("Variant arguments expects {} or {}. Got: {}", SFConfig::MAX_VARIENT, SFConfig::MIN_VARIENT, config->variant)};
+            throw RuntimeException{stringFormat("Variant arguments expects {} or {}. Got: {}",
+                SFConfig::MAX_VARIENT, SFConfig::MIN_VARIENT, config->variant)};
         }
     }
     return config;
@@ -164,9 +167,9 @@ void KruskalCompute::sortEdges(const std::string& variant) {
         const auto& [srcId1, dstId1, relId1, weight1] = e1;
         const auto& [srcId2, dstId2, relId2, weight2] = e2;
         return variant == SFConfig::MAX_VARIENT ? std::tie(weight1, srcId1, dstId1, relId1) >
-                               std::tie(weight2, srcId2, dstId2, relId2) :
-                           std::tie(weight1, srcId1, dstId1, relId1) <
-                               std::tie(weight2, srcId2, dstId2, relId2);
+                                                      std::tie(weight2, srcId2, dstId2, relId2) :
+                                                  std::tie(weight1, srcId1, dstId1, relId1) <
+                                                      std::tie(weight2, srcId2, dstId2, relId2);
     };
     std::ranges::sort(edges, compareFn);
 }
@@ -270,7 +273,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     if (!config.weightProperty.empty() &&
         !LogicalTypeUtils::isNumerical(
             nbrInfo.relGroupEntry->getProperty(config.weightProperty).getType())) {
-        throw RuntimeException{stringFormat("Provided weight property is not numerical: {}", config.weightProperty)};
+        throw RuntimeException{
+            stringFormat("Provided weight property is not numerical: {}", config.weightProperty)};
     }
     std::vector<std::string> relProps = {InternalKeyword::ID};
     if (!config.weightProperty.empty()) {
