@@ -134,6 +134,7 @@ private:
     // structure (DSU).
     offset_t findComponent(const offset_t& u);
 
+    // Merges all nodes within the components indicated by `srcCompID` and `dstCompID` into a single component.
     void mergeComponents(const offset_t& pu, const offset_t& pv);
 
     ku_vector_t<std::tuple<offset_t, offset_t, relID_t, double>> edges;
