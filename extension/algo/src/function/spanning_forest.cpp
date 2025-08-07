@@ -28,42 +28,7 @@ namespace algo_extension {
 using resultEdge = std::tuple<offset_t, offset_t, relID_t, offset_t>;
 using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 
-class WriteResultsSF final : public GDSResultVertexCompute {
-public:
-    WriteResultsSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
-        const ku_vector_t<resultEdge>& finalResults)
-        : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
-        srcIDVector = createVector(LogicalType::INTERNAL_ID());
-        dstIDVector = createVector(LogicalType::INTERNAL_ID());
-        relIDVector = createVector(LogicalType::INTERNAL_ID());
-        forestIDVector = createVector(LogicalType::UINT64());
-    }
-
-    void beginOnTableInternal(table_id_t /*tableID*/) override {}
-
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset,
-        const table_id_t tableID) override {
-        for (auto i = startOffset; i < endOffset; ++i) {
-            const auto& [srcId, dstId, relId, forestId] = finalResults[i];
-            srcIDVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID});
-            dstIDVector->setValue<nodeID_t>(0, nodeID_t{dstId, tableID});
-            relIDVector->setValue<relID_t>(0, relId);
-            forestIDVector->setValue<offset_t>(0, forestId);
-            localFT->append(vectors);
-        }
-    }
-
-    std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WriteResultsSF>(mm, sharedState, finalResults);
-    }
-
-private:
-    const ku_vector_t<resultEdge>& finalResults;
-    std::unique_ptr<ValueVector> srcIDVector;
-    std::unique_ptr<ValueVector> dstIDVector;
-    std::unique_ptr<ValueVector> relIDVector;
-    std::unique_ptr<ValueVector> forestIDVector;
-};
+// CONFIG
 
 struct MSFConfig final : public GDSConfig {
     std::string weightProperty;
@@ -110,6 +75,8 @@ std::unique_ptr<GDSConfig> MSFOptionalParams::getConfig() const {
     }
     return config;
 }
+
+// COMPUTE
 
 class KruskalCompute {
 public:
@@ -227,6 +194,45 @@ void KruskalCompute::mergeComponents(const offset_t& pSrcId, const offset_t& pDs
         parents[pDstId] = pSrcId;
     }
 }
+
+// RESULTS
+
+class WriteResultsSF final : public GDSResultVertexCompute {
+public:
+    WriteResultsSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
+                   const ku_vector_t<resultEdge>& finalResults)
+    : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
+        srcIDVector = createVector(LogicalType::INTERNAL_ID());
+        dstIDVector = createVector(LogicalType::INTERNAL_ID());
+        relIDVector = createVector(LogicalType::INTERNAL_ID());
+        forestIDVector = createVector(LogicalType::UINT64());
+    }
+
+    void beginOnTableInternal(table_id_t /*tableID*/) override {}
+
+    void vertexCompute(const offset_t startOffset, const offset_t endOffset,
+                       const table_id_t tableID) override {
+        for (auto i = startOffset; i < endOffset; ++i) {
+            const auto& [srcId, dstId, relId, forestId] = finalResults[i];
+            srcIDVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID});
+            dstIDVector->setValue<nodeID_t>(0, nodeID_t{dstId, tableID});
+            relIDVector->setValue<relID_t>(0, relId);
+            forestIDVector->setValue<offset_t>(0, forestId);
+            localFT->append(vectors);
+        }
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<WriteResultsSF>(mm, sharedState, finalResults);
+    }
+
+private:
+    const ku_vector_t<resultEdge>& finalResults;
+    std::unique_ptr<ValueVector> srcIDVector;
+    std::unique_ptr<ValueVector> dstIDVector;
+    std::unique_ptr<ValueVector> relIDVector;
+    std::unique_ptr<ValueVector> forestIDVector;
+};
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto clientContext = input.context->clientContext;
