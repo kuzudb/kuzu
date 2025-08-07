@@ -117,7 +117,9 @@ public:
 
     void kruskalCompute(const offset_t& numNodes);
 
-    // Assigns each edge an ID of the tree it belongs to. The ID internally is the final component ID that the src node of each edge belongs to in the disjoint set data structure used in the computation.
+    // Assigns each edge an ID of the tree it belongs to. The ID internally is the final component
+    // ID that the src node of each edge belongs to in the disjoint set data structure used in the
+    // computation.
     void assignForestIds();
 
     const ku_vector_t<std::tuple<offset_t, offset_t, relID_t, offset_t>>& getForest() const {
