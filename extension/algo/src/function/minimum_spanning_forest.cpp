@@ -115,8 +115,8 @@ class KruskalCompute {
 public:
     KruskalCompute(storage::MemoryManager* mm, offset_t numNodes);
 
-    void initEdges(Graph* graph, const table_id_t& tableId,
-        NbrScanState* const scanState, const bool& weightProperty);
+    void initEdges(Graph* graph, const table_id_t& tableId, NbrScanState* const scanState,
+        const bool& weightProperty);
 
     void sortEdges(const bool& maxForest);
 
