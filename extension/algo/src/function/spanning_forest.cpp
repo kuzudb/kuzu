@@ -64,8 +64,8 @@ SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams) {
 
 // Final configuration struct used to parameterize the SF configuration at execution time.
 struct SFConfig final : public GDSConfig {
-    static constexpr const char* MAX_VARIENT = "max";
-    static constexpr const char* MIN_VARIENT = "min";
+    static constexpr const char* MAX_VARIANT = "max";
+    static constexpr const char* MIN_VARIANT = "min";
     std::string weightProperty;
     std::string variant = MIN_VARIENT;
     SFConfig() = default;
