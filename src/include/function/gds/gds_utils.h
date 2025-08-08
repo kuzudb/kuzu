@@ -25,12 +25,10 @@ public:
 
     // Run vertex compute without property scan
     static void runVertexCompute(processor::ExecutionContext* context, GDSDensityState densityState,
-        graph::Graph* graph, VertexCompute& vc,
-        std::optional<common::offset_t> maxOffset = std::nullopt);
+        graph::Graph* graph, VertexCompute& vc);
     // Run vertex compute with property scan
     static void runVertexCompute(processor::ExecutionContext* context, GDSDensityState densityState,
-        graph::Graph* graph, VertexCompute& vc, const std::vector<std::string>& propertiesToScan,
-        std::optional<common::offset_t> maxOffset = std::nullopt);
+        graph::Graph* graph, VertexCompute& vc, const std::vector<std::string>& propertiesToScan);
     // Run vertex compute on specific table with property scan
     static void runVertexCompute(processor::ExecutionContext* context, GDSDensityState densityState,
         graph::Graph* graph, VertexCompute& vc, catalog::TableCatalogEntry* entry,

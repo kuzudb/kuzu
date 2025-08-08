@@ -236,7 +236,7 @@ public:
         forestIdVector = createVector(LogicalType::UINT64());
     }
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset, const std::optional<table_id_t> tableID) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset, const std::optional<table_id_t> tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             const auto& [srcId, dstId, relId, forestId] = finalResults[i];
             srcIdVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID.value()});
@@ -247,7 +247,7 @@ public:
         }
     }
 
-    std::unique_ptr<kuzu::algo_extension::InMemVertexCompute> copy() override {
+    std::unique_ptr<kuzu::algo_extension::InMemParallelCompute> copy() override {
         return std::make_unique<WriteResultsSF>(mm, sharedState, finalResults);
     }
 
@@ -302,7 +302,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     compute.assignForestIds();
 
     WriteResultsSF writeResultsVC (mm, sharedState, compute.getForest());
-    InMemGDSUtils::runVertexCompute(writeResultsVC, compute.getForestSize(), input.context, tableId);
+    InMemGDSUtils::runParallelCompute(writeResultsVC, compute.getForestSize(), input.context, tableId);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }

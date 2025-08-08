@@ -120,24 +120,20 @@ void GDSUtils::runRecursiveJoinEdgeCompute(ExecutionContext* context, GDSCompute
 
 static void runVertexComputeInternal(const TableCatalogEntry* currentEntry,
     GDSDensityState densityState, const Graph* graph, std::shared_ptr<VertexComputeTask> task,
-    ExecutionContext* context, std::optional<offset_t> maxOffset = std::nullopt) {
+    ExecutionContext* context) {
     if (densityState == GDSDensityState::SPARSE) {
         task->runSparse();
         return;
     }
-    if (!maxOffset.has_value()) {
-        maxOffset = graph->getMaxOffset(context->clientContext->getTransaction(),
-            currentEntry->getTableID());
-    }
+    auto maxOffset = graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
     auto sharedState = task->getSharedState();
-    sharedState->morselDispatcher.init(maxOffset.value());
+    sharedState->morselDispatcher.init(maxOffset);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
 
 void GDSUtils::runVertexCompute(ExecutionContext* context, GDSDensityState densityState,
-    Graph* graph, VertexCompute& vc, const std::vector<std::string>& propertiesToScan,
-    std::optional<offset_t> maxOffset) {
+    Graph* graph, VertexCompute& vc, const std::vector<std::string>& propertiesToScan) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     for (const auto& nodeInfo : graph->getGraphEntry()->nodeInfos) {
@@ -147,13 +143,13 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, GDSDensityState densi
         }
         auto info = VertexComputeTaskInfo(vc, graph, entry, propertiesToScan);
         auto task = std::make_shared<VertexComputeTask>(maxThreads, info, sharedState);
-        runVertexComputeInternal(entry, densityState, graph, task, context, maxOffset);
+        runVertexComputeInternal(entry, densityState, graph, task, context);
     }
 }
 
 void GDSUtils::runVertexCompute(ExecutionContext* context, GDSDensityState densityState,
-    Graph* graph, VertexCompute& vc, std::optional<offset_t> maxOffset) {
-    runVertexCompute(context, densityState, graph, vc, std::vector<std::string>{}, maxOffset);
+    Graph* graph, VertexCompute& vc) {
+    runVertexCompute(context, densityState, graph, vc, std::vector<std::string>{});
 }
 
 void GDSUtils::runVertexCompute(ExecutionContext* context, GDSDensityState densityState,
