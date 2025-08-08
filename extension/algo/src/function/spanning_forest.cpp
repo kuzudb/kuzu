@@ -30,7 +30,7 @@ using resultEdge = std::tuple<offset_t, offset_t, relID_t, offset_t>;
 // Stores (srcId, dstId, relId, weight)
 using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 
-// CONFIG
+/** CONFIG **/
 
 // Helper to parse optional parameters of `SPANNING_FOREST()`.
 struct SFOptionalParams final : public GDSOptionalParams {
