@@ -162,8 +162,7 @@ public:
     explicit ResetPhaseStateVC(PhaseState& state) : state{state} {}
     ~ResetPhaseStateVC() override = default;
 
-    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
-        std::optional<common::table_id_t>) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             state.nodeWeightedDegrees.set(nodeId, 0, memory_order_relaxed);
             state.currCommInfos.set(nodeId, CommInfo());
@@ -186,8 +185,7 @@ public:
     explicit StartNewIterVC(PhaseState& state) : state{state} {}
     ~StartNewIterVC() override = default;
 
-    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
-        std::optional<common::table_id_t>) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             state.selfCommWeights.set(nodeId, 0, memory_order_relaxed);
             state.nextCommInfos.set(nodeId, CommInfo());
@@ -239,8 +237,7 @@ public:
         : phaseId{phaseId}, finalResults{finalResults}, state{state} {}
     ~SaveCommAssignmentsVC() override = default;
 
-    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
-        std::optional<common::table_id_t>) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset) override {
         if (phaseId == 0) {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
                 finalResults.communities[nodeId] =
@@ -275,8 +272,7 @@ public:
     explicit RunIterationVC(PhaseState& state) : state{state} {}
     ~RunIterationVC() override = default;
 
-    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
-        std::optional<common::table_id_t>) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset) override {
         // For every `nodeId`, separately stores the edge weights to its own community (at index 0)
         // and each of its neighboring communities.
         vector<weight_t> intraCommWeights;
@@ -410,8 +406,7 @@ public:
         : state{state}, sumIntraWeights{sumIntraWeights}, sumWeightedDegrees{sumWeightedDegrees} {}
     ~ComputeModularityVC() override = default;
 
-    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
-        std::optional<common::table_id_t>) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset) override {
         weight_t sumIntraLocal = 0;
         weight_t sumTotalLocal = 0;
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
@@ -439,8 +434,7 @@ public:
     explicit UpdateCommInfosVC(PhaseState& state) : state{state} {}
     ~UpdateCommInfosVC() override = default;
 
-    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
-        std::optional<common::table_id_t>) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             const offset_t size =
                 state.nextCommInfos.getUnsafe(nodeId).size.load(memory_order_relaxed);

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "function/gds/gds.h"
 #include "function/gds/gds_task.h"
+#include "function/gds/gds_vertex_compute.h"
 
 namespace kuzu {
 namespace algo_extension {
@@ -11,44 +11,16 @@ class InMemParallelCompute {
 public:
     virtual ~InMemParallelCompute() = default;
 
-    virtual void parallelCompute(common::offset_t, common::offset_t,
-        const std::optional<common::table_id_t>) {}
+    virtual void parallelCompute(common::offset_t, common::offset_t) {}
 
     virtual std::unique_ptr<InMemParallelCompute> copy() = 0;
-};
-
-class InMemResultParallelCompute : public InMemParallelCompute {
-public:
-    InMemResultParallelCompute(storage::MemoryManager* mm,
-        function::GDSFuncSharedState* sharedState)
-        : sharedState{sharedState}, mm{mm} {
-        localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
-    }
-    ~InMemResultParallelCompute() override {
-        sharedState->factorizedTablePool.returnLocalTable(localFT);
-    }
-
-protected:
-    std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type) {
-        auto vector = std::make_unique<common::ValueVector>(type.copy(), mm);
-        vector->state = common::DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(vector.get());
-        return vector;
-    }
-
-protected:
-    function::GDSFuncSharedState* sharedState;
-    storage::MemoryManager* mm;
-    processor::FactorizedTable* localFT = nullptr;
-    std::vector<common::ValueVector*> vectors;
 };
 
 class InMemParallelComputeTask final : public common::Task {
 public:
     InMemParallelComputeTask(const uint64_t maxNumThreads, InMemParallelCompute& vc,
-        std::shared_ptr<function::VertexComputeTaskSharedState> sharedState,
-        std::optional<common::table_id_t> tableId)
-        : Task{maxNumThreads}, vc{vc}, sharedState{std::move(sharedState)}, tableId{tableId} {};
+        std::shared_ptr<function::VertexComputeTaskSharedState> sharedState)
+        : Task{maxNumThreads}, vc{vc}, sharedState{std::move(sharedState)} {};
 
     function::VertexComputeTaskSharedState* getSharedState() const { return sharedState.get(); }
 
@@ -57,14 +29,31 @@ public:
 private:
     InMemParallelCompute& vc;
     std::shared_ptr<function::VertexComputeTaskSharedState> sharedState;
-    std::optional<common::table_id_t> tableId;
+};
+
+class InMemResultsComputeTask final : public common::Task {
+public:
+    InMemResultsComputeTask (const uint64_t maxNumThreads, function::GDSResultVertexCompute& vc,
+                             std::shared_ptr<function::VertexComputeTaskSharedState> sharedState,
+                             common::table_id_t tableId)
+    : Task{maxNumThreads}, vc{vc}, sharedState{std::move(sharedState)}, tableId{tableId} {};
+
+    function::VertexComputeTaskSharedState* getSharedState() const { return sharedState.get(); }
+
+    void run() override;
+
+private:
+    function::GDSResultVertexCompute& vc;
+    std::shared_ptr<function::VertexComputeTaskSharedState> sharedState;
+    common::table_id_t tableId;
 };
 
 class InMemGDSUtils {
 public:
     static void runParallelCompute(InMemParallelCompute& vc, common::offset_t maxOffset,
-        processor::ExecutionContext* context,
-        std::optional<common::table_id_t> tableId = std::nullopt);
+        processor::ExecutionContext* context);
+    static void runParallelCompute(function::GDSResultVertexCompute& vc, common::offset_t maxOffset,
+    processor::ExecutionContext* context, const common::table_id_t& tableId);
 };
 
 } // namespace algo_extension

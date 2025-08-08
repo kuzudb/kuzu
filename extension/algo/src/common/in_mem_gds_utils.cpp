@@ -4,6 +4,7 @@
 #include "common/task_system/task_scheduler.h"
 #include "common/types/types.h"
 #include "function/gds/gds_task.h"
+#include "function/gds/gds_vertex_compute.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::graph;
@@ -16,19 +17,41 @@ void InMemParallelComputeTask::run() {
     FrontierMorsel morsel;
     const auto localVc = vc.copy();
     while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
-        localVc->parallelCompute(morsel.getBeginOffset(), morsel.getEndOffset(), tableId);
+        localVc->parallelCompute(morsel.getBeginOffset(), morsel.getEndOffset());
+    }
+}
+
+void InMemResultsComputeTask::run() {
+    FrontierMorsel morsel;
+    const auto localVc = vc.copy();
+    while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
+        localVc->vertexCompute(morsel.getBeginOffset(), morsel.getEndOffset(), tableId);
     }
 }
 
 void InMemGDSUtils::runParallelCompute(InMemParallelCompute& vc, common::offset_t maxOffset,
-    ExecutionContext* context, std::optional<common::table_id_t> tableId) {
+    ExecutionContext* context) {
     if (context->clientContext->interrupted()) {
         throw common::InterruptException();
     }
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     const auto task =
-        std::make_shared<InMemParallelComputeTask>(maxThreads, vc, sharedState, tableId);
+        std::make_shared<InMemParallelComputeTask>(maxThreads, vc, sharedState);
+    sharedState->morselDispatcher.init(maxOffset);
+    context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
+        true /* launchNewWorkerThread */);
+}
+
+void InMemGDSUtils::runParallelCompute(GDSResultVertexCompute& vc, common::offset_t maxOffset,
+    ExecutionContext* context, const common::table_id_t& tableId) {
+    if (context->clientContext->interrupted()) {
+        throw common::InterruptException();
+    }
+    auto maxThreads = context->clientContext->getMaxNumThreadForExec();
+    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
+    const auto task =
+        std::make_shared<InMemResultsComputeTask>(maxThreads, vc, sharedState, tableId);
     sharedState->morselDispatcher.init(maxOffset);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
