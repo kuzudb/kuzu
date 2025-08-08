@@ -45,6 +45,8 @@ public:
     virtual void rollbackCheckpoint() = 0;
     virtual void bulkReserve(uint64_t numValuesToAppend) = 0;
     virtual void reclaimStorage(PageAllocator& pageAllocator) = 0;
+    virtual bool tryLock() = 0;
+    virtual std::unique_lock<std::shared_mutex> adoptLock() = 0;
 };
 
 // HashIndex is the entrance to handle all updates and lookups into the index after building from
@@ -140,11 +142,13 @@ public:
     using BufferKeyType =
         typename std::conditional<std::same_as<T, common::ku_string_t>, std::string, T>::type;
     // Appends the buffer to the index. Returns the number of values successfully inserted
-    size_t append(const transaction::Transaction* transaction, IndexBuffer<BufferKeyType>& buffer,
-        uint64_t bufferOffset, visible_func isVisible) {
+    // Note that this function does not acquire locks internally, as the caller is expected to hold
+    // the lock already.
+    size_t appendNoLock(const transaction::Transaction* transaction,
+        IndexBuffer<BufferKeyType>& buffer, uint64_t bufferOffset, visible_func isVisible) {
         // Check if values already exist in persistent storage
         if (indexHeaderForWriteTrx.numEntries > 0) {
-            localStorage->reserveSpaceForAppend(buffer.size() - bufferOffset);
+            localStorage->reserveSpaceForAppendNoLock(buffer.size() - bufferOffset);
             size_t numValuesInserted = 0;
             common::offset_t result = 0;
             for (size_t i = bufferOffset; i < buffer.size(); i++) {
@@ -152,14 +156,18 @@ public:
                 if (lookupInPersistentIndex(transaction, key, result, isVisible)) {
                     return i - bufferOffset;
                 } else {
-                    numValuesInserted += localStorage->append(std::move(key), value, isVisible);
+                    numValuesInserted +=
+                        localStorage->appendNoLock(std::move(key), value, isVisible);
                 }
             }
             return numValuesInserted;
         } else {
-            return localStorage->append(buffer, bufferOffset, isVisible);
+            return localStorage->appendNoLock(buffer, bufferOffset, isVisible);
         }
     }
+
+    bool tryLock() override { return localStorage->tryLock(); }
+    std::unique_lock<std::shared_mutex> adoptLock() override { return localStorage->adoptLock(); }
 
     bool checkpoint(PageAllocator& pageAllocator) override;
     bool checkpointInMemory() override;
@@ -362,6 +370,11 @@ public:
         return common::ku_dynamic_cast<HashIndex<HashIndexType<T>>*>(hashIndices[indexPos].get());
     }
 
+    bool tryLockTypedIndex(uint64_t indexPos) { return hashIndices[indexPos]->tryLock(); }
+    std::unique_lock<std::shared_mutex> adoptLockOfTypedIndex(uint64_t indexPos) {
+        return hashIndices[indexPos]->adoptLock();
+    }
+
     bool lookup(const transaction::Transaction* trx, common::ku_string_t key,
         common::offset_t& result, visible_func isVisible) {
         return lookup(trx, key.getAsStringView(), result, isVisible);
@@ -409,13 +422,13 @@ public:
     // If a key fails to insert, it immediately returns without inserting any more values,
     // and the returned value is also the index of the key which failed to insert.
     template<common::IndexHashable T>
-    size_t appendWithIndexPos(const transaction::Transaction* transaction, IndexBuffer<T>& buffer,
-        uint64_t bufferOffset, uint64_t indexPos, visible_func isVisible) {
+    size_t appendWithIndexPosNoLock(const transaction::Transaction* transaction,
+        IndexBuffer<T>& buffer, uint64_t bufferOffset, uint64_t indexPos, visible_func isVisible) {
         KU_ASSERT(indexInfo.keyDataTypes[0] == common::TypeUtils::getPhysicalTypeIDForType<T>());
         KU_ASSERT(std::all_of(buffer.begin(), buffer.end(), [&](auto& elem) {
             return HashIndexUtils::getHashIndexPosition(elem.first) == indexPos;
         }));
-        return getTypedHashIndexByPos<HashIndexType<T>>(indexPos)->append(transaction, buffer,
+        return getTypedHashIndexByPos<HashIndexType<T>>(indexPos)->appendNoLock(transaction, buffer,
             bufferOffset, isVisible);
     }
 
