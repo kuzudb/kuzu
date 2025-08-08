@@ -25,9 +25,9 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace algo_extension {
 
-// resultEdge: (src_id, dst_id, rel_id, forest_id)
-// weightedEdge: (src_id, dst_id, rel_id, weight)
+// Stores (srcId, dstId, relId, forestId)
 using resultEdge = std::tuple<offset_t, offset_t, relID_t, offset_t>;
+// Stores (srcId, dstId, relId, weight)
 using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 
 // CONFIG
