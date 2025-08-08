@@ -25,6 +25,17 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace algo_extension {
 
+// Computes a spanning forest using Kruskal's algorithm:
+// - https://en.wikipedia.org/wiki/Spanning_tree#Spanning_forests
+// - https://en.wikipedia.org/wiki/Kruskal%27s_algorithm
+
+// Kruskal's algorithm iteratively adds edges to the resulting forest as long as
+// they do not create a cycle. A minimum or maximum spanning forest is
+// produced by processing edges in non-decreasing or non-increasing order
+// of edge weights, respectively.
+
+// References graaf: https://github.com/bobluppes/graaf/tree/main
+
 // Stores (srcId, dstId, relId, forestId)
 using resultEdge = std::tuple<offset_t, offset_t, relID_t, offset_t>;
 // Stores (srcId, dstId, relId, weight)
