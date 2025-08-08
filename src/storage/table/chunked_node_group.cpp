@@ -321,11 +321,6 @@ row_idx_t ChunkedNodeGroup::getNumUpdatedRows(const Transaction* transaction,
     return getColumnChunk(columnID).getNumUpdatedRows(transaction);
 }
 
-std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ChunkedNodeGroup::scanUpdates(
-    const Transaction* transaction, column_id_t columnID) {
-    return getColumnChunk(columnID).scanUpdates(transaction);
-}
-
 bool ChunkedNodeGroup::lookup(const Transaction* transaction, const TableScanState& state,
     const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
     KU_ASSERT(rowIdxInChunk + 1 <= numRows);

@@ -75,8 +75,8 @@ public:
     void resetNumRowsFromChunks();
     void setNumRows(common::offset_t numRows_);
     void resizeChunks(uint64_t newSize);
-    void setVersionInfo(std::unique_ptr<VersionInfo> versionInfo) {
-        this->versionInfo = std::move(versionInfo);
+    void setVersionInfo(std::unique_ptr<VersionInfo> versionInfo_) {
+        this->versionInfo = std::move(versionInfo_);
     }
     void resetVersionAndUpdateInfo();
 
@@ -108,9 +108,6 @@ public:
     bool hasDeletions(const transaction::Transaction* transaction) const;
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction,
         common::column_id_t columnID);
-
-    std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> scanUpdates(
-        const transaction::Transaction* transaction, common::column_id_t columnID);
 
     bool lookup(const transaction::Transaction* transaction, const TableScanState& state,
         const NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInChunk,

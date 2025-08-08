@@ -117,8 +117,7 @@ private:
         const uint8_t* record);
 
     static void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS);
-    static void rollbackVectorUpdateInfo(const transaction::Transaction* transaction,
-        const uint8_t* record);
+    static void rollbackVectorUpdateInfo(const uint8_t* record);
 
 private:
     std::mutex mtx;
