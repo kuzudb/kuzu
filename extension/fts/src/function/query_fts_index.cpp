@@ -373,7 +373,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto sharedState = input.sharedState->ptrCast<QFTSSharedState>();
     auto graph = sharedState->graph.get();
     auto graphEntry = graph->getGraphEntry();
-    auto& qFTSBindData = *input.bindData->constPtrCast<QueryFTSBindData>();
+    auto& qFTSBindData = input.bindData->cast<QueryFTSBindData>();
+    auto qFTSOptionalParams = qFTSBindData.optionalParams->constCast<QueryFTSOptionalParams>();
+    if (qFTSOptionalParams.topK.isSet()) {
+        sharedState->ptrCast<QFTSTopKSharedState>()->setTopK(qFTSOptionalParams.topK.getParamVal());
+    }
     auto termsEntry = graphEntry->nodeInfos[0].entry;
     auto queryTerms = qFTSBindData.getQueryTerms(clientContext);
     auto dfs = getDFs(clientContext, input.context, graph, termsEntry, queryTerms);
