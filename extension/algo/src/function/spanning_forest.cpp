@@ -149,7 +149,7 @@ void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
             chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
                 if (nbrId == nodeId) {
-                    // Ignore self loops.
+                    // Ignore self-loops.
                     return;
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
