@@ -96,7 +96,7 @@ class KruskalCompute {
 public:
     KruskalCompute(storage::MemoryManager* mm, offset_t numNodes);
 
-    // Creates an in memory representation of the graph. (Required for sorting).
+    // Prepares the list of edges to be processed from `graph`.
     void initEdges(Graph* graph, const table_id_t& tableId, NbrScanState* const scanState,
         const bool& weightProperty);
 
