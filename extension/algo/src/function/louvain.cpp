@@ -1,7 +1,6 @@
 #include <cmath>
 
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
 #include "common/in_mem_gds_utils.h"
 #include "common/in_mem_graph.h"
@@ -40,51 +39,47 @@ namespace algo_extension {
 constexpr double THRESHOLD = 1e-6;
 constexpr offset_t UNASSIGNED_COMM = numeric_limits<offset_t>::max();
 
-struct LouvainOptionalParams final : public GDSOptionalParams {
-    std::shared_ptr<Expression> maxPhases;
-    std::shared_ptr<Expression> maxIteration;
+struct LouvainOptionalParams final : public MaxIterationOptionalParams {
+    OptionalParam<MaxPhases> maxPhases;
 
     explicit LouvainOptionalParams(const expression_vector& optionalParams);
 
-    std::unique_ptr<GDSConfig> getConfig() const override;
+    // For copy only
+    LouvainOptionalParams(OptionalParam<MaxIterations> maxIterations,
+        OptionalParam<MaxPhases> maxPhases)
+        : MaxIterationOptionalParams{maxIterations}, maxPhases{std::move(maxPhases)} {}
 
-    std::unique_ptr<GDSOptionalParams> copy() const override {
-        return std::make_unique<LouvainOptionalParams>(*this);
+    void evaluateParams(main::ClientContext* context) override {
+        MaxIterationOptionalParams::evaluateParams(context);
+        maxPhases.evaluateParam(context);
+    }
+
+    std::unique_ptr<function::OptionalParams> copy() override {
+        return std::make_unique<LouvainOptionalParams>(maxIterations, maxPhases);
     }
 };
 
-LouvainOptionalParams::LouvainOptionalParams(const expression_vector& optionalParams) {
+LouvainOptionalParams::LouvainOptionalParams(const expression_vector& optionalParams)
+    : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)} {
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == MaxPhases::NAME) {
-            maxPhases = optionalParam;
+            maxPhases = function::OptionalParam<MaxPhases>(optionalParam);
         } else if (paramName == MaxIterations::NAME) {
-            maxIteration = optionalParam;
+            continue;
         } else {
             throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
         }
     }
 }
 
-std::unique_ptr<GDSConfig> LouvainOptionalParams::getConfig() const {
-    auto config = std::make_unique<LouvainConfig>();
-    if (maxPhases != nullptr) {
-        config->maxPhases = ExpressionUtil::evaluateLiteral<int64_t>(*maxPhases,
-            LogicalType::INT64(), MaxPhases::validate);
-    }
-    if (maxIteration != nullptr) {
-        config->maxIterations = ExpressionUtil::evaluateLiteral<int64_t>(*maxIteration,
-            LogicalType::INT64(), MaxIterations::validate);
-    }
-    return config;
-}
-
 struct LouvainBindData final : public GDSBindData {
     LouvainBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<Expression> nodeOutput,
         std::unique_ptr<LouvainOptionalParams> optionalParams)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput),
-              std::move(optionalParams)} {}
+        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput)} {
+        this->optionalParams = std::move(optionalParams);
+    }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<LouvainBindData>(*this);
@@ -580,10 +575,10 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     const auto origNumNodes = graph->getMaxOffset(clientContext->getTransaction(), tableID);
 
     auto louvainBindData = input.bindData->constPtrCast<LouvainBindData>();
-    auto config = louvainBindData->getConfig()->constCast<LouvainConfig>();
+    auto& config = louvainBindData->optionalParams->constCast<LouvainOptionalParams>();
 
     auto progressBar = clientContext->getProgressBar();
-    const auto steps = config.maxPhases * config.maxIterations;
+    const auto steps = config.maxPhases.getParamVal() * config.maxIterations.getParamVal();
 
     FinalResults finalResults(origNumNodes);
     PhaseState state(origNumNodes, mm, input.context);
@@ -592,11 +587,11 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     initInMemoryGraph(tableID, origNumNodes, graph, state);
 
     // Each phases attempts to decrease the number of communities by merging nodes into supernodes.
-    for (auto phase = 0u; phase < config.maxPhases; ++phase) {
+    for (auto phase = 0u; phase < config.maxPhases.getParamVal(); ++phase) {
         double oldMod = -1;
 
         // Each iteration attempts to increase the modularity by moving nodes to new communities.
-        for (auto iter = 0u; iter < config.maxIterations; ++iter) {
+        for (auto iter = 0u; iter < config.maxIterations.getParamVal(); ++iter) {
             double progress = static_cast<double>((phase + 1) * (iter + 1)) / steps;
 
             // Reset state.

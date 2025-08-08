@@ -66,15 +66,15 @@ struct KUZU_API ExpressionUtil {
     static uint64_t evaluateAsSkipLimit(const Expression& expr);
 
     template<typename T>
-    using validate_param_func = void(T);
+    using validate_param_func = void (*)(T);
 
     template<typename T>
     static T getExpressionVal(const Expression& expr, const common::Value& value,
         const common::LogicalType& targetType, validate_param_func<T> validateParamFunc = nullptr);
 
     template<typename T>
-    static T evaluateLiteral(const Expression& expression, const common::LogicalType& type,
-        validate_param_func<T> validateParamFunc = nullptr);
+    static T evaluateLiteral(main::ClientContext* context, std::shared_ptr<Expression> expression,
+        const common::LogicalType& type, validate_param_func<T> validateParamFunc = nullptr);
 
     static std::shared_ptr<Expression> applyImplicitCastingIfNecessary(main::ClientContext* context,
         std::shared_ptr<Expression> expr, common::LogicalType targetType);

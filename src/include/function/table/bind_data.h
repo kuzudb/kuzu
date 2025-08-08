@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
+#include "optional_params.h"
 #include "storage/predicate/column_predicate.h"
 
 namespace kuzu {
@@ -13,6 +14,7 @@ namespace function {
 struct KUZU_API TableFuncBindData {
     binder::expression_vector columns;
     common::row_idx_t numRows;
+    std::unique_ptr<OptionalParams> optionalParams = nullptr;
 
     TableFuncBindData() : numRows{0} {}
     explicit TableFuncBindData(common::row_idx_t numRows) : numRows{numRows} {}
@@ -21,11 +23,18 @@ struct KUZU_API TableFuncBindData {
     TableFuncBindData(binder::expression_vector columns, common::row_idx_t numRows)
         : columns{std::move(columns)}, numRows{numRows} {}
     TableFuncBindData(const TableFuncBindData& other)
-        : columns{other.columns}, numRows{other.numRows}, columnSkips{other.columnSkips},
-          columnPredicates{copyVector(other.columnPredicates)} {}
+        : columns{other.columns}, numRows{other.numRows},
+          optionalParams{other.optionalParams == nullptr ? nullptr : other.optionalParams->copy()},
+          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
     TableFuncBindData& operator=(const TableFuncBindData& other) = delete;
     virtual ~TableFuncBindData() = default;
 
+    void evaluateParams(main::ClientContext* context) const {
+        if (!optionalParams) {
+            return;
+        }
+        optionalParams->evaluateParams(context);
+    }
     common::idx_t getNumColumns() const { return columns.size(); }
     void setColumnSkips(std::vector<bool> skips) { columnSkips = std::move(skips); }
     std::vector<bool> getColumnSkips() const;

@@ -24,36 +24,23 @@ struct KUZU_API GDSConfig {
     }
 };
 
-struct KUZU_API GDSOptionalParams {
-    virtual ~GDSOptionalParams() = default;
-
-    virtual std::unique_ptr<GDSConfig> getConfig() const = 0;
-    virtual std::unique_ptr<GDSOptionalParams> copy() const = 0;
-};
-
 struct KUZU_API GDSBindData : public TableFuncBindData {
     graph::NativeGraphEntry graphEntry;
     std::shared_ptr<binder::Expression> nodeOutput;
-    std::unique_ptr<GDSOptionalParams> optionalParams;
 
     GDSBindData(binder::expression_vector columns, graph::NativeGraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> nodeOutput,
-        std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
+        std::shared_ptr<binder::Expression> nodeOutput)
         : TableFuncBindData{std::move(columns)}, graphEntry{graphEntry.copy()},
-          nodeOutput{std::move(nodeOutput)}, optionalParams{std::move(optionalParams)} {}
+          nodeOutput{std::move(nodeOutput)} {}
 
     GDSBindData(const GDSBindData& other)
         : TableFuncBindData{other}, graphEntry{other.graphEntry.copy()},
-          nodeOutput{other.nodeOutput},
-          optionalParams{other.optionalParams == nullptr ? nullptr : other.optionalParams->copy()},
-          resultTable{other.resultTable} {}
+          nodeOutput{other.nodeOutput}, resultTable{other.resultTable} {}
 
     void setResultFTable(std::shared_ptr<processor::FactorizedTable> table) {
         resultTable = std::move(table);
     }
     std::shared_ptr<processor::FactorizedTable> getResultTable() const { return resultTable; }
-
-    std::unique_ptr<GDSConfig> getConfig() const { return optionalParams->getConfig(); }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<GDSBindData>(*this);

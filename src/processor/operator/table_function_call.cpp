@@ -36,8 +36,9 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     }
 }
 
-bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
+bool TableFunctionCall::getNextTuplesInternal(ExecutionContext* context) {
     funcOutput->resetState();
+    funcInput->bindData->evaluateParams(context->clientContext);
     auto numTuplesScanned = info.function.tableFunc(*funcInput, *funcOutput);
     funcOutput->setOutputSize(numTuplesScanned);
     metrics->numOutputTuple.increase(numTuplesScanned);

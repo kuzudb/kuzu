@@ -77,9 +77,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         clientContext->getMemoryManager(), sharedState, componentIDs);
     auto computeState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
-    auto config = input.bindData->constPtrCast<GDSBindData>()->getConfig()->constCast<CCConfig>();
+    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()
+                             .maxIterations.getParamVal();
     GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::BOTH,
-        config.maxIterations);
+        maxIterations);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
@@ -93,8 +94,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
-        std::make_unique<CCOptionalParams>(input->optionalParamsLegacy));
+    auto bindData =
+        std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
+    bindData->optionalParams =
+        std::make_unique<MaxIterationOptionalParams>(input->optionalParamsLegacy);
+    return bindData;
 }
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {

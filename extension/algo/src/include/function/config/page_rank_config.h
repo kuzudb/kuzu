@@ -37,14 +37,5 @@ struct NormalizeInitial {
     static constexpr bool DEFAULT_VALUE = true;
 };
 
-struct PageRankConfig final : public GDSConfig {
-    double dampingFactor = DampingFactor::DEFAULT_VALUE;
-    uint64_t maxIterations = 20;
-    double tolerance = Tolerance::DEFAULT_VALUE;
-    bool normalize = NormalizeInitial::DEFAULT_VALUE;
-
-    PageRankConfig() = default;
-};
-
 } // namespace function
 } // namespace kuzu

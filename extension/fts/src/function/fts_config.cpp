@@ -200,28 +200,5 @@ void TopK::validate(uint64_t value) {
     }
 }
 
-QueryFTSConfig::QueryFTSConfig(const function::optional_params_t& optionalParams) {
-    for (auto& [name, value] : optionalParams) {
-        auto lowerCaseName = common::StringUtils::getLower(name);
-        if (K::NAME == lowerCaseName) {
-            value.validateType(K::TYPE);
-            k = value.getValue<double>();
-            K::validate(k);
-        } else if (B::NAME == lowerCaseName) {
-            value.validateType(B::TYPE);
-            b = value.getValue<double>();
-            B::validate(b);
-        } else if (Conjunctive::NAME == lowerCaseName) {
-            value.validateType(Conjunctive::TYPE);
-            isConjunctive = value.getValue<bool>();
-        } else if (TopK::NAME == lowerCaseName) {
-            value.validateType(TopK::TYPE);
-            topK = value.getValue<uint64_t>();
-        } else {
-            throw common::BinderException{"Unrecognized optional parameter: " + name};
-        }
-    }
-}
-
 } // namespace fts_extension
 } // namespace kuzu
