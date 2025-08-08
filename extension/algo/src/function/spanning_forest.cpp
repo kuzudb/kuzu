@@ -137,7 +137,8 @@ private:
 KruskalCompute::KruskalCompute(storage::MemoryManager* mm, offset_t numNodes)
     : numNodes{numNodes}, edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
       rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
-    // Mark all vertices as belonging to their own components.
+    // Mark all vertices as belonging to their own components. `std::iota` automatically
+    // fills the range with sequentially increasing values starting from `0`.
     std::iota(parents.begin(), parents.end(), 0);
 }
 
