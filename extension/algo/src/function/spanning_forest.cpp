@@ -178,8 +178,8 @@ void KruskalCompute::run() {
     offset_t numEdges = 0;
     for (auto i = 0u; i < edges.size() && numEdges != numNodes - 1; ++i) {
         const auto& [srcId, dstId, relId, _] = edges[i];
-        auto pSrcId = findComponent(srcId);
-        auto pDstId = findComponent(dstId);
+        auto srcCompId = findComponent(srcId);
+        auto dstCompId = findComponent(dstId);
         if (pSrcId != pDstId) {
             ++numEdges;
             forest.push_back({srcId, dstId, relId, UINT64_MAX});
