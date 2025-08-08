@@ -2,6 +2,7 @@
 
 #include "common/exception/interrupt.h"
 #include "common/task_system/task_scheduler.h"
+#include "common/types/types.h"
 #include "function/gds/gds_task.h"
 
 using namespace kuzu::processor;
@@ -15,18 +16,18 @@ void InMemVertexComputeTask::run() {
     FrontierMorsel morsel;
     const auto localVc = vc.copy();
     while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
-        localVc->vertexCompute(morsel.getBeginOffset(), morsel.getEndOffset());
+        localVc->vertexCompute(morsel.getBeginOffset(), morsel.getEndOffset(), tableId);
     }
 }
 
 void InMemGDSUtils::runVertexCompute(InMemVertexCompute& vc, common::offset_t maxOffset,
-    ExecutionContext* context) {
+    ExecutionContext* context, std::optional<common::table_id_t> tableId) {
     if (context->clientContext->interrupted()) {
         throw common::InterruptException();
     }
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
-    const auto task = std::make_shared<InMemVertexComputeTask>(maxThreads, vc, sharedState);
+    const auto task = std::make_shared<InMemVertexComputeTask>(maxThreads, vc, sharedState, tableId);
     sharedState->morselDispatcher.init(maxOffset);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);

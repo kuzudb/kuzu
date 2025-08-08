@@ -2,6 +2,7 @@
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "common/in_mem_gds_utils.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "common/types/types.h"
@@ -11,7 +12,6 @@
 #include "function/gds/gds.h"
 #include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds/gds_vertex_compute.h"
 #include "function/table/bind_input.h"
 #include "processor/execution_context.h"
 
@@ -225,32 +225,29 @@ void KruskalCompute::mergeComponents(const offset_t& srcCompId, const offset_t& 
 
 /** RESULTS **/
 
-class WriteResultsSF final : public GDSResultVertexCompute {
+class WriteResultsSF final : public InMemResultParallelCompute {
 public:
     WriteResultsSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
         const ku_vector_t<resultEdge>& finalResults)
-        : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
+        : InMemResultParallelCompute{mm, sharedState}, finalResults{finalResults} {
         srcIdVector = createVector(LogicalType::INTERNAL_ID());
         dstIdVector = createVector(LogicalType::INTERNAL_ID());
         relIdVector = createVector(LogicalType::INTERNAL_ID());
         forestIdVector = createVector(LogicalType::UINT64());
     }
 
-    void beginOnTableInternal(table_id_t /*tableID*/) override {}
-
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset,
-        const table_id_t tableID) override {
+    void vertexCompute(const offset_t startOffset, const offset_t endOffset, const std::optional<table_id_t> tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             const auto& [srcId, dstId, relId, forestId] = finalResults[i];
-            srcIdVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID});
-            dstIdVector->setValue<nodeID_t>(0, nodeID_t{dstId, tableID});
+            srcIdVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID.value()});
+            dstIdVector->setValue<nodeID_t>(0, nodeID_t{dstId, tableID.value()});
             relIdVector->setValue<relID_t>(0, relId);
             forestIdVector->setValue<offset_t>(0, forestId);
             localFT->append(vectors);
         }
     }
 
-    std::unique_ptr<VertexCompute> copy() override {
+    std::unique_ptr<kuzu::algo_extension::InMemVertexCompute> copy() override {
         return std::make_unique<WriteResultsSF>(mm, sharedState, finalResults);
     }
 
@@ -304,9 +301,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     compute.run();
     compute.assignForestIds();
 
-    const auto writeResultsVC = make_unique<WriteResultsSF>(mm, sharedState, compute.getForest());
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *writeResultsVC,
-        compute.getForestSize());
+    WriteResultsSF writeResultsVC (mm, sharedState, compute.getForest());
+    InMemGDSUtils::runVertexCompute(writeResultsVC, compute.getForestSize(), input.context, tableId);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
