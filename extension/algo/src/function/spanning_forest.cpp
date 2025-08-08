@@ -11,7 +11,6 @@
 #include "function/config/spanning_forest_config.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_object_manager.h"
-#include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/table/bind_input.h"
 #include "processor/execution_context.h"
