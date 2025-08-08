@@ -11,14 +11,16 @@ class InMemParallelCompute {
 public:
     virtual ~InMemParallelCompute() = default;
 
-    virtual void parallelCompute(common::offset_t, common::offset_t, const std::optional<common::table_id_t>) {}
+    virtual void parallelCompute(common::offset_t, common::offset_t,
+        const std::optional<common::table_id_t>) {}
 
     virtual std::unique_ptr<InMemParallelCompute> copy() = 0;
 };
 
 class InMemResultParallelCompute : public InMemParallelCompute {
 public:
-    InMemResultParallelCompute(storage::MemoryManager* mm, function::GDSFuncSharedState* sharedState)
+    InMemResultParallelCompute(storage::MemoryManager* mm,
+        function::GDSFuncSharedState* sharedState)
         : sharedState{sharedState}, mm{mm} {
         localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
     }
@@ -44,7 +46,8 @@ protected:
 class InMemParallelComputeTask final : public common::Task {
 public:
     InMemParallelComputeTask(const uint64_t maxNumThreads, InMemParallelCompute& vc,
-        std::shared_ptr<function::VertexComputeTaskSharedState> sharedState, std::optional<common::table_id_t> tableId)
+        std::shared_ptr<function::VertexComputeTaskSharedState> sharedState,
+        std::optional<common::table_id_t> tableId)
         : Task{maxNumThreads}, vc{vc}, sharedState{std::move(sharedState)}, tableId{tableId} {};
 
     function::VertexComputeTaskSharedState* getSharedState() const { return sharedState.get(); }
@@ -60,7 +63,8 @@ private:
 class InMemGDSUtils {
 public:
     static void runParallelCompute(InMemParallelCompute& vc, common::offset_t maxOffset,
-        processor::ExecutionContext* context, std::optional<common::table_id_t> tableId = std::nullopt);
+        processor::ExecutionContext* context,
+        std::optional<common::table_id_t> tableId = std::nullopt);
 };
 
 } // namespace algo_extension

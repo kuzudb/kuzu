@@ -125,7 +125,8 @@ static void runVertexComputeInternal(const TableCatalogEntry* currentEntry,
         task->runSparse();
         return;
     }
-    auto maxOffset = graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
+    auto maxOffset =
+        graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
     auto sharedState = task->getSharedState();
     sharedState->morselDispatcher.init(maxOffset);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,

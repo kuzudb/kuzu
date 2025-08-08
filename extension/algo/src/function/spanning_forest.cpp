@@ -236,7 +236,8 @@ public:
         forestIdVector = createVector(LogicalType::UINT64());
     }
 
-    void parallelCompute(const offset_t startOffset, const offset_t endOffset, const std::optional<table_id_t> tableID) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t> tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             const auto& [srcId, dstId, relId, forestId] = finalResults[i];
             srcIdVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID.value()});
@@ -301,8 +302,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     compute.run();
     compute.assignForestIds();
 
-    WriteResultsSF writeResultsVC (mm, sharedState, compute.getForest());
-    InMemGDSUtils::runParallelCompute(writeResultsVC, compute.getForestSize(), input.context, tableId);
+    WriteResultsSF writeResultsVC(mm, sharedState, compute.getForest());
+    InMemGDSUtils::runParallelCompute(writeResultsVC, compute.getForestSize(), input.context,
+        tableId);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
