@@ -15,7 +15,7 @@ struct Variant {
     static constexpr const char* MIN_VARIANT = "min";
     static constexpr const char* NAME = "variant";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
-    static constexpr std::string DEFAULT_VALUE = MIN_VARIANT;
+    static constexpr std::string DEFAULT_VALUE = "min";
     static void validate(std::string variant) {
         if (variant != MAX_VARIANT && variant != MIN_VARIANT) {
             throw common::BinderException(common::stringFormat(
@@ -27,7 +27,7 @@ struct Variant {
 struct WeightProperty {
     static constexpr const char* NAME = "weight_property";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
-    static constexpr std::string DEFAULT_VALUE{};
+    static constexpr std::string DEFAULT_VALUE = "";
 };
 
 struct SFConfig final : public GDSConfig {
