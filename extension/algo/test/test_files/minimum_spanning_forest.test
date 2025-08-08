@@ -33,7 +33,23 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') 
+
+-STATEMENT CALL SPANNING_FOREST('Graph')
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- 9
+0|2|6|0
+1|2|8|0
+2|3|3|0
+2|5|15|0
+3|4|3|0
+4|9|2|0
+5|6|10|0
+5|7|10|0
+8|9|3|0
+
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min') 
 YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
 MATCH ()-[r]->() WHERE ID(r) = rel 
 RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
@@ -48,6 +64,20 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 7|8|10|0
 8|9|3|0
 
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max') 
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- 9
+0|2|6|2
+1|2|8|2
+2|3|3|2
+2|5|15|2
+3|4|3|2
+5|6|10|2
+5|7|10|2
+7|8|10|2
+8|9|3|2
 
 -CASE Alias
 -LOAD_DYNAMIC_EXTENSION algo
@@ -79,6 +109,7 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
+
 -STATEMENT CALL SF('Graph', weight_property:='weight') 
 YIELD src, dst, rel, forest_id 
 MATCH (n) WHERE ID(n) = dst MATCH ()-[r]->() WHERE ID(r) = rel 
@@ -123,6 +154,21 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
+
+-STATEMENT CALL SPANNING_FOREST('Graph')
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- 8
+0|2|6|0
+1|2|8|0
+2|3|3|0
+3|4|3|0
+5|7|10|5
+6|7|3|5
+7|8|10|5
+8|9|3|5
+
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') 
 YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst
 MATCH ()-[r]->() WHERE ID(r) = rel 
@@ -136,6 +182,20 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 6|7|3|5
 7|8|10|5
 8|9|3|5
+
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max') 
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- 8
+0|2|6|2
+1|2|8|2
+2|3|3|2
+3|4|3|2
+5|6|10|8
+5|7|10|8
+7|8|10|8
+8|9|3|8
 
 -CASE NoEdges
 -LOAD_DYNAMIC_EXTENSION algo
@@ -156,7 +216,20 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') 
+
+-STATEMENT CALL SPANNING_FOREST('Graph') 
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- 0
+
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min') 
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- 0
+
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max') 
 YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
 MATCH ()-[r]->() WHERE ID(r) = rel 
 RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
@@ -199,7 +272,23 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') 
+
+-STATEMENT CALL SPANNING_FOREST('Graph')
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- 9
+0|2|8|0
+1|2|8|0
+2|3|3|0
+2|5|20|0
+3|4|3|0
+4|9|4|0
+5|6|20|0
+5|7|10|0
+8|9|3|0
+
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min') 
 YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
 MATCH ()-[r]->() WHERE ID(r) = rel 
 RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
@@ -213,6 +302,21 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 6|7|3|0
 7|8|10|0
 8|9|3|0
+
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max') 
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- 9
+0|2|8|3
+1|2|8|3
+2|5|20|3
+3|4|3|3
+4|9|4|3
+5|6|20|3
+5|7|10|3
+7|8|10|3
+8|9|3|3
 
 -CASE SelfAndMultiEdges
 -LOAD_DYNAMIC_EXTENSION algo
@@ -255,7 +359,23 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight') 
+
+-STATEMENT CALL SPANNING_FOREST('Graph')
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
+MATCH ()-[r]->() WHERE ID(r) = rel 
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
+---- 9
+0|2|8|0
+1|2|8|0
+2|3|3|0
+2|5|20|0
+3|4|3|0
+4|9|4|0
+5|6|20|0
+5|7|10|0
+8|9|3|0
+
+-STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min') 
 YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
 MATCH ()-[r]->() WHERE ID(r) = rel 
 RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
@@ -270,80 +390,20 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 7|8|10|0
 8|9|3|0
 
--CASE MinVSMaxVSUnweightedForest
--LOAD_DYNAMIC_EXTENSION algo
--STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
----- ok
--STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
----- ok
--STATEMENT CREATE (u0:Node {id: 0}),
-            (u1:Node {id: 1}),
-            (u2:Node {id: 2}),
-            (u3:Node {id: 3}),
-            (u4:Node {id: 4}),
-            (u5:Node {id: 5}),
-            (u6:Node {id: 6}),
-            (u7:Node {id: 7}),
-            (u8:Node {id: 8}),
-            (u9:Node {id: 9}),
-            (u0)-[:Edge {weight: 5}]->(u1),
-            (u0)-[:Edge {weight: 6}]->(u2),
-            (u1)-[:Edge {weight: 8}]->(u2),
-            (u2)-[:Edge {weight: 3}]->(u3),
-            (u3)-[:Edge {weight: 3}]->(u4),
-            (u5)-[:Edge {weight: 10}]->(u6),
-            (u5)-[:Edge {weight: 10}]->(u7),
-            (u6)-[:Edge {weight: 3}]->(u7),
-            (u7)-[:Edge {weight: 10}]->(u8),
-            (u8)-[:Edge {weight: 3}]->(u9),
-            (u2)-[:Edge {weight: 15}]->(u5),
-            (u4)-[:Edge {weight: 2}]->(u9);
----- ok
--STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
----- ok
--STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min') 
-YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst 
-MATCH ()-[r]->() WHERE ID(r) = rel 
-RETURN src.id AS src, n.id AS dst, r.weight as weight;
----- 9
-0|1|5
-0|2|6
-2|3|3
-3|4|3
-4|9|2
-5|7|10
-6|7|3
-7|8|10
-8|9|3
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max') 
-YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst 
+YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst 
 MATCH ()-[r]->() WHERE ID(r) = rel 
-RETURN src.id AS src, n.id AS dst, r.weight as weight;
+RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- 9
-0|2|6
-1|2|8
-2|3|3
-2|5|15
-3|4|3
-5|6|10
-5|7|10
-7|8|10
-8|9|3
--STATEMENT CALL SPANNING_FOREST('Graph') 
-YIELD src, dst, rel MATCH (n) WHERE ID(n) = dst 
-MATCH ()-[r]->() WHERE ID(r) = rel 
-RETURN src.id AS src, n.id AS dst, r.weight as weight;
----- 9
-0|2|6
-1|2|8
-2|3|3
-2|5|15
-3|4|3
-4|9|2
-5|6|10
-5|7|10
-8|9|3
-
+0|2|8|3
+1|2|8|3
+2|5|20|3
+3|4|3|3
+4|9|4|3
+5|6|20|3
+5|7|10|3
+7|8|10|3
+8|9|3|3
 
 -CASE InvalidWeightProperty
 -LOAD_DYNAMIC_EXTENSION algo
