@@ -91,7 +91,7 @@ std::unique_ptr<GDSConfig> SFOptionalParams::getConfig() const {
 
 // COMPUTE
 
-// Houses the data structures and methods required to run Kruskal's Algorithm.
+// Runs Kruskal's algorithm.
 class KruskalCompute {
 public:
     KruskalCompute(storage::MemoryManager* mm, offset_t numNodes);
