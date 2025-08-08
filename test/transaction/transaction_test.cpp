@@ -754,7 +754,8 @@ TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipUpdatesWithMixedTransaction
 //     std::vector<std::thread> threads;
 //     for (auto i = 0; i < numThreads; ++i) {
 //         bool shouldCommit = (i % 2 == 0); // Half commit, half rollback
-//         threads.emplace_back(mixedOperationsWithTransactions, i * numOpsPerThread, numOpsPerThread,
+//         threads.emplace_back(mixedOperationsWithTransactions, i * numOpsPerThread,
+//         numOpsPerThread,
 //             shouldCommit, std::ref(*database));
 //     }
 //     for (auto& thread : threads) {
