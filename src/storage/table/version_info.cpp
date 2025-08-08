@@ -434,6 +434,7 @@ void VersionInfo::append(transaction_t transactionID, const row_idx_t startRow,
     if (numRows == 0) {
         return;
     }
+    std::unique_lock xLck{mtx};
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -449,6 +450,7 @@ void VersionInfo::append(transaction_t transactionID, const row_idx_t startRow,
 }
 
 bool VersionInfo::delete_(transaction_t transactionID, const row_idx_t rowIdx) {
+    std::unique_lock xLck{mtx};
     auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
@@ -463,6 +465,7 @@ bool VersionInfo::delete_(transaction_t transactionID, const row_idx_t rowIdx) {
 
 bool VersionInfo::isSelected(transaction_t startTS, transaction_t transactionID,
     row_idx_t rowIdx) const {
+    std::shared_lock sLck{mtx};
     auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     if (const auto vectorVersion = getVectorVersionInfo(vectorIdx)) {
@@ -476,6 +479,7 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
     if (numRows == 0) {
         return;
     }
+    std::shared_lock sLck{mtx};
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -510,11 +514,13 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
 }
 
 void VersionInfo::clearVectorInfo(const idx_t vectorIdx) {
+    std::unique_lock xLck{mtx};
     KU_ASSERT(vectorIdx < vectorsInfo.size());
     vectorsInfo[vectorIdx] = nullptr;
 }
 
 bool VersionInfo::hasDeletions() const {
+    std::shared_lock sLck{mtx};
     for (auto& vectorInfo : vectorsInfo) {
         if (vectorInfo &&
             vectorInfo->deletionStatus == VectorVersionInfo::DeletionStatus::CHECK_VERSION) {
@@ -526,6 +532,7 @@ bool VersionInfo::hasDeletions() const {
 
 row_idx_t VersionInfo::getNumDeletions(const transaction::Transaction* transaction,
     row_idx_t startRow, length_t numRows) const {
+    std::shared_lock sLck{mtx};
     if (numRows == 0) {
         return 0;
     }
@@ -551,6 +558,7 @@ row_idx_t VersionInfo::getNumDeletions(const transaction::Transaction* transacti
 }
 
 bool VersionInfo::hasInsertions() const {
+    std::shared_lock sLck{mtx};
     for (auto& vectorInfo : vectorsInfo) {
         if (vectorInfo &&
             vectorInfo->insertionStatus == VectorVersionInfo::InsertionStatus::CHECK_VERSION) {
@@ -562,6 +570,7 @@ bool VersionInfo::hasInsertions() const {
 
 bool VersionInfo::isDeleted(const transaction::Transaction* transaction,
     row_idx_t rowInChunk) const {
+    std::shared_lock sLck{mtx};
     auto [vectorIdx, rowInVector] =
         StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
     const auto vectorVersion = getVectorVersionInfo(vectorIdx);
@@ -574,6 +583,7 @@ bool VersionInfo::isDeleted(const transaction::Transaction* transaction,
 
 bool VersionInfo::isInserted(const transaction::Transaction* transaction,
     row_idx_t rowInChunk) const {
+    std::shared_lock sLck{mtx};
     auto [vectorIdx, rowInVector] =
         StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
     const auto vectorVersion = getVectorVersionInfo(vectorIdx);
@@ -585,6 +595,7 @@ bool VersionInfo::isInserted(const transaction::Transaction* transaction,
 }
 
 bool VersionInfo::hasDeletions(const transaction::Transaction* transaction) const {
+    std::shared_lock sLck{mtx};
     for (auto& vectorInfo : vectorsInfo) {
         if (vectorInfo && vectorInfo->hasDeletions(transaction) > 0) {
             return true;
@@ -597,6 +608,7 @@ void VersionInfo::commitInsert(row_idx_t startRow, row_idx_t numRows, transactio
     if (numRows == 0) {
         return;
     }
+    std::unique_lock xLck{mtx};
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -614,6 +626,7 @@ void VersionInfo::rollbackInsert(row_idx_t startRow, row_idx_t numRows) {
     if (numRows == 0) {
         return;
     }
+    std::unique_lock xLck{mtx};
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -631,6 +644,7 @@ void VersionInfo::commitDelete(row_idx_t startRow, row_idx_t numRows, transactio
     if (numRows == 0) {
         return;
     }
+    std::unique_lock xLck{mtx};
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -648,6 +662,7 @@ void VersionInfo::rollbackDelete(row_idx_t startRow, row_idx_t numRows) {
     if (numRows == 0) {
         return;
     }
+    std::unique_lock xLck{mtx};
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =

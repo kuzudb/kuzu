@@ -74,11 +74,6 @@ public:
         const transaction::Transaction* transaction, common::idx_t vectorIdx,
         common::sel_t rowIdxInVector, const common::ValueVector& values);
 
-    void clearVectorInfo(common::idx_t vectorIdx) {
-        std::unique_lock lock{mtx};
-        updates[vectorIdx].clear();
-    }
-
     common::idx_t getNumVectors() const {
         std::shared_lock lock{mtx};
         return updates.size();

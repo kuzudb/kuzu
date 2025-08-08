@@ -1,5 +1,7 @@
 #pragma once
 
+#include <shared_mutex>
+
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 
@@ -10,7 +12,6 @@ class Transaction;
 
 namespace storage {
 
-class ChunkedNodeGroup;
 struct VectorVersionInfo;
 
 class KUZU_API VersionInfo {
@@ -58,6 +59,7 @@ private:
     VectorVersionInfo* getVectorVersionInfo(common::idx_t vectorIdx) const;
     VectorVersionInfo& getOrCreateVersionInfo(common::idx_t vectorIdx);
 
+    mutable std::shared_mutex mtx;
     std::vector<std::unique_ptr<VectorVersionInfo>> vectorsInfo;
 };
 

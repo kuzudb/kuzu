@@ -735,7 +735,7 @@ bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector,
         }
     }
     return getPKIndex()->lookup(transaction, keyVector, vectorPos, result,
-        [&](offset_t offset) { return isVisibleNoLock(transaction, offset); });
+        [&](offset_t offset) { return isVisible(transaction, offset); });
 }
 
 void NodeTable::scanIndexColumns(main::ClientContext* context, IndexScanHelper& scanHelper,
