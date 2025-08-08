@@ -104,8 +104,7 @@ public:
     // spanning forest, respectively.
     void sortEdges(const std::string& variant);
 
-    // Implements the core of Kruskal's algorithm. We iterate over our edge
-    // list, adding an edge to our forest if it does not create a cycle.
+    // Implements the core of Kruskal's algorithm, as described in the class comment above.
     void run();
 
     // Assigns each edge an ID of the tree it belongs to. The ID internally is the final component
