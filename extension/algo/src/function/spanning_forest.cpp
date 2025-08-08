@@ -127,9 +127,11 @@ private:
 
     const offset_t numNodes;
     ku_vector_t<weightedEdge> edges;
-    ku_vector_t<offset_t> parents;
-    ku_vector_t<uint64_t> rank;
     ku_vector_t<resultEdge> forest;
+    // Describe
+    ku_vector_t<offset_t> parents;
+    // Describe
+    ku_vector_t<uint64_t> rank;
 };
 
 KruskalCompute::KruskalCompute(storage::MemoryManager* mm, offset_t numNodes)
