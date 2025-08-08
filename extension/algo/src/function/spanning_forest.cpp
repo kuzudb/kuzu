@@ -32,8 +32,7 @@ using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 
 // CONFIG
 
-// Stores optional arguments as expressions rather than concrete values.
-// This allows deferring evaluation of parameters until runtime.
+// Helper to parse optional parameters of `SPANNING_FOREST()`.
 struct SFOptionalParams final : public GDSOptionalParams {
     std::shared_ptr<Expression> weightProperty;
     std::shared_ptr<Expression> variant;
