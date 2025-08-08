@@ -128,7 +128,8 @@ private:
     const offset_t numNodes;
     ku_vector_t<weightedEdge> edges;
     ku_vector_t<resultEdge> forest;
-    // For each node, `parents[i]` points to the parent node, or to itself if the node is the root of its component.
+    // For each node, `parents[i]` points to the parent node, or to itself if the node is the root
+    // of its component.
     ku_vector_t<offset_t> parents;
     // Tracks the approximate height of each component's tree.
     ku_vector_t<uint64_t> rank;
