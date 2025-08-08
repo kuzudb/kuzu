@@ -92,9 +92,8 @@ public:
         KU_ASSERT(nbrInfos.size() == 1);
         auto nbrInfo = nbrInfos[0];
         KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
-        // Set randomLookup to true to avoid caching unused data.
         scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
-            nbrInfo.dstTableID, {}, true /*randomLookup*/);
+            nbrInfo.dstTableID, {});
     }
 
     void compute(const offset_t maxOffset, NodeOffsetMaskMap* map, ExecutionContext* context) {
