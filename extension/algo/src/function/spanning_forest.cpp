@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
@@ -7,6 +6,8 @@
 #include "common/string_utils.h"
 #include "common/types/types.h"
 #include "function/algo_function.h"
+#include "function/config/max_iterations_config.h"
+#include "function/config/spanning_forest_config.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
@@ -43,29 +44,38 @@ using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 
 /** CONFIG **/
 
-// Helper to parse optional parameters of `SPANNING_FOREST()`.
-struct SFOptionalParams final : public GDSOptionalParams {
-    std::shared_ptr<Expression> weightProperty;
-    std::shared_ptr<Expression> variant;
+
+struct SFOptionalParams final : public MaxIterationOptionalParams {
+    OptionalParam<Variant> variant;
+    OptionalParam<WeightProperty> weightProperty;
 
     explicit SFOptionalParams(const expression_vector& optionalParams);
 
-    std::unique_ptr<GDSConfig> getConfig() const override;
+    // For copy only
+    SFOptionalParams(OptionalParam<MaxIterations> maxIterations,
+        OptionalParam<Variant> variant, OptionalParam<WeightProperty> weightProperty)
+        : MaxIterationOptionalParams{maxIterations}, variant{std::move(variant)},
+          weightProperty{std::move(weightProperty)} {}
 
-    std::unique_ptr<GDSOptionalParams> copy() const override {
-        return std::make_unique<SFOptionalParams>(*this);
+    void evaluateParams(main::ClientContext* context) override {
+        MaxIterationOptionalParams::evaluateParams(context);
+        variant.evaluateParam(context);
+        weightProperty.evaluateParam(context);
+    }
+
+    std::unique_ptr<function::OptionalParams> copy() override {
+        return std::make_unique<SFOptionalParams>(maxIterations, variant, weightProperty);
     }
 };
 
-SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams) {
-    static constexpr const char* WEIGHT_PROPERTY = "weight_property";
-    static constexpr const char* VARIANT = "variant";
+SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams) : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)}
+{
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
-        if (paramName == WEIGHT_PROPERTY) {
-            weightProperty = optionalParam;
-        } else if (paramName == VARIANT) {
-            variant = optionalParam;
+        if (paramName == WeightProperty::NAME) {
+            weightProperty = function::OptionalParam<WeightProperty>(optionalParam);
+        } else if (paramName == Variant::NAME) {
+            variant = function::OptionalParam<Variant>(optionalParam);
         } else {
             throw RuntimeException{
                 stringFormat("Unknown optional argument: {}", optionalParam->getAlias())};
@@ -73,32 +83,18 @@ SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams) {
     }
 }
 
-// Final configuration struct used to parameterize the SF configuration at execution time.
-struct SFConfig final : public GDSConfig {
-    static constexpr const char* MAX_VARIANT = "max";
-    static constexpr const char* MIN_VARIANT = "min";
-    std::string weightProperty;
-    std::string variant = MIN_VARIANT;
-    SFConfig() = default;
-};
+struct SFBindData final : public GDSBindData {
+    SFBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
+        std::shared_ptr<Expression> nodeOutput,
+        std::unique_ptr<SFOptionalParams> optionalParams)
+        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput)} {
+        this->optionalParams = std::move(optionalParams);
+    }
 
-std::unique_ptr<GDSConfig> SFOptionalParams::getConfig() const {
-    auto config = std::make_unique<SFConfig>();
-    if (weightProperty != nullptr) {
-        config->weightProperty =
-            ExpressionUtil::evaluateLiteral<std::string>(*weightProperty, LogicalType::STRING());
+    std::unique_ptr<TableFuncBindData> copy() const override {
+        return std::make_unique<SFBindData>(*this);
     }
-    if (variant != nullptr) {
-        config->variant =
-            ExpressionUtil::evaluateLiteral<std::string>(*variant, LogicalType::STRING());
-        StringUtils::toLower(config->variant);
-        if (config->variant != SFConfig::MIN_VARIANT && config->variant != SFConfig::MAX_VARIANT) {
-            throw RuntimeException{stringFormat("Variant argument expects {} or {}. Got: {}",
-                SFConfig::MAX_VARIANT, SFConfig::MIN_VARIANT, config->variant)};
-        }
-    }
-    return config;
-}
+};
 
 /** COMPUTE **/
 
@@ -178,7 +174,7 @@ void KruskalCompute::sortEdges(const std::string& variant) {
     const auto& compareFn = [&](const auto& e1, const auto& e2) {
         const auto& [srcId1, dstId1, relId1, weight1] = e1;
         const auto& [srcId2, dstId2, relId2, weight2] = e2;
-        return variant == SFConfig::MAX_VARIANT ? std::tie(weight1, srcId1, dstId1, relId1) >
+        return variant == Variant::MAX_VARIANT ? std::tie(weight1, srcId1, dstId1, relId1) >
                                                       std::tie(weight2, srcId2, dstId2, relId2) :
                                                   std::tie(weight1, srcId1, dstId1, relId1) <
                                                       std::tie(weight2, srcId2, dstId2, relId2);
@@ -280,21 +276,21 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
-    auto SFBindData = input.bindData->constPtrCast<GDSBindData>();
-    auto config = SFBindData->getConfig()->constCast<SFConfig>();
-    if (!config.weightProperty.empty() &&
-        !nbrInfo.relGroupEntry->containsProperty(config.weightProperty)) {
-        throw RuntimeException{stringFormat("Cannot find property: {}", config.weightProperty)};
+    auto spanningForestBindData = input.bindData->constPtrCast<SFBindData>();
+    auto& config = spanningForestBindData ->optionalParams->constCast<SFOptionalParams>();
+    if (!config.weightProperty.getParamVal().empty() &&
+        !nbrInfo.relGroupEntry->containsProperty(config.weightProperty.getParamVal())) {
+        throw RuntimeException{stringFormat("Cannot find property: {}", config.weightProperty.getParamVal())};
     }
-    if (!config.weightProperty.empty() &&
+    if (!config.weightProperty.getParamVal().empty() &&
         !LogicalTypeUtils::isNumerical(
-            nbrInfo.relGroupEntry->getProperty(config.weightProperty).getType())) {
+            nbrInfo.relGroupEntry->getProperty(config.weightProperty.getParamVal()).getType())) {
         throw RuntimeException{
-            stringFormat("Provided weight property is not numerical: {}", config.weightProperty)};
+            stringFormat("Provided weight property is not numerical: {}", config.weightProperty.getParamVal())};
     }
     std::vector<std::string> relProps = {InternalKeyword::ID};
-    if (!config.weightProperty.empty()) {
-        relProps.push_back(config.weightProperty);
+    if (!config.weightProperty.getParamVal().empty()) {
+        relProps.push_back(config.weightProperty.getParamVal());
     }
 
     // Set randomLookup to false to enable caching during graph materialization.
@@ -303,8 +299,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalCompute compute(mm, numNodes);
-    compute.initEdges(graph, tableId, scanState.get(), !config.weightProperty.empty());
-    compute.sortEdges(config.variant);
+    compute.initEdges(graph, tableId, scanState.get(), !config.weightProperty.getParamVal().empty());
+    compute.sortEdges(config.variant.getParamVal());
     compute.run();
     compute.assignForestIds();
 
@@ -333,8 +329,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columns.push_back(input->binder->createVariable("DST", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("REL", LogicalType::INTERNAL_ID()));
     columns.push_back(input->binder->createVariable("FOREST_ID", LogicalType::UINT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
-        make_unique<SFOptionalParams>(input->optionalParamsLegacy));
+    return std::make_unique<SFBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+        std::make_unique<SFOptionalParams>(input->optionalParamsLegacy));
 }
 
 function_set SpanningForest::getFunctionSet() {

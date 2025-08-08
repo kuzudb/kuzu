@@ -2,6 +2,7 @@
 #include "function/algo_function.h"
 #include "function/component_ids.h"
 #include "function/config/connected_components_config.h"
+#include "function/config/max_iterations_config.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
 
