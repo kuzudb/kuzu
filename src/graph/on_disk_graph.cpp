@@ -195,10 +195,11 @@ std::vector<GraphRelInfo> OnDiskGraph::getRelInfos(table_id_t srcTableID) {
 // TODO(Xiyang): since now we need to provide nbr info at prepare stage. It no longer make sense to
 // have scanFwd&scanBwd. The direction has already been decided in this function.
 std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(const TableCatalogEntry& entry,
-    oid_t relTableID, table_id_t nbrTableID, std::vector<std::string> relProperties) {
+    oid_t relTableID, table_id_t nbrTableID, std::vector<std::string> relProperties,
+    bool randomLookup) {
     auto& info = graphEntry.getRelInfo(entry.getTableID());
     auto state = std::make_unique<OnDiskGraphNbrScanState>(context, entry, relTableID,
-        info.predicate, relProperties, true /*randomLookup*/);
+        info.predicate, relProperties, randomLookup);
     if (nodeOffsetMaskMap != nullptr && nodeOffsetMaskMap->containsTableID(nbrTableID)) {
         state->nbrNodeMask = nodeOffsetMaskMap->getOffsetMask(nbrTableID);
     }
