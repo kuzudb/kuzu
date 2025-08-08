@@ -100,8 +100,8 @@ public:
     void initEdges(Graph* graph, const table_id_t& tableId, NbrScanState* const scanState,
         const bool& weightProperty);
 
-    // We must process edges in a particular order to get either a minimum or maximum
-    // spanning forest.
+    // Sorts edges in ascending or descending order for computing a maximum or minimum
+    // spanning forest, respectively.
     void sortEdges(const std::string& variant);
 
     // Implements the core of Kruskal's algorithm. We iterate over our edge
