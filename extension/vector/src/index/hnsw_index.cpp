@@ -704,8 +704,8 @@ void OnDiskHNSWIndex::initLayerSearchState(Transaction* transaction, HNSWSearchS
         isUpperLayer ? searchState.upperRelTableEntry : searchState.lowerRelTableEntry;
     const auto relTableID =
         isUpperLayer ? hnswStorageInfo.upperRelTableID : hnswStorageInfo.lowerRelTableID;
-    searchState.nbrScanState = hnswGraph->prepareRelScan(*relEntry, relTableID, indexInfo.tableID,
-        {} /* relProperties */);
+    searchState.nbrScanState =
+        hnswGraph->prepareRelScan(*relEntry, relTableID, indexInfo.tableID, {} /* relProperties */);
     searchState.searchType = getFilteredSearchType(transaction, searchState);
     if (searchState.searchType == SearchType::BLIND_TWO_HOP ||
         searchState.searchType == SearchType::DIRECTED_TWO_HOP) {
