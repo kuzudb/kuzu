@@ -33,10 +33,10 @@ private:
 
 class InMemResultsComputeTask final : public common::Task {
 public:
-    InMemResultsComputeTask (const uint64_t maxNumThreads, function::GDSResultVertexCompute& vc,
-                             std::shared_ptr<function::VertexComputeTaskSharedState> sharedState,
-                             common::table_id_t tableId)
-    : Task{maxNumThreads}, vc{vc}, sharedState{std::move(sharedState)}, tableId{tableId} {};
+    InMemResultsComputeTask(const uint64_t maxNumThreads, function::GDSResultVertexCompute& vc,
+        std::shared_ptr<function::VertexComputeTaskSharedState> sharedState,
+        common::table_id_t tableId)
+        : Task{maxNumThreads}, vc{vc}, sharedState{std::move(sharedState)}, tableId{tableId} {};
 
     function::VertexComputeTaskSharedState* getSharedState() const { return sharedState.get(); }
 
@@ -53,7 +53,7 @@ public:
     static void runParallelCompute(InMemParallelCompute& vc, common::offset_t maxOffset,
         processor::ExecutionContext* context);
     static void runParallelCompute(function::GDSResultVertexCompute& vc, common::offset_t maxOffset,
-    processor::ExecutionContext* context, const common::table_id_t& tableId);
+        processor::ExecutionContext* context, const common::table_id_t& tableId);
 };
 
 } // namespace algo_extension

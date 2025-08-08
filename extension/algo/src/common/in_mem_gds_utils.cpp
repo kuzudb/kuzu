@@ -36,8 +36,7 @@ void InMemGDSUtils::runParallelCompute(InMemParallelCompute& vc, common::offset_
     }
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
-    const auto task =
-        std::make_shared<InMemParallelComputeTask>(maxThreads, vc, sharedState);
+    const auto task = std::make_shared<InMemParallelComputeTask>(maxThreads, vc, sharedState);
     sharedState->morselDispatcher.init(maxOffset);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
