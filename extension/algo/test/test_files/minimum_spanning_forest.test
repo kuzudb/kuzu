@@ -49,7 +49,7 @@ RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest
 8|9|3|0
 
 
--CASE ALIASTEST
+-CASE Alias
 -LOAD_DYNAMIC_EXTENSION algo
 -STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
