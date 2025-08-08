@@ -20,7 +20,6 @@ class MemoryManager;
 
 class ColumnChunkData;
 struct VectorUpdateInfo {
-    mutable std::shared_mutex mutex;
     common::transaction_t version;
     std::array<common::sel_t, common::DEFAULT_VECTOR_CAPACITY> rowsInVector;
     common::sel_t numRowsUpdated;
@@ -31,77 +30,96 @@ struct VectorUpdateInfo {
 
     std::unique_ptr<ColumnChunkData> data;
 
-    explicit VectorUpdateInfo(MemoryManager& memoryManager,
-        const common::transaction_t transactionID, common::LogicalType dataType)
+    VectorUpdateInfo()
+        : version{common::INVALID_TRANSACTION}, rowsInVector{}, numRowsUpdated(0), prev(nullptr),
+          next{nullptr}, data{nullptr} {}
+    VectorUpdateInfo(MemoryManager& memoryManager, const common::transaction_t transactionID,
+        common::LogicalType dataType)
         : version{transactionID}, rowsInVector{}, numRowsUpdated{0}, prev{nullptr}, next{nullptr} {
         data = ColumnChunkFactory::createColumnChunkData(memoryManager, std::move(dataType), false,
             common::DEFAULT_VECTOR_CAPACITY, ResidencyState::IN_MEMORY);
     }
 
-    std::unique_ptr<VectorUpdateInfo> movePrev() {
-        std::unique_lock lock{mutex};
-        return std::move(prev);
-    }
+    std::unique_ptr<VectorUpdateInfo> movePrev() { return std::move(prev); }
     std::unique_ptr<VectorUpdateInfo> movePrevNoLock() { return std::move(prev); }
-    void setPrev(std::unique_ptr<VectorUpdateInfo> prev) {
-        std::unique_lock lock{mutex};
-        this->prev = std::move(prev);
-    }
-    VectorUpdateInfo* getPrev() const {
-        std::shared_lock lock{mutex};
-        return prev.get();
-    }
-    void setNext(VectorUpdateInfo* next) {
-        std::unique_lock lock{mutex};
-        this->next = next;
-    }
-    VectorUpdateInfo* getNext() const {
-        std::shared_lock lock{mutex};
-        return next;
-    }
+    void setPrev(std::unique_ptr<VectorUpdateInfo> prev_) { this->prev = std::move(prev_); }
+    VectorUpdateInfo* getPrev() const { return prev.get(); }
+    void setNext(VectorUpdateInfo* next_) { this->next = next_; }
+    VectorUpdateInfo* getNext() const { return next; }
     VectorUpdateInfo* getNextNoLock() const { return next; }
+};
+
+struct UpdateNode {
+    mutable std::shared_mutex mtx;
+    std::unique_ptr<VectorUpdateInfo> info;
+
+    UpdateNode() : info{nullptr} {}
+    UpdateNode(UpdateNode&& other) noexcept : info{std::move(other.info)} {}
+
+    bool isSet() const {
+        std::shared_lock lock{mtx};
+        return info != nullptr;
+    }
+    void clear() {
+        std::unique_lock lock{mtx};
+        info = nullptr;
+    }
 };
 
 class UpdateInfo {
 public:
     UpdateInfo() {}
 
-    VectorUpdateInfo* update(MemoryManager& memoryManager,
+    VectorUpdateInfo& update(MemoryManager& memoryManager,
         const transaction::Transaction* transaction, common::idx_t vectorIdx,
         common::sel_t rowIdxInVector, const common::ValueVector& values);
 
-    void setVectorInfo(common::idx_t vectorIdx, std::unique_ptr<VectorUpdateInfo> vectorInfo) {
-        std::unique_lock lock{mtx};
-        vectorsInfo[vectorIdx] = std::move(vectorInfo);
-    }
     void clearVectorInfo(common::idx_t vectorIdx) {
         std::unique_lock lock{mtx};
-        vectorsInfo[vectorIdx] = nullptr;
+        updates[vectorIdx].clear();
     }
 
     common::idx_t getNumVectors() const {
         std::shared_lock lock{mtx};
-        return vectorsInfo.size();
+        return updates.size();
     }
-    VectorUpdateInfo* getVectorInfo(const transaction::Transaction* transaction,
-        common::idx_t idx) const;
 
-    void scanFromVectorInfo(const transaction::Transaction* transaction, common::idx_t idx,
-        std::function<void(const VectorUpdateInfo&)> func) const;
+    void scan(const transaction::Transaction* transaction, common::ValueVector& output,
+        common::offset_t offsetInChunk, common::length_t length) const;
+    void lookup(const transaction::Transaction* transaction, common::offset_t rowInChunk,
+        common::ValueVector& output, common::sel_t posInOutputVector) const;
+
+    void scanCommitted(const transaction::Transaction* transaction, ColumnChunkData& output,
+        common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned,
+        common::row_idx_t numRows) const;
+
+    void iterateVectorInfo(const transaction::Transaction* transaction, common::idx_t idx,
+        const std::function<void(const VectorUpdateInfo&)>& func) const;
+
+    void commit(common::idx_t vectorIdx, VectorUpdateInfo* info, common::transaction_t commitTS);
+    void rollback(common::idx_t vectorIdx, VectorUpdateInfo* info);
 
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction) const;
 
     bool hasUpdates(const transaction::Transaction* transaction, common::row_idx_t startRow,
         common::length_t numRows) const;
 
+    bool isSet() const {
+        std::shared_lock lock{mtx};
+        return !updates.empty();
+    }
+    void reset() {
+        std::unique_lock lock{mtx};
+        updates.clear();
+    }
+
 private:
-    VectorUpdateInfo& getOrCreateVectorInfo(MemoryManager& memoryManager,
-        const transaction::Transaction* transaction, common::idx_t vectorIdx,
-        common::sel_t rowIdxInVector, const common::LogicalType& dataType);
+    UpdateNode& getUpdateNode(common::idx_t vectorIdx);
+    UpdateNode& getOrCreateUpdateNode(common::idx_t vectorIdx);
 
 private:
     mutable std::shared_mutex mtx;
-    std::vector<std::unique_ptr<VectorUpdateInfo>> vectorsInfo;
+    std::vector<UpdateNode> updates;
 };
 
 } // namespace storage

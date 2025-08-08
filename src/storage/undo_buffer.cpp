@@ -223,8 +223,9 @@ void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* rec
 
 void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t commitTS) {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
-    std::unique_lock lock{undoRecord.vectorUpdateInfo->mutex};
-    undoRecord.vectorUpdateInfo->version = commitTS;
+    KU_ASSERT(undoRecord.updateInfo);
+    KU_ASSERT(undoRecord.vectorUpdateInfo);
+    undoRecord.updateInfo->commit(undoRecord.vectorIdx, undoRecord.vectorUpdateInfo, commitTS);
 }
 
 void UndoBuffer::rollbackRecord(ClientContext* context, const UndoRecordType recordType,
@@ -241,7 +242,7 @@ void UndoBuffer::rollbackRecord(ClientContext* context, const UndoRecordType rec
         rollbackVersionInfo(context, recordType, record);
     } break;
     case UndoRecordType::UPDATE_INFO: {
-        rollbackVectorUpdateInfo(context->getTransaction(), record);
+        rollbackVectorUpdateInfo(record);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -259,7 +260,7 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
         const auto newerEntry = entryToRollback->getNext();
         newerEntry->setPrev(entryToRollback->movePrev());
     } else {
-        // This is the begin of the version chain.
+        // This is the beginning of the version chain.
         auto olderEntry = entryToRollback->movePrev();
         catalogSet->eraseNoLock(catalogEntry->getName());
         if (olderEntry) {
@@ -298,30 +299,10 @@ void UndoBuffer::rollbackVersionInfo(ClientContext* context, UndoRecordType reco
     }
 }
 
-void UndoBuffer::rollbackVectorUpdateInfo(const transaction::Transaction* transaction,
-    const uint8_t* record) {
-    // auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
-    // KU_ASSERT(undoRecord.updateInfo);
-    // if (undoRecord.updateInfo->getVectorInfo(transaction, undoRecord.vectorIdx) !=
-    //     undoRecord.vectorUpdateInfo) {
-    //     // The version chain has been updated. No need to rollback.
-    //     return;
-    // }
-    // std::unique_lock lock{undoRecord.vectorUpdateInfo->mutex};
-    // if (undoRecord.vectorUpdateInfo->getNextNoLock()) {
-    //     // Has newer versions. Simply remove the current one from the version chain.
-    //     const auto newerVersion = undoRecord.vectorUpdateInfo->getNextNoLock();
-    //     auto prevVersion = undoRecord.vectorUpdateInfo->movePrevNoLock();
-    //     prevVersion->next = newerVersion;
-    //     newerVersion->setPrev(std::move(prevVersion));
-    // } else {
-    //     // This is the beginning of the version chain.
-    //     if (auto prevVersion = undoRecord.vectorUpdateInfo->movePrevNoLock()) {
-    //         undoRecord.updateInfo->setVectorInfo(undoRecord.vectorIdx, std::move(prevVersion));
-    //     } else {
-    //         undoRecord.updateInfo->clearVectorInfo(undoRecord.vectorIdx);
-    //     }
-    // }
+void UndoBuffer::rollbackVectorUpdateInfo(const uint8_t* record) {
+    auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
+    KU_ASSERT(undoRecord.updateInfo);
+    undoRecord.updateInfo->rollback(undoRecord.vectorIdx, undoRecord.vectorUpdateInfo);
 }
 
 } // namespace storage

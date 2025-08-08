@@ -14,90 +14,261 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-VectorUpdateInfo* UpdateInfo::update(MemoryManager& memoryManager, const Transaction* transaction,
+VectorUpdateInfo& UpdateInfo::update(MemoryManager& memoryManager, const Transaction* transaction,
     const idx_t vectorIdx, const sel_t rowIdxInVector, const ValueVector& values) {
-    auto& vectorUpdateInfo = getOrCreateVectorInfo(memoryManager, transaction, vectorIdx,
-        rowIdxInVector, values.dataType);
-    std::unique_lock lock{vectorUpdateInfo.mutex};
-    // Check if the row is already updated in this transaction. Overwrite if so.
+    UpdateNode& header = getOrCreateUpdateNode(vectorIdx);
+    // We always lock the head of the chain of vectorUpdateInfo to ensure that we can safely
+    // read/write to any part of the chain.
+    std::unique_lock chainLock{header.mtx};
+    // Traverse the chain of vectorUpdateInfo to find the one that matches the transaction. Also
+    // detect if there is any write-write conflicts.
+    auto current = header.info.get();
+    VectorUpdateInfo* vecUpdateInfo = nullptr;
+    while (current) {
+        if (current->version == transaction->getID()) {
+            // Same transaction, we can update the existing vector info.
+            KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
+            vecUpdateInfo = current;
+        } else if (current->version > transaction->getStartTS()) {
+            // Potentially there can be conflicts. `current` can be uncommitted transaction (version
+            // is transaction ID) or committed transaction started after this transaction.
+            for (auto i = 0u; i < current->numRowsUpdated; i++) {
+                if (current->rowsInVector[i] == rowIdxInVector) {
+                    throw RuntimeException("Write-write conflict of updating the same row.");
+                }
+            }
+        }
+        current = current->prev.get();
+    }
+    if (!vecUpdateInfo) {
+        // Create a new version here if not found in the chain.
+        auto newInfo = std::make_unique<VectorUpdateInfo>(memoryManager, transaction->getID(),
+            values.dataType.copy());
+        vecUpdateInfo = newInfo.get();
+        auto currentInfo = std::move(header.info);
+        if (currentInfo) {
+            currentInfo->next = newInfo.get();
+        }
+        newInfo->prev = std::move(currentInfo);
+        header.info = std::move(newInfo);
+    }
+    KU_ASSERT(vecUpdateInfo);
+    // Check if the row is already updated in this transaction.
     idx_t idxInUpdateData = INVALID_IDX;
-    for (auto i = 0u; i < vectorUpdateInfo.numRowsUpdated; i++) {
-        if (vectorUpdateInfo.rowsInVector[i] == rowIdxInVector) {
+    for (auto i = 0u; i < vecUpdateInfo->numRowsUpdated; i++) {
+        if (vecUpdateInfo->rowsInVector[i] == rowIdxInVector) {
             idxInUpdateData = i;
             break;
         }
     }
     if (idxInUpdateData != INVALID_IDX) {
         // Overwrite existing update value.
-        vectorUpdateInfo.data->write(&values, values.state->getSelVector()[0], idxInUpdateData);
+        vecUpdateInfo->data->write(&values, values.state->getSelVector()[0], idxInUpdateData);
     } else {
         // Append new value and update `rowsInVector`.
-        vectorUpdateInfo.rowsInVector[vectorUpdateInfo.numRowsUpdated] = rowIdxInVector;
-        vectorUpdateInfo.data->write(&values, values.state->getSelVector()[0],
-            vectorUpdateInfo.numRowsUpdated++);
+        vecUpdateInfo->rowsInVector[vecUpdateInfo->numRowsUpdated] = rowIdxInVector;
+        vecUpdateInfo->data->write(&values, values.state->getSelVector()[0],
+            vecUpdateInfo->numRowsUpdated++);
     }
-    return &vectorUpdateInfo;
+    return *vecUpdateInfo;
 }
 
-// TODO: rework this function to avoid returning pointer.
-VectorUpdateInfo* UpdateInfo::getVectorInfo(const Transaction* transaction, idx_t idx) const {
-    VectorUpdateInfo* current = nullptr;
+void UpdateInfo::scan(const Transaction* transaction, ValueVector& output, offset_t offsetInChunk,
+    length_t length) const {
+    if (!isSet()) {
+        return;
+    }
+    auto [startVectorIdx, startOffsetInVector] =
+        StorageUtils::getQuotientRemainder(offsetInChunk, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, endOffsetInVector] =
+        StorageUtils::getQuotientRemainder(offsetInChunk + length, DEFAULT_VECTOR_CAPACITY);
+    idx_t idx = startVectorIdx;
+    sel_t posInVector = 0u;
+    while (idx <= endVectorIdx) {
+        const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
+        const auto endOffset = idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
+        const auto numRowsInVector = endOffset - startOffset;
+        // We keep track of the rows that have been applied with updates from updateInfo. The update
+        // version chain is maintained with the newest version at the head and the oldest version at
+        // the tail. For each tuple, we iterate through the chain to merge the updates from latest
+        // visible version. If a row has been updated in the current vectorInfo, we should skip it
+        // in older versions.
+        std::vector rowsUpdated(numRowsInVector, false);
+        iterateVectorInfo(transaction, idx, [&](const VectorUpdateInfo& vecUpdateInfo) -> void {
+            if (vecUpdateInfo.numRowsUpdated == 0) {
+                return;
+            }
+            if (std::ranges::none_of(rowsUpdated, [](auto val) { return !val; })) {
+                // All rows in this vector have been updated with a newer visible version already.
+                return;
+            }
+            // TODO(Guodong): Ideally we should perform sort merge here. However currently the
+            // vecUpdateInfo.rowsInVector is not sorted.
+            for (auto i = 0u; i < numRowsInVector; i++) {
+                if (rowsUpdated[i]) {
+                    // Skip the rows that have been updated with a newer visible version already.
+                    continue;
+                }
+                if (const auto itr = std::find_if(vecUpdateInfo.rowsInVector.begin(),
+                        vecUpdateInfo.rowsInVector.begin() + vecUpdateInfo.numRowsUpdated,
+                        [i, startOffset](auto row) { return row == i + startOffset; });
+                    itr != vecUpdateInfo.rowsInVector.begin() + vecUpdateInfo.numRowsUpdated) {
+                    vecUpdateInfo.data->lookup(itr - vecUpdateInfo.rowsInVector.begin(), output,
+                        posInVector + i);
+                    rowsUpdated[i] = true;
+                }
+            }
+        });
+        posInVector += numRowsInVector;
+        idx++;
+    }
+}
+
+void UpdateInfo::lookup(const Transaction* transaction, offset_t rowInChunk, ValueVector& output,
+    sel_t posInOutputVector) const {
+    if (!isSet()) {
+        return;
+    }
+    auto [vectorIdx, rowInVector] =
+        StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
+    bool updated = false;
+    iterateVectorInfo(transaction, vectorIdx, [&](const VectorUpdateInfo& vectorInfo) {
+        if (updated) {
+            return;
+        }
+        for (auto i = 0u; i < vectorInfo.numRowsUpdated; i++) {
+            if (vectorInfo.rowsInVector[i] == rowInVector) {
+                vectorInfo.data->lookup(i, output, posInOutputVector);
+                updated = true;
+                return;
+            }
+        }
+    });
+}
+
+void UpdateInfo::scanCommitted(const Transaction* transaction, ColumnChunkData& output,
+    offset_t startOffsetInOutput, row_idx_t startRowScanned, row_idx_t numRows) const {
+    if (!isSet()) {
+        return;
+    }
+    auto [startVectorIdx, startRowInVector] =
+        StorageUtils::getQuotientRemainder(startRowScanned, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, endRowInVector] =
+        StorageUtils::getQuotientRemainder(startRowScanned + numRows, DEFAULT_VECTOR_CAPACITY);
+    idx_t vectorIdx = startVectorIdx;
+    while (vectorIdx <= endVectorIdx) {
+        const auto startRow = vectorIdx == startVectorIdx ? startRowInVector : 0;
+        const auto endRow = vectorIdx == endVectorIdx ? endRowInVector : DEFAULT_VECTOR_CAPACITY;
+        // TODO(Guodong): Should also use a bool vector here.
+        iterateVectorInfo(transaction, vectorIdx, [&](const VectorUpdateInfo& vectorInfo) {
+            if (vectorInfo.numRowsUpdated == 0) {
+                return;
+            }
+            if (vectorIdx != startVectorIdx && vectorIdx != endVectorIdx) {
+                for (auto i = 0u; i < vectorInfo.numRowsUpdated; i++) {
+                    output.write(vectorInfo.data.get(), i,
+                        startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
+                            vectorInfo.rowsInVector[i] - startRowScanned,
+                        1);
+                }
+            } else {
+                for (auto i = 0u; i < vectorInfo.numRowsUpdated; i++) {
+                    const auto rowInVecUpdated = vectorInfo.rowsInVector[i];
+                    if (rowInVecUpdated >= startRow && rowInVecUpdated < endRow) {
+                        output.write(vectorInfo.data.get(), i,
+                            startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
+                                rowInVecUpdated - startRowScanned,
+                            1);
+                    }
+                }
+            }
+        });
+        vectorIdx++;
+    }
+}
+
+void UpdateInfo::iterateVectorInfo(const Transaction* transaction, idx_t idx,
+    const std::function<void(const VectorUpdateInfo&)>& func) const {
+    const UpdateNode* head = nullptr;
     {
         std::shared_lock lock{mtx};
-        if (idx >= vectorsInfo.size() || !vectorsInfo[idx]) {
-            return nullptr;
+        if (idx >= updates.size() || !updates[idx].isSet()) {
+            return;
         }
-        current = vectorsInfo[idx].get();
+        head = &updates[idx];
     }
+    // We lock the head of the chain to ensure that we can safely read from any part of the
+    // chain.
+    KU_ASSERT(head);
+    std::shared_lock chainLock{head->mtx};
+    auto current = head->info.get();
+    KU_ASSERT(current);
     while (current) {
-        std::shared_lock vectorLock{current->mutex};
-        if (current->version == transaction->getID()) {
-            KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
-            return current;
-        }
-        if (current->version <= transaction->getStartTS()) {
-            KU_ASSERT(current->version < Transaction::START_TRANSACTION_ID);
-            return current;
+        if (current->version == transaction->getID() ||
+            current->version <= transaction->getStartTS()) {
+            KU_ASSERT((current->version == transaction->getID() &&
+                          current->version >= Transaction::START_TRANSACTION_ID) ||
+                      (current->version <= transaction->getStartTS() &&
+                          current->version < Transaction::START_TRANSACTION_ID));
+            func(*current);
         }
         current = current->getPrev();
     }
-    return current;
 }
 
-void UpdateInfo::scanFromVectorInfo(const Transaction* transaction, idx_t idx,
-    std::function<void(const VectorUpdateInfo&)> func) const {
-    VectorUpdateInfo* current = nullptr;
+void UpdateInfo::commit(idx_t vectorIdx, VectorUpdateInfo* info, transaction_t commitTS) {
+    auto& updateNode = getUpdateNode(vectorIdx);
+    std::unique_lock chainLock{updateNode.mtx};
+    info->version = commitTS;
+}
+
+void UpdateInfo::rollback(idx_t vectorIdx, VectorUpdateInfo* info) {
+    UpdateNode* header = nullptr;
+    // Note that we lock the entire UpdateInfo structure here because we might modify the
+    // head of the version chain. This is just a simplification and should be optimized later.
     {
-        std::shared_lock lock{mtx};
-        if (idx >= vectorsInfo.size() || !vectorsInfo[idx]) {
-            return;
-        }
-        current = vectorsInfo[idx].get();
+        std::unique_lock lock{mtx};
+        KU_ASSERT(updates.size() > vectorIdx);
+        header = &updates[vectorIdx];
     }
+    KU_ASSERT(header);
+    std::unique_lock chainLock{header->mtx};
+    // First check if this version is still in the chain. It might have been removed by
+    // a previous rollback entry of the same transaction.
+    // TODO(Guodong): This will be optimized by moving VectorUpdateInfo into UndoBuffer.
+    auto current = header->info.get();
     while (current) {
-        std::shared_lock vectorLock{current->mutex};
-        if (current->version == transaction->getID()) {
-            KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
-            func(*current);
-            return;
+        if (current != info) {
+            current = current->getPrev();
+            continue;
         }
-        if (current->version <= transaction->getStartTS()) {
-            KU_ASSERT(current->version < Transaction::START_TRANSACTION_ID);
-            func(*current);
-            return;
+        if (info->next) {
+            // Has newer version. Remove this from the version chain.
+            const auto newerVersion = info->next;
+            auto prevVersion = info->movePrevNoLock();
+            if (prevVersion) {
+                prevVersion->next = newerVersion;
+            }
+            newerVersion->setPrev(std::move(prevVersion));
+        } else {
+            KU_ASSERT(header->info.get() == info);
+            // This is the beginning of the version chain.
+            header->info = std::move(info->prev);
         }
-        current = current->getPrev();
+        break;
     }
 }
 
 row_idx_t UpdateInfo::getNumUpdatedRows(const Transaction* transaction) const {
-    row_idx_t numUpdatedRows = 0u;
-    std::shared_lock lock{mtx};
-    for (auto i = 0u; i < vectorsInfo.size(); i++) {
-        scanFromVectorInfo(transaction, i,
-            [&](const VectorUpdateInfo& info) { numUpdatedRows += info.numRowsUpdated; });
+    std::unordered_set<row_idx_t> updatedRows;
+    for (auto vectorIdx = 0u; vectorIdx < updates.size(); vectorIdx++) {
+        iterateVectorInfo(transaction, vectorIdx, [&](const VectorUpdateInfo& info) {
+            for (auto i = 0u; i < info.numRowsUpdated; i++) {
+                updatedRows.insert(info.rowsInVector[i]);
+            }
+        });
     }
-    return numUpdatedRows;
+    return updatedRows.size();
 }
 
 bool UpdateInfo::hasUpdates(const Transaction* transaction, row_idx_t startRow,
@@ -106,10 +277,15 @@ bool UpdateInfo::hasUpdates(const Transaction* transaction, row_idx_t startRow,
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, rowInEndVector] =
         StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
-    std::shared_lock lock{mtx};
+    if (!isSet()) {
+        return false;
+    }
     bool hasUpdates = false;
     for (idx_t vectorIdx = startVector; vectorIdx <= endVectorIdx; ++vectorIdx) {
-        scanFromVectorInfo(transaction, vectorIdx, [&](const VectorUpdateInfo& info) {
+        if (hasUpdates) {
+            break;
+        }
+        iterateVectorInfo(transaction, vectorIdx, [&](const VectorUpdateInfo& info) {
             if (info.numRowsUpdated == 0) {
                 return;
             }
@@ -129,56 +305,21 @@ bool UpdateInfo::hasUpdates(const Transaction* transaction, row_idx_t startRow,
     return hasUpdates;
 }
 
-VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(MemoryManager& memoryManager,
-    const Transaction* transaction, idx_t vectorIdx, sel_t rowIdxInVector,
-    const LogicalType& dataType) {
+UpdateNode& UpdateInfo::getUpdateNode(idx_t vectorIdx) {
+    std::shared_lock lock{mtx};
+    if (vectorIdx >= updates.size()) {
+        throw RuntimeException(
+            "UpdateInfo does not have update node for vector index: " + std::to_string(vectorIdx));
+    }
+    return updates[vectorIdx];
+}
+
+UpdateNode& UpdateInfo::getOrCreateUpdateNode(idx_t vectorIdx) {
     std::unique_lock lock{mtx};
-    if (vectorIdx >= vectorsInfo.size()) {
-        vectorsInfo.resize(vectorIdx + 1);
+    if (vectorIdx >= updates.size()) {
+        updates.resize(vectorIdx + 1);
     }
-    if (!vectorsInfo[vectorIdx]) {
-        vectorsInfo[vectorIdx] = std::make_unique<VectorUpdateInfo>(memoryManager,
-            transaction->getID(), dataType.copy());
-        return *vectorsInfo[vectorIdx];
-    }
-    auto* current = vectorsInfo[vectorIdx].get();
-    VectorUpdateInfo* info = nullptr;
-    while (current) {
-        std::unique_lock vectorLock{current->mutex};
-        if (current->version == transaction->getID()) {
-            // Same transaction.
-            KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
-            info = current;
-        } else if (current->version > transaction->getStartTS()) {
-            // Potentially there can be conflicts. `current` can be uncommitted transaction (version
-            // is transaction ID) or committed transaction started after this transaction.
-            for (auto i = 0u; i < current->numRowsUpdated; i++) {
-                if (current->rowsInVector[i] == rowIdxInVector) {
-                    throw RuntimeException("Write-write conflict of updating the same row.");
-                }
-            }
-        }
-        current = current->prev.get();
-    }
-    if (!info) {
-        // Create a new version here.
-        auto newInfo = std::make_unique<VectorUpdateInfo>(memoryManager, transaction->getID(),
-            dataType.copy());
-        vectorsInfo[vectorIdx]->next = newInfo.get();
-        newInfo->prev = std::move(vectorsInfo[vectorIdx]);
-        vectorsInfo[vectorIdx] = std::move(newInfo);
-        info = vectorsInfo[vectorIdx].get();
-        // TODO: Should first scan committed. then merge updates.
-        // if (info->prev) {
-        //     // Copy the data from the previous version.
-        //     for (auto i = 0u; i < info->prev->numRowsUpdated; i++) {
-        //         info->rowsInVector[i] = info->prev->rowsInVector[i];
-        //     }
-        //     info->data->append(info->prev->data.get(), 0, info->prev->numRowsUpdated);
-        //     info->numRowsUpdated = info->prev->numRowsUpdated;
-        // }
-    }
-    return *info;
+    return updates[vectorIdx];
 }
 
 } // namespace storage
