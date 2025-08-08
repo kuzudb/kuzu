@@ -422,4 +422,4 @@ YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst
 MATCH ()-[r]->() WHERE ID(r) = rel 
 RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id ORDER BY forest_id;
 ---- error
-Runtime exception: Variant arguments expects max or min. Got: medium
+Runtime exception: Variant argument expects max or min. Got: medium

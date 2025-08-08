@@ -487,6 +487,7 @@ void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph*
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
+    // Set randomLookup to false to enable caching during graph materialization.
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
         nbrInfo.dstTableID, {}, false /*randomLookup*/);
 

@@ -67,7 +67,7 @@ struct SFConfig final : public GDSConfig {
     static constexpr const char* MAX_VARIANT = "max";
     static constexpr const char* MIN_VARIANT = "min";
     std::string weightProperty;
-    std::string variant = MIN_VARIENT;
+    std::string variant = MIN_VARIANT;
     SFConfig() = default;
 };
 
@@ -81,15 +81,15 @@ std::unique_ptr<GDSConfig> SFOptionalParams::getConfig() const {
         config->variant =
             ExpressionUtil::evaluateLiteral<std::string>(*variant, LogicalType::STRING());
         StringUtils::toLower(config->variant);
-        if (config->variant != SFConfig::MIN_VARIENT && config->variant != SFConfig::MAX_VARIENT) {
-            throw RuntimeException{stringFormat("Variant arguments expects {} or {}. Got: {}",
-                SFConfig::MAX_VARIENT, SFConfig::MIN_VARIENT, config->variant)};
+        if (config->variant != SFConfig::MIN_VARIANT && config->variant != SFConfig::MAX_VARIANT) {
+            throw RuntimeException{stringFormat("Variant argument expects {} or {}. Got: {}",
+                SFConfig::MAX_VARIANT, SFConfig::MIN_VARIANT, config->variant)};
         }
     }
     return config;
 }
 
-// COMPUTE
+/** COMPUTE **/
 
 // Runs Kruskal's algorithm.
 class KruskalCompute {
@@ -117,26 +117,26 @@ public:
 
 private:
     static constexpr double DEFAULT_WEIGHT = 1;
-    // Returns the component ID that `nodeID` belong to. Implemented using a Disjoint-set data
+    // Returns the component ID that `nodeId` belong to. Implemented using a Disjoint-set data
     // structure (DSU).
     offset_t findComponent(const offset_t& nodeId);
 
-    // Merges all nodes within the components indicated by `srcCompID` and `dstCompID` into a single
+    // Merges all nodes within the components indicated by `srcCompId` and `dstCompId` into a single
     // component.
-    void mergeComponents(const offset_t& pSrcId, const offset_t& pDstId);
+    void mergeComponents(const offset_t& srcCompId, const offset_t& dstCompId);
 
     const offset_t numNodes;
     ku_vector_t<weightedEdge> edges;
     ku_vector_t<resultEdge> forest;
-    // Describe
+    // For each node, `parents[i]` points to the parent node, or to itself if the node is the root of its component.
     ku_vector_t<offset_t> parents;
-    // Describe
+    // Tracks the approximate height of each component's tree.
     ku_vector_t<uint64_t> rank;
 };
 
 KruskalCompute::KruskalCompute(storage::MemoryManager* mm, offset_t numNodes)
-    : numNodes{numNodes}, edges{mm}, parents{mm, static_cast<size_t>(numNodes)},
-      rank{mm, static_cast<size_t>(numNodes)}, forest{mm} {
+    : numNodes{numNodes}, edges{mm}, forest{mm}, parents{mm, static_cast<size_t>(numNodes)},
+      rank{mm, static_cast<size_t>(numNodes)} {
     // Mark all vertices as belonging to their own components. `std::iota` automatically
     // fills the range with sequentially increasing values starting from `0`.
     std::iota(parents.begin(), parents.end(), 0);
@@ -166,7 +166,7 @@ void KruskalCompute::sortEdges(const std::string& variant) {
     const auto& compareFn = [&](const auto& e1, const auto& e2) {
         const auto& [srcId1, dstId1, relId1, weight1] = e1;
         const auto& [srcId2, dstId2, relId2, weight2] = e2;
-        return variant == SFConfig::MAX_VARIENT ? std::tie(weight1, srcId1, dstId1, relId1) >
+        return variant == SFConfig::MAX_VARIANT ? std::tie(weight1, srcId1, dstId1, relId1) >
                                                       std::tie(weight2, srcId2, dstId2, relId2) :
                                                   std::tie(weight1, srcId1, dstId1, relId1) <
                                                       std::tie(weight2, srcId2, dstId2, relId2);
@@ -180,10 +180,10 @@ void KruskalCompute::run() {
         const auto& [srcId, dstId, relId, _] = edges[i];
         auto srcCompId = findComponent(srcId);
         auto dstCompId = findComponent(dstId);
-        if (pSrcId != pDstId) {
+        if (srcCompId != dstCompId) {
             ++numEdges;
             forest.push_back({srcId, dstId, relId, UINT64_MAX});
-            mergeComponents(pSrcId, pDstId);
+            mergeComponents(srcCompId, dstCompId);
         }
     }
 }
@@ -201,31 +201,33 @@ offset_t KruskalCompute::findComponent(const offset_t& nodeId) {
     return parents[nodeId];
 }
 
-void KruskalCompute::mergeComponents(const offset_t& pSrcId, const offset_t& pDstId) {
-    KU_ASSERT_UNCONDITIONAL(pSrcId != pDstId);
-    if (rank[pSrcId] == rank[pDstId]) {
-        auto newParent = std::min(pSrcId, pDstId);
-        auto newChild = std::max(pSrcId, pDstId);
+// We merge with the larger component (tracked by rank). If ranks are equal we use ID's as a tie
+// breaker.
+void KruskalCompute::mergeComponents(const offset_t& srcCompId, const offset_t& dstCompId) {
+    KU_ASSERT_UNCONDITIONAL(srcCompId != dstCompId);
+    if (rank[srcCompId] == rank[dstCompId]) {
+        auto newParent = std::min(srcCompId, dstCompId);
+        auto newChild = std::max(srcCompId, dstCompId);
         parents[newChild] = newParent;
         rank[newParent]++;
-    } else if (rank[pSrcId] < rank[pDstId]) {
-        parents[pSrcId] = pDstId;
+    } else if (rank[srcCompId] < rank[dstCompId]) {
+        parents[srcCompId] = dstCompId;
     } else {
-        parents[pDstId] = pSrcId;
+        parents[dstCompId] = srcCompId;
     }
 }
 
-// RESULTS
+/** RESULTS **/
 
 class WriteResultsSF final : public GDSResultVertexCompute {
 public:
     WriteResultsSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
         const ku_vector_t<resultEdge>& finalResults)
         : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
-        srcIDVector = createVector(LogicalType::INTERNAL_ID());
-        dstIDVector = createVector(LogicalType::INTERNAL_ID());
-        relIDVector = createVector(LogicalType::INTERNAL_ID());
-        forestIDVector = createVector(LogicalType::UINT64());
+        srcIdVector = createVector(LogicalType::INTERNAL_ID());
+        dstIdVector = createVector(LogicalType::INTERNAL_ID());
+        relIdVector = createVector(LogicalType::INTERNAL_ID());
+        forestIdVector = createVector(LogicalType::UINT64());
     }
 
     void beginOnTableInternal(table_id_t /*tableID*/) override {}
@@ -234,10 +236,10 @@ public:
         const table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             const auto& [srcId, dstId, relId, forestId] = finalResults[i];
-            srcIDVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID});
-            dstIDVector->setValue<nodeID_t>(0, nodeID_t{dstId, tableID});
-            relIDVector->setValue<relID_t>(0, relId);
-            forestIDVector->setValue<offset_t>(0, forestId);
+            srcIdVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID});
+            dstIdVector->setValue<nodeID_t>(0, nodeID_t{dstId, tableID});
+            relIdVector->setValue<relID_t>(0, relId);
+            forestIdVector->setValue<offset_t>(0, forestId);
             localFT->append(vectors);
         }
     }
@@ -248,11 +250,13 @@ public:
 
 private:
     const ku_vector_t<resultEdge>& finalResults;
-    std::unique_ptr<ValueVector> srcIDVector;
-    std::unique_ptr<ValueVector> dstIDVector;
-    std::unique_ptr<ValueVector> relIDVector;
-    std::unique_ptr<ValueVector> forestIDVector;
+    std::unique_ptr<ValueVector> srcIdVector;
+    std::unique_ptr<ValueVector> dstIdVector;
+    std::unique_ptr<ValueVector> relIdVector;
+    std::unique_ptr<ValueVector> forestIdVector;
 };
+
+/** GDS Setup **/
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto clientContext = input.context->clientContext;
@@ -280,16 +284,15 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     if (!config.weightProperty.empty()) {
         relProps.push_back(config.weightProperty);
     }
+
+    // Set randomLookup to false to enable caching during graph materialization.
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
         nbrInfo.dstTableID, relProps, false /*randomLookup*/);
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalCompute compute(mm, numNodes);
     compute.initEdges(graph, tableId, scanState.get(), !config.weightProperty.empty());
-    // We do not need to sort if no weight property is provided.
-    if (!config.weightProperty.empty()) {
-        compute.sortEdges(config.variant);
-    }
+    compute.sortEdges(config.variant);
     compute.run();
     compute.assignForestIds();
 
