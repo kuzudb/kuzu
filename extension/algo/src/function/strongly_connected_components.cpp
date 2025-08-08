@@ -194,10 +194,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto mm = clientContext->getMemoryManager();
     auto graph = sharedState->graph.get();
     auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
-    auto maxIterations = input.bindData->constPtrCast<GDSBindData>()
-                             ->optionalParams->constCast<MaxIterationOptionalParams>()
+    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()
                              .maxIterations.getParamVal();
-
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto frontierPair =

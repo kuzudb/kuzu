@@ -77,8 +77,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         clientContext->getMemoryManager(), sharedState, componentIDs);
     auto computeState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
-    auto maxIterations = input.bindData->constPtrCast<GDSBindData>()
-                             ->optionalParams->constCast<MaxIterationOptionalParams>()
+    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()
                              .maxIterations.getParamVal();
     GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::BOTH,
         maxIterations);
