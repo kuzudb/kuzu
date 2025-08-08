@@ -26,7 +26,7 @@ struct Variant {
 struct WeightProperty {
     static constexpr const char* NAME = "weight_property";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
-    static constexpr std::string DEFAULT_VALUE;
+    static constexpr std::string DEFAULT_VALUE{};
 };
 
 struct SFConfig final : public GDSConfig {
