@@ -44,7 +44,6 @@ using weightedEdge = std::tuple<offset_t, offset_t, relID_t, double>;
 
 /** CONFIG **/
 
-
 struct SFOptionalParams final : public MaxIterationOptionalParams {
     OptionalParam<Variant> variant;
     OptionalParam<WeightProperty> weightProperty;
@@ -52,8 +51,8 @@ struct SFOptionalParams final : public MaxIterationOptionalParams {
     explicit SFOptionalParams(const expression_vector& optionalParams);
 
     // For copy only
-    SFOptionalParams(OptionalParam<MaxIterations> maxIterations,
-        OptionalParam<Variant> variant, OptionalParam<WeightProperty> weightProperty)
+    SFOptionalParams(OptionalParam<MaxIterations> maxIterations, OptionalParam<Variant> variant,
+        OptionalParam<WeightProperty> weightProperty)
         : MaxIterationOptionalParams{maxIterations}, variant{std::move(variant)},
           weightProperty{std::move(weightProperty)} {}
 
@@ -68,8 +67,8 @@ struct SFOptionalParams final : public MaxIterationOptionalParams {
     }
 };
 
-SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams) : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)}
-{
+SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams)
+    : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)} {
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == WeightProperty::NAME) {
@@ -85,8 +84,7 @@ SFOptionalParams::SFOptionalParams(const expression_vector& optionalParams) : Ma
 
 struct SFBindData final : public GDSBindData {
     SFBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
-        std::shared_ptr<Expression> nodeOutput,
-        std::unique_ptr<SFOptionalParams> optionalParams)
+        std::shared_ptr<Expression> nodeOutput, std::unique_ptr<SFOptionalParams> optionalParams)
         : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput)} {
         this->optionalParams = std::move(optionalParams);
     }
@@ -175,9 +173,9 @@ void KruskalCompute::sortEdges(const std::string& variant) {
         const auto& [srcId1, dstId1, relId1, weight1] = e1;
         const auto& [srcId2, dstId2, relId2, weight2] = e2;
         return variant == Variant::MAX_VARIANT ? std::tie(weight1, srcId1, dstId1, relId1) >
-                                                      std::tie(weight2, srcId2, dstId2, relId2) :
-                                                  std::tie(weight1, srcId1, dstId1, relId1) <
-                                                      std::tie(weight2, srcId2, dstId2, relId2);
+                                                     std::tie(weight2, srcId2, dstId2, relId2) :
+                                                 std::tie(weight1, srcId1, dstId1, relId1) <
+                                                     std::tie(weight2, srcId2, dstId2, relId2);
     };
     std::ranges::sort(edges, compareFn);
 }
@@ -277,16 +275,17 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
     auto spanningForestBindData = input.bindData->constPtrCast<SFBindData>();
-    auto& config = spanningForestBindData ->optionalParams->constCast<SFOptionalParams>();
+    auto& config = spanningForestBindData->optionalParams->constCast<SFOptionalParams>();
     if (!config.weightProperty.getParamVal().empty() &&
         !nbrInfo.relGroupEntry->containsProperty(config.weightProperty.getParamVal())) {
-        throw RuntimeException{stringFormat("Cannot find property: {}", config.weightProperty.getParamVal())};
+        throw RuntimeException{
+            stringFormat("Cannot find property: {}", config.weightProperty.getParamVal())};
     }
     if (!config.weightProperty.getParamVal().empty() &&
         !LogicalTypeUtils::isNumerical(
             nbrInfo.relGroupEntry->getProperty(config.weightProperty.getParamVal()).getType())) {
-        throw RuntimeException{
-            stringFormat("Provided weight property is not numerical: {}", config.weightProperty.getParamVal())};
+        throw RuntimeException{stringFormat("Provided weight property is not numerical: {}",
+            config.weightProperty.getParamVal())};
     }
     std::vector<std::string> relProps = {InternalKeyword::ID};
     if (!config.weightProperty.getParamVal().empty()) {
@@ -299,7 +298,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalCompute compute(mm, numNodes);
-    compute.initEdges(graph, tableId, scanState.get(), !config.weightProperty.getParamVal().empty());
+    compute.initEdges(graph, tableId, scanState.get(),
+        !config.weightProperty.getParamVal().empty());
     compute.sortEdges(config.variant.getParamVal());
     compute.run();
     compute.assignForestIds();

@@ -18,7 +18,8 @@ struct Variant {
     static constexpr std::string DEFAULT_VALUE = MIN_VARIANT;
     static void validate(std::string variant) {
         if (variant != MAX_VARIANT && variant != MIN_VARIANT) {
-            throw common::BinderException(common::stringFormat("Variant argument expects {} or {}. Got: {}", MAX_VARIANT, MIN_VARIANT, variant));
+            throw common::BinderException(common::stringFormat(
+                "Variant argument expects {} or {}. Got: {}", MAX_VARIANT, MIN_VARIANT, variant));
         }
     }
 };
