@@ -1,11 +1,8 @@
 #include "storage/table/column_chunk.h"
 
-#include <algorithm>
-
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/vector/value_vector.h"
-#include "storage/storage_utils.h"
 #include "storage/table/column.h"
 #include "transaction/transaction.h"
 
@@ -17,7 +14,7 @@ namespace storage {
 
 ColumnChunk::ColumnChunk(MemoryManager& mm, LogicalType&& dataType, uint64_t capacity,
     bool enableCompression, ResidencyState residencyState, bool initializeToZero)
-    : mm{mm}, enableCompression{enableCompression} {
+    : enableCompression{enableCompression} {
     data = ColumnChunkFactory::createColumnChunkData(mm, std::move(dataType), enableCompression,
         capacity, residencyState, true, initializeToZero);
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
@@ -25,14 +22,13 @@ ColumnChunk::ColumnChunk(MemoryManager& mm, LogicalType&& dataType, uint64_t cap
 
 ColumnChunk::ColumnChunk(MemoryManager& mm, LogicalType&& dataType, bool enableCompression,
     ColumnChunkMetadata metadata)
-    : mm{mm}, enableCompression{enableCompression} {
+    : enableCompression{enableCompression} {
     data = ColumnChunkFactory::createColumnChunkData(mm, std::move(dataType), enableCompression,
         metadata, true, true);
 }
 
-ColumnChunk::ColumnChunk(MemoryManager& mm, bool enableCompression,
-    std::unique_ptr<ColumnChunkData> data)
-    : mm{mm}, enableCompression{enableCompression}, data{std::move(data)} {}
+ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
+    : enableCompression{enableCompression}, data{std::move(data)} {}
 
 void ColumnChunk::initializeScanState(ChunkState& state, const Column* column) const {
     data->initializeScanState(state, column);
@@ -146,7 +142,7 @@ std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(MemoryManager& mm, Deseria
     deSer.validateDebuggingInfo(key, "enable_compression");
     deSer.deserializeValue<bool>(enableCompression);
     auto data = ColumnChunkData::deserialize(mm, deSer);
-    return std::make_unique<ColumnChunk>(mm, enableCompression, std::move(data));
+    return std::make_unique<ColumnChunk>(enableCompression, std::move(data));
 }
 
 row_idx_t ColumnChunk::getNumUpdatedRows(const Transaction* transaction) const {

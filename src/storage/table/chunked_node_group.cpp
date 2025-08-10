@@ -411,12 +411,11 @@ void ChunkedNodeGroup::finalize() const {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
-    Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) const {
+    Transaction* transaction, PageAllocator& pageAllocator) const {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
-        flushedChunks[i] =
-            std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
-                Column::flushChunkData(getColumnChunk(i).getData(), pageAllocator));
+        flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
+            Column::flushChunkData(getColumnChunk(i).getData(), pageAllocator));
     }
     auto flushedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);

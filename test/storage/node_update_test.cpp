@@ -7,6 +7,9 @@ class NodeUpdateTest : public EmptyDBTest {
 protected:
     void SetUp() override {
         EmptyDBTest::SetUp();
+        // TODO(Guodong): Larger bm size is needed for `UpdateSameRowRedundantly` when compression
+        // is disabled.
+        systemConfig->bufferPoolSize = 200 * 1024 * 1024;
         createDBAndConn();
     }
 
@@ -14,9 +17,10 @@ protected:
 };
 
 TEST_F(NodeUpdateTest, UpdateSameRow) {
-    ASSERT_TRUE(conn->query("CREATE NODE TABLE IF NOT EXISTS Product (item STRING, price INT64, "
-                            "PRIMARY KEY (item))")
-                    ->isSuccess());
+    ASSERT_TRUE(
+        conn->query("CREATE NODE TABLE IF NOT EXISTS Product (item STRING, price INT64, "
+                    "PRIMARY KEY (item))")
+            ->isSuccess());
     ASSERT_TRUE(conn->query("CREATE (n:Product {item: 'watch'}) SET n.price = 100")->isSuccess());
     ASSERT_TRUE(
         conn->query("MATCH (n:Product) WHERE n.item = 'watch' SET n.price = 200")->isSuccess());
@@ -27,7 +31,7 @@ TEST_F(NodeUpdateTest, UpdateSameRow) {
     ASSERT_EQ(res->getNext()->getValue(0)->val.int64Val, 300);
 }
 
-TEST_F(NodeUpdateTest, UpdateSameRowRedundtanly) {
+TEST_F(NodeUpdateTest, UpdateSameRowRedundantly) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -35,9 +39,10 @@ TEST_F(NodeUpdateTest, UpdateSameRowRedundtanly) {
         conn->query("CREATE NODE TABLE test (id SERIAL PRIMARY KEY, name STRING, prop STRING);")
             ->isSuccess());
     for (auto i = 0u; i < 100; i++) {
-        ASSERT_TRUE(conn->query("MERGE (s:test {name: 'chunkFileNames'}) ON MATCH SET "
-                                "s.prop=lpad('sss', 1000000, 'x');")
-                        ->isSuccess());
+        ASSERT_TRUE(
+            conn->query("MERGE (s:test {name: 'chunkFileNames'}) ON MATCH SET "
+                        "s.prop=lpad('sss', 1000000, 'x');")
+                ->isSuccess());
     }
 }
 

@@ -235,7 +235,6 @@ NodeTable::NodeTable(const StorageManager* storageManager,
             dataFH, mm, shadowFile, enableCompression);
     }
     auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
-    auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
     KU_ASSERT(pkColumnID != INVALID_COLUMN_ID);
     auto hashIndexType = PrimaryKeyIndex::getIndexType();
     IndexInfo indexInfo{PrimaryKeyIndex::DEFAULT_NAME, hashIndexType.typeName, tableID,
@@ -444,7 +443,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     hasChanges = true;
 }
 
-void NodeTable::initUpdateState(main::ClientContext* context, TableUpdateState& updateState) {
+void NodeTable::initUpdateState(main::ClientContext* context, TableUpdateState& updateState) const {
     auto& nodeUpdateState = updateState.cast<NodeTableUpdateState>();
     nodeUpdateState.indexUpdateState.resize(indexes.size());
     for (auto i = 0u; i < indexes.size(); i++) {
@@ -558,12 +557,12 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
     hasChanges = true;
 }
 
-std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(MemoryManager& mm,
-    Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
+std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup,
+    PageAllocator& pageAllocator) {
     hasChanges = true;
-    return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(mm, transaction, columnIDs,
-        chunkedGroup, pageAllocator);
+    return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(transaction, columnIDs, chunkedGroup,
+        pageAllocator);
 }
 
 DataChunk NodeTable::constructDataChunkForColumns(const std::vector<column_id_t>& columnIDs) const {
@@ -595,7 +594,7 @@ void NodeTable::commit(main::ClientContext* context, TableCatalogEntry* tableEnt
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -745,7 +744,7 @@ void NodeTable::scanIndexColumns(main::ClientContext* context, IndexScanHelper& 
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to
