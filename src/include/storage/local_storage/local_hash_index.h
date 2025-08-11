@@ -61,10 +61,10 @@ public:
         return localInsertions.append(std::move(key), value, isVisible);
     }
 
-    void reserveSpaceForAppend(uint32_t numNewEntries) {
-        std::unique_lock xLock{mtx};
-        reserveSpaceForAppendNoLock(numNewEntries);
-    }
+    // void reserveSpaceForAppend(uint32_t numNewEntries) {
+    //     std::unique_lock xLock{mtx};
+    //     reserveSpaceForAppendNoLock(numNewEntries);
+    // }
 
     void reserveSpaceForAppendNoLock(uint32_t numNewEntries) {
         localInsertions.reserveSpaceForAppend(numNewEntries);
