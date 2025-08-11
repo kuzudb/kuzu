@@ -99,11 +99,10 @@ public:
         KU_ASSERT(columnID < chunks.size());
         return std::move(chunks[columnID]);
     }
-    void finalize() const;
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
         transaction::Transaction* transaction, MemoryManager& mm,
-        PageAllocator& pageAllocator) const;
+        PageAllocator& pageAllocator);
 
 protected:
     common::row_idx_t startRowIdx;

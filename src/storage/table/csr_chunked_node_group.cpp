@@ -207,11 +207,12 @@ length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
 }
 
 std::unique_ptr<ChunkedNodeGroup> InMemChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
-    transaction::Transaction* transaction, MemoryManager &mm, PageAllocator &pageAllocator) const {
+    transaction::Transaction* transaction, MemoryManager &mm, PageAllocator &pageAllocator) {
     auto csrOffset = Column::flushChunkData(*csrHeader.offset, pageAllocator);
     auto csrLength = Column::flushChunkData(*csrHeader.length, pageAllocator);
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
+        getColumnChunk(i).finalize();
         flushedChunks[i] = std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
             Column::flushChunkData(getColumnChunk(i), pageAllocator));
     }

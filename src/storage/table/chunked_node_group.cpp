@@ -9,6 +9,7 @@
 #include "storage/page_allocator.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk.h"
+#include "storage/table/column_chunk_data.h"
 #include "storage/table/node_table.h"
 
 using namespace kuzu::common;
@@ -419,19 +420,26 @@ row_idx_t ChunkedNodeGroup::getNumDeletions(const Transaction* transaction, row_
     return 0;
 }
 
-void ChunkedNodeGroup::finalize() const {
-    for (auto i = 0u; i < chunks.size(); i++) {
-        chunks[i]->finalize();
-    }
-}
-
 std::unique_ptr<ChunkedNodeGroup> InMemChunkedNodeGroup::flushAsNewChunkedNodeGroup(
-    Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) const {
+    Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
-        flushedChunks[i] =
-            std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
-                Column::flushChunkData(getColumnChunk(i), pageAllocator));
+        if (getColumnChunk(i).isSegmentFull()) {
+            auto splitSegments = getColumnChunk(i).split();
+            std::vector<std::unique_ptr<ColumnChunkData>> flushedSegments;
+            flushedSegments.reserve(splitSegments.size());
+            for (auto& segment : splitSegments) {
+                segment->finalize();
+                flushedSegments.push_back(Column::flushChunkData(*segment, pageAllocator));
+            }
+            flushedChunks[i] = std::make_unique<ColumnChunk>(mm,
+                getColumnChunk(i).isCompressionEnabled(), std::move(flushedSegments));
+        } else {
+            getColumnChunk(i).finalize();
+            flushedChunks[i] =
+                std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
+                    Column::flushChunkData(getColumnChunk(i), pageAllocator));
+        }
     }
     auto flushedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
@@ -667,12 +675,6 @@ void InMemChunkedNodeGroup::merge(InMemChunkedNodeGroup& base,
     for (idx_t i = 0; i < base.getNumColumns(); ++i) {
         KU_ASSERT(columnsToMergeInto[i] < chunks.size());
         chunks[columnsToMergeInto[i]] = base.moveColumnChunk(i);
-    }
-}
-
-void InMemChunkedNodeGroup::finalize() const {
-    for (auto& chunk : chunks) {
-        chunk->finalize();
     }
 }
 

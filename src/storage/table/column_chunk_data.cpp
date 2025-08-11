@@ -1025,6 +1025,32 @@ void ColumnChunkData::reclaimStorage(PageAllocator& pageAllocator) {
     }
 }
 
+std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split() const {
+    // FIXME(bmwinger): we either need to split recursively, or detect individual values which bring
+    // the size above MAX_SEGMENT_SIZE, since this will still sometimes produce segments larger than
+    // MAX_SEGMENT_SIZE
+    auto targetSize = std::min(getEstimatedMemoryUsage() / 2, MAX_SEGMENT_SIZE / 2);
+    std::vector<std::unique_ptr<ColumnChunkData>> newSegments;
+    uint64_t pos = 0;
+    // Initial capacity should not exceed one page.
+    uint64_t initialCapacity =
+        KUZU_PAGE_SIZE / std::max(getDataTypeSizeInChunk(getDataType()), 64u);
+    while (pos < getNumValues()) {
+        std::unique_ptr<ColumnChunkData> newSegment =
+            ColumnChunkFactory::createColumnChunkData(getMemoryManager(), getDataType().copy(),
+                isCompressionEnabled(), initialCapacity, ResidencyState::IN_MEMORY, hasNullData());
+
+        while (pos < getNumValues() && newSegment->getEstimatedMemoryUsage() < targetSize) {
+            if (newSegment->getNumValues() == newSegment->getCapacity()) {
+                newSegment->resize(newSegment->getCapacity() * 2);
+            }
+            newSegment->append(this, pos++, 1);
+        }
+        newSegments.push_back(std::move(newSegment));
+    }
+    return newSegments;
+}
+
 ColumnChunkData::~ColumnChunkData() = default;
 
 } // namespace storage
