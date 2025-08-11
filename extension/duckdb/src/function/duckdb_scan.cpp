@@ -30,10 +30,8 @@ std::string DuckDBScanBindData::getColumnsToSelect() const {
     return columnNames;
 }
 
-DuckDBScanSharedState::DuckDBScanSharedState(
-    std::shared_ptr<duckdb::MaterializedQueryResult> queryResult)
-    : function::TableFuncSharedState{queryResult->RowCount()}, queryResult{std::move(queryResult)} {
-}
+DuckDBScanSharedState::DuckDBScanSharedState(std::shared_ptr<duckdb::StreamQueryResult> queryResult)
+    : function::TableFuncSharedState{0}, queryResult{std::move(queryResult)} {}
 
 struct DuckDBScanFunction {
     static constexpr char DUCKDB_SCAN_FUNC_NAME[] = "duckdb_scan";
@@ -67,7 +65,7 @@ std::unique_ptr<TableFuncSharedState> DuckDBScanFunction::initSharedState(
         }
     }
     auto finalQuery = stringFormat(scanBindData->query, columnNames) + predicatesString;
-    auto result = scanBindData->connector.executeQuery(finalQuery);
+    auto result = scanBindData->connector.executeStreamQuery(finalQuery);
     if (result->HasError()) {
         throw RuntimeException(
             stringFormat("Failed to execute query due to error: {}", result->GetError()));
