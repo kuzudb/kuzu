@@ -18,7 +18,6 @@ class PageAllocator;
 
 class ColumnChunk;
 class Column {
-    static constexpr uint64_t MAX_SEGMENT_SIZE = 256 * 1024;
     friend class StringColumn;
     friend class StructColumn;
     friend class ListColumn;

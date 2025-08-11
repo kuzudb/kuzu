@@ -191,8 +191,6 @@ void RelBatchInsert::appendNodeGroup(const RelGroupCatalogEntry& relGroupEntry, 
     InMemChunkedCSRNodeGroup sliceToWriteToDisk{
         ku_dynamic_cast<InMemChunkedCSRNodeGroup&>(*localState.chunkedGroup),
         relInfo.outputDataColumns};
-    // TODO(bmwinger): Shouldn't this be called only immediately before flushing?
-    sliceToWriteToDisk.finalize();
     appendNewChunkedGroup(mm, transaction, relInfo.insertColumnIDs, sliceToWriteToDisk, *relTable,
         nodeGroup, relInfo.direction, *localState.optimisticAllocator);
     ku_dynamic_cast<InMemChunkedCSRNodeGroup&>(*localState.chunkedGroup)

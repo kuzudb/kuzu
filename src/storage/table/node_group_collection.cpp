@@ -1,9 +1,9 @@
 #include "storage/table/node_group_collection.h"
 
 #include "common/vector/value_vector.h"
+#include "storage/table/chunked_node_group.h"
 #include "storage/table/csr_node_group.h"
 #include "storage/table/table.h"
-#include "storage/table/chunked_node_group.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -141,7 +141,6 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         }
     }
     if (directFlushWhenAppend) {
-        chunkedGroup.finalize();
         auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, mm, pageAllocator);
 
         // If there are deleted columns that haven't been vacuumed yet,

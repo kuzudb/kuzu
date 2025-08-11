@@ -104,11 +104,12 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
 template<ResidencyState SCAN_RESIDENCY_STATE>
 void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chunkState,
     ColumnChunkData& output, row_idx_t startRow, row_idx_t numRows) const {
-    if (numRows == 0) {
-        return;
+    auto numValuesInChunk = getNumValues();
+    if (numRows == INVALID_ROW_IDX || startRow + numRows > numValuesInChunk) {
+        numRows = numValuesInChunk - startRow;
     }
-    if (numRows == INVALID_ROW_IDX) {
-        numRows = getNumValues();
+    if (numRows == 0 || startRow >= numValuesInChunk) {
+        return;
     }
     const auto numValuesBeforeScan = output.getNumValues();
     switch (const auto residencyState = getResidencyState()) {

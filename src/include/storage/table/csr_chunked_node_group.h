@@ -212,7 +212,7 @@ public:
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
         transaction::Transaction* transaction, MemoryManager& mm,
-        PageAllocator& pageAllocator) const override;
+        PageAllocator& pageAllocator) override;
 
 private:
     InMemChunkedCSRHeader csrHeader;

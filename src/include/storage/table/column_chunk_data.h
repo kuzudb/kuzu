@@ -119,18 +119,22 @@ struct ChunkState {
         // of segments)
         auto segment = segmentStates.begin();
         auto offsetInSegment = offsetInChunk;
-        while (segment->metadata.numValues < offsetInSegment) {
+        while (segment->metadata.numValues <= offsetInSegment) {
             offsetInSegment -= segment->metadata.numValues;
+            KU_ASSERT(segment < segmentStates.end() - 1);
             segment++;
         }
         uint64_t lengthScanned = 0;
         auto dstOffset = 0;
         while (lengthScanned < length && segment != segmentStates.end()) {
-            auto lengthInSegment = std::min(length, segment->metadata.numValues);
+            KU_ASSERT(segment->metadata.numValues > offsetInSegment);
+            auto lengthInSegment =
+                std::min(length - lengthScanned, segment->metadata.numValues - offsetInSegment);
             func(*segment, offsetInSegment, lengthInSegment, dstOffset);
             lengthScanned += lengthInSegment;
             segment++;
             dstOffset += lengthInSegment;
+            offsetInSegment = 0;
         }
         return dstOffset;
     }
@@ -148,6 +152,7 @@ class Spiller;
 // Base data segment covers all fixed-sized data types.
 class KUZU_API ColumnChunkData {
 public:
+    static constexpr uint64_t MAX_SEGMENT_SIZE = 256 * 1024;
     friend struct ColumnChunkFactory;
     // For spilling to disk, we need access to the underlying buffer
     friend class Spiller;
@@ -274,6 +279,8 @@ public:
     virtual bool sanityCheck() const;
 
     virtual uint64_t getEstimatedMemoryUsage() const;
+    // TODO(bmwinger): not sure I like the name/purpose of this function
+    bool isSegmentFull() const { return getEstimatedMemoryUsage() > MAX_SEGMENT_SIZE; }
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<ColumnChunkData> deserialize(MemoryManager& mm,
@@ -297,6 +304,8 @@ public:
     void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
 
     virtual void reclaimStorage(PageAllocator& pageAllocator);
+
+    std::vector<std::unique_ptr<ColumnChunkData>> split() const;
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in

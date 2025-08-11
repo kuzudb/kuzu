@@ -282,10 +282,11 @@ void Column::lookupValue(const ChunkState& state, offset_t nodeOffset, ValueVect
     offset_t offsetInSegment = 0;
     auto segmentState = state.findSegment(nodeOffset, offsetInSegment);
     if (nullColumn) {
-        nullColumn->lookupInternal(*segmentState->nullState, nodeOffset, resultVector, posInVector);
+        nullColumn->lookupInternal(*segmentState->nullState, offsetInSegment, resultVector,
+            posInVector);
     }
     if (!resultVector->isNull(posInVector)) {
-        lookupInternal(*segmentState, nodeOffset, resultVector, posInVector);
+        lookupInternal(*segmentState, offsetInSegment, resultVector, posInVector);
     }
 }
 
@@ -454,8 +455,8 @@ std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOf
     }
     checkpointState.persistentData.finalize();
     // TODO(bmwinger): this should use the on-disk size, not the in-memory size
-    if (checkpointState.persistentData.getEstimatedMemoryUsage() > MAX_SEGMENT_SIZE) {
-        auto newSegments = splitSegment(std::move(checkpointState.persistentData));
+    if (checkpointState.persistentData.isSegmentFull()) {
+        auto newSegments = checkpointState.persistentData.split();
         for (auto& segment : newSegments) {
             segment->flush(pageAllocator);
         }
@@ -463,34 +464,6 @@ std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOf
     }
     checkpointState.persistentData.flush(pageAllocator);
     return {};
-}
-
-std::vector<std::unique_ptr<ColumnChunkData>> Column::splitSegment(
-    ColumnChunkData&& segment) const {
-    // FIXME(bmwinger): we either need to split recursively, or detect individual values which bring
-    // the size above MAX_SEGMENT_SIZE, since this will still sometimes produce segments larger than
-    // MAX_SEGMENT_SIZE
-    auto targetSize = std::min(segment.getEstimatedMemoryUsage() / 2, MAX_SEGMENT_SIZE / 2);
-    std::vector<std::unique_ptr<ColumnChunkData>> newSegments;
-    uint64_t pos = 0;
-    // Initial capacity should not exceed one page.
-    uint64_t initialCapacity =
-        KUZU_PAGE_SIZE / std::max(getDataTypeSizeInChunk(segment.getDataType()), 64u);
-    while (pos < segment.getNumValues()) {
-        std::unique_ptr<ColumnChunkData> newSegment =
-            ColumnChunkFactory::createColumnChunkData(segment.getMemoryManager(),
-                segment.getDataType().copy(), segment.isCompressionEnabled(), initialCapacity,
-                ResidencyState::IN_MEMORY, segment.hasNullData());
-
-        while (pos < segment.getNumValues() && newSegment->getEstimatedMemoryUsage() < targetSize) {
-            if (newSegment->getNumValues() == newSegment->getCapacity()) {
-                newSegment->resize(newSegment->getCapacity() * 2);
-            }
-            newSegment->append(&segment, pos++, 1);
-        }
-        newSegments.push_back(std::move(newSegment));
-    }
-    return newSegments;
 }
 
 bool Column::canCheckpointInPlace(const SegmentState& state,
