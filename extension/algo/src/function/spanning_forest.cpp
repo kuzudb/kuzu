@@ -302,7 +302,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     compute.assignForestIds();
 
     WriteResultsSF writeResults(mm, sharedState, compute.getForest());
-    InMemGDSUtils::runParallelCompute(writeResults, compute.getForestSize(), input.context, tableId);
+    InMemGDSUtils::runParallelCompute(writeResults, compute.getForestSize(), input.context,
+        tableId);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
 }
