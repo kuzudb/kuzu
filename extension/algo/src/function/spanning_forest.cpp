@@ -34,6 +34,25 @@ namespace algo_extension {
 // produced by processing edges in non-decreasing or non-increasing order
 // of edge weights, respectively.
 
+// Pseudocode:
+// Input: (G = (V, E), Variant)
+// G is an undirected potentially weighted graph.
+// `Variant` is either unset or `min` or `max`
+// Output: F = (V, E)
+// Where F is a forest, with V(F) = V(G) and E is some subset of E(G).
+// Body:
+// If E is weighted and `Variant` has been set:
+//      If `Variant` is min:
+//          sort(E(G)) with non decreasing weight.
+//      Else:
+//          sort(E(G)) with non increasing weight.
+// For each edge e = (src, dst, weight) in E(G):
+//      if src and dst are in the same component (have the same parent):
+//          continue.
+//      Add e to E(F).
+//      Mark src and dst as being in the same component (merge their parents).
+// Return F
+
 // References graaf: https://github.com/bobluppes/graaf/tree/main
 
 // Stores (srcId, dstId, relId, forestId)

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/types/types.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_task.h"
 
