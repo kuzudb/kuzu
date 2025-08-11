@@ -206,23 +206,6 @@ length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
     return StorageUtils::divideAndRoundUpTo(length, StorageConstants::PACKED_CSR_DENSITY) - length;
 }
 
-std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
-    transaction::Transaction* transaction, PageAllocator& pageAllocator) const {
-    auto csrOffset = csrHeader.offset->flushAsNewColumnChunk(pageAllocator);
-    auto csrLength = csrHeader.length->flushAsNewColumnChunk(pageAllocator);
-    std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
-    for (auto i = 0u; i < getNumColumns(); i++) {
-        flushedChunks[i] = getColumnChunk(i).flushAsNewColumnChunk(pageAllocator);
-    }
-    ChunkedCSRHeader newCSRHeader{std::move(csrOffset), std::move(csrLength)};
-    auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(newCSRHeader),
-        std::move(flushedChunks), 0 /*startRowIdx*/);
-    flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
-    KU_ASSERT(numRows == flushedChunkedGroup->getNumRows());
-    flushedChunkedGroup->versionInfo->append(transaction->getID(), 0, numRows);
-    return flushedChunkedGroup;
-}
-
 std::unique_ptr<ChunkedNodeGroup> InMemChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
     transaction::Transaction* transaction, MemoryManager &mm, PageAllocator &pageAllocator) const {
     auto csrOffset = Column::flushChunkData(*csrHeader.offset, pageAllocator);
