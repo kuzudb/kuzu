@@ -22,8 +22,9 @@
 ---- 1
 True
 # check that the node groups are all filled
--STATEMENT call storage_info('person') where node_group_id = 0 with num_values as node_group_capacity limit 1
-           call storage_info('person') return sum(case when num_values <> node_group_capacity then 1 else 0 end)
+# TODO(bmwinger): better way of getting the node group size?
+-STATEMENT call storage_info('person') with node_group_id as nid, sum(num_values) = node_group_values
+           return sum(case when node_group_values <> 131072 then 1 else 0 end)
 ---- 1
 0
 # append two values, check that the new node group uses the free page
