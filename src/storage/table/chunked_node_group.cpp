@@ -425,20 +425,6 @@ void ChunkedNodeGroup::finalize() const {
     }
 }
 
-std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
-    Transaction* transaction, PageAllocator& pageAllocator) const {
-    std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
-    for (auto i = 0u; i < getNumColumns(); i++) {
-        flushedChunks[i] = getColumnChunk(i).flushAsNewColumnChunk(pageAllocator);
-    }
-    auto flushedChunkedGroup =
-        std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
-    flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
-    KU_ASSERT(flushedChunkedGroup->getNumRows() == numRows);
-    flushedChunkedGroup->versionInfo->append(transaction->getID(), 0, numRows);
-    return flushedChunkedGroup;
-}
-
 std::unique_ptr<ChunkedNodeGroup> InMemChunkedNodeGroup::flushAsNewChunkedNodeGroup(
     Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) const {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());

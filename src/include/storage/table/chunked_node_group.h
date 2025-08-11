@@ -220,8 +220,6 @@ public:
 
     void finalize() const;
 
-    virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, PageAllocator& pageAllocator) const;
     virtual void flush(PageAllocator& pageAllocator);
 
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRowsToCommit,
