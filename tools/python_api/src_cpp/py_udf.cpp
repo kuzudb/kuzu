@@ -101,6 +101,8 @@ static LogicalType getLogicalTypeNonNested(const py::handle& ele) {
         return LogicalType::DOUBLE();
     } else if (ele.is(py::type::of(py::str()))) {
         return LogicalType::STRING();
+    } else if (ele.is(py::type::of(py::bytes()))) {
+        return LogicalType::BLOB();
     } else if (ele.is(py::type::of(datetime_val))) {
         return LogicalType::TIMESTAMP();
     } else if (ele.is(py::type::of(date_val))) {
