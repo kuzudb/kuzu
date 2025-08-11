@@ -256,10 +256,11 @@ public:
 
     void parallelCompute(const offset_t startOffset, const offset_t endOffset,
         const std::optional<table_id_t>& tableID) override {
+        KU_ASSERT(tableID.has_value());
         for (auto i = startOffset; i < endOffset; ++i) {
             const auto& [srcId, dstId, relId, forestId] = finalResults[i];
-            srcIdVector->setValue<nodeID_t>(0, nodeID_t{srcId, tableID.value()});
-            dstIdVector->setValue<nodeID_t>(0, nodeID_t{dstId, tableID.value()});
+            srcIdVector->setValue<nodeID_t>(0, nodeID_t{srcId, *tableID});
+            dstIdVector->setValue<nodeID_t>(0, nodeID_t{dstId, *tableID});
             relIdVector->setValue<relID_t>(0, relId);
             forestIdVector->setValue<offset_t>(0, forestId);
             localFT->append(vectors);
