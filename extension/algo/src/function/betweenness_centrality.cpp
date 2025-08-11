@@ -1,6 +1,9 @@
 #include "binder/binder.h"
 #include "binder/expression/node_expression.h"
+#include "common/exception/runtime.h"
+#include "common/string_utils.h"
 #include "function/algo_function.h"
+#include "function/config/betweenness_centrality_config.h"
 #include "function/config/max_iterations_config.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_utils.h"
@@ -17,24 +20,43 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace algo_extension {
 
+/**CONFIG**/
+
 struct BetweennessCentralityOptionalParams final : public MaxIterationOptionalParams {
+    OptionalParam<Direction> direction;
+    OptionalParam<WeightProperty> weightProperty;
 
     explicit BetweennessCentralityOptionalParams(const expression_vector& optionalParams);
 
-    explicit BetweennessCentralityOptionalParams(OptionalParam<MaxIterations> maxIterations) 
-        : MaxIterationOptionalParams{maxIterations} {}
+    BetweennessCentralityOptionalParams(OptionalParam<MaxIterations> maxIterations, OptionalParam<Direction> direction, OptionalParam<WeightProperty> weightProperty) 
+        : MaxIterationOptionalParams{maxIterations}, direction{std::move(direction)}, weightProperty{std::move(weightProperty)}{}
 
     void evaluateParams(main::ClientContext* context) override {
         MaxIterationOptionalParams::evaluateParams(context);
+        direction.evaluateParam(context);
+        weightProperty.evaluateParam(context);
     }
 
     std::unique_ptr<function::OptionalParams> copy() override {
-        return std::make_unique<BetweennessCentralityOptionalParams>(maxIterations);
+        return std::make_unique<BetweennessCentralityOptionalParams>(maxIterations, direction, weightProperty);
     }
 };
 
 BetweennessCentralityOptionalParams::BetweennessCentralityOptionalParams(const expression_vector& optionalParams)
-    : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)} {}
+    : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)}
+{
+    for (auto& optionalParam : optionalParams) {
+        auto paramName = StringUtils::getLower(optionalParam->getAlias());
+        if (paramName == WeightProperty::NAME) {
+            weightProperty = function::OptionalParam<WeightProperty>(optionalParam);
+        } else if (paramName == Direction::NAME) {
+            direction = function::OptionalParam<Direction>(optionalParam);
+        } else {
+            throw RuntimeException {
+                stringFormat("Unknown optional argument: {}", optionalParam->getAlias())};
+        }
+    }
+}
 
 struct BetweennessCentralityBindData final : public GDSBindData {
     BetweennessCentralityBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
@@ -49,7 +71,9 @@ struct BetweennessCentralityBindData final : public GDSBindData {
     }
 };
 
-struct BetweennessCentralityState 
+/**COMPUTE**/
+
+struct BetweennessCentralityState
 {
     explicit BetweennessCentralityState(storage::MemoryManager* mm, const offset_t origNumNodes) : bc{mm, origNumNodes}, adj{origNumNodes} {}
     ku_vector_t<double> bc;
@@ -107,6 +131,8 @@ static void backProp
     }
 }
 
+/**RESULTS**/
+
 class WriteResultsBC : public GDSResultVertexCompute
 {
 public:
@@ -137,6 +163,8 @@ private:
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> scoreVector;
 };
+
+/**GDS SETUP**/
 
 static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto clientContext = input.context->clientContext;

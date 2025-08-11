@@ -25,6 +25,11 @@ template<>
 struct LogicalTypeMapping<common::LogicalTypeID::INT64> {
     using type = int64_t;
 };
+template<>
+struct LogicalTypeMapping<common::LogicalTypeID::STRING> {
+    using type = std::string;
+};
+
 
 template<>
 struct LogicalTypeMapping<common::LogicalTypeID::STRING> {
