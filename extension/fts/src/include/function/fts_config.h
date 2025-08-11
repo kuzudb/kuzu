@@ -61,6 +61,9 @@ struct CreateFTSConfig {
     StopWordsTableInfo stopWordsTableInfo;
     std::string ignorePattern = IgnorePattern::DEFAULT_VALUE;
     std::string ignorePatternQuery = IgnorePattern::DEFAULT_VALUE_QUERY;
+    // Tokenizer options
+    std::string tokenizer = "whitespace"; // 'whitespace' or 'jieba'
+    std::string jiebaDictDir = "";    // required when tokenizer = 'jieba'
 
     CreateFTSConfig() = default;
     CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,
@@ -77,13 +80,17 @@ struct FTSConfig {
     std::string stopWordsSource = "";
     std::string ignorePattern = "";
     std::string ignorePatternQuery = "";
+    std::string tokenizer = "whitespace";
+    std::string jiebaDictDir = "";
 
     FTSConfig() = default;
     FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource,
-        std::string ignorePattern, std::string ignorePatternQuery)
+        std::string ignorePattern, std::string ignorePatternQuery, std::string tokenizer,
+        std::string jiebaDictDir)
         : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)},
           stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)},
-          ignorePatternQuery{std::move(ignorePatternQuery)} {}
+          ignorePatternQuery{std::move(ignorePatternQuery)}, tokenizer{std::move(tokenizer)},
+          jiebaDictDir{std::move(jiebaDictDir)} {}
 
     void serialize(common::Serializer& serializer) const;
 

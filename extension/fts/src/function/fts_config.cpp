@@ -149,6 +149,24 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
             common::StringUtils::replaceAll(ignorePatternQuery, "?", "");
             IgnorePattern::validate(ignorePattern);
             IgnorePattern::validate(ignorePatternQuery);
+        } else if (lowerCaseName == "tokenizer") {
+            value.validateType(common::LogicalTypeID::STRING);
+            tokenizer = common::StringUtils::getLower(value.getValue<std::string>());
+            if (tokenizer == "chinese") {
+                // Auto-configure Chinese tokenization with Jieba tokenizer
+                // This provides an easy-to-use interface for Chinese FTS without requiring
+                // users to manually specify Jieba configuration parameters
+                tokenizer = "jieba";
+                if (jiebaDictDir.empty()) {
+                    jiebaDictDir = "extension/fts/build/dict"; // Default Jieba dictionary path
+                }
+            } else if (tokenizer != "whitespace" && tokenizer != "jieba") {
+                throw common::BinderException{"Unsupported tokenizer: " + tokenizer + 
+                    ". Supported values: 'whitespace' (default), 'jieba' (advanced Chinese), 'chinese' (easy Chinese)"};
+            }
+        } else if (lowerCaseName == "jieba_dict_dir") {
+            value.validateType(common::LogicalTypeID::STRING);
+            jiebaDictDir = value.getValue<std::string>();
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
         }
@@ -157,7 +175,7 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
 
 FTSConfig CreateFTSConfig::getFTSConfig() const {
     return FTSConfig{stemmer, stopWordsTableInfo.tableName, stopWordsTableInfo.stopWords,
-        ignorePattern, ignorePatternQuery};
+        ignorePattern, ignorePatternQuery, tokenizer, jiebaDictDir};
 }
 
 void FTSConfig::serialize(common::Serializer& serializer) const {
@@ -166,6 +184,8 @@ void FTSConfig::serialize(common::Serializer& serializer) const {
     serializer.serializeValue(stopWordsSource);
     serializer.serializeValue(ignorePattern);
     serializer.serializeValue(ignorePatternQuery);
+    serializer.serializeValue(tokenizer);
+    serializer.serializeValue(jiebaDictDir);
 }
 
 FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
@@ -175,6 +195,8 @@ FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
     deserializer.deserializeValue(config.stopWordsSource);
     deserializer.deserializeValue(config.ignorePattern);
     deserializer.deserializeValue(config.ignorePatternQuery);
+    deserializer.deserializeValue(config.tokenizer);
+    deserializer.deserializeValue(config.jiebaDictDir);
     return config;
 }
 

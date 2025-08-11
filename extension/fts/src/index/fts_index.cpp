@@ -5,6 +5,9 @@
 #include "index/fts_update_state.h"
 #include "re2.h"
 #include "utils/fts_utils.h"
+#if defined(KUZU_ENABLE_JIEBA)
+#include "cppjieba/Jieba.hpp"
+#endif
 
 namespace kuzu {
 namespace fts_extension {
@@ -74,9 +77,25 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
             continue;
         }
         content = indexVector->getValue<ku_string_t>(pos).getAsString();
-        FTSUtils::normalizeQuery(content, regexPattern);
-        auto termsInContent =
-            StringUtils::split(content, " " /* delimiter */, true /* ignoreEmptyStringParts */);
+        std::vector<std::string> termsInContent;
+        if (common::StringUtils::getLower(config.tokenizer) == "jieba") {
+#if defined(KUZU_ENABLE_JIEBA)
+            cppjieba::Jieba jieba(config.jiebaDictDir + "/jieba.dict.utf8",
+                config.jiebaDictDir + "/hmm_model.utf8",
+                config.jiebaDictDir + "/user.dict.utf8",
+                config.jiebaDictDir + "/idf.utf8",
+                config.jiebaDictDir + "/stop_words.utf8");
+            jieba.CutForSearch(content, termsInContent);
+#else
+            FTSUtils::normalizeQuery(content, regexPattern);
+            termsInContent =
+                StringUtils::split(content, " " /* delimiter */, true /* ignoreEmptyStringParts */);
+#endif
+        } else {
+            FTSUtils::normalizeQuery(content, regexPattern);
+            termsInContent =
+                StringUtils::split(content, " " /* delimiter */, true /* ignoreEmptyStringParts */);
+        }
         termsInContent = FTSUtils::stemTerms(termsInContent, config, mm, stopWordsTable,
             transaction, true /* isConjunctive */, false /* isQuery */);
         // TODO(Ziyi): StringUtils::split() has a bug which doesn't ignore empty parts even
