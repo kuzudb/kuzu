@@ -47,10 +47,11 @@ namespace algo_extension {
 //      Else:
 //          sort(E(G)) with non increasing weight.
 // For each edge e = (src, dst, weight) in E(G):
-//      if src and dst are in the same component (have the same parent):
+//      if src and dst are in the same component in F (have the same parent):
 //          continue.
 //      Add e to E(F).
 //      Mark src and dst as being in the same component (merge their parents).
+// For each edge in E(F) mark its forestId as the parentId of the src node.
 // Return F
 
 // References graaf: https://github.com/bobluppes/graaf/tree/main
