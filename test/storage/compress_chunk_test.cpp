@@ -246,8 +246,8 @@ TEST_F(CompressChunkTest, TestFloatFilter) {
             static constexpr size_t numValuesToRead = DEFAULT_VECTOR_CAPACITY;
             const size_t startPageIdx = startOffset / state.numValuesPerPage;
 
-            reader->readCompressedValuesToVector(state, &out, 0, startOffset,
-                startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
+            reader->readCompressedValuesToVector(state, &out, 0, startOffset, numValuesToRead,
+                ReadCompressedValuesFromPageToVector(dataType),
                 [&state, startPageIdx](offset_t startIdx, offset_t) {
                     const auto pageIdx = (startOffset + startIdx) / state.numValuesPerPage;
                     return (pageIdx == startPageIdx);
@@ -283,9 +283,8 @@ TEST_F(CompressChunkTest, TestFloatFilterStateful) {
                 ++j;
                 return (j == 1);
             };
-            reader->readCompressedValuesToVector(state, &out, 0, startOffset,
-                startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
-                filterFunc);
+            reader->readCompressedValuesToVector(state, &out, 0, startOffset, numValuesToRead,
+                ReadCompressedValuesFromPageToVector(dataType), filterFunc);
 
             // the read call should not modify the functor
             EXPECT_TRUE(filterFunc(0, 0));
@@ -410,7 +409,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
             const size_t offsetInSrc = src.size() - numValuesToRead;
 
             reader->readCompressedValuesToVector(state, &out, offsetInResult, offsetInSrc,
-                offsetInSrc + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
+                numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
                 [](offset_t, offset_t) { return true; });
 
             for (size_t i = 0; i < numValuesToRead; ++i) {
