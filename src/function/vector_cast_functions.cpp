@@ -73,9 +73,10 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             auto resultTypeNames = StructType::getFieldNames(*resultType);
 
             for (auto i = 0u; i < inputTypeNames.size(); i++) {
-                if (inputTypeNames[i] != resultTypeNames[i]) {
-                    throw ConversionException{errorMsg};
+                if (StringUtils::caseInsensitiveEquals(inputTypeNames[i], resultTypeNames[i])) {
+                    continue;
                 }
+                throw ConversionException{errorMsg};
             }
 
             // copy data and nullmask from input
