@@ -36,7 +36,7 @@ static std::unique_ptr<char[]> serializeMetadata(
     auto numEntries = metadata.size();
     auto size = (2 * numEntries + 1) * sizeof(int32_t);
     for (const auto& [k, v] : metadata) {
-        size += +k.size() + v.size();
+        size += k.size() + v.size();
     }
     std::unique_ptr<char[]> bytes(new char[size]);
     // Copy data into byte array
