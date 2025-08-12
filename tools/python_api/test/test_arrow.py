@@ -33,7 +33,7 @@ _expected_dtypes = {
     "a.courseScoresPerTerm": {"arrow": pa.list_(pa.list_(pa.int64())), "pl": pl.List(pl.List(pl.Int64))},
     "a.grades": {"arrow": pa.list_(pa.int64(), 4), "pl": pl.Array(pl.Int64, shape=(4,))},
     "a.height": {"arrow": pa.float32(), "pl": pl.Float32},
-    "a.u": {"arrow": pa.string(), "pl": pl.String},
+    "a.u": {"arrow": pa.uuid(), "pl": pl.String},
     # ------------------------------------------------
     # movies
     # ------------------------------------------------
