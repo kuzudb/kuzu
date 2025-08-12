@@ -1,0 +1,55 @@
+-DATASET CSV empty
+-BUFFER_POOL_SIZE 512000000
+
+--
+
+-CASE ExportImportDBWithListOfJson
+-LOAD_DYNAMIC_EXTENSION json
+-STATEMENT create node table test(id serial primary key, v json[]);
+---- ok
+-STATEMENT create (n:test {v: [to_json({"x": 1.0})]});
+---- ok
+-STATEMENT export database '${KUZU_EXPORT_DB_DIRECTORY}_json_nested/list-json';
+---- 1
+Exported database successfully.
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_json_nested/list-json"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_json_nested/list-json"
+---- 1
+Imported database successfully.
+-STATEMENT MATCH (u:test) return u.*
+---- 1
+0|[{"x":1.0}]
+
+-CASE ExportImportDBWithStructOfJson
+-LOAD_DYNAMIC_EXTENSION json
+-STATEMENT create node table test(id serial primary key, grids STRUCT(`type` STRING, `display` BOOL, `params` json)[]);
+---- ok
+-STATEMENT create (n:test {grids: [{`type`: "vertical",  `display`: False, `params`: to_json({"x": 12.56})}]});
+---- ok
+-STATEMENT export database '${KUZU_EXPORT_DB_DIRECTORY}_json_nested/struct-json';
+---- 1
+Exported database successfully.
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_json_nested/struct-json"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_json_nested/struct-json"
+---- 1
+Imported database successfully.
+-STATEMENT MATCH (u:test) return u.*
+---- 1
+0|[{`type`: vertical, `display`: False, `params`: {"x":12.56}}]
+
+-CASE ExportImportDBWithMapOfJson
+-LOAD_DYNAMIC_EXTENSION json
+-STATEMENT CREATE NODE TABLE test (pk SERIAL, m MAP(INT, STRUCT(m STRING, x DOUBLE[2])), PRIMARY KEY(pk));
+---- ok
+-STATEMENT CREATE (n:test {m: map([1],[{m: "brr", x: [1.0, 2.0] }])});
+---- ok
+-STATEMENT export database '${KUZU_EXPORT_DB_DIRECTORY}_json_nested/map-json';
+---- 1
+Exported database successfully.
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_json_nested/map-json"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_json_nested/map-json"
+---- 1
+Imported database successfully.
+-STATEMENT MATCH (u:test) return u.*
+---- 1
+0|{1={m: brr, x: [1.000000,2.000000]}}

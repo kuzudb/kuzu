@@ -286,7 +286,7 @@ double ExpressionUtil::getLiteralValue(const Expression& expr) {
 // E.g. [NULL] is compatible with [1,2]
 // E.g. {a: NULL, b: NULL} is compatible with {a: [1,2], b: ['c']}
 static bool compatible(const LogicalType& type, const LogicalType& target) {
-    if (!type.isInternalType()) {
+    if (type.isInternalType() != target.isInternalType()) {
         return false;
     }
     if (type.getLogicalTypeID() == LogicalTypeID::ANY) {
