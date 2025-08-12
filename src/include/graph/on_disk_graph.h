@@ -34,11 +34,8 @@ public:
         std::vector<std::string> relProperties, bool randomLookup = false);
 
     Chunk getChunk() override {
-        std::vector<common::ValueVector*> vectors;
-        for (auto& propertyVector : propertyVectors) {
-            vectors.push_back(propertyVector.get());
-        }
-        return createChunk(currentIter->getNbrNodes(), currentIter->getSelVectorUnsafe(), vectors);
+        return createChunk(currentIter->getNbrNodes(), currentIter->getSelVectorUnsafe(),
+            std::span(propertyVectors.valueVectors));
     }
     bool next() override;
 
@@ -84,7 +81,7 @@ public:
 private:
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
-    std::vector<std::unique_ptr<common::ValueVector>> propertyVectors;
+    common::DataChunk propertyVectors;
 
     std::unique_ptr<evaluator::ExpressionEvaluator> relPredicateEvaluator;
     common::SemiMask* nbrNodeMask = nullptr;
