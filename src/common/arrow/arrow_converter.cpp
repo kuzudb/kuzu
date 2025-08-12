@@ -28,6 +28,39 @@ static const char* copyName(ArrowSchemaHolder& rootHolder, const std::string& na
     return rootHolder.ownedTypeNames.back().get();
 }
 
+// The resulting byte array follows the format described here:
+// https://arrow.apache.org/docs/format/CDataInterface.html#c.ArrowSchema.metadata
+static std::unique_ptr<char[]> serializeMetadata(const std::map<std::string, std::string>& metadata) {
+    // Calculate size of byte array
+    auto numEntries = metadata.size();
+    auto size = (2*numEntries + 1)*sizeof(int32_t);
+    for (const auto& [k, v] : metadata) {
+        size += + k.size() + v.size();
+    }
+    std::unique_ptr<char[]> bytes(new char[size]);
+    // Copy data into byte array
+    char* ptr = bytes.get();
+    memcpy(ptr, &numEntries, sizeof(int32_t));
+    ptr += sizeof(int32_t);
+    for (const auto& [k, v] : metadata) {
+        auto ksz = k.size(), vsz = v.size();
+        memcpy(ptr, &ksz, sizeof(int32_t));
+        ptr += sizeof(int32_t);
+        memcpy(ptr, k.c_str(), ksz);
+        ptr += ksz;
+        memcpy(ptr, &vsz, sizeof(int32_t));
+        ptr += sizeof(int32_t);
+        memcpy(ptr, v.c_str(), vsz);
+        ptr += vsz;
+    }
+    return bytes;
+}
+
+static const char* copyMetadata(ArrowSchemaHolder& rootHolder, const std::map<std::string, std::string>& metadata) {
+    rootHolder.ownedMetadatas.push_back(serializeMetadata(metadata));
+    return rootHolder.ownedMetadatas.back().get();
+}
+
 void ArrowConverter::initializeChild(ArrowSchema& child, const std::string& name) {
     //! Child is cleaned up by parent
     child.private_data = nullptr;
@@ -174,7 +207,10 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
     case LogicalTypeID::INTERVAL: {
         child.format = "tDu";
     } break;
-    case LogicalTypeID::UUID:
+    case LogicalTypeID::UUID: {
+        child.format = "w:16";
+        child.metadata = copyMetadata(rootHolder, {{"ARROW:extension:name", "arrow.uuid"}, {"ARROW:extension:metadata", ""}});
+    } break;
     case LogicalTypeID::STRING: {
         child.format = "u";
     } break;

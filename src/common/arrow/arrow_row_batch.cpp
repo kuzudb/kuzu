@@ -57,6 +57,7 @@ static uint64_t getArrowMainBufferSize(const LogicalType& type, uint64_t capacit
     case LogicalTypeID::FLOAT:
         return sizeof(float) * capacity;
     case LogicalTypeID::UUID:
+        return sizeof(char) * 16 * capacity;
     case LogicalTypeID::STRING:
     case LogicalTypeID::BLOB:
     case LogicalTypeID::LIST:
@@ -195,10 +196,10 @@ static void resizeVector(ArrowVector* vector, const LogicalType& type, std::int6
     case LogicalTypeID::TIMESTAMP_SEC:
     case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::UUID:
     case LogicalTypeID::INTERVAL:
         return resizeGeneric(vector, type, capacity);
     case LogicalTypeID::BLOB:
-    case LogicalTypeID::UUID:
     case LogicalTypeID::STRING:
         return resizeBLOBVector(vector, type, capacity, capacity);
     case LogicalTypeID::LIST:
@@ -297,17 +298,17 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRING>(ArrowVector*
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UUID>(ArrowVector* vector,
-    const LogicalType& /*type*/, Value* value, std::int64_t pos) {
-    auto offsets = (std::uint32_t*)vector->data.data();
-    auto str = UUID::toString(value->val.int128Val);
-    auto strLength = str.length();
-    if (pos == 0) {
-        offsets[pos] = 0;
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UUID>(ArrowVector* vector, const LogicalType& /*type*/,
+    Value* value, std::int64_t pos) {
+    auto valSize = sizeof(int128_t);
+    auto val = value->val.int128Val;
+    val.high ^= (int64_t(1) << 63); // MSB is stored flipped internally
+    // Convert to little-endian
+    auto valPtr = reinterpret_cast<int8_t*>(&val);
+    for (auto i = 0u; i < valSize/2; ++i) {
+        std::swap(valPtr[i], valPtr[valSize-i-1]);
     }
-    offsets[pos + 1] = offsets[pos] + strLength;
-    vector->overflow.resize(offsets[pos + 1]);
-    std::memcpy(vector->overflow.data() + offsets[pos], str.data(), strLength);
+    std::memcpy(vector->data.data() + pos * valSize, &val, valSize);
 }
 
 template<>
@@ -894,8 +895,10 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(ArrowVector& vector, const Logic
     case LogicalTypeID::INTERVAL: {
         return templateCreateArray<LogicalTypeID::INTERVAL>(vector, type);
     }
+    case LogicalTypeID::UUID: {
+        return templateCreateArray<LogicalTypeID::UUID>(vector, type);
+    }
     case LogicalTypeID::BLOB:
-    case LogicalTypeID::UUID:
     case LogicalTypeID::STRING: {
         return templateCreateArray<LogicalTypeID::STRING>(vector, type);
     }

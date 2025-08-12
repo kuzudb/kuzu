@@ -18,6 +18,7 @@ struct ArrowSchemaHolder {
     std::vector<std::vector<ArrowSchema>> nestedChildren;
     std::vector<std::vector<ArrowSchema*>> nestedChildrenPtr;
     std::vector<std::unique_ptr<char[]>> ownedTypeNames;
+    std::vector<std::unique_ptr<char[]>> ownedMetadatas;
 };
 
 struct ArrowConverter {
