@@ -30,12 +30,13 @@ static const char* copyName(ArrowSchemaHolder& rootHolder, const std::string& na
 
 // The resulting byte array follows the format described here:
 // https://arrow.apache.org/docs/format/CDataInterface.html#c.ArrowSchema.metadata
-static std::unique_ptr<char[]> serializeMetadata(const std::map<std::string, std::string>& metadata) {
+static std::unique_ptr<char[]> serializeMetadata(
+    const std::map<std::string, std::string>& metadata) {
     // Calculate size of byte array
     auto numEntries = metadata.size();
-    auto size = (2*numEntries + 1)*sizeof(int32_t);
+    auto size = (2 * numEntries + 1) * sizeof(int32_t);
     for (const auto& [k, v] : metadata) {
-        size += + k.size() + v.size();
+        size += +k.size() + v.size();
     }
     std::unique_ptr<char[]> bytes(new char[size]);
     // Copy data into byte array
@@ -56,7 +57,8 @@ static std::unique_ptr<char[]> serializeMetadata(const std::map<std::string, std
     return bytes;
 }
 
-static const char* copyMetadata(ArrowSchemaHolder& rootHolder, const std::map<std::string, std::string>& metadata) {
+static const char* copyMetadata(ArrowSchemaHolder& rootHolder,
+    const std::map<std::string, std::string>& metadata) {
     rootHolder.ownedMetadatas.push_back(serializeMetadata(metadata));
     return rootHolder.ownedMetadatas.back().get();
 }
@@ -209,7 +211,8 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
     } break;
     case LogicalTypeID::UUID: {
         child.format = "w:16";
-        child.metadata = copyMetadata(rootHolder, {{"ARROW:extension:name", "arrow.uuid"}, {"ARROW:extension:metadata", ""}});
+        child.metadata = copyMetadata(rootHolder,
+            {{"ARROW:extension:name", "arrow.uuid"}, {"ARROW:extension:metadata", ""}});
     } break;
     case LogicalTypeID::STRING: {
         child.format = "u";

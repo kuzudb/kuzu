@@ -298,15 +298,15 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRING>(ArrowVector*
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UUID>(ArrowVector* vector, const LogicalType& /*type*/,
-    Value* value, std::int64_t pos) {
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::UUID>(ArrowVector* vector,
+    const LogicalType& /*type*/, Value* value, std::int64_t pos) {
     auto valSize = sizeof(int128_t);
     auto val = value->val.int128Val;
     val.high ^= (int64_t(1) << 63); // MSB is stored flipped internally
     // Convert to little-endian
     auto valPtr = reinterpret_cast<int8_t*>(&val);
-    for (auto i = 0u; i < valSize/2; ++i) {
-        std::swap(valPtr[i], valPtr[valSize-i-1]);
+    for (auto i = 0u; i < valSize / 2; ++i) {
+        std::swap(valPtr[i], valPtr[valSize - i - 1]);
     }
     std::memcpy(vector->data.data() + pos * valSize, &val, valSize);
 }
