@@ -162,6 +162,14 @@ public:
 
     auto end() const { return vec.begin(); }
 
+    auto front() { return vec.front(); }
+
+    auto back() { return vec.back(); }
+
+    auto front() const { return vec.front(); }
+
+    auto back() const { return vec.back(); }
+
     template<typename... Args>
     void emplace_back(Args&&... args) {
         vec.emplace_back(std::forward<Args>(args)...);

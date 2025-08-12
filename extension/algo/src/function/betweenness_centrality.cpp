@@ -73,70 +73,113 @@ struct BetweennessCentralityBindData final : public GDSBindData {
 
 /**COMPUTE**/
 
-struct BetweennessCentralityState
-{
-    explicit BetweennessCentralityState(storage::MemoryManager* mm, const offset_t origNumNodes) : bc{mm, origNumNodes}, adj{origNumNodes} {}
-    ku_vector_t<double> bc;
+struct BetweennessCentralityState {
+    explicit BetweennessCentralityState(storage::MemoryManager* mm, const offset_t origNumNodes) : bc{mm, origNumNodes}, origNumNodes{origNumNodes}, adj{origNumNodes} {}
+    ku_vector_t<std::atomic<double>> bc;
+    const offset_t origNumNodes;
+    // TODO(Tanvir): We should not be materializing the graph like this. Remove.
     std::vector<std::vector<offset_t>> adj;
 };
 
-static void bfs
-    (
-    const BetweennessCentralityState& state, 
-    const offset_t srcId, 
-    std::vector<uint64_t>& sigma, 
-    std::vector<offset_t>& visitOrder,
-    std::vector<std::vector<offset_t>>& parents
-    )
-{
-    std::vector<uint64_t> distance(parents.size(), UINT64_MAX);
-    distance[srcId] = 0;
-    sigma[srcId] = 1;
-    std::vector<int> q;
-    q.push_back(srcId);
-    for(auto i = 0u; i < q.size(); ++i) {
-        auto cur = q[i];
-        visitOrder.push_back(cur);
-        for(const auto& neighbour : state.adj[cur]) {
-            if (distance[neighbour] == UINT64_MAX) {
-                distance[neighbour] = distance[cur]+1;
-                q.push_back(neighbour);
-            }
-            if (distance[neighbour] == distance[cur]+1) {
-                sigma[neighbour]+=sigma[cur];
-                parents[neighbour].push_back(cur);
-            }
-        }
-    }
-}
+class BrandesBCVertexCompute : public GDSVertexCompute {
+public:
 
-static void backProp
-    (
-    BetweennessCentralityState& state, 
-    const offset_t srcId, 
-    std::vector<uint64_t>& sigma, 
-    std::vector<offset_t>& visitOrder,
-    std::vector<std::vector<offset_t>>& parents
-    )
-{
-    std::vector<double> delta(state.bc.size());
-    while(!visitOrder.empty()) {
-        auto cur = visitOrder.back(); visitOrder.pop_back();
-        for(const auto& parent : parents[cur]) {
-            delta[parent] += (1 + delta[cur]) * (double)((double)sigma[parent] / (double)sigma[cur]);
+    BrandesBCVertexCompute(common::NodeOffsetMaskMap* nodeMask, storage::MemoryManager* mm, BetweennessCentralityState& state) : 
+        GDSVertexCompute(nodeMask),
+        state{state},
+        distance{mm, state.origNumNodes},
+        sigma{mm, state.origNumNodes},
+        delta{mm, state.origNumNodes},
+        visitOrder{mm},
+        parents{state.origNumNodes},
+        mm{mm}
+    {}
+
+    void beginOnTableInternal(table_id_t) override {}
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
+      for (auto s = startOffset; s < endOffset; ++s) {
+        // When doing approx if (skip[s] continue)
+        initializeSSSP(s);
+        runBFS(s);
+        runBackprop(s);
+      }
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<BrandesBCVertexCompute>(nodeMask, mm, state);
+    }
+
+private:
+    void initializeSSSP(offset_t s) {
+        std::fill(distance.begin(), distance.end(), INF);
+        std::fill(sigma.begin(), sigma.end(), 0);
+        std::fill(delta.begin(), delta.end(), 0);
+        visitOrder.clear();
+        for (auto& pvec : parents) {
+            pvec.clear();
         }
-        if (cur != srcId) {
-            state.bc[cur]+=delta[cur];
+        distance[s] = 0;
+        sigma[s] = 1;
+    }
+
+    //TODO(Tanvir): (Use frontier Abstraction, modify for weighted graph)
+    void runBFS(offset_t s) {
+        ku_vector_t<offset_t> queue{mm};
+        queue.push_back(s);
+        for(auto i = 0u; i < queue.size(); ++i) {
+            const auto cur = queue[i];
+            visitOrder.push_back(cur);
+            for(const auto& neighbour : state.adj[cur]) {
+                if (distance[neighbour] == INF) {
+                    distance[neighbour] = distance[cur]+1;
+                    queue.push_back(neighbour);
+                }
+                if (distance[neighbour] == distance[cur]+1) {
+                    sigma[neighbour]+=sigma[cur];
+                    parents[neighbour].push_back(cur);
+                }
+            }
         }
     }
-}
+
+    void runBackprop(offset_t s) {
+        while(!visitOrder.empty()) {
+            const auto cur = visitOrder.back();
+            visitOrder.pop_back();
+            for(const auto& parent : parents[cur]) {
+                delta[parent] += (1 + delta[cur]) * (double)((double)sigma[parent] / (double)sigma[cur]);
+            }
+            if (cur != s) {
+                state.bc[cur].fetch_add(delta[cur], std::memory_order_relaxed);
+            }
+        }
+    }
+    static constexpr double INF = std::numeric_limits<double>::max();
+    // Holds betweenness centrality scores for the graph.
+    BetweennessCentralityState& state;
+    // Helper container used in SSSP.
+    ku_vector_t<double> distance;
+    // sigma[v] <- Number of shortest paths from source vertex to v.
+    ku_vector_t<uint64_t> sigma; 
+    // Dependency scores <- We compute this during back propagation and update
+    // BC scores.
+    ku_vector_t<double> delta;
+    // Stack used in back propagation step. We populate when computing SSSP.
+    ku_vector_t<offset_t> visitOrder;
+    // TODO(Tanvir): We cannot use std::vector to store parent lists. 
+    // Use kuzu_vector<ParentList*> ?
+    std::vector<std::vector<offset_t>> parents;
+    // Only stored for copy method.
+    storage::MemoryManager* mm;
+};
 
 /**RESULTS**/
 
 class WriteResultsBC : public GDSResultVertexCompute
 {
 public:
-    WriteResultsBC(storage::MemoryManager* mm, GDSFuncSharedState* sharedState, const ku_vector_t<double>& finalResults)
+    WriteResultsBC(storage::MemoryManager* mm, GDSFuncSharedState* sharedState, const ku_vector_t<std::atomic<double>>& finalResults)
         : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         scoreVector = createVector(LogicalType::DOUBLE());
@@ -149,7 +192,7 @@ public:
         for (auto i = startOffset; i < endOffset; ++i) {
             const auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            scoreVector->setValue<double>(0, finalResults[i]);
+            scoreVector->setValue<double>(0, finalResults[i].load());
             localFT->append(vectors);
         }
     }
@@ -159,7 +202,7 @@ public:
     }
 
 private:
-    const ku_vector_t<double>& finalResults;
+    const ku_vector_t<std::atomic<double>>& finalResults;
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> scoreVector;
 };
@@ -176,12 +219,18 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
-    //auto betweennessCentralityBindData = input.bindData->constPtrCast<BetweennessCentralityBindData>();
-    //auto& config = betweennessCentralityBindData->optionalParams->constCast<BetweennessCentralityOptionalParams>();
+
+    // TODO(Tanvir) Use config arguments to modify traversal and SSSP.
+    // Currently hard coded to work with a directed unweighted graph.
+    auto betweennessCentralityBindData = input.bindData->constPtrCast<BetweennessCentralityBindData>();
+    auto& config = betweennessCentralityBindData->optionalParams->constCast<BetweennessCentralityOptionalParams>();
+    std::vector<std::string> relProps;
+    if (!config.weightProperty.getParamVal().empty()) {
+        relProps.push_back(config.weightProperty.getParamVal());
+    }
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
     const auto origNumNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
-    // Single Threaded
     // 1. Init state
     BetweennessCentralityState state{mm, origNumNodes};
     // 2. TODO(Use abstractions to avoid this) Materialize Graph
@@ -198,17 +247,9 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             });
         }
     }
-
-    // 3. For each (v in V):
-    //    a. Run BFS
-    //    b. Run backprop
-    for (auto nodeId = 0u; nodeId < origNumNodes; ++nodeId) {
-        std::vector<uint64_t> sigma(origNumNodes, 0);
-        std::vector<offset_t> visitOrder;
-        std::vector<std::vector<offset_t>> parents(origNumNodes);
-        bfs(state, nodeId, sigma, visitOrder, parents);
-        backProp(state, nodeId, sigma, visitOrder, parents);
-    }
+    // 3. Compute
+    BrandesBCVertexCompute brandesBC(sharedState->getGraphNodeMaskMap(), mm, state);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, sharedState->graph.get(), brandesBC);
     // 4. Write Results
     const auto vertexCompute = std::make_unique<WriteResultsBC>(mm, sharedState, state.bc);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
@@ -217,7 +258,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     return 0;
 }
 
-static constexpr char BETWEENNESS_CENTRALITY_SCORE[] = "betweeness_centrality_score";
+static constexpr char BETWEENNESS_CENTRALITY_SCORE[] = "betweenness_centrality_score";
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
