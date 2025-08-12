@@ -4,6 +4,7 @@ import math
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 import ground_truth
 import kuzu
@@ -277,14 +278,14 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
             col_name="a.u",
             return_type=return_type,
             expected_values=[
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18",
+                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"),
+                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12"),
+                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13"),
+                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14"),
+                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15"),
+                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16"),
+                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17"),
+                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18"),
             ],
         )
 
