@@ -712,7 +712,9 @@ void ArrowRowBatch::copyNullValue(ArrowVector* vector, const Value& value, std::
     case LogicalTypeID::INTERVAL: {
         templateCopyNullValue<LogicalTypeID::INTERVAL>(vector, pos);
     } break;
-    case LogicalTypeID::UUID:
+    case LogicalTypeID::UUID: {
+        templateCopyNullValue<LogicalTypeID::UUID>(vector, pos);
+    } break;
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         templateCopyNullValue<LogicalTypeID::STRING>(vector, pos);
