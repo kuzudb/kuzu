@@ -149,6 +149,14 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
             common::StringUtils::replaceAll(ignorePatternQuery, "?", "");
             IgnorePattern::validate(ignorePattern);
             IgnorePattern::validate(ignorePatternQuery);
+        } else if (lowerCaseName == "tokenizer") {
+            value.validateType(common::LogicalTypeID::STRING);
+            tokenizerInfo.tokenizer = common::StringUtils::getLower(value.getValue<std::string>());
+            Tokenizer::validate(tokenizerInfo.tokenizer);
+        } else if (lowerCaseName == "jieba_dict_dir") {
+            value.validateType(common::LogicalTypeID::STRING);
+            tokenizerInfo.jiebaDictDir =
+                common::StringUtils::getLower(value.getValue<std::string>());
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
         }
@@ -157,7 +165,7 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
 
 FTSConfig CreateFTSConfig::getFTSConfig() const {
     return FTSConfig{stemmer, stopWordsTableInfo.tableName, stopWordsTableInfo.stopWords,
-        ignorePattern, ignorePatternQuery};
+        ignorePattern, ignorePatternQuery, tokenizerInfo.tokenizer, tokenizerInfo.jiebaDictDir};
 }
 
 void FTSConfig::serialize(common::Serializer& serializer) const {
@@ -166,6 +174,8 @@ void FTSConfig::serialize(common::Serializer& serializer) const {
     serializer.serializeValue(stopWordsSource);
     serializer.serializeValue(ignorePattern);
     serializer.serializeValue(ignorePatternQuery);
+    serializer.serializeValue(tokenizer);
+    serializer.serializeValue(jiebaDictDir);
 }
 
 FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
@@ -175,6 +185,8 @@ FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
     deserializer.deserializeValue(config.stopWordsSource);
     deserializer.deserializeValue(config.ignorePattern);
     deserializer.deserializeValue(config.ignorePatternQuery);
+    deserializer.deserializeValue(config.tokenizer);
+    deserializer.deserializeValue(config.jiebaDictDir);
     return config;
 }
 
@@ -198,6 +210,15 @@ void TopK::validate(uint64_t value) {
         throw common::BinderException{
             "QUERY_FTS_INDEX requires a positive non-zero value for the 'top' parameter."};
     }
+}
+
+void Tokenizer::validate(const std::string& tokenizer) {
+    if (tokenizer == "simple" || tokenizer == "jieba") {
+        return;
+    }
+    throw common::BinderException{
+        "Unsupported tokenizer: " + tokenizer +
+        ".\nSupported tokenizers: 'simple' (default), 'jieba' (advanced Chinese)"};
 }
 
 } // namespace fts_extension
