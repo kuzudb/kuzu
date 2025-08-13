@@ -1,12 +1,12 @@
 #include "utils/fts_utils.h"
 
 #include "common/string_utils.h"
-#include "cppjieba/Jieba.hpp"
 #include "function/stem.h"
 #include "libstemmer.h"
 #include "re2.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
+#include "third_party/cppjieba_wrapper.h"
 
 namespace kuzu {
 namespace fts_extension {
