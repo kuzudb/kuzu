@@ -107,7 +107,7 @@ class MPSegment: public SegmentTagged {
     }
   }
   void CutByDag(RuneStrArray::const_iterator begin, 
-        RuneStrArray::const_iterator end, 
+        RuneStrArray::const_iterator /*end*/,
         const vector<Dag>& dags, 
         vector<WordRange>& words) const {
     size_t i = 0;
