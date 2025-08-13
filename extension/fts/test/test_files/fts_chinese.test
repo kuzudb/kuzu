@@ -17,7 +17,7 @@
 ---- ok
 
 # Create Chinese FTS index with simplified interface
--STATEMENT CALL CREATE_FTS_INDEX('ZhDoc', 'zh_idx', ['text'], tokenizer:='chinese', stemmer:='none');
+-STATEMENT CALL CREATE_FTS_INDEX('ZhDoc', 'zh_idx', ['text'], tokenizer:='jieba', stemmer:='none');
 ---- ok
 
 # Test 1: Single compound term (conjunctive)
@@ -53,7 +53,7 @@
 -STATEMENT CREATE (d:TechDoc {title: '数据科学', content: '数据挖掘和大数据分析是关键技术'});
 ---- ok
 
--STATEMENT CALL CREATE_FTS_INDEX('TechDoc', 'tech_idx', ['content'], tokenizer:='chinese', stemmer:='none');
+-STATEMENT CALL CREATE_FTS_INDEX('TechDoc', 'tech_idx', ['content'], tokenizer:='jieba', stemmer:='none');
 ---- ok
 
 # Test advanced compound terms
@@ -73,7 +73,7 @@
 -STATEMENT CREATE (d:MixedDoc {text: 'Python和机器学习结合开发AI应用'});
 ---- ok
 
--STATEMENT CALL CREATE_FTS_INDEX('MixedDoc', 'mixed_idx', ['text'], tokenizer:='chinese', stemmer:='none');
+-STATEMENT CALL CREATE_FTS_INDEX('MixedDoc', 'mixed_idx', ['text'], tokenizer:='jieba', stemmer:='none');
 ---- ok
 
 -STATEMENT CALL QUERY_FTS_INDEX('MixedDoc', 'mixed_idx', '机器学习', conjunctive:=false, top:=5) RETURN node.text;
@@ -90,5 +90,3 @@ Python和机器学习结合开发AI应用
 ---- 2
 AI研究
 NLP应用
-
-

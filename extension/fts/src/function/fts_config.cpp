@@ -151,22 +151,12 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
             IgnorePattern::validate(ignorePatternQuery);
         } else if (lowerCaseName == "tokenizer") {
             value.validateType(common::LogicalTypeID::STRING);
-            tokenizer = common::StringUtils::getLower(value.getValue<std::string>());
-            if (tokenizer == "chinese") {
-                // Auto-configure Chinese tokenization with Jieba tokenizer
-                // This provides an easy-to-use interface for Chinese FTS without requiring
-                // users to manually specify Jieba configuration parameters
-                tokenizer = "jieba";
-                if (jiebaDictDir.empty()) {
-                    jiebaDictDir = "extension/fts/build/dict"; // Default Jieba dictionary path
-                }
-            } else if (tokenizer != "whitespace" && tokenizer != "jieba") {
-                throw common::BinderException{"Unsupported tokenizer: " + tokenizer + 
-                    ". Supported values: 'whitespace' (default), 'jieba' (advanced Chinese), 'chinese' (easy Chinese)"};
-            }
+            tokenizerInfo.tokenizer = common::StringUtils::getLower(value.getValue<std::string>());
+            Tokenizer::validate(tokenizerInfo.tokenizer);
         } else if (lowerCaseName == "jieba_dict_dir") {
             value.validateType(common::LogicalTypeID::STRING);
-            jiebaDictDir = value.getValue<std::string>();
+            tokenizerInfo.jiebaDictDir =
+                common::StringUtils::getLower(value.getValue<std::string>());
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
         }
@@ -175,7 +165,7 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
 
 FTSConfig CreateFTSConfig::getFTSConfig() const {
     return FTSConfig{stemmer, stopWordsTableInfo.tableName, stopWordsTableInfo.stopWords,
-        ignorePattern, ignorePatternQuery, tokenizer, jiebaDictDir};
+        ignorePattern, ignorePatternQuery, tokenizerInfo.tokenizer, tokenizerInfo.jiebaDictDir};
 }
 
 void FTSConfig::serialize(common::Serializer& serializer) const {
@@ -220,6 +210,15 @@ void TopK::validate(uint64_t value) {
         throw common::BinderException{
             "QUERY_FTS_INDEX requires a positive non-zero value for the 'top' parameter."};
     }
+}
+
+void Tokenizer::validate(const std::string& tokenizer) {
+    if (tokenizer == "simple" || tokenizer == "jieba") {
+        return;
+    }
+    throw common::BinderException{
+        "Unsupported tokenizer: " + tokenizer +
+        ".\nSupported tokenizers: 'simple' (default), 'jieba' (advanced Chinese)"};
 }
 
 } // namespace fts_extension
