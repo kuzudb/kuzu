@@ -13,5 +13,3 @@ struct TokenizeFunction {
 
 } // namespace fts_extension
 } // namespace kuzu
-
-
