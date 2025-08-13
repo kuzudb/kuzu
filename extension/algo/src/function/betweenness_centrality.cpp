@@ -115,66 +115,69 @@ struct BCBwdData {
     ku_vector_t<double> dependencyScores;
 };
 
+static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, const offset_t& cur, const double& curWeight) {
+    static constexpr double DEFAULT_WEIGHT = 1;
+    chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+        auto nbrId = neighbors[i].offset;
+        if (nbrId == cur) {
+            // Ignore self-loops.
+            return;
+        }
+        const auto weight = (propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i));
+        if (fwdData.nodePathData[nbrId].pathScore > curWeight+weight) {
+            fwdData.nodePathData[nbrId].pathScore = curWeight+weight;
+            fwdData.nodePathData[nbrId].numPaths = 0;
+            fwdData.levels[nbrId] = {fwdData.levels[cur].level+1, nbrId};
+            fwdTraverse.queue.push({curWeight+weight, nbrId});
+        }
+        if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+weight) {
+            fwdData.nodePathData[nbrId].numPaths += fwdData.nodePathData[cur].numPaths;
+        }
+    });
+}
+
 
 /**Compute**/
 
 // TOOD(Tanvir): We currently do the traversal for weighted graphs always (treat unweighted edges as weight 1). 
 // This should change. Consider changing BCFwdTraverse and overriding methods for insert and pop. 
 static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, bool undirected) {
-    static constexpr double DEFAULT_WEIGHT = 1;
     while(!fwdTraverse.queue.empty()) {
-        const auto [curweight, cur] = fwdTraverse.queue.top();
+        const auto [curWeight, cur] = fwdTraverse.queue.top();
         fwdTraverse.queue.pop();
-        if(curweight > fwdData.nodePathData[cur].pathScore) {
+        if(curWeight > fwdData.nodePathData[cur].pathScore) {
             continue;
         }
         const nodeID_t nextNodeId = {cur, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
-                auto nbrId = neighbors[i].offset;
-                if (nbrId == cur) {
-                    // Ignore self-loops.
-                    return;
-                }
-                const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
-                if (fwdData.nodePathData[nbrId].pathScore > curweight+weight) {
-                    fwdData.nodePathData[nbrId].pathScore = curweight+weight;
-                    fwdData.nodePathData[nbrId].numPaths = 0;
-                    fwdData.levels[nbrId] = {fwdData.levels[cur].level+1, nbrId};
-                    fwdTraverse.queue.push({curweight+weight, nbrId});
-                }
-                if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+weight) {
-                    fwdData.nodePathData[nbrId].numPaths += fwdData.nodePathData[cur].numPaths;
-                }
-            });
+            SSSPChunkCompute(chunk, fwdData, fwdTraverse, cur, curWeight);
         }
         if (!undirected) {
             continue;
         }
         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
-                auto nbrId = neighbors[i].offset;
-                if (nbrId == cur) {
-                    // Ignore self-loops.
-                    return;
-                }
-                const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
-                if (fwdData.nodePathData[nbrId].pathScore > curweight+weight) {
-                    fwdData.nodePathData[nbrId].pathScore = curweight+weight;
-                    fwdData.nodePathData[nbrId].numPaths = 0;
-                    fwdData.levels[nbrId] = {fwdData.levels[cur].level+1, nbrId};
-                    fwdTraverse.queue.push({curweight+weight, nbrId});
-                }
-                if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+weight) {
-                    fwdData.nodePathData[nbrId].numPaths += fwdData.nodePathData[cur].numPaths;
-                }
-            });
+            SSSPChunkCompute(chunk, fwdData, fwdTraverse, cur, curWeight);
         }
     }
 }
 
-static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, const offset_t sourceNode, bool undirected) {
+static void backwardsChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData, BCBwdData& bwdData, const offset_t& cur) {
     static constexpr double DEFAULT_WEIGHT = 1;
+    chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+        auto nbrId = neighbors[i].offset;
+        if (nbrId == cur) {
+            // Ignore self-loops.
+            return;
+        }
+        const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
+        if (fwdData.nodePathData[nbrId].pathScore + weight == fwdData.nodePathData[cur].pathScore) {
+            const auto parent = nbrId;
+            bwdData.dependencyScores[parent] += ((double)fwdData.nodePathData[parent].numPaths / fwdData.nodePathData[cur].numPaths)*(1 + bwdData.dependencyScores[cur]);
+        }
+    });
+}
+
+static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, const offset_t sourceNode, bool undirected) {
     const auto numNodes = fwdData.nodePathData.size();
     // Sort so we process nodes furthest from the source first (i.e higher levels first).
     std::sort(fwdData.levels.begin(), fwdData.levels.end(), [&](const auto& a, const auto&b) {return a > b;});
@@ -184,36 +187,13 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, Betweenness
         }
         const nodeID_t nextNodeId = {cur, tableId};
         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
-                auto nbrId = neighbors[i].offset;
-                if (nbrId == cur) {
-                    // Ignore self-loops.
-                    return;
-                }
-                
-                const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
-                if (fwdData.nodePathData[nbrId].pathScore + weight == fwdData.nodePathData[cur].pathScore) {
-                    const auto parent = nbrId;
-                    bwdData.dependencyScores[parent] += ((double)fwdData.nodePathData[parent].numPaths / fwdData.nodePathData[cur].numPaths)*(1 + bwdData.dependencyScores[cur]);
-                }
-            });
+            backwardsChunkCompute(chunk, fwdData, bwdData, cur);
         }
         if (!undirected) {
             continue;
         }
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
-                auto nbrId = neighbors[i].offset;
-                if (nbrId == cur) {
-                    // Ignore self-loops.
-                    return;
-                }
-                const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
-                if (fwdData.nodePathData[nbrId].pathScore + weight == fwdData.nodePathData[cur].pathScore) {
-                    const auto parent = nbrId;
-                    bwdData.dependencyScores[parent] += ((double)fwdData.nodePathData[parent].numPaths / fwdData.nodePathData[cur].numPaths)*(1 + bwdData.dependencyScores[cur]);
-                }
-            });
+            backwardsChunkCompute(chunk, fwdData, bwdData, cur);
         }
     }
     for(auto node = 0u; node < numNodes; ++node) {
