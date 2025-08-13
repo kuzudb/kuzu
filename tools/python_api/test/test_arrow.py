@@ -276,8 +276,9 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
             data=data,
             col_name="a.u",
             return_type=return_type,
-            expected_values=[UUID(u) if return_type != "pl" else u for u in
-                [
+            expected_values=[
+                UUID(u) if return_type != "pl" else u
+                for u in [
                     "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
                     "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
                     "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13",
@@ -287,7 +288,7 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
                     "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17",
                     "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18",
                 ]
-            ]
+            ],
         )
 
     def _test_movies_table(_conn: kuzu.Connection, return_type: str, chunk_size: int | None = None) -> None:
