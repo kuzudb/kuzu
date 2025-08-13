@@ -5,9 +5,6 @@
 #include "index/fts_update_state.h"
 #include "re2.h"
 #include "utils/fts_utils.h"
-#if defined(KUZU_ENABLE_JIEBA)
-#include "cppjieba/Jieba.hpp"
-#endif
 
 namespace kuzu {
 namespace fts_extension {
