@@ -2,7 +2,6 @@
 
 #include <fstream>
 #include <numeric>
-#include <utility>
 
 #include "common/exception/test.h"
 #include "test_helper/test_helper.h"
@@ -12,11 +11,13 @@ namespace kuzu {
 namespace testing {
 
 enum class TokenType {
-    // header
+    // header only
     DATASET,
+    BUFFER_POOL_SIZE,
+
+    // Skip or enable tests
     SKIP,
     SKIP_MUSL,
-    SKIP_32BIT,
     SKIP_WASM,
     SKIP_STATIC_LINK,
     WASM_ONLY,
@@ -25,8 +26,8 @@ enum class TokenType {
     SKIP_NODE_GROUP_SIZE_TESTS,
     SKIP_PAGE_SIZE_TESTS,
     TEST_FWD_ONLY_REL,
-    // body
-    BUFFER_POOL_SIZE,
+
+    // Test case statements
     CASE,
     CHECK_COLUMN_NAMES,
     CHECK_PRECISION,
@@ -54,7 +55,7 @@ enum class TokenType {
     BEGIN_CONCURRENT_EXECUTION,
     END_CONCURRENT_EXECUTION,
 
-    // special for testing exporting database
+    // Special tokens for testing exporting database
     IMPORT_DATABASE,
     REMOVE_FILE
 };
@@ -63,7 +64,7 @@ const std::unordered_map<std::string, TokenType> TOKEN_MAP = {{"-DATASET", Token
     {"-CASE", TokenType::CASE}, {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-LOG", TokenType::LOG},
     {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK}, {"-SKIP", TokenType::SKIP},
     {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::SET},
-    {"-SKIP_32BIT", TokenType::SKIP_32BIT}, {"-SKIP_WASM", TokenType::SKIP_WASM},
+    {"-SKIP_WASM", TokenType::SKIP_WASM},
     {"-LOAD_DYNAMIC_EXTENSION", TokenType::LOAD_DYNAMIC_EXTENSION},
     {"-SKIP_STATIC_LINK", TokenType::SKIP_STATIC_LINK}, {"-WASM_ONLY", TokenType::WASM_ONLY},
     {"-SKIP_IN_MEM", TokenType::SKIP_IN_MEM},

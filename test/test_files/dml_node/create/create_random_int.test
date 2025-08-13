@@ -1,7 +1,7 @@
 -DATASET CSV empty
 --
 -CASE Seed10
--SKIP_32BIT
+-SKIP_WASM
 -STATEMENT CREATE NODE TABLE test(id SERIAL, prop INT64, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (t:test {prop: 599159});

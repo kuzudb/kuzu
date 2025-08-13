@@ -109,12 +109,6 @@ void TestParser::parseHeader() {
 #endif
             break;
         }
-        case TokenType::SKIP_32BIT: {
-#ifdef __32BIT__
-            testGroup->group = "DISABLED_" + testGroup->group;
-#endif
-            break;
-        }
         case TokenType::SKIP_WASM: {
 #ifdef __WASM__
             testGroup->group = "DISABLED_" + testGroup->group;
@@ -483,12 +477,6 @@ void TestParser::parseBody() {
         }
         case TokenType::SKIP_MUSL: {
 #ifdef __MUSL__
-            testCaseName = "DISABLED_" + testCaseName;
-#endif
-            break;
-        }
-        case TokenType::SKIP_32BIT: {
-#ifdef __32BIT__
             testCaseName = "DISABLED_" + testCaseName;
 #endif
             break;
