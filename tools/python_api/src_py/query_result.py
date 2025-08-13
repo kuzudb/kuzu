@@ -202,7 +202,9 @@ class QueryResult:
                 The entire result is returned as a single chunk.
             > 0
                 The chunk size is the number of rows specified.
-        fallbackExtensionTypes : Avoid using Arrow extension types for compatibility with Polars
+
+        fallbackExtensionTypes : bool
+            Avoid using Arrow extension types for compatibility with Polars
 
         See Also
         --------
