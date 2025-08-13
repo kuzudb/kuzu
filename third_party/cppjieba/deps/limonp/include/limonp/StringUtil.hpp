@@ -365,7 +365,7 @@ inline void GetTime(const string& format, string&  timeStr) {
   assert(e == 0);
   #else
   struct tm * tm_tmp = localtime_r(&timeNow, &tmNow);
-  (void*)tm_tmp;
+  (void)tm_tmp;
   assert(tm_tmp != nullptr);
   #endif
 
