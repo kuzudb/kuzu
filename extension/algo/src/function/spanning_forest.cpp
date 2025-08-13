@@ -226,7 +226,8 @@ offset_t KruskalCompute::findComponent(const offset_t& nodeId) {
 
 void KruskalCompute::mergeComponents(const offset_t& srcCompId, const offset_t& dstCompId) {
     KU_ASSERT_UNCONDITIONAL(srcCompId != dstCompId);
-    // Merge with the larger component, based on the rank. If ranks are equal, use IDs to break ties.
+    // Merge with the larger component, based on the rank. If ranks are equal, use IDs to break
+    // ties.
     if (rank[srcCompId] == rank[dstCompId]) {
         auto newParent = std::min(srcCompId, dstCompId);
         auto newChild = std::max(srcCompId, dstCompId);
