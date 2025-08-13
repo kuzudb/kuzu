@@ -264,7 +264,8 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         child.children[0]->name = "entries";
         setArrowFormat(rootHolder, **child.children, ListType::getChildType(dataType),
             fallbackExtensionTypes);
-        child.children[0]->children[0]->flags &= ~ARROW_FLAG_NULLABLE; // Map's keys must be non-nullable
+        child.children[0]->children[0]->flags &=
+            ~ARROW_FLAG_NULLABLE; // Map's keys must be non-nullable
     } break;
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::NODE:
