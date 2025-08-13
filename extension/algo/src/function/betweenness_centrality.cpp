@@ -228,8 +228,8 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, Betweenness
 class WriteResultsBC : public GDSResultVertexCompute
 {
 public:
-    WriteResultsBC(storage::MemoryManager* mm, GDSFuncSharedState* sharedState, const ku_vector_t<std::atomic<double>>& finalResults)
-        : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults} {
+    WriteResultsBC(storage::MemoryManager* mm, GDSFuncSharedState* sharedState, const ku_vector_t<std::atomic<double>>& finalResults, const bool undirected)
+        : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults}, undirected{undirected} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         scoreVector = createVector(LogicalType::DOUBLE());
     }
@@ -241,17 +241,18 @@ public:
         for (auto i = startOffset; i < endOffset; ++i) {
             const auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            scoreVector->setValue<double>(0, finalResults[i].load());
+            scoreVector->setValue<double>(0, finalResults[i].load() / (undirected ? 2 : 1));
             localFT->append(vectors);
         }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WriteResultsBC>(mm, sharedState, finalResults);
+        return std::make_unique<WriteResultsBC>(mm, sharedState, finalResults, undirected);
     }
 
 private:
     const ku_vector_t<std::atomic<double>>& finalResults;
+    const bool undirected;
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> scoreVector;
 };
@@ -292,7 +293,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/, undirected);
     }
 
-    const auto vertexCompute = std::make_unique<WriteResultsBC>(mm, sharedState, state.betweennessCentrality);
+    const auto vertexCompute = std::make_unique<WriteResultsBC>(mm, sharedState, state.betweennessCentrality, undirected);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
