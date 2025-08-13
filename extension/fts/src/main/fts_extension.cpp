@@ -6,6 +6,7 @@
 #include "function/drop_fts_index.h"
 #include "function/query_fts_index.h"
 #include "function/stem.h"
+#include "function/tokenize.h"
 #include "index/fts_index.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
@@ -35,6 +36,7 @@ static void initFTSEntries(main::ClientContext* context, catalog::Catalog& catal
 void FtsExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     ExtensionUtils::addScalarFunc<StemFunction>(db);
+    ExtensionUtils::addScalarFunc<TokenizeFunction>(db);
     ExtensionUtils::addTableFunc<QueryFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<CreateFTSFunction>(db);
     ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateFTSFunction>(db);
