@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <numeric>
+#include <utility>
 
 #include "common/exception/test.h"
 #include "test_helper/test_helper.h"
@@ -30,17 +31,14 @@ enum class TokenType {
     CHECK_COLUMN_NAMES,
     CHECK_PRECISION,
     CHECK_ORDER,
-    COMMIT,
-    DEFINE,
     DEFINE_STATEMENT_BLOCK,
     EMPTY,
     END_OF_STATEMENT_BLOCK,
     INSERT_STATEMENT_BLOCK,
     LOG,
-    PARALLELISM,
     RESULT,
-    ROLLBACK,
     SEPARATOR,
+    SET,
     STATEMENT,
     _SKIP_LINE,
     CREATE_DATASET_SCHEMA,
@@ -53,7 +51,6 @@ enum class TokenType {
     CREATE_CONNECTION,
     RELOADDB,
     BATCH_STATEMENTS,
-    SET,
     BEGIN_CONCURRENT_EXECUTION,
     END_CONCURRENT_EXECUTION,
 
@@ -62,12 +59,10 @@ enum class TokenType {
     REMOVE_FILE
 };
 
-const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenType::DATASET},
-    {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
-    {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-LOG", TokenType::LOG},
-    {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
-    {"-PARALLELISM", TokenType::PARALLELISM}, {"-SKIP", TokenType::SKIP},
-    {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::DEFINE},
+const std::unordered_map<std::string, TokenType> TOKEN_MAP = {{"-DATASET", TokenType::DATASET},
+    {"-CASE", TokenType::CASE}, {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-LOG", TokenType::LOG},
+    {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK}, {"-SKIP", TokenType::SKIP},
+    {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::SET},
     {"-SKIP_32BIT", TokenType::SKIP_32BIT}, {"-SKIP_WASM", TokenType::SKIP_WASM},
     {"-LOAD_DYNAMIC_EXTENSION", TokenType::LOAD_DYNAMIC_EXTENSION},
     {"-SKIP_STATIC_LINK", TokenType::SKIP_STATIC_LINK}, {"-WASM_ONLY", TokenType::WASM_ONLY},
@@ -75,10 +70,9 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenT
     {"-SKIP_VECTOR_CAPACITY_TESTS", TokenType::SKIP_VECTOR_CAPACITY_TESTS},
     {"-SKIP_NODE_GROUP_SIZE_TESTS", TokenType::SKIP_NODE_GROUP_SIZE_TESTS},
     {"-SKIP_PAGE_SIZE_TESTS", TokenType::SKIP_PAGE_SIZE_TESTS},
-    {"-TEST_FWD_ONLY_REL", TokenType::TEST_FWD_ONLY_REL}, {"-DEFINE", TokenType::DEFINE},
-    {"-STATEMENT", TokenType::STATEMENT},
+    {"-TEST_FWD_ONLY_REL", TokenType::TEST_FWD_ONLY_REL}, {"-STATEMENT", TokenType::STATEMENT},
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
-    {"-ROLLBACK", TokenType::ROLLBACK}, {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
+    {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
     {"-CHECKPOINT_WAIT_TIMEOUT", TokenType::CHECKPOINT_WAIT_TIMEOUT},
     {"-BATCH_STATEMENTS", TokenType::BATCH_STATEMENTS}, {"-RELOADDB", TokenType::RELOADDB},
     {"-CREATE_CONNECTION", TokenType::CREATE_CONNECTION}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
@@ -104,8 +98,8 @@ public:
     static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG_2 = 17;
     static constexpr uint64_t STANDARD_PAGE_SIZE_LOG_2 = 12;
 
-    explicit TestParser(const std::string& path)
-        : path{path}, testGroup{std::make_unique<TestGroup>()}, currentToken{} {}
+    explicit TestParser(std::string path)
+        : path{std::move(path)}, testGroup{std::make_unique<TestGroup>()}, currentToken{} {}
     std::unique_ptr<TestGroup> parseTestFile();
 
 private:

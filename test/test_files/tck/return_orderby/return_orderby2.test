@@ -201,10 +201,11 @@ nisse|1
            CREATE (d)-[:R_D_E]->(e)
            CREATE (e)-[:R_E_F]->(f);
 ---- ok
+-STATEMENT CALL threads=1
+---- ok
 -STATEMENT MATCH p = (a)-[*]->(b)
            RETURN collect(nodes(p)) AS paths, length(p) AS l
            ORDER BY l;
--PARALLELISM 1
 -CHECK_ORDER
 ---- 3
 [[{_ID: 0:0, _LABEL: A, ID: 0},{_ID: 1:0, _LABEL: B, ID: 0}],[{_ID: 2:0, _LABEL: C, ID: 0},{_ID: 3:0, _LABEL: D, ID: 0}],[{_ID: 3:0, _LABEL: D, ID: 0},{_ID: 4:0, _LABEL: E, ID: 0}],[{_ID: 4:0, _LABEL: E, ID: 0},{_ID: 5:0, _LABEL: F, ID: 0}]]|1

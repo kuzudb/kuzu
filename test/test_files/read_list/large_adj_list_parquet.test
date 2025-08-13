@@ -24,13 +24,15 @@
 5000|
 
 -LOG CrossProduct1
+-STATEMENT CALL threads=2
+---- ok
 -STATEMENT MATCH (a:person), (b:person) RETURN COUNT(*)
--PARALLELISM 2
 ---- 1
 36000000
 
 -LOG CrossProduct
+-STATEMENT CALL threads=8
+---- ok
 -STATEMENT MATCH (a:person) WITH AVG(a.ID) AS s MATCH (b:person) WHERE s > b.ID RETURN COUNT(*)
--PARALLELISM 8
 ---- 1
 3000

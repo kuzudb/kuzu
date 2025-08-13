@@ -148,8 +148,9 @@ Zhang|1
 [{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}]
 
 -LOG ShortestPath
+-STATEMENT CALL threads=1
+---- ok
 -STATEMENT MATCH (a:User)-[e* SHORTEST 1..4]->(b:City) WHERE a.name = 'Adam' RETURN b.name, length(e) AS length;
--PARALLELISM 1
 ---- 3
 Guelph|3
 Kitchener|2

@@ -40,8 +40,9 @@
 546
 
 -LOG OrderByTest
+-STATEMENT CALL threads=1
+---- ok
 -STATEMENT MATCH (row:tableOfTypesCopyCSV) RETURN row.id ORDER BY row.id DESC LIMIT 10;
--PARALLELISM 1
 -CHECK_ORDER
 ---- 10
 49998
@@ -56,8 +57,9 @@
 49989
 
 -LOG OrderByMultiColTest
+-STATEMENT CALL threads=1
+---- ok
 -STATEMENT MATCH (row:tableOfTypesCopyCSV) RETURN row.id ORDER BY row.id DESC, row.booleanColumn, row.doubleColumn LIMIT 10;
--PARALLELISM 1
 -CHECK_ORDER
 ---- 10
 49998

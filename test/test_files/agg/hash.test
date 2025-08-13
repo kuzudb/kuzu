@@ -51,8 +51,9 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
 83|10|4.900000|1
 
 -LOG InMemOverflowBufferTest
+-STATEMENT CALL threads=1
+---- ok
 -STATEMENT MATCH (a:person) RETURN a.fName as name, COUNT(*) order by name desc
--PARALLELISM 1
 ---- 8
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|1
 Greg|1
@@ -70,8 +71,9 @@ Alice|1
 2
 
 -LOG OneHopAggTest
+-STATEMENT CALL threads=2
+---- ok
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
--PARALLELISM 2
 ---- 5
 20|1|2
 20|2|3
@@ -86,15 +88,17 @@ Alice|1
 2|216
 
 -LOG TwoHopAggTest
+-STATEMENT CALL threads=5
+---- ok
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*), COUNT(DISTINCT b.age)
--PARALLELISM 5
 ---- 2
 1|18|4
 2|18|4
 
 -LOG OneHopAggFlatUnflatVecTest
+-STATEMENT CALL threads=6
+---- ok
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, b.gender, sum(b.age)
--PARALLELISM 6
 ---- 9
 0|1|45
 0|2|50
@@ -196,8 +200,9 @@ False|[[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Grad],[Ad,De,Hi,Kye,Orla
 10|[[[7],[10],[6,7]]]
 
 -LOG HashCollectLISTOfSTRINGMultiThreadTest
+-STATEMENT CALL threads=4
+---- ok
 -STATEMENT MATCH (p:person) RETURN p.isStudent, collect(p.usedNames)
--PARALLELISM 4
 ---- 2
 True|[[Aida],[Bobby],[Fesdwe]]
 False|[[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Grad],[Ad,De,Hi,Kye,Orlan]]
@@ -273,8 +278,9 @@ Elizabeth|[25,40]
 2|[(0:1)-{_LABEL: knows, _ID: 3:4, date: 1950-05-14, meetTime: 1946-08-25 19:07:22, validInterval: 00:23:00, comments: [fwehu9h9832wewew,23u9h989sdfsss], summary: {locations: ['paris'], transfer: {day: 2011-05-01, amount: [2000,5340]}}, notes: cool stuff found}->(0:2)]
 
 -LOG HashAggCountBlob
+-STATEMENT CALL threads=4
+---- ok
 -STATEMENT MATCH (m:movies) RETURN m.length > 2542, COUNT(m.content)
--PARALLELISM 4
 ---- 2
 False|2
 True|1
@@ -328,15 +334,17 @@ True|1
 1844674407370955161811111111|1
 
 -LOG HashAggMinBlob
+-STATEMENT CALL threads=2
+---- ok
 -STATEMENT MATCH (m:movies) RETURN m.length <> 298, MIN(m.content)
--PARALLELISM 2
 ---- 2
 False|pure ascii characters
 True|\xAA\xABinteresting\x0B
 
 -LOG HashAggMaxBlob
+-STATEMENT CALL threads=1
+---- ok
 -STATEMENT MATCH (m:movies) RETURN m.length <> 126, MAX(m.content)
--PARALLELISM 1
 ---- 2
 False|\xAA\xABinteresting\x0B
 True|\xAB\xCD

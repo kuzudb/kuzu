@@ -55,7 +55,7 @@ void TestRunner::runTest(TestStatement* statement, Connection& conn,
     const std::string& databasePath) {
     // for batch statements
     if (!statement->batchStatementsCSVFile.empty()) {
-        TestRunner::runBatchStatements(statement, conn, databasePath);
+        runBatchStatements(statement, conn, databasePath);
         return;
     }
     // for normal statement
@@ -77,9 +77,6 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     const std::string& databasePath) {
     spdlog::info("DEBUG LOG: {}", statement->logMessage);
     spdlog::info("QUERY: {}", statement->query);
-    if (statement->numThreads) {
-        conn.setMaxNumThreadForExec(*statement->numThreads);
-    }
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", getParentPath(databasePath));
     StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
     replaceEnv(statement->query, "AZURE_PUBLIC_CONTAINER");
@@ -184,7 +181,7 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
         ASSERT_TRUE(TestRunner::checkResultNumeric(*result, statement, resultIdx));
     } else {
         if (!statement->checkOutputOrder) {
-            std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
+            std::ranges::sort(testAnswer.expectedResult);
         }
         if (resultTuples == testAnswer.expectedResult) {
             spdlog::info("QUERY PASSED.");
@@ -235,7 +232,7 @@ void TestRunner::generateOutput(QueryResult* result, TestStatement* statement, s
         // preserving the existing user-written order and avoids producing unnecessary diffs.
         auto orderedResults = testAnswer.expectedResult;
         if (!statement->checkOutputOrder) {
-            std::sort(orderedResults.begin(), orderedResults.end());
+            std::ranges::sort(orderedResults);
         }
         auto& output = resultTuples == orderedResults ? testAnswer.expectedResult : resultTuples;
 
@@ -324,7 +321,7 @@ std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryRes
         actualOutput.push_back(tuple->toString(std::vector<uint32_t>(tuple->len(), 0)));
     }
     if (!checkOutputOrder) {
-        std::sort(actualOutput.begin(), actualOutput.end());
+        std::ranges::sort(actualOutput);
         // NOTE: If you wish to change this sorting in a
         // way that alters its result, you may break existing
         // hashed test cases

@@ -99,8 +99,9 @@
 # table used to store some intermediate results
 -STATEMENT create node table stats(id SERIAL, numPages INT64, PRIMARY KEY(id))
 ---- ok
+-STATEMENT CALL threads=1
+---- ok
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
--PARALLELISM 1
 ---- ok
 # preallocate rows for other table so that hash index storage isn't allocated later
 # the val column will be constant so will take up no space
@@ -141,8 +142,9 @@ True
 # table used to store some intermediate results
 -STATEMENT create node table stats(startPageIdx INT64, numPages INT64, PRIMARY KEY(startPageIdx))
 ---- ok
+-STATEMENT CALL threads=1
+---- ok
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
--PARALLELISM 1
 ---- ok
 -STATEMENT match (p:Post) delete p
 ---- ok
@@ -154,8 +156,9 @@ True
 ---- ok
 # copy again, the storage pages should be reallocated
 # the number of pages in the DB can still increase because of the hash index
+-STATEMENT CALL threads=1
+---- ok
 -STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv"(parallel=false)
--PARALLELISM 1
 ---- ok
 -STATEMENT match (s:stats) with sum(s.num_pages) as original_num_pages
             call fsm_info() return sum(num_pages) < original_num_pages
