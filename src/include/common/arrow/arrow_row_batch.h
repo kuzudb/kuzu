@@ -46,6 +46,7 @@ struct ArrowVector {
 class ArrowRowBatch {
 public:
     inline static bool fallbackExtensionTypes = false;
+
 public:
     ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity);
 

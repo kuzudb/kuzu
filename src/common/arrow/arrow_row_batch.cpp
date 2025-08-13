@@ -11,7 +11,8 @@
 namespace kuzu {
 namespace common {
 
-static void resizeVector(ArrowVector* vector, const LogicalType& type, int64_t capacity, bool fallbackExtensionTypes);
+static void resizeVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
+    bool fallbackExtensionTypes);
 
 ArrowRowBatch::ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity)
     : types{std::move(types)}, numTuples{0} {
@@ -23,7 +24,8 @@ ArrowRowBatch::ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capaci
     }
 }
 
-static uint64_t getArrowMainBufferSize(const LogicalType& type, uint64_t capacity, bool fallbackExtensionTypes) {
+static uint64_t getArrowMainBufferSize(const LogicalType& type, uint64_t capacity,
+    bool fallbackExtensionTypes) {
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return getNumBytesForBits(capacity);
@@ -82,7 +84,8 @@ static void resizeValidityBuffer(ArrowVector* vector, int64_t capacity) {
     vector->validity.resize(getNumBytesForBits(capacity), 0xFF);
 }
 
-static void resizeMainBuffer(ArrowVector* vector, const LogicalType& type, int64_t capacity, bool fallbackExtensionTypes) {
+static void resizeMainBuffer(ArrowVector* vector, const LogicalType& type, int64_t capacity,
+    bool fallbackExtensionTypes) {
     vector->data.resize(getArrowMainBufferSize(type, capacity, fallbackExtensionTypes));
 }
 
@@ -100,11 +103,13 @@ static void resizeChildVectors(ArrowVector* vector, const std::vector<LogicalTyp
         if (i >= vector->childData.size()) {
             vector->childData.push_back(std::make_unique<ArrowVector>());
         }
-        resizeVector(vector->childData[i].get(), childTypes[i], childCapacity, fallbackExtensionTypes);
+        resizeVector(vector->childData[i].get(), childTypes[i], childCapacity,
+            fallbackExtensionTypes);
     }
 }
 
-static void resizeGeneric(ArrowVector* vector, const LogicalType& type, int64_t capacity, bool fallbackExtensionTypes) {
+static void resizeGeneric(ArrowVector* vector, const LogicalType& type, int64_t capacity,
+    bool fallbackExtensionTypes) {
     if (vector->capacity >= capacity) {
         return;
     }
@@ -125,11 +130,13 @@ static void resizeBLOBVector(ArrowVector* vector, const LogicalType& type, int64
     resizeBLOBOverflow(vector, overflowCapacity);
 }
 
-static void resizeFixedListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity, bool fallbackExtensionTypes) {
+static void resizeFixedListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
+    bool fallbackExtensionTypes) {
     resizeGeneric(vector, type, capacity, fallbackExtensionTypes);
     std::vector<LogicalType> typeVec;
     typeVec.push_back(ArrayType::getChildType(type).copy());
-    resizeChildVectors(vector, typeVec, vector->capacity * ArrayType::getNumElements(type), fallbackExtensionTypes);
+    resizeChildVectors(vector, typeVec, vector->capacity * ArrayType::getNumElements(type),
+        fallbackExtensionTypes);
 }
 
 static void resizeListVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
@@ -140,7 +147,8 @@ static void resizeListVector(ArrowVector* vector, const LogicalType& type, int64
     resizeChildVectors(vector, typeVec, childCapacity, fallbackExtensionTypes);
 }
 
-static void resizeStructVector(ArrowVector* vector, const LogicalType& type, int64_t capacity, bool fallbackExtensionTypes) {
+static void resizeStructVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
+    bool fallbackExtensionTypes) {
     resizeGeneric(vector, type, capacity, fallbackExtensionTypes);
     std::vector<LogicalType> typeVec;
     for (auto i : StructType::getFieldTypes(type)) {
@@ -149,7 +157,8 @@ static void resizeStructVector(ArrowVector* vector, const LogicalType& type, int
     resizeChildVectors(vector, typeVec, vector->capacity, fallbackExtensionTypes);
 }
 
-static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int64_t capacity, bool fallbackExtensionTypes) {
+static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
+    bool fallbackExtensionTypes) {
     if (vector->capacity < capacity) {
         while (vector->capacity < capacity) {
             if (vector->capacity == 0) {
@@ -168,7 +177,8 @@ static void resizeUnionVector(ArrowVector* vector, const LogicalType& type, int6
     resizeChildVectors(vector, childTypes, vector->capacity, fallbackExtensionTypes);
 }
 
-static void resizeInternalIDVector(ArrowVector* vector, const LogicalType& type, int64_t capacity, bool fallbackExtensionTypes) {
+static void resizeInternalIDVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
+    bool fallbackExtensionTypes) {
     resizeGeneric(vector, type, capacity, fallbackExtensionTypes);
     std::vector<LogicalType> typeVec;
     typeVec.push_back(LogicalType::INT64());
@@ -176,7 +186,8 @@ static void resizeInternalIDVector(ArrowVector* vector, const LogicalType& type,
     resizeChildVectors(vector, typeVec, vector->capacity, fallbackExtensionTypes);
 }
 
-static void resizeVector(ArrowVector* vector, const LogicalType& type, std::int64_t capacity, bool fallbackExtensionTypes) {
+static void resizeVector(ArrowVector* vector, const LogicalType& type, std::int64_t capacity,
+    bool fallbackExtensionTypes) {
     auto result = std::make_unique<ArrowVector>();
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::UUID: {
