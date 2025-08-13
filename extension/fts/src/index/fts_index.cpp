@@ -77,6 +77,7 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
             continue;
         }
         content = indexVector->getValue<ku_string_t>(pos).getAsString();
+        FTSUtils::normalizeQuery(content, regexPattern);
         auto termsInContent = FTSUtils::tokenizeString(content, config);
         termsInContent = FTSUtils::stemTerms(termsInContent, config, mm, stopWordsTable,
             transaction, true /* isConjunctive */, false /* isQuery */);

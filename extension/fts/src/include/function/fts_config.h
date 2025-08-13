@@ -94,7 +94,7 @@ struct FTSConfig {
     std::string stopWordsSource = "";
     std::string ignorePattern = "";
     std::string ignorePatternQuery = "";
-    std::string tokenizer = "whitespace";
+    std::string tokenizer = "";
     std::string jiebaDictDir = "";
 
     FTSConfig() = default;

@@ -5,7 +5,6 @@
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
-
 #include "libstemmer.h"
 #include "re2.h"
 #include "storage/storage_manager.h"
@@ -47,6 +46,7 @@ std::vector<std::string> QueryFTSBindData::getQueryTerms(main::ClientContext& co
     auto queryInStr =
         ExpressionUtil::evaluateLiteral<std::string>(&context, query, LogicalType::STRING());
     auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
+    FTSUtils::normalizeQuery(queryInStr, config.ignorePatternQuery);
     auto terms = FTSUtils::tokenizeString(queryInStr, config);
     auto stopWordsTable =
         context.getStorageManager()
