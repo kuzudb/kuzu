@@ -9,6 +9,7 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/table/table_function.h"
+#include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -74,17 +75,15 @@ struct BetweennessCentralityBindData final : public GDSBindData {
 /**COMPUTE**/
 
 struct BetweennessCentralityState {
-    explicit BetweennessCentralityState(storage::MemoryManager* mm, const offset_t origNumNodes) : bc{mm, origNumNodes}, origNumNodes{origNumNodes}, adj{origNumNodes} {}
+    explicit BetweennessCentralityState(storage::MemoryManager* mm, const offset_t origNumNodes) : bc{mm, origNumNodes}, origNumNodes{origNumNodes} {}
     ku_vector_t<std::atomic<double>> bc;
     const offset_t origNumNodes;
-    // TODO(Tanvir): We should not be materializing the graph like this. Remove.
-    std::vector<std::vector<offset_t>> adj;
 };
 
 class BrandesBCVertexCompute : public GDSVertexCompute {
 public:
 
-    BrandesBCVertexCompute(common::NodeOffsetMaskMap* nodeMask, storage::MemoryManager* mm, BetweennessCentralityState& state) : 
+    BrandesBCVertexCompute(common::NodeOffsetMaskMap* nodeMask, storage::MemoryManager* mm, BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState) :
         GDSVertexCompute(nodeMask),
         state{state},
         distance{mm, state.origNumNodes},
@@ -92,22 +91,24 @@ public:
         delta{mm, state.origNumNodes},
         visitOrder{mm},
         parents{state.origNumNodes},
-        mm{mm}
+        mm{mm},
+        graph{graph},
+        scanState{scanState}
     {}
 
     void beginOnTableInternal(table_id_t) override {}
 
-    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
+    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableId) override {
       for (auto s = startOffset; s < endOffset; ++s) {
         // When doing approx if (skip[s] continue)
         initializeSSSP(s);
-        runBFS(s);
+        runBFS(s, tableId);
         runBackprop(s);
       }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<BrandesBCVertexCompute>(nodeMask, mm, state);
+        return std::make_unique<BrandesBCVertexCompute>(nodeMask, mm, state, graph, scanState);
     }
 
 private:
@@ -123,22 +124,29 @@ private:
         sigma[s] = 1;
     }
 
-    //TODO(Tanvir): (Use frontier Abstraction, modify for weighted graph)
-    void runBFS(offset_t s) {
+    void runBFS(offset_t s, table_id_t tableId) {
         ku_vector_t<offset_t> queue{mm};
         queue.push_back(s);
-        for(auto i = 0u; i < queue.size(); ++i) {
-            const auto cur = queue[i];
+        for(auto qIdx = 0u; qIdx < queue.size(); ++qIdx) {
+            const auto cur = queue[qIdx];
+            const nodeID_t nextNodeId = {cur, tableId};
             visitOrder.push_back(cur);
-            for(const auto& neighbour : state.adj[cur]) {
-                if (distance[neighbour] == INF) {
-                    distance[neighbour] = distance[cur]+1;
-                    queue.push_back(neighbour);
-                }
-                if (distance[neighbour] == distance[cur]+1) {
-                    sigma[neighbour]+=sigma[cur];
-                    parents[neighbour].push_back(cur);
-                }
+            for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
+                chunk.forEach([&](auto neighbors, auto, auto i) {
+                    auto nbrId = neighbors[i].offset;
+                    if (nbrId == cur) {
+                        // Ignore self-loops.
+                        return;
+                    }
+                    if (distance[nbrId] == INF) {
+                        distance[nbrId] = distance[cur]+1;
+                        queue.push_back(nbrId);
+                    }
+                    if (distance[nbrId] == distance[cur]+1) {
+                        sigma[nbrId] +=sigma[cur];
+                        parents[nbrId].push_back(cur);
+                    }
+                });
             }
         }
     }
@@ -172,6 +180,9 @@ private:
     std::vector<std::vector<offset_t>> parents;
     // Only stored for copy method.
     storage::MemoryManager* mm;
+    // For SSSP traversal and compute.
+    graph::Graph* graph;
+    graph::NbrScanState* scanState;
 };
 
 /**RESULTS**/
@@ -233,24 +244,10 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
     // 1. Init state
     BetweennessCentralityState state{mm, origNumNodes};
-    // 2. TODO(Use abstractions to avoid this) Materialize Graph
-    for (auto nodeId = 0u; nodeId < origNumNodes; ++nodeId) {
-        const nodeID_t nextNodeId = {nodeId, tableId};
-        for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto, auto i) {
-                auto nbrId = neighbors[i].offset;
-                if (nbrId == nodeId) {
-                    // Ignore self-loops.
-                    return;
-                }
-                state.adj[nodeId].push_back(nbrId);
-            });
-        }
-    }
-    // 3. Compute
-    BrandesBCVertexCompute brandesBC(sharedState->getGraphNodeMaskMap(), mm, state);
+    // 2. Compute
+    BrandesBCVertexCompute brandesBC(sharedState->getGraphNodeMaskMap(), mm, state, graph, scanState.get());
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, sharedState->graph.get(), brandesBC);
-    // 4. Write Results
+    // 3. Write Results
     const auto vertexCompute = std::make_unique<WriteResultsBC>(mm, sharedState, state.bc);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
