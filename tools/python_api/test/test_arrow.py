@@ -4,6 +4,7 @@ import math
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 import ground_truth
 import kuzu
@@ -32,7 +33,7 @@ _expected_dtypes = {
     "a.courseScoresPerTerm": {"arrow": pa.list_(pa.list_(pa.int64())), "pl": pl.List(pl.List(pl.Int64))},
     "a.grades": {"arrow": pa.list_(pa.int64(), 4), "pl": pl.Array(pl.Int64, shape=(4,))},
     "a.height": {"arrow": pa.float32(), "pl": pl.Float32},
-    "a.u": {"arrow": pa.string(), "pl": pl.String},
+    "a.u": {"arrow": pa.uuid(), "pl": pl.String},
     # ------------------------------------------------
     # movies
     # ------------------------------------------------
@@ -271,20 +272,22 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
                 [77, 64, 100, 54],
             ],
         )
-
         assert_column_equals(
             data=data,
             col_name="a.u",
             return_type=return_type,
             expected_values=[
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18",
+                UUID(u) if return_type != "pl" else u
+                for u in [
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18",
+                ]
             ],
         )
 

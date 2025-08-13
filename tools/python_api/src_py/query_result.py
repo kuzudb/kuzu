@@ -186,10 +186,10 @@ class QueryResult:
         # note: polars should always export just a single chunk,
         # (eg: "-1") otherwise it will just need to rechunk anyway
         return pl.from_arrow(  # type: ignore[return-value]
-            data=self.get_as_arrow(chunk_size=-1),
+            data=self.get_as_arrow(chunk_size=-1, fallbackExtensionTypes=True),
         )
 
-    def get_as_arrow(self, chunk_size: int | None = None) -> pa.Table:
+    def get_as_arrow(self, chunk_size: int | None = None, *, fallbackExtensionTypes: bool = False) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
@@ -202,6 +202,9 @@ class QueryResult:
                 The entire result is returned as a single chunk.
             > 0
                 The chunk size is the number of rows specified.
+
+        fallbackExtensionTypes : bool
+            Avoid using Arrow extension types for compatibility with Polars
 
         See Also
         --------
@@ -224,7 +227,7 @@ class QueryResult:
             # No chunking: return the entire result as a single chunk
             chunk_size = self.get_num_tuples()
 
-        return self._query_result.getAsArrow(chunk_size)
+        return self._query_result.getAsArrow(chunk_size, fallbackExtensionTypes)
 
     def get_column_data_types(self) -> list[str]:
         """

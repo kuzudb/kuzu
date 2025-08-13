@@ -45,6 +45,9 @@ struct ArrowVector {
 // An arrow data chunk consisting of N rows in columnar format.
 class ArrowRowBatch {
 public:
+    inline static bool fallbackExtensionTypes = false;
+
+public:
     ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity);
 
     //! Append a data chunk to the underlying arrow array

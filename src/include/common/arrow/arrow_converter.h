@@ -18,9 +18,13 @@ struct ArrowSchemaHolder {
     std::vector<std::vector<ArrowSchema>> nestedChildren;
     std::vector<std::vector<ArrowSchema*>> nestedChildrenPtr;
     std::vector<std::unique_ptr<char[]>> ownedTypeNames;
+    std::vector<std::unique_ptr<char[]>> ownedMetadatas;
 };
 
 struct ArrowConverter {
+public:
+    inline static bool fallbackExtensionTypes = false;
+
 public:
     static std::unique_ptr<ArrowSchema> toArrowSchema(const std::vector<LogicalType>& dataTypes,
         const std::vector<std::string>& columnNames);
