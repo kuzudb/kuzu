@@ -1,7 +1,9 @@
+#include <limits>
 #include "binder/binder.h"
 #include "binder/expression/node_expression.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
+#include "common/types/types.h"
 #include "function/algo_function.h"
 #include "function/config/betweenness_centrality_config.h"
 #include "function/config/max_iterations_config.h"
@@ -72,118 +74,110 @@ struct BetweennessCentralityBindData final : public GDSBindData {
     }
 };
 
-/**COMPUTE**/
+/**STATES**/
 
 struct BetweennessCentralityState {
-    explicit BetweennessCentralityState(storage::MemoryManager* mm, const offset_t origNumNodes) : bc{mm, origNumNodes}, origNumNodes{origNumNodes} {}
-    ku_vector_t<std::atomic<double>> bc;
-    const offset_t origNumNodes;
+    BetweennessCentralityState(storage::MemoryManager* mm, const offset_t numNodes) : betweennessCentrality{mm, numNodes}, numNodes{numNodes} {}
+    ku_vector_t<std::atomic<double>> betweennessCentrality;
+    const offset_t numNodes;
 };
 
-class BrandesBCVertexCompute : public GDSVertexCompute {
-public:
-
-    BrandesBCVertexCompute(common::NodeOffsetMaskMap* nodeMask, storage::MemoryManager* mm, BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState) :
-        GDSVertexCompute(nodeMask),
-        state{state},
-        distance{mm, state.origNumNodes},
-        sigma{mm, state.origNumNodes},
-        delta{mm, state.origNumNodes},
-        visitOrder{mm},
-        parents{state.origNumNodes},
-        mm{mm},
-        graph{graph},
-        scanState{scanState}
-    {}
-
-    void beginOnTableInternal(table_id_t) override {}
-
-    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableId) override {
-      for (auto s = startOffset; s < endOffset; ++s) {
-        // When doing approx if (skip[s] continue)
-        initializeSSSP(s);
-        runBFS(s, tableId);
-        runBackprop(s);
-      }
+struct BCFwdData {
+    struct pathData {
+        uint64_t numPaths = 0;
+        double pathScore = INF;
+        static constexpr double INF = std::numeric_limits<double>::max();
+    };
+    BCFwdData(storage::MemoryManager* mm, const offset_t numNodes, const offset_t sourceNode) : nodePathData{mm, numNodes}, levels{mm, numNodes} {
+        levels[sourceNode] = 0;
+        nodePathData[sourceNode] = pathData{.numPaths = 1, .pathScore = 0};
     }
+    ku_vector_t<pathData> nodePathData;
+    ku_vector_t<uint64_t> levels;
+    uint64_t maxLevel = 0;
+};
 
-    std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<BrandesBCVertexCompute>(nodeMask, mm, state, graph, scanState);
+struct BCFwdTraverse {
+    BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode) : queue{mm} {
+        queue.push_back(sourceNode);
     }
+    ku_vector_t<offset_t> queue;
+};
 
-private:
-    void initializeSSSP(offset_t s) {
-        std::fill(distance.begin(), distance.end(), INF);
-        std::fill(sigma.begin(), sigma.end(), 0);
-        std::fill(delta.begin(), delta.end(), 0);
-        visitOrder.clear();
-        for (auto& pvec : parents) {
-            pvec.clear();
+struct BCBwdData {
+    BCBwdData(storage::MemoryManager* mm, const offset_t numNodes) : dependencyScores{mm, numNodes} {}
+    ku_vector_t<double> dependencyScores;
+};
+
+
+/**Compute**/
+
+static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId) {
+    for(auto qIdx = 0u; qIdx < fwdTraverse.queue.size(); ++qIdx) {
+        const auto cur = fwdTraverse.queue[qIdx];
+        const nodeID_t nextNodeId = {cur, tableId};
+        for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
+            chunk.forEach([&](auto neighbors, auto, auto i) {
+                auto nbrId = neighbors[i].offset;
+                if (nbrId == cur) {
+                    // Ignore self-loops.
+                    return;
+                }
+                // First time we visit the node.
+                if (fwdData.nodePathData[nbrId].pathScore == BCFwdData::pathData::INF) {
+                    // Mark the pathScore (distance for unweighted, else pathWeight).
+                    fwdData.nodePathData[nbrId].pathScore = fwdData.nodePathData[cur].pathScore+1;
+                    // Set the frontier iteration it was set to.
+                    fwdData.levels[nbrId] = fwdData.levels[cur]+1;
+                    fwdData.maxLevel = std::max(fwdData.levels[nbrId], fwdData.maxLevel);
+                    fwdTraverse.queue.push_back(nbrId);
+                }
+                // We found a shortestPath. The number of ways to reach nbr is
+                // increased by the number of ways to reach cur.
+                if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+1) {
+                    fwdData.nodePathData[nbrId].numPaths += fwdData.nodePathData[cur].numPaths;
+                }
+            });
         }
-        distance[s] = 0;
-        sigma[s] = 1;
     }
+}
 
-    void runBFS(offset_t s, table_id_t tableId) {
-        ku_vector_t<offset_t> queue{mm};
-        queue.push_back(s);
-        for(auto qIdx = 0u; qIdx < queue.size(); ++qIdx) {
-            const auto cur = queue[qIdx];
+static void backwardsCompute(const BCFwdData& fwdData, BCBwdData& bwdData, BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, const offset_t sourceNode) {
+    const auto numNodes = fwdData.nodePathData.size();
+    // This is inefficient, but fine for testing. We should sort with a comparator on level.
+    for(auto curLevel = fwdData.maxLevel; curLevel > 0; --curLevel) {
+        for(auto cur = 0u; cur < numNodes; ++cur) {
+            // either we have already processed or need to process this node later.
+            if (curLevel != fwdData.levels[cur]) {
+                continue;
+            }
             const nodeID_t nextNodeId = {cur, tableId};
-            visitOrder.push_back(cur);
-            for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
+            for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
                 chunk.forEach([&](auto neighbors, auto, auto i) {
                     auto nbrId = neighbors[i].offset;
                     if (nbrId == cur) {
                         // Ignore self-loops.
                         return;
                     }
-                    if (distance[nbrId] == INF) {
-                        distance[nbrId] = distance[cur]+1;
-                        queue.push_back(nbrId);
-                    }
-                    if (distance[nbrId] == distance[cur]+1) {
-                        sigma[nbrId] +=sigma[cur];
-                        parents[nbrId].push_back(cur);
+                    
+                    // Check if nbrId is a parent in the shortest path to cur
+                    // For weighted graphs, instead of adding one we add the weight of the edge.
+                    if (fwdData.nodePathData[nbrId].pathScore + 1 == fwdData.nodePathData[cur].pathScore) {
+                        const auto parent = nbrId;
+                        bwdData.dependencyScores[parent] += ((double)fwdData.nodePathData[parent].numPaths / fwdData.nodePathData[cur].numPaths)*(1 + bwdData.dependencyScores[cur]);
                     }
                 });
             }
         }
     }
-
-    void runBackprop(offset_t s) {
-        while(!visitOrder.empty()) {
-            const auto cur = visitOrder.back();
-            visitOrder.pop_back();
-            for(const auto& parent : parents[cur]) {
-                delta[parent] += (1 + delta[cur]) * (double)((double)sigma[parent] / (double)sigma[cur]);
-            }
-            if (cur != s) {
-                state.bc[cur].fetch_add(delta[cur], std::memory_order_relaxed);
-            }
+    for(auto node = 0u; node < numNodes; ++node) {
+        if (node != sourceNode) {
+            state.betweennessCentrality[node]+=bwdData.dependencyScores[node];
         }
+
     }
-    static constexpr double INF = std::numeric_limits<double>::max();
-    // Holds betweenness centrality scores for the graph.
-    BetweennessCentralityState& state;
-    // Helper container used in SSSP.
-    ku_vector_t<double> distance;
-    // sigma[v] <- Number of shortest paths from source vertex to v.
-    ku_vector_t<uint64_t> sigma; 
-    // Dependency scores <- We compute this during back propagation and update
-    // BC scores.
-    ku_vector_t<double> delta;
-    // Stack used in back propagation step. We populate when computing SSSP.
-    ku_vector_t<offset_t> visitOrder;
-    // TODO(Tanvir): We cannot use std::vector to store parent lists. 
-    // Use kuzu_vector<ParentList*> ?
-    std::vector<std::vector<offset_t>> parents;
-    // Only stored for copy method.
-    storage::MemoryManager* mm;
-    // For SSSP traversal and compute.
-    graph::Graph* graph;
-    graph::NbrScanState* scanState;
-};
+}
+
 
 /**RESULTS**/
 
@@ -240,18 +234,22 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         relProps.push_back(config.weightProperty.getParamVal());
     }
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
-    const auto origNumNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
+    const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
+    BetweennessCentralityState state{mm, numNodes};
+    for(auto i = 0u; i < numNodes; ++i) {
+        // Forward Traverse
+        BCFwdData fwdData(mm, numNodes, i /*sourceNode*/);
+        BCFwdTraverse fwdTraverse(mm, i /*sourceNode*/);
+        SSSPCompute(fwdData, fwdTraverse, graph, scanState.get(), tableId);
+        
+        // Backward Traverse
+        BCBwdData bwdData(mm, numNodes);
+        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/);
+    }
 
-    // 1. Init state
-    BetweennessCentralityState state{mm, origNumNodes};
-    // 2. Compute
-    BrandesBCVertexCompute brandesBC(sharedState->getGraphNodeMaskMap(), mm, state, graph, scanState.get());
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, sharedState->graph.get(), brandesBC);
-    // 3. Write Results
-    const auto vertexCompute = std::make_unique<WriteResultsBC>(mm, sharedState, state.bc);
+    const auto vertexCompute = std::make_unique<WriteResultsBC>(mm, sharedState, state.betweennessCentrality);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
-
     return 0;
 }
 
