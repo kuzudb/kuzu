@@ -1,4 +1,3 @@
-#include <limits>
 #include "binder/binder.h"
 #include "binder/expression/node_expression.h"
 #include "common/exception/runtime.h"
@@ -103,11 +102,13 @@ struct BCFwdData {
 };
 
 struct BCFwdTraverse {
-    BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode) : queue{mm} {
-        queue.push_back(sourceNode);
+    BCFwdTraverse(storage::MemoryManager* /*mm*/, const offset_t sourceNode) {
+        queue.emplace(0, sourceNode);
     }
-    ku_vector_t<offset_t> queue;
+
+    std::priority_queue<std::pair<double, offset_t>, std::vector<std::pair<double, offset_t>>, std::greater<std::pair<double, offset_t>>> queue;
 };
+
 
 struct BCBwdData {
     BCBwdData(storage::MemoryManager* mm, const offset_t numNodes) : dependencyScores{mm, numNodes} {}
@@ -117,28 +118,32 @@ struct BCBwdData {
 
 /**Compute**/
 
+// TOOD(Tanvir): We currently do the traversal for weighted graphs always (treat unweighted edges as weight 1). 
+// This should change. Consider changing BCFwdTraverse and overriding methods for insert and pop. 
 static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, bool undirected) {
-    for(auto qIdx = 0u; qIdx < fwdTraverse.queue.size(); ++qIdx) {
-        const auto cur = fwdTraverse.queue[qIdx];
+    static constexpr double DEFAULT_WEIGHT = 1;
+    while(!fwdTraverse.queue.empty()) {
+        const auto [curweight, cur] = fwdTraverse.queue.top();
+        fwdTraverse.queue.pop();
+        if(curweight > fwdData.nodePathData[cur].pathScore) {
+            continue;
+        }
         const nodeID_t nextNodeId = {cur, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto, auto i) {
+            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
                 if (nbrId == cur) {
                     // Ignore self-loops.
                     return;
                 }
-                // First time we visit the node.
-                if (fwdData.nodePathData[nbrId].pathScore == BCFwdData::PathData::INF) {
-                    // Mark the pathScore (distance for unweighted, else pathWeight).
-                    fwdData.nodePathData[nbrId].pathScore = fwdData.nodePathData[cur].pathScore+1;
-                    // Set the frontier iteration it was set to.
+                const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
+                if (fwdData.nodePathData[nbrId].pathScore > curweight+weight) {
+                    fwdData.nodePathData[nbrId].pathScore = curweight+weight;
+                    fwdData.nodePathData[nbrId].numPaths = 0;
                     fwdData.levels[nbrId] = {fwdData.levels[cur].level+1, nbrId};
-                    fwdTraverse.queue.push_back(nbrId);
+                    fwdTraverse.queue.push({curweight+weight, nbrId});
                 }
-                // We found a shortestPath. The number of ways to reach nbr is
-                // increased by the number of ways to reach cur.
-                if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+1) {
+                if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+weight) {
                     fwdData.nodePathData[nbrId].numPaths += fwdData.nodePathData[cur].numPaths;
                 }
             });
@@ -147,23 +152,20 @@ static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::G
             continue;
         }
         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto, auto i) {
+            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
                 if (nbrId == cur) {
                     // Ignore self-loops.
                     return;
                 }
-                // First time we visit the node.
-                if (fwdData.nodePathData[nbrId].pathScore == BCFwdData::PathData::INF) {
-                    // Mark the pathScore (distance for unweighted, else pathWeight).
-                    fwdData.nodePathData[nbrId].pathScore = fwdData.nodePathData[cur].pathScore+1;
-                    // Set the frontier iteration it was set to.
+                const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
+                if (fwdData.nodePathData[nbrId].pathScore > curweight+weight) {
+                    fwdData.nodePathData[nbrId].pathScore = curweight+weight;
+                    fwdData.nodePathData[nbrId].numPaths = 0;
                     fwdData.levels[nbrId] = {fwdData.levels[cur].level+1, nbrId};
-                    fwdTraverse.queue.push_back(nbrId);
+                    fwdTraverse.queue.push({curweight+weight, nbrId});
                 }
-                // We found a shortestPath. The number of ways to reach nbr is
-                // increased by the number of ways to reach cur.
-                if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+1) {
+                if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+weight) {
                     fwdData.nodePathData[nbrId].numPaths += fwdData.nodePathData[cur].numPaths;
                 }
             });
@@ -172,6 +174,7 @@ static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::G
 }
 
 static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, const offset_t sourceNode, bool undirected) {
+    static constexpr double DEFAULT_WEIGHT = 1;
     const auto numNodes = fwdData.nodePathData.size();
     // Sort so we process nodes furthest from the source first (i.e higher levels first).
     std::sort(fwdData.levels.begin(), fwdData.levels.end(), [&](const auto& a, const auto&b) {return a > b;});
@@ -181,16 +184,15 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, Betweenness
         }
         const nodeID_t nextNodeId = {cur, tableId};
         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto, auto i) {
+            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
                 if (nbrId == cur) {
                     // Ignore self-loops.
                     return;
                 }
                 
-                // Check if nbrId is a parent in the shortest path to cur
-                // For weighted graphs, instead of adding one we add the weight of the edge.
-                if (fwdData.nodePathData[nbrId].pathScore + 1 == fwdData.nodePathData[cur].pathScore) {
+                const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
+                if (fwdData.nodePathData[nbrId].pathScore + weight == fwdData.nodePathData[cur].pathScore) {
                     const auto parent = nbrId;
                     bwdData.dependencyScores[parent] += ((double)fwdData.nodePathData[parent].numPaths / fwdData.nodePathData[cur].numPaths)*(1 + bwdData.dependencyScores[cur]);
                 }
@@ -200,16 +202,14 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, Betweenness
             continue;
         }
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-            chunk.forEach([&](auto neighbors, auto, auto i) {
+            chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
                 auto nbrId = neighbors[i].offset;
                 if (nbrId == cur) {
                     // Ignore self-loops.
                     return;
                 }
-                
-                // Check if nbrId is a parent in the shortest path to cur
-                // For weighted graphs, instead of adding one we add the weight of the edge.
-                if (fwdData.nodePathData[nbrId].pathScore + 1 == fwdData.nodePathData[cur].pathScore) {
+                const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
+                if (fwdData.nodePathData[nbrId].pathScore + weight == fwdData.nodePathData[cur].pathScore) {
                     const auto parent = nbrId;
                     bwdData.dependencyScores[parent] += ((double)fwdData.nodePathData[parent].numPaths / fwdData.nodePathData[cur].numPaths)*(1 + bwdData.dependencyScores[cur]);
                 }
@@ -220,10 +220,8 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, Betweenness
         if (node != sourceNode) {
             state.betweennessCentrality[node]+=bwdData.dependencyScores[node];
         }
-
     }
 }
-
 
 /**RESULTS**/
 
@@ -280,7 +278,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         relProps.push_back(config.weightProperty.getParamVal());
     }
     bool undirected = StringUtils::getLower(config.direction.getParamVal()) == Direction::UNDIRECTED;
-    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
+    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, relProps);
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
     BetweennessCentralityState state{mm, numNodes};
     for(auto i = 0u; i < numNodes; ++i) {
