@@ -35,26 +35,23 @@ namespace algo_extension {
 // of edge weights, respectively.
 
 // Pseudocode:
-// Input: (G = (V, E), Variant)
-// G is an undirected potentially weighted graph.
-// `Variant` is either unset or `min` or `max`
-// Output: F = (V, E)
-// Where F is a forest, with V(F) = V(G) and E is some subset of E(G).
-// Body:
-// If E is weighted and `Variant` has been set:
-//      If `Variant` is min:
-//          sort(E(G)) with non decreasing weight.
+// Input: G = (V, E), variant = min or max
+//   G is an undirected, and potentially weighted, graph.
+// Output: F = (V, E_f)
+//   Where F is a forest and E_f is a subset of E.
+//
+// If E is weighted:
+//      If `variant` is min:
+//          sort(E) with non decreasing weight.
 //      Else:
-//          sort(E(G)) with non increasing weight.
-// For each edge e = (src, dst, weight) in E(G):
-//      if src and dst are in the same component in F (have the same parent):
-//          continue.
-//      Add e to E(F).
-//      Mark src and dst as being in the same component (merge their parents).
-// For each edge in E(F) mark its forestId as the parentId of the src node.
-// Return F
+//          sort(E) with non increasing weight.
+// For each edge e = (src, dst, weight) in E:
+//      if src and dst are NOT in the same component in F (don't have the same parent):
+//          Add e to E_f.
+//          Mark src and dst as being in the same component (merge their parents).
+// For each edge in E_f, mark its forestId as the parentId of the src node.
 
-// References graaf: https://github.com/bobluppes/graaf/tree/main
+// The implementation here follows graaf: https://github.com/bobluppes/graaf
 
 // Stores (srcId, dstId, relId, forestId)
 using resultEdge = std::tuple<offset_t, offset_t, relID_t, offset_t>;
@@ -141,7 +138,7 @@ public:
 
 private:
     static constexpr double DEFAULT_WEIGHT = 1;
-    // Returns the component ID that `nodeId` belong to. Implemented using a Disjoint-set data
+    // Returns the component ID that `nodeId` belong to. Implemented using a disjoint-set data
     // structure (DSU).
     offset_t findComponent(const offset_t& nodeId);
 
@@ -150,10 +147,12 @@ private:
     void mergeComponents(const offset_t& srcCompId, const offset_t& dstCompId);
 
     const offset_t numNodes;
+    // Stores the edges being processed.
     ku_vector_t<weightedEdge> edges;
+    // Stores the results.
     ku_vector_t<resultEdge> forest;
-    // For each node, `parents[i]` points to the parent node, or to itself if the node is the root
-    // of its component.
+    // For each node, `parents[i]` points to a parent node in the same component, or to itself if
+    // the node is the root of its component.
     ku_vector_t<offset_t> parents;
     // Tracks the approximate height of each component's tree.
     ku_vector_t<uint64_t> rank;
@@ -191,10 +190,9 @@ void KruskalCompute::sortEdges(const std::string& variant) {
     const auto& compareFn = [&](const auto& e1, const auto& e2) {
         const auto& [srcId1, dstId1, relId1, weight1] = e1;
         const auto& [srcId2, dstId2, relId2, weight2] = e2;
-        return variant == Variant::MAX_VARIANT ? std::tie(weight1, srcId1, dstId1, relId1) >
-                                                     std::tie(weight2, srcId2, dstId2, relId2) :
-                                                 std::tie(weight1, srcId1, dstId1, relId1) <
-                                                     std::tie(weight2, srcId2, dstId2, relId2);
+        auto left = std::tie(weight1, srcId1, dstId1, relId1);
+        auto right = std::tie(weight2, srcId2, dstId2, relId2);
+        return variant == Variant::MAX_VARIANT ? left > right : left < right;
     };
     std::ranges::sort(edges, compareFn);
 }
@@ -214,7 +212,7 @@ void KruskalCompute::run() {
 }
 
 void KruskalCompute::assignForestIds() {
-    for (auto& [srcId, dstId, relId, forestId] : forest) {
+    for (auto& [srcId, _dstId, _relId, forestId] : forest) {
         forestId = findComponent(srcId);
     }
 }
@@ -226,10 +224,9 @@ offset_t KruskalCompute::findComponent(const offset_t& nodeId) {
     return parents[nodeId];
 }
 
-// We merge with the larger component (tracked by rank). If ranks are equal we use ID's as a tie
-// breaker.
 void KruskalCompute::mergeComponents(const offset_t& srcCompId, const offset_t& dstCompId) {
     KU_ASSERT_UNCONDITIONAL(srcCompId != dstCompId);
+    // Merge with the larger component, based on the rank. If ranks are equal, use IDs to break ties.
     if (rank[srcCompId] == rank[dstCompId]) {
         auto newParent = std::min(srcCompId, dstCompId);
         auto newChild = std::max(srcCompId, dstCompId);
@@ -292,6 +289,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
+
     auto spanningForestBindData = input.bindData->constPtrCast<SFBindData>();
     auto& config = spanningForestBindData->optionalParams->constCast<SFOptionalParams>();
     if (!config.weightProperty.getParamVal().empty() &&
@@ -310,7 +308,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         relProps.push_back(config.weightProperty.getParamVal());
     }
 
-    // Set randomLookup to false to enable caching during graph materialization.
+    // Set randomLookup=false to enable caching during graph materialization.
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
         nbrInfo.dstTableID, relProps, false /*randomLookup*/);
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
