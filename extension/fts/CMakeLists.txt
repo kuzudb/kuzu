@@ -4,9 +4,6 @@ include_directories(
         src/include
         third_party/snowball/libstemmer)
 
-# Enable Jieba for all targets in this extension
-add_compile_definitions(KUZU_ENABLE_JIEBA)
-
 # Add cppjieba include directories for all targets in this extension
 include_directories(
         ${PROJECT_SOURCE_DIR}/third_party/cppjieba/include
