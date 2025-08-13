@@ -210,10 +210,14 @@ void ArrowConverter::setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& 
         child.format = "tDu";
     } break;
     case LogicalTypeID::UUID: {
-        child.format = "w:16";
-        child.metadata = copyMetadata(rootHolder,
-            {{"ARROW:extension:name", "arrow.uuid"}, {"ARROW:extension:metadata", ""}});
-    } break;
+        if (!fallbackExtensionTypes) {
+            child.format = "w:16";
+            child.metadata = copyMetadata(rootHolder,
+                {{"ARROW:extension:name", "arrow.uuid"}, {"ARROW:extension:metadata", ""}});
+            break;
+        }
+        [[fallthrough]];
+    }
     case LogicalTypeID::STRING: {
         child.format = "u";
     } break;
@@ -313,6 +317,7 @@ void ArrowConverter::toArrowArray(main::QueryResult& queryResult, ArrowArray* ou
     for (const auto& type : queryResult.getColumnDataTypes()) {
         types.push_back(type.copy());
     }
+    ArrowRowBatch::fallbackExtensionTypes = fallbackExtensionTypes;
     auto rowBatch = make_unique<ArrowRowBatch>(std::move(types), chunkSize);
     *outArray = rowBatch->append(queryResult, chunkSize);
 }

@@ -272,21 +272,20 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
                 [77, 64, 100, 54],
             ],
         )
-
         assert_column_equals(
             data=data,
             col_name="a.u",
             return_type=return_type,
-            expected_values=[
-                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"),
-                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12"),
-                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13"),
-                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14"),
-                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15"),
-                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16"),
-                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17"),
-                UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18"),
-            ],
+            expected_values=list(map(lambda u: UUID(u) if return_type != "pl" else u, [
+                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13",
+                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15",
+                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16",
+                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17",
+                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18",
+            ]))
         )
 
     def _test_movies_table(_conn: kuzu.Connection, return_type: str, chunk_size: int | None = None) -> None:

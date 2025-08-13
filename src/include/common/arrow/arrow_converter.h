@@ -23,6 +23,8 @@ struct ArrowSchemaHolder {
 
 struct ArrowConverter {
 public:
+    inline static bool fallbackExtensionTypes = false;
+public:
     static std::unique_ptr<ArrowSchema> toArrowSchema(const std::vector<LogicalType>& dataTypes,
         const std::vector<std::string>& columnNames);
     static void toArrowArray(main::QueryResult& queryResult, ArrowArray* out_array,

@@ -308,8 +308,8 @@ py::object PyQueryResult::getArrowChunks(const std::vector<kuzu::common::Logical
     return batches;
 }
 
-kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize) {
-
+kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize, bool fallbackExtensionTypes) {
+    ArrowConverter::fallbackExtensionTypes = fallbackExtensionTypes;
     auto types = queryResult->getColumnDataTypes();
     auto names = queryResult->getColumnNames();
     py::list batches = getArrowChunks(types, names, chunkSize);

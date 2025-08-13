@@ -34,7 +34,7 @@ public:
 
     py::object getAsDF();
 
-    kuzu::pyarrow::Table getAsArrow(std::int64_t chunkSize);
+    kuzu::pyarrow::Table getAsArrow(std::int64_t chunkSize, bool fallbackExtensionTypes);
 
     py::list getColumnDataTypes();
 
