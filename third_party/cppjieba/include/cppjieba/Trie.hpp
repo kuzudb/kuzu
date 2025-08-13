@@ -78,9 +78,9 @@ class Trie {
     return ptNode->ptValue;
   }
 
-  void Find(RuneStrArray::const_iterator begin, 
-        RuneStrArray::const_iterator end, 
-        vector<struct Dag>&res, 
+  void Find(RuneStrArray::const_iterator begin,
+        RuneStrArray::const_iterator end,
+        vector<struct Dag>&res,
         size_t max_word_len = MAX_WORD_LENGTH) const {
     assert(root_ != NULL);
     res.resize(end - begin);
@@ -141,7 +141,7 @@ class Trie {
     assert(ptNode != NULL);
     ptNode->ptValue = ptValue;
   }
-  void DeleteNode(const Unicode& key, const DictUnit* ptValue) {
+  void DeleteNode(const Unicode& key, const DictUnit* /*ptValue*/) {
       if (key.begin() == key.end()) {
         return;
       }
