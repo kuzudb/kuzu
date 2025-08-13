@@ -199,10 +199,3 @@ Binder exception: True has data type BOOL but STRING was expected.
 ---- error
 Binder exception: An error occurred while compiling the regex: "[a-z".
 Error: "missing ]: [a-z".
-
--CASE InvalidTokenizer
--LOAD_DYNAMIC_EXTENSION fts
--STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'], tokenizer := 'french')
----- error
-Binder exception: Unsupported tokenizer: french.
-Supported tokenizers: 'simple' (default), 'jieba' (advanced Chinese)

@@ -2,9 +2,7 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
         ${CMAKE_BINARY_DIR}/src/include
         src/include
-        third_party/snowball/libstemmer
-        ${PROJECT_SOURCE_DIR}/third_party/cppjieba/include
-        ${PROJECT_SOURCE_DIR}/third_party/cppjieba/deps/limonp/include)
+        third_party/snowball/libstemmer)
 
 add_subdirectory(src/catalog)
 add_subdirectory(src/function)
@@ -20,11 +18,4 @@ build_extension_lib(${BUILD_STATIC_EXTENSION} "fts")
 target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
         snowball
-        re2
-        cppjieba)
-
-# Copy Jieba dictionaries next to the built extension so runtime can find a default path
-add_custom_command(TARGET kuzu_${EXTENSION_LIB_NAME}_extension POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${PROJECT_SOURCE_DIR}/third_party/cppjieba/dict
-        ${PROJECT_SOURCE_DIR}/extension/fts/build/dict)
+        re2)

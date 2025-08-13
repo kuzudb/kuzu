@@ -75,7 +75,8 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
         }
         content = indexVector->getValue<ku_string_t>(pos).getAsString();
         FTSUtils::normalizeQuery(content, regexPattern);
-        auto termsInContent = FTSUtils::tokenizeString(content, config);
+        auto termsInContent =
+            StringUtils::split(content, " " /* delimiter */, true /* ignoreEmptyStringParts */);
         termsInContent = FTSUtils::stemTerms(termsInContent, config, mm, stopWordsTable,
             transaction, true /* isConjunctive */, false /* isQuery */);
         // TODO(Ziyi): StringUtils::split() has a bug which doesn't ignore empty parts even

@@ -1,7 +1,6 @@
 #include "utils/fts_utils.h"
 
 #include "common/string_utils.h"
-#include "cppjieba/Jieba.hpp"
 #include "function/stem.h"
 #include "libstemmer.h"
 #include "re2.h"
@@ -83,20 +82,6 @@ std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
     }
     sb_stemmer_delete(sbStemmer);
     return result;
-}
-
-std::vector<std::string> FTSUtils::tokenizeString(std::string& str, const FTSConfig& config) {
-    FTSUtils::normalizeQuery(str, config.tokenizer);
-    std::vector<std::string> terms;
-    if (config.tokenizer == "jieba") {
-        cppjieba::Jieba jieba(config.jiebaDictDir + "/jieba.dict.utf8",
-            config.jiebaDictDir + "/hmm_model.utf8", config.jiebaDictDir + "/user.dict.utf8",
-            config.jiebaDictDir + "/idf.utf8", config.jiebaDictDir + "/stop_words.utf8");
-        jieba.CutForSearch(str, terms);
-    } else {
-        terms = StringUtils::split(str, " ", true /* ignoreEmptyStringParts */);
-    }
-    return terms;
 }
 
 } // namespace fts_extension

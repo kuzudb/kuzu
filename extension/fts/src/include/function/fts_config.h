@@ -54,22 +54,6 @@ struct IgnorePattern {
     static void validate(const std::string& ignorePattern);
 };
 
-struct Tokenizer {
-    static constexpr const char* NAME = "tokenizer";
-    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
-    static constexpr const char* DEFAULT_VALUE = "simple";
-
-    static void validate(const std::string& tokenizer);
-};
-
-struct TokenizerInfo {
-    std::string tokenizer = Tokenizer::DEFAULT_VALUE;
-    std::string jiebaDictDir =
-        common::stringFormat("{}/extension/fts/build/dict", KUZU_ROOT_DIRECTORY);
-
-    TokenizerInfo() = default;
-};
-
 struct FTSConfig;
 
 struct CreateFTSConfig {
@@ -77,7 +61,6 @@ struct CreateFTSConfig {
     StopWordsTableInfo stopWordsTableInfo;
     std::string ignorePattern = IgnorePattern::DEFAULT_VALUE;
     std::string ignorePatternQuery = IgnorePattern::DEFAULT_VALUE_QUERY;
-    TokenizerInfo tokenizerInfo;
 
     CreateFTSConfig() = default;
     CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,
@@ -94,17 +77,13 @@ struct FTSConfig {
     std::string stopWordsSource = "";
     std::string ignorePattern = "";
     std::string ignorePatternQuery = "";
-    std::string tokenizer = "";
-    std::string jiebaDictDir = "";
 
     FTSConfig() = default;
     FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource,
-        std::string ignorePattern, std::string ignorePatternQuery, std::string tokenizer,
-        std::string jiebaDictDir)
+        std::string ignorePattern, std::string ignorePatternQuery)
         : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)},
           stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)},
-          ignorePatternQuery{std::move(ignorePatternQuery)}, tokenizer{std::move(tokenizer)},
-          jiebaDictDir{std::move(jiebaDictDir)} {}
+          ignorePatternQuery{std::move(ignorePatternQuery)} {}
 
     void serialize(common::Serializer& serializer) const;
 

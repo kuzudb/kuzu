@@ -158,13 +158,14 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     std::string query = "";
     if (!context.getCatalog()->containsMacro(context.getTransaction(),
             FTSUtils::getTokenizeMacroName(tableID, indexName))) {
-        // TOKENIZE(text, tokenizer, extra_param)
         query += common::stringFormat(R"(CREATE MACRO `{}`(query) AS
-                            TOKENIZE(lower(regexp_replace(CAST(query as STRING), '{}', ' ', 'g')), '{}', '{}');)",
+                            string_split(lower(regexp_replace(
+                            CAST(query as STRING),
+                            '{}',
+                            ' ',
+                            'g')), ' ');)",
             FTSUtils::getTokenizeMacroName(tableID, indexName),
-            formatStrInCypher(ftsBindData->createFTSConfig.ignorePattern),
-            ftsBindData->createFTSConfig.tokenizerInfo.tokenizer,
-            ftsBindData->createFTSConfig.tokenizerInfo.jiebaDictDir);
+            formatStrInCypher(ftsBindData->createFTSConfig.ignorePattern));
     }
 
     // Create the stop words table if not exists, or the user is not using the default english
