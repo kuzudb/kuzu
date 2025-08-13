@@ -6,10 +6,10 @@
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "third_party/cppjieba_wrapper.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/scalar_function.h"
 #include "re2.h"
+#include "third_party/cppjieba_wrapper.h"
 
 namespace kuzu {
 namespace fts_extension {
