@@ -112,7 +112,7 @@ struct BCBwdData {
 
 /**Compute**/
 
-static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId) {
+static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, bool undirected) {
     for(auto qIdx = 0u; qIdx < fwdTraverse.queue.size(); ++qIdx) {
         const auto cur = fwdTraverse.queue[qIdx];
         const nodeID_t nextNodeId = {cur, tableId};
@@ -139,10 +139,36 @@ static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::G
                 }
             });
         }
+        if (!undirected) {
+            continue;
+        }
+        for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
+            chunk.forEach([&](auto neighbors, auto, auto i) {
+                auto nbrId = neighbors[i].offset;
+                if (nbrId == cur) {
+                    // Ignore self-loops.
+                    return;
+                }
+                // First time we visit the node.
+                if (fwdData.nodePathData[nbrId].pathScore == BCFwdData::pathData::INF) {
+                    // Mark the pathScore (distance for unweighted, else pathWeight).
+                    fwdData.nodePathData[nbrId].pathScore = fwdData.nodePathData[cur].pathScore+1;
+                    // Set the frontier iteration it was set to.
+                    fwdData.levels[nbrId] = fwdData.levels[cur]+1;
+                    fwdData.maxLevel = std::max(fwdData.levels[nbrId], fwdData.maxLevel);
+                    fwdTraverse.queue.push_back(nbrId);
+                }
+                // We found a shortestPath. The number of ways to reach nbr is
+                // increased by the number of ways to reach cur.
+                if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+1) {
+                    fwdData.nodePathData[nbrId].numPaths += fwdData.nodePathData[cur].numPaths;
+                }
+            });
+        }
     }
 }
 
-static void backwardsCompute(const BCFwdData& fwdData, BCBwdData& bwdData, BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, const offset_t sourceNode) {
+static void backwardsCompute(const BCFwdData& fwdData, BCBwdData& bwdData, BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, const offset_t sourceNode, bool undirected) {
     const auto numNodes = fwdData.nodePathData.size();
     // This is inefficient, but fine for testing. We should sort with a comparator on level.
     for(auto curLevel = fwdData.maxLevel; curLevel > 0; --curLevel) {
@@ -153,6 +179,25 @@ static void backwardsCompute(const BCFwdData& fwdData, BCBwdData& bwdData, Betwe
             }
             const nodeID_t nextNodeId = {cur, tableId};
             for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
+                chunk.forEach([&](auto neighbors, auto, auto i) {
+                    auto nbrId = neighbors[i].offset;
+                    if (nbrId == cur) {
+                        // Ignore self-loops.
+                        return;
+                    }
+                    
+                    // Check if nbrId is a parent in the shortest path to cur
+                    // For weighted graphs, instead of adding one we add the weight of the edge.
+                    if (fwdData.nodePathData[nbrId].pathScore + 1 == fwdData.nodePathData[cur].pathScore) {
+                        const auto parent = nbrId;
+                        bwdData.dependencyScores[parent] += ((double)fwdData.nodePathData[parent].numPaths / fwdData.nodePathData[cur].numPaths)*(1 + bwdData.dependencyScores[cur]);
+                    }
+                });
+            }
+            if (!undirected) {
+                continue;
+            }
+            for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
                 chunk.forEach([&](auto neighbors, auto, auto i) {
                     auto nbrId = neighbors[i].offset;
                     if (nbrId == cur) {
@@ -233,6 +278,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     if (!config.weightProperty.getParamVal().empty()) {
         relProps.push_back(config.weightProperty.getParamVal());
     }
+    bool undirected = StringUtils::getLower(config.direction.getParamVal()) == Direction::UNDIRECTED;
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
     BetweennessCentralityState state{mm, numNodes};
@@ -240,11 +286,11 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         // Forward Traverse
         BCFwdData fwdData(mm, numNodes, i /*sourceNode*/);
         BCFwdTraverse fwdTraverse(mm, i /*sourceNode*/);
-        SSSPCompute(fwdData, fwdTraverse, graph, scanState.get(), tableId);
+        SSSPCompute(fwdData, fwdTraverse, graph, scanState.get(), tableId, undirected);
         
         // Backward Traverse
         BCBwdData bwdData(mm, numNodes);
-        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/);
+        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/, undirected);
     }
 
     const auto vertexCompute = std::make_unique<WriteResultsBC>(mm, sharedState, state.betweennessCentrality);
