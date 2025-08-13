@@ -189,7 +189,7 @@ class QueryResult:
             data=self.get_as_arrow(chunk_size=-1, fallbackExtensionTypes=True),
         )
 
-    def get_as_arrow(self, chunk_size: int | None = None, fallbackExtensionTypes: bool = False) -> pa.Table:
+    def get_as_arrow(self, chunk_size: int | None = None, *, fallbackExtensionTypes: bool = False) -> pa.Table:
         """
         Get the query result as a PyArrow Table.
 
@@ -202,6 +202,7 @@ class QueryResult:
                 The entire result is returned as a single chunk.
             > 0
                 The chunk size is the number of rows specified.
+        fallbackExtensionTypes : Avoid using Arrow extension types for compatibility with Polars
 
         See Also
         --------
