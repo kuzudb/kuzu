@@ -332,6 +332,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     return 0;
 }
 
+static constexpr char SRC_COLUMN_NAME[] = "SRC";
+static constexpr char DST_COLUMN_NAME[] = "DST";
+static constexpr char REL_COLUMN_NAME[] = "REL";
+static constexpr char FOREST_ID_COLUMN_NAME[] = "FOREST_ID";
+
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto graphName = input->getLiteralVal<std::string>(0);
@@ -345,15 +350,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             std::string(SpanningForest::name) + " only supports operations on one rel table.");
     }
     expression_vector columns;
-    auto srcOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "SRC", 0);
-    auto dstOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), "DST", 1);
+    auto srcOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), SRC_COLUMN_NAME, 0);
+    auto dstOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), DST_COLUMN_NAME, 1);
     auto relOutput = GDSFunction::bindRelOutput(*input, graphEntry.getRelEntries(),
         std::dynamic_pointer_cast<NodeExpression>(srcOutput),
-        std::dynamic_pointer_cast<NodeExpression>(dstOutput), "REL", 2);
+        std::dynamic_pointer_cast<NodeExpression>(dstOutput), REL_COLUMN_NAME, 2);
     columns.push_back(srcOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(dstOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(relOutput->constCast<RelExpression>().getInternalID());
-    columns.push_back(input->binder->createVariable("FOREST_ID", LogicalType::UINT64()));
+    columns.push_back(input->binder->createVariable(FOREST_ID_COLUMN_NAME, LogicalType::UINT64()));
     return std::make_unique<SFBindData>(std::move(columns), std::move(graphEntry),
         expression_vector{srcOutput, dstOutput, relOutput},
         std::make_unique<SFOptionalParams>(input->optionalParamsLegacy));
@@ -414,7 +419,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     // In that case, we must avoid adding it again to relProperties.
     bool foundInternalId = false;
     for (const auto& property : relProperties) {
-        if (property->getDataType().getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
+        if (*property == *relOutput->getInternalID()) {
             foundInternalId = true;
             break;
         }
