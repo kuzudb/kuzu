@@ -145,7 +145,7 @@ public:
 
     std::unique_ptr<NbrScanState> prepareRelScan(const catalog::TableCatalogEntry& entry,
         common::oid_t relTableID, common::table_id_t nbrTableID,
-        std::vector<std::string> relProperties) override;
+        std::vector<std::string> relProperties, bool randomLookUp = true) override;
 
     EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) override;
     EdgeIterator scanBwd(common::nodeID_t nodeID, NbrScanState& state) override;

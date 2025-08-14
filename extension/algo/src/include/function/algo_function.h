@@ -71,5 +71,17 @@ struct LouvainFunction {
     static function::function_set getFunctionSet();
 };
 
+struct SpanningForest {
+    static constexpr const char* name = "SPANNING_FOREST";
+
+    static function::function_set getFunctionSet();
+};
+
+struct SpanningForestAliasFunction {
+    using alias = SpanningForest;
+
+    static constexpr const char* name = "SF";
+};
+
 } // namespace algo_extension
 } // namespace kuzu

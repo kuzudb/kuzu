@@ -77,7 +77,8 @@ public:
     static graph::NativeGraphEntry bindGraphEntry(main::ClientContext& context,
         const graph::ParsedNativeGraphEntry& parsedGraphEntry);
     static std::shared_ptr<binder::Expression> bindNodeOutput(const TableFuncBindInput& bindInput,
-        const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
+        const std::vector<catalog::TableCatalogEntry*>& nodeEntries,
+        const std::optional<std::string>& name = std::nullopt);
     static std::string bindColumnName(const parser::YieldVariable& yieldVariable,
         std::string expressionName);
 

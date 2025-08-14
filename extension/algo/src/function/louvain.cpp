@@ -1,11 +1,10 @@
-#include <cmath>
-
 #include "binder/binder.h"
 #include "common/exception/runtime.h"
 #include "common/in_mem_gds_utils.h"
 #include "common/in_mem_graph.h"
 #include "common/string_utils.h"
 #include "common/task_system/progress_bar.h"
+#include "common/types/types.h"
 #include "function/algo_function.h"
 #include "function/config/louvain_config.h"
 #include "function/config/max_iterations_config.h"
@@ -158,12 +157,13 @@ struct PhaseState {
     void finalize() { graph.initNextNode(); }
 };
 
-class ResetPhaseStateVC final : public InMemVertexCompute {
+class ResetPhaseStateVC final : public InMemParallelCompute {
 public:
     explicit ResetPhaseStateVC(PhaseState& state) : state{state} {}
     ~ResetPhaseStateVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             state.nodeWeightedDegrees.set(nodeId, 0, memory_order_relaxed);
             state.currCommInfos.set(nodeId, CommInfo());
@@ -173,7 +173,7 @@ public:
         }
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<ResetPhaseStateVC>(state);
     }
 
@@ -181,19 +181,20 @@ private:
     PhaseState& state;
 };
 
-class StartNewIterVC final : public InMemVertexCompute {
+class StartNewIterVC final : public InMemParallelCompute {
 public:
     explicit StartNewIterVC(PhaseState& state) : state{state} {}
     ~StartNewIterVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             state.selfCommWeights.set(nodeId, 0, memory_order_relaxed);
             state.nextCommInfos.set(nodeId, CommInfo());
         }
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<StartNewIterVC>(state);
     }
 
@@ -212,7 +213,7 @@ void PhaseState::reinit(const offset_t numNodes, MemoryManager* mm, ExecutionCon
     nextComm.reallocate(numNodes, mm);
 
     ResetPhaseStateVC resetPhaseStateVC(*this);
-    InMemGDSUtils::runVertexCompute(resetPhaseStateVC, numNodes, context);
+    InMemGDSUtils::runParallelCompute(resetPhaseStateVC, numNodes, context);
 }
 
 void PhaseState::startNewIter(MemoryManager* mm, ExecutionContext* context) {
@@ -220,7 +221,7 @@ void PhaseState::startNewIter(MemoryManager* mm, ExecutionContext* context) {
     nextCommInfos.reallocate(graph.numNodes, mm);
 
     StartNewIterVC startNewIterVC(*this);
-    InMemGDSUtils::runVertexCompute(startNewIterVC, graph.numNodes, context);
+    InMemGDSUtils::runParallelCompute(startNewIterVC, graph.numNodes, context);
 
     modularityConstant = 1.0 / totalWeight;
 }
@@ -231,14 +232,15 @@ struct FinalResults {
     explicit FinalResults(const offset_t numNodes) { communities.resize(numNodes); }
 };
 
-class SaveCommAssignmentsVC final : public InMemVertexCompute {
+class SaveCommAssignmentsVC final : public InMemParallelCompute {
 public:
     explicit SaveCommAssignmentsVC(const offset_t phaseId, FinalResults& finalResults,
         PhaseState& state)
         : phaseId{phaseId}, finalResults{finalResults}, state{state} {}
     ~SaveCommAssignmentsVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         if (phaseId == 0) {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
                 finalResults.communities[nodeId] =
@@ -258,7 +260,7 @@ public:
         }
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<SaveCommAssignmentsVC>(phaseId, finalResults, state);
     }
 
@@ -268,12 +270,13 @@ private:
     PhaseState& state;
 };
 
-class RunIterationVC final : public InMemVertexCompute {
+class RunIterationVC final : public InMemParallelCompute {
 public:
     explicit RunIterationVC(PhaseState& state) : state{state} {}
     ~RunIterationVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         // For every `nodeId`, separately stores the edge weights to its own community (at index 0)
         // and each of its neighboring communities.
         vector<weight_t> intraCommWeights;
@@ -392,7 +395,7 @@ public:
         return newComm;
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<RunIterationVC>(state);
     }
 
@@ -400,14 +403,15 @@ private:
     PhaseState& state;
 };
 
-class ComputeModularityVC final : public InMemVertexCompute {
+class ComputeModularityVC final : public InMemParallelCompute {
 public:
     ComputeModularityVC(PhaseState& state, std::atomic<weight_t>& sumIntraWeights,
         std::atomic<weight_t>& sumWeightedDegrees)
         : state{state}, sumIntraWeights{sumIntraWeights}, sumWeightedDegrees{sumWeightedDegrees} {}
     ~ComputeModularityVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         weight_t sumIntraLocal = 0;
         weight_t sumTotalLocal = 0;
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
@@ -420,7 +424,7 @@ public:
         sumWeightedDegrees.fetch_add(sumTotalLocal);
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<ComputeModularityVC>(state, sumIntraWeights, sumWeightedDegrees);
     }
 
@@ -430,12 +434,13 @@ private:
     std::atomic<weight_t>& sumWeightedDegrees;
 };
 
-class UpdateCommInfosVC final : public InMemVertexCompute {
+class UpdateCommInfosVC final : public InMemParallelCompute {
 public:
     explicit UpdateCommInfosVC(PhaseState& state) : state{state} {}
     ~UpdateCommInfosVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             const offset_t size =
                 state.nextCommInfos.getUnsafe(nodeId).size.load(memory_order_relaxed);
@@ -446,7 +451,7 @@ public:
         }
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<UpdateCommInfosVC>(state);
     }
 
@@ -489,8 +494,9 @@ void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph*
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
-    const auto scanState =
-        graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
+    // Set randomLookup to false to enable caching during graph materialization.
+    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
+        nbrInfo.dstTableID, {}, false /*randomLookup*/);
 
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         state.initNextNode(nodeId);
@@ -601,7 +607,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             // community increases the graph modularity. Note that the new community assignments are
             // sensitive to the order in which the nodes are processed.
             RunIterationVC runIteration(state);
-            InMemGDSUtils::runVertexCompute(runIteration, state.graph.numNodes, input.context);
+            InMemGDSUtils::runParallelCompute(runIteration, state.graph.numNodes, input.context);
 
             progressBar->updateProgress(input.context->queryID, progress * 0.5);
 
@@ -610,7 +616,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             std::atomic<weight_t> sumIntraWeights{0};
             std::atomic<weight_t> sumWeightedDegrees{0};
             ComputeModularityVC newModularityVC(state, sumIntraWeights, sumWeightedDegrees);
-            InMemGDSUtils::runVertexCompute(newModularityVC, state.graph.numNodes, input.context);
+            InMemGDSUtils::runParallelCompute(newModularityVC, state.graph.numNodes, input.context);
             const double currMod =
                 sumIntraWeights.load() * state.modularityConstant -
                 (sumWeightedDegrees.load() * state.modularityConstant * state.modularityConstant);
@@ -624,7 +630,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             oldMod = currMod;
             // nextCommInfo -> currCommInfo.
             UpdateCommInfosVC updateCommInfosVC(state);
-            InMemGDSUtils::runVertexCompute(updateCommInfosVC, state.graph.numNodes, input.context);
+            InMemGDSUtils::runParallelCompute(updateCommInfosVC, state.graph.numNodes,
+                input.context);
 
             // Save `currComm` to `acceptedComm`.
             std::swap(state.acceptedComm, state.currComm);
@@ -638,7 +645,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
         // Save the renumbered communities as output.
         SaveCommAssignmentsVC setFinalComms(phase, finalResults, state);
-        InMemGDSUtils::runVertexCompute(setFinalComms, origNumNodes, input.context);
+        InMemGDSUtils::runParallelCompute(setFinalComms, origNumNodes, input.context);
 
         if (oldCommCount == newCommCount) {
             // No node merged into a neighbor community. The assignments saved above are final.
@@ -651,8 +658,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         aggregateCommunities(newCommCount, state, mm, input.context);
     }
 
-    const auto vertexCompute = make_unique<WriteResultsVC>(mm, sharedState, finalResults);
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
+    const auto parallelCompute = make_unique<WriteResultsVC>(mm, sharedState, finalResults);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *parallelCompute);
 
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
