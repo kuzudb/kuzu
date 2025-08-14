@@ -29,12 +29,6 @@ struct LogicalTypeMapping<common::LogicalTypeID::STRING> {
     using type = std::string;
 };
 
-
-template<>
-struct LogicalTypeMapping<common::LogicalTypeID::STRING> {
-    using type = std::string;
-};
-
 template<typename PARAM>
 struct OptionalParam {
     using T = typename LogicalTypeMapping<PARAM::TYPE>::type;
