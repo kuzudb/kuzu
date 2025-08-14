@@ -488,6 +488,7 @@ def test_to_arrow_map(conn_db_readonly: ConnDB) -> None:
     result = conn.execute("RETURN map(['abc', 'xyz', 'qwe'], [123, 456, 781527])").get_as_arrow(1)
     assert result[0].to_pylist(maps_as_pydicts="strict") == [{"abc": 123, "xyz": 456, "qwe": 781527}]
 
+
 def test_to_arrow_array(conn_db_readwrite: ConnDB) -> None:
     conn = conn_db_readwrite[0]
     conn.execute("CREATE NODE TABLE school (id int64 primary key, prop1 int64[3])")
