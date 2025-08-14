@@ -405,8 +405,9 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
 
     auto relProperties = planner->getProperties(*relOutput);
 
-    // If the query returns a specific relationship property (e.g., RETURN ... rel.someProperty ...),
-    // getProperties() will not include the relationship's internal ID, so we need to add it manually.
+    // If the query returns a specific relationship property (e.g., RETURN ... rel.someProperty
+    // ...), getProperties() will not include the relationship's internal ID, so we need to add it
+    // manually.
     //
     // If the query returns the whole relationship (e.g., RETURN ... rel ...),
     // getProperties() will include the internal ID automatically.
