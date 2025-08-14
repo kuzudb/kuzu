@@ -15,9 +15,9 @@ namespace kuzu {
 namespace processor {
 
 FlatTuple::FlatTuple(const std::vector<LogicalType>& types) {
-   for (auto& type : types) {
-       values.emplace_back(Value::createDefaultValue(type));
-   }
+    for (auto& type : types) {
+        values.emplace_back(Value::createDefaultValue(type));
+    }
 }
 
 uint32_t FlatTuple::len() const {

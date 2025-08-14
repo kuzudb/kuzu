@@ -13,10 +13,10 @@
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "include/py_udf.h"
 #include "main/connection.h"
+#include "main/query_result/materialized_query_result.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
 #include "pyarrow/pyarrow_scan.h"
-#include "main/query_result/materialized_query_result.h"
 
 using namespace kuzu::common;
 using namespace kuzu;

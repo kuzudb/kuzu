@@ -1,7 +1,8 @@
 #include "main/query_result.h"
-#include "processor/result/flat_tuple.h"
+
 #include "common/arrow/arrow_converter.h"
 #include "main/query_result/materialized_query_result.h"
+#include "processor/result/flat_tuple.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -10,8 +11,8 @@ namespace kuzu {
 namespace main {
 
 QueryResult::QueryResult()
-    : type{QueryResultType::FTABLE}, nextQueryResult{nullptr},
-      queryResultIterator{this}, dbLifeCycleManager{nullptr} {}
+    : type{QueryResultType::FTABLE}, nextQueryResult{nullptr}, queryResultIterator{this},
+      dbLifeCycleManager{nullptr} {}
 
 QueryResult::QueryResult(QueryResultType type, std::vector<std::string> columnNames,
     std::vector<LogicalType> columnTypes)
@@ -73,7 +74,8 @@ QueryResult* QueryResult::getNextQueryResult() {
 
 std::unique_ptr<ArrowSchema> QueryResult::getArrowSchema() const {
     checkDatabaseClosedOrThrow();
-    return ArrowConverter::toArrowSchema(getColumnDataTypes(), getColumnNames(), false /* fallbackExtensionTypes */);
+    return ArrowConverter::toArrowSchema(getColumnDataTypes(), getColumnNames(),
+        false /* fallbackExtensionTypes */);
 }
 
 void QueryResult::validateQuerySucceed() const {

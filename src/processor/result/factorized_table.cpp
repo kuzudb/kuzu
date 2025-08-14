@@ -683,7 +683,8 @@ void FactorizedTableIterator::resetState() {
     }
 }
 
-void FactorizedTableIterator::readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer, FlatTuple& tuple) {
+void FactorizedTableIterator::readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer,
+    FlatTuple& tuple) {
     auto overflowValue =
         (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     auto groupID = factorizedTable.getTableSchema()->getColumn(colIdx)->getGroupID();
@@ -700,12 +701,14 @@ void FactorizedTableIterator::readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint
     }
 }
 
-void FactorizedTableIterator::readFlatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer, FlatTuple& tuple) {
+void FactorizedTableIterator::readFlatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer,
+    FlatTuple& tuple) {
     auto isNull = factorizedTable.isNonOverflowColNull(
         valueBuffer + factorizedTable.getTableSchema()->getNullMapOffset(), colIdx);
     tuple[colIdx].setNull(isNull);
     if (!isNull) {
-        tuple[colIdx].copyFromRowLayout(valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
+        tuple[colIdx].copyFromRowLayout(
+            valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     }
 }
 

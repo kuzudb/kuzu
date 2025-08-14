@@ -49,30 +49,36 @@ struct ArrowVector {
 // An arrow data chunk consisting of N rows in columnar format.
 class ArrowRowBatch {
 public:
-    ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity, bool fallbackExtensionTypes);
+    ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity,
+        bool fallbackExtensionTypes);
 
     void append(const processor::FlatTuple& tuple);
     ArrowArray toArray();
 
 private:
-    static void appendValue(ArrowVector* vector, const LogicalType& type, const Value& value, bool fallbackExtensionTypes);
+    static void appendValue(ArrowVector* vector, const LogicalType& type, const Value& value,
+        bool fallbackExtensionTypes);
 
-    static ArrowArray* convertVectorToArray(ArrowVector& vector, const LogicalType& type, bool fallbackExtensionTypes);
-    static ArrowArray* convertStructVectorToArray(ArrowVector& vector, const LogicalType& type, bool fallbackExtensionTypes);
-    static ArrowArray* convertInternalIDVectorToArray(ArrowVector& vector, const LogicalType& type, bool fallbackExtensionTypes);
+    static ArrowArray* convertVectorToArray(ArrowVector& vector, const LogicalType& type,
+        bool fallbackExtensionTypes);
+    static ArrowArray* convertStructVectorToArray(ArrowVector& vector, const LogicalType& type,
+        bool fallbackExtensionTypes);
+    static ArrowArray* convertInternalIDVectorToArray(ArrowVector& vector, const LogicalType& type,
+        bool fallbackExtensionTypes);
 
     static void copyNonNullValue(ArrowVector* vector, const LogicalType& type, const Value& value,
         std::int64_t pos, bool fallbackExtensionTypes);
     static void copyNullValue(ArrowVector* vector, const Value& value, std::int64_t pos);
 
     template<LogicalTypeID DT>
-    static void templateCopyNonNullValue(ArrowVector* vector, const LogicalType& type, const Value& value,
-        std::int64_t pos, bool fallbackExtensionTypes);
+    static void templateCopyNonNullValue(ArrowVector* vector, const LogicalType& type,
+        const Value& value, std::int64_t pos, bool fallbackExtensionTypes);
     template<LogicalTypeID DT>
     static void templateCopyNullValue(ArrowVector* vector, std::int64_t pos);
     static void copyNullValueUnion(ArrowVector* vector, const Value& value, std::int64_t pos);
     template<LogicalTypeID DT>
-    static ArrowArray* templateCreateArray(ArrowVector& vector, const LogicalType& type, bool fallbackExtensionTypes);
+    static ArrowArray* templateCreateArray(ArrowVector& vector, const LogicalType& type,
+        bool fallbackExtensionTypes);
 
 private:
     // TODO(Xiyang): remove types

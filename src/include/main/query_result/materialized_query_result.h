@@ -6,7 +6,7 @@ namespace kuzu {
 namespace processor {
 class FactorizedTable;
 class FactorizedTableIterator;
-}
+} // namespace processor
 
 namespace main {
 
@@ -16,7 +16,8 @@ class MaterializedQueryResult : public QueryResult {
 public:
     MaterializedQueryResult();
     MaterializedQueryResult(std::vector<std::string> columnNames,
-        std::vector<common::LogicalType> columnTypes, std::shared_ptr<processor::FactorizedTable> table);
+        std::vector<common::LogicalType> columnTypes,
+        std::shared_ptr<processor::FactorizedTable> table);
     ~MaterializedQueryResult() override;
 
     uint64_t getNumTuples() const override;
@@ -40,5 +41,5 @@ private:
     std::unique_ptr<processor::FactorizedTableIterator> iterator;
 };
 
-}
-}
+} // namespace main
+} // namespace kuzu

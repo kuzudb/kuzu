@@ -11,7 +11,8 @@ class ArrowQueryResult : public QueryResult {
 
 public:
     ArrowQueryResult(std::vector<std::string> columnNames,
-        std::vector<common::LogicalType> columnTypes, processor::FactorizedTable& table, int64_t chunkSize);
+        std::vector<common::LogicalType> columnTypes, processor::FactorizedTable& table,
+        int64_t chunkSize);
 
     uint64_t getNumTuples() const override;
 
@@ -37,5 +38,5 @@ private:
     uint64_t cursor = 0;
 };
 
-}
-}
+} // namespace main
+} // namespace kuzu

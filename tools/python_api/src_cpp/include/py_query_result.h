@@ -56,7 +56,8 @@ private:
     static py::dict convertNodeIdToPyDict(const kuzu::common::nodeID_t& nodeId);
 
     void getNextArrowChunk(const std::vector<kuzu::common::LogicalType>& types,
-        const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize, bool fallbackExtensionTypes);
+        const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize,
+        bool fallbackExtensionTypes);
     py::object getArrowChunks(const std::vector<kuzu::common::LogicalType>& types,
         const std::vector<std::string>& names, std::int64_t chunkSize, bool fallbackExtensionTypes);
 

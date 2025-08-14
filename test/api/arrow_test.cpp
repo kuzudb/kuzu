@@ -32,19 +32,22 @@ TEST_F(ArrowTest, getArrowResult) {
         (void)result->hasNext();
         FAIL();
     } catch (const Exception& e) {
-        ASSERT_STREQ(e.what(), "ArrowQueryResult does not implement hasNext. Use MaterializedQueryResult instead.");
+        ASSERT_STREQ(e.what(),
+            "ArrowQueryResult does not implement hasNext. Use MaterializedQueryResult instead.");
     }
     try {
         (void)result->getNext();
         FAIL();
     } catch (const Exception& e) {
-        ASSERT_STREQ(e.what(), "ArrowQueryResult does not implement getNext. Use MaterializedQueryResult instead.");
+        ASSERT_STREQ(e.what(),
+            "ArrowQueryResult does not implement getNext. Use MaterializedQueryResult instead.");
     }
     try {
         (void)result->toString();
         FAIL();
     } catch (const Exception& e) {
-        ASSERT_STREQ(e.what(), "ArrowQueryResult does not implement toString. Use MaterializedQueryResult instead.");
+        ASSERT_STREQ(e.what(),
+            "ArrowQueryResult does not implement toString. Use MaterializedQueryResult instead.");
     }
     ASSERT_TRUE(result->hasNextArrowChunk());
     auto arrowArray = result->getNextArrowChunk(1);

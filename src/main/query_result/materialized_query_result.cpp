@@ -1,9 +1,9 @@
 #include "main/query_result/materialized_query_result.h"
 
+#include "common/arrow/arrow_row_batch.h"
 #include "common/exception/runtime.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
-#include "common/arrow/arrow_row_batch.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -87,7 +87,8 @@ bool MaterializedQueryResult::hasNextArrowChunk() {
 
 std::unique_ptr<ArrowArray> MaterializedQueryResult::getNextArrowChunk(int64_t chunkSize) {
     checkDatabaseClosedOrThrow();
-    auto rowBatch = std::make_unique<ArrowRowBatch>(copyVector(columnTypes), chunkSize, false /* fallbackExtensionTypes */);
+    auto rowBatch = std::make_unique<ArrowRowBatch>(copyVector(columnTypes), chunkSize,
+        false /* fallbackExtensionTypes */);
     auto rowBatchSize = 0u;
     while (rowBatchSize < chunkSize) {
         if (!iterator->hasNext()) {
@@ -100,5 +101,5 @@ std::unique_ptr<ArrowArray> MaterializedQueryResult::getNextArrowChunk(int64_t c
     return std::make_unique<ArrowArray>(rowBatch->toArray());
 }
 
-}
-}
+} // namespace main
+} // namespace kuzu

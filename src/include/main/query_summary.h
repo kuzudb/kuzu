@@ -1,7 +1,8 @@
 #pragma once
 
-#include "common/api.h"
 #include <cstdint>
+
+#include "common/api.h"
 
 namespace kuzu {
 namespace common {
@@ -25,7 +26,8 @@ class QuerySummary {
 
 public:
     QuerySummary() = default;
-    explicit QuerySummary(const PreparedSummary& preparedSummary) : preparedSummary{preparedSummary} {}
+    explicit QuerySummary(const PreparedSummary& preparedSummary)
+        : preparedSummary{preparedSummary} {}
     /**
      * @return query compiling time in milliseconds.
      */

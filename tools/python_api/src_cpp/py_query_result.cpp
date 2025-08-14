@@ -4,12 +4,12 @@
 
 #include "cached_import/py_cached_import.h"
 #include "common/arrow/arrow_converter.h"
+#include "common/arrow/arrow_row_batch.h"
 #include "common/exception/not_implemented.h"
 #include "common/types/uuid.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
-#include "common/arrow/arrow_row_batch.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
 
@@ -288,8 +288,10 @@ py::object PyQueryResult::getAsDF() {
 }
 
 void PyQueryResult::getNextArrowChunk(const std::vector<LogicalType>& types,
-    const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize, bool fallbackExtensionTypes) {
-    auto rowBatch = std::make_unique<ArrowRowBatch>(copyVector(types), chunkSize, fallbackExtensionTypes);
+    const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize,
+    bool fallbackExtensionTypes) {
+    auto rowBatch =
+        std::make_unique<ArrowRowBatch>(copyVector(types), chunkSize, fallbackExtensionTypes);
     auto rowBatchSize = 0u;
     while (rowBatchSize < chunkSize) {
         if (!queryResult->hasNext()) {

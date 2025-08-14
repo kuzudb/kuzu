@@ -15,6 +15,7 @@
 #include "main/database.h"
 #include "main/database_manager.h"
 #include "main/db_config.h"
+#include "main/query_result/arrow_query_result.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
 #include "parser/visitor/standalone_call_rewriter.h"
@@ -26,7 +27,6 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_context.h"
-#include "main/query_result/arrow_query_result.h"
 
 #if defined(_WIN32)
 #include "common/windows_utils.h"
@@ -558,7 +558,8 @@ ClientContext::PrepareResult ClientContext::prepareNoLock(
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* preparedStatement,
-    CachedPreparedStatement* cachedStatement, std::optional<uint64_t> queryID, ArrowInfo arrowInfo) {
+    CachedPreparedStatement* cachedStatement, std::optional<uint64_t> queryID,
+    ArrowInfo arrowInfo) {
     if (!preparedStatement->isSuccess()) {
         return QueryResult::getQueryResultWithError(preparedStatement->errMsg);
     }
@@ -610,9 +611,11 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     auto columnTypes = cachedStatement->getColumnTypes();
     std::unique_ptr<QueryResult> result;
     if (arrowInfo.asArrow) {
-        result = std::make_unique<ArrowQueryResult>(std::move(columnNames), std::move(columnTypes), *resultFT, arrowInfo.chunkSize);
+        result = std::make_unique<ArrowQueryResult>(std::move(columnNames), std::move(columnTypes),
+            *resultFT, arrowInfo.chunkSize);
     } else {
-        result = std::make_unique<MaterializedQueryResult>(std::move(columnNames), std::move(columnTypes), resultFT);
+        result = std::make_unique<MaterializedQueryResult>(std::move(columnNames),
+            std::move(columnTypes), resultFT);
     }
     auto summary = std::make_unique<QuerySummary>(preparedStatement->preparedSummary);
     summary->setExecutionTime(executingTimer.getElapsedTimeMS());

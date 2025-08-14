@@ -94,12 +94,12 @@ public:
      */
     KUZU_API virtual std::string toString() const = 0;
     /**
-      * @brief Returns the arrow schema of the query result.
-      * @return datatypes of the columns as an arrow schema
-      *
-      * It is the caller's responsibility to call the release function to release the underlying data
-      * If converting to another arrow type, this is usually handled automatically.
-      */
+     * @brief Returns the arrow schema of the query result.
+     * @return datatypes of the columns as an arrow schema
+     *
+     * It is the caller's responsibility to call the release function to release the underlying data
+     * If converting to another arrow type, this is usually handled automatically.
+     */
     KUZU_API std::unique_ptr<ArrowSchema> getArrowSchema() const;
     /**
      * @return whether there are more arrow chunk to read.
@@ -125,7 +125,8 @@ public:
 
     void setQuerySummary(std::unique_ptr<QuerySummary> summary);
 
-    void setDBLifeCycleManager(std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager);
+    void setDBLifeCycleManager(
+        std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager);
 
     static std::unique_ptr<QueryResult> getQueryResultWithError(const std::string& errorMessage);
 

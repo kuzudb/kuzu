@@ -490,8 +490,8 @@ std::string decodeEscapeSequences(const std::string& input) {
     return result;
 }
 
-void EmbeddedShell::checkConfidentialStatement(const std::string& query,
-    QueryResult* queryResult, std::string& input) {
+void EmbeddedShell::checkConfidentialStatement(const std::string& query, QueryResult* queryResult,
+    std::string& input) {
     if (queryResult->isSuccess() && !database->getConfig().readOnly &&
         queryResult->getQuerySummary()->getStatementType() ==
             common::StatementType::STANDALONE_CALL) {

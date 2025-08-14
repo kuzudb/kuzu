@@ -2,8 +2,8 @@
 
 #include "common/arrow/arrow_row_batch.h"
 #include "common/exception/not_implemented.h"
-#include "processor/result/factorized_table.h"
 #include "common/exception/runtime.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -24,9 +24,9 @@ uint64_t ArrowQueryResult::getNumTuples() const {
     return numTuples;
 }
 
-ArrowArray ArrowQueryResult::getArray(FactorizedTableIterator& iterator,
-    int64_t chunkSize) {
-    auto rowBatch = std::make_unique<ArrowRowBatch>(copyVector(columnTypes), chunkSize, false /* fallbackExtensionTypes */);
+ArrowArray ArrowQueryResult::getArray(FactorizedTableIterator& iterator, int64_t chunkSize) {
+    auto rowBatch = std::make_unique<ArrowRowBatch>(copyVector(columnTypes), chunkSize,
+        false /* fallbackExtensionTypes */);
     auto rowBatchSize = 0u;
     while (rowBatchSize < chunkSize) {
         if (!iterator.hasNext()) {
@@ -40,11 +40,13 @@ ArrowArray ArrowQueryResult::getArray(FactorizedTableIterator& iterator,
 }
 
 bool ArrowQueryResult::hasNext() const {
-    throw NotImplementedException("ArrowQueryResult does not implement hasNext. Use MaterializedQueryResult instead.");
+    throw NotImplementedException(
+        "ArrowQueryResult does not implement hasNext. Use MaterializedQueryResult instead.");
 }
 
 std::shared_ptr<FlatTuple> ArrowQueryResult::getNext() {
-    throw NotImplementedException("ArrowQueryResult does not implement getNext. Use MaterializedQueryResult instead.");
+    throw NotImplementedException(
+        "ArrowQueryResult does not implement getNext. Use MaterializedQueryResult instead.");
 }
 
 void ArrowQueryResult::resetIterator() {
@@ -52,7 +54,8 @@ void ArrowQueryResult::resetIterator() {
 }
 
 std::string ArrowQueryResult::toString() const {
-    throw NotImplementedException("ArrowQueryResult does not implement toString. Use MaterializedQueryResult instead.");
+    throw NotImplementedException(
+        "ArrowQueryResult does not implement toString. Use MaterializedQueryResult instead.");
 }
 
 bool ArrowQueryResult::hasNextArrowChunk() {
@@ -61,10 +64,11 @@ bool ArrowQueryResult::hasNextArrowChunk() {
 
 std::unique_ptr<ArrowArray> ArrowQueryResult::getNextArrowChunk(int64_t chunkSize) {
     if (chunkSize != chunkSize_) {
-        throw RuntimeException(stringFormat("Chunk size does not match expected value {}.", chunkSize_));
+        throw RuntimeException(
+            stringFormat("Chunk size does not match expected value {}.", chunkSize_));
     }
     return std::make_unique<ArrowArray>(arrays[cursor++]);
 }
 
-}
-}
+} // namespace main
+} // namespace kuzu
