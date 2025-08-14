@@ -36,8 +36,9 @@
 -CASE OrderByLargeDatasetTest
 
 -LOG OrderByWithLimitTest
+-STATEMENT CALL threads=6
+---- ok
 -STATEMENT MATCH (p:person) RETURN p.balance ORDER BY p.balance limit 25
--PARALLELISM 6
 -CHECK_ORDER
 ---- hash
 25 tuples hashed to 7af1f6806cb99e2dff8578d899bf75d6
@@ -69,8 +70,9 @@
 # -492721
 
 -LOG OrderByInt64Test
+-STATEMENT CALL threads=2
+---- ok
 -STATEMENT MATCH (p:person) RETURN p.studentID ORDER BY p.studentID
--PARALLELISM 2
 -CHECK_ORDER
 ---- hash
 3000 tuples hashed to 43795e53c3e37d8457c383ee4db918af

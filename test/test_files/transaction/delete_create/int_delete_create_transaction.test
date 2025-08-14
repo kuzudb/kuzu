@@ -3,7 +3,8 @@
 --
 
 -CASE MixedInsertDeleteCommitNormalExecution
--PARALLELISM 1
+-STATEMENT CALL threads=1
+---- ok
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
 -STATEMENT [conn_write] BEGIN TRANSACTION

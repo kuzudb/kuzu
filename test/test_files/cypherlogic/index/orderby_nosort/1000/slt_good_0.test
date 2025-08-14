@@ -5,7 +5,7 @@
 --
 
 -CASE indexorderby_nosort1000slt_good_0
--SKIP_32BIT
+-SKIP_WASM
 -STATEMENT CREATE NODE TABLE tab0(ID SERIAL,pk INT32, col0 INT32, col1 FLOAT, col2 STRING, col3 INT32, col4 FLOAT, col5 STRING, PRIMARY KEY(ID))
 ---- ok
 -STATEMENT CREATE (:tab0 {pk:0,col0:7086,col1:4595.50,col2:'gqivt',col3:9925,col4:6167.39,col5:'hzmxz'})

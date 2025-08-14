@@ -15,8 +15,9 @@
 -CASE OrderByLargeDatasetTestParquet
 
 -LOG OrderByWithLimitTest
+-STATEMENT CALL threads=6
+---- ok
 -STATEMENT MATCH (p:person) RETURN p.balance ORDER BY p.balance limit 25
--PARALLELISM 6
 -CHECK_ORDER
 ---- 25
 -499973
@@ -46,8 +47,9 @@
 -492721
 
 -LOG OrderByInt64Test
+-STATEMENT CALL threads=2
+---- ok
 -STATEMENT MATCH (p:person) RETURN p.studentID ORDER BY p.studentID
--PARALLELISM 2
 -CHECK_ORDER
 ---- 3000
 0

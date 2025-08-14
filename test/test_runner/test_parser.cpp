@@ -43,8 +43,8 @@ void TestParser::genGroupName() const {
         1;
     const std::size_t subEnd = path.find_last_of('.') - 1;
     std::string relPath = path.substr(subStart, subEnd - subStart + 1);
-    std::replace(relPath.begin(), relPath.end(), '/', '~');
-    std::replace(relPath.begin(), relPath.end(), '\\', '~');
+    std::ranges::replace(relPath, '/', '~');
+    std::ranges::replace(relPath, '\\', '~');
     testGroup->group = relPath;
 }
 
@@ -64,9 +64,6 @@ void TestParser::extractDataset() {
         testGroup->dataset = currentToken.params[2];
     } else if (datasetType == "NPY") {
         testGroup->datasetType = TestGroup::DatasetType::NPY;
-        testGroup->dataset = currentToken.params[2];
-    } else if (datasetType == "TTL") {
-        testGroup->datasetType = TestGroup::DatasetType::TURTLE;
         testGroup->dataset = currentToken.params[2];
     } else if (datasetType == "KUZU") {
         testGroup->datasetType = TestGroup::DatasetType::KUZU;
@@ -108,12 +105,6 @@ void TestParser::parseHeader() {
         }
         case TokenType::SKIP_MUSL: {
 #ifdef __MUSL__
-            testGroup->group = "DISABLED_" + testGroup->group;
-#endif
-            break;
-        }
-        case TokenType::SKIP_32BIT: {
-#ifdef __32BIT__
             testGroup->group = "DISABLED_" + testGroup->group;
 #endif
             break;
@@ -327,7 +318,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         statement->query = query;
         break;
     }
-    case TokenType::SET: {
+    case TokenType::SET_ENV: {
         auto envName = getParam(1);
         auto envValue = getParam(2);
 #if defined(_WIN32)
@@ -355,11 +346,6 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
     }
     case TokenType::CHECK_PRECISION: {
         statement->checkPrecision = true;
-        break;
-    }
-    case TokenType::PARALLELISM: {
-        checkMinimumParams(1);
-        statement->numThreads = stoi(currentToken.params[1]);
         break;
     }
     case TokenType::CHECK_COLUMN_NAMES: {
@@ -457,7 +443,7 @@ void TestParser::parseBody() {
             extractStatementBlock();
             break;
         }
-        case TokenType::DEFINE: {
+        case TokenType::SET: {
             checkMinimumParams(2);
             variableMap[currentToken.params[1]] = parseCommand();
             break;
@@ -474,7 +460,7 @@ void TestParser::parseBody() {
             auto extensionName = currentToken.params[1];
             loadExtensionStatement->connName = TestHelper::DEFAULT_CONN_NAME;
             loadExtensionStatement->query =
-                common::stringFormat("LOAD EXTENSION '{}/extension/{}/build/lib{}.kuzu_extension'",
+                stringFormat("LOAD EXTENSION '{}/extension/{}/build/lib{}.kuzu_extension'",
                     KUZU_ROOT_DIRECTORY, extensionName, extensionName);
             loadExtensionStatement->logMessage = "Dynamic load extension: " + extensionName;
             loadExtensionStatement->testResultType = ResultType::OK;
@@ -491,12 +477,6 @@ void TestParser::parseBody() {
         }
         case TokenType::SKIP_MUSL: {
 #ifdef __MUSL__
-            testCaseName = "DISABLED_" + testCaseName;
-#endif
-            break;
-        }
-        case TokenType::SKIP_32BIT: {
-#ifdef __32BIT__
             testCaseName = "DISABLED_" + testCaseName;
 #endif
             break;
@@ -588,12 +568,11 @@ TestStatement* TestParser::addNewStatement(const std::string& testGroupName) con
 }
 
 TokenType getTokenType(const std::string& input) {
-    const auto iter = tokenMap.find(input);
-    if (iter != tokenMap.end()) {
+    const auto iter = TOKEN_MAP.find(input);
+    if (iter != TOKEN_MAP.end()) {
         return iter->second;
-    } else {
-        return TokenType::_SKIP_LINE;
     }
+    return TokenType::_SKIP_LINE;
 }
 
 void TestParser::openFile() {

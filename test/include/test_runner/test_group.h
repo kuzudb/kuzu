@@ -43,7 +43,6 @@ struct TestQueryResult {
 struct TestStatement {
     std::string logMessage;
     std::string query;
-    std::optional<uint64_t> numThreads;
     bool checkOutputOrder = false;
     bool checkColumnNames = false;
     bool checkPrecision = false;

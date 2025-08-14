@@ -14,8 +14,9 @@ Dan|
 |CsWork
 
 -LOG AggOneHopAggTestParquet
+-STATEMENT CALL threads=2
+---- ok
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
--PARALLELISM 2
 ---- 5
 20|1|2
 20|2|3

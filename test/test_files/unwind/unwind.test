@@ -3,7 +3,7 @@
 --
 
 -CASE Unwind
--DEFINE UNWIND_LIST ARANGE 1 4001
+-SET UNWIND_LIST ARANGE 1 4001
 
 -STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) UNWIND nodes(p) AS n MATCH (a)-[]->(n) RETURN COUNT(*);
 ---- error

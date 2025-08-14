@@ -5,8 +5,8 @@
 -CASE S3Option
 -SKIP_STATIC_LINK
 -LOAD_DYNAMIC_EXTENSION httpfs
--SET S3_ACCESS_KEY_ID random_key_id
--SET S3_REGION random_region
+-SET_ENV S3_ACCESS_KEY_ID random_key_id
+-SET_ENV S3_REGION random_region
 -STATEMENT call current_setting('s3_accesS_key_id') return *;
 ---- 1
 random_key_id

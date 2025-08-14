@@ -141,7 +141,7 @@ Runtime exception: Node(nodeOffset: 0) has more than one neighbour in table Live
 
 ## TODO: FIX-ME. This can cause bm exception or long running (possibly hang) on 32-bit platform
 -CASE CreateOneToOneRelOnLargeNodeTable
--SKIP_32BIT
+-SKIP_WASM
 -STATEMENT CREATE NODE TABLE N1(ID INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE N2(ID INT64, PRIMARY KEY(ID));
