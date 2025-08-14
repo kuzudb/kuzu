@@ -142,24 +142,29 @@ NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context,
 }
 
 std::shared_ptr<binder::Expression> GDSFunction::bindRelOutput(const TableFuncBindInput& bindInput,
-    const std::vector<catalog::TableCatalogEntry*>& relEntries, std::shared_ptr<NodeExpression> srcNode,
-    std::shared_ptr<NodeExpression> dstNode, const std::optional<std::string>& name, const std::optional<uint64_t>& yieldVariableIdx) {
+    const std::vector<catalog::TableCatalogEntry*>& relEntries,
+    std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
+    const std::optional<std::string>& name, const std::optional<uint64_t>& yieldVariableIdx) {
     std::string relColumnName = name.value_or(REL_COLUMN_NAME);
     StringUtils::toLower(relColumnName);
     if (!bindInput.yieldVariables.empty()) {
-        relColumnName = bindColumnName(bindInput.yieldVariables[yieldVariableIdx.value_or(0)], relColumnName);
+        relColumnName =
+            bindColumnName(bindInput.yieldVariables[yieldVariableIdx.value_or(0)], relColumnName);
     }
-    auto rel = bindInput.binder->createNonRecursiveQueryRel(relColumnName, relEntries, srcNode, dstNode, RelDirectionType::SINGLE);
+    auto rel = bindInput.binder->createNonRecursiveQueryRel(relColumnName, relEntries, srcNode,
+        dstNode, RelDirectionType::SINGLE);
     bindInput.binder->addToScope(REL_COLUMN_NAME, rel);
     return rel;
 }
 
 std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput& bindInput,
-    const std::vector<TableCatalogEntry*>& nodeEntries, const std::optional<std::string>& name, const std::optional<uint64_t>& yieldVariableIdx) {
+    const std::vector<TableCatalogEntry*>& nodeEntries, const std::optional<std::string>& name,
+    const std::optional<uint64_t>& yieldVariableIdx) {
     std::string nodeColumnName = name.value_or(NODE_COLUMN_NAME);
     StringUtils::toLower(nodeColumnName);
     if (!bindInput.yieldVariables.empty()) {
-        nodeColumnName = bindColumnName(bindInput.yieldVariables[yieldVariableIdx.value_or(0)], nodeColumnName);
+        nodeColumnName =
+            bindColumnName(bindInput.yieldVariables[yieldVariableIdx.value_or(0)], nodeColumnName);
     }
     auto node = bindInput.binder->createQueryNode(nodeColumnName, nodeEntries);
     bindInput.binder->addToScope(nodeColumnName, node);

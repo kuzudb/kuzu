@@ -35,8 +35,8 @@ struct KUZU_API GDSBindData : public TableFuncBindData {
           output{std::move(output)} {}
 
     GDSBindData(const GDSBindData& other)
-        : TableFuncBindData{other}, graphEntry{other.graphEntry.copy()},
-          output{other.output}, resultTable{other.resultTable} {}
+        : TableFuncBindData{other}, graphEntry{other.graphEntry.copy()}, output{other.output},
+          resultTable{other.resultTable} {}
 
     void setResultFTable(std::shared_ptr<processor::FactorizedTable> table) {
         resultTable = std::move(table);
@@ -79,11 +79,15 @@ public:
     static graph::NativeGraphEntry bindGraphEntry(main::ClientContext& context,
         const graph::ParsedNativeGraphEntry& parsedGraphEntry);
     static std::shared_ptr<binder::Expression> bindRelOutput(const TableFuncBindInput& bindInput,
-    const std::vector<catalog::TableCatalogEntry*>& relEntries, std::shared_ptr<binder::NodeExpression> srcNode,
-    std::shared_ptr<binder::NodeExpression> dstNode, const std::optional<std::string>& name = std::nullopt, const std::optional<uint64_t>& yieldVariableIdx = std::nullopt);
+        const std::vector<catalog::TableCatalogEntry*>& relEntries,
+        std::shared_ptr<binder::NodeExpression> srcNode,
+        std::shared_ptr<binder::NodeExpression> dstNode,
+        const std::optional<std::string>& name = std::nullopt,
+        const std::optional<uint64_t>& yieldVariableIdx = std::nullopt);
     static std::shared_ptr<binder::Expression> bindNodeOutput(const TableFuncBindInput& bindInput,
         const std::vector<catalog::TableCatalogEntry*>& nodeEntries,
-        const std::optional<std::string>& name = std::nullopt, const std::optional<uint64_t>& yieldVariableIdx = std::nullopt);
+        const std::optional<std::string>& name = std::nullopt,
+        const std::optional<uint64_t>& yieldVariableIdx = std::nullopt);
     static std::string bindColumnName(const parser::YieldVariable& yieldVariable,
         std::string expressionName);
 
