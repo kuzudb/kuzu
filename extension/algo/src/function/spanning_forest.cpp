@@ -400,19 +400,20 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     auto boundNode = relOutput->getSrcNode();
     auto nbrNode = relOutput->getDstNode();
     const auto extendDir = ExtendDirection::FWD;
-    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, scanPlan);
+    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {},
+        scanPlan);
 
     auto relProperties = planner->getProperties(*relOutput);
 
     // If the query is of the form return... rel.someProperty...
     // then the internal id of the rel will not be added by getProperties and
-    // it must be added. 
-    
+    // it must be added.
+
     // Alternatively, if the query is of the form return... rel...
     // The internal id of the rel will be added by getProperties. We may
     // not add duplicate internal ids to the properties relProperties container.
     bool foundInternalId = false;
-    for(const auto& property : relProperties) {
+    for (const auto& property : relProperties) {
         if (property->getDataType().getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
             foundInternalId = true;
             break;
@@ -422,7 +423,9 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
         relProperties.push_back(relOutput->getInternalID());
     }
 
-    planner->appendExtend(boundNode, nbrNode, std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, relProperties, scanPlan);
+    planner->appendExtend(boundNode, nbrNode,
+        std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, relProperties,
+        scanPlan);
     planner->appendProjection(relProperties, scanPlan);
     expression_vector joinConditions;
     joinConditions.push_back(relOutput->getInternalID());
