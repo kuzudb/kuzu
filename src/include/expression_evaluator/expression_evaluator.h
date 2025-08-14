@@ -1,6 +1,5 @@
 #pragma once
 
-#include "main/client_context.h"
 #include "processor/result/result_set.h"
 
 namespace kuzu {

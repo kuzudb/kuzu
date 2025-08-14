@@ -5,6 +5,7 @@
 #include "common/string_utils.h"
 #include "common/system_message.h"
 #include "main/client_context.h"
+#include "main/database.h"
 #include "storage/storage_manager.h"
 
 #ifdef _WIN32

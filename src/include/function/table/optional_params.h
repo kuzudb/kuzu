@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/expression/expression_util.h"
-#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {

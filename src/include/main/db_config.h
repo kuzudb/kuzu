@@ -1,12 +1,10 @@
 #pragma once
 
 #include <string>
-
 #include "common/types/value/value.h"
 
 namespace kuzu {
 namespace common {
-class Value;
 enum class LogicalTypeID : uint8_t;
 } // namespace common
 

@@ -6,7 +6,7 @@
 
 #include "common/api.h"
 #include "common/types/types.h"
-#include "main/client_config.h"
+// #include "main/client_config.h"
 #include "processor/operator/persistent/reader/copy_from_error.h"
 
 namespace kuzu {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "function/function.h"
-#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {

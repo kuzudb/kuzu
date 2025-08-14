@@ -1,13 +1,9 @@
 #pragma once
 
-// TODO(Guodong): Change these includes into forward declaration.
 #include "common/profiler.h"
-#include "main/client_context.h"
 
 namespace kuzu {
 namespace processor {
-
-class FactorizedTable;
 
 struct KUZU_API ExecutionContext {
     uint64_t queryID;
