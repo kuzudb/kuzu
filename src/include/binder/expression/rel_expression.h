@@ -41,7 +41,7 @@ struct RecursiveInfo {
     std::unique_ptr<function::RJBindData> bindData;
 };
 
-class RelExpression final : public NodeOrRelExpression {
+class KUZU_API RelExpression final : public NodeOrRelExpression {
 public:
     RelExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
         std::vector<catalog::TableCatalogEntry*> entries, std::shared_ptr<NodeExpression> srcNode,
