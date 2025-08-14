@@ -12,7 +12,7 @@ def test_bytes_param(conn_db_empty: ConnDB) -> None:
 
     data_0 = b"\x00\x01\x02\x03\xff"
     data_1 = b"testing"
-    data_2 = b"A" * 4096  # 4KB "max"
+    data_2 = b"A" * 4096  # max size: 4KB, see https://docs.kuzudb.com/cypher/data-types/#blob
     data_3 = b""  # empty
     data_4 = None  # null
     data_5 = "Hello 🌍"  # str
