@@ -7,6 +7,9 @@ class NodeUpdateTest : public EmptyDBTest {
 protected:
     void SetUp() override {
         EmptyDBTest::SetUp();
+        // TODO(Guodong): Larger bm size is needed for `UpdateSameRowRedundantly` when compression
+        // is disabled.
+        systemConfig->bufferPoolSize = 200 * 1024 * 1024;
         createDBAndConn();
     }
 
@@ -27,7 +30,7 @@ TEST_F(NodeUpdateTest, UpdateSameRow) {
     ASSERT_EQ(res->getNext()->getValue(0)->val.int64Val, 300);
 }
 
-TEST_F(NodeUpdateTest, UpdateSameRowRedundtanly) {
+TEST_F(NodeUpdateTest, UpdateSameRowRedundantly) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }

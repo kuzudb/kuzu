@@ -52,7 +52,7 @@ public:
      */
     KUZU_API ~QueryResult();
     /**
-     * @return query is executed successfully or not.
+     * @return the query is executed successfully or not.
      */
     KUZU_API bool isSuccess() const;
     /**
@@ -64,11 +64,11 @@ public:
      */
     KUZU_API size_t getNumColumns() const;
     /**
-     * @return name of each column in query result.
+     * @return name of each column in the query result.
      */
     KUZU_API std::vector<std::string> getColumnNames() const;
     /**
-     * @return dataType of each column in query result.
+     * @return dataType of each column in the query result.
      */
     KUZU_API std::vector<common::LogicalType> getColumnDataTypes() const;
     /**
@@ -89,7 +89,7 @@ public:
      */
     KUZU_API bool hasNextQueryResult() const;
     /**
-     * @return get next query result to read (for multiple query statements).
+     * @return get the next query result to read (for multiple query statements).
      */
     KUZU_API QueryResult* getNextQueryResult();
 
@@ -102,7 +102,7 @@ public:
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
     /**
-     * @return string of first query result.
+     * @return string of the first query result.
      */
     KUZU_API std::string toString() const;
 
@@ -116,7 +116,7 @@ public:
      * @return datatypes of the columns as an arrow schema
      *
      * It is the caller's responsibility to call the release function to release the underlying data
-     * If converting to another arrow type, this this is usually handled automatically.
+     * If converting to another arrow type, this is usually handled automatically.
      */
     KUZU_API std::unique_ptr<ArrowSchema> getArrowSchema() const;
 
@@ -129,7 +129,7 @@ public:
      * This can be converted to a RecordBatch with arrow's ImportRecordBatch function
      *
      * It is the caller's responsibility to call the release function to release the underlying data
-     * If converting to another arrow type, this this is usually handled automatically.
+     * If converting to another arrow type, this is usually handled automatically.
      */
     KUZU_API std::unique_ptr<ArrowArray> getNextArrowChunk(int64_t chunkSize);
 

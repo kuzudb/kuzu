@@ -41,7 +41,7 @@ struct KUZU_API NodeTableScanState : TableScanState {
 
 // There is a vtable bug related to the Apple clang v15.0.0+. Adding the `FINAL` specifier to
 // derived class causes casting failures in Apple platform.
-struct KUZU_API NodeTableInsertState : public TableInsertState {
+struct KUZU_API NodeTableInsertState : TableInsertState {
     common::ValueVector& nodeIDVector;
     const common::ValueVector& pkVector;
     std::vector<std::unique_ptr<Index::InsertState>> indexInsertStates;
@@ -74,7 +74,7 @@ struct KUZU_API NodeTableDeleteState : TableDeleteState {
     common::ValueVector& pkVector;
 
     explicit NodeTableDeleteState(common::ValueVector& nodeIDVector, common::ValueVector& pkVector)
-        : TableDeleteState{}, nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
+        : nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
 class NodeTable;
@@ -132,7 +132,7 @@ public:
 
     void initInsertState(main::ClientContext* context, TableInsertState& insertState) override;
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
-    void initUpdateState(main::ClientContext* context, TableUpdateState& updateState);
+    void initUpdateState(main::ClientContext* context, TableUpdateState& updateState) const;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
@@ -168,7 +168,7 @@ public:
         return *columns[columnID];
     }
 
-    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(MemoryManager& mm,
+    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
         transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
         ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator);
 

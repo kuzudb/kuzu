@@ -321,11 +321,6 @@ row_idx_t ChunkedNodeGroup::getNumUpdatedRows(const Transaction* transaction,
     return getColumnChunk(columnID).getNumUpdatedRows(transaction);
 }
 
-std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ChunkedNodeGroup::scanUpdates(
-    const Transaction* transaction, column_id_t columnID) {
-    return getColumnChunk(columnID).scanUpdates(transaction);
-}
-
 bool ChunkedNodeGroup::lookup(const Transaction* transaction, const TableScanState& state,
     const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
     KU_ASSERT(rowIdxInChunk + 1 <= numRows);
@@ -416,12 +411,11 @@ void ChunkedNodeGroup::finalize() const {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
-    Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) const {
+    Transaction* transaction, PageAllocator& pageAllocator) const {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
-        flushedChunks[i] =
-            std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
-                Column::flushChunkData(getColumnChunk(i).getData(), pageAllocator));
+        flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
+            Column::flushChunkData(getColumnChunk(i).getData(), pageAllocator));
     }
     auto flushedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
