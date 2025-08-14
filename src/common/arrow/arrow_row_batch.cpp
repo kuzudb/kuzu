@@ -382,7 +382,8 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::MAP>(ArrowVector* ve
     // Verify all keys are not null
     for (auto i = 0u; i < value.childrenSize; ++i) {
         if (value.children[i]->children[0]->isNull()) {
-            throw RuntimeException{stringFormat("Cannot convert map with null key to Arrow: {}", value.toString())};
+            throw RuntimeException{
+                stringFormat("Cannot convert map with null key to Arrow: {}", value.toString())};
         }
     }
     return templateCopyNonNullValue<LogicalTypeID::LIST>(vector, type, value, pos,
