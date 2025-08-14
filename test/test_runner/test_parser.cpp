@@ -318,7 +318,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         statement->query = query;
         break;
     }
-    case TokenType::SET: {
+    case TokenType::SET_ENV: {
         auto envName = getParam(1);
         auto envValue = getParam(2);
 #if defined(_WIN32)
