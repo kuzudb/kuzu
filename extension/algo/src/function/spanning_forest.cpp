@@ -405,13 +405,12 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
 
     auto relProperties = planner->getProperties(*relOutput);
 
-    // If the query is of the form return... rel.someProperty...
-    // then the internal id of the rel will not be added by getProperties and
-    // it must be added.
-
-    // Alternatively, if the query is of the form return... rel...
-    // The internal id of the rel will be added by getProperties. We may
-    // not add duplicate internal ids to the properties relProperties container.
+    // If the query returns a specific relationship property (e.g., RETURN ... rel.someProperty ...),
+    // getProperties() will not include the relationship's internal ID, so we need to add it manually.
+    //
+    // If the query returns the whole relationship (e.g., RETURN ... rel ...),
+    // getProperties() will include the internal ID automatically.
+    // In that case, we must avoid adding it again to relProperties.
     bool foundInternalId = false;
     for (const auto& property : relProperties) {
         if (property->getDataType().getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
