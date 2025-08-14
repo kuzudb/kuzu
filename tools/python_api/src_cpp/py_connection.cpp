@@ -383,6 +383,8 @@ static LogicalType pyLogicalType(const py::handle& val) {
         return LogicalType::DECIMAL(precision, -exponent);
     } else if (py::isinstance<py::str>(val)) {
         return LogicalType::STRING();
+    } else if (py::isinstance<py::bytes>(val)) {
+        return LogicalType::BLOB();
     } else if (py::isinstance(val, datetime_datetime)) {
         return LogicalType::TIMESTAMP();
     } else if (py::isinstance(val, datetime_date)) {
@@ -571,6 +573,13 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
         } else {
             return Value::createValue<std::string>(py::str(val));
         }
+    case LogicalTypeID::BLOB: {
+        auto bytes = py::cast<py::bytes>(val);
+        const char* data = PyBytes_AsString(bytes.ptr());
+        Py_ssize_t size = PyBytes_Size(bytes.ptr());
+        std::string blobStr(data, size);
+        return Value(LogicalType::BLOB(), blobStr);
+    }
     case LogicalTypeID::TIMESTAMP: {
         // LCOV_EXCL_START
         if (!py::isinstance(val, datetime_datetime)) {

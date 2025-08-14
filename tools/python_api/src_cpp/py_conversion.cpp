@@ -32,6 +32,8 @@ PythonObjectType getPythonObjectType(py::handle& ele) {
         return PythonObjectType::Date;
     } else if (py::isinstance<py::str>(ele)) {
         return PythonObjectType::String;
+    } else if (py::isinstance<py::bytes>(ele)) {
+        return PythonObjectType::Bytes;
     } else if (py::isinstance<py::list>(ele)) {
         return PythonObjectType::List;
     } else if (py::isinstance(ele, uuid)) {
@@ -172,6 +174,14 @@ void transformPythonValue(common::ValueVector* outputVector, uint64_t pos, py::h
     case PythonObjectType::String: {
         outputVector->setNull(pos, false /* isNull */);
         common::StringVector::addString(outputVector, pos, ele.cast<std::string>());
+    } break;
+    case PythonObjectType::Bytes: {
+        outputVector->setNull(pos, false /* isNull */);
+        auto bytes = py::cast<py::bytes>(ele);
+        const char* data = PyBytes_AsString(bytes.ptr());
+        Py_ssize_t size = PyBytes_Size(bytes.ptr());
+        std::string blobStr(data, size);
+        outputVector->setValue(pos, blobStr);
     } break;
     case PythonObjectType::List: {
         transformListValue(outputVector, pos, ele);

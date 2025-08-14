@@ -18,6 +18,7 @@ enum class PythonObjectType : uint8_t {
     Datetime,
     Date,
     String,
+    Bytes,
     List,
     UUID,
     Dict,
