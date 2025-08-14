@@ -41,11 +41,11 @@ struct QueryFTSBindData final : public function::GDSBindData {
         const catalog::IndexCatalogEntry& entry,
         std::unique_ptr<QueryFTSOptionalParams> optionalParams, common::idx_t numDocs,
         double avgDocLen)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(docs)},
+        : GDSBindData{std::move(columns), std::move(graphEntry), binder::expression_vector{docs}},
           query{std::move(query)}, entry{entry},
-          outputTableID{nodeOutput->constCast<binder::NodeExpression>().getTableIDs()[0]},
+          outputTableID{output[0]->constCast<binder::NodeExpression>().getTableIDs()[0]},
           numDocs{numDocs}, avgDocLen{avgDocLen} {
-        auto& nodeExpr = nodeOutput->constCast<binder::NodeExpression>();
+        auto& nodeExpr = output[0]->constCast<binder::NodeExpression>();
         KU_ASSERT(nodeExpr.getNumEntries() == 1);
         outputTableID = nodeExpr.getEntry(0)->getTableID();
         this->optionalParams = std::move(optionalParams);

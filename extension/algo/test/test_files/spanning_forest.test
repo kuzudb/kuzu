@@ -35,10 +35,7 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|2|6|0
@@ -52,10 +49,7 @@
 8|9|3|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min')
-    YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|1|5|0
@@ -69,10 +63,7 @@
 8|9|3|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    YIELD src, dst, rel, forest_id MATCH (n) WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|2|6|2
@@ -118,11 +109,7 @@
 ---- ok
 
 -STATEMENT CALL SF('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n) WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|1|5|0
@@ -167,12 +154,7 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 8
 0|2|6|0
@@ -185,12 +167,7 @@
 8|9|3|5
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 8
 0|1|5|0
@@ -203,12 +180,7 @@
 8|9|3|5
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 8
 0|2|6|2
@@ -242,32 +214,17 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 0
 
@@ -311,12 +268,7 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|2|8|0
@@ -330,12 +282,7 @@
 8|9|3|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|1|5|0
@@ -349,12 +296,7 @@
 8|9|3|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|2|8|3
@@ -411,12 +353,7 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|2|8|0
@@ -430,12 +367,7 @@
 8|9|3|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|1|5|0
@@ -449,12 +381,7 @@
 8|9|3|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 9
 0|2|8|3
@@ -477,12 +404,7 @@
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- error
 Runtime exception: Provided weight property is not numerical: weight
@@ -497,12 +419,7 @@ Runtime exception: Provided weight property is not numerical: weight
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- error
 Runtime exception: Cannot find property: height
@@ -519,12 +436,7 @@ Runtime exception: Cannot find property: height
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node', 'Node2'], ['Edge']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- error
 Binder exception: SPANNING_FOREST only supports operations on one node table.
@@ -541,12 +453,7 @@ Binder exception: SPANNING_FOREST only supports operations on one node table.
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge', 'Edge2']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- error
 Binder exception: SPANNING_FOREST only supports operations on one rel table.
@@ -561,12 +468,7 @@ Binder exception: SPANNING_FOREST only supports operations on one rel table.
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height', variant:='medium')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- error
 Binder exception: Variant argument expects max or min. Got: medium
@@ -584,12 +486,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 0
 
@@ -608,12 +505,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 1
 0|1|5|0
@@ -639,12 +531,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 4
 0|1|1|3
@@ -673,12 +560,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 4
 0|1|1|0
@@ -708,12 +590,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 3
 0|1|1|2
@@ -745,12 +622,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 6
 0|1|10|3
@@ -789,12 +661,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 7
 0|1|1|6
@@ -825,12 +692,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 3
 1|3|1|0
@@ -838,12 +700,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 2|3|1|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    YIELD src, dst, rel, forest_id
-    MATCH (n)
-    WHERE ID(n) = dst
-    MATCH ()-[r]->()
-    WHERE ID(r) = rel
-    RETURN src.id AS src, n.id AS dst, r.weight as weight, forest_id
+    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
     ORDER BY forest_id;
 ---- 3
 0|1|1|2

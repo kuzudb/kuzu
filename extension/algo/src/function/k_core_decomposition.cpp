@@ -232,7 +232,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry),
+        expression_vector{nodeOutput});
 }
 
 function_set KCoreDecompositionFunction::getFunctionSet() {

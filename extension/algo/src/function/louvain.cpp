@@ -76,7 +76,7 @@ struct LouvainBindData final : public GDSBindData {
     LouvainBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<Expression> nodeOutput,
         std::unique_ptr<LouvainOptionalParams> optionalParams)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput)} {
+        : GDSBindData{std::move(columns), std::move(graphEntry), expression_vector{nodeOutput}} {
         this->optionalParams = std::move(optionalParams);
     }
 

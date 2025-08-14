@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression.h"
 #include "common/task_system/progress_bar.h"
 #include "function/algo_function.h"
 #include "function/component_ids.h"
@@ -288,8 +289,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
-    auto bindData =
-        std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
+    auto bindData = std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry),
+        expression_vector{nodeOutput});
     bindData->optionalParams =
         std::make_unique<MaxIterationOptionalParams>(input->optionalParamsLegacy);
     return bindData;
