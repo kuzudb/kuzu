@@ -8,6 +8,7 @@
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/list_chunk_data.h"

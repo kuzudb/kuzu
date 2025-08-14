@@ -1,5 +1,6 @@
 #include "processor/operator/filter.h"
 
+#include "binder/expression/expression.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;

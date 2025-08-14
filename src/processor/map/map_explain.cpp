@@ -2,6 +2,7 @@
 #include "main/client_context.h"
 #include "main/plan_printer.h"
 #include "planner/operator/logical_explain.h"
+#include "planner/operator/logical_plan.h"
 #include "processor/operator/profile.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"

@@ -1,8 +1,6 @@
 #pragma once
 
 #include "common/exception/runtime.h"
-#include "common/type_utils.h"
-#include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "function/list/functions/list_unique_function.h"
 #include "main/client_context.h"

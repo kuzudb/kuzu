@@ -2,6 +2,7 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "common/enums/extend_direction_util.h"
+#include "main/client_context.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table.h"

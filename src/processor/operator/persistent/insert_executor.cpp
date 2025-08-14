@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/insert_executor.h"
 
+#include "main/client_context.h"
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 

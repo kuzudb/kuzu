@@ -8,6 +8,8 @@
 #include "common/string_utils.h"
 #include "function/built_in_function_utils.h"
 #include "function/table/table_function.h"
+#include "main/client_context.h"
+#include "parser/statement.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"

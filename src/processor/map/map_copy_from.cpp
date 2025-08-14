@@ -1,4 +1,5 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "main/client_context.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/expression_mapper.h"

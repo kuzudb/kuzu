@@ -1,11 +1,12 @@
 #include "common/task_system/task_scheduler.h"
+
+#include "main/client_context.h"
+
 #if defined(__APPLE__)
 #include <pthread.h>
 
 #include <pthread/qos.h>
 #endif
-
-using namespace kuzu::common;
 
 namespace kuzu {
 namespace common {
