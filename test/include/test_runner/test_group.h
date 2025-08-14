@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -24,6 +23,12 @@ enum class ManualUseDatasetFlag {
     INSERT,
 };
 
+enum class TestStatementType {
+    INVALID,
+    VALID,
+    LOG,
+};
+
 enum class ResultType {
     OK,
     HASH,
@@ -41,24 +46,31 @@ struct TestQueryResult {
 };
 
 struct TestStatement {
+    TestStatementType type = TestStatementType::INVALID;
     std::string logMessage;
+
+    // For queries
     std::string query;
     bool checkOutputOrder = false;
     bool checkColumnNames = false;
     bool checkPrecision = false;
     std::vector<TestQueryResult> result;
-    ManualUseDatasetFlag manualUseDataset;
+    ManualUseDatasetFlag manualUseDataset = ManualUseDatasetFlag::NONE;
     std::string dataset;
+
+    // For multi copy tests
     uint32_t multiCopySplits = 0;
     std::string multiCopyTable;
     std::string multiCopySource;
     std::vector<uint64_t> seed;
+
     // for multiple conns
     std::string batchStatementsCSVFile;
     std::optional<std::string> connName;
     bool reloadDBFlag = false;
     bool importDBFlag = false;
     ConcurrentStatusFlag connectionsStatusFlag = ConcurrentStatusFlag::NONE;
+
     // for export and import db
     std::string importFilePath;
     bool removeFileFlag = false;
@@ -70,6 +82,8 @@ struct TestStatement {
     std::string originalQuery;
     std::string newOutput;
     bool isPartOfStatementBlock = false;
+
+    bool isValid() const { return type != TestStatementType::INVALID; }
 };
 
 // Test group is a collection of test cases in a single file.
@@ -79,9 +93,8 @@ struct TestStatement {
 struct TestGroup {
     std::string group;
     std::string dataset;
-    std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>> testCases;
-    std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>>
-        testCasesStatementBlocks;
+    std::unordered_map<std::string, std::vector<TestStatement>> testCases;
+    std::unordered_map<std::string, std::vector<TestStatement>> testCasesStatementBlocks;
     std::optional<uint64_t> bufferPoolSize;
     // for multiple connections
     uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS;

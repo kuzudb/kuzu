@@ -1,5 +1,7 @@
 #include "test_runner/test_parser.h"
 
+#include <sys/stat.h>
+
 #include "common/system_config.h"
 #include "test_runner/test_group.h"
 
@@ -17,14 +19,23 @@
 #endif
 
 #include <filesystem>
+#include <sstream>
 
 #include "common/string_utils.h"
+#include "common/types/timestamp_t.h"
 #include "test_helper/test_helper.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace testing {
+
+TestParser::TestParser(std::string path)
+    : path(std::move(path)), testGroup(std::make_unique<TestGroup>()), currentToken() {
+    variableMap.insert({"KUZU_ROOT_DIRECTORY", Value(KUZU_ROOT_DIRECTORY)});
+    variableMap.insert({"KUZU_VERSION", Value(KUZU_VERSION)});
+    variableMap.insert({"KUZU_EXPORT_DB_DIRECTORY", Value(exportDBPath)});
+}
 
 std::unique_ptr<TestGroup> TestParser::parseTestFile() {
     openFile();
@@ -158,11 +169,11 @@ void TestParser::parseHeader() {
 
 void TestParser::replaceVariables(std::string& str) const {
     for (auto& variable : variableMap) {
-        StringUtils::replaceAll(str, "${" + variable.first + "}", variable.second);
+        StringUtils::replaceAll(str, "${" + variable.first + "}", variable.second.toString());
     }
 }
 
-void TestParser::extractExpectedResults(TestStatement* statement) {
+void TestParser::extractExpectedResults(TestStatement& statement) {
     do {
         tokenize();
         if (currentToken.type == TokenType::EMPTY) {
@@ -172,7 +183,7 @@ void TestParser::extractExpectedResults(TestStatement* statement) {
             setCursorToPreviousLine();
             return;
         }
-        statement->result.push_back(extractExpectedResultFromToken());
+        statement.result.push_back(extractExpectedResultFromToken());
     } while (nextLine());
 }
 
@@ -235,132 +246,163 @@ std::string TestParser::extractTextBeforeNextStatement(bool ignoreLineBreak) {
     return extractedText;
 }
 
-TestStatement* TestParser::extractStatement(TestStatement* statement,
-    const std::string& testCaseName) {
-    tokenize();
-    switch (currentToken.type) {
-    case TokenType::LOG: {
-        checkMinimumParams(1);
-        statement->logMessage = paramsToString(1);
-        break;
-    }
-    case TokenType::CHECKPOINT_WAIT_TIMEOUT: {
-        checkMinimumParams(1);
-        testGroup->checkpointWaitTimeout = stoi(currentToken.params[1]);
-        break;
-    }
-    case TokenType::CREATE_CONNECTION: {
-        checkMinimumParams(1);
-        testGroup->testCasesConnNames[testCaseName].insert(currentToken.params[1]);
-        break;
-    }
-    case TokenType::BEGIN_CONCURRENT_EXECUTION: {
-        statement->connectionsStatusFlag = ConcurrentStatusFlag::BEGIN;
-        return statement;
-    }
-    case TokenType::END_CONCURRENT_EXECUTION: {
-        statement->connectionsStatusFlag = ConcurrentStatusFlag::END;
-        return statement;
-    }
-    case TokenType::RELOADDB: {
-        statement->reloadDBFlag = true;
-        return statement;
-    }
-    case TokenType::CREATE_DATASET_SCHEMA: {
-        statement->dataset = getParam(1);
-        statement->manualUseDataset = ManualUseDatasetFlag::SCHEMA;
-        return statement;
-    }
-    case TokenType::INSERT_DATASET_BY_ROW: {
-        statement->dataset = getParam(1);
-        statement->manualUseDataset = ManualUseDatasetFlag::INSERT;
-        return statement;
-    }
-    case TokenType::IMPORT_DATABASE: {
-        statement->importDBFlag = true;
-        auto filePath = getParam(1);
-        replaceVariables(filePath);
-        statement->importFilePath = filePath;
-        return statement;
-    }
-    case TokenType::REMOVE_FILE: {
-        statement->removeFileFlag = true;
-        auto filePath = getParam(1);
-        replaceVariables(filePath);
-        statement->removeFilePath = filePath;
-        return statement;
-    }
-    case TokenType::MULTI_COPY_RANDOM: {
-        statement->multiCopySplits = stoll(getParam(1));
-        statement->multiCopyTable = getParam(2);
-        int rest = 3;
-        if (getParam(3) == "SEED") {
-            statement->seed.resize(2);
-            statement->seed[0] = stoll(getParam(4));
-            statement->seed[1] = stoll(getParam(5));
-            rest = 6;
+TestStatement TestParser::parseStatement(const std::string& testCaseName) {
+    TestStatement statement;
+    while (true) {
+        tokenize();
+        switch (currentToken.type) {
+        case TokenType::LOG: {
+            if (statement.type != TestStatementType::INVALID) {
+                throw TestException("Invalid log statement [" + path + ":" + line + "].");
+            }
+            checkMinimumParams(1);
+            statement.logMessage = paramsToString(1);
+            replaceVariables(statement.logMessage);
+            statement.type = TestStatementType::LOG;
+            return statement;
         }
-        auto multiCopySource = paramsToString(rest);
-        replaceVariables(multiCopySource);
-        statement->multiCopySource = multiCopySource;
-        return statement;
-    }
-    case TokenType::STATEMENT: {
-        std::string query = paramsToString(1);
-        extractConnName(query, statement);
-        query += extractTextBeforeNextStatement(true);
-        if (TestHelper::REWRITE_TESTS) {
-            // Save the original query string before replacing variables. Needed to match the
-            // statement in the file again.
-            statement->originalQuery = query;
+        case TokenType::CHECKPOINT_WAIT_TIMEOUT: {
+            checkMinimumParams(1);
+            testGroup->checkpointWaitTimeout = stoi(currentToken.params[1]);
+            break;
         }
-        replaceVariables(query);
-        statement->query = query;
-        break;
-    }
-    case TokenType::SET_ENV: {
-        auto envName = getParam(1);
-        auto envValue = getParam(2);
+        case TokenType::CREATE_CONNECTION: {
+            checkMinimumParams(1);
+            testGroup->testCasesConnNames[testCaseName].insert(currentToken.params[1]);
+            break;
+        }
+        case TokenType::BEGIN_CONCURRENT_EXECUTION: {
+            statement.connectionsStatusFlag = ConcurrentStatusFlag::BEGIN;
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
+        case TokenType::END_CONCURRENT_EXECUTION: {
+            statement.connectionsStatusFlag = ConcurrentStatusFlag::END;
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
+        case TokenType::RELOADDB: {
+            statement.reloadDBFlag = true;
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
+        case TokenType::CREATE_DATASET_SCHEMA: {
+            if (statement.type != TestStatementType::INVALID) {
+                throw TestException(
+                    "Invalid CREATE_DATASET_SCHEMA statement [" + path + ":" + line + "].");
+            }
+            statement.dataset = getParam(1);
+            statement.manualUseDataset = ManualUseDatasetFlag::SCHEMA;
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
+        case TokenType::INSERT_DATASET_BY_ROW: {
+            if (statement.type != TestStatementType::INVALID) {
+                throw TestException(
+                    "Invalid INSERT_DATASET_BY_ROW statement [" + path + ":" + line + "].");
+            }
+            statement.dataset = getParam(1);
+            statement.manualUseDataset = ManualUseDatasetFlag::INSERT;
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
+        case TokenType::IMPORT_DATABASE: {
+            statement.importDBFlag = true;
+            auto filePath = getParam(1);
+            replaceVariables(filePath);
+            statement.importFilePath = filePath;
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
+        case TokenType::REMOVE_FILE: {
+            statement.removeFileFlag = true;
+            auto filePath = getParam(1);
+            replaceVariables(filePath);
+            statement.removeFilePath = filePath;
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
+        case TokenType::MULTI_COPY_RANDOM: {
+            statement.multiCopySplits = stoll(getParam(1));
+            statement.multiCopyTable = getParam(2);
+            int rest = 3;
+            if (getParam(3) == "SEED") {
+                statement.seed.resize(2);
+                statement.seed[0] = stoll(getParam(4));
+                statement.seed[1] = stoll(getParam(5));
+                rest = 6;
+            }
+            auto multiCopySource = paramsToString(rest);
+            replaceVariables(multiCopySource);
+            statement.multiCopySource = multiCopySource;
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
+        case TokenType::STATEMENT: {
+            std::string query = paramsToString(1);
+            extractConnName(query, statement);
+            query += extractTextBeforeNextStatement(true);
+            if (TestHelper::REWRITE_TESTS) {
+                // Save the original query string before replacing variables. Needed to match the
+                // statement in the file again.
+                statement.originalQuery = query;
+            }
+            replaceVariables(query);
+            statement.query = query;
+            break;
+        }
+        case TokenType::SET_ENV: {
+            auto envName = getParam(1);
+            auto envValue = getParam(2);
 #if defined(_WIN32)
-        _putenv_s(envName.c_str(), envValue.c_str());
+            _putenv_s(envName.c_str(), envValue.c_str());
 #else
-        // NOLINTNEXTLINE(*-mt-unsafe)
-        setenv(envName.c_str(), envValue.c_str(), 1 /* overwrite existing env*/);
+            // NOLINTNEXTLINE(*-mt-unsafe)
+            setenv(envName.c_str(), envValue.c_str(), 1 /* overwrite existing env*/);
 #endif
-        break;
+            return statement;
+        }
+        case TokenType::BATCH_STATEMENTS: {
+            std::string query = paramsToString(1);
+            extractConnName(query, statement);
+            statement.batchStatementsCSVFile = TestHelper::appendKuzuRootPath(
+                (std::filesystem::path(TestHelper::TEST_STATEMENTS_PATH) / query.substr(7))
+                    .string());
+            break;
+        }
+        case TokenType::RESULT: {
+            extractExpectedResults(statement);
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
+        case TokenType::CHECK_ORDER: {
+            statement.checkOutputOrder = true;
+            break;
+        }
+        case TokenType::CHECK_PRECISION: {
+            statement.checkPrecision = true;
+            break;
+        }
+        case TokenType::CHECK_COLUMN_NAMES: {
+            statement.checkColumnNames = true;
+            break;
+        }
+        case TokenType::EMPTY: {
+            break;
+        }
+        case TokenType::SET: {
+            checkMinimumParams(2);
+            std::string varName = currentToken.params[1];
+            Value value = parseAndEvaluateFunction();
+            variableMap.insert_or_assign(varName, std::move(value));
+            return statement;
+        }
+        default: {
+            throw TestException("Invalid statement [" + path + ":" + line + "].");
+        }
+        }
+        nextLine();
     }
-    case TokenType::BATCH_STATEMENTS: {
-        std::string query = paramsToString(1);
-        extractConnName(query, statement);
-        statement->batchStatementsCSVFile = TestHelper::appendKuzuRootPath(
-            (std::filesystem::path(TestHelper::TEST_STATEMENTS_PATH) / query.substr(7)).string());
-        break;
-    }
-    case TokenType::RESULT: {
-        extractExpectedResults(statement);
-        return statement;
-    }
-    case TokenType::CHECK_ORDER: {
-        statement->checkOutputOrder = true;
-        break;
-    }
-    case TokenType::CHECK_PRECISION: {
-        statement->checkPrecision = true;
-        break;
-    }
-    case TokenType::CHECK_COLUMN_NAMES: {
-        statement->checkColumnNames = true;
-        break;
-    }
-    case TokenType::EMPTY: {
-        break;
-    }
-    default: {
-        throw TestException("Invalid statement [" + path + ":" + line + "].");
-    }
-    }
-    nextLine();
-    return extractStatement(statement, testCaseName);
 }
 
 void TestParser::extractStatementBlock() {
@@ -369,50 +411,70 @@ void TestParser::extractStatementBlock() {
         tokenize();
         if (currentToken.type == TokenType::END_OF_STATEMENT_BLOCK) {
             break;
-        } else {
-            auto statement = std::make_unique<TestStatement>();
-            extractStatement(statement.get(), blockName);
-            statement->isPartOfStatementBlock = true;
+        }
+        auto statement = parseStatement(blockName);
+        if (statement.isValid()) {
+            statement.isPartOfStatementBlock = true;
             testGroup->testCasesStatementBlocks[blockName].push_back(std::move(statement));
             testGroup->testCasesConnNames[blockName] = std::set<std::string>();
         }
     }
 }
 
-std::string TestParser::parseCommand() {
+Value TestParser::parseAndEvaluateFunction() {
+    auto funcName = currentToken.params[2];
     // REPEAT 3 "col${count}, " = "col0, col1, col2, "
-    if (currentToken.params[2] == "REPEAT") {
+    if (StringUtils::caseInsensitiveEquals(funcName, REPEAT_FUNC)) {
         checkMinimumParams(4);
-        return parseCommandRepeat();
+        return evaluateRepeat();
     }
     // ARANGE 0 3 = [0,1,2,3]
-    if (currentToken.params[2] == "ARANGE") {
+    if (funcName == ARANGE_FUNC) {
         checkMinimumParams(4);
-        return parseCommandArange();
+        return evaluateARange();
     }
-    const auto params = paramsToString(2);
-    if (params.front() != '"' || params.back() != '"') {
-        throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
+
+    // Handle function calls
+    if (StringUtils::caseInsensitiveEquals(funcName, CURRENT_TIMESTAMP_FUNC)) {
+        return evaluateCurrentTimestamp();
     }
-    return params.substr(1, params.size() - 2);
+
+    // Handle dot notation functions
+    if (funcName.starts_with("random.")) {
+        return evaluateRandomDotFunction(funcName);
+    }
+
+    // Handle quoted strings
+    if (funcName.front() == '"' && funcName.back() == '"') {
+        return Value(funcName.substr(1, funcName.size() - 2));
+    }
+
+    // Handle numeric literals
+    try {
+        return Value(static_cast<int64_t>(stoll(funcName)));
+    } catch (const std::exception&) {
+        throw TestException("Invalid numeric literal [" + funcName + "] in SET statement.");
+    }
+
+    throw TestException("Invalid SET data type [" + path + ":" + line + "].");
 }
 
-std::string TestParser::parseCommandRepeat() {
+Value TestParser::evaluateRepeat() {
     const int times = stoi(currentToken.params[3]);
     std::string result;
     const std::string repeatString = StringUtils::extractStringBetween(paramsToString(4), '"', '"');
     if (repeatString.empty()) {
-        throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
+        throw TestException("Invalid SET data type [" + path + ":" + line + "].");
     }
     for (auto i = 1; i <= times; i++) {
         auto stringToAppend = repeatString;
         StringUtils::replaceAll(stringToAppend, "${count}", std::to_string(i));
         result += stringToAppend;
     }
-    return result;
+    return Value(result);
 }
 
-std::string TestParser::parseCommandArange() const {
+Value TestParser::evaluateARange() const {
     const int start = stoi(currentToken.params[3]);
     const int end = stoi(currentToken.params[4]);
     std::string result = "[";
@@ -423,7 +485,71 @@ std::string TestParser::parseCommandArange() const {
         }
     }
     result += "]";
-    return result;
+    return Value(result);
+}
+
+Value TestParser::evaluateCurrentTimestamp() {
+    timestamp_t timestamp = Timestamp::getCurrentTimestamp();
+    return Value(timestamp);
+}
+
+Value TestParser::evaluateRandom(const std::string& funcCall) {
+    // Extract parameter from random(param)
+    std::string param = funcCall.substr(7, funcCall.length() - 8); // Remove "random(" and ")"
+
+    if (param.empty()) {
+        // random() without parameter - return random integer 0-2^32
+        return Value(randomEngine.nextRandomInteger());
+    } else {
+        // random(max) - return random integer between 0 and max-1
+        try {
+            uint32_t maxVal = static_cast<uint32_t>(stoi(param));
+            if (maxVal == 0) {
+                throw TestException(
+                    "Random max value must be positive [" + path + ":" + line + "].");
+            }
+            return Value(randomEngine.nextRandomInteger(maxVal));
+        } catch (const std::exception&) {
+            throw TestException("Invalid random parameter [" + path + ":" + line + "].");
+        }
+    }
+}
+
+Value TestParser::evaluateRandomDotFunction(const std::string& funcCall) {
+    // Handle random.set_seed(value) and random.randInt64(max)
+    if (funcCall.starts_with("random.set_seed(") && funcCall.ends_with(")")) {
+        // Extract parameter from random.set_seed(param)
+        std::string param =
+            funcCall.substr(16, funcCall.length() - 17); // Remove "random.set_seed(" and ")"
+
+        // Handle variable substitution if needed
+        replaceVariables(param);
+
+        try {
+            uint64_t seedValue = static_cast<uint64_t>(stoll(param));
+            randomEngine.setSeed(seedValue);
+            return Value(static_cast<int64_t>(0)); // Return dummy value for _ variable
+        } catch (const std::exception&) {
+            throw TestException("Invalid seed parameter [" + path + ":" + line + "].");
+        }
+    } else if (funcCall.starts_with("random.randInt64(") && funcCall.ends_with(")")) {
+        // Extract parameter from random.randInt64(max)
+        std::string param =
+            funcCall.substr(17, funcCall.length() - 18); // Remove "random.randInt64(" and ")"
+
+        try {
+            uint32_t maxVal = static_cast<uint32_t>(stoi(param));
+            if (maxVal == 0) {
+                throw TestException(
+                    "Random max value must be positive [" + path + ":" + line + "].");
+            }
+            return Value(static_cast<int64_t>(randomEngine.nextRandomInteger(maxVal)));
+        } catch (const std::exception&) {
+            throw TestException("Invalid random parameter [" + path + ":" + line + "].");
+        }
+    } else {
+        throw TestException("Unknown random function [" + path + ":" + line + "].");
+    }
 }
 
 void TestParser::parseBody() {
@@ -443,11 +569,6 @@ void TestParser::parseBody() {
             extractStatementBlock();
             break;
         }
-        case TokenType::SET: {
-            checkMinimumParams(2);
-            variableMap[currentToken.params[1]] = parseCommand();
-            break;
-        }
         case TokenType::INSERT_STATEMENT_BLOCK: {
             checkMinimumParams(1);
             addStatementBlock(currentToken.params[1], testCaseName);
@@ -456,15 +577,15 @@ void TestParser::parseBody() {
         case TokenType::LOAD_DYNAMIC_EXTENSION: {
             checkMinimumParams(1);
 #ifndef __STATIC_LINK_EXTENSION_TEST__
-            auto loadExtensionStatement = std::make_unique<TestStatement>();
+            TestStatement loadExtensionStatement;
             auto extensionName = currentToken.params[1];
-            loadExtensionStatement->connName = TestHelper::DEFAULT_CONN_NAME;
-            loadExtensionStatement->query =
+            loadExtensionStatement.connName = TestHelper::DEFAULT_CONN_NAME;
+            loadExtensionStatement.query =
                 stringFormat("LOAD EXTENSION '{}/extension/{}/build/lib{}.kuzu_extension'",
                     KUZU_ROOT_DIRECTORY, extensionName, extensionName);
-            loadExtensionStatement->logMessage = "Dynamic load extension: " + extensionName;
-            loadExtensionStatement->testResultType = ResultType::OK;
-            loadExtensionStatement->result.emplace_back(ResultType::OK, 0,
+            loadExtensionStatement.logMessage = "Dynamic load extension: " + extensionName;
+            loadExtensionStatement.testResultType = ResultType::OK;
+            loadExtensionStatement.result.emplace_back(ResultType::OK, 0,
                 std::vector<std::string>{});
             testGroup->testCases[testCaseName].push_back(std::move(loadExtensionStatement));
             testGroup->testCasesConnNames[testCaseName].insert(TestHelper::DEFAULT_CONN_NAME);
@@ -533,15 +654,22 @@ void TestParser::parseBody() {
         case TokenType::EMPTY: {
             break;
         }
+        case TokenType::LOOP: {
+            checkMinimumParams(3);
+            parseLoop(testCaseName);
+            break;
+        }
         default: {
             if (TestHelper::getSystemEnv("DEFAULT_REL_STORAGE_DIRECTION") == "fwd" &&
                 !testFwdOnly && !testCaseName.starts_with("DISABLED_")) {
                 testCaseName = "DISABLED_" + testCaseName;
             }
-            // if its not a special case, then it has to be a statement
-            TestStatement* statement = addNewStatement(testCaseName);
-            testGroup->testCasesConnNames[testCaseName].insert(TestHelper::DEFAULT_CONN_NAME);
-            extractStatement(statement, testCaseName);
+            // if it's not a special case, then it has to be a statement
+            auto statement = parseStatement(testCaseName);
+            if (statement.isValid()) {
+                testGroup->testCases[testCaseName].push_back(std::move(statement));
+                testGroup->testCasesConnNames[testCaseName].insert(TestHelper::DEFAULT_CONN_NAME);
+            }
         }
         }
     }
@@ -551,20 +679,12 @@ void TestParser::addStatementBlock(const std::string& blockName,
     const std::string& testCaseName) const {
     if (testGroup->testCasesStatementBlocks.contains(blockName)) {
         for (const auto& statementPtr : testGroup->testCasesStatementBlocks[blockName]) {
-            testGroup->testCases[testCaseName].push_back(
-                std::make_unique<TestStatement>(*statementPtr));
+            testGroup->testCases[testCaseName].push_back(TestStatement(statementPtr));
             testGroup->testCasesConnNames[testCaseName] = testGroup->testCasesConnNames[blockName];
         }
     } else {
         throw TestException("Statement block not found [" + path + ":" + blockName + "].");
     }
-}
-
-TestStatement* TestParser::addNewStatement(const std::string& testGroupName) const {
-    auto statement = std::make_unique<TestStatement>();
-    TestStatement* currentStatement = statement.get();
-    testGroup->testCases[testGroupName].push_back(std::move(statement));
-    return currentStatement;
 }
 
 TokenType getTokenType(const std::string& input) {
@@ -603,19 +723,81 @@ void TestParser::tokenize() {
     }
 }
 
-void TestParser::extractConnName(std::string& query, TestStatement* statement) {
+void TestParser::parseLoop(const std::string& testCaseName) {
+    const std::string loopVariable = currentToken.params[1];
+    std::vector<std::string> loopValues;
+
+    // Determine loop type based on parameter pattern
+    if (currentToken.params.size() == 3 && currentToken.params[2].starts_with("[") &&
+        currentToken.params[2].ends_with("]")) {
+        // Array format: -LOOP var [val1,val2,val3]
+        std::string arrayStr = currentToken.params[2];
+        arrayStr = arrayStr.substr(1, arrayStr.length() - 2); // Remove [ ]
+
+        std::stringstream ss(arrayStr);
+        std::string value;
+        while (std::getline(ss, value, ',')) {
+            // Trim whitespace
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of(" \t") + 1);
+            if (!value.empty()) {
+                loopValues.push_back(value);
+            }
+        }
+    } else if (currentToken.params.size() >= 4) {
+        // Range format: -LOOP var start end [step]
+        int start = stoi(currentToken.params[2]);
+        int end = stoi(currentToken.params[3]);
+        int step = (currentToken.params.size() > 4) ? stoi(currentToken.params[4]) : 1;
+
+        if (step <= 0) {
+            throw TestException("Loop step must be positive [" + path + ":" + line + "].");
+        }
+
+        for (int i = start; i <= end; i += step) {
+            loopValues.push_back(std::to_string(i));
+        }
+    } else {
+        throw TestException("Invalid loop syntax [" + path + ":" + line + "].");
+    }
+
+    auto loopBeginFilePosition = getFilePosition();
+    // Generate statements for each iteration
+    for (const auto& value : loopValues) {
+        setToPosition(loopBeginFilePosition);
+        while (nextLine()) {
+            tokenize();
+            if (currentToken.type == TokenType::LOOP) {
+                continue;
+            }
+            if (currentToken.type == TokenType::ENDLOOP) {
+                break;
+            }
+            // Set loop variable value
+            variableMap.insert_or_assign(loopVariable, Value(value));
+
+            auto statement = parseStatement(testCaseName);
+            if (statement.isValid()) {
+                testGroup->testCases[testCaseName].push_back(std::move(statement));
+                testGroup->testCasesConnNames[testCaseName].insert(TestHelper::DEFAULT_CONN_NAME);
+            }
+        }
+    }
+}
+
+void TestParser::extractConnName(std::string& query, TestStatement& statement) {
     const std::regex pattern(R"(\[(conn.*?)\]\s*(.*))");
     std::smatch matches;
     bool statement_status = false;
     if (std::regex_search(query, matches, pattern)) {
         if (matches.size() == 3) {
             statement_status = true;
-            statement->connName = matches[1];
+            statement.connName = matches[1];
             query = matches[2];
         }
     }
     if (!statement_status) {
-        statement->connName = TestHelper::DEFAULT_CONN_NAME;
+        statement.connName = TestHelper::DEFAULT_CONN_NAME;
     }
 }
 

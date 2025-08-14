@@ -3,10 +3,10 @@
 #include <string_view>
 #include <utility>
 
-#include "../include/test_helper/test_helper.h"
 #include "common/string_utils.h"
 #include "graph_test/private_graph_test.h"
 #include "spdlog/spdlog.h"
+#include "test_helper/test_helper.h"
 #include "test_runner/csv_converter.h"
 #include "test_runner/test_parser.h"
 
@@ -14,12 +14,12 @@ using ::testing::Test;
 using namespace kuzu::testing;
 using namespace kuzu::common;
 
-class EndToEndTest : public DBTest {
+class EndToEndTest final : public DBTest {
 public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
         std::optional<uint64_t> bufferPoolSize, uint64_t checkpointWaitTimeout,
-        const std::set<std::string>& connNames,
-        std::vector<std::unique_ptr<TestStatement>> testStatements, std::string testPath)
+        const std::set<std::string>& connNames, std::vector<TestStatement> testStatements,
+        std::string testPath)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
           checkpointWaitTimeout{checkpointWaitTimeout}, testStatements{std::move(testStatements)},
           connNames{connNames}, testPath{std::move(testPath)} {}
@@ -97,13 +97,13 @@ private:
     std::string tempDatasetPath;
     std::optional<uint64_t> bufferPoolSize;
     uint64_t checkpointWaitTimeout;
-    std::vector<std::unique_ptr<TestStatement>> testStatements;
+    std::vector<TestStatement> testStatements;
     std::set<std::string> connNames;
     std::string testPath;
 
     std::string generateTempDatasetPath() const {
         std::string datasetName = dataset;
-        std::replace(datasetName.begin(), datasetName.end(), '/', '_');
+        std::ranges::replace(datasetName, '/', '_');
         return TestHelper::getTempDir(datasetName + "_parquet_" + getTestGroupAndName());
     }
 
@@ -117,7 +117,7 @@ private:
     //    implies multiple calls for test files that have more than one CASE block, possibly in
     //    parallel. The current code does not handle calls for the same test file in parallel, and
     //    rewrite mode is expected to be run in single-threaded mode using `TEST_JOBS=1`.
-    void rewriteTestFile() {
+    void rewriteTestFile() const {
         std::fstream file;
         std::string newFile;
         std::string currLine;
@@ -125,7 +125,7 @@ private:
         file.open(testPath);
 
         for (auto& statement : testStatements) {
-            if (statement->query.empty() || statement->isPartOfStatementBlock) {
+            if (statement.query.empty() || statement.isPartOfStatementBlock) {
                 continue;
             }
             // Find `statement` in the file.
@@ -141,7 +141,7 @@ private:
 
                 newFile += currLine + '\n';
 
-                if (testCaseName != statement->testCaseName) {
+                if (testCaseName != statement.testCaseName) {
                     // Not the CASE for the current `statement`.
                     continue;
                 }
@@ -158,15 +158,15 @@ private:
                         stmt += currLine;
                     }
                 }
-                // Manually add `connName` as `statement->query` does not retain it, if any.
+                // Manually add `connName` as `statement.query` does not retain it, if any.
                 std::string connName;
-                if (statement->connName.has_value() &&
-                    statement->connName.value() != "conn_default") {
-                    connName = "[" + statement->connName.value() + "] ";
+                if (statement.connName.has_value() &&
+                    statement.connName.value() != "conn_default") {
+                    connName = "[" + statement.connName.value() + "] ";
                 }
 
                 if (removeAllSpaces(stmt) ==
-                    removeAllSpaces("-STATEMENT " + connName + statement->originalQuery)) {
+                    removeAllSpaces("-STATEMENT " + connName + statement.originalQuery)) {
                     // Found the line containing `statement`.
                     break;
                 }
@@ -176,19 +176,19 @@ private:
 
             // For all cases, ignore the specified expected output in the test file and append the
             // actual output instead.
-            switch (statement->testResultType) {
+            switch (statement.testResultType) {
             // `OK` results don't need anything after the dashes.
             // -STATEMENT CREATE NODE TABLE Person (ID INT64, PRIMARY KEY (ID));
             // ---- ok
             case ResultType::OK: {
-                newFile += statement->newOutput;
+                newFile += statement.newOutput;
                 skipExistingOutput(file);
             } break;
             // -STATEMENT MATCH (a:person) RETURN a.fName LIMIT 4
             // ---- hash
             // 4 c921eb680e6d000e4b65556ae02361d2
             case ResultType::HASH: {
-                newFile += statement->newOutput;
+                newFile += statement.newOutput;
                 // Skip existing output.
                 getline(file, currLine);
             } break;
@@ -212,12 +212,12 @@ private:
                     }
                 }
                 // If any of the existing output tuples contain a variable, retain the output,
-                // as `statement->newOutput` will replace such variables with their actual value.
+                // as `statement.newOutput` will replace such variables with their actual value.
                 if (hasVariable) {
                     newFile += stringFormat("---- {}\n", linesToSkip);
                     newFile += skippedLines;
                 } else {
-                    newFile += statement->newOutput;
+                    newFile += statement.newOutput;
                 }
             } break;
             // -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) RETURN ID(r)
@@ -235,11 +235,11 @@ private:
             case ResultType::ERROR_MSG: {
                 auto lines = skipExistingOutput(file);
                 // If the existing error message contains a variable, reuse the message,
-                // as `statement->newOutput` will replace such variables with their actual value.
+                // as `statement.newOutput` will replace such variables with their actual value.
                 if (lines.find("${") != std::string::npos) {
                     newFile += currLine + '\n' + lines;
                 } else {
-                    newFile += statement->newOutput;
+                    newFile += statement.newOutput;
                 }
             } break;
             //  Expects a regex-matching error message.
@@ -247,11 +247,11 @@ private:
             // ---- error(regex)
             // ^Error: Binder exception: Variable .* is not in scope\.$
             case ResultType::ERROR_REGEX: {
-                newFile += statement->newOutput;
+                newFile += statement.newOutput;
                 // Get the nextline which specifies the regex pattern the error should match
                 getline(file, currLine);
                 // If the actual output is an error, put the existing regex expression back.
-                if (statement->newOutput != "---- ok\n") {
+                if (statement.newOutput != "---- ok\n") {
                     newFile += currLine + '\n';
                 }
             } break;
@@ -328,11 +328,10 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
                 __FILE__, __LINE__,
                 [path, datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
                     testStatements = std::move(testStatements), testCaseName]() mutable -> DBTest* {
-                    decltype(testStatements) testStatementsCopy;
+                    std::vector<TestStatement> testStatementsCopy;
                     for (const auto& testStatement : testStatements) {
-                        testStatementsCopy.emplace_back(
-                            std::make_unique<TestStatement>(*testStatement));
-                        testStatementsCopy.back()->testCaseName = testCaseName;
+                        testStatementsCopy.emplace_back(TestStatement(testStatement));
+                        testStatementsCopy.back().testCaseName = testCaseName;
                     }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
                         checkpointWaitTimeout, connNames, std::move(testStatementsCopy), path);
