@@ -104,8 +104,13 @@ struct BCFwdData {
         auto operator<=>(const LevelData& rhs) const { return level <=> rhs.level; }
     };
 
-    BCFwdData(storage::MemoryManager* mm, const offset_t numNodes, const offset_t sourceNode)
+    BCFwdData(storage::MemoryManager* mm, const offset_t numNodes)
         : nodePathData{mm, numNodes}, levels{mm, numNodes} {
+    }
+
+    void init(const offset_t sourceNode) {
+        std::fill(nodePathData.begin(), nodePathData.end(), PathData{});
+        std::fill(levels.begin(), levels.end(), LevelData{});
         levels[sourceNode] = LevelData{.level = 0, .node = sourceNode};
         nodePathData[sourceNode] = PathData{.numPaths = 1, .pathScore = 0};
     }
@@ -119,7 +124,12 @@ struct BCFwdData {
 // unweighted graphs. The unweighted graph does not require a priority queue.
 class BCFwdTraverse {
 public:
-    BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode) : heap(mm) {
+    explicit BCFwdTraverse(storage::MemoryManager* mm)
+        : heap(mm) {
+    }
+
+    void init(const offset_t sourceNode) {
+        heap.clear();
         push({0, sourceNode});
     }
 
@@ -147,6 +157,11 @@ private:
 struct BCBwdData {
     BCBwdData(storage::MemoryManager* mm, const offset_t numNodes)
         : dependencyScores{mm, numNodes} {}
+
+    void init() {
+        std::fill(dependencyScores.begin(), dependencyScores.end(), 0);
+    }
+
     ku_vector_t<double> dependencyScores;
 };
 
@@ -344,14 +359,17 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         nbrInfo.dstTableID, relProps);
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
     BetweennessCentralityState state{mm, numNodes};
+    BCFwdData fwdData(mm, numNodes);
+    BCFwdTraverse fwdTraverse(mm);
+    BCBwdData bwdData(mm, numNodes);
     for (auto i = 0u; i < numNodes; ++i) {
         // Forward Traverse
-        BCFwdData fwdData(mm, numNodes, i /*sourceNode*/);
-        BCFwdTraverse fwdTraverse(mm, i /*sourceNode*/);
+        fwdData.init(i /*sourceNode*/);
+        fwdTraverse.init(i /*sourceNode*/);
         SSSPCompute(fwdData, fwdTraverse, graph, scanState.get(), tableId, undirected);
 
         // Backward Traverse
-        BCBwdData bwdData(mm, numNodes);
+        bwdData.init();
         backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/,
             undirected);
     }
