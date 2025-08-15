@@ -108,6 +108,7 @@ struct BCFwdData {
         : nodePathData{mm, numNodes}, levels{mm, numNodes} {}
 
     void init(const offset_t sourceNode) {
+        // The fill parts may be done in parallel.
         std::fill(nodePathData.begin(), nodePathData.end(), PathData{});
         std::fill(levels.begin(), levels.end(), LevelData{});
         levels[sourceNode] = LevelData{.level = 0, .node = sourceNode};
@@ -150,12 +151,15 @@ private:
 };
 
 // dependencyScores accumulate during backwards traversal over the graph. Once
-// traversal is complete, these scores should accumulate into the betweenness centrality scores.
+// traversal is complete these scores should accumulate into the betweenness centrality scores.
 struct BCBwdData {
     BCBwdData(storage::MemoryManager* mm, const offset_t numNodes)
         : dependencyScores{mm, numNodes} {}
 
-    void init() { std::fill(dependencyScores.begin(), dependencyScores.end(), 0); }
+    void init() {
+        // This can be done in parallel.
+        std::fill(dependencyScores.begin(), dependencyScores.end(), 0);
+    }
 
     ku_vector_t<double> dependencyScores;
 };
@@ -196,20 +200,19 @@ static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData&
 
 /**Compute**/
 
-// TOOD(Tanvir): Currently always do the traversal for weighted graphs always (treat unweighted
-// edges as weight 1). This should change. Consider changing BCFwdTraverse and overriding methods
-// for insert and pop.
+// TOOD(Tanvir): Currently always do the traversal for weighted graphs (treat unweighted
+// edges as weight 1). This should change (we don't always need a pq).
 static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph,
     graph::NbrScanState* scanState, const table_id_t tableId, bool undirected) {
     while (!fwdTraverse.empty()) {
         const auto [curWeight, cur] = fwdTraverse.top();
         fwdTraverse.pop();
         // If the path to get to this vertex is worse than what has already been
-        // compute, there is no further computation to do with this path.
+        // computed there is no further computation to do with this path.
         if (curWeight > fwdData.nodePathData[cur].pathScore) {
             continue;
         }
-        // Whether a fwd or bwd scan is being done, the logic for traversal remains the same.
+        // Whether a fwd or bwd scan is being done the logic for traversal remains the same.
         const nodeID_t nextNodeId = {cur, tableId};
         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
             SSSPChunkCompute(chunk, fwdData, fwdTraverse, cur, curWeight);
@@ -236,7 +239,7 @@ static void backwardsChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwd
                                 DEFAULT_WEIGHT :
                                 propertyVectors.front()->template getValue<double>(i);
         // If the path weight to reach the neighbour + the edge weight from (or to) the
-        // neighbour matches the weight of the best path to the current vertex,
+        // neighbour matches the weight of the best path to the current vertex
         // that neighbour is a parent the current vertex depends on.
         if (fwdData.nodePathData[nbrId].pathScore + weight == fwdData.nodePathData[cur].pathScore) {
             bwdData.dependencyScores[nbrId] +=
@@ -258,7 +261,7 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData,
         if (lvl == 0) {
             continue;
         }
-        // Check for any dependencies, when found update dependency scores.
+        // Check for any dependencies; when found update dependency scores.
         const nodeID_t nextNodeId = {cur, tableId};
         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
             backwardsChunkCompute(chunk, fwdData, bwdData, cur);
@@ -325,8 +328,6 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
 
-    // TODO(Tanvir) Use config arguments to modify traversal and SSSP.
-    // Currently hard coded to work with a directed unweighted graph.
     auto betweennessCentralityBindData =
         input.bindData->constPtrCast<BetweennessCentralityBindData>();
     auto& config = betweennessCentralityBindData->optionalParams
