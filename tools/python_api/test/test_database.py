@@ -174,9 +174,7 @@ def test_database_close_order() -> None:
 
 
 def test_database_close_order_with_multiple_statements() -> None:
-    in_mem_db = kuzu.Database(
-        database_path=":memory:", buffer_pool_size=1024 * 1024 * 10
-    )
+    in_mem_db = kuzu.Database(database_path=":memory:", buffer_pool_size=1024 * 1024 * 10)
     assert not in_mem_db.is_closed
     assert in_mem_db._database is not None
 
@@ -185,7 +183,7 @@ def test_database_close_order_with_multiple_statements() -> None:
     assert in_mem_conn._connection is not None
 
     query_results = in_mem_conn.execute("RETURN 1+1; RETURN 2+2; RETURN 3+3;")
-    for (i, qr) in enumerate(query_results):
+    for i, qr in enumerate(query_results):
         assert not qr.is_closed
         assert qr._query_result is not None
         assert qr.get_next()[0] == (i + 1) * 2
