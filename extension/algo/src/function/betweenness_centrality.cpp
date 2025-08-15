@@ -167,6 +167,7 @@ struct BCBwdData {
 static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData,
     BCFwdTraverse& fwdTraverse, const offset_t& cur, const double& curWeight) {
     static constexpr double DEFAULT_WEIGHT = 1;
+    (void)DEFAULT_WEIGHT;
     chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
         auto nbrId = neighbors[i].offset;
         if (nbrId == cur) {
@@ -229,6 +230,7 @@ static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::G
 static void backwardsChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData,
     BCBwdData& bwdData, const offset_t& cur) {
     static constexpr double DEFAULT_WEIGHT = 1;
+    (void)DEFAULT_WEIGHT;
     chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
         auto nbrId = neighbors[i].offset;
         if (nbrId == cur) {
