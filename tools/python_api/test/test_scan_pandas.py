@@ -16,6 +16,7 @@ except ImportError:
 import kuzu
 from kuzu.constants import *
 
+
 def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
     assert results.get_next() == [
         True,

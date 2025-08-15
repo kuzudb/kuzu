@@ -7,6 +7,7 @@ import torch
 from type_aliases import ConnDB
 from kuzu.constants import *
 
+
 def test_to_torch_geometric_nodes_only(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
     query = "MATCH (p:person) return p"

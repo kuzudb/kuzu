@@ -7,6 +7,7 @@ from pandas import Timedelta, Timestamp
 from type_aliases import ConnDB
 from kuzu.constants import *
 
+
 def test_to_networkx_node(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
     query = "MATCH (p:person) return p"

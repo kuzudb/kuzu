@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 from .constants import *
 
+
 class TorchGeometricResultConverter:
     """Convert graph results to `torch_geometric`."""
 

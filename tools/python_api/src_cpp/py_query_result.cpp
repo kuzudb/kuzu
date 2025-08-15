@@ -266,7 +266,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         auto labelVal = RelVal::getLabelVal(&value);
         dict[InternalKeyword::LABEL] = labelVal ? convertValueToPyObject(*labelVal) : py::none();
         auto internalIdVal = RelVal::getIDVal(&value);
-        dict[InternalKeyword::ID] = internalIdVal ? convertValueToPyObject(*internalIdVal) : py::none();
+        dict[InternalKeyword::ID] =
+            internalIdVal ? convertValueToPyObject(*internalIdVal) : py::none();
         auto numProperties = RelVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = py::str(RelVal::getPropertyName(&value, i));

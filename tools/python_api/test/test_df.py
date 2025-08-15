@@ -12,6 +12,7 @@ from pandas import Timedelta, Timestamp
 from type_aliases import ConnDB
 from kuzu.constants import *
 
+
 def test_to_df(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
 

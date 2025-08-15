@@ -10,6 +10,7 @@ import pytz
 from type_aliases import ConnDB
 from kuzu.constants import *
 
+
 def test_bool(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.isStudent;")
