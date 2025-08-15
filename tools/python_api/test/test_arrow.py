@@ -13,7 +13,7 @@ import pyarrow as pa
 import pytz
 from pandas import Timestamp
 from type_aliases import ConnDB
-from kuzu.constants import *
+from kuzu.constants import ID, LABEL, SRC, DST, NODES
 
 _expected_dtypes = {
     # ------------------------------------------------
