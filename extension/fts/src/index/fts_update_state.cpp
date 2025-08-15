@@ -1,5 +1,7 @@
 #include "index/fts_update_state.h"
 
+#include "main/client_context.h"
+
 namespace kuzu {
 namespace fts_extension {
 

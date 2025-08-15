@@ -1,4 +1,3 @@
-#include "binder/copy/bound_copy_from.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/hnsw_index_catalog_entry.h"
@@ -7,6 +6,7 @@
 #include "function/table/bind_data.h"
 #include "index/hnsw_index_utils.h"
 #include "index/hnsw_rel_batch_insert.h"
+#include "main/client_context.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "processor/execution_context.h"
@@ -28,8 +28,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     storage::IndexInfo dummyIndexInfo{"", "", bindData.tableEntry->getTableID(),
         {bindData.tableEntry->getColumnID(bindData.propertyID)}, {PhysicalTypeID::ARRAY}, false,
