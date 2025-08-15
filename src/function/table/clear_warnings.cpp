@@ -2,6 +2,8 @@
 #include "function/table/standalone_call_function.h"
 #include "processor/execution_context.h"
 #include "processor/warning_context.h"
+#include "function/table/table_function.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 

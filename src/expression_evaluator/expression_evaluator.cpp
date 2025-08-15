@@ -1,5 +1,5 @@
 #include "expression_evaluator/expression_evaluator.h"
-
+#include "main/client_context.h"
 #include "common/exception/runtime.h"
 
 using namespace kuzu::common;

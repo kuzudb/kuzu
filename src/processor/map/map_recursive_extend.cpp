@@ -4,6 +4,7 @@
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend.h"
 #include "processor/plan_mapper.h"
+#include "main/client_context.h"
 
 using namespace kuzu::planner;
 using namespace kuzu::graph;

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <string>
-
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/api.h"
 #include "transaction/transaction.h"
+#include "main/database.h"
 
 #define ADD_EXTENSION_OPTION(OPTION)                                                               \
     db->addExtensionOption(OPTION::NAME, OPTION::TYPE, OPTION::getDefaultValue())
@@ -19,9 +19,6 @@ namespace kuzu {
 namespace function {
 struct TableFunction;
 } // namespace function
-namespace main {
-class Database;
-} // namespace main
 
 namespace extension {
 

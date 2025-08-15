@@ -11,6 +11,7 @@
 #include "storage/storage_manager.h"
 #include "storage/table/chunked_node_group.h"
 #include "storage/table/node_table.h"
+#include "main/client_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

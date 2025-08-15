@@ -20,6 +20,7 @@
 #include "storage/shadow_utils.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

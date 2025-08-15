@@ -4,6 +4,7 @@
 #include "storage/page_manager.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {

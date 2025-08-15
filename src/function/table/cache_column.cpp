@@ -11,6 +11,8 @@
 #include "storage/table/node_table.h"
 #include "storage/table/table.h"
 #include "transaction/transaction.h"
+#include "function/table/bind_input.h"
+#include "main/client_context.h"
 
 namespace kuzu::catalog {
 class TableCatalogEntry;

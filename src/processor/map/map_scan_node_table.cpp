@@ -8,6 +8,7 @@
 #include "processor/operator/scan/scan_node_table.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

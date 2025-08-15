@@ -17,6 +17,7 @@
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

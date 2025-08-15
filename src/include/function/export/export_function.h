@@ -1,6 +1,8 @@
 #pragma once
 
 #include "function/function.h"
+#include "common/case_insensitive_map.h"
+#include "common/types/value/value.h"
 
 namespace kuzu {
 namespace function {

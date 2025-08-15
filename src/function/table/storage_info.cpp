@@ -19,6 +19,7 @@
 #include "storage/table/struct_chunk_data.h"
 #include "storage/table/struct_column.h"
 #include <concepts>
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;

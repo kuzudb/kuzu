@@ -4,6 +4,7 @@
 #include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
+#include "main/client_context.h"
 
 using namespace kuzu::evaluator;
 using namespace kuzu::planner;

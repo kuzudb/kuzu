@@ -12,6 +12,7 @@
 #include "extension/extension_manager.h"
 #include "function/table/bind_input.h"
 #include "main/database_manager.h"
+#include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/scan_source.h"
 

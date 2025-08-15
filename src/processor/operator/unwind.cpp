@@ -2,6 +2,7 @@
 
 #include "common/system_config.h"
 #include "processor/execution_context.h"
+#include "binder/expression/expression.h"
 
 using namespace kuzu::common;
 

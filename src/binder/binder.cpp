@@ -1,5 +1,5 @@
 #include "binder/binder.h"
-
+#include "parser/statement.h"
 #include "binder/bound_statement_rewriter.h"
 #include "catalog/catalog.h"
 #include "common/copier_config/csv_reader_config.h"
@@ -12,6 +12,7 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
+#include "main/client_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

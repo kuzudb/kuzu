@@ -2,6 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "processor/execution_context.h"
+#include "main/client_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

@@ -12,6 +12,7 @@
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/thrift_tools.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
+#include "main/client_context.h"
 
 using namespace kuzu_parquet::format;
 

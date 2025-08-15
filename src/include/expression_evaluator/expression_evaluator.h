@@ -3,6 +3,9 @@
 #include "processor/result/result_set.h"
 
 namespace kuzu {
+namespace binder {
+class Expression;
+}
 namespace evaluator {
 
 struct EvaluatorLocalState {

@@ -5,6 +5,7 @@
 #include "processor/operator/base_partitioner_shared_state.h"
 #include "processor/operator/sink.h"
 #include "storage/table/in_mem_chunked_node_group_collection.h"
+#include "binder/expression/expression.h"
 
 namespace kuzu {
 namespace storage {

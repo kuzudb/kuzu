@@ -13,6 +13,7 @@
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

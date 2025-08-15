@@ -2,6 +2,7 @@
 
 #include "main/database_manager.h"
 #include "processor/execution_context.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace processor {

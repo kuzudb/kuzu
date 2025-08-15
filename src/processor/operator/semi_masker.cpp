@@ -2,6 +2,7 @@
 
 #include "common/roaring_mask.h"
 #include "processor/execution_context.h"
+#include "common/constants.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

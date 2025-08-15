@@ -6,6 +6,7 @@
 #include "graph/graph_entry_set.h"
 #include "parser/parser.h"
 #include "processor/execution_context.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

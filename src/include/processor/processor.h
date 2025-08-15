@@ -4,8 +4,9 @@
 
 namespace kuzu {
 namespace processor {
-
+class FactorizedTable;
 class PhysicalPlan;
+class PhysicalOperator;
 class QueryProcessor {
 
 public:

@@ -3,6 +3,7 @@
 #include "function/gds/rec_joins.h"
 #include "processor/execution_context.h"
 #include "wsp_utils.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

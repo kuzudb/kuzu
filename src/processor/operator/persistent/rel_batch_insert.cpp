@@ -12,6 +12,7 @@
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/rel_table.h"
+#include "main/client_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

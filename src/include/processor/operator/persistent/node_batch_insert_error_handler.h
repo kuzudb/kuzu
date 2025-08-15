@@ -3,6 +3,7 @@
 #include "common/types/types.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/batch_insert_error_handler.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace storage {

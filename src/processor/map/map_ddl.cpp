@@ -11,6 +11,7 @@
 #include "processor/operator/ddl/drop.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

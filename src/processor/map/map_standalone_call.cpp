@@ -2,6 +2,7 @@
 #include "planner/operator/logical_standalone_call.h"
 #include "processor/operator/standalone_call.h"
 #include "processor/plan_mapper.h"
+#include "main/db_config.h"
 
 using namespace kuzu::planner;
 
@@ -13,7 +14,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapStandaloneCall(
     auto logicalStandaloneCall = logicalOperator->constPtrCast<LogicalStandaloneCall>();
     auto optionValue =
         logicalStandaloneCall->getOptionValue()->constPtrCast<binder::LiteralExpression>();
-    auto standaloneCallInfo = std::make_unique<StandaloneCallInfo>(
+    auto standaloneCallInfo = StandaloneCallInfo(
         logicalStandaloneCall->getOption(), optionValue->getValue());
     auto printInfo =
         std::make_unique<StandaloneCallPrintInfo>(logicalStandaloneCall->getOption()->name);

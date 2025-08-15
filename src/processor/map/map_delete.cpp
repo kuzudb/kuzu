@@ -5,6 +5,7 @@
 #include "processor/operator/persistent/delete.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

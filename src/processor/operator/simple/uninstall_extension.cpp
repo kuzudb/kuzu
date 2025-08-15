@@ -5,6 +5,7 @@
 #include "common/string_format.h"
 #include "extension/extension.h"
 #include "processor/execution_context.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace processor {

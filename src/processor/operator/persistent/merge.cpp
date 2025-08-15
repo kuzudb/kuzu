@@ -1,6 +1,7 @@
 #include "processor/operator/persistent/merge.h"
 
 #include "binder/expression/expression_util.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace processor {

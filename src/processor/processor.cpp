@@ -4,6 +4,7 @@
 #include "processor/operator/sink.h"
 #include "processor/physical_plan.h"
 #include "processor/processor_task.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

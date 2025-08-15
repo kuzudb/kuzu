@@ -5,7 +5,8 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "processor/execution_context.h"
-#include <catalog/catalog_entry/index_catalog_entry.h>
+#include "catalog/catalog_entry/index_catalog_entry.h"
+#include "main/client_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

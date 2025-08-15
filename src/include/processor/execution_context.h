@@ -3,6 +3,9 @@
 #include "common/profiler.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
 namespace processor {
 
 struct KUZU_API ExecutionContext {
