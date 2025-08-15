@@ -105,8 +105,7 @@ struct BCFwdData {
     };
 
     BCFwdData(storage::MemoryManager* mm, const offset_t numNodes)
-        : nodePathData{mm, numNodes}, levels{mm, numNodes} {
-    }
+        : nodePathData{mm, numNodes}, levels{mm, numNodes} {}
 
     void init(const offset_t sourceNode) {
         std::fill(nodePathData.begin(), nodePathData.end(), PathData{});
@@ -124,9 +123,7 @@ struct BCFwdData {
 // unweighted graphs. The unweighted graph does not require a priority queue.
 class BCFwdTraverse {
 public:
-    explicit BCFwdTraverse(storage::MemoryManager* mm)
-        : heap(mm) {
-    }
+    explicit BCFwdTraverse(storage::MemoryManager* mm) : heap(mm) {}
 
     void init(const offset_t sourceNode) {
         heap.clear();
@@ -158,9 +155,7 @@ struct BCBwdData {
     BCBwdData(storage::MemoryManager* mm, const offset_t numNodes)
         : dependencyScores{mm, numNodes} {}
 
-    void init() {
-        std::fill(dependencyScores.begin(), dependencyScores.end(), 0);
-    }
+    void init() { std::fill(dependencyScores.begin(), dependencyScores.end(), 0); }
 
     ku_vector_t<double> dependencyScores;
 };
