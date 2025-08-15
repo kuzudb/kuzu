@@ -119,8 +119,7 @@ struct BCFwdData {
 // unweighted graphs. The unweighted graph does not require a priority queue.
 class BCFwdTraverse {
 public:
-    BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode)
-        : heap(mm) {
+    BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode) : heap(mm) {
         push({0, sourceNode});
     }
 
