@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytz
 from type_aliases import ConnDB
-from kuzu.constants import *
+from kuzu.constants import ID, LABEL, SRC, DST, NODES, RELS
 
 
 def test_bool(conn_db_readonly: ConnDB) -> None:

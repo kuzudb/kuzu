@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from .torch_geometric_result_converter import TorchGeometricResultConverter
 from .types import Type
 
-from .constants import *
+from .constants import ID, LABEL, SRC, DST, NODES, RELS
 
 if TYPE_CHECKING:
     import sys

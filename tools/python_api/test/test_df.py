@@ -10,7 +10,7 @@ import kuzu
 import pytz
 from pandas import Timedelta, Timestamp
 from type_aliases import ConnDB
-from kuzu.constants import *
+from kuzu.constants import ID, LABEL, SRC, DST, NODES, RELS
 
 
 def test_to_df(conn_db_readonly: ConnDB) -> None:

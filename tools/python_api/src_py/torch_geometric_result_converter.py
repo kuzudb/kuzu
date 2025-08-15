@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
     from .query_result import QueryResult
 
-from .constants import *
+from .constants import ID, LABEL, SRC, DST
 
 
 class TorchGeometricResultConverter:

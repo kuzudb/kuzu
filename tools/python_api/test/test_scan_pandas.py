@@ -14,7 +14,7 @@ except ImportError:
     from backports.zoneinfo import ZoneInfo  # type: ignore[no-redef]
 
 import kuzu
-from kuzu.constants import *
+from kuzu.constants import ID, LABEL
 
 
 def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:

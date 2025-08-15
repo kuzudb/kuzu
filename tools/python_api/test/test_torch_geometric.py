@@ -5,7 +5,7 @@ import warnings
 import ground_truth
 import torch
 from type_aliases import ConnDB
-from kuzu.constants import *
+from kuzu.constants import LABEL
 
 
 def test_to_torch_geometric_nodes_only(conn_db_readonly: ConnDB) -> None:
