@@ -424,8 +424,9 @@ std::unique_ptr<ChunkedNodeGroup> InMemChunkedNodeGroup::flushAsNewChunkedNodeGr
     Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
-        if (getColumnChunk(i).isSegmentFull()) {
-            auto splitSegments = getColumnChunk(i).split();
+        if (getColumnChunk(i).shouldSplit()) {
+            auto splitSegments =
+                getColumnChunk(i).split(true /*new segments are always the max size if possible*/);
             std::vector<std::unique_ptr<ColumnChunkData>> flushedSegments;
             flushedSegments.reserve(splitSegments.size());
             for (auto& segment : splitSegments) {

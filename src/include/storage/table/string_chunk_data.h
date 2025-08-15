@@ -60,6 +60,7 @@ public:
     void finalize() override;
 
     void flush(PageAllocator& pageAllocator) override;
+    uint64_t getSizeOnDisk() const override;
     void reclaimStorage(PageAllocator& pageAllocator) override;
 
     void resetNumValuesFromMetadata() override;

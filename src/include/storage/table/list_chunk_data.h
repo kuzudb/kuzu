@@ -107,6 +107,7 @@ public:
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
     void flush(PageAllocator& pageAllocator) override;
+    uint64_t getSizeOnDisk() const override;
     void reclaimStorage(PageAllocator& pageAllocator) override;
 
 protected:

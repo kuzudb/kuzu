@@ -885,7 +885,8 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
         }
     }
 
-    // Flush data chunks to disk.
+    // FIXME(bmwinger): this needs segmentation. Maybe this should use (or share code with)
+    // checkpointOutOfPlace Flush data chunks to disk.
     for (const auto& chunk : dataChunksToFlush) {
         chunk->flush(csrState.pageAllocator);
     }
