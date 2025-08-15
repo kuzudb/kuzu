@@ -1,4 +1,5 @@
 #include "binder/visitor/confidential_statement_analyzer.h"
+
 #include "binder/bound_standalone_call.h"
 #include "main/db_config.h"
 

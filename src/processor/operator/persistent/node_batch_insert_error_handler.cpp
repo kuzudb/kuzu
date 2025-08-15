@@ -1,8 +1,8 @@
 #include "processor/operator/persistent/node_batch_insert_error_handler.h"
 
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/table/node_table.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 

@@ -1,4 +1,5 @@
 #include "expression_evaluator/pattern_evaluator.h"
+
 #include "common/constants.h"
 #include "function/struct/vector_struct_functions.h"
 

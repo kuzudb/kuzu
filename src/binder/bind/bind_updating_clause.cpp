@@ -13,11 +13,11 @@
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "main/client_context.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

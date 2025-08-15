@@ -7,12 +7,12 @@
 #include "common/string_format.h"
 #include "function/table/bind_data.h"
 #include "function/table/table_function.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/parquet/list_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/thrift_tools.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
-#include "main/client_context.h"
 
 using namespace kuzu_parquet::format;
 

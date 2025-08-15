@@ -1,9 +1,9 @@
 #include "processor/operator/scan/scan_rel_table.h"
 
 #include "binder/expression/expression_util.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/local_storage/local_rel_table.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

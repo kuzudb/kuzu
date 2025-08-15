@@ -37,7 +37,8 @@ struct StandaloneCallInfo {
     EXPLICIT_COPY_DEFAULT_MOVE(StandaloneCallInfo);
 
 private:
-    StandaloneCallInfo(const StandaloneCallInfo& other) : option{other.option}, optionValue{other.optionValue} {}
+    StandaloneCallInfo(const StandaloneCallInfo& other)
+        : option{other.option}, optionValue{other.optionValue} {}
 };
 
 class StandaloneCall final : public PhysicalOperator {
@@ -45,8 +46,7 @@ class StandaloneCall final : public PhysicalOperator {
 
 public:
     StandaloneCall(StandaloneCallInfo info, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, id, std::move(printInfo)},
-          standaloneCallInfo{std::move(info)} {}
+        : PhysicalOperator{type_, id, std::move(printInfo)}, standaloneCallInfo{std::move(info)} {}
 
     bool isSource() const override { return true; }
     bool isParallel() const override { return false; }

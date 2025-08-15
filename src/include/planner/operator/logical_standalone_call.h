@@ -14,8 +14,7 @@ class LogicalStandaloneCall final : public LogicalOperator {
 public:
     LogicalStandaloneCall(const main::Option* option,
         std::shared_ptr<binder::Expression> optionValue)
-        : LogicalOperator{type_}, option{option},
-          optionValue{std::move(optionValue)} {}
+        : LogicalOperator{type_}, option{option}, optionValue{std::move(optionValue)} {}
 
     const main::Option* getOption() const { return option; }
     std::shared_ptr<binder::Expression> getOptionValue() const { return optionValue; }

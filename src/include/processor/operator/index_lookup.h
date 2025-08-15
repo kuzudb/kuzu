@@ -1,9 +1,9 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/persistent/batch_insert_error_handler.h"
 #include "processor/operator/physical_operator.h"
-#include "binder/expression/expression.h"
 
 namespace kuzu {
 namespace transaction {

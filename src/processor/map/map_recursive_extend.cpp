@@ -1,10 +1,10 @@
 #include "binder/expression/node_expression.h"
 #include "graph/on_disk_graph.h"
+#include "main/client_context.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend.h"
 #include "processor/plan_mapper.h"
-#include "main/client_context.h"
 
 using namespace kuzu::planner;
 using namespace kuzu::graph;

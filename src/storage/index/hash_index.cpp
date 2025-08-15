@@ -8,6 +8,7 @@
 #include "common/types/int128_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "main/client_context.h"
 #include "storage/disk_array.h"
 #include "storage/disk_array_collection.h"
 #include "storage/file_handle.h"
@@ -20,7 +21,6 @@
 #include "storage/shadow_utils.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

@@ -2,8 +2,8 @@
 
 #include "common/exception/copy.h"
 #include "common/uniq_lock.h"
-#include "processor/execution_context.h"
 #include "main/client_context.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 

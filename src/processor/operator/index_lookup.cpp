@@ -6,9 +6,9 @@
 #include "common/types/types.h"
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
+#include "main/client_context.h"
 #include "storage/index/hash_index.h"
 #include "storage/table/node_table.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

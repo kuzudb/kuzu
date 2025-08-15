@@ -1,8 +1,8 @@
 #include "processor/operator/profile.h"
 
+#include "main/client_context.h"
 #include "main/plan_printer.h"
 #include "processor/execution_context.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 

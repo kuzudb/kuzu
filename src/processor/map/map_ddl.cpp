@@ -1,3 +1,4 @@
+#include "main/client_context.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"
@@ -11,7 +12,6 @@
 #include "processor/operator/ddl/drop.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
-#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

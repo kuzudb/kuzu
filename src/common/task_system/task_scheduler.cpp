@@ -1,4 +1,5 @@
 #include "common/task_system/task_scheduler.h"
+
 #include "main/client_context.h"
 
 #if defined(__APPLE__)

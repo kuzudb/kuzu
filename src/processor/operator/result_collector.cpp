@@ -1,8 +1,8 @@
 #include "processor/operator/result_collector.h"
 
 #include "binder/expression/expression_util.h"
-#include "processor/execution_context.h"
 #include "main/client_context.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

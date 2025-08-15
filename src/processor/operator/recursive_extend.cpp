@@ -6,8 +6,8 @@
 #include "function/gds/compute.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "processor/execution_context.h"
 #include "main/client_context.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;

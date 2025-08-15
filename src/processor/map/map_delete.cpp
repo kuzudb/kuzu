@@ -1,11 +1,11 @@
 #include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "main/client_context.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "processor/operator/persistent/delete.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
-#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

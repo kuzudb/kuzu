@@ -1,11 +1,11 @@
 #include "processor/plan_mapper.h"
+
 #include "main/client_context.h"
+#include "main/database.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/profile.h"
-#include "storage/table/node_table.h"
-#include "main/database.h"
-#include "main/client_context.h"
 #include "storage/storage_manager.h"
+#include "storage/table/node_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -15,8 +15,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-PlanMapper::PlanMapper(ExecutionContext* executionContext) : executionContext{executionContext},
-    physicalOperatorID{0} {
+PlanMapper::PlanMapper(ExecutionContext* executionContext)
+    : executionContext{executionContext}, physicalOperatorID{0} {
     clientContext = executionContext->clientContext;
     mapperExtensions = clientContext->getDatabase()->getMapperExtensions();
 }

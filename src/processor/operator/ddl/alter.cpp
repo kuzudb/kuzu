@@ -6,10 +6,10 @@
 #include "common/enums/alter_type.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/table.h"
-#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

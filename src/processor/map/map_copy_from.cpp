@@ -1,4 +1,5 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "main/client_context.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/expression_mapper.h"
@@ -13,7 +14,6 @@
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
-#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

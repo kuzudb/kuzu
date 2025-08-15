@@ -1,10 +1,10 @@
 #include "processor/processor.h"
 
 #include "common/task_system/progress_bar.h"
+#include "main/client_context.h"
 #include "processor/operator/sink.h"
 #include "processor/physical_plan.h"
 #include "processor/processor_task.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

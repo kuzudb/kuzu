@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "common/types/value/value.h"
 
 namespace kuzu {

@@ -3,9 +3,9 @@
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
+#include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
-#include "main/client_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

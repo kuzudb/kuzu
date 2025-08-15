@@ -2,8 +2,8 @@
 #include "catalog/catalog.h"
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
-#include "processor/execution_context.h"
 #include "main/client_context.h"
+#include "processor/execution_context.h"
 
 namespace kuzu {
 namespace function {

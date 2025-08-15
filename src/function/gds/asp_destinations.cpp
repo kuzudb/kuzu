@@ -1,8 +1,8 @@
 #include "binder/expression/node_expression.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
-#include "processor/execution_context.h"
 #include "main/client_context.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;

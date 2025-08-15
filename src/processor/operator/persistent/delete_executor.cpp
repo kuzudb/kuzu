@@ -5,9 +5,9 @@
 #include "common/assert.h"
 #include "common/exception/message.h"
 #include "common/vector/value_vector.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/table/rel_table.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

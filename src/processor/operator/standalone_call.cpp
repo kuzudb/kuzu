@@ -1,9 +1,9 @@
 #include "processor/operator/standalone_call.h"
 
 #include "common/cast.h"
-#include "processor/execution_context.h"
-#include "main/db_config.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
+#include "processor/execution_context.h"
 
 namespace kuzu {
 namespace processor {

@@ -1,10 +1,10 @@
+#include "main/client_context.h"
 #include "planner/operator/scan/logical_index_look_up.h"
 #include "processor/expression_mapper.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
-#include "main/client_context.h"
 
 using namespace kuzu::planner;
 

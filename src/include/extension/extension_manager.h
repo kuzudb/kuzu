@@ -4,9 +4,7 @@
 #include "storage/storage_extension.h"
 
 namespace kuzu {
-namespace main {
-
-}
+namespace main {}
 namespace extension {
 
 struct ExtensionEntry {
