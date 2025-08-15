@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 

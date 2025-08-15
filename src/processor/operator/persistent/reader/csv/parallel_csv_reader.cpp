@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"

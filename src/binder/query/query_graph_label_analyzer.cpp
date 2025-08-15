@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;

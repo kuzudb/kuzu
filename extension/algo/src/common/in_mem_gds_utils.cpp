@@ -4,6 +4,7 @@
 #include "common/task_system/task_scheduler.h"
 #include "common/types/types.h"
 #include "function/gds/gds_task.h"
+#include "main/client_context.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::graph;

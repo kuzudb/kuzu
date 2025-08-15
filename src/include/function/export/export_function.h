@@ -1,7 +1,10 @@
 #pragma once
 
+#include <atomic>
+
+#include "common/case_insensitive_map.h"
+#include "common/types/value/value.h"
 #include "function/function.h"
-#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {

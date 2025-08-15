@@ -1,5 +1,6 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "main/client_context.h"
 #include "planner/operator/persistent/logical_set.h"
 #include "processor/expression_mapper.h"
 #include "processor/operator/persistent/set.h"

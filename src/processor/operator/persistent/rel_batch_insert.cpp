@@ -5,6 +5,7 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/task_system/progress_bar.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"

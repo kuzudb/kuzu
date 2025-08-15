@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/set_executor.h"
 
+#include "main/client_context.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

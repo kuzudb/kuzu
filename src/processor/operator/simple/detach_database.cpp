@@ -1,5 +1,6 @@
 #include "processor/operator/simple/detach_database.h"
 
+#include "main/client_context.h"
 #include "main/database.h"
 #include "main/database_manager.h"
 #include "processor/execution_context.h"

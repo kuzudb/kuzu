@@ -1,4 +1,5 @@
 #include "binder/expression/rel_expression.h"
+#include "main/client_context.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/expression_mapper.h"
 #include "processor/operator/persistent/insert.h"

@@ -1,5 +1,6 @@
 #include "processor/operator/semi_masker.h"
 
+#include "common/constants.h"
 #include "common/roaring_mask.h"
 #include "processor/execution_context.h"
 

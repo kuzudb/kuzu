@@ -2,6 +2,7 @@
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::binder;

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "main/database.h"
 #include "planner/operator/logical_operator.h"
-#include "planner/operator/logical_plan.h"
 #include "processor/execution_context.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
@@ -35,6 +33,7 @@ namespace planner {
 class LogicalSemiMasker;
 struct LogicalInsertInfo;
 class LogicalCopyFrom;
+class LogicalPlan;
 } // namespace planner
 
 namespace processor {
@@ -56,10 +55,7 @@ class RelBatchInsertImpl;
 
 class PlanMapper {
 public:
-    explicit PlanMapper(processor::ExecutionContext* executionContext)
-        : executionContext{executionContext}, clientContext{executionContext->clientContext},
-          physicalOperatorID{0},
-          mapperExtensions{executionContext->clientContext->getDatabase()->getMapperExtensions()} {}
+    explicit PlanMapper(ExecutionContext* executionContext);
 
     std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(const planner::LogicalPlan* logicalPlan,
         const binder::expression_vector& expressionsToCollect);

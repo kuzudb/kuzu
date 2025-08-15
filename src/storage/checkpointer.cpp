@@ -8,6 +8,7 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/in_mem_file_writer.h"
 #include "extension/extension_manager.h"
+#include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/shadow_utils.h"

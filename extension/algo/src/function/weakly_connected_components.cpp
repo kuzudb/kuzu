@@ -4,6 +4,7 @@
 #include "function/config/connected_components_config.h"
 #include "function/config/max_iterations_config.h"
 #include "function/gds/gds_utils.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::binder;

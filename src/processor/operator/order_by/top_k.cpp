@@ -5,6 +5,7 @@
 #include "common/type_utils.h"
 #include "function/binary_function_executor.h"
 #include "function/comparison/comparison_functions.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;

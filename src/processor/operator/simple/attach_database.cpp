@@ -3,6 +3,7 @@
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "main/attached_database.h"
+#include "main/client_context.h"
 #include "main/database.h"
 #include "main/database_manager.h"
 #include "processor/execution_context.h"

@@ -4,6 +4,7 @@
 #include "function/table/bind_data.h"
 #include "function/table/standalone_call_function.h"
 #include "graph/graph_entry_set.h"
+#include "main/client_context.h"
 #include "parser/parser.h"
 #include "processor/execution_context.h"
 

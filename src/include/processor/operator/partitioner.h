@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "common/enums/column_evaluate_type.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/base_partitioner_shared_state.h"
