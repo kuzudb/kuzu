@@ -6,6 +6,8 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+import pytest
+
 import ground_truth
 import kuzu
 import polars as pl
@@ -478,6 +480,14 @@ def test_to_arrow_map(conn_db_readonly: ConnDB) -> None:
     assert results == [
         [(1, {"a": 1, "b": 2, "c": "3"}), (2, {"a": 2, "b": 3, "c": "4"}), (3, {"a": 3, "b": 4, "c": "5"})]
     ]
+
+    result = conn.execute("RETURN map(['abc', NULL, 'qwe'], [123, 456, 781527])")
+    error = "Cannot convert map with null key to Arrow: {abc=123, =456, qwe=781527}"
+    with pytest.raises(RuntimeError, match=error):
+        result.get_as_arrow(1)
+
+    result = conn.execute("RETURN map(['abc', 'xyz', 'qwe'], [123, 456, 781527])").get_as_arrow(1)
+    assert result[0].to_pylist(maps_as_pydicts="strict") == [{"abc": 123, "xyz": 456, "qwe": 781527}]
 
 
 def test_to_arrow_array(conn_db_readwrite: ConnDB) -> None:

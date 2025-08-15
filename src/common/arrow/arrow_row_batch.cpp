@@ -379,6 +379,13 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::ARRAY>(ArrowVector* 
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::MAP>(ArrowVector* vector,
     const LogicalType& type, const Value& value, std::int64_t pos, bool fallbackExtensionTypes) {
+    // Verify all keys are not null
+    for (auto i = 0u; i < value.childrenSize; ++i) {
+        if (value.children[i]->children[0]->isNull()) {
+            throw RuntimeException{
+                stringFormat("Cannot convert map with null key to Arrow: {}", value.toString())};
+        }
+    }
     return templateCopyNonNullValue<LogicalTypeID::LIST>(vector, type, value, pos,
         fallbackExtensionTypes);
 }
@@ -712,7 +719,9 @@ void ArrowRowBatch::copyNullValue(ArrowVector* vector, const Value& value, std::
     case LogicalTypeID::INTERVAL: {
         templateCopyNullValue<LogicalTypeID::INTERVAL>(vector, pos);
     } break;
-    case LogicalTypeID::UUID:
+    case LogicalTypeID::UUID: {
+        templateCopyNullValue<LogicalTypeID::UUID>(vector, pos);
+    } break;
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         templateCopyNullValue<LogicalTypeID::STRING>(vector, pos);
