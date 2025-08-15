@@ -455,7 +455,7 @@ std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOf
     }
     checkpointState.persistentData.finalize();
     // TODO(bmwinger): this should use the on-disk size, not the in-memory size
-    if (checkpointState.persistentData.isSegmentFull()) {
+    if (checkpointState.persistentData.shouldSplit()) {
         auto newSegments = checkpointState.persistentData.split();
         for (auto& segment : newSegments) {
             segment->flush(pageAllocator);

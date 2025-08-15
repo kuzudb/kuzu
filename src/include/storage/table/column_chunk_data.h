@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <variant>
@@ -279,8 +280,13 @@ public:
     virtual bool sanityCheck() const;
 
     virtual uint64_t getEstimatedMemoryUsage() const;
-    // TODO(bmwinger): not sure I like the name/purpose of this function
-    bool isSegmentFull() const { return getEstimatedMemoryUsage() > MAX_SEGMENT_SIZE; }
+    bool shouldSplit() const {
+        // TODO(bmwinger): when segments are restructured this should be able to cache the same
+        // getMetadataToFlush call that flush uses to avoid scanning the segment twice
+        return numValues > 1 && getSizeOnDisk() > MAX_SEGMENT_SIZE;
+    }
+
+    virtual uint64_t getSizeOnDisk() const;
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<ColumnChunkData> deserialize(MemoryManager& mm,
@@ -305,7 +311,7 @@ public:
 
     virtual void reclaimStorage(PageAllocator& pageAllocator);
 
-    std::vector<std::unique_ptr<ColumnChunkData>> split() const;
+    std::vector<std::unique_ptr<ColumnChunkData>> split(bool targetMaxSize = false) const;
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in

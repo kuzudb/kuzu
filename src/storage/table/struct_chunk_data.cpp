@@ -94,6 +94,14 @@ void StructChunkData::reclaimStorage(PageAllocator& pageAllocator) {
     }
 }
 
+uint64_t StructChunkData::getSizeOnDisk() const {
+    uint64_t size = ColumnChunkData::getSizeOnDisk();
+    for (const auto& childChunk : childChunks) {
+        size += childChunk->getSizeOnDisk();
+    }
+    return size;
+}
+
 void StructChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
