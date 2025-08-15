@@ -17,7 +17,7 @@ struct Direction {
     static void validate(std::string dir) {
         if (dir != DIRECTED && dir != UNDIRECTED) {
             throw common::BinderException(common::stringFormat(
-                "{} argument expects {} or {}. Got: {}", NAME, UNDIRECTED, DIRECTED, dir));
+                "{} argument expects '{}' or '{}'. Got: {}", NAME, UNDIRECTED, DIRECTED, dir));
         }
     }
 };

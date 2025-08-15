@@ -1,0 +1,579 @@
+-DATASET CSV empty
+
+--
+
+-CASE Basic
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u0)-[:Edge {weight: 5}]->(u1),
+            (u0)-[:Edge {weight: 6}]->(u2),
+            (u1)-[:Edge {weight: 8}]->(u2),
+            (u2)-[:Edge {weight: 3}]->(u3),
+            (u3)-[:Edge {weight: 3}]->(u4),
+            (u5)-[:Edge {weight: 10}]->(u6),
+            (u5)-[:Edge {weight: 10}]->(u7),
+            (u6)-[:Edge {weight: 3}]->(u7),
+            (u7)-[:Edge {weight: 10}]->(u8),
+            (u8)-[:Edge {weight: 3}]->(u9),
+            (u2)-[:Edge {weight: 15}]->(u5),
+            (u4)-[:Edge {weight: 2}]->(u9);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph')
+    RETURN node.id, betweenness_centrality_score;
+---- 10
+0|0.000000
+1|0.000000
+2|14.000000
+3|6.000000
+4|4.000000
+5|9.000000
+6|0.000000
+7|7.000000
+8|3.000000
+9|0.000000
+
+
+-CASE Alias
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u0)-[:Edge {weight: 5}]->(u1),
+            (u0)-[:Edge {weight: 6}]->(u2),
+            (u1)-[:Edge {weight: 8}]->(u2),
+            (u2)-[:Edge {weight: 3}]->(u3),
+            (u3)-[:Edge {weight: 3}]->(u4),
+            (u5)-[:Edge {weight: 10}]->(u6),
+            (u5)-[:Edge {weight: 10}]->(u7),
+            (u6)-[:Edge {weight: 3}]->(u7),
+            (u7)-[:Edge {weight: 10}]->(u8),
+            (u8)-[:Edge {weight: 3}]->(u9),
+            (u2)-[:Edge {weight: 15}]->(u5);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BC('Graph')
+    RETURN node.id, betweenness_centrality_score;
+---- 10
+0|0.000000
+1|0.000000
+2|14.000000
+3|3.000000
+4|0.000000
+5|12.000000
+6|0.000000
+7|10.000000
+8|6.000000
+9|0.000000
+
+
+-CASE DisconnectedComponents
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u0)-[:Edge {weight: 5}]->(u1),
+            (u0)-[:Edge {weight: 6}]->(u2),
+            (u1)-[:Edge {weight: 8}]->(u2),
+            (u2)-[:Edge {weight: 3}]->(u3),
+            (u3)-[:Edge {weight: 3}]->(u4),
+            (u5)-[:Edge {weight: 10}]->(u6),
+            (u5)-[:Edge {weight: 10}]->(u7),
+            (u6)-[:Edge {weight: 3}]->(u7),
+            (u7)-[:Edge {weight: 10}]->(u8),
+            (u8)-[:Edge {weight: 3}]->(u9);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph')
+    RETURN node.id, betweenness_centrality_score;
+---- 10
+0|0.000000
+1|0.000000
+2|4.000000
+3|3.000000
+4|0.000000
+5|0.000000
+6|0.000000
+7|4.000000
+8|3.000000
+9|0.000000
+
+
+
+-CASE NoEdges
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9});
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph')
+    RETURN node.id, betweenness_centrality_score;
+---- 10
+0|0.000000
+1|0.000000
+2|0.000000
+3|0.000000
+4|0.000000
+5|0.000000
+6|0.000000
+7|0.000000
+8|0.000000
+9|0.000000
+
+-CASE MultiEdges
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u0)-[:Edge {weight: 5}]->(u1),
+            (u0)-[:Edge {weight: 6}]->(u1),
+            (u0)-[:Edge {weight: 6}]->(u2),
+            (u0)-[:Edge {weight: 8}]->(u2),
+            (u1)-[:Edge {weight: 8}]->(u2),
+            (u2)-[:Edge {weight: 3}]->(u3),
+            (u3)-[:Edge {weight: 3}]->(u4),
+            (u5)-[:Edge {weight: 10}]->(u6),
+            (u5)-[:Edge {weight: 20}]->(u6),
+            (u5)-[:Edge {weight: 10}]->(u7),
+            (u6)-[:Edge {weight: 3}]->(u7),
+            (u6)-[:Edge {weight: 8}]->(u7),
+            (u7)-[:Edge {weight: 10}]->(u8),
+            (u8)-[:Edge {weight: 3}]->(u9),
+            (u2)-[:Edge {weight: 15}]->(u5),
+            (u2)-[:Edge {weight: 20}]->(u5),
+            (u4)-[:Edge {weight: 2}]->(u9),
+            (u4)-[:Edge {weight: 4}]->(u9);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph')
+    RETURN node.id, betweenness_centrality_score;
+---- 10
+0|0.000000
+1|0.000000
+2|14.000000
+3|6.000000
+4|4.000000
+5|9.000000
+6|0.000000
+7|7.000000
+8|3.000000
+9|0.000000
+
+
+-CASE SelfAndMultiEdges
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u0)-[:Edge {weight: 5}]->(u1),
+            (u0)-[:Edge {weight: 5}]->(u0),
+            (u0)-[:Edge {weight: 6}]->(u1),
+            (u0)-[:Edge {weight: 6}]->(u2),
+            (u0)-[:Edge {weight: 8}]->(u2),
+            (u1)-[:Edge {weight: 8}]->(u2),
+            (u1)-[:Edge {weight: 5}]->(u1),
+            (u2)-[:Edge {weight: 3}]->(u3),
+            (u3)-[:Edge {weight: 3}]->(u4),
+            (u5)-[:Edge {weight: 10}]->(u6),
+            (u5)-[:Edge {weight: 20}]->(u6),
+            (u5)-[:Edge {weight: 10}]->(u7),
+            (u5)-[:Edge {weight: 60}]->(u5),
+            (u6)-[:Edge {weight: 3}]->(u7),
+            (u6)-[:Edge {weight: 8}]->(u7),
+            (u7)-[:Edge {weight: 10}]->(u8),
+            (u8)-[:Edge {weight: 3}]->(u9),
+            (u2)-[:Edge {weight: 15}]->(u5),
+            (u2)-[:Edge {weight: 20}]->(u5),
+            (u2)-[:Edge {weight: 0}]->(u2),
+            (u4)-[:Edge {weight: 2}]->(u9),
+            (u4)-[:Edge {weight: 4}]->(u9);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph')
+    RETURN node.id, betweenness_centrality_score;
+---- 10
+0|0.000000
+1|0.000000
+2|14.000000
+3|6.000000
+4|4.000000
+5|9.000000
+6|0.000000
+7|7.000000
+8|3.000000
+9|0.000000
+
+
+
+-CASE InvalidWeightProperty
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='weight')
+    RETURN node.id, betweenness_centrality_score;
+---- error
+Runtime exception: Provided weight property is not numerical: weight
+
+
+-CASE PropertyDoesNotExist
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='height')
+    RETURN node.id, betweenness_centrality_score;
+---- error
+Runtime exception: Cannot find property: height
+
+-CASE MultipleNodeTables
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE NODE TABLE Node2(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node', 'Node2'], ['Edge']);
+---- ok
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='height')
+    RETURN node.id, betweenness_centrality_score;
+---- error
+Binder exception: BETWEENNESS_CENTRALITY only supports operations on one node table.
+
+-CASE MultipleRelTables
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CREATE REL TABLE Edge2(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge', 'Edge2']);
+---- ok
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='height')
+    RETURN node.id, betweenness_centrality_score;
+---- error
+Binder exception: BETWEENNESS_CENTRALITY only supports operations on one rel table.
+
+-CASE BadDirection
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight STRING);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='height', direction:='up')
+    RETURN node.id, betweenness_centrality_score;
+---- error
+Binder exception: direction argument expects 'undirected' or 'directed'. Got: up
+
+-CASE SingleNode
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0});
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph')
+    RETURN node.id, betweenness_centrality_score;
+---- 1
+0|0.000000
+
+-CASE TwoNodeConnected
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u0)-[:Edge {weight: 5}]->(u1);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='weight')
+    RETURN node.id, betweenness_centrality_score;
+---- 2
+0|0.000000
+1|0.000000
+
+
+-CASE LinearChain
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u0)-[:Edge {weight: 1}]->(u1),
+            (u1)-[:Edge {weight: 2}]->(u2),
+            (u2)-[:Edge {weight: 3}]->(u3),
+            (u3)-[:Edge {weight: 4}]->(u4);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='weight')
+    RETURN node.id, betweenness_centrality_score;
+---- 5
+0|0.000000
+1|3.000000
+2|4.000000
+3|3.000000
+4|0.000000
+
+-CASE StarGraph
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u0)-[:Edge {weight: 1}]->(u1),
+            (u0)-[:Edge {weight: 2}]->(u2),
+            (u0)-[:Edge {weight: 3}]->(u3),
+            (u0)-[:Edge {weight: 4}]->(u4);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='weight')
+    RETURN node.id, betweenness_centrality_score;
+---- 5
+0|0.000000
+1|0.000000
+2|0.000000
+3|0.000000
+4|0.000000
+
+-CASE CompleteGraph
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u0)-[:Edge {weight: 1}]->(u1),
+            (u0)-[:Edge {weight: 2}]->(u2),
+            (u0)-[:Edge {weight: 3}]->(u3),
+            (u1)-[:Edge {weight: 4}]->(u2),
+            (u1)-[:Edge {weight: 5}]->(u3),
+            (u2)-[:Edge {weight: 6}]->(u3);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='weight')
+    RETURN node.id, betweenness_centrality_score;
+---- 4
+0|0.000000
+1|0.000000
+2|0.000000
+3|0.000000
+
+-CASE TreeStructure
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u0)-[:Edge {weight: 10}]->(u1),
+            (u0)-[:Edge {weight: 15}]->(u2),
+            (u1)-[:Edge {weight: 20}]->(u3),
+            (u1)-[:Edge {weight: 25}]->(u4),
+            (u2)-[:Edge {weight: 30}]->(u5),
+            (u2)-[:Edge {weight: 35}]->(u6);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='weight')
+    RETURN node.id, betweenness_centrality_score;
+---- 7
+0|0.000000
+1|2.000000
+2|2.000000
+3|0.000000
+4|0.000000
+5|0.000000
+6|0.000000
+
+-CASE UnbalancedComponents
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u0)-[:Edge {weight: 1}]->(u1),
+            (u1)-[:Edge {weight: 2}]->(u2),
+            (u2)-[:Edge {weight: 3}]->(u3),
+            (u3)-[:Edge {weight: 4}]->(u4),
+            (u4)-[:Edge {weight: 5}]->(u5),
+            (u5)-[:Edge {weight: 6}]->(u6),
+            (u7)-[:Edge {weight: 10}]->(u8);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='weight')
+    RETURN node.id, betweenness_centrality_score;
+---- 10
+0|0.000000
+1|5.000000
+2|8.000000
+3|9.000000
+4|8.000000
+5|5.000000
+6|0.000000
+7|0.000000
+8|0.000000
+9|0.000000
+
+-CASE TieBreaking
+-LOAD_DYNAMIC_EXTENSION algo
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node, weight INT64);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u0)-[:Edge {weight: 1}]->(u1),
+            (u0)-[:Edge {weight: 1}]->(u2),
+            (u1)-[:Edge {weight: 1}]->(u3),
+            (u2)-[:Edge {weight: 1}]->(u3);
+---- ok
+-STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
+---- ok
+
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', weight_property:='weight')
+    RETURN node.id, betweenness_centrality_score;
+---- 4
+0|0.000000
+1|0.500000
+2|0.500000
+3|0.000000
+
