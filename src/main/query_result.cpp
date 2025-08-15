@@ -99,6 +99,9 @@ void QueryResult::setQuerySummary(std::unique_ptr<QuerySummary> summary) {
 void QueryResult::setDBLifeCycleManager(
     std::shared_ptr<DatabaseLifeCycleManager> dbLifeCycleManager) {
     this->dbLifeCycleManager = dbLifeCycleManager;
+    if (nextQueryResult) {
+        nextQueryResult->setDBLifeCycleManager(dbLifeCycleManager);
+    }
 }
 
 std::unique_ptr<QueryResult> QueryResult::getQueryResultWithError(const std::string& errorMessage) {
