@@ -14,7 +14,7 @@ except ImportError:
     from backports.zoneinfo import ZoneInfo  # type: ignore[no-redef]
 
 import kuzu
-
+from kuzu.constants import *
 
 def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
     assert results.get_next() == [
@@ -313,14 +313,14 @@ def test_pandas_scan_demo(conn_db_empty: ConnDB) -> None:
     assert len(result) == 2
     assert result["s"][0] == {
         "ID": 0,
-        "_ID": {"offset": 0, "table": 0},
-        "_LABEL": "student",
+        ID: {"offset": 0, "table": 0},
+        LABEL: "student",
         "height": 70,
     }
     assert result["s"][1] == {
         "ID": 4,
-        "_ID": {"offset": 2, "table": 0},
-        "_LABEL": "student",
+        ID: {"offset": 2, "table": 0},
+        LABEL: "student",
         "height": 67,
     }
 

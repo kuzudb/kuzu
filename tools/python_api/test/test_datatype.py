@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytz
 from type_aliases import ConnDB
-
+from kuzu.constants import *
 
 def test_bool(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
@@ -261,7 +261,7 @@ def test_node(conn_db_readonly: ConnDB) -> None:
     n = result.get_next()
     assert len(n) == 1
     n = n[0]
-    assert n["_LABEL"] == "person"
+    assert n[LABEL] == "person"
     assert n["ID"] == 0
     assert n["fName"] == "Alice"
     assert n["gender"] == 1
@@ -285,14 +285,14 @@ def test_rel(conn_db_readonly: ConnDB) -> None:
     p = n[0]
     r = n[1]
     o = n[2]
-    assert p["_LABEL"] == "person"
+    assert p[LABEL] == "person"
     assert p["ID"] == 5
-    assert o["_LABEL"] == "organisation"
+    assert o[LABEL] == "organisation"
     assert o["ID"] == 6
     assert r["year"] == 2010
-    assert r["_SRC"] == p["_ID"]
-    assert r["_DST"] == o["_ID"]
-    assert r["_LABEL"] == "workAt"
+    assert r[SRC] == p[ID]
+    assert r[DST] == o[ID]
+    assert r[LABEL] == "workAt"
     assert not result.has_next()
     result.close()
 
@@ -330,16 +330,16 @@ def test_recursive_rel(conn_db_readonly: ConnDB) -> None:
     n = result.get_next()
     assert len(n) == 1
     e = n[0]
-    assert "_NODES" in e
-    assert "_RELS" in e
-    assert len(e["_NODES"]) == 0
-    assert len(e["_RELS"]) == 1
-    rel = e["_RELS"][0]
+    assert NODES in e
+    assert RELS in e
+    assert len(e[NODES]) == 0
+    assert len(e[RELS]) == 1
+    rel = e[RELS][0]
     excepted_rel = {
-        "_ID": {"offset": 0, "table": 5},
-        "_SRC": {"offset": 0, "table": 0},
-        "_DST": {"offset": 0, "table": 1},
-        "_LABEL": "studyAt",
+        ID: {"offset": 0, "table": 5},
+        SRC: {"offset": 0, "table": 0},
+        DST: {"offset": 0, "table": 1},
+        LABEL: "studyAt",
         "year": 2021,
         "places": ["wwAewsdndweusd", "wek"],
         "length": 5,

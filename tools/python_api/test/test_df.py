@@ -10,7 +10,7 @@ import kuzu
 import pytz
 from pandas import Timedelta, Timestamp
 from type_aliases import ConnDB
-
+from kuzu.constants import *
 
 def test_to_df(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
@@ -351,7 +351,7 @@ def test_df_get_node(conn_db_readonly: ConnDB) -> None:
             [[10]],
             [[7], [10], [6, 7]],
         ],
-        "_LABEL": [
+        LABEL: [
             "person",
             "person",
             "person",
@@ -403,7 +403,7 @@ def test_df_get_node_rel(conn_db_readonly: ConnDB) -> None:
         "workedHours": [[4, 5], [1, 9], [2]],
         "usedNames": [["Carmen", "Fred"], ["Wolfeschlegelstein", "Daniel"], ["Ein"]],
         "courseScoresPerTerm": [[[8, 10]], [[7, 4], [8, 8], [9]], [[6], [7], [8]]],
-        "_LABEL": ["person", "person", "person"],
+        LABEL: ["person", "person", "person"],
     }
     for i in range(len(p_list)):
         p = p_list[i]
@@ -427,7 +427,7 @@ def test_df_get_node_rel(conn_db_readonly: ConnDB) -> None:
             Timedelta(days=3, seconds=36000, microseconds=100000),
         ],
         "rating": [0.78, 0.52, 0.52],
-        "_LABEL": ["organisation", "organisation", "organisation"],
+        LABEL: ["organisation", "organisation", "organisation"],
     }
     for i in range(len(o_list)):
         o = df["o"][i]
@@ -439,8 +439,8 @@ def test_df_get_node_rel(conn_db_readonly: ConnDB) -> None:
     assert df["r"][2]["year"] == 2015
 
     for i in range(len(df["r"])):
-        assert df["r"][i]["_SRC"] == df["p"][i]["_ID"]
-        assert df["r"][i]["_DST"] == df["o"][i]["_ID"]
+        assert df["r"][i][SRC] == df["p"][i][ID]
+        assert df["r"][i][DST] == df["o"][i][ID]
 
 
 def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
@@ -450,11 +450,11 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
         "p.ID = 0 and m.ID = 0 RETURN r"
     ).get_as_df()
     assert res["r"][0] == {
-        "_NODES": [
+        NODES: [
             {
                 "ID": 2,
-                "_ID": {"offset": 1, "table": 0},
-                "_LABEL": "person",
+                ID: {"offset": 1, "table": 0},
+                LABEL: "person",
                 "age": 30,
                 "birthdate": datetime.date(1900, 1, 1),
                 "courseScoresPerTerm": [[8, 9], [9, 10]],
@@ -472,15 +472,15 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
                 "workedHours": [12, 8],
             }
         ],
-        "_RELS": [
+        RELS: [
             {
-                "_ID": {
+                ID: {
                     "offset": 0,
                     "table": 3,
                 },
-                "_DST": {"offset": 1, "table": 0},
-                "_LABEL": "knows",
-                "_SRC": {"offset": 0, "table": 0},
+                DST: {"offset": 1, "table": 0},
+                LABEL: "knows",
+                SRC: {"offset": 0, "table": 0},
                 "comments": ["rnme", "m8sihsdnf2990nfiwf"],
                 "date": datetime.date(2021, 6, 30),
                 "meetTime": datetime.datetime(1986, 10, 21, 21, 8, 31, 521000),
@@ -496,13 +496,13 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
                 "validInterval": datetime.timedelta(days=3750, seconds=46800, microseconds=24),
             },
             {
-                "_ID": {
+                ID: {
                     "offset": 0,
                     "table": 3,
                 },
-                "_DST": {"offset": 1, "table": 0},
-                "_LABEL": "knows",
-                "_SRC": {"offset": 0, "table": 0},
+                DST: {"offset": 1, "table": 0},
+                LABEL: "knows",
+                SRC: {"offset": 0, "table": 0},
                 "comments": ["rnme", "m8sihsdnf2990nfiwf"],
                 "date": datetime.date(2021, 6, 30),
                 "meetTime": datetime.datetime(1986, 10, 21, 21, 8, 31, 521000),

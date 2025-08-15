@@ -5,7 +5,7 @@ import warnings
 import ground_truth
 import torch
 from type_aliases import ConnDB
-
+from kuzu.constants import *
 
 def test_to_torch_geometric_nodes_only(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
@@ -407,7 +407,7 @@ def test_to_torch_geometric_heterogeneous_graph(conn_db_readonly: ConnDB) -> Non
     assert "comments" in edge_properties["person", "person"]
     assert "summary" in edge_properties["person", "person"]
     assert "notes" in edge_properties["person", "person"]
-    assert "_LABEL" in edge_properties["person", "person"]
+    assert LABEL in edge_properties["person", "person"]
     for i in range(3):
         src, dst = (
             torch_geometric_data["person", "person"].edge_index[0][i].item(),
@@ -439,7 +439,7 @@ def test_to_torch_geometric_heterogeneous_graph(conn_db_readonly: ConnDB) -> Non
             ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[original_src, original_dst]["notes"]
             == edge_properties["person", "person"]["notes"][i]
         )
-        assert edge_properties["person", "person"]["_LABEL"][i] == "knows"
+        assert edge_properties["person", "person"][LABEL][i] == "knows"
 
     assert torch_geometric_data["organisation"].ID.shape == torch.Size([2])
     assert torch_geometric_data["organisation"].ID.dtype == torch.int64
@@ -521,7 +521,7 @@ def test_to_torch_geometric_heterogeneous_graph(conn_db_readonly: ConnDB) -> Non
         )
     assert len(edge_properties["person", "organisation"]) == 4
     assert "year" in edge_properties["person", "organisation"]
-    assert "_LABEL" in edge_properties["person", "organisation"]
+    assert LABEL in edge_properties["person", "organisation"]
     for i in range(2):
         src, dst = (
             torch_geometric_data["person", "organisation"].edge_index[0][i].item(),
@@ -532,7 +532,7 @@ def test_to_torch_geometric_heterogeneous_graph(conn_db_readonly: ConnDB) -> Non
             ground_truth.TINY_SNB_WORKS_AT_PROPERTIES_GROUND_TRUTH[original_src, original_dst]["year"]
             == edge_properties["person", "organisation"]["year"][i]
         )
-        assert edge_properties["person", "organisation"]["_LABEL"][i] == "workAt"
+        assert edge_properties["person", "organisation"][LABEL][i] == "workAt"
 
 
 def test_to_torch_geometric_multi_dimensional_lists(

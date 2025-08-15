@@ -5,7 +5,7 @@ from typing import Any
 
 from pandas import Timedelta, Timestamp
 from type_aliases import ConnDB
-
+from kuzu.constants import *
 
 def test_to_networkx_node(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
@@ -101,7 +101,7 @@ def test_to_networkx_node(conn_db_readonly: ConnDB) -> None:
             [43, 83, 67, 43],
             [77, 64, 100, 54],
         ],
-        "_LABEL": [
+        LABEL: [
             "person",
             "person",
             "person",
@@ -114,7 +114,7 @@ def test_to_networkx_node(conn_db_readonly: ConnDB) -> None:
     }
     for i in range(len(nodes)):
         node_id, node = nodes[i]
-        assert node_id == f"{node['_LABEL']}_{node['ID']}"
+        assert node_id == f"{node[LABEL]}_{node['ID']}"
         for key in ground_truth:
             assert node[key] == ground_truth[key][i]
 
@@ -216,7 +216,7 @@ def test_networkx_undirected(conn_db_readonly: ConnDB) -> None:
             [43, 83, 67, 43],
             [77, 64, 100, 54],
         ],
-        "_LABEL": [
+        LABEL: [
             "person",
             "person",
             "person",
@@ -228,7 +228,7 @@ def test_networkx_undirected(conn_db_readonly: ConnDB) -> None:
         ],
     }
     for node_id, node in nodes:
-        assert node_id == f"{node['_LABEL']}_{node['ID']}"
+        assert node_id == f"{node[LABEL]}_{node['ID']}"
 
     for _, node in nodes:
         found = False
@@ -286,11 +286,11 @@ def test_networkx_directed(conn_db_readonly: ConnDB) -> None:
         "usedNames": [["Carmen", "Fred"], ["Wolfeschlegelstein", "Daniel"], ["Ein"]],
         "courseScoresPerTerm": [[[8, 10]], [[7, 4], [8, 8], [9]], [[6], [7], [8]]],
         "grades": [[91, 75, 21, 95], [76, 88, 99, 89], [96, 59, 65, 88]],
-        "_LABEL": ["person", "person", "person"],
+        LABEL: ["person", "person", "person"],
     }
 
     for node_id, node in nodes:
-        assert node_id == f"{node['_LABEL']}_{node['ID']}"
+        assert node_id == f"{node[LABEL]}_{node['ID']}"
 
     for _, node in nodes:
         if "person" not in node:
@@ -316,7 +316,7 @@ def test_networkx_directed(conn_db_readonly: ConnDB) -> None:
             Timedelta(days=3, seconds=36000, microseconds=100000),
         ],
         "rating": [0.78, 0.52],
-        "_LABEL": ["organisation", "organisation"],
+        LABEL: ["organisation", "organisation"],
     }
 
     for _, node in nodes:
@@ -337,9 +337,9 @@ def test_networkx_directed(conn_db_readonly: ConnDB) -> None:
 
     years_ground_truth = [2010, 2015, 2015]
     for src, dst, edge in edges:
-        assert nodes_dict[dst]["_LABEL"] == "organisation"
+        assert nodes_dict[dst][LABEL] == "organisation"
         assert nodes_dict[dst]["ID"] in [4, 6]
-        assert nodes_dict[src]["_LABEL"] == "person"
+        assert nodes_dict[src][LABEL] == "person"
         assert nodes_dict[src]["ID"] in [3, 5, 7]
         assert edge["year"] in years_ground_truth
 
