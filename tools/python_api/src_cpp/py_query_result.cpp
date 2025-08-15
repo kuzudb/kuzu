@@ -5,6 +5,7 @@
 #include "cached_import/py_cached_import.h"
 #include "common/arrow/arrow_converter.h"
 #include "common/arrow/arrow_row_batch.h"
+#include "common/constants.h"
 #include "common/exception/not_implemented.h"
 #include "common/types/uuid.h"
 #include "common/types/value/nested.h"
@@ -238,16 +239,16 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::RECURSIVE_REL: {
         py::dict dict;
-        dict["_nodes"] = convertValueToPyObject(*NestedVal::getChildVal(&value, 0));
-        dict["_rels"] = convertValueToPyObject(*NestedVal::getChildVal(&value, 1));
+        dict[InternalKeyword::NODES] = convertValueToPyObject(*NestedVal::getChildVal(&value, 0));
+        dict[InternalKeyword::RELS] = convertValueToPyObject(*NestedVal::getChildVal(&value, 1));
         return dict;
     }
     case LogicalTypeID::NODE: {
         py::dict dict;
         auto nodeIdVal = NodeVal::getNodeIDVal(&value);
-        dict["_id"] = nodeIdVal ? convertValueToPyObject(*nodeIdVal) : py::none();
+        dict[InternalKeyword::ID] = nodeIdVal ? convertValueToPyObject(*nodeIdVal) : py::none();
         auto labelVal = NodeVal::getLabelVal(&value);
-        dict["_label"] = labelVal ? convertValueToPyObject(*labelVal) : py::none();
+        dict[InternalKeyword::LABEL] = labelVal ? convertValueToPyObject(*labelVal) : py::none();
         auto numProperties = NodeVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = py::str(NodeVal::getPropertyName(&value, i));
@@ -259,13 +260,14 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::REL: {
         py::dict dict;
         auto srcIdVal = RelVal::getSrcNodeIDVal(&value);
-        dict["_src"] = srcIdVal ? convertValueToPyObject(*srcIdVal) : py::none();
+        dict[InternalKeyword::SRC] = srcIdVal ? convertValueToPyObject(*srcIdVal) : py::none();
         auto dstIdVal = RelVal::getDstNodeIDVal(&value);
-        dict["_dst"] = dstIdVal ? convertValueToPyObject(*dstIdVal) : py::none();
+        dict[InternalKeyword::DST] = dstIdVal ? convertValueToPyObject(*dstIdVal) : py::none();
         auto labelVal = RelVal::getLabelVal(&value);
-        dict["_label"] = labelVal ? convertValueToPyObject(*labelVal) : py::none();
+        dict[InternalKeyword::LABEL] = labelVal ? convertValueToPyObject(*labelVal) : py::none();
         auto internalIdVal = RelVal::getIDVal(&value);
-        dict["_id"] = internalIdVal ? convertValueToPyObject(*internalIdVal) : py::none();
+        dict[InternalKeyword::ID] =
+            internalIdVal ? convertValueToPyObject(*internalIdVal) : py::none();
         auto numProperties = RelVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = py::str(RelVal::getPropertyName(&value, i));

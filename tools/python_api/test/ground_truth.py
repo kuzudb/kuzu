@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta
 from uuid import UUID
+from kuzu.constants import ID, LABEL
 
 TINY_SNB_PERSONS_GROUND_TRUTH = {
     0: {
@@ -19,8 +20,8 @@ TINY_SNB_PERSONS_GROUND_TRUTH = {
         "grades": [96, 54, 86, 92],
         "height": 1.731,
         "u": UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"),
-        "_LABEL": "person",
-        "_ID": {"offset": 0, "table": 0},
+        LABEL: "person",
+        ID: {"offset": 0, "table": 0},
     },
     2: {
         "ID": 2,
@@ -39,8 +40,8 @@ TINY_SNB_PERSONS_GROUND_TRUTH = {
         "grades": [98, 42, 93, 88],
         "height": 0.99,
         "u": UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12"),
-        "_LABEL": "person",
-        "_ID": {"offset": 1, "table": 0},
+        LABEL: "person",
+        ID: {"offset": 1, "table": 0},
     },
     3: {
         "ID": 3,
@@ -59,8 +60,8 @@ TINY_SNB_PERSONS_GROUND_TRUTH = {
         "grades": [91, 75, 21, 95],
         "height": 1.00,
         "u": UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13"),
-        "_LABEL": "person",
-        "_ID": {"offset": 2, "table": 0},
+        LABEL: "person",
+        ID: {"offset": 2, "table": 0},
     },
     5: {
         "ID": 5,
@@ -79,8 +80,8 @@ TINY_SNB_PERSONS_GROUND_TRUTH = {
         "grades": [76, 88, 99, 89],
         "height": 1.30,
         "u": UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14"),
-        "_LABEL": "person",
-        "_ID": {"offset": 3, "table": 0},
+        LABEL: "person",
+        ID: {"offset": 3, "table": 0},
     },
     7: {
         "ID": 7,
@@ -99,8 +100,8 @@ TINY_SNB_PERSONS_GROUND_TRUTH = {
         "grades": [96, 59, 65, 88],
         "height": 1.463,
         "u": UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15"),
-        "_LABEL": "person",
-        "_ID": {"offset": 4, "table": 0},
+        LABEL: "person",
+        ID: {"offset": 4, "table": 0},
     },
     8: {
         "ID": 8,
@@ -119,8 +120,8 @@ TINY_SNB_PERSONS_GROUND_TRUTH = {
         "grades": [80, 78, 34, 83],
         "height": 1.51,
         "u": UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16"),
-        "_LABEL": "person",
-        "_ID": {"offset": 5, "table": 0},
+        LABEL: "person",
+        ID: {"offset": 5, "table": 0},
     },
     9: {
         "ID": 9,
@@ -139,8 +140,8 @@ TINY_SNB_PERSONS_GROUND_TRUTH = {
         "grades": [43, 83, 67, 43],
         "height": 1.6,
         "u": UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17"),
-        "_LABEL": "person",
-        "_ID": {"offset": 6, "table": 0},
+        LABEL: "person",
+        ID: {"offset": 6, "table": 0},
     },
     10: {
         "ID": 10,
@@ -159,8 +160,8 @@ TINY_SNB_PERSONS_GROUND_TRUTH = {
         "grades": [77, 64, 100, 54],
         "height": 1.323,
         "u": UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18"),
-        "_LABEL": "person",
-        "_ID": {"offset": 7, "table": 0},
+        LABEL: "person",
+        ID: {"offset": 7, "table": 0},
     },
 }
 
@@ -176,8 +177,8 @@ TINY_SNB_ORGANISATIONS_GROUND_TRUTH = {
         "rating": 1.0,
         "state": {"revenue": 138, "location": ["toronto", "montr,eal"], "stock": {"price": [96, 56], "volume": 1000}},
         "info": 3.12,
-        "_LABEL": "organisation",
-        "_ID": {"offset": 0, "table": 1},
+        LABEL: "organisation",
+        ID: {"offset": 0, "table": 1},
     },
     4: {
         "ID": 4,
@@ -194,8 +195,8 @@ TINY_SNB_ORGANISATIONS_GROUND_TRUTH = {
             "stock": {"price": [15, 78, 671], "volume": 432},
         },
         "info": "abcd",
-        "_LABEL": "organisation",
-        "_ID": {"offset": 1, "table": 1},
+        LABEL: "organisation",
+        ID: {"offset": 1, "table": 1},
     },
     6: {
         "ID": 6,
@@ -212,8 +213,8 @@ TINY_SNB_ORGANISATIONS_GROUND_TRUTH = {
             "stock": {"price": [22], "volume": 99},
         },
         "info": date(2023, 12, 15),
-        "_LABEL": "organisation",
-        "_ID": {"offset": 2, "table": 1},
+        LABEL: "organisation",
+        ID: {"offset": 2, "table": 1},
     },
 }
 

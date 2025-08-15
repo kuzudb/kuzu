@@ -13,6 +13,7 @@ import pyarrow as pa
 import pytz
 from pandas import Timestamp
 from type_aliases import ConnDB
+from kuzu.constants import ID, LABEL, SRC, DST, NODES
 
 _expected_dtypes = {
     # ------------------------------------------------
@@ -496,7 +497,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     def _test_node_helper(srcStruct, dstStruct):
         assert set(srcStruct.keys()) == set(dstStruct.keys())
         for key in srcStruct:
-            if key == "_ID":  # there isn't any guarantee on the value of _ID, so ignore it
+            if key == ID:  # there isn't any guarantee on the value of _ID, so ignore it
                 continue
             if type(srcStruct[key]) is float:
                 assert math.fabs(srcStruct[key] - dstStruct[key]) < 1e-5
@@ -548,28 +549,28 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
             e_col.to_pylist(),
             [
                 {
-                    "_SRC": {"offset": 2, "table": 0},
-                    "_DST": {"offset": 1, "table": 1},
-                    "_ID": {"offset": 0, "table": 5},
-                    "_LABEL": "workAt",
+                    SRC: {"offset": 2, "table": 0},
+                    DST: {"offset": 1, "table": 1},
+                    ID: {"offset": 0, "table": 5},
+                    LABEL: "workAt",
                     "grading": [3.8, 2.5],
                     "rating": 8.2,
                     "year": 2015,
                 },
                 {
-                    "_SRC": {"offset": 3, "table": 0},
-                    "_DST": {"offset": 2, "table": 1},
-                    "_ID": {"offset": 1, "table": 5},
-                    "_LABEL": "workAt",
+                    SRC: {"offset": 3, "table": 0},
+                    DST: {"offset": 2, "table": 1},
+                    ID: {"offset": 1, "table": 5},
+                    LABEL: "workAt",
                     "grading": [2.1, 4.4],
                     "rating": 7.6,
                     "year": 2010,
                 },
                 {
-                    "_SRC": {"offset": 4, "table": 0},
-                    "_DST": {"offset": 2, "table": 1},
-                    "_ID": {"offset": 2, "table": 5},
-                    "_LABEL": "workAt",
+                    SRC: {"offset": 4, "table": 0},
+                    DST: {"offset": 2, "table": 1},
+                    ID: {"offset": 2, "table": 5},
+                    LABEL: "workAt",
                     "grading": [9.2, 3.1],
                     "rating": 9.2,
                     "year": 2015,
@@ -653,7 +654,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
         for row, expected in zip(arrow_tbl["path"], expected_nodes):
             cur_ids = []
             rel_ids = []
-            for node in row["_NODES"]:
+            for node in row[NODES]:
                 cur_ids += [node["ID"].as_py()]
             assert expected == cur_ids
 
