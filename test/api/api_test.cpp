@@ -457,6 +457,25 @@ TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {
     }
 }
 
+TEST_F(ApiTest, CloseDatabaseBeforeQueryResultWithMultipleStatements) {
+    auto systemConfig = SystemConfig();
+    systemConfig.bufferPoolSize = 10 * 1024 * 1024; // 10MB
+    systemConfig.maxNumThreads = 2;
+    systemConfig.maxDBSize = 1 << 30; // 1GB
+
+    auto inMemoryDatabase = std::make_unique<Database>(":memory:", systemConfig);
+    auto conn = std::make_unique<Connection>(inMemoryDatabase.get());
+    auto result = conn->query("RETURN 1+1; RETURN 2+2; RETURN 3+3;");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2);
+    auto nextResult = result->getNextQueryResult();
+    ASSERT_EQ(nextResult->getNext()->getValue(0)->getValue<int64_t>(), 4);
+    nextResult = result->getNextQueryResult();
+    ASSERT_EQ(nextResult->getNext()->getValue(0)->getValue<int64_t>(), 6);
+    result->resetIterator();
+    inMemoryDatabase.reset();
+}
+
 TEST_F(ApiTest, EmptyDBFile) {
     if (inMemMode) {
         GTEST_SKIP();
