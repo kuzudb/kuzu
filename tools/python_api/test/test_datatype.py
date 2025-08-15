@@ -261,7 +261,7 @@ def test_node(conn_db_readonly: ConnDB) -> None:
     n = result.get_next()
     assert len(n) == 1
     n = n[0]
-    assert n["_label"] == "person"
+    assert n["_LABEL"] == "person"
     assert n["ID"] == 0
     assert n["fName"] == "Alice"
     assert n["gender"] == 1
@@ -285,14 +285,14 @@ def test_rel(conn_db_readonly: ConnDB) -> None:
     p = n[0]
     r = n[1]
     o = n[2]
-    assert p["_label"] == "person"
+    assert p["_LABEL"] == "person"
     assert p["ID"] == 5
-    assert o["_label"] == "organisation"
+    assert o["_LABEL"] == "organisation"
     assert o["ID"] == 6
     assert r["year"] == 2010
-    assert r["_src"] == p["_id"]
-    assert r["_dst"] == o["_id"]
-    assert r["_label"] == "workAt"
+    assert r["_SRC"] == p["_ID"]
+    assert r["_DST"] == o["_ID"]
+    assert r["_LABEL"] == "workAt"
     assert not result.has_next()
     result.close()
 
@@ -330,16 +330,16 @@ def test_recursive_rel(conn_db_readonly: ConnDB) -> None:
     n = result.get_next()
     assert len(n) == 1
     e = n[0]
-    assert "_nodes" in e
-    assert "_rels" in e
-    assert len(e["_nodes"]) == 0
-    assert len(e["_rels"]) == 1
-    rel = e["_rels"][0]
+    assert "_NODES" in e
+    assert "_RELS" in e
+    assert len(e["_NODES"]) == 0
+    assert len(e["_RELS"]) == 1
+    rel = e["_RELS"][0]
     excepted_rel = {
-        "_id": {"offset": 0, "table": 5},
-        "_src": {"offset": 0, "table": 0},
-        "_dst": {"offset": 0, "table": 1},
-        "_label": "studyAt",
+        "_ID": {"offset": 0, "table": 5},
+        "_SRC": {"offset": 0, "table": 0},
+        "_DST": {"offset": 0, "table": 1},
+        "_LABEL": "studyAt",
         "year": 2021,
         "places": ["wwAewsdndweusd", "wek"],
         "length": 5,

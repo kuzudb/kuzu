@@ -313,14 +313,14 @@ def test_pandas_scan_demo(conn_db_empty: ConnDB) -> None:
     assert len(result) == 2
     assert result["s"][0] == {
         "ID": 0,
-        "_id": {"offset": 0, "table": 0},
-        "_label": "student",
+        "_ID": {"offset": 0, "table": 0},
+        "_LABEL": "student",
         "height": 70,
     }
     assert result["s"][1] == {
         "ID": 4,
-        "_id": {"offset": 2, "table": 0},
-        "_label": "student",
+        "_ID": {"offset": 2, "table": 0},
+        "_LABEL": "student",
         "height": 67,
     }
 

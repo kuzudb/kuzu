@@ -313,11 +313,11 @@ class QueryResult:
         table_primary_key_dict = {}
 
         def encode_node_id(node: dict[str, Any], table_primary_key_dict: dict[str, Any]) -> str:
-            node_label = node["_label"]
+            node_label = node["_LABEL"]
             return f"{node_label}_{node[table_primary_key_dict[node_label]]!s}"
 
         def encode_rel_id(rel: dict[str, Any]) -> tuple[int, int]:
-            return rel["_id"]["table"], rel["_id"]["offset"]
+            return rel["_ID"]["table"], rel["_ID"]["offset"]
 
         # De-duplicate nodes and rels
         while self.has_next():
@@ -329,19 +329,19 @@ class QueryResult:
                     continue
                 column_type, _ = properties_to_extract[i]
                 if column_type == Type.NODE.value:
-                    nid = row[i]["_id"]
+                    nid = row[i]["_ID"]
                     nodes[nid["table"], nid["offset"]] = row[i]
-                    table_to_label_dict[nid["table"]] = row[i]["_label"]
+                    table_to_label_dict[nid["table"]] = row[i]["_LABEL"]
 
                 elif column_type == Type.REL.value:
                     rels[encode_rel_id(row[i])] = row[i]
 
                 elif column_type == Type.RECURSIVE_REL.value:
-                    for node in row[i]["_nodes"]:
-                        nid = node["_id"]
+                    for node in row[i]["_NODES"]:
+                        nid = node["_ID"]
                         nodes[nid["table"], nid["offset"]] = node
-                        table_to_label_dict[nid["table"]] = node["_label"]
-                    for rel in row[i]["_rels"]:
+                        table_to_label_dict[nid["table"]] = node["_LABEL"]
+                    for rel in row[i]["_RELS"]:
                         for key in list(rel.keys()):
                             if rel[key] is None:
                                 del rel[key]
@@ -349,22 +349,22 @@ class QueryResult:
 
         # Add nodes
         for node in nodes.values():
-            nid = node["_id"]
-            node_id = node["_label"] + "_" + str(nid["offset"])
-            if node["_label"] not in table_primary_key_dict:
-                props = self.connection._get_node_property_names(node["_label"])
+            nid = node["_ID"]
+            node_id = node["_LABEL"] + "_" + str(nid["offset"])
+            if node["_LABEL"] not in table_primary_key_dict:
+                props = self.connection._get_node_property_names(node["_LABEL"])
                 for prop_name in props:
                     if props[prop_name]["is_primary_key"]:
-                        table_primary_key_dict[node["_label"]] = prop_name
+                        table_primary_key_dict[node["_LABEL"]] = prop_name
                         break
             node_id = encode_node_id(node, table_primary_key_dict)
-            node[node["_label"]] = True
+            node[node["_LABEL"]] = True
             nx_graph.add_node(node_id, **node)
 
         # Add rels
         for rel in rels.values():
-            src = rel["_src"]
-            dst = rel["_dst"]
+            src = rel["_SRC"]
+            dst = rel["_DST"]
             src_node = nodes[src["table"], src["offset"]]
             dst_node = nodes[dst["table"], dst["offset"]]
             src_id = encode_node_id(src_node, table_primary_key_dict)

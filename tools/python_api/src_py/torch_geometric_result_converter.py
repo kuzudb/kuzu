@@ -43,8 +43,8 @@ class TorchGeometricResultConverter:
                 column_type, _ = self.properties_to_extract[i]
                 if column_type == Type.NODE.value:
                     node = row[i]
-                    label = node["_label"]
-                    nid = node["_id"]
+                    label = node["_LABEL"]
+                    nid = node["_ID"]
                     self.table_to_label_dict[nid["table"]] = label
 
                     if (nid["table"], nid["offset"]) in self.internal_id_to_pos_dict:
@@ -60,8 +60,8 @@ class TorchGeometricResultConverter:
                     self.pos_to_primary_key_dict[label][pos] = primary_key
 
                 elif column_type == Type.REL.value:
-                    src = row[i]["_src"]
-                    dst = row[i]["_dst"]
+                    src = row[i]["_SRC"]
+                    dst = row[i]["_DST"]
                     self.rels[src["table"], src["offset"], dst["table"], dst["offset"]] = row[i]
 
     def __extract_properties_from_node(
@@ -184,7 +184,7 @@ class TorchGeometricResultConverter:
             if (src_label, dst_label) not in self.edges_properties:
                 self.edges_properties[src_label, dst_label] = {}
             for prop_name in curr_edge_properties:
-                if prop_name in ["_src", "_dst", "_id"]:
+                if prop_name in ["_SRC", "_DST", "_ID"]:
                     continue
                 if prop_name not in self.edges_properties[src_label, dst_label]:
                     self.edges_properties[src_label, dst_label][prop_name] = []
