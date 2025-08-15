@@ -30,8 +30,10 @@ struct BetweennessCentralityOptionalParams final : public MaxIterationOptionalPa
 
     explicit BetweennessCentralityOptionalParams(const expression_vector& optionalParams);
 
-    BetweennessCentralityOptionalParams(OptionalParam<MaxIterations> maxIterations, OptionalParam<Direction> direction, OptionalParam<WeightProperty> weightProperty) 
-        : MaxIterationOptionalParams{maxIterations}, direction{std::move(direction)}, weightProperty{std::move(weightProperty)}{}
+    BetweennessCentralityOptionalParams(OptionalParam<MaxIterations> maxIterations,
+        OptionalParam<Direction> direction, OptionalParam<WeightProperty> weightProperty)
+        : MaxIterationOptionalParams{maxIterations}, direction{std::move(direction)},
+          weightProperty{std::move(weightProperty)} {}
 
     void evaluateParams(main::ClientContext* context) override {
         MaxIterationOptionalParams::evaluateParams(context);
@@ -40,13 +42,14 @@ struct BetweennessCentralityOptionalParams final : public MaxIterationOptionalPa
     }
 
     std::unique_ptr<function::OptionalParams> copy() override {
-        return std::make_unique<BetweennessCentralityOptionalParams>(maxIterations, direction, weightProperty);
+        return std::make_unique<BetweennessCentralityOptionalParams>(maxIterations, direction,
+            weightProperty);
     }
 };
 
-BetweennessCentralityOptionalParams::BetweennessCentralityOptionalParams(const expression_vector& optionalParams)
-    : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)}
-{
+BetweennessCentralityOptionalParams::BetweennessCentralityOptionalParams(
+    const expression_vector& optionalParams)
+    : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)} {
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == WeightProperty::NAME) {
@@ -54,7 +57,7 @@ BetweennessCentralityOptionalParams::BetweennessCentralityOptionalParams(const e
         } else if (paramName == Direction::NAME) {
             direction = function::OptionalParam<Direction>(optionalParam);
         } else {
-            throw RuntimeException {
+            throw RuntimeException{
                 stringFormat("Unknown optional argument: {}", optionalParam->getAlias())};
         }
     }
@@ -78,14 +81,15 @@ struct BetweennessCentralityBindData final : public GDSBindData {
 // Stores our final results. Each iteration of Brandes' algorithm will partially
 // update the betweennessCentrality container.
 struct BetweennessCentralityState {
-    BetweennessCentralityState(storage::MemoryManager* mm, const offset_t numNodes) : betweennessCentrality{mm, numNodes}, numNodes{numNodes} {}
+    BetweennessCentralityState(storage::MemoryManager* mm, const offset_t numNodes)
+        : betweennessCentrality{mm, numNodes}, numNodes{numNodes} {}
     ku_vector_t<std::atomic<double>> betweennessCentrality;
     const offset_t numNodes;
 };
 
 // Stores information to populate when preforming a forward traversal.
 struct BCFwdData {
-    // pathScore is weight of the path from the source. 
+    // pathScore is weight of the path from the source.
     struct PathData {
         uint64_t numPaths = 0;
         double pathScore = INF;
@@ -97,10 +101,11 @@ struct BCFwdData {
     struct LevelData {
         uint64_t level = 0;
         offset_t node = 0;
-        auto operator<=>(const LevelData& rhs) const{ return level <=> rhs.level; }
+        auto operator<=>(const LevelData& rhs) const { return level <=> rhs.level; }
     };
 
-    BCFwdData(storage::MemoryManager* mm, const offset_t numNodes, const offset_t sourceNode) : nodePathData{mm, numNodes}, levels{mm, numNodes} {
+    BCFwdData(storage::MemoryManager* mm, const offset_t numNodes, const offset_t sourceNode)
+        : nodePathData{mm, numNodes}, levels{mm, numNodes} {
         levels[sourceNode] = LevelData{.level = 0, .node = sourceNode};
         nodePathData[sourceNode] = PathData{.numPaths = 1, .pathScore = 0};
     }
@@ -113,9 +118,9 @@ struct BCFwdData {
 // This should be our traversal wrapper. This wrapper *should* work as an
 // interface. TODO(Tanvir) implement different queues for weighted and
 // unweighted graphs. The unweighted graph does not require a priority queue.
-class BCFwdTraverse { public:
-    BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode)
-        : heap(mm) {
+class BCFwdTraverse {
+public:
+    BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode) : heap(mm) {
         push({0, sourceNode});
     }
 
@@ -124,9 +129,7 @@ class BCFwdTraverse { public:
         std::push_heap(heap.begin(), heap.end(), comp);
     }
 
-    std::pair<double, offset_t>& top() {
-        return heap.front();
-    }
+    std::pair<double, offset_t>& top() { return heap.front(); }
 
     void pop() {
         std::pop_heap(heap.begin(), heap.end(), comp);
@@ -143,11 +146,13 @@ private:
 // dependencyScores accumulate during backwards traversal over the graph. Once
 // traversal is complete, these scores should accumulate into the betweenness centrality scores.
 struct BCBwdData {
-    BCBwdData(storage::MemoryManager* mm, const offset_t numNodes) : dependencyScores{mm, numNodes} {}
+    BCBwdData(storage::MemoryManager* mm, const offset_t numNodes)
+        : dependencyScores{mm, numNodes} {}
     ku_vector_t<double> dependencyScores;
 };
 
-static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, const offset_t& cur, const double& curWeight) {
+static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData,
+    BCFwdTraverse& fwdTraverse, const offset_t& cur, const double& curWeight) {
     static constexpr double DEFAULT_WEIGHT = 1;
     chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
         auto nbrId = neighbors[i].offset;
@@ -155,22 +160,26 @@ static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData&
             // Ignore self-loops.
             return;
         }
-        const auto weight = (propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i));
+        const auto weight =
+            (propertyVectors.empty() ? DEFAULT_WEIGHT :
+                                       propertyVectors.front()->template getValue<double>(i));
         if (weight < 0) {
-            throw common::RuntimeException(common::stringFormat("Found negative weight {}. This is not supported by Betweenness Centrality.", weight));
+            throw common::RuntimeException(common::stringFormat(
+                "Found negative weight {}. This is not supported by Betweenness Centrality.",
+                weight));
         }
         // Check for a better path weight (all weights are initially *infinite*).
         // If so the number of shortest paths already accumulated must reset.
         // The level must also be updated accordingly.
-        if (fwdData.nodePathData[nbrId].pathScore > curWeight+weight) {
-            fwdData.nodePathData[nbrId].pathScore = curWeight+weight;
+        if (fwdData.nodePathData[nbrId].pathScore > curWeight + weight) {
+            fwdData.nodePathData[nbrId].pathScore = curWeight + weight;
             fwdData.nodePathData[nbrId].numPaths = 0;
-            fwdData.levels[nbrId] = {fwdData.levels[cur].level+1, nbrId};
-            fwdTraverse.push({curWeight+weight, nbrId});
+            fwdData.levels[nbrId] = {fwdData.levels[cur].level + 1, nbrId};
+            fwdTraverse.push({curWeight + weight, nbrId});
         }
-        // A path has been found matching our best path weight (potentially the first path). 
+        // A path has been found matching our best path weight (potentially the first path).
         // The number of shortestPaths can be incremented by the number of ways to reach the parent.
-        if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore+weight) {
+        if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore + weight) {
             fwdData.nodePathData[nbrId].numPaths += fwdData.nodePathData[cur].numPaths;
         }
     });
@@ -178,15 +187,17 @@ static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData&
 
 /**Compute**/
 
-// TOOD(Tanvir): Currently always do the traversal for weighted graphs always (treat unweighted edges as weight 1). 
-// This should change. Consider changing BCFwdTraverse and overriding methods for insert and pop. 
-static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, bool undirected) {
-    while(!fwdTraverse.empty()) {
+// TOOD(Tanvir): Currently always do the traversal for weighted graphs always (treat unweighted
+// edges as weight 1). This should change. Consider changing BCFwdTraverse and overriding methods
+// for insert and pop.
+static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph,
+    graph::NbrScanState* scanState, const table_id_t tableId, bool undirected) {
+    while (!fwdTraverse.empty()) {
         const auto [curWeight, cur] = fwdTraverse.top();
         fwdTraverse.pop();
         // If the path to get to this vertex is worse than what has already been
         // compute, there is no further computation to do with this path.
-        if(curWeight > fwdData.nodePathData[cur].pathScore) {
+        if (curWeight > fwdData.nodePathData[cur].pathScore) {
             continue;
         }
         // Whether a fwd or bwd scan is being done, the logic for traversal remains the same.
@@ -203,7 +214,8 @@ static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::G
     }
 }
 
-static void backwardsChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData, BCBwdData& bwdData, const offset_t& cur) {
+static void backwardsChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData,
+    BCBwdData& bwdData, const offset_t& cur) {
     static constexpr double DEFAULT_WEIGHT = 1;
     chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
         auto nbrId = neighbors[i].offset;
@@ -211,20 +223,27 @@ static void backwardsChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwd
             // Ignore self-loops.
             return;
         }
-        const auto weight = propertyVectors.empty() ? DEFAULT_WEIGHT : propertyVectors.front()->template getValue<double>(i);
+        const auto weight = propertyVectors.empty() ?
+                                DEFAULT_WEIGHT :
+                                propertyVectors.front()->template getValue<double>(i);
         // If the path weight to reach the neighbour + the edge weight from (or to) the
         // neighbour matches the weight of the best path to the current vertex,
         // that neighbour is a parent the current vertex depends on.
         if (fwdData.nodePathData[nbrId].pathScore + weight == fwdData.nodePathData[cur].pathScore) {
-            bwdData.dependencyScores[nbrId] += (static_cast<double>(fwdData.nodePathData[nbrId].numPaths) / fwdData.nodePathData[cur].numPaths)*(1 + bwdData.dependencyScores[cur]);
+            bwdData.dependencyScores[nbrId] +=
+                (static_cast<double>(fwdData.nodePathData[nbrId].numPaths) /
+                    fwdData.nodePathData[cur].numPaths) *
+                (1 + bwdData.dependencyScores[cur]);
         }
     });
 }
 
-static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, const offset_t sourceNode, bool undirected) {
+static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData,
+    BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState,
+    const table_id_t tableId, const offset_t sourceNode, bool undirected) {
     // Sort so nodes are processed furthest from the source first (i.e higher levels first).
     std::sort(fwdData.levels.begin(), fwdData.levels.end(), std::greater<BCFwdData::LevelData>{});
-    for(auto [lvl, cur] : fwdData.levels) {
+    for (auto [lvl, cur] : fwdData.levels) {
         // If the node was not reached during the SSSP traversal or it is the
         // source node there is no computation to do.
         if (lvl == 0) {
@@ -242,7 +261,7 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, Betweenness
             backwardsChunkCompute(chunk, fwdData, bwdData, cur);
         }
     }
-    for(auto node = 0u; node < state.numNodes; ++node) {
+    for (auto node = 0u; node < state.numNodes; ++node) {
         if (node != sourceNode) {
             state.betweennessCentrality[node].fetch_add(bwdData.dependencyScores[node]);
         }
@@ -251,11 +270,12 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData, Betweenness
 
 /**RESULTS**/
 
-class WriteResultsBC : public GDSResultVertexCompute
-{
+class WriteResultsBC : public GDSResultVertexCompute {
 public:
-    WriteResultsBC(storage::MemoryManager* mm, GDSFuncSharedState* sharedState, const ku_vector_t<std::atomic<double>>& finalResults, const bool undirected)
-        : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults}, undirected{undirected} {
+    WriteResultsBC(storage::MemoryManager* mm, GDSFuncSharedState* sharedState,
+        const ku_vector_t<std::atomic<double>>& finalResults, const bool undirected)
+        : GDSResultVertexCompute{mm, sharedState}, finalResults{finalResults},
+          undirected{undirected} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         scoreVector = createVector(LogicalType::DOUBLE());
     }
@@ -298,8 +318,10 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
     // TODO(Tanvir) Use config arguments to modify traversal and SSSP.
     // Currently hard coded to work with a directed unweighted graph.
-    auto betweennessCentralityBindData = input.bindData->constPtrCast<BetweennessCentralityBindData>();
-    auto& config = betweennessCentralityBindData->optionalParams->constCast<BetweennessCentralityOptionalParams>();
+    auto betweennessCentralityBindData =
+        input.bindData->constPtrCast<BetweennessCentralityBindData>();
+    auto& config = betweennessCentralityBindData->optionalParams
+                       ->constCast<BetweennessCentralityOptionalParams>();
 
     if (!config.weightProperty.getParamVal().empty() &&
         !nbrInfo.relGroupEntry->containsProperty(config.weightProperty.getParamVal())) {
@@ -317,22 +339,26 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     if (!config.weightProperty.getParamVal().empty()) {
         relProps.push_back(config.weightProperty.getParamVal());
     }
-    bool undirected = StringUtils::getLower(config.direction.getParamVal()) == Direction::UNDIRECTED;
-    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, relProps);
+    bool undirected =
+        StringUtils::getLower(config.direction.getParamVal()) == Direction::UNDIRECTED;
+    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
+        nbrInfo.dstTableID, relProps);
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
     BetweennessCentralityState state{mm, numNodes};
-    for(auto i = 0u; i < numNodes; ++i) {
+    for (auto i = 0u; i < numNodes; ++i) {
         // Forward Traverse
         BCFwdData fwdData(mm, numNodes, i /*sourceNode*/);
         BCFwdTraverse fwdTraverse(mm, i /*sourceNode*/);
         SSSPCompute(fwdData, fwdTraverse, graph, scanState.get(), tableId, undirected);
-        
+
         // Backward Traverse
         BCBwdData bwdData(mm, numNodes);
-        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/, undirected);
+        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/,
+            undirected);
     }
 
-    const auto vertexCompute = std::make_unique<WriteResultsBC>(mm, sharedState, state.betweennessCentrality, undirected);
+    const auto vertexCompute =
+        std::make_unique<WriteResultsBC>(mm, sharedState, state.betweennessCentrality, undirected);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
@@ -345,18 +371,20 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto graphName = input->getLiteralVal<std::string>(0);
     auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
     if (graphEntry.nodeInfos.size() != 1) {
-        throw BinderException(
-            std::string(BetweennessCentrality::name) + " only supports operations on one node table.");
+        throw BinderException(std::string(BetweennessCentrality::name) +
+                              " only supports operations on one node table.");
     }
     if (graphEntry.relInfos.size() != 1) {
-        throw BinderException(
-            std::string(BetweennessCentrality::name) + " only supports operations on one rel table.");
+        throw BinderException(std::string(BetweennessCentrality::name) +
+                              " only supports operations on one rel table.");
     }
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
-    columns.push_back(input->binder->createVariable(BETWEENNESS_CENTRALITY_SCORE, LogicalType::DOUBLE()));
-    return std::make_unique<BetweennessCentralityBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+    columns.push_back(
+        input->binder->createVariable(BETWEENNESS_CENTRALITY_SCORE, LogicalType::DOUBLE()));
+    return std::make_unique<BetweennessCentralityBindData>(std::move(columns),
+        std::move(graphEntry), nodeOutput,
         std::make_unique<BetweennessCentralityOptionalParams>(input->optionalParamsLegacy));
 }
 
@@ -375,5 +403,5 @@ function_set BetweennessCentrality::getFunctionSet() {
     return result;
 }
 
-}
-}
+} // namespace algo_extension
+} // namespace kuzu
