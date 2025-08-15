@@ -149,7 +149,7 @@ public:
 
 private:
     ku_vector_t<std::pair<double, offset_t>> heap;
-    const std::greater<std::pair<double, offset_t>> comp;
+    std::greater<std::pair<double, offset_t>> comp;
 };
 
 // dependencyScores accumulate during backwards traversal over the graph. Once
