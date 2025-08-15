@@ -15,6 +15,10 @@ double QuerySummary::getExecutionTime() const {
     return executionTime;
 }
 
+void QuerySummary::setExecutionTime(double time) {
+    executionTime = time;
+}
+
 void QuerySummary::incrementCompilingTime(double increment) {
     preparedSummary.compilingTime += increment;
 }
@@ -23,15 +27,11 @@ void QuerySummary::incrementExecutionTime(double increment) {
     executionTime += increment;
 }
 
-void QuerySummary::setPreparedSummary(PreparedSummary preparedSummary_) {
-    preparedSummary = preparedSummary_;
-}
-
 bool QuerySummary::isExplain() const {
     return preparedSummary.statementType == StatementType::EXPLAIN;
 }
 
-common::StatementType QuerySummary::getStatementType() const {
+StatementType QuerySummary::getStatementType() const {
     return preparedSummary.statementType;
 }
 

@@ -1,12 +1,11 @@
 #pragma once
 
 #include "common/task_system/task_scheduler.h"
-#include "processor/physical_plan.h"
-#include "processor/result/factorized_table.h"
 
 namespace kuzu {
 namespace processor {
 
+class PhysicalPlan;
 class QueryProcessor {
 
 public:
@@ -16,8 +15,9 @@ public:
     explicit QueryProcessor(uint64_t numThreads);
 #endif
 
-    inline common::TaskScheduler* getTaskScheduler() { return taskScheduler.get(); }
+    common::TaskScheduler* getTaskScheduler() { return taskScheduler.get(); }
 
+    // TODO(Xiyang): we should change this to directly return a query result.
     std::shared_ptr<FactorizedTable> execute(PhysicalPlan* physicalPlan, ExecutionContext* context);
 
 private:

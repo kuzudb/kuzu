@@ -179,7 +179,7 @@ uint32_t flat_tuple_len(const kuzu::processor::FlatTuple& flatTuple) {
 }
 const kuzu::common::Value& flat_tuple_get_value(const kuzu::processor::FlatTuple& flatTuple,
     uint32_t index) {
-    return *flatTuple.getValue(index);
+    return flatTuple[index];
 }
 
 const std::string& value_get_string(const kuzu::common::Value& value) {

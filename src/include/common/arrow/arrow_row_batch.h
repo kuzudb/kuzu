@@ -6,12 +6,16 @@
 #include "common/arrow/arrow.h"
 #include "common/arrow/arrow_buffer.h"
 #include "common/types/types.h"
-#include "main/query_result.h"
 
 struct ArrowSchema;
 
 namespace kuzu {
+namespace processor {
+class FlatTuple;
+}
+
 namespace common {
+class Value;
 
 // An Arrow Vector(i.e., Array) is defined by a few pieces of metadata and data:
 //  1) a logical data type;
@@ -45,40 +49,43 @@ struct ArrowVector {
 // An arrow data chunk consisting of N rows in columnar format.
 class ArrowRowBatch {
 public:
-    inline static bool fallbackExtensionTypes = false;
+    ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity,
+        bool fallbackExtensionTypes);
 
-public:
-    ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity);
-
-    //! Append a data chunk to the underlying arrow array
-    ArrowArray append(main::QueryResult& queryResult, std::int64_t chunkSize);
-
-private:
-    static void appendValue(ArrowVector* vector, const LogicalType& type, Value* value);
-
-    static ArrowArray* convertVectorToArray(ArrowVector& vector, const LogicalType& type);
-    static ArrowArray* convertStructVectorToArray(ArrowVector& vector, const LogicalType& type);
-    static ArrowArray* convertInternalIDVectorToArray(ArrowVector& vector, const LogicalType& type);
-
-    static void copyNonNullValue(ArrowVector* vector, const LogicalType& type, Value* value,
-        std::int64_t pos);
-    static void copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos);
-
-    template<LogicalTypeID DT>
-    static void templateCopyNonNullValue(ArrowVector* vector, const LogicalType& type, Value* value,
-        std::int64_t pos);
-    template<LogicalTypeID DT>
-    static void templateCopyNullValue(ArrowVector* vector, std::int64_t pos);
-    static void copyNullValueUnion(ArrowVector* vector, Value* value, std::int64_t pos);
-    template<LogicalTypeID DT>
-    static ArrowArray* templateCreateArray(ArrowVector& vector, const LogicalType& type);
-
+    void append(const processor::FlatTuple& tuple);
     ArrowArray toArray();
 
 private:
+    static void appendValue(ArrowVector* vector, const LogicalType& type, const Value& value,
+        bool fallbackExtensionTypes);
+
+    static ArrowArray* convertVectorToArray(ArrowVector& vector, const LogicalType& type,
+        bool fallbackExtensionTypes);
+    static ArrowArray* convertStructVectorToArray(ArrowVector& vector, const LogicalType& type,
+        bool fallbackExtensionTypes);
+    static ArrowArray* convertInternalIDVectorToArray(ArrowVector& vector, const LogicalType& type,
+        bool fallbackExtensionTypes);
+
+    static void copyNonNullValue(ArrowVector* vector, const LogicalType& type, const Value& value,
+        std::int64_t pos, bool fallbackExtensionTypes);
+    static void copyNullValue(ArrowVector* vector, const Value& value, std::int64_t pos);
+
+    template<LogicalTypeID DT>
+    static void templateCopyNonNullValue(ArrowVector* vector, const LogicalType& type,
+        const Value& value, std::int64_t pos, bool fallbackExtensionTypes);
+    template<LogicalTypeID DT>
+    static void templateCopyNullValue(ArrowVector* vector, std::int64_t pos);
+    static void copyNullValueUnion(ArrowVector* vector, const Value& value, std::int64_t pos);
+    template<LogicalTypeID DT>
+    static ArrowArray* templateCreateArray(ArrowVector& vector, const LogicalType& type,
+        bool fallbackExtensionTypes);
+
+private:
+    // TODO(Xiyang): remove types
     std::vector<LogicalType> types;
     std::vector<std::unique_ptr<ArrowVector>> vectors;
     std::int64_t numTuples;
+    bool fallbackExtensionTypes = false;
 };
 
 } // namespace common

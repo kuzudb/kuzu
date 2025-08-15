@@ -366,8 +366,7 @@ val valueGetAsEmscriptenValue(const Value& value) {
 val flatTupleGetAsEmscriptenValue(const FlatTuple& flatTuple) {
     auto jsArray = val::array();
     for (auto i = 0u; i < flatTuple.len(); ++i) {
-        auto val = flatTuple.getValue(i);
-        jsArray.set(i, valueGetAsEmscriptenValue(*val));
+        jsArray.set(i, valueGetAsEmscriptenValue(flatTuple[i]));
     }
     return jsArray;
 }

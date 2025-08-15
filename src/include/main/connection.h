@@ -47,6 +47,8 @@ public:
      */
     KUZU_API std::unique_ptr<QueryResult> query(std::string_view query);
 
+    KUZU_API std::unique_ptr<QueryResult> queryAsArrow(std::string_view query, int64_t chunkSize);
+
     /**
      * @brief Prepares the given query and returns the prepared statement.
      * @param query The query to prepare.

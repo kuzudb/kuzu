@@ -490,8 +490,8 @@ std::string decodeEscapeSequences(const std::string& input) {
     return result;
 }
 
-void EmbeddedShell::checkConfidentialStatement(const std::string& query,
-    const QueryResult* queryResult, std::string& input) {
+void EmbeddedShell::checkConfidentialStatement(const std::string& query, QueryResult* queryResult,
+    std::string& input) {
     if (queryResult->isSuccess() && !database->getConfig().readOnly &&
         queryResult->getQuerySummary()->getStatementType() ==
             common::StatementType::STANDALONE_CALL) {
@@ -543,10 +543,10 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         checkConfidentialStatement(unicodeInput, curr, input);
         while (true) {
             queryResults.push_back(std::move(result));
-            if (!curr->getNextQueryResult()) {
+            if (!curr->hasNextQueryResult()) {
                 break;
             }
-            result = std::move(curr->nextQueryResult);
+            result = curr->moveNextResult();
             curr = result.get();
             checkConfidentialStatement(unicodeInput, curr, input);
         }

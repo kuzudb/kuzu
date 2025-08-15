@@ -1,10 +1,7 @@
 #include "main/query_result.h"
 
-#include <memory>
-
 #include "common/arrow/arrow_converter.h"
-#include "common/exception/runtime.h"
-#include "processor/result/factorized_table.h"
+#include "main/query_result/materialized_query_result.h"
 #include "processor/result/flat_tuple.h"
 
 using namespace kuzu::common;
@@ -14,80 +11,44 @@ namespace kuzu {
 namespace main {
 
 QueryResult::QueryResult()
-    : nextQueryResult{nullptr}, queryResultIterator{this}, dbLifeCycleManager{nullptr} {}
+    : type{QueryResultType::FTABLE}, nextQueryResult{nullptr}, queryResultIterator{this},
+      dbLifeCycleManager{nullptr} {}
 
-QueryResult::QueryResult(const PreparedSummary& preparedSummary)
-    : nextQueryResult{nullptr}, queryResultIterator{this}, dbLifeCycleManager{nullptr} {
-    querySummary = std::make_unique<QuerySummary>();
-    querySummary->setPreparedSummary(preparedSummary);
+QueryResult::QueryResult(QueryResultType type, std::vector<std::string> columnNames,
+    std::vector<LogicalType> columnTypes)
+    : type{type}, columnNames{std::move(columnNames)}, columnTypes{std::move(columnTypes)},
+      nextQueryResult{nullptr}, queryResultIterator{this}, dbLifeCycleManager{nullptr} {
+    tuple = std::make_shared<FlatTuple>(this->columnTypes);
 }
-QueryResult::~QueryResult() {
-    if (!dbLifeCycleManager) {
-        return;
-    }
-    if (!factorizedTable) {
-        return;
-    }
-    factorizedTable->setPreventDestruction(dbLifeCycleManager->isDatabaseClosed);
-}
+
+QueryResult::~QueryResult() = default;
 
 bool QueryResult::isSuccess() const {
-    checkDatabaseClosedOrThrow();
     return success;
 }
 
 std::string QueryResult::getErrorMessage() const {
-    checkDatabaseClosedOrThrow();
     return errMsg;
 }
 
 size_t QueryResult::getNumColumns() const {
-    checkDatabaseClosedOrThrow();
-    return columnDataTypes.size();
+    return columnTypes.size();
 }
 
 std::vector<std::string> QueryResult::getColumnNames() const {
-    checkDatabaseClosedOrThrow();
     return columnNames;
 }
 
 std::vector<LogicalType> QueryResult::getColumnDataTypes() const {
-    checkDatabaseClosedOrThrow();
-    return LogicalType::copy(columnDataTypes);
-}
-
-uint64_t QueryResult::getNumTuples() const {
-    checkDatabaseClosedOrThrow();
-    return factorizedTable->getTotalNumFlatTuples();
+    return LogicalType::copy(columnTypes);
 }
 
 QuerySummary* QueryResult::getQuerySummary() const {
-    checkDatabaseClosedOrThrow();
     return querySummary.get();
 }
 
-void QueryResult::resetIterator() {
-    checkDatabaseClosedOrThrow();
-    iterator->resetState();
-}
-
-void QueryResult::setColumnHeader(std::vector<std::string> columnNames_,
-    std::vector<LogicalType> columnTypes_) {
-    columnNames = std::move(columnNames_);
-    columnDataTypes = std::move(columnTypes_);
-}
-
-std::pair<std::unique_ptr<FlatTuple>, std::unique_ptr<FlatTupleIterator>>
-QueryResult::getIterator() const {
-    std::vector<Value*> valuesToCollect;
-    auto tuple = std::make_unique<FlatTuple>();
-    for (auto& type : columnDataTypes) {
-        auto value = std::make_unique<Value>(Value::createDefaultValue(type.copy()));
-        valuesToCollect.push_back(value.get());
-        tuple->addValue(std::move(value));
-    }
-    return std::make_pair(std::move(tuple),
-        std::make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect)));
+QuerySummary* QueryResult::getQuerySummaryUnsafe() {
+    return querySummary.get();
 }
 
 void QueryResult::checkDatabaseClosedOrThrow() const {
@@ -95,20 +56,6 @@ void QueryResult::checkDatabaseClosedOrThrow() const {
         return;
     }
     dbLifeCycleManager->checkDatabaseClosedOrThrow();
-}
-
-void QueryResult::initResultTableAndIterator(
-    std::shared_ptr<processor::FactorizedTable> factorizedTable_) {
-    factorizedTable = std::move(factorizedTable_);
-    auto [tuple, iterator] = getIterator();
-    this->iterator = std::move(iterator);
-    this->tuple = std::move(tuple);
-}
-
-bool QueryResult::hasNext() const {
-    checkDatabaseClosedOrThrow();
-    validateQuerySucceed();
-    return iterator->hasNextFlatTuple();
 }
 
 bool QueryResult::hasNextQueryResult() const {
@@ -125,38 +72,10 @@ QueryResult* QueryResult::getNextQueryResult() {
     return nullptr;
 }
 
-std::shared_ptr<FlatTuple> QueryResult::getNext() {
+std::unique_ptr<ArrowSchema> QueryResult::getArrowSchema() const {
     checkDatabaseClosedOrThrow();
-    if (!hasNext()) {
-        throw RuntimeException(
-            "No more tuples in QueryResult, Please check hasNext() before calling getNext().");
-    }
-    validateQuerySucceed();
-    iterator->getNextFlatTuple();
-    return tuple;
-}
-
-std::string QueryResult::toString() const {
-    checkDatabaseClosedOrThrow();
-    std::string result;
-    if (isSuccess()) {
-        // print header
-        for (auto i = 0u; i < columnNames.size(); ++i) {
-            if (i != 0) {
-                result += "|";
-            }
-            result += columnNames[i];
-        }
-        result += "\n";
-        auto [tuple, iterator] = getIterator();
-        while (iterator->hasNextFlatTuple()) {
-            iterator->getNextFlatTuple();
-            result += tuple->toString();
-        }
-    } else {
-        result = errMsg;
-    }
-    return result;
+    return ArrowConverter::toArrowSchema(getColumnDataTypes(), getColumnNames(),
+        false /* fallbackExtensionTypes */);
 }
 
 void QueryResult::validateQuerySucceed() const {
@@ -165,20 +84,26 @@ void QueryResult::validateQuerySucceed() const {
     }
 }
 
-std::unique_ptr<ArrowSchema> QueryResult::getArrowSchema() const {
-    checkDatabaseClosedOrThrow();
-    return ArrowConverter::toArrowSchema(getColumnDataTypes(), getColumnNames());
+void QueryResult::addNextResult(std::unique_ptr<QueryResult> next_) {
+    nextQueryResult = std::move(next_);
 }
 
-std::unique_ptr<ArrowArray> QueryResult::getNextArrowChunk(int64_t chunkSize) {
-    checkDatabaseClosedOrThrow();
-    auto data = std::make_unique<ArrowArray>();
-    ArrowConverter::toArrowArray(*this, data.get(), chunkSize);
-    return data;
+std::unique_ptr<QueryResult> QueryResult::moveNextResult() {
+    return std::move(nextQueryResult);
+}
+
+void QueryResult::setQuerySummary(std::unique_ptr<QuerySummary> summary) {
+    querySummary = std::move(summary);
+}
+
+void QueryResult::setDBLifeCycleManager(
+    std::shared_ptr<DatabaseLifeCycleManager> dbLifeCycleManager) {
+    this->dbLifeCycleManager = dbLifeCycleManager;
 }
 
 std::unique_ptr<QueryResult> QueryResult::getQueryResultWithError(const std::string& errorMessage) {
-    auto queryResult = std::make_unique<QueryResult>();
+    // TODO(Xiyang): consider introduce error query result class.
+    auto queryResult = std::make_unique<MaterializedQueryResult>();
     queryResult->success = false;
     queryResult->errMsg = errorMessage;
     queryResult->nextQueryResult = nullptr;

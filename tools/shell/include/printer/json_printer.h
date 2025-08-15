@@ -5,6 +5,9 @@
 #include "printer.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace main {
 
 class JsonPrinter : public Printer {

@@ -71,7 +71,7 @@ private:
 
     void setComplete(const std::string& completeString);
 
-    void checkConfidentialStatement(const std::string& query, const QueryResult* queryResult,
+    void checkConfidentialStatement(const std::string& query, QueryResult* queryResult,
         std::string& input);
 
 private:
