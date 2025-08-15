@@ -113,15 +113,32 @@ struct BCFwdData {
 // This should be our traversal wrapper. This wrapper *should* work as an
 // interface. TODO(Tanvir) implement different queues for weighted and
 // unweighted graphs. The unweighted graph does not require a priority queue.
-// Should also try using ku_vector as the inner container of the priority queue.
-struct BCFwdTraverse {
-    BCFwdTraverse(storage::MemoryManager* /*mm*/, const offset_t sourceNode) {
-        queue.emplace(0, sourceNode);
+class BCFwdTraverse { public:
+    explicit BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode)
+        : heap(mm) {
+        push({0, sourceNode});
     }
 
-    std::priority_queue<std::pair<double, offset_t>, std::vector<std::pair<double, offset_t>>, std::greater<std::pair<double, offset_t>>> queue;
-};
+    void push(const std::pair<double, offset_t>& val) {
+        heap.push_back(val);
+        std::push_heap(heap.begin(), heap.end(), comp);
+    }
 
+    std::pair<double, offset_t>& top() {
+        return heap.front();
+    }
+
+    void pop() {
+        std::pop_heap(heap.begin(), heap.end(), comp);
+        heap.pop_back();
+    }
+
+    bool empty() const { return heap.empty(); }
+
+private:
+    ku_vector_t<std::pair<double, offset_t>> heap;
+    const std::greater<std::pair<double, offset_t>> comp;
+};
 
 // dependencyScores accumulate during backwards traversal over the graph. Once
 // traversal is complete, these scores should accumulate into the betweenness centrality scores.
@@ -149,7 +166,7 @@ static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData&
             fwdData.nodePathData[nbrId].pathScore = curWeight+weight;
             fwdData.nodePathData[nbrId].numPaths = 0;
             fwdData.levels[nbrId] = {fwdData.levels[cur].level+1, nbrId};
-            fwdTraverse.queue.push({curWeight+weight, nbrId});
+            fwdTraverse.push({curWeight+weight, nbrId});
         }
         // A path has been found matching our best path weight (potentially the first path). 
         // The number of shortestPaths can be incremented by the number of ways to reach the parent.
@@ -159,15 +176,14 @@ static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData&
     });
 }
 
-
 /**Compute**/
 
 // TOOD(Tanvir): Currently always do the traversal for weighted graphs always (treat unweighted edges as weight 1). 
 // This should change. Consider changing BCFwdTraverse and overriding methods for insert and pop. 
 static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph, graph::NbrScanState* scanState, const table_id_t tableId, bool undirected) {
-    while(!fwdTraverse.queue.empty()) {
-        const auto [curWeight, cur] = fwdTraverse.queue.top();
-        fwdTraverse.queue.pop();
+    while(!fwdTraverse.empty()) {
+        const auto [curWeight, cur] = fwdTraverse.top();
+        fwdTraverse.pop();
         // If the path to get to this vertex is worse than what has already been
         // compute, there is no further computation to do with this path.
         if(curWeight > fwdData.nodePathData[cur].pathScore) {
