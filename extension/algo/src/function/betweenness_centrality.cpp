@@ -64,7 +64,7 @@ struct BetweennessCentralityBindData final : public GDSBindData {
     BetweennessCentralityBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<Expression> nodeOutput,
         std::unique_ptr<BetweennessCentralityOptionalParams> optionalParams)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput)} {
+        : GDSBindData{std::move(columns), std::move(graphEntry), expression_vector{nodeOutput}} {
         this->optionalParams = std::move(optionalParams);
     }
 
@@ -300,6 +300,19 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     // Currently hard coded to work with a directed unweighted graph.
     auto betweennessCentralityBindData = input.bindData->constPtrCast<BetweennessCentralityBindData>();
     auto& config = betweennessCentralityBindData->optionalParams->constCast<BetweennessCentralityOptionalParams>();
+
+    if (!config.weightProperty.getParamVal().empty() &&
+        !nbrInfo.relGroupEntry->containsProperty(config.weightProperty.getParamVal())) {
+        throw RuntimeException{
+            stringFormat("Cannot find property: {}", config.weightProperty.getParamVal())};
+    }
+    if (!config.weightProperty.getParamVal().empty() &&
+        !LogicalTypeUtils::isNumerical(
+            nbrInfo.relGroupEntry->getProperty(config.weightProperty.getParamVal()).getType())) {
+        throw RuntimeException{stringFormat("Provided weight property is not numerical: {}",
+            config.weightProperty.getParamVal())};
+    }
+
     std::vector<std::string> relProps;
     if (!config.weightProperty.getParamVal().empty()) {
         relProps.push_back(config.weightProperty.getParamVal());
@@ -331,6 +344,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto graphName = input->getLiteralVal<std::string>(0);
     auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
+    if (graphEntry.nodeInfos.size() != 1) {
+        throw BinderException(
+            std::string(BetweennessCentrality::name) + " only supports operations on one node table.");
+    }
+    if (graphEntry.relInfos.size() != 1) {
+        throw BinderException(
+            std::string(BetweennessCentrality::name) + " only supports operations on one rel table.");
+    }
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
