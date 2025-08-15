@@ -112,7 +112,6 @@ struct BCFwdData {
     // Collection of PathData and LevelData indexed by vertex.
     ku_vector_t<PathData> nodePathData;
     ku_vector_t<LevelData> levels;
-    uint64_t maxLevel = 0;
 };
 
 // This should be our traversal wrapper. This wrapper *should* work as an
@@ -120,7 +119,8 @@ struct BCFwdData {
 // unweighted graphs. The unweighted graph does not require a priority queue.
 class BCFwdTraverse {
 public:
-    BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode) : heap(mm) {
+    BCFwdTraverse(storage::MemoryManager* mm, const offset_t sourceNode)
+        : heap(mm) {
         push({0, sourceNode});
     }
 
