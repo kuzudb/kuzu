@@ -35,46 +35,46 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|2|6|0
-1|2|8|0
-2|3|3|0
-2|5|15|0
-3|4|3|0
-4|9|2|0
-5|6|10|0
-5|7|10|0
-8|9|3|0
+6|0|2|0
+8|1|2|0
+3|2|3|0
+15|2|5|0
+3|3|4|0
+2|4|9|0
+10|5|6|0
+10|5|7|0
+3|8|9|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|1|5|0
-0|2|6|0
-2|3|3|0
-3|4|3|0
-4|9|2|0
-5|7|10|0
-6|7|3|0
-7|8|10|0
-8|9|3|0
+5|0|1|0
+6|0|2|0
+3|2|3|0
+3|3|4|0
+2|4|9|0
+10|5|7|0
+3|6|7|0
+10|7|8|0
+3|8|9|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|2|6|2
-1|2|8|2
-2|3|3|2
-2|5|15|2
-3|4|3|2
-5|6|10|2
-5|7|10|2
-7|8|10|2
-8|9|3|2
+6|0|2|2
+8|1|2|2
+3|2|3|2
+15|2|5|2
+3|3|4|2
+10|5|6|2
+10|5|7|2
+10|7|8|2
+3|8|9|2
 
 
 -CASE Alias
@@ -109,18 +109,18 @@
 ---- ok
 
 -STATEMENT CALL SF('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|1|5|0
-0|2|6|0
-2|3|3|0
-2|5|15|0
-3|4|3|0
-5|7|10|0
-6|7|3|0
-7|8|10|0
-8|9|3|0
+5|0|1|0
+6|0|2|0
+3|2|3|0
+15|2|5|0
+3|3|4|0
+10|5|7|0
+3|6|7|0
+10|7|8|0
+3|8|9|0
 
 
 -CASE DisconnectedComponents
@@ -154,43 +154,43 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 8
-0|2|6|0
-1|2|8|0
-2|3|3|0
-3|4|3|0
-5|7|10|5
-6|7|3|5
-7|8|10|5
-8|9|3|5
+6|0|2|0
+8|1|2|0
+3|2|3|0
+3|3|4|0
+10|5|7|5
+3|6|7|5
+10|7|8|5
+3|8|9|5
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 8
-0|1|5|0
-0|2|6|0
-2|3|3|0
-3|4|3|0
-5|7|10|5
-6|7|3|5
-7|8|10|5
-8|9|3|5
+5|0|1|0
+6|0|2|0
+3|2|3|0
+3|3|4|0
+10|5|7|5
+3|6|7|5
+10|7|8|5
+3|8|9|5
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 8
-0|2|6|2
-1|2|8|2
-2|3|3|2
-3|4|3|2
-5|6|10|8
-5|7|10|8
-7|8|10|8
-8|9|3|8
+6|0|2|2
+8|1|2|2
+3|2|3|2
+3|3|4|2
+10|5|6|8
+10|5|7|8
+10|7|8|8
+3|8|9|8
 
 
 -CASE NoEdges
@@ -214,17 +214,17 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 0
 
@@ -268,46 +268,46 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|2|8|0
-1|2|8|0
-2|3|3|0
-2|5|20|0
-3|4|3|0
-4|9|4|0
-5|6|20|0
-5|7|10|0
-8|9|3|0
+8|0|2|0
+8|1|2|0
+3|2|3|0
+20|2|5|0
+3|3|4|0
+4|4|9|0
+20|5|6|0
+10|5|7|0
+3|8|9|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|1|5|0
-0|2|6|0
-2|3|3|0
-3|4|3|0
-4|9|2|0
-5|7|10|0
-6|7|3|0
-7|8|10|0
-8|9|3|0
+5|0|1|0
+6|0|2|0
+3|2|3|0
+3|3|4|0
+2|4|9|0
+10|5|7|0
+3|6|7|0
+10|7|8|0
+3|8|9|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|2|8|3
-1|2|8|3
-2|5|20|3
-3|4|3|3
-4|9|4|3
-5|6|20|3
-5|7|10|3
-7|8|10|3
-8|9|3|3
+8|0|2|3
+8|1|2|3
+20|2|5|3
+3|3|4|3
+4|4|9|3
+20|5|6|3
+10|5|7|3
+10|7|8|3
+3|8|9|3
 
 
 -CASE SelfAndMultiEdges
@@ -353,46 +353,46 @@
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|2|8|0
-1|2|8|0
-2|3|3|0
-2|5|20|0
-3|4|3|0
-4|9|4|0
-5|6|20|0
-5|7|10|0
-8|9|3|0
+8|0|2|0
+8|1|2|0
+3|2|3|0
+20|2|5|0
+3|3|4|0
+4|4|9|0
+20|5|6|0
+10|5|7|0
+3|8|9|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='min')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|1|5|0
-0|2|6|0
-2|3|3|0
-3|4|3|0
-4|9|2|0
-5|7|10|0
-6|7|3|0
-7|8|10|0
-8|9|3|0
+5|0|1|0
+6|0|2|0
+3|2|3|0
+3|3|4|0
+2|4|9|0
+10|5|7|0
+3|6|7|0
+10|7|8|0
+3|8|9|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 9
-0|2|8|3
-1|2|8|3
-2|5|20|3
-3|4|3|3
-4|9|4|3
-5|6|20|3
-5|7|10|3
-7|8|10|3
-8|9|3|3
+8|0|2|3
+8|1|2|3
+20|2|5|3
+3|3|4|3
+4|4|9|3
+20|5|6|3
+10|5|7|3
+10|7|8|3
+3|8|9|3
 
 
 -CASE InvalidWeightProperty
@@ -404,7 +404,7 @@
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- error
 Runtime exception: Provided weight property is not numerical: weight
@@ -419,7 +419,7 @@ Runtime exception: Provided weight property is not numerical: weight
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- error
 Runtime exception: Cannot find property: height
@@ -436,7 +436,7 @@ Runtime exception: Cannot find property: height
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node', 'Node2'], ['Edge']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- error
 Binder exception: SPANNING_FOREST only supports operations on one node table.
@@ -453,7 +453,7 @@ Binder exception: SPANNING_FOREST only supports operations on one node table.
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge', 'Edge2']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- error
 Binder exception: SPANNING_FOREST only supports operations on one rel table.
@@ -468,7 +468,7 @@ Binder exception: SPANNING_FOREST only supports operations on one rel table.
 -STATEMENT CALL PROJECT_GRAPH('Graph', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='height', variant:='medium')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- error
 Binder exception: Variant argument expects max or min. Got: medium
@@ -486,7 +486,7 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 0
 
@@ -505,10 +505,10 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 1
-0|1|5|0
+5|0|1|0
 
 
 -CASE LinearChain
@@ -531,13 +531,13 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 4
-0|1|1|3
-1|2|2|3
-2|3|3|3
-3|4|4|3
+1|0|1|3
+2|1|2|3
+3|2|3|3
+4|3|4|3
 
 
 -CASE StarGraph
@@ -560,13 +560,13 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 4
-0|1|1|0
-0|2|2|0
-0|3|3|0
-0|4|4|0
+1|0|1|0
+2|0|2|0
+3|0|3|0
+4|0|4|0
 
 
 -CASE CompleteGraph
@@ -590,12 +590,12 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 3
-0|1|1|2
-0|2|2|2
-0|3|3|2
+1|0|1|2
+2|0|2|2
+3|0|3|2
 
 
 -CASE TreeStructure
@@ -622,15 +622,15 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 6
-0|1|10|3
-0|2|15|3
-1|3|20|3
-1|4|25|3
-2|5|30|3
-2|6|35|3
+10|0|1|3
+15|0|2|3
+20|1|3|3
+25|1|4|3
+30|2|5|3
+35|2|6|3
 
 
 -CASE UnbalancedComponents
@@ -661,16 +661,16 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 7
-0|1|1|6
-1|2|2|6
-2|3|3|6
-3|4|4|6
-4|5|5|6
-5|6|6|6
-7|8|10|8
+1|0|1|6
+2|1|2|6
+3|2|3|6
+4|3|4|6
+5|4|5|6
+6|5|6|6
+10|7|8|8
 
 
 -CASE TieBreaking
@@ -692,17 +692,17 @@ Binder exception: Variant argument expects max or min. Got: medium
 ---- ok
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 3
-1|3|1|0
-0|2|1|0
-2|3|1|0
+1|1|3|0
+1|0|2|0
+1|2|3|0
 
 -STATEMENT CALL SPANNING_FOREST('Graph', weight_property:='weight', variant:='max')
-    RETURN src.id AS src, dst.id AS dst, rel.weight as weight, forest_id
+    RETURN rel.weight as weight, src.id AS src, dst.id AS dst, forest_id
     ORDER BY forest_id;
 ---- 3
-0|1|1|2
-0|2|1|2
-1|3|1|2
+1|0|1|2
+1|0|2|2
+1|1|3|2
