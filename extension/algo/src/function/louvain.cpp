@@ -10,6 +10,7 @@
 #include "function/config/max_iterations_config.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 
 using namespace std;

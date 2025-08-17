@@ -1,11 +1,10 @@
 #pragma once
 
 #include "loaded_extension.h"
-#include "main/client_context.h"
-#include "main/db_config.h"
 #include "storage/storage_extension.h"
 
 namespace kuzu {
+namespace main {}
 namespace extension {
 
 struct ExtensionEntry {

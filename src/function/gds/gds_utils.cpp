@@ -7,6 +7,7 @@
 #include "function/gds/gds_task.h"
 #include "graph/graph.h"
 #include "graph/graph_entry.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;

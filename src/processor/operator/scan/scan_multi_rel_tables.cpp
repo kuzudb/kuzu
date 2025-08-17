@@ -1,5 +1,6 @@
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/local_storage/local_storage.h"
 

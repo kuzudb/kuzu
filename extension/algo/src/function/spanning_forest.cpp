@@ -14,6 +14,7 @@
 #include "function/gds/gds.h"
 #include "function/gds/gds_object_manager.h"
 #include "function/table/bind_input.h"
+#include "main/client_context.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 #include "processor/execution_context.h"

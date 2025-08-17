@@ -1,6 +1,7 @@
 #include "processor/operator/simple/load_extension.h"
 
 #include "extension/extension_manager.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;

@@ -13,6 +13,7 @@
 #include "graph/graph_entry_set.h"
 #include "index/hnsw_index.h"
 #include "index/hnsw_index_utils.h"
+#include "main/client_context.h"
 #include "parser/parser.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_projection.h"

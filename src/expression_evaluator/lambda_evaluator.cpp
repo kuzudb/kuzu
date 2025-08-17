@@ -5,6 +5,7 @@
 #include "expression_evaluator/expression_evaluator_visitor.h"
 #include "expression_evaluator/list_slice_info.h"
 #include "function/list/vector_list_functions.h"
+#include "main/client_context.h"
 #include "parser/expression/parsed_lambda_expression.h"
 
 using namespace kuzu::common;

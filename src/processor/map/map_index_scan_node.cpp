@@ -1,3 +1,4 @@
+#include "main/client_context.h"
 #include "planner/operator/scan/logical_index_look_up.h"
 #include "processor/expression_mapper.h"
 #include "processor/operator/index_lookup.h"
