@@ -232,6 +232,9 @@ void Database::validatePathInReadOnly() const {
 
 uint64_t Database::getNextQueryID() {
     std::unique_lock lock(queryIDGenerator.queryIDLock);
+    if (queryIDGenerator.queryID == UINT64_MAX) {
+        queryIDGenerator.queryID = 0;
+    }
     return queryIDGenerator.queryID++;
 }
 

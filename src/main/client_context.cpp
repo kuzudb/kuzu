@@ -342,13 +342,12 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
     try {
         parsedStatements = parseQuery(query);
     } catch (std::exception& exception) {
-        return PreparedStatement::getPreparedStatementWithError(exception.what());
+        return PreparedStatement::Error(exception.what());
     }
     if (parsedStatements.size() > 1) {
-        return PreparedStatement::getPreparedStatementWithError(
+        return PreparedStatement::Error(
             "Connection Exception: We do not support prepare multiple statements.");
     }
-
     // The binder deals with the parameter values as shared ptrs
     // Copy the params to a new map that matches the format that the binder expects
     std::unordered_map<std::string, std::shared_ptr<Value>> inputParamsTmp;
@@ -356,7 +355,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
         inputParamsTmp.insert(std::make_pair(key, std::make_shared<Value>(*value)));
     }
     auto [preparedStatement, cachedStatement] = prepareNoLock(parsedStatements[0],
-        true /*shouldCommitNewTransaction*/, std::move(inputParamsTmp));
+        true /*shouldCommitNewTransaction*/, localDatabase->getNextQueryID(), std::move(inputParamsTmp));
     preparedStatement->cachedPreparedStatementName =
         cachedPreparedStatementManager.addStatement(std::move(cachedStatement));
     useInternalCatalogEntry_ = false;
@@ -379,8 +378,7 @@ static void bindParametersNoLock(PreparedStatement& preparedStatement,
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams,
-    std::optional<uint64_t> queryID) { // NOLINT(performance-unnecessary-value-param): It doesn't
+    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) { // NOLINT(performance-unnecessary-value-param): It doesn't
     // make sense to pass the map as a const reference.
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
@@ -403,19 +401,17 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
     // rebind
     auto [newPreparedStatement, newCachedStatement] =
         prepareNoLock(cachedStatement->parsedStatement, false /*shouldCommitNewTransaction*/,
-            preparedStatement->parameterMap);
+            preparedStatement->queryID, preparedStatement->parameterMap);
     useInternalCatalogEntry_ = false;
-    return executeNoLock(newPreparedStatement.get(), newCachedStatement.get(), queryID);
+    return executeNoLock(newPreparedStatement.get(), newCachedStatement.get());
 }
 
-std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
-    std::optional<uint64_t> queryID, ArrowInfo arrowInfo) {
+std::unique_ptr<QueryResult> ClientContext::query(std::string_view query, ArrowInfo arrowInfo) {
     lock_t lck{mtx};
-    return queryNoLock(query, queryID, arrowInfo);
+    return queryNoLock(query, arrowInfo);
 }
 
-std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
-    std::optional<uint64_t> queryID, ArrowInfo arrowInfo) {
+std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query, ArrowInfo arrowInfo) {
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = parseQuery(query);
@@ -426,10 +422,11 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
     QueryResult* lastResult = nullptr;
     double internalCompilingTime = 0.0, internalExecutionTime = 0.0;
     for (const auto& statement : parsedStatements) {
+        auto queryID = localDatabase->getNextQueryID();
         auto [preparedStatement, cachedStatement] =
-            prepareNoLock(statement, false /*shouldCommitNewTransaction*/);
+            prepareNoLock(statement, false /*shouldCommitNewTransaction*/, queryID);
         auto currentQueryResult =
-            executeNoLock(preparedStatement.get(), cachedStatement.get(), queryID, arrowInfo);
+            executeNoLock(preparedStatement.get(), cachedStatement.get(), arrowInfo);
         if (!currentQueryResult->isSuccess()) {
             if (!lastResult) {
                 queryResult = std::move(currentQueryResult);
@@ -510,9 +507,9 @@ void ClientContext::validateTransaction(bool readOnly, bool requireTransaction) 
 }
 
 ClientContext::PrepareResult ClientContext::prepareNoLock(
-    std::shared_ptr<Statement> parsedStatement, bool shouldCommitNewTransaction,
+    std::shared_ptr<Statement> parsedStatement, bool shouldCommitNewTransaction, uint64_t queryID,
     std::optional<std::unordered_map<std::string, std::shared_ptr<Value>>> inputParams) {
-    auto preparedStatement = std::make_unique<PreparedStatement>();
+    auto preparedStatement = std::make_unique<PreparedStatement>(queryID);
     auto cachedStatement = std::make_unique<CachedPreparedStatement>();
     cachedStatement->parsedStatement = parsedStatement;
     cachedStatement->useInternalCatalogEntry = useInternalCatalogEntry_;
@@ -558,8 +555,7 @@ ClientContext::PrepareResult ClientContext::prepareNoLock(
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* preparedStatement,
-    CachedPreparedStatement* cachedStatement, std::optional<uint64_t> queryID,
-    ArrowInfo arrowInfo) {
+    CachedPreparedStatement* cachedStatement, ArrowInfo arrowInfo) {
     if (!preparedStatement->isSuccess()) {
         return QueryResult::getQueryResultWithError(preparedStatement->errMsg);
     }
@@ -577,11 +573,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
             [&]() -> void {
                 const auto profiler = std::make_unique<Profiler>();
                 profiler->enabled = cachedStatement->logicalPlan->isProfile();
-                if (!queryID) {
-                    queryID = localDatabase->getNextQueryID();
-                }
                 const auto executionContext =
-                    std::make_unique<ExecutionContext>(profiler.get(), this, *queryID);
+                    std::make_unique<ExecutionContext>(profiler.get(), this, preparedStatement->queryID);
                 auto mapper = PlanMapper(executionContext.get());
                 const auto physicalPlan = mapper.mapLogicalPlanToPhysical(
                     cachedStatement->logicalPlan.get(), cachedStatement->columns);
@@ -602,7 +595,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                 !isTransactionStatement /*shouldCommitAutoTransaction*/));
     } catch (std::exception& e) {
         useInternalCatalogEntry_ = false;
-        return handleFailedExecution(queryID, e);
+        return handleFailedExecution(preparedStatement->queryID, e);
     }
     getMemoryManager()->getBufferManager()->getSpillerOrSkip(
         [](auto& spiller) { spiller.clearFile(); });
@@ -623,13 +616,11 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     return result;
 }
 
-std::unique_ptr<QueryResult> ClientContext::handleFailedExecution(std::optional<uint64_t> queryID,
+std::unique_ptr<QueryResult> ClientContext::handleFailedExecution(uint64_t queryID,
     const std::exception& e) const {
     getMemoryManager()->getBufferManager()->getSpillerOrSkip(
         [](auto& spiller) { spiller.clearFile(); });
-    if (queryID.has_value()) {
-        progressBar->endProgress(queryID.value());
-    }
+    progressBar->endProgress(queryID);
     return QueryResult::getQueryResultWithError(e.what());
 }
 

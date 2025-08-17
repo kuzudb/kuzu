@@ -85,20 +85,16 @@ public:
     ~ConnectionExecuteAsyncWorker() override = default;
 
     void Execute() override {
-        uint64_t queryID = connection->getClientContext()->getDatabase()->getNextQueryID();
         auto progressBar = connection->getClientContext()->getProgressBar();
         auto trackProgress = progressBar->getProgressBarPrinting();
         auto display = progressBar->getDisplay().get();
         NodeProgressBarDisplay* nodeDisplay = ku_dynamic_cast<NodeProgressBarDisplay*>(display);
         if (progressCallback) {
-            nodeDisplay->setCallbackFunction(queryID, *progressCallback);
+            nodeDisplay->setCallbackFunction(preparedStatement->getQueryID(), *progressCallback);
             progressBar->toggleProgressBarPrinting(true);
         }
         try {
-            auto result =
-                connection
-                    ->executeWithParamsWithID(preparedStatement.get(), std::move(params), queryID)
-                    .release();
+            auto result = connection->executeWithParams(preparedStatement.get(), std::move(params)).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
@@ -141,17 +137,17 @@ public:
     ~ConnectionQueryAsyncWorker() override = default;
 
     void Execute() override {
-        uint64_t queryID = connection->getClientContext()->getDatabase()->getNextQueryID();
         auto progressBar = connection->getClientContext()->getProgressBar();
         auto trackProgress = progressBar->getProgressBarPrinting();
         auto display = progressBar->getDisplay().get();
         NodeProgressBarDisplay* nodeDisplay = ku_dynamic_cast<NodeProgressBarDisplay*>(display);
-        if (progressCallback) {
-            nodeDisplay->setCallbackFunction(queryID, *progressCallback);
-            progressBar->toggleProgressBarPrinting(true);
-        }
         try {
-            auto result = connection->queryWithID(statement, queryID).release();
+            auto preparedStatement = connection->prepare(statement);
+            if (progressCallback) {
+                nodeDisplay->setCallbackFunction(preparedStatement->getQueryID(), *progressCallback);
+                progressBar->toggleProgressBarPrinting(true);
+            }
+            auto result = connection->execute(preparedStatement.get()).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());

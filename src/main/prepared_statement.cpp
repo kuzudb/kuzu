@@ -61,9 +61,8 @@ void PreparedStatement::validateExecuteParam(const std::string& paramName,
 
 PreparedStatement::~PreparedStatement() = default;
 
-std::unique_ptr<PreparedStatement> PreparedStatement::getPreparedStatementWithError(
-    const std::string& errorMessage) {
-    auto preparedStatement = std::make_unique<PreparedStatement>();
+std::unique_ptr<PreparedStatement> PreparedStatement::Error(const std::string& errorMessage) {
+    auto preparedStatement = std::make_unique<PreparedStatement>(UINT64_MAX /* queryID */);
     preparedStatement->success = false;
     preparedStatement->errMsg = errorMessage;
     return preparedStatement;

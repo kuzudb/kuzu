@@ -181,13 +181,11 @@ public:
 
         ArrowInfo(bool asArrow, int64_t chunkSize) : asArrow(asArrow), chunkSize(chunkSize) {}
     };
-    std::unique_ptr<QueryResult> query(std::string_view queryStatement,
-        std::optional<uint64_t> queryID = std::nullopt, ArrowInfo arrowInfo = {false, 1000});
+    std::unique_ptr<QueryResult> query(std::string_view queryStatement, ArrowInfo arrowInfo = {false, 1000});
     std::unique_ptr<PreparedStatement> prepareWithParams(std::string_view query,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams = {});
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
-        std::optional<uint64_t> queryID = std::nullopt);
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
 
 private:
     struct TransactionHelper {
@@ -220,7 +218,7 @@ private:
     };
 
     PrepareResult prepareNoLock(std::shared_ptr<parser::Statement> parsedStatement,
-        bool shouldCommitNewTransaction,
+        bool shouldCommitNewTransaction, uint64_t queryID,
         std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams =
             std::nullopt);
 
@@ -235,15 +233,12 @@ private:
     }
 
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
-        CachedPreparedStatement* cachedPreparedStatement,
-        std::optional<uint64_t> queryID = std::nullopt, ArrowInfo arrowInfo = {false, 1000});
-    std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
-        std::optional<uint64_t> queryID = std::nullopt, ArrowInfo arrowInfo = {false, 1000});
+        CachedPreparedStatement* cachedPreparedStatement, ArrowInfo arrowInfo = {false, 1000});
+    std::unique_ptr<QueryResult> queryNoLock(std::string_view query, ArrowInfo arrowInfo = {false, 1000});
 
     bool canExecuteWriteQuery() const;
 
-    std::unique_ptr<QueryResult> handleFailedExecution(std::optional<uint64_t> queryID,
-        const std::exception& e) const;
+    std::unique_ptr<QueryResult> handleFailedExecution(uint64_t queryID, const std::exception& e) const;
 
     std::mutex mtx;
     // Client side configurable settings.

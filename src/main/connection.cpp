@@ -55,15 +55,7 @@ std::unique_ptr<QueryResult> Connection::query(std::string_view queryStatement) 
 
 std::unique_ptr<QueryResult> Connection::queryAsArrow(std::string_view query, int64_t chunkSize) {
     dbLifeCycleManager->checkDatabaseClosedOrThrow();
-    auto queryResult = clientContext->query(query, std::nullopt, {true, chunkSize});
-    queryResult->setDBLifeCycleManager(dbLifeCycleManager);
-    return queryResult;
-}
-
-std::unique_ptr<QueryResult> Connection::queryWithID(std::string_view queryStatement,
-    uint64_t queryID) {
-    dbLifeCycleManager->checkDatabaseClosedOrThrow();
-    auto queryResult = clientContext->query(queryStatement, queryID);
+    auto queryResult = clientContext->query(query, {true, chunkSize});
     queryResult->setDBLifeCycleManager(dbLifeCycleManager);
     return queryResult;
 }
@@ -82,16 +74,6 @@ std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* pr
     std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) {
     dbLifeCycleManager->checkDatabaseClosedOrThrow();
     auto queryResult = clientContext->executeWithParams(preparedStatement, std::move(inputParams));
-    queryResult->setDBLifeCycleManager(dbLifeCycleManager);
-    return queryResult;
-}
-
-std::unique_ptr<QueryResult> Connection::executeWithParamsWithID(
-    PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams, uint64_t queryID) {
-    dbLifeCycleManager->checkDatabaseClosedOrThrow();
-    auto queryResult =
-        clientContext->executeWithParams(preparedStatement, std::move(inputParams), queryID);
     queryResult->setDBLifeCycleManager(dbLifeCycleManager);
     return queryResult;
 }

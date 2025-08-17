@@ -145,12 +145,6 @@ private:
     KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
     KUZU_API void removeScalarFunction(std::string name);
 
-    std::unique_ptr<QueryResult> queryWithID(std::string_view query, uint64_t queryID);
-
-    std::unique_ptr<QueryResult> executeWithParamsWithID(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
-        uint64_t queryID);
-
 private:
     Database* database;
     std::unique_ptr<ClientContext> clientContext;

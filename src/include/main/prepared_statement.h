@@ -48,6 +48,8 @@ class PreparedStatement {
     friend class ClientContext;
 
 public:
+    explicit PreparedStatement(uint64_t queryID) : queryID{queryID} {}
+
     KUZU_API ~PreparedStatement();
     /**
      * @return the query is prepared successfully or not.
@@ -66,16 +68,18 @@ public:
         return parameterMap;
     }
 
+    uint64_t getQueryID() const { return queryID; }
+
     std::string getName() const { return cachedPreparedStatementName; }
 
     common::StatementType getStatementType() const;
 
     void validateExecuteParam(const std::string& paramName, common::Value* param) const;
 
-    static std::unique_ptr<PreparedStatement> getPreparedStatementWithError(
-        const std::string& errorMessage);
+    static std::unique_ptr<PreparedStatement> Error(const std::string& errorMessage);
 
 private:
+    uint64_t queryID;
     bool success = true;
     bool readOnly = true;
     std::string errMsg;
