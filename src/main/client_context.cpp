@@ -354,8 +354,9 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
     for (auto& [key, value] : inputParams) {
         inputParamsTmp.insert(std::make_pair(key, std::make_shared<Value>(*value)));
     }
-    auto [preparedStatement, cachedStatement] = prepareNoLock(parsedStatements[0],
-        true /*shouldCommitNewTransaction*/, localDatabase->getNextQueryID(), std::move(inputParamsTmp));
+    auto [preparedStatement, cachedStatement] =
+        prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/,
+            localDatabase->getNextQueryID(), std::move(inputParamsTmp));
     preparedStatement->cachedPreparedStatementName =
         cachedPreparedStatementManager.addStatement(std::move(cachedStatement));
     useInternalCatalogEntry_ = false;
@@ -378,7 +379,8 @@ static void bindParametersNoLock(PreparedStatement& preparedStatement,
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) { // NOLINT(performance-unnecessary-value-param): It doesn't
+    std::unordered_map<std::string, std::unique_ptr<Value>>
+        inputParams) { // NOLINT(performance-unnecessary-value-param): It doesn't
     // make sense to pass the map as a const reference.
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
@@ -411,7 +413,8 @@ std::unique_ptr<QueryResult> ClientContext::query(std::string_view query, ArrowI
     return queryNoLock(query, arrowInfo);
 }
 
-std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query, ArrowInfo arrowInfo) {
+std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
+    ArrowInfo arrowInfo) {
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = parseQuery(query);
@@ -573,8 +576,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
             [&]() -> void {
                 const auto profiler = std::make_unique<Profiler>();
                 profiler->enabled = cachedStatement->logicalPlan->isProfile();
-                const auto executionContext =
-                    std::make_unique<ExecutionContext>(profiler.get(), this, preparedStatement->queryID);
+                const auto executionContext = std::make_unique<ExecutionContext>(profiler.get(),
+                    this, preparedStatement->queryID);
                 auto mapper = PlanMapper(executionContext.get());
                 const auto physicalPlan = mapper.mapLogicalPlanToPhysical(
                     cachedStatement->logicalPlan.get(), cachedStatement->columns);

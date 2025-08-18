@@ -94,7 +94,8 @@ public:
             progressBar->toggleProgressBarPrinting(true);
         }
         try {
-            auto result = connection->executeWithParams(preparedStatement.get(), std::move(params)).release();
+            auto result =
+                connection->executeWithParams(preparedStatement.get(), std::move(params)).release();
             nodeQueryResult->SetQueryResult(result, true);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
@@ -144,7 +145,8 @@ public:
         try {
             auto preparedStatement = connection->prepare(statement);
             if (progressCallback) {
-                nodeDisplay->setCallbackFunction(preparedStatement->getQueryID(), *progressCallback);
+                nodeDisplay->setCallbackFunction(preparedStatement->getQueryID(),
+                    *progressCallback);
                 progressBar->toggleProgressBarPrinting(true);
             }
             auto result = connection->execute(preparedStatement.get()).release();
