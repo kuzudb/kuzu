@@ -15,6 +15,7 @@ class MaterializedQueryResult : public QueryResult {
 
 public:
     MaterializedQueryResult();
+    explicit MaterializedQueryResult(std::shared_ptr<processor::FactorizedTable> table);
     MaterializedQueryResult(std::vector<std::string> columnNames,
         std::vector<common::LogicalType> columnTypes,
         std::shared_ptr<processor::FactorizedTable> table);
