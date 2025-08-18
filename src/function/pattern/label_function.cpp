@@ -10,8 +10,7 @@
 #include "function/scalar_function.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/struct/vector_struct_functions.h"
-#include "main/client_context.h"
-#include <catalog/catalog_entry/rel_group_catalog_entry.h>
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;

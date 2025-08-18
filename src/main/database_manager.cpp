@@ -2,6 +2,8 @@
 
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
+#include "main/client_context.h"
+#include "main/database.h"
 
 using namespace kuzu::common;
 
@@ -76,6 +78,10 @@ void DatabaseManager::invalidateCache() {
     for (auto& attachedDatabase : attachedDatabases) {
         attachedDatabase->invalidateCache();
     }
+}
+
+DatabaseManager* DatabaseManager::Get(const ClientContext& context) {
+    return context.getDatabase()->getDatabaseManager();
 }
 
 } // namespace main

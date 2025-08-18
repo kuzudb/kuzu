@@ -39,7 +39,7 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
         clientContext->getTransactionContext()->rollback();
     } break;
     case TransactionAction::CHECKPOINT: {
-        clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
+        TransactionManager::Get(*clientContext)->checkpoint(*clientContext);
     } break;
     default: {
         KU_UNREACHABLE;

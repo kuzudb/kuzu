@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
+#include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
-#include "main/client_context.h"
 #include "main/database_manager.h"
 
 using namespace kuzu::common;
@@ -44,7 +44,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("database type");
     columnTypes.emplace_back(LogicalType::STRING());
-    auto attachedDatabases = context->getDatabaseManager()->getAttachedDatabases();
+    auto attachedDatabases = main::DatabaseManager::Get(*context)->getAttachedDatabases();
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases, columns,

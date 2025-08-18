@@ -35,7 +35,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
     auto dbName = input->getLiteralVal<std::string>(0);
     auto query = input->getLiteralVal<std::string>(1);
-    auto attachedDB = context->getDatabaseManager()->getAttachedDatabase(dbName);
+    auto attachedDB = DatabaseManager::Get(*context)->getAttachedDatabase(dbName);
     if (attachedDB->getDBType() != PostgresStorageExtension::DB_TYPE) {
         throw common::BinderException{"sql queries can only be executed in attached postgres."};
     }

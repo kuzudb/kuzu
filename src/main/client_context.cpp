@@ -202,12 +202,16 @@ std::string ClientContext::getDatabasePath() const {
     return localDatabase->databasePath;
 }
 
-TaskScheduler* ClientContext::getTaskScheduler() const {
-    return localDatabase->queryProcessor->getTaskScheduler();
+Database* ClientContext::getDatabase() const {
+    return localDatabase;
 }
 
-DatabaseManager* ClientContext::getDatabaseManager() const {
-    return localDatabase->databaseManager.get();
+AttachedKuzuDatabase* ClientContext::getAttachedDatabase() const {
+    return remoteDatabase;
+}
+
+TaskScheduler* ClientContext::getTaskScheduler() const {
+    return localDatabase->queryProcessor->getTaskScheduler();
 }
 
 storage::StorageManager* ClientContext::getStorageManager() const {
@@ -236,14 +240,6 @@ Catalog* ClientContext::getCatalog() const {
         return localDatabase->catalog.get();
     } else {
         return remoteDatabase->getCatalog();
-    }
-}
-
-TransactionManager* ClientContext::getTransactionManagerUnsafe() const {
-    if (remoteDatabase == nullptr) {
-        return localDatabase->transactionManager.get();
-    } else {
-        return remoteDatabase->getTransactionManager();
     }
 }
 
@@ -679,7 +675,7 @@ bool ClientContext::canExecuteWriteQuery() const {
     }
     // Note: we can only attach a remote kuzu database in read-only mode and only one
     // remote kuzu database can be attached.
-    const auto dbManager = getDatabaseManager();
+    const auto dbManager = DatabaseManager::Get(*this);
     for (const auto& attachedDB : dbManager->getAttachedDatabases()) {
         if (attachedDB->getDBType() == ATTACHED_KUZU_DB_TYPE) {
             return false;

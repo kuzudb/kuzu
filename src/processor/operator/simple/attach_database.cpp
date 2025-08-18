@@ -29,7 +29,7 @@ static std::string attachMessage() {
 
 void AttachDatabase::executeInternal(ExecutionContext* context) {
     auto client = context->clientContext;
-    auto databaseManager = client->getDatabaseManager();
+    auto databaseManager = main::DatabaseManager::Get(*client);
     auto memoryManager = client->getMemoryManager();
     if (common::StringUtils::getUpper(attachInfo.dbType) == common::ATTACHED_KUZU_DB_TYPE) {
         auto db = std::make_unique<main::AttachedKuzuDatabase>(attachInfo.dbPath,

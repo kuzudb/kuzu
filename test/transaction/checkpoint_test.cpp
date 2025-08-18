@@ -20,7 +20,7 @@ public:
         : initFunc(std::move(initFunc)) {}
 
     void setCheckpointer(main::ClientContext& context) const {
-        context.getTransactionManagerUnsafe()->initCheckpointerFunc = initFunc;
+        TransactionManager::Get(context)->initCheckpointerFunc = initFunc;
     }
 
 private:

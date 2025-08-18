@@ -4,7 +4,9 @@
 
 #include "common/exception/checkpoint.h"
 #include "common/exception/transaction_manager.h"
+#include "main/attached_database.h"
 #include "main/client_context.h"
+#include "main/database.h"
 #include "main/db_config.h"
 #include "storage/checkpointer.h"
 #include "storage/wal/local_wal.h"
@@ -105,6 +107,13 @@ void TransactionManager::checkpoint(main::ClientContext& clientContext) {
         return;
     }
     checkpointNoLock(clientContext);
+}
+
+TransactionManager* TransactionManager::Get(const main::ClientContext& context) {
+    if (context.getAttachedDatabase() != nullptr) {
+        context.getAttachedDatabase()->getTransactionManager();
+    }
+    return context.getDatabase()->getTransactionManager();
 }
 
 UniqLock TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave() {
