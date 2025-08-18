@@ -293,7 +293,7 @@ void PyQueryResult::getNextArrowChunk(const std::vector<LogicalType>& types,
     const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize,
     bool fallbackExtensionTypes) {
     auto rowBatch =
-        std::make_unique<ArrowRowBatch>(copyVector(types), chunkSize, fallbackExtensionTypes);
+        std::make_unique<ArrowRowBatch>(types, chunkSize, fallbackExtensionTypes);
     auto rowBatchSize = 0u;
     while (rowBatchSize < chunkSize) {
         if (!queryResult->hasNext()) {
@@ -303,7 +303,7 @@ void PyQueryResult::getNextArrowChunk(const std::vector<LogicalType>& types,
         rowBatch->append(*tuple);
         rowBatchSize++;
     }
-    auto data = rowBatch->toArray();
+    auto data = rowBatch->toArray(types);
     auto batchImportFunc = importCache->pyarrow.lib.RecordBatch._import_from_c();
     auto schema = ArrowConverter::toArrowSchema(types, names, fallbackExtensionTypes);
     batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)schema.get()));

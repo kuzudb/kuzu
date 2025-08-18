@@ -1,9 +1,11 @@
 #pragma once
 
+#include "main/query_result/materialized_query_result.h"
 #include "processor/operator/sink.h"
 #include "processor/result/factorized_table.h"
 #include "storage/page_allocator.h"
 #include "storage/table/table.h"
+#include <main/attached_database.h>
 
 namespace kuzu {
 namespace storage {
@@ -102,6 +104,10 @@ public:
 
     std::shared_ptr<FactorizedTable> getResultFTable() const override {
         return sharedState->fTable;
+    }
+
+    std::unique_ptr<main::QueryResult> getQueryResult() const override {
+        return std::make_unique<main::MaterializedQueryResult>(sharedState->fTable);
     }
 
     std::unique_ptr<PhysicalOperator> copy() override = 0;

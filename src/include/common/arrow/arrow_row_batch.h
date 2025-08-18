@@ -16,6 +16,7 @@ class FlatTuple;
 
 namespace common {
 class Value;
+class ValueVector;
 
 // An Arrow Vector(i.e., Array) is defined by a few pieces of metadata and data:
 //  1) a logical data type;
@@ -49,11 +50,14 @@ struct ArrowVector {
 // An arrow data chunk consisting of N rows in columnar format.
 class ArrowRowBatch {
 public:
-    ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity,
+    ArrowRowBatch(const std::vector<LogicalType>& types, std::int64_t capacity,
         bool fallbackExtensionTypes);
 
     void append(const processor::FlatTuple& tuple);
-    ArrowArray toArray();
+    std::int64_t size() const {
+        return numTuples;
+    }
+    ArrowArray toArray(const std::vector<LogicalType>& types);
 
 private:
     static void appendValue(ArrowVector* vector, const LogicalType& type, const Value& value,
@@ -81,8 +85,6 @@ private:
         bool fallbackExtensionTypes);
 
 private:
-    // TODO(Xiyang): remove types
-    std::vector<LogicalType> types;
     std::vector<std::unique_ptr<ArrowVector>> vectors;
     std::int64_t numTuples;
     bool fallbackExtensionTypes = false;

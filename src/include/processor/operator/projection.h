@@ -27,8 +27,8 @@ private:
 struct ProjectionInfo {
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> evaluators;
     std::vector<DataPos> exprsOutputPos;
-    std::unordered_set<common::idx_t> outputChunkPosSet;
-    std::unordered_set<common::idx_t> discardedChunkPosSet;
+    std::unordered_set<common::idx_t> activeChunkIndices;
+    std::unordered_set<common::idx_t> discardedChunkIndices;
 
     ProjectionInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(ProjectionInfo);
@@ -37,14 +37,14 @@ struct ProjectionInfo {
         const DataPos& outputPos) {
         evaluators.push_back(std::move(evaluator));
         exprsOutputPos.push_back(outputPos);
-        outputChunkPosSet.insert(outputPos.dataChunkPos);
+        activeChunkIndices.insert(outputPos.dataChunkPos);
     }
 
 private:
     ProjectionInfo(const ProjectionInfo& other)
         : evaluators{copyVector(other.evaluators)}, exprsOutputPos{other.exprsOutputPos},
-          outputChunkPosSet{other.outputChunkPosSet},
-          discardedChunkPosSet{other.discardedChunkPosSet} {}
+          activeChunkIndices{other.activeChunkIndices},
+          discardedChunkIndices{other.discardedChunkIndices} {}
 };
 
 class Projection final : public PhysicalOperator {
