@@ -9,8 +9,10 @@
 #include "function/gds/gds.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
+#include "function/table/bind_input.h"
 #include "function/table/table_function.h"
 #include "graph/graph.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -82,7 +84,7 @@ struct BetweennessCentralityBindData final : public GDSBindData {
 // update the betweennessCentrality container.
 struct BetweennessCentralityState {
     BetweennessCentralityState(storage::MemoryManager* mm, const offset_t numNodes)
-        : betweennessCentrality{mm, numNodes}, numNodes{numNodes} {}
+        : betweennessCentrality{mm, static_cast<size_t>(numNodes)}, numNodes{numNodes} {}
     ku_vector_t<std::atomic<double>> betweennessCentrality;
     const offset_t numNodes;
 };
@@ -105,7 +107,7 @@ struct BCFwdData {
     };
 
     BCFwdData(storage::MemoryManager* mm, const offset_t numNodes)
-        : nodePathData{mm, numNodes}, levels{mm, numNodes} {}
+        : nodePathData{mm, static_cast<size_t>(numNodes)}, levels{mm, static_cast<size_t>(numNodes)} {}
 
     void init(const offset_t sourceNode) {
         // The fill parts may be done in parallel.
@@ -154,7 +156,7 @@ private:
 // traversal is complete these scores should accumulate into the betweenness centrality scores.
 struct BCBwdData {
     BCBwdData(storage::MemoryManager* mm, const offset_t numNodes)
-        : dependencyScores{mm, numNodes} {}
+        : dependencyScores{mm, static_cast<size_t>(numNodes)} {}
 
     void init() {
         // This can be done in parallel.
