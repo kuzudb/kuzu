@@ -252,9 +252,9 @@ public:
     WriteResultsSF(MemoryManager* mm, GDSFuncSharedState* sharedState,
         const ku_vector_t<resultEdge>& finalResults)
         : InMemResultParallelCompute{mm, sharedState}, finalResults{finalResults} {
+        relIdVector = createVector(LogicalType::INTERNAL_ID());
         srcIdVector = createVector(LogicalType::INTERNAL_ID());
         dstIdVector = createVector(LogicalType::INTERNAL_ID());
-        relIdVector = createVector(LogicalType::INTERNAL_ID());
         forestIdVector = createVector(LogicalType::UINT64());
     }
 
@@ -263,9 +263,9 @@ public:
         KU_ASSERT(tableID.has_value());
         for (auto i = startOffset; i < endOffset; ++i) {
             const auto& [srcId, dstId, relId, forestId] = finalResults[i];
+            relIdVector->setValue<relID_t>(0, relId);
             srcIdVector->setValue<nodeID_t>(0, nodeID_t{srcId, *tableID});
             dstIdVector->setValue<nodeID_t>(0, nodeID_t{dstId, *tableID});
-            relIdVector->setValue<relID_t>(0, relId);
             forestIdVector->setValue<offset_t>(0, forestId);
             localFT->append(vectors);
         }
@@ -277,10 +277,10 @@ public:
 
 private:
     const ku_vector_t<resultEdge>& finalResults;
+    std::unique_ptr<ValueVector> forestIdVector;
     std::unique_ptr<ValueVector> srcIdVector;
     std::unique_ptr<ValueVector> dstIdVector;
     std::unique_ptr<ValueVector> relIdVector;
-    std::unique_ptr<ValueVector> forestIdVector;
 };
 
 /** GDS Setup **/
@@ -352,18 +352,18 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
     expression_vector columns;
     auto srcOutput =
-        GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), SRC_COLUMN_NAME, 0);
+        GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), SRC_COLUMN_NAME, 1);
     auto dstOutput =
-        GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), DST_COLUMN_NAME, 1);
+        GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries(), DST_COLUMN_NAME, 2);
     auto relOutput = GDSFunction::bindRelOutput(*input, graphEntry.getRelEntries(),
         std::dynamic_pointer_cast<NodeExpression>(srcOutput),
-        std::dynamic_pointer_cast<NodeExpression>(dstOutput), REL_COLUMN_NAME, 2);
+        std::dynamic_pointer_cast<NodeExpression>(dstOutput), REL_COLUMN_NAME, 0);
+    columns.push_back(relOutput->constCast<RelExpression>().getInternalID());
     columns.push_back(srcOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(dstOutput->constCast<NodeExpression>().getInternalID());
-    columns.push_back(relOutput->constCast<RelExpression>().getInternalID());
     columns.push_back(input->binder->createVariable(FOREST_ID_COLUMN_NAME, LogicalType::UINT64()));
     return std::make_unique<SFBindData>(std::move(columns), std::move(graphEntry),
-        expression_vector{srcOutput, dstOutput, relOutput},
+        expression_vector{relOutput, srcOutput, dstOutput},
         std::make_unique<SFOptionalParams>(input->optionalParamsLegacy));
 }
 
@@ -391,7 +391,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    for (auto i = 0u; i < 2; ++i) {
+    for (auto i = 1u; i < 3; ++i) {
         auto nodeOutput = bindData->output[i]->ptrCast<NodeExpression>();
         KU_ASSERT(nodeOutput != nullptr);
         planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
@@ -402,7 +402,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
             planner->appendHashJoin(joinConditions, JoinType::INNER, plan, scanPlan, plan);
         }
     }
-    auto relOutput = bindData->output[2]->ptrCast<RelExpression>();
+    auto relOutput = bindData->output[0]->ptrCast<RelExpression>();
     KU_ASSERT(relOutput != nullptr);
     auto scanPlan = LogicalPlan();
     auto boundNode = relOutput->getSrcNode();
@@ -432,7 +432,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     }
 
     planner->appendExtend(boundNode, nbrNode,
-        std::dynamic_pointer_cast<RelExpression>(bindData->output[2]), extendDir, relProperties,
+        std::dynamic_pointer_cast<RelExpression>(bindData->output[0]), extendDir, relProperties,
         scanPlan);
     planner->appendProjection(relProperties, scanPlan);
     expression_vector joinConditions;
