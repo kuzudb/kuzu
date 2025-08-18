@@ -107,7 +107,8 @@ struct BCFwdData {
     };
 
     BCFwdData(storage::MemoryManager* mm, const offset_t numNodes)
-        : nodePathData{mm, static_cast<size_t>(numNodes)}, levels{mm, static_cast<size_t>(numNodes)} {}
+        : nodePathData{mm, static_cast<size_t>(numNodes)},
+          levels{mm, static_cast<size_t>(numNodes)} {}
 
     void init(const offset_t sourceNode) {
         // The fill parts may be done in parallel.
