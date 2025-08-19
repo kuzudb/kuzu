@@ -754,6 +754,7 @@ kU_NonReservedKeywords
         | RENAME
         | RETURN
         | ROLLBACK
+        | ROLE
         | SEQUENCE
         | SET
         | START
@@ -770,6 +771,7 @@ kU_NonReservedKeywords
         | TO
         | YIELD
         | USER
+        | PASSWORD
         ;
 
 UnescapedSymbolicName

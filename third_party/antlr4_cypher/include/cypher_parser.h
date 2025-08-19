@@ -2935,6 +2935,7 @@ public:
     antlr4::tree::TerminalNode *RENAME();
     antlr4::tree::TerminalNode *RETURN();
     antlr4::tree::TerminalNode *ROLLBACK();
+    antlr4::tree::TerminalNode *ROLE();
     antlr4::tree::TerminalNode *SEQUENCE();
     antlr4::tree::TerminalNode *SET();
     antlr4::tree::TerminalNode *START();
@@ -2951,6 +2952,7 @@ public:
     antlr4::tree::TerminalNode *TO();
     antlr4::tree::TerminalNode *YIELD();
     antlr4::tree::TerminalNode *USER();
+    antlr4::tree::TerminalNode *PASSWORD();
 
    
   };

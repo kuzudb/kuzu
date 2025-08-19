@@ -61,7 +61,7 @@ std::string Transformer::getPKName(CypherParser::KU_CreateNodeTableContext& ctx)
     return pkName;
 }
 
-static ConflictAction getConflictAction(CypherParser::KU_IfNotExistsContext* ctx) {
+ConflictAction Transformer::transformConflictAction(CypherParser::KU_IfNotExistsContext* ctx) {
     if (ctx != nullptr) {
         return ConflictAction::ON_CONFLICT_DO_NOTHING;
     }
@@ -72,7 +72,7 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     CypherParser::KU_CreateNodeTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto createTableInfo =
-        CreateTableInfo(TableType::NODE, tableName, getConflictAction(ctx.kU_IfNotExists()));
+        CreateTableInfo(TableType::NODE, tableName, transformConflictAction(ctx.kU_IfNotExists()));
     // If CREATE NODE TABLE AS syntax
     if (ctx.oC_Query()) {
         return std::make_unique<CreateTable>(std::move(createTableInfo),
@@ -105,7 +105,7 @@ std::unique_ptr<Statement> Transformer::transformCreateRelGroup(
     std::unique_ptr<ExtraCreateTableInfo> extraInfo =
         std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity, std::move(fromToPairs),
             std::move(options));
-    auto conflictAction = getConflictAction(ctx.kU_IfNotExists());
+    auto conflictAction = transformConflictAction(ctx.kU_IfNotExists());
     auto createTableInfo = CreateTableInfo(common::TableType::REL, tableName, conflictAction);
     if (ctx.kU_PropertyDefinitions()) {
         createTableInfo.propertyDefinitions =
