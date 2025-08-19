@@ -329,18 +329,17 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()
                              .maxIterations.getParamVal();
 
+    auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
+    auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
+    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, std::make_unique<EmptyGDSAuxiliaryState>());
     for (auto i = 0u; i < numNodes; ++i) {
         // Forward Traverse
         fwdData.init(i /*sourceNode*/);
-        auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
-        auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
-        nextFrontier->addNode(i, 0);
-        auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier),
-            std::move(nextFrontier));
-        auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
-        computeState.edgeCompute = std::make_unique<UnweightedFwdTraverse>(fwdData);
-        computeState.auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         computeState.frontierPair->resetCurrentIter();
+        computeState.frontierPair->ptrCast<DenseFrontierPair>()->resetValue(input.context, graph, FRONTIER_UNVISITED);
+        computeState.frontierPair->addNodeToNextFrontier(i);
+        computeState.edgeCompute = std::make_unique<UnweightedFwdTraverse>(fwdData);
         computeState.frontierPair->setActiveNodesForNextIter();
         GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
             undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations);
@@ -352,24 +351,19 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             std::greater<BCFwdData::LevelData>{});
         auto maxLevel = fwdData.levels.front().level;
         for (auto j = 0u; j < fwdData.levels.size() && maxLevel > 0;) {
-            auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
-            auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
+            computeState.frontierPair->resetCurrentIter();
+            computeState.frontierPair->ptrCast<DenseFrontierPair>()->resetValue(input.context, graph, FRONTIER_UNVISITED);
             while (j < fwdData.levels.size() && fwdData.levels[j].level == maxLevel) {
-                nextFrontier->addNode(fwdData.levels[j].node, 0);
+                computeState.frontierPair->addNodeToNextFrontier(fwdData.levels[j].node);
                 ++j;
             }
-            auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier),
-                std::move(nextFrontier));
-            auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
             computeState.edgeCompute = std::make_unique<BwdTraverse>(fwdData, bwdData);
-            computeState.auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
-            computeState.frontierPair->resetCurrentIter();
             computeState.frontierPair->setActiveNodesForNextIter();
             GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
                 undirected ? ExtendDirection::BOTH : ExtendDirection::BWD, maxIterations);
             --maxLevel;
         }
-        auto vertexCompute =
+        const auto vertexCompute =
             std::make_unique<UpdateBC>(sharedState->getGraphNodeMaskMap(), bwdData, state, i);
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     }
