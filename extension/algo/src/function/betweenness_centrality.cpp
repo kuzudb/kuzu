@@ -331,13 +331,16 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
-    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
-    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, std::make_unique<EmptyGDSAuxiliaryState>());
+    auto frontierPair =
+        std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+    auto computeState = GDSComputeState(std::move(frontierPair), nullptr,
+        std::make_unique<EmptyGDSAuxiliaryState>());
     for (auto i = 0u; i < numNodes; ++i) {
         // Forward Traverse
         fwdData.init(i /*sourceNode*/);
         computeState.frontierPair->resetCurrentIter();
-        computeState.frontierPair->ptrCast<DenseFrontierPair>()->resetValue(input.context, graph, FRONTIER_UNVISITED);
+        computeState.frontierPair->ptrCast<DenseFrontierPair>()->resetValue(input.context, graph,
+            FRONTIER_UNVISITED);
         computeState.frontierPair->addNodeToNextFrontier(i);
         computeState.edgeCompute = std::make_unique<UnweightedFwdTraverse>(fwdData);
         computeState.frontierPair->setActiveNodesForNextIter();
@@ -352,7 +355,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         auto maxLevel = fwdData.levels.front().level;
         for (auto j = 0u; j < fwdData.levels.size() && maxLevel > 0;) {
             computeState.frontierPair->resetCurrentIter();
-            computeState.frontierPair->ptrCast<DenseFrontierPair>()->resetValue(input.context, graph, FRONTIER_UNVISITED);
+            computeState.frontierPair->ptrCast<DenseFrontierPair>()->resetValue(input.context,
+                graph, FRONTIER_UNVISITED);
             while (j < fwdData.levels.size() && fwdData.levels[j].level == maxLevel) {
                 computeState.frontierPair->addNodeToNextFrontier(fwdData.levels[j].node);
                 ++j;
