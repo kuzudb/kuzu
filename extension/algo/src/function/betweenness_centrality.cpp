@@ -1,4 +1,5 @@
 #include <memory>
+
 #include "binder/binder.h"
 #include "binder/expression/node_expression.h"
 #include "common/exception/runtime.h"
@@ -221,10 +222,10 @@ private:
     BCBwdData& bwdData;
 };
 
-
 class UpdateBC : public GDSVertexCompute {
 public:
-    UpdateBC(NodeOffsetMaskMap* nodeMask, BCBwdData& bwdData, BetweennessCentralityState& state, const offset_t ignore)
+    UpdateBC(NodeOffsetMaskMap* nodeMask, BCBwdData& bwdData, BetweennessCentralityState& state,
+        const offset_t ignore)
         : GDSVertexCompute{nodeMask}, bwdData{bwdData}, state{state}, ignore{ignore} {}
 
     void beginOnTableInternal(table_id_t) override {}
@@ -344,7 +345,6 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
             undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations);
 
-
         // Backward Traverse
         bwdData.init();
         // Reverse sweep.
@@ -369,7 +369,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
                 undirected ? ExtendDirection::BOTH : ExtendDirection::BWD, maxIterations);
             --maxLevel;
         }
-        auto vertexCompute = std::make_unique<UpdateBC>(sharedState->getGraphNodeMaskMap(), bwdData, state, i);
+        auto vertexCompute =
+            std::make_unique<UpdateBC>(sharedState->getGraphNodeMaskMap(), bwdData, state, i);
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     }
 
