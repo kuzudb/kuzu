@@ -425,11 +425,12 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         computeState.auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         computeState.frontierPair->resetCurrentIter();
         computeState.initSource({i, tableId});
-        GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, undirected ? ExtendDirection::BOTH : ExtendDirection::FWD,
-            maxIterations);
+        GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
+            undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations);
         // Backward Traverse
         bwdData.init();
-        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/, undirected);
+        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/,
+            undirected);
     }
 
     const auto vertexCompute =
