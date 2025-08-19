@@ -237,7 +237,7 @@ void ListColumn::scanUnfiltered(const SegmentState& state, ValueVector* resultVe
     offset_t offsetInVector = offsetInResult;
     for (auto i = 0u; i < numValuesToScan; i++) {
         auto listLen = listOffsetInfoInStorage.getListSize(i);
-        resultVector->setValue(i, list_entry_t{offsetInVector, listLen});
+        resultVector->setValue(offsetInResult + i, list_entry_t{offsetInVector, listLen});
         offsetInVector += listLen;
     }
     ListVector::resizeDataVector(resultVector, offsetInVector);
@@ -323,7 +323,7 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const SegmentState& state,
 }
 
 std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
-    ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const {
+    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const {
     auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
     const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
     // First, check if we can checkpoint list data chunk in place.
@@ -389,8 +389,10 @@ std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
                 segmentCheckpointState.offsetInSegment, segmentCheckpointState.numRows});
     }
 
-    offsetColumn->checkpointSegment(ColumnCheckpointState(
-        *persistentListChunk.getOffsetColumnChunk(), std::move(offsetChunkCheckpointStates)), pageAllocator);
+    offsetColumn->checkpointSegment(
+        ColumnCheckpointState(*persistentListChunk.getOffsetColumnChunk(),
+            std::move(offsetChunkCheckpointStates)),
+        pageAllocator);
 
     // Checkpoint size data.
     std::vector<SegmentCheckpointState> sizeChunkCheckpointStates;
