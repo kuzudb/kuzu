@@ -136,7 +136,7 @@ struct BCBwdData {
 
     void init() {
         // This can be done in parallel.
-        for(auto& dep : dependencyScores) {
+        for (auto& dep : dependencyScores) {
             dep = double{};
         }
     }
@@ -187,7 +187,8 @@ private:
 
 class BwdTraverse : public EdgeCompute {
 public:
-    explicit BwdTraverse(BCFwdData& fwdData, BCBwdData& bwdData) : fwdData{fwdData}, bwdData{bwdData} {}
+    explicit BwdTraverse(BCFwdData& fwdData, BCBwdData& bwdData)
+        : fwdData{fwdData}, bwdData{bwdData} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
@@ -201,7 +202,7 @@ public:
             const auto weight = 1;
             if (nbrDistance + weight == curDistance) {
                 auto nbrPaths = fwdData.nodePathData[nbrNodeID.offset].numPaths.load();
-                auto scoreToAdd = ((double)nbrPaths/curPaths) * (1 + curScore);
+                auto scoreToAdd = ((double)nbrPaths / curPaths) * (1 + curScore);
                 bwdData.dependencyScores[nbrNodeID.offset].fetch_add(scoreToAdd);
             }
         });
@@ -317,28 +318,29 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         bwdData.init();
 
         // Reverse sweep.
-        std::sort(fwdData.levels.begin(), fwdData.levels.end(), std::greater<BCFwdData::LevelData>{});
+        std::sort(fwdData.levels.begin(), fwdData.levels.end(),
+            std::greater<BCFwdData::LevelData>{});
         auto maxLevel = fwdData.levels.front().level;
-        for(auto j = 0u; j < fwdData.levels.size() && maxLevel>0;)
-        {
+        for (auto j = 0u; j < fwdData.levels.size() && maxLevel > 0;) {
             auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
             auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
-            while(j < fwdData.levels.size() && fwdData.levels[j].level == maxLevel)
-            {
+            while (j < fwdData.levels.size() && fwdData.levels[j].level == maxLevel) {
                 nextFrontier->addNode(fwdData.levels[j].node, 0);
                 ++j;
             }
-            auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+            auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier),
+                std::move(nextFrontier));
             auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
             computeState.edgeCompute = std::make_unique<BwdTraverse>(fwdData, bwdData);
             computeState.auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
             computeState.frontierPair->resetCurrentIter();
             computeState.frontierPair->setActiveNodesForNextIter();
-            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, undirected ? ExtendDirection::BOTH : ExtendDirection::BWD, maxIterations);
+            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
+                undirected ? ExtendDirection::BOTH : ExtendDirection::BWD, maxIterations);
             --maxLevel;
         }
         // TODO (Use vertex compute).
-        for(auto j = 0u; j < bwdData.dependencyScores.size(); ++j) {
+        for (auto j = 0u; j < bwdData.dependencyScores.size(); ++j) {
             if (i != j) {
                 state.betweennessCentrality[j].fetch_add(bwdData.dependencyScores[j].load());
             }
