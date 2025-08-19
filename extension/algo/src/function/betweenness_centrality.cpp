@@ -304,7 +304,7 @@ static void backwardsChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwd
 
 static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData,
     BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState,
-    const table_id_t tableId, const offset_t sourceNode) {
+    const table_id_t tableId, const offset_t sourceNode, const bool undirected) {
     // Sort so nodes are processed furthest from the source first (i.e higher levels first).
     std::sort(fwdData.levels.begin(), fwdData.levels.end(), std::greater<BCFwdData::LevelData>{});
     for (auto [lvl, cur] : fwdData.levels) {
@@ -316,6 +316,13 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData,
         // Check for any dependencies; when found update dependency scores.
         const nodeID_t nextNodeId = {cur, tableId};
         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
+            backwardsChunkCompute(chunk, fwdData, bwdData, cur);
+        }
+        if (!undirected) {
+            continue;
+        }
+
+        for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
             backwardsChunkCompute(chunk, fwdData, bwdData, cur);
         }
     }
@@ -418,12 +425,11 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         computeState.auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         computeState.frontierPair->resetCurrentIter();
         computeState.initSource({i, tableId});
-        GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::FWD,
+        GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, undirected ? ExtendDirection::BOTH : ExtendDirection::FWD,
             maxIterations);
         // Backward Traverse
         bwdData.init();
-        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId,
-            i /*sourceNode*/);
+        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/, undirected);
     }
 
     const auto vertexCompute =

@@ -48,6 +48,19 @@
 8|3.000000
 9|0.000000
 
+-STATEMENT CALL BETWEENNESS_CENTRALITY('Graph', direction:='undirected')
+    RETURN node.id, betweenness_centrality_score;
+---- 10
+0|0.000000
+1|0.000000
+2|18.500000
+3|7.500000
+4|5.000000
+5|11.500000
+6|0.000000
+7|7.500000
+8|4.500000
+9|3.500000
 
 -CASE Alias
 -LOAD_DYNAMIC_EXTENSION algo
