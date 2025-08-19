@@ -117,10 +117,7 @@ struct BCFwdData {
             path.numPaths.store(PathData{}.numPaths);
             path.pathScore.store(PathData{}.pathScore);
         }
-        for (auto i = 0u; i < levels.size(); ++i) {
-            levels[i] = LevelData{};
-            levels[i].node = i;
-        }
+        for(auto i = 0u; i < levels.size(); ++i) { levels[i] = LevelData{.level=LevelData{}.level, .node = i}; }
         nodePathData[sourceNode].numPaths.store(1);
         nodePathData[sourceNode].pathScore.store(0);
     }
@@ -197,9 +194,10 @@ public:
                 fwdData.nodePathData[nbrNodeID.offset].numPaths.fetch_add(curPaths,
                     std::memory_order_relaxed);
                 result.push_back(nbrNodeID);
-            } else if (nbrDistance == curDistance + 1) {
-                fwdData.nodePathData[nbrNodeID.offset].numPaths.fetch_add(curPaths,
-                    std::memory_order_relaxed);
+            } 
+            // Reaching here means CAS failed, so nbrDistance is correct.
+            else if (nbrDistance == curDistance+1) {
+                fwdData.nodePathData[nbrNodeID.offset].numPaths.fetch_add(curPaths, std::memory_order_relaxed);
             }
         });
         return result;
@@ -303,7 +301,7 @@ static void backwardsChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwd
 
 static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData,
     BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState,
-    const table_id_t tableId, const offset_t sourceNode, bool undirected) {
+    const table_id_t tableId, const offset_t sourceNode) {
     // Sort so nodes are processed furthest from the source first (i.e higher levels first).
     std::sort(fwdData.levels.begin(), fwdData.levels.end(), std::greater<BCFwdData::LevelData>{});
     for (auto [lvl, cur] : fwdData.levels) {
@@ -319,12 +317,6 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData,
         // Check for any dependencies; when found update dependency scores.
         const nodeID_t nextNodeId = {cur, tableId};
         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
-            backwardsChunkCompute(chunk, fwdData, bwdData, cur);
-        }
-        if (!undirected) {
-            continue;
-        }
-        for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
             backwardsChunkCompute(chunk, fwdData, bwdData, cur);
         }
     }
@@ -412,32 +404,26 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     BetweennessCentralityState state{mm, numNodes};
     BCFwdData fwdData(mm, numNodes);
     BCBwdData bwdData(mm, numNodes);
-    auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
-    auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
-    auto frontierPair =
-        std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
-    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
-    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()
-                             .maxIterations.getParamVal();
+    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>().maxIterations.getParamVal();
 
     for (auto i = 0u; i < numNodes; ++i) {
         // Forward Traverse
         fwdData.init(i /*sourceNode*/);
+        auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
+        auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
+        auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+        auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
         computeState.edgeCompute = std::make_unique<UnweightedFwdTraverse>(fwdData);
         computeState.auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         computeState.frontierPair->resetCurrentIter();
         computeState.initSource({i, tableId});
-        computeState.frontierPair->setActiveNodesForNextIter();
-        GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::FWD,
-            maxIterations);
+        GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::FWD, maxIterations);
         // Backward Traverse
         bwdData.init();
-        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/,
-            undirected);
+        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/);
     }
 
-    const auto vertexCompute =
-        std::make_unique<WriteResultsBC>(mm, sharedState, state.betweennessCentrality, undirected);
+    const auto vertexCompute = std::make_unique<WriteResultsBC>(mm, sharedState, state.betweennessCentrality, undirected);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
