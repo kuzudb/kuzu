@@ -128,37 +128,6 @@ struct BCFwdData {
     ku_vector_t<LevelData> levels;
 };
 
-// This should be our traversal wrapper. This wrapper *should* work as an
-// interface. TODO(Tanvir) implement different queues for weighted and
-// unweighted graphs. The unweighted graph does not require a priority queue.
-class BCFwdTraverse {
-public:
-    explicit BCFwdTraverse(storage::MemoryManager* mm) : heap(mm) {}
-
-    void init(const offset_t sourceNode) {
-        heap.clear();
-        push({0, sourceNode});
-    }
-
-    void push(const std::pair<double, offset_t>& val) {
-        heap.push_back(val);
-        std::push_heap(heap.begin(), heap.end(), comp);
-    }
-
-    std::pair<double, offset_t>& top() { return heap.front(); }
-
-    void pop() {
-        std::pop_heap(heap.begin(), heap.end(), comp);
-        heap.pop_back();
-    }
-
-    bool empty() const { return heap.empty(); }
-
-private:
-    ku_vector_t<std::pair<double, offset_t>> heap;
-    std::greater<std::pair<double, offset_t>> comp;
-};
-
 // dependencyScores accumulate during backwards traversal over the graph. Once
 // traversal is complete these scores should accumulate into the betweenness centrality scores.
 struct BCBwdData {
@@ -167,10 +136,12 @@ struct BCBwdData {
 
     void init() {
         // This can be done in parallel.
-        std::fill(dependencyScores.begin(), dependencyScores.end(), 0);
+        for(auto& dep : dependencyScores) {
+            dep = double{};
+        }
     }
 
-    ku_vector_t<double> dependencyScores;
+    ku_vector_t<std::atomic<double>> dependencyScores;
 };
 
 /**Compute**/
@@ -214,124 +185,39 @@ private:
     BCFwdData& fwdData;
 };
 
-// static void SSSPChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData,
-//                              BCFwdTraverse& fwdTraverse, const offset_t& cur, const double&
-//                              curWeight) {
-//     static constexpr double DEFAULT_WEIGHT = 1;
-//     (void)DEFAULT_WEIGHT;
-//     chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
-//         auto nbrId = neighbors[i].offset;
-//         if (nbrId == cur) {
-//             // Ignore self-loops.
-//             return;
-//         }
-//         const auto weight =
-//             (propertyVectors.empty() ? DEFAULT_WEIGHT :
-//             propertyVectors.front()->template getValue<double>(i));
-//         if (weight < 0) {
-//             throw common::RuntimeException(common::stringFormat(
-//                 "Found negative weight {}. This is not supported by Betweenness Centrality.",
-//                 weight));
-//         }
-//         // Check for a better path weight (all weights are initially *infinite*).
-//         // If so the number of shortest paths already accumulated must reset.
-//         // The level must also be updated accordingly.
-//         if (fwdData.nodePathData[nbrId].pathScore > curWeight + weight) {
-//             fwdData.nodePathData[nbrId].pathScore = curWeight + weight;
-//             fwdData.nodePathData[nbrId].numPaths = 0;
-//             fwdData.levels[nbrId] = {fwdData.levels[cur].level + 1, nbrId};
-//             fwdTraverse.push({curWeight + weight, nbrId});
-//         }
-//         // A path has been found matching our best path weight (potentially the first path).
-//         // The number of shortestPaths can be incremented by the number of ways to reach the
-//         parent. if (fwdData.nodePathData[nbrId].pathScore == fwdData.nodePathData[cur].pathScore
-//         + weight) {
-//             fwdData.nodePathData[nbrId].numPaths += fwdData.nodePathData[cur].numPaths;
-//         }
-//     });
-// }
-//
-//// TOOD(Tanvir): Currently always do the traversal for weighted graphs (treat unweighted
-//// edges as weight 1). This should change (we don't always need a pq).
-// static void SSSPCompute(BCFwdData& fwdData, BCFwdTraverse& fwdTraverse, graph::Graph* graph,
-//     graph::NbrScanState* scanState, const table_id_t tableId, bool undirected) {
-//     while (!fwdTraverse.empty()) {
-//         const auto [curWeight, cur] = fwdTraverse.top();
-//         fwdTraverse.pop();
-//         // If the path to get to this vertex is worse than what has already been
-//         // computed there is no further computation to do with this path.
-//         if (curWeight > fwdData.nodePathData[cur].pathScore) {
-//             continue;
-//         }
-//         // Whether a fwd or bwd scan is being done the logic for traversal remains the same.
-//         const nodeID_t nextNodeId = {cur, tableId};
-//         for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-//             SSSPChunkCompute(chunk, fwdData, fwdTraverse, cur, curWeight);
-//         }
-//         if (!undirected) {
-//             continue;
-//         }
-//         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
-//             SSSPChunkCompute(chunk, fwdData, fwdTraverse, cur, curWeight);
-//         }
-//     }
-// }
+class BwdTraverse : public EdgeCompute {
+public:
+    explicit BwdTraverse(BCFwdData& fwdData, BCBwdData& bwdData) : fwdData{fwdData}, bwdData{bwdData} {}
 
-static void backwardsChunkCompute(const graph::NbrScanState::Chunk& chunk, BCFwdData& fwdData,
-    BCBwdData& bwdData, const offset_t& cur) {
-    static constexpr double DEFAULT_WEIGHT = 1;
-    (void)DEFAULT_WEIGHT;
-    chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
-        auto nbrId = neighbors[i].offset;
-        if (nbrId == cur) {
-            // Ignore self-loops.
-            return;
-        }
-        const auto weight = propertyVectors.empty() ?
-                                DEFAULT_WEIGHT :
-                                propertyVectors.front()->template getValue<double>(i);
-        // If the path weight to reach the neighbour + the edge weight from (or to) the
-        // neighbour matches the weight of the best path to the current vertex
-        // that neighbour is a parent the current vertex depends on.
-        if (fwdData.nodePathData[nbrId].pathScore + weight == fwdData.nodePathData[cur].pathScore) {
-            bwdData.dependencyScores[nbrId] +=
-                (static_cast<double>(fwdData.nodePathData[nbrId].numPaths) /
-                    fwdData.nodePathData[cur].numPaths) *
-                (1 + bwdData.dependencyScores[cur]);
-        }
-    });
-}
-
-static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData,
-    BetweennessCentralityState& state, graph::Graph* graph, graph::NbrScanState* scanState,
-    const table_id_t tableId, const offset_t sourceNode, const bool undirected) {
-    // Sort so nodes are processed furthest from the source first (i.e higher levels first).
-    std::sort(fwdData.levels.begin(), fwdData.levels.end(), std::greater<BCFwdData::LevelData>{});
-    for (auto [lvl, cur] : fwdData.levels) {
-        // If the node was not reached during the SSSP traversal or it is the
-        // source node there is no computation to do.
-        if (lvl == 0) {
-            continue;
-        }
-        // Check for any dependencies; when found update dependency scores.
-        const nodeID_t nextNodeId = {cur, tableId};
-        for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
-            backwardsChunkCompute(chunk, fwdData, bwdData, cur);
-        }
-        if (!undirected) {
-            continue;
-        }
-
-        for (auto chunk : graph->scanFwd(nextNodeId, *scanState)) {
-            backwardsChunkCompute(chunk, fwdData, bwdData, cur);
-        }
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+        bool) override {
+        auto curDistance = fwdData.nodePathData[boundNodeID.offset].pathScore.load();
+        auto curPaths = fwdData.nodePathData[boundNodeID.offset].numPaths.load();
+        auto curScore = bwdData.dependencyScores[boundNodeID.offset].load();
+        chunk.forEach([&](auto neighbors, auto, auto i) {
+            auto nbrNodeID = neighbors[i];
+            auto nbrDistance = fwdData.nodePathData[nbrNodeID.offset].pathScore.load();
+            // Must change for weighted graphs
+            const auto weight = 1;
+            if (nbrDistance + weight == curDistance) {
+                auto nbrPaths = fwdData.nodePathData[nbrNodeID.offset].numPaths.load();
+                auto scoreToAdd = ((double)nbrPaths/curPaths) * (1 + curScore);
+                bwdData.dependencyScores[nbrNodeID.offset].fetch_add(scoreToAdd);
+            }
+        });
+        // We always return empty. We populate the next frontier ourselves.
+        // Using a reverse sweep.
+        return {};
     }
-    for (auto node = 0u; node < state.numNodes; ++node) {
-        if (node != sourceNode) {
-            state.betweennessCentrality[node].fetch_add(bwdData.dependencyScores[node]);
-        }
+
+    std::unique_ptr<EdgeCompute> copy() override {
+        return std::make_unique<BwdTraverse>(fwdData, bwdData);
     }
-}
+
+private:
+    BCFwdData& fwdData;
+    BCBwdData& bwdData;
+};
 
 /**RESULTS**/
 
@@ -429,8 +315,34 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations);
         // Backward Traverse
         bwdData.init();
-        backwardsCompute(fwdData, bwdData, state, graph, scanState.get(), tableId, i /*sourceNode*/,
-            undirected);
+
+        // Reverse sweep.
+        std::sort(fwdData.levels.begin(), fwdData.levels.end(), std::greater<BCFwdData::LevelData>{});
+        auto maxLevel = fwdData.levels.front().level;
+        for(auto j = 0u; j < fwdData.levels.size() && maxLevel>0;)
+        {
+            auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
+            auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
+            while(j < fwdData.levels.size() && fwdData.levels[j].level == maxLevel)
+            {
+                nextFrontier->addNode(fwdData.levels[j].node, 0);
+                ++j;
+            }
+            auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+            auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
+            computeState.edgeCompute = std::make_unique<BwdTraverse>(fwdData, bwdData);
+            computeState.auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
+            computeState.frontierPair->resetCurrentIter();
+            computeState.frontierPair->setActiveNodesForNextIter();
+            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, undirected ? ExtendDirection::BOTH : ExtendDirection::BWD, maxIterations);
+            --maxLevel;
+        }
+        // TODO (Use vertex compute).
+        for(auto j = 0u; j < bwdData.dependencyScores.size(); ++j) {
+            if (i != j) {
+                state.betweennessCentrality[j].fetch_add(bwdData.dependencyScores[j].load());
+            }
+        }
     }
 
     const auto vertexCompute =
