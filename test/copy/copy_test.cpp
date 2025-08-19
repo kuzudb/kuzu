@@ -37,7 +37,7 @@ public:
         const bool inDBInit = ctx == nullptr;
 
         const bool inCheckpoint =
-            ctx && !ctx->getTransactionManagerUnsafe()->hasActiveWriteTransactionNoLock();
+            ctx && !transaction::TransactionManager::Get(*ctx)->hasActiveWriteTransactionNoLock();
         const bool inCommit = !inCheckpoint && ctx && ctx->getTransaction() &&
                               ctx->getTransaction()->getCommitTS() != common::INVALID_TRANSACTION;
         const bool inExecute = (!inCommit && !inCheckpoint);

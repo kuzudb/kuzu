@@ -16,7 +16,7 @@ namespace testing {
 class PrivateGraphTest : public BaseGraphTest {
 protected:
     static transaction::TransactionManager* getTransactionManager(main::Database& database) {
-        return database.transactionManager.get();
+        return database.getTransactionManager();
     }
     static transaction::TransactionMode getTransactionMode(main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->getTransactionMode();

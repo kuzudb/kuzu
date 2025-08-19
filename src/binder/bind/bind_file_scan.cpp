@@ -183,9 +183,9 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindQueryScanSource(const BaseScanS
 }
 
 static TableFunction getObjectScanFunc(const std::string& dbName, const std::string& tableName,
-    const main::ClientContext* clientContext) {
+    main::ClientContext* clientContext) {
     // Bind external database table
-    auto attachedDB = clientContext->getDatabaseManager()->getAttachedDatabase(dbName);
+    auto attachedDB = main::DatabaseManager::Get(*clientContext)->getAttachedDatabase(dbName);
     auto attachedCatalog = attachedDB->getCatalog();
     auto entry = attachedCatalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     return entry->ptrCast<TableCatalogEntry>()->getScanFunction();
@@ -263,8 +263,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
             replacementData->bindInput.extraInput = std::move(replaceExtraInput);
             replacementData->bindInput.binder = this;
             bindData = func.bindFunc(clientContext, &replacementData->bindInput);
-        } else if (clientContext->getDatabaseManager()->hasDefaultDatabase()) {
-            auto dbName = clientContext->getDatabaseManager()->getDefaultDatabase();
+        } else if (main::DatabaseManager::Get(*clientContext)->hasDefaultDatabase()) {
+            auto dbName = main::DatabaseManager::Get(*clientContext)->getDefaultDatabase();
             func = getObjectScanFunc(dbName, objectSource->objectNames[0], clientContext);
             bindData = func.bindFunc(clientContext, &bindInput);
         } else {

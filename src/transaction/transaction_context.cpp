@@ -56,7 +56,7 @@ void TransactionContext::commit() {
     if (!hasActiveTransaction()) {
         return;
     }
-    clientContext.getDatabase()->transactionManager->commit(clientContext, activeTransaction);
+    clientContext.getDatabase()->getTransactionManager()->commit(clientContext, activeTransaction);
     clearTransaction();
 }
 
@@ -64,7 +64,8 @@ void TransactionContext::rollback() {
     if (!hasActiveTransaction()) {
         return;
     }
-    clientContext.getDatabase()->transactionManager->rollback(clientContext, activeTransaction);
+    clientContext.getDatabase()->getTransactionManager()->rollback(clientContext,
+        activeTransaction);
     clearTransaction();
 }
 
@@ -75,7 +76,7 @@ void TransactionContext::clearTransaction() {
 
 void TransactionContext::beginTransactionInternal(TransactionType transactionType) {
     KU_ASSERT(!activeTransaction);
-    activeTransaction = clientContext.getDatabase()->transactionManager->beginTransaction(
+    activeTransaction = clientContext.getDatabase()->getTransactionManager()->beginTransaction(
         clientContext, transactionType);
 }
 

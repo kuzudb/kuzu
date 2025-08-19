@@ -164,7 +164,7 @@ bool ExtensionUtils::isOfficialExtension(const std::string& extension) {
 }
 
 void ExtensionUtils::registerIndexType(main::Database& database, storage::IndexType type) {
-    database.storageManager->registerIndexType(std::move(type));
+    database.getStorageManager()->registerIndexType(std::move(type));
 }
 
 ExtensionLibLoader::ExtensionLibLoader(const std::string& extensionName, const std::string& path)

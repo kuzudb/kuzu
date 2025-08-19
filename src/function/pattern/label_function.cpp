@@ -3,6 +3,7 @@
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/scalar_function_expression.h"
 #include "binder/expression_binder.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "function/binary_function_executor.h"
 #include "function/list/functions/list_extract_function.h"
@@ -10,8 +11,6 @@
 #include "function/scalar_function.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/struct/vector_struct_functions.h"
-#include "main/client_context.h"
-#include <catalog/catalog_entry/rel_group_catalog_entry.h>
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
