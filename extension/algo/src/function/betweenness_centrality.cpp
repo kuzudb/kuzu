@@ -313,10 +313,6 @@ static void backwardsCompute(BCFwdData& fwdData, BCBwdData& bwdData,
         if (lvl == 0) {
             continue;
         }
-        // Nothing to compute if we can't reach this node.
-        if (fwdData.nodePathData[cur].numPaths == 0) {
-            continue;
-        }
         // Check for any dependencies; when found update dependency scores.
         const nodeID_t nextNodeId = {cur, tableId};
         for (auto chunk : graph->scanBwd(nextNodeId, *scanState)) {
